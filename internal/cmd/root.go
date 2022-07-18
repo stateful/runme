@@ -25,7 +25,7 @@ func Root() *cobra.Command {
 	pflags.StringVar(&chdir, "chdir", ".", "Switch to a different working directory before exeucing the command.")
 	pflags.StringVar(&fileName, "filename", "README.md", "A name of the README file.")
 
-	cmd.AddCommand(execCmd())
+	cmd.AddCommand(runCmd())
 	cmd.AddCommand(listCmd())
 	cmd.AddCommand(tasksCmd())
 

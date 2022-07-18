@@ -16,11 +16,12 @@ import (
 	"github.com/stateful/rdme/internal/parser"
 )
 
-func execCmd() *cobra.Command {
+func runCmd() *cobra.Command {
 	cmd := cobra.Command{
-		Use:   "exec",
-		Short: "Execute a selected command.",
-		Args:  cobra.ExactArgs(1),
+		Use:     "run",
+		Aliases: []string{"exec"},
+		Short:   "Run a selected command.",
+		Args:    cobra.ExactArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			p, err := newParser()
 			if err != nil {
