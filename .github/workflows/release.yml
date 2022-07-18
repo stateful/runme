@@ -1,15 +1,14 @@
 name: release
-
 on:
   push:
     tags:
       - '*'
-
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
 
     permissions:
+      contents: read
       deployments: write
       packages: write
 
@@ -17,8 +16,6 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       -
         name: Prepare
         id: prepare
