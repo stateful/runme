@@ -33,28 +33,28 @@ var tpl = template.Must(template.New("").Funcs(template.FuncMap{"split": split})
 
 ### macOS:
 
-* [stateful_darwin_x86_64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_darwin_x86_64.tar.gz)
-* [stateful_darwin_arm64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_darwin_arm64.tar.gz)
+* [rdme_darwin_x86_64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_darwin_x86_64.tar.gz)
+* [rdme_darwin_arm64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_darwin_arm64.tar.gz)
 
 ### Linux
 
-* [stateful_linux_x86_64.deb](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.deb)
-* [stateful_linux_arm64.deb](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.deb)
-* [stateful_linux_x86_64.rpm](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.rpm)
-* [stateful_linux_arm64.rpm](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.rpm)
-* [stateful_linux_x86_64.apk](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.apk)
-* [stateful_linux_arm64.apk](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.apk)
-* [stateful_linux_x86_64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.tar.gz)
-* [stateful_linux_arm64.tar.tz](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.tar.gz)
+* [rdme_linux_x86_64.deb](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.deb)
+* [rdme_linux_arm64.deb](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.deb)
+* [rdme_linux_x86_64.rpm](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.rpm)
+* [rdme_linux_arm64.rpm](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.rpm)
+* [rdme_linux_x86_64.apk](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.apk)
+* [rdme_linux_arm64.apk](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.apk)
+* [rdme_linux_x86_64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.tar.gz)
+* [rdme_linux_arm64.tar.tz](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.tar.gz)
 
 ### Windows
 
-* [stateful_windows_x86_64.zip](https://download.stateful.com/rdme/{{ .Version }}/rdme_windows_x86_64.zip)
-* [stateful_windows_arm64.zip](https://download.stateful.com/rdme/{{ .Version }}/rdme_windows_arm64.zip)
+* [rdme_windows_x86_64.zip](https://download.stateful.com/rdme/{{ .Version }}/rdme_windows_x86_64.zip)
+* [rdme_windows_arm64.zip](https://download.stateful.com/rdme/{{ .Version }}/rdme_windows_arm64.zip)
 
 ## Changelog
 
-[Full changelog](https://github.com/stateful/rdme/compare/{{ .PreviousVersion }}...{{ .Version }})
+[Full changelog](https://github.com/stateful/rdme/compare/{{ or .PreviousVersion "main" }}...{{ .Version }})
 
 {{ range $value := .Commits -}}
 * {{ $value.SHA }}: {{ (split "\n" $value.Commit.Message)._0 }} ([@{{ $value.Author.Login }}]({{ $value.Author.HTMLURL }}))
@@ -161,12 +161,19 @@ func main() {
 	}
 
 	var (
-		commits     []*github.RepositoryCommit
-		commitsPage int
+		commits                []*github.RepositoryCommit
+		commitsPage            int
+		previousReleaseTagName string
 	)
 
+	if previousRelease != nil {
+		previousReleaseTagName = previousRelease.GetTagName()
+	} else {
+		previousReleaseTagName = "main"
+	}
+
 	for {
-		result, resp, err := client.Repositories.CompareCommits(ctx, flagsConfig.Owner, flagsConfig.Repo, previousRelease.GetTagName(), currentTag, &github.ListOptions{
+		result, resp, err := client.Repositories.CompareCommits(ctx, flagsConfig.Owner, flagsConfig.Repo, previousReleaseTagName, currentTag, &github.ListOptions{
 			Page:    commitsPage,
 			PerPage: 100,
 		})
@@ -184,7 +191,7 @@ func main() {
 	}
 
 	data := tplData{
-		PreviousVersion: previousRelease.GetTagName(),
+		PreviousVersion: previousReleaseTagName,
 		Version:         strings.TrimLeft(currentTag, "v"),
 		Commits:         commits,
 	}
