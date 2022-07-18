@@ -2,19 +2,16 @@ package cmd
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/rdme/internal/parser"
 	"github.com/stateful/rdme/internal/tasks"
 )
 
 func tasksCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "tasks",
-		Short: "Generates task.json for VS Code editor.",
+		Short: "Generates task.json for VS Code editor. Caution, this is experimental.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: like can omit because Args should do the validation.
@@ -22,12 +19,11 @@ func tasksCmd() *cobra.Command {
 				return cmd.Help()
 			}
 
-			source, err := os.ReadFile(filepath.Join(chdir, fileName))
+			p, err := newParser()
 			if err != nil {
 				return errors.Wrap(err, "fail to read README file")
 			}
 
-			p := parser.New(source)
 			snippets := p.Snippets()
 
 			snippet, found := p.Snippets().Lookup(args[0])

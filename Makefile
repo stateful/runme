@@ -6,11 +6,11 @@ DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 VERSION := $(shell git describe --tags)-$(GIT_SHA_SHORT)
 
 .PHONY: build
-build: generate
+build:
 	go build -o rdme -ldflags="-s -w \
-	  -X 'main.BuildDate=$(DATE)'" \
+      -X 'main.BuildDate=$(DATE)' \
       -X 'main.BuildVersion=$(subst v,,$(VERSION))' \
-      -X 'main.Commit=$(GIT_SHA)' \
+      -X 'main.Commit=$(GIT_SHA)'" \
       main.go
 
 .PHONY: test
