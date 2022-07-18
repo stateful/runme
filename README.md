@@ -9,6 +9,15 @@ To select a different file than `README.md`, use `--filename`.
 
 ## Installation
 
+The easiest way is to use Homebrew:
+
+```sh
+$ brew install stateful/tap/rdme
+```
+
+Alternatively, check out [rdme's releases](https://github.com/stateful/rdme/releases) and select
+a binary for your operating system.
+
 If you have Go developer tools installed, you can install it with `go install`:
 
 ```sh
