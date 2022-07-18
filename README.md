@@ -1,15 +1,15 @@
 # rdme
 
-Execute code snippets directly from Markdown files, defaulting to local `README.md`.
+Discover and run code snippets directly from your `README.md` or other markdowns (defaults to local `README.md`).
 
-rdme extracts all code snippets defined in code blocks and allows to explore and execute them.
+rdme makes a best effort approach to extracts all code snippets defined in code blocks and allowing to explore and execute them. rdme is currently in early alpha.
 
 You can execute commands from a different directory using a `--chdir` flag.
 To select a different file than `README.md`, use `--filename`.
 
 ## Installation
 
-The easiest way is to use Homebrew:
+The easiest way on MacOS is to use Homebrew:
 
 ```sh
 $ brew install stateful/tap/rdme
@@ -24,10 +24,10 @@ If you have Go developer tools installed, you can install it with `go install`:
 $ go install github.com/stateful/rdme@latest
 ```
 
-## Contributing
+## Contributing & Feedback
 
-TBD
+Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/MFtwcSvJsk). We're looking forward to hear from you.
 
 ## LICENCE
 
-APACHE LICENSE, VERSION 2.0
+Apache License, Version 2.0
