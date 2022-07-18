@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/cli/cli/v2/pkg/iostreams"
+	"github.com/cli/cli/v2/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -18,9 +22,20 @@ func listCmd() *cobra.Command {
 
 			snippets := p.Snippets()
 
+			// there might be a way to get this from cmd
+			io := iostreams.System()
+			table := utils.NewTablePrinter(io)
+
 			for _, snippet := range snippets {
-				cmd.Printf("%s -> %s [+%d] (%s)\n", snippet.Name(), snippet.FirstCmd(), len(snippet.Cmds())-1, snippet.Description())
+				table.AddField(snippet.Name(), nil, nil)
+				table.AddField("->", nil, nil)
+				table.AddField(snippet.FirstCmd(), nil, nil)
+				table.AddField(fmt.Sprintf("[+%d]", len(snippet.Cmds())-1), nil, nil)
+				table.AddField(snippet.Description(), nil, nil)
+				table.EndRow()
 			}
+
+			table.Render()
 
 			return nil
 		},
