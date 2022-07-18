@@ -3,6 +3,7 @@ module github.com/stateful/rdme
 go 1.18
 
 require (
+	github.com/cli/cli/v2 v2.14.2
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/yuin/goldmark v1.4.12
@@ -11,8 +12,6 @@ require (
 
 require (
 	github.com/briandowns/spinner v1.18.1 // indirect
-	github.com/cli/cli v1.14.0 // indirect
-	github.com/cli/cli/v2 v2.14.2 // indirect
 	github.com/cli/safeexec v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.7.0 // indirect
