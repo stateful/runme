@@ -55,7 +55,7 @@ archives:
 
 blobs:
   - provider: gs
-    bucket: rdme-cli-artifacts-a1a00b
+    bucket: rdme-artifacts-b4e64f
     ids:
     - cli
     folder: "{{ .Version }}"
