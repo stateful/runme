@@ -11,11 +11,14 @@ jobs:
       contents: read
       deployments: write
       packages: write
+      id-token: write
 
     steps:
       -
         name: Checkout
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       -
         name: Prepare
         id: prepare
@@ -34,13 +37,15 @@ jobs:
         with:
           go-version: '1.18'
       -
+        name: Auth to GCP
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          create_credentials_file: true
+          export_environment_variables: true
+      -
         name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v0
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-          export_default_credentials: true
-          credentials_file_path: ${{ runner.temp }}/gcloud
       -
         name: Release notes
         run: |
