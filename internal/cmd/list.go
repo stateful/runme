@@ -1,12 +1,8 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/rdme/internal/parser"
 )
 
 func listCmd() *cobra.Command {
@@ -14,12 +10,11 @@ func listCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List available commands.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			source, err := os.ReadFile(filepath.Join(chdir, fileName))
+			p, err := newParser()
 			if err != nil {
 				return errors.Wrap(err, "fail to read README file")
 			}
 
-			p := parser.New(source)
 			snippets := p.Snippets()
 
 			for _, snippet := range snippets {

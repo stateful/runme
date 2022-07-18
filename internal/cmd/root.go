@@ -11,10 +11,13 @@ var (
 
 func Root() *cobra.Command {
 	cmd := cobra.Command{
-		Use:           "mdexec",
+		Use:           "rdme",
 		Short:         "Execute commands directly from a README",
 		SilenceErrors: true,
 		SilenceUsage:  true,
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
 
 	pflags := cmd.PersistentFlags()
