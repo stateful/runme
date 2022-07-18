@@ -1,0 +1,20 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.0.1
+  hooks:
+  - id: check-yaml
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+    exclude: ^internal/standupper/.snapshots/
+- repo: https://github.com/TekWizely/pre-commit-golang
+  rev: v1.0.0-beta.5
+  hooks:
+  - id: go-fumpt
+  - id: go-build-mod
+  - id: go-mod-tidy
+  - id: go-test-mod
+    args: ["-timeout=5s"]
+  - id: go-revive-repo-mod
+  - id: go-staticcheck-mod
+  - id: go-sec-repo-mod
+    args: ["-exclude=G204,G104", "-exclude-generated"]

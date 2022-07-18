@@ -1,0 +1,60 @@
+name: ci
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.18']
+    name: Lint with Go ${{ matrix.go }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Install dependencies
+        run: make install/dev
+      # It duplicates running linter from pre-commit
+      # but as revive is set up differently, we want
+      # to make sure that `make lint` also works.
+      - name: Run lint from Makefile
+        run: make lint
+      - uses: pre-commit/action@v2.0.3
+      - name: pre-commit
+        run: pre-commit run --files $(git diff-tree --no-commit-id --name-only -r HEAD)
+
+  build-and-test:
+    # Don't use make here as this job needs to be cross-platform.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go: ['1.18']
+        os: [ubuntu-latest, windows-latest]
+    name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Build
+        run: |
+          go build -o rdme main.go
+          ./rdme --version
+      - name: Test
+        run: TZ=UTC go test ./...
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Test
+        run: |
+          Set-Timezone -Id "UTC" -PassThru
+          go test ./...
+        if: ${{ matrix.os == 'windows-latest' }}
