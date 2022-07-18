@@ -22,10 +22,9 @@ func execCmd() *cobra.Command {
 		Short: "Execute a selected command.",
 		Args:  cobra.ExactArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			dir := cobra.ShellCompDirectiveNoFileComp
-
 			p, err := newParser()
 			if err != nil {
+				cmd.PrintErrf("failed to get parser: %s", err)
 				return nil, cobra.ShellCompDirectiveError
 			}
 
@@ -38,7 +37,7 @@ func execCmd() *cobra.Command {
 				}
 			}
 
-			return filtered, dir
+			return filtered, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: like can omit because Args should do the validation.
