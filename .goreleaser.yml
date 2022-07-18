@@ -4,7 +4,7 @@ snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
 builds:
-- id: rdme
+- id: cli
   main: .
   env:
     - CGO_ENABLED=0
