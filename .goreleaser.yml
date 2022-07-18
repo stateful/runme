@@ -51,7 +51,7 @@ archives:
       format: zip
     files:
       - README.md
-      - LICENSE.md
+      - LICENSE
 
 blobs:
   - provider: gs
