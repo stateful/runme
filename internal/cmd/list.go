@@ -7,8 +7,9 @@ import (
 
 func listCmd() *cobra.Command {
 	cmd := cobra.Command{
-		Use:   "list",
-		Short: "List available commands.",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List available commands.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := newParser()
 			if err != nil {
