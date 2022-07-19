@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/cli/v2/utils"
@@ -26,11 +27,17 @@ func listCmd() *cobra.Command {
 			io := iostreams.System()
 			table := utils.NewTablePrinter(io)
 
+			// table header
+			table.AddField(strings.ToUpper("Name"), nil, nil)
+			table.AddField(strings.ToUpper("First Command"), nil, nil)
+			table.AddField(strings.ToUpper("Count"), nil, nil)
+			table.AddField(strings.ToUpper("Description"), nil, nil)
+			table.EndRow()
+
 			for _, snippet := range snippets {
 				table.AddField(snippet.Name(), nil, nil)
-				table.AddField("->", nil, nil)
 				table.AddField(snippet.FirstCmd(), nil, nil)
-				table.AddField(fmt.Sprintf("[+%d]", len(snippet.Cmds())-1), nil, nil)
+				table.AddField(fmt.Sprintf("%d", len(snippet.Cmds())), nil, nil)
 				table.AddField(snippet.Description(), nil, nil)
 				table.EndRow()
 			}
