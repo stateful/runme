@@ -53,4 +53,16 @@ go run main.go
 	snippets4 := p4.Snippets()
 	assert.Len(t, snippets4, 1)
 	assert.EqualValues(t, []string{"run"}, snippets4.Names())
+
+	p5 := New([]byte(`
+Feedback can be patched:
+` + "```sh { name=patch-feedback }" + `
+$ curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f/ -d '{"message": "Modified!"}'
+{"id":"a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f"}
+` + "```"))
+	snippets5 := p5.Snippets()
+	assert.Len(t, snippets5, 1)
+	assert.EqualValues(t, []string{"patch-feedback"}, snippets5.Names())
+	p5Snippet, _ := snippets5.Lookup("patch-feedback")
+	assert.Equal(t, []string{`curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f/ -d '{"message": "Modified!"}'`}, p5Snippet.Cmds())
 }

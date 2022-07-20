@@ -42,9 +42,7 @@ func listCmd() *cobra.Command {
 				table.EndRow()
 			}
 
-			table.Render()
-
-			return nil
+			return errors.Wrap(table.Render(), "failed to render")
 		},
 	}
 	return &cmd
