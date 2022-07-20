@@ -32,6 +32,7 @@ func Root() *cobra.Command {
 
 	cmd.AddCommand(runCmd())
 	cmd.AddCommand(listCmd())
+	cmd.AddCommand(printCmd())
 	cmd.AddCommand(tasksCmd())
 
 	return &cmd
