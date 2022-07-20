@@ -10,9 +10,10 @@ import (
 
 func tasksCmd() *cobra.Command {
 	cmd := cobra.Command{
-		Use:   "tasks",
-		Short: "Generates task.json for VS Code editor. Caution, this is experimental.",
-		Args:  cobra.ExactArgs(1),
+		Use:    "tasks",
+		Short:  "Generates task.json for VS Code editor. Caution, this is experimental.",
+		Hidden: true,
+		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: like can omit because Args should do the validation.
 			if len(args) != 1 {
@@ -33,7 +34,7 @@ func tasksCmd() *cobra.Command {
 
 			tasksDef, err := tasks.GenerateFromShellCommand(
 				snippet.Name(),
-				snippet.FirstCmd(),
+				snippet.FirstLine(),
 				&tasks.ShellCommandOpts{
 					Cwd: chdir,
 				},
