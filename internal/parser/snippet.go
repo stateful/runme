@@ -12,7 +12,18 @@ type Snippet struct {
 	language    string
 }
 
-func (s Snippet) Cmds() []string {
+func (s Snippet) Executable() string {
+	if s.language != "" {
+		return s.language
+	}
+	return "sh"
+}
+
+func (s Snippet) Content() string {
+	return strings.TrimSpace(s.content)
+}
+
+func (s Snippet) Lines() []string {
 	var cmds []string
 
 	firstHasDollar := false
@@ -41,8 +52,8 @@ func (s Snippet) Cmds() []string {
 	return cmds
 }
 
-func (s Snippet) FirstCmd() string {
-	cmds := s.Cmds()
+func (s Snippet) FirstLine() string {
+	cmds := s.Lines()
 	if len(cmds) > 0 {
 		return cmds[0]
 	}

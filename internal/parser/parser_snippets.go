@@ -37,12 +37,19 @@ func (p *Parser) Snippets() (result Snippets) {
 		}
 
 		if s.Name() == "" {
-			fragments := strings.Split(s.FirstCmd(), " ")
+			fragments := strings.Split(s.FirstLine(), " ")
 			executable := fragments[0]
 
 			// Usually the command looks like this: EXECUTABLE subcommand arg1, arg2, ...
 			if len(fragments) > 1 {
-				executable += "-" + fragments[1]
+				suffixBuf := bytes.NewBuffer(nil)
+				for _, r := range strings.ToLower(fragments[1]) {
+					if r >= '0' && r <= '9' || r >= 'a' && r <= 'z' {
+						_, _ = suffixBuf.WriteRune(r)
+					}
+				}
+
+				executable += "-" + suffixBuf.String()
 			}
 			nameIndexes[executable]++
 

@@ -2,15 +2,15 @@ package cmd
 
 import (
 	"context"
-	"io"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/rdme/internal/parser"
+	"github.com/stateful/rdme/internal/runner"
 )
 
 func runCmd() *cobra.Command {
@@ -60,33 +60,41 @@ func runCmd() *cobra.Command {
 				cancel()
 			}()
 
-			sh, ok := os.LookupEnv("SHELL")
-			if !ok {
-				sh = "/bin/sh"
+			executable, err := newExecutable(cmd, snippet)
+			if err != nil {
+				return errors.WithStack(err)
 			}
 
-			stdin := cmd.InOrStdin()
-			stdout, stderr := cmd.OutOrStdout(), cmd.ErrOrStderr()
-
-			for _, cmd := range snippet.Cmds() {
-				if err := execSingle(ctx, sh, cmd, stdin, stdout, stderr); err != nil {
-					return err
-				}
-			}
-
-			return nil
+			return errors.WithStack(executable.Run(ctx))
 		},
 	}
 
 	return &cmd
 }
 
-func execSingle(ctx context.Context, sh, cmd string, stdin io.Reader, stdout, stderr io.Writer) error {
-	c := exec.CommandContext(ctx, sh, []string{"-c", cmd}...)
-	c.Dir = chdir
-	c.Stderr = stderr
-	c.Stdout = stdout
-	c.Stdin = stdin
-
-	return errors.Wrapf(c.Run(), "failed to run command %q", cmd)
+func newExecutable(cmd *cobra.Command, s parser.Snippet) (runner.Executable, error) {
+	switch s.Executable() {
+	case "sh":
+		return &runner.Shell{
+			Cmds: s.Lines(),
+			Base: runner.Base{
+				Dir:    chdir,
+				Stdin:  cmd.InOrStdin(),
+				Stdout: cmd.OutOrStdout(),
+				Stderr: cmd.ErrOrStderr(),
+			},
+		}, nil
+	case "go":
+		return &runner.Go{
+			Source: s.Content(),
+			Base: runner.Base{
+				Dir:    chdir,
+				Stdin:  cmd.InOrStdin(),
+				Stdout: cmd.OutOrStdout(),
+				Stderr: cmd.ErrOrStderr(),
+			},
+		}, nil
+	default:
+		return nil, errors.Errorf("unknown executable: %q", s.Executable())
+	}
 }
