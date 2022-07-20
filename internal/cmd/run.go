@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/pkg/errors"
@@ -15,28 +14,11 @@ import (
 
 func runCmd() *cobra.Command {
 	cmd := cobra.Command{
-		Use:     "run",
-		Aliases: []string{"exec"},
-		Short:   "Run a selected command.",
-		Args:    cobra.ExactArgs(1),
-		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := newParser()
-			if err != nil {
-				cmd.PrintErrf("failed to get parser: %s", err)
-				return nil, cobra.ShellCompDirectiveError
-			}
-
-			names := p.Snippets().Names()
-
-			var filtered []string
-			for _, name := range names {
-				if strings.HasPrefix(name, toComplete) {
-					filtered = append(filtered, name)
-				}
-			}
-
-			return filtered, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
-		},
+		Use:               "run",
+		Aliases:           []string{"exec"},
+		Short:             "Run a selected command.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := newParser()
 			if err != nil {
