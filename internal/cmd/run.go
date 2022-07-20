@@ -6,14 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
-	"github.com/google/shlex"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/rdme/internal/parser"
 )
 
 func runCmd() *cobra.Command {
@@ -41,11 +38,6 @@ func runCmd() *cobra.Command {
 			return filtered, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: like can omit because Args should do the validation.
-			if len(args) != 1 {
-				return cmd.Help()
-			}
-
 			p, err := newParser()
 			if err != nil {
 				return errors.Wrap(err, "fail to read README file")
@@ -53,7 +45,7 @@ func runCmd() *cobra.Command {
 
 			snippets := p.Snippets()
 
-			snippet, found := p.Snippets().Lookup(args[0])
+			snippet, found := snippets.Lookup(args[0])
 			if !found {
 				return errors.Errorf("command %q not found; known command names: %s", args[0], snippets.Names())
 			}
@@ -76,10 +68,6 @@ func runCmd() *cobra.Command {
 			stdin := cmd.InOrStdin()
 			stdout, stderr := cmd.OutOrStdout(), cmd.ErrOrStderr()
 
-			if len(snippet.Cmds()) == 1 {
-				return execSingle(ctx, sh, snippet.FirstCmd(), stdin, stdout, stderr)
-			}
-
 			for _, cmd := range snippet.Cmds() {
 				if err := execSingle(ctx, sh, cmd, stdin, stdout, stderr); err != nil {
 					return err
@@ -94,25 +82,11 @@ func runCmd() *cobra.Command {
 }
 
 func execSingle(ctx context.Context, sh, cmd string, stdin io.Reader, stdout, stderr io.Writer) error {
-	fragments, err := shlex.Split(cmd)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse command %q", cmd)
-	}
-
-	c := exec.CommandContext(ctx, sh, []string{"-c", strings.Join(fragments, " ")}...)
+	c := exec.CommandContext(ctx, sh, []string{"-c", cmd}...)
 	c.Dir = chdir
 	c.Stderr = stderr
 	c.Stdout = stdout
 	c.Stdin = stdin
 
-	return errors.Wrapf(c.Run(), "failed to run command %s", cmd)
-}
-
-func newParser() (*parser.Parser, error) {
-	source, err := os.ReadFile(filepath.Join(chdir, fileName))
-	if err != nil {
-		return nil, errors.Wrap(err, "fail to read README file")
-	}
-
-	return parser.New(source), nil
+	return errors.Wrapf(c.Run(), "failed to run command %q", cmd)
 }

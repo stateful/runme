@@ -17,4 +17,4 @@ repos:
   - id: go-revive-repo-mod
   - id: go-staticcheck-mod
   - id: go-sec-repo-mod
-    args: ["-exclude=G204,G104", "-exclude-generated"]
+    args: ["-exclude=G204,G304", "-exclude-generated"]

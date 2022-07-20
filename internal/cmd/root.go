@@ -1,7 +1,12 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/rdme/internal/parser"
 )
 
 var (
@@ -30,4 +35,13 @@ func Root() *cobra.Command {
 	cmd.AddCommand(tasksCmd())
 
 	return &cmd
+}
+
+func newParser() (*parser.Parser, error) {
+	source, err := os.ReadFile(filepath.Join(chdir, fileName))
+	if err != nil {
+		return nil, errors.Wrap(err, "fail to read README file")
+	}
+
+	return parser.New(source), nil
 }
