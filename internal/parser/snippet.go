@@ -123,6 +123,8 @@ func (s Snippets) PredictLangs() Snippets {
 	// 			name: head/predictions/probabilities:0
 	// 	Method name is: tensorflow/serving/classify
 
+	// requires $ curl -LO https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-2.5.0.tar.gz
+	// in $ cat libtensorflow-cpu-darwin-x86_64-2.5.0.tar.gz | tar xz --directory /usr/local
 	result := model.Exec([]tf.Output{
 		model.Op("head/Tile", 0),
 		model.Op("head/predictions/probabilities", 0),
