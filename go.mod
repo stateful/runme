@@ -4,6 +4,8 @@ go 1.18
 
 require (
 	github.com/cli/cli/v2 v2.14.2
+	github.com/galeone/tensorflow/tensorflow/go v0.0.0-20220620094824-6bb01e3a58fa
+	github.com/galeone/tfgo v0.0.0-20220622151904-fc7b7ccad83b
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/yuin/goldmark v1.4.12

@@ -22,6 +22,7 @@ func listCmd() *cobra.Command {
 			}
 
 			snippets := p.Snippets()
+			snippets.PredictLangs()
 
 			// there might be a way to get this from cmd
 			io := iostreams.System()
@@ -32,13 +33,17 @@ func listCmd() *cobra.Command {
 			table.AddField(strings.ToUpper("First Command"), nil, nil)
 			table.AddField(strings.ToUpper("Count"), nil, nil)
 			table.AddField(strings.ToUpper("Description"), nil, nil)
+			table.AddField(strings.ToUpper("Language"), nil, nil)
 			table.EndRow()
 
 			for _, snippet := range snippets {
+				firstCmd := snippet.FirstCmd()
+
 				table.AddField(snippet.Name(), nil, nil)
-				table.AddField(snippet.FirstCmd(), nil, nil)
+				table.AddField(firstCmd, nil, nil)
 				table.AddField(fmt.Sprintf("%d", len(snippet.Cmds())), nil, nil)
 				table.AddField(snippet.Description(), nil, nil)
+				table.AddField(snippet.Language(), nil, nil)
 				table.EndRow()
 			}
 

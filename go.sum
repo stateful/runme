@@ -11,6 +11,10 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/color v1.7.0 h1:DkWD4oS2D8LGGgTQ6IvwJJXSL5Vp2ffcQg58nFV38Ys=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
+github.com/galeone/tensorflow/tensorflow/go v0.0.0-20220620094824-6bb01e3a58fa h1:UsqNDZ0Olkhk+9wFchvc1JCQn7Bq6e694uQ+hGBlJcM=
+github.com/galeone/tensorflow/tensorflow/go v0.0.0-20220620094824-6bb01e3a58fa/go.mod h1:nHvVZJgJuQ0V2Xe4BqhTeCKQSMWDRI/gDkN8UxAANtU=
+github.com/galeone/tfgo v0.0.0-20220622151904-fc7b7ccad83b h1:TGgxstITwmNG7+OI95FNQI5wsYkkOSiOE8xOi0QjccU=
+github.com/galeone/tfgo v0.0.0-20220622151904-fc7b7ccad83b/go.mod h1:KqgpdfIYdJEusyCqP9uUcnwvSAp7m37ML5lh6YPlUh4=
 github.com/go-playground/assert/v2 v2.0.1 h1:MsBgLAaY856+nPRTKrp3/OZK38U/wa0CcBYNjji3q3A=
 github.com/go-playground/assert/v2 v2.0.1/go.mod h1:VDjEfimB/XKnb+ZQfWdccd7VUvScMdVu0Titje2rxJ4=
 github.com/go-playground/locales v0.14.0 h1:u50s323jtVGugKlcYeyzC0etD1HifMjqmJqb8WugfUU=
