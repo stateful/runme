@@ -31,3 +31,7 @@ Let us know what you think via GitHub issues or submit a PR. Join the conversati
 ## LICENCE
 
 Apache License, Version 2.0
+
+## Acknowledgements
+
+Thankful users of TensorFlow model guesslang by https://github.com/yoeo/guesslang located in `data` is a copy of https://github.com/yoeo/guesslang/tree/master/guesslang/data licensed under the MIT License.
