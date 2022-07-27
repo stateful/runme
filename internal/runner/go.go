@@ -2,6 +2,8 @@ package runner
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +14,18 @@ import (
 type Go struct {
 	Base
 	Source string
+}
+
+var _ Executable = (*Shell)(nil)
+
+func (g Go) DryRun(ctx context.Context, w io.Writer) {
+	_, err := exec.LookPath("go")
+	if err != nil {
+		_, _ = fmt.Fprintf(w, "failed to find %q executable: %s\n", "go", err)
+	}
+
+	_, _ = fmt.Fprintf(w, "// go run main.go in $TEMP\n\n")
+	_, _ = fmt.Fprintf(w, "%s\n", g.Source)
 }
 
 func (g Go) Run(ctx context.Context) error {

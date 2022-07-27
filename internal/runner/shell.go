@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -12,6 +13,19 @@ import (
 type Shell struct {
 	Base
 	Cmds []string
+}
+
+var _ Executable = (*Shell)(nil)
+
+func (s Shell) DryRun(ctx context.Context, w io.Writer) {
+	sh, ok := os.LookupEnv("SHELL")
+	if !ok {
+		sh = "/bin/sh"
+	}
+
+	for _, cmd := range s.Cmds {
+		_, _ = fmt.Fprintf(w, "%s in %s: %s\n", sh, s.Dir, cmd)
+	}
 }
 
 func (s Shell) Run(ctx context.Context) error {

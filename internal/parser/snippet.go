@@ -28,6 +28,7 @@ func (s Snippet) Lines() []string {
 
 	firstHasDollar := false
 	lines := strings.Split(s.content, "\n")
+
 	for _, line := range lines {
 		if strings.HasPrefix(line, "$") {
 			firstHasDollar = true
