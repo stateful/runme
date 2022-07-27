@@ -41,8 +41,16 @@ func Root() *cobra.Command {
 func newParser() (*parser.Parser, error) {
 	source, err := os.ReadFile(filepath.Join(chdir, fileName))
 	if err != nil {
-		return nil, errors.Wrap(err, "fail to read README file")
+		return nil, errors.WithStack(err)
 	}
 
 	return parser.New(source), nil
+}
+
+func lookup(snippets parser.Snippets, name string) (*parser.Snippet, error) {
+	snippet, found := snippets.Lookup(name)
+	if !found {
+		return nil, errors.Errorf("command %q not found; known command names: %s", name, snippets.Names())
+	}
+	return snippet, nil
 }

@@ -12,18 +12,22 @@ type Snippet struct {
 	language    string
 }
 
-func (s Snippet) Executable() string {
+func (s *Snippet) Executable() string {
 	if s.language != "" {
 		return s.language
 	}
 	return "sh"
 }
 
-func (s Snippet) Content() string {
+func (s *Snippet) Content() string {
 	return strings.TrimSpace(s.content)
 }
 
-func (s Snippet) Lines() []string {
+func (s *Snippet) ReplaceContent(val string) {
+	s.content = val
+}
+
+func (s *Snippet) Lines() []string {
 	var cmds []string
 
 	firstHasDollar := false
@@ -53,7 +57,7 @@ func (s Snippet) Lines() []string {
 	return cmds
 }
 
-func (s Snippet) FirstLine() string {
+func (s *Snippet) FirstLine() string {
 	cmds := s.Lines()
 	if len(cmds) > 0 {
 		return cmds[0]
@@ -63,24 +67,24 @@ func (s Snippet) FirstLine() string {
 
 var descriptionEndingsRe = regexp.MustCompile(`[:?!]$`)
 
-func (s Snippet) Description() string {
+func (s *Snippet) Description() string {
 	result := descriptionEndingsRe.ReplaceAllString(s.description, ".")
 	return result
 }
 
-func (s Snippet) Name() string {
+func (s *Snippet) Name() string {
 	return s.attributes["name"]
 }
 
-type Snippets []Snippet
+type Snippets []*Snippet
 
-func (s Snippets) Lookup(name string) (Snippet, bool) {
+func (s Snippets) Lookup(name string) (*Snippet, bool) {
 	for _, snippet := range s {
 		if snippet.Name() == name {
 			return snippet, true
 		}
 	}
-	return Snippet{}, false
+	return nil, false
 }
 
 func (s Snippets) Names() (result []string) {

@@ -18,7 +18,7 @@ func listCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := newParser()
 			if err != nil {
-				return errors.Wrap(err, "fail to read README file")
+				return err
 			}
 
 			snippets := p.Snippets()

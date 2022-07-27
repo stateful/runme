@@ -15,21 +15,14 @@ func tasksCmd() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: like can omit because Args should do the validation.
-			if len(args) != 1 {
-				return cmd.Help()
-			}
-
 			p, err := newParser()
 			if err != nil {
-				return errors.Wrap(err, "fail to read README file")
+				return err
 			}
 
-			snippets := p.Snippets()
-
-			snippet, found := p.Snippets().Lookup(args[0])
-			if !found {
-				return errors.Errorf("command %q not found; known command names: %s", args[0], snippets.Names())
+			snippet, err := lookup(p.Snippets(), args[0])
+			if err != nil {
+				return err
 			}
 
 			tasksDef, err := tasks.GenerateFromShellCommand(

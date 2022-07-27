@@ -14,14 +14,12 @@ func printCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := newParser()
 			if err != nil {
-				return errors.Wrap(err, "fail to read README file")
+				return err
 			}
 
-			snippets := p.Snippets()
-
-			snippet, found := snippets.Lookup(args[0])
-			if !found {
-				return errors.Errorf("command %q not found; known command names: %s", args[0], snippets.Names())
+			snippet, err := lookup(p.Snippets(), args[0])
+			if err != nil {
+				return err
 			}
 
 			_, err = cmd.OutOrStdout().Write([]byte(snippet.Content()))
