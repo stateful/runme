@@ -18,6 +18,7 @@ func Root() *cobra.Command {
 	cmd := cobra.Command{
 		Use:           "rdme",
 		Short:         "Execute commands directly from a README",
+		Long:          "Parses commands directly from a README (best-effort) to make them executable under a unique name.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

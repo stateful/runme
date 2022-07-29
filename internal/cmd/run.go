@@ -22,6 +22,7 @@ func runCmd() *cobra.Command {
 		Use:               "run",
 		Aliases:           []string{"exec"},
 		Short:             "Run a selected command.",
+		Long:              "Run a selected command identified based on its unique parsed name.",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
