@@ -31,7 +31,7 @@ func listCmd() *cobra.Command {
 			// table header
 			table.AddField(strings.ToUpper("Name"), nil, nil)
 			table.AddField(strings.ToUpper("First Command"), nil, nil)
-			table.AddField(strings.ToUpper("Count"), nil, nil)
+			table.AddField(strings.ToUpper("# of Commands"), nil, nil)
 			table.AddField(strings.ToUpper("Description"), nil, nil)
 			table.EndRow()
 
