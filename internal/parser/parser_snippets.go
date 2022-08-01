@@ -60,7 +60,7 @@ func (p *Parser) Snippets() (result Snippets) {
 			}
 		}
 
-		result = append(result, s)
+		result = append(result, &s)
 	}
 
 	return result

@@ -15,7 +15,7 @@ func Generate(descriptions ...TaskDescription) (*TaskConfiguration, error) {
 	}
 	v := validator.New()
 	if err := v.Struct(tc); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &tc, nil
 }

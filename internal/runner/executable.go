@@ -6,6 +6,7 @@ import (
 )
 
 type Executable interface {
+	DryRun(context.Context, io.Writer)
 	Run(context.Context) error
 }
 
