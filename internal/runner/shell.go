@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -23,8 +25,15 @@ func (s Shell) DryRun(ctx context.Context, w io.Writer) {
 		sh = "/bin/sh"
 	}
 
-	for _, cmd := range s.Cmds {
-		_, _ = fmt.Fprintf(w, "%s in %s: %s\n", sh, s.Dir, cmd)
+	var b strings.Builder
+
+	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", sh))
+	_, _ = b.WriteString(fmt.Sprintf("// run in %q\n\n", s.Dir))
+	_, _ = b.WriteString(s.prepareScript())
+
+	_, err := w.Write([]byte(b.String()))
+	if err != nil {
+		log.Fatalf("failed to write: %s", err)
 	}
 }
 
@@ -34,13 +43,21 @@ func (s Shell) Run(ctx context.Context) error {
 		sh = "/bin/sh"
 	}
 
+	return execSingle(ctx, sh, s.Dir, s.prepareScript(), s.Stdin, s.Stdout, s.Stderr)
+}
+
+func (s Shell) prepareScript() string {
+	var b strings.Builder
+
+	_, _ = b.WriteString("set -e -o pipefail;")
+
 	for _, cmd := range s.Cmds {
-		if err := execSingle(ctx, sh, s.Dir, cmd, s.Stdin, s.Stdout, s.Stderr); err != nil {
-			return err
-		}
+		_, _ = b.WriteString(fmt.Sprintf("%s;", cmd))
 	}
 
-	return nil
+	_, _ = b.WriteRune('\n')
+
+	return b.String()
 }
 
 func execSingle(ctx context.Context, sh, dir, cmd string, stdin io.Reader, stdout, stderr io.Writer) error {

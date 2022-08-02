@@ -15,8 +15,10 @@ import (
 )
 
 func runCmd() *cobra.Command {
-	var dryRun bool
-	var replaceScripts []string
+	var (
+		dryRun         bool
+		replaceScripts []string
+	)
 
 	cmd := cobra.Command{
 		Use:               "run",

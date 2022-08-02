@@ -9,6 +9,7 @@ type Snippet struct {
 	attributes  map[string]string
 	content     string
 	description string // preceeding paragraph
+	name        string
 	language    string
 }
 
@@ -73,7 +74,7 @@ func (s *Snippet) Description() string {
 }
 
 func (s *Snippet) Name() string {
-	return s.attributes["name"]
+	return s.name
 }
 
 type Snippets []*Snippet
