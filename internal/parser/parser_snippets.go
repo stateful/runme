@@ -36,29 +36,23 @@ func (p *Parser) Snippets() (result Snippets) {
 			language:    string(codeBlock.Language(p.src)),
 		}
 
-		if s.Name() == "" {
-			fragments := strings.Split(s.FirstLine(), " ")
-			executable := fragments[0]
-
-			// Usually the command looks like this: EXECUTABLE subcommand arg1, arg2, ...
-			if len(fragments) > 1 {
-				suffixBuf := bytes.NewBuffer(nil)
-				for _, r := range strings.ToLower(fragments[1]) {
-					if r >= '0' && r <= '9' || r >= 'a' && r <= 'z' {
-						_, _ = suffixBuf.WriteRune(r)
-					}
-				}
-
-				executable += "-" + suffixBuf.String()
-			}
-			nameIndexes[executable]++
-
-			if nameIndexes[executable] == 1 {
-				s.attributes["name"] = executable
-			} else {
-				s.attributes["name"] = fmt.Sprintf("%s_%d", executable, nameIndexes[executable])
-			}
+		// Set a name for the snippet.
+		// First option is that the name is set explicitly.
+		// Other option is to get the name from the first line
+		// of the snippet.
+		// Both options require us to dedup names.
+		var name string
+		if n, ok := s.attributes["name"]; ok && n != "" {
+			name = n
+		} else {
+			name = sanitizeName(s.FirstLine())
 		}
+		nameIndexes[name]++
+		if nameIndexes[name] > 1 {
+			name = fmt.Sprintf("%s_%d", name, nameIndexes[name])
+		}
+
+		s.name = name
 
 		result = append(result, &s)
 	}
@@ -120,4 +114,30 @@ func extractRawAttributes(source []byte, n *ast.FencedCodeBlock) []byte {
 	}
 
 	return nil
+}
+
+func sanitizeName(s string) string {
+	// Handle cases when the first line is defining a variable.
+	if idx := strings.Index(s, "="); idx > 0 {
+		return sanitizeName(s[:idx])
+	}
+
+	fragments := strings.Split(s, " ")
+	if len(fragments) > 1 {
+		s = strings.Join(fragments[:2], " ")
+	} else {
+		s = fragments[0]
+	}
+
+	var b bytes.Buffer
+
+	for _, r := range strings.ToLower(s) {
+		if r == ' ' {
+			_, _ = b.WriteRune('-')
+		} else if r >= '0' && r <= '9' || r >= 'a' && r <= 'z' {
+			_, _ = b.WriteRune(r)
+		}
+	}
+
+	return b.String()
 }

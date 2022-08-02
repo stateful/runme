@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"io"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -23,10 +25,25 @@ func printCmd() *cobra.Command {
 				return err
 			}
 
-			_, err = cmd.OutOrStdout().Write([]byte(snippet.Content()))
+			w := &bulkWriter{Writer: cmd.OutOrStdout()}
+
+			_, _ = w.Write([]byte(snippet.Content()))
+			_, err = w.Write([]byte{'\n'})
 			return errors.Wrap(err, "failed to write to stdout")
 		},
 	}
 
 	return &cmd
+}
+
+type bulkWriter struct {
+	io.Writer
+	err error
+}
+
+func (w *bulkWriter) Write(p []byte) (n int, err error) {
+	if w.err != nil {
+		return 0, err
+	}
+	return w.Writer.Write(p)
 }
