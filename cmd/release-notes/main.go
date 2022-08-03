@@ -14,6 +14,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v45/github"
 	"golang.org/x/oauth2"
 )
@@ -54,7 +55,7 @@ var tpl = template.Must(template.New("").Funcs(template.FuncMap{"split": split})
 
 ## Changelog
 
-[Full changelog](https://github.com/stateful/rdme/compare/{{ or .PreviousVersion "main" }}...{{ .Version }})
+[Full changelog](https://github.com/stateful/rdme/compare/v{{ or .PreviousVersion "main" }}...v{{ .Version }})
 
 {{ range $value := .Commits -}}
 * {{ $value.SHA }}: {{ (split "\n" $value.Commit.Message)._0 }} ([@{{ $value.Author.Login }}]({{ $value.Author.HTMLURL }}))
@@ -62,8 +63,8 @@ var tpl = template.Must(template.New("").Funcs(template.FuncMap{"split": split})
 `))
 
 type tplData struct {
-	PreviousVersion string
-	Version         string
+	PreviousVersion string // without 'v' prefix
+	Version         string // without 'v' prefix
 	Commits         []*github.RepositoryCommit
 }
 
@@ -138,12 +139,22 @@ func main() {
 	})
 
 	var (
-		currentTag      = flagsConfig.Version
-		previousRelease *github.RepositoryRelease
+		currentTag       = flagsConfig.Version
+		currentTagParsed = semver.MustParse(currentTag)
+		previousRelease  *github.RepositoryRelease
 	)
 
 	for _, r := range releases {
 		if r.GetTagName() == currentTag {
+			continue
+		}
+
+		tagParsed, err := semver.NewVersion(r.GetTagName())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if currentTagParsed.LessThan(tagParsed) {
 			continue
 		}
 
@@ -191,7 +202,7 @@ func main() {
 	}
 
 	data := tplData{
-		PreviousVersion: previousReleaseTagName,
+		PreviousVersion: strings.TrimLeft(previousReleaseTagName, "v"),
 		Version:         strings.TrimLeft(currentTag, "v"),
 		Commits:         commits,
 	}
