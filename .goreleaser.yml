@@ -4,23 +4,23 @@ snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
 builds:
-- id: cli
-  main: .
-  env:
-    - CGO_ENABLED=0
-  goos:
-    - linux
-    - darwin
-    - windows
-  goarch:
-    - 386
-    - amd64
-    - arm64
-  mod_timestamp: "{{ .CommitTimestamp }}"
-  flags:
-    - -trimpath
-  ldflags:
-    - -s -w -X main.BuildDate={{ .CommitDate }} -X main.BuildVersion={{.Version}} -X main.Commit={{.Commit}}
+  - id: cli
+    main: .
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - 386
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.BuildDate={{ .CommitDate }} -X main.BuildVersion={{.Version}} -X main.Commit={{.Commit}}
 
 release:
   prerelease: auto
@@ -33,12 +33,12 @@ changelog:
   use: github
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
-    - '^chore'
-    - Merge pull request
-    - Merge branch
-    - go mod tidy
+      - "^docs:"
+      - "^test:"
+      - "^chore"
+      - Merge pull request
+      - Merge branch
+      - go mod tidy
 
 archives:
   - id: cli
@@ -47,8 +47,8 @@ archives:
       386: i386
       amd64: x86_64
     format_overrides:
-    - goos: windows
-      format: zip
+      - goos: windows
+        format: zip
     files:
       - README.md
       - LICENSE
@@ -57,13 +57,13 @@ blobs:
   - provider: gs
     bucket: rdme-artifacts-b4e64f
     ids:
-    - cli
+      - cli
     folder: "{{ .Version }}"
 
 brews:
   - name: rdme
     ids:
-    - cli
+      - cli
     homepage: https://stateful.com
     description: "Execute code snippets directly from Markdown files."
     tap:
@@ -105,7 +105,7 @@ nfpms:
       - rpm
 
 scoop:
-  url_template: "https://download.stateful.com/stateful-cli/{{ .Version }}/{{ .ArtifactName }}"
+  url_template: "https://download.stateful.com/rdme/{{ .Version }}/{{ .ArtifactName }}"
   bucket:
     owner: stateful
     name: scoop-bucket
