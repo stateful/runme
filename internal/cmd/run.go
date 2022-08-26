@@ -37,11 +37,11 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-      if err := snippet.FillInParameters(args[1:]); err != nil {
-        return err
-      }
-
 			if err := replace(snippet, replaceScripts); err != nil {
+				return err
+			}
+
+			if err := snippet.FillInParameters(args[1:]); err != nil {
 				return err
 			}
 

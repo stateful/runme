@@ -85,7 +85,6 @@ type Snippets []*Snippet
 func (s Snippets) Lookup(name string) (*Snippet, bool) {
 	for _, snippet := range s {
 		if snippet.Name() == name {
-      snippet.extractParameters()
 			return snippet, true
 		}
 	}
@@ -101,29 +100,29 @@ func (s Snippets) Names() (result []string) {
 
 func (s *Snippet) extractParameters() []string {
 	match := parameterRe.FindAllStringSubmatch(s.content, -1)
-  var parameters []string
-  for _,m := range match {
-    parameters = append(parameters, m[0])
-  }
-  return parameters
+	var parameters []string
+	for _, m := range match {
+		parameters = append(parameters, m[0])
+	}
+	return parameters
 }
 
 func (s *Snippet) mapParameterValues(parameters []string, values []string) string {
-  var paramExp regexp.Regexp
-  newCmd := s.Content()
-  for i := range parameters {
-    paramExp = *regexp.MustCompile(parameters[i])
-    newCmd = paramExp.ReplaceAllString(newCmd, values[i])
-  }
-  return newCmd
+	var paramExp regexp.Regexp
+	newCmd := s.Content()
+	for i := range parameters {
+		paramExp = *regexp.MustCompile(parameters[i])
+		newCmd = paramExp.ReplaceAllString(newCmd, values[i])
+	}
+	return newCmd
 }
 
 func (s *Snippet) FillInParameters(values []string) error {
-  parameters := s.extractParameters()
-  if len(parameters) != len(values) {
-    return errors.New("Mismatch between the number of parameters and the number of values provided")
-  }
-  s.ReplaceContent(s.mapParameterValues(parameters, values))
-  return nil
+	parameters := s.extractParameters()
+	if len(parameters) != len(values) {
+		return errors.New("Mismatch between the number of parameters and the number of values provided")
+	}
+	s.ReplaceContent(s.mapParameterValues(parameters, values))
+	return nil
 }
 
