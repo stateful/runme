@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 
+GO_ROOT := $(shell go env GOROOT)
 GIT_SHA := $(shell git rev-parse HEAD)
 GIT_SHA_SHORT := $(shell git rev-parse --short HEAD)
 DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -12,6 +13,15 @@ build:
       -X 'main.BuildVersion=$(subst v,,$(VERSION))' \
       -X 'main.Commit=$(GIT_SHA)'" \
       main.go
+
+.PHONY: wasm
+wasm:
+	cp $(GO_ROOT)/misc/wasm/wasm_exec.js web/
+	GOOS=js GOARCH=wasm go build -o web/rdme.wasm -ldflags="-s -w \
+      -X 'main.BuildDate=$(DATE)' \
+      -X 'main.BuildVersion=$(subst v,,$(VERSION))' \
+      -X 'main.Commit=$(GIT_SHA)'" \
+      web/main.go
 
 .PHONY: test
 test:

@@ -29,3 +29,9 @@ rdme
 
 # Logs
 *.log
+
+# WebAssembly
+*.wasm
+web/wasm_exec.js
+
+**/node_modules
