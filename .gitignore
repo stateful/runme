@@ -29,3 +29,11 @@ rdme
 
 # Logs
 *.log
+
+# WebAssembly
+*.wasm
+wasm_exec.js
+node_modules
+
+# Dist directory
+dist/

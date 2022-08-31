@@ -1,0 +1,4 @@
+{
+    // Uncomment if you want to work on files in ./web.
+    // "go.buildTags": "js,wasm"
+}
