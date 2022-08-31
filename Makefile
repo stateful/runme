@@ -25,7 +25,7 @@ wasm:
 
 .PHONY: test
 test:
-	@TZ=UTC go test ./...
+	@TZ=UTC go test -v `go list ./... | grep -v "github.com/stateful/rdme/web"`
 
 .PHONY: fmt
 fmt:
