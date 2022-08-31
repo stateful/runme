@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"syscall/js"
 
 	"github.com/stateful/rdme/internal/parser"
@@ -29,20 +28,19 @@ func GetSnippets(this js.Value, args []js.Value) interface{} {
 	var result []interface{}
 
 	for _, s := range snippets {
+		var lines []interface{}
+		for _, line := range s.Lines() {
+			lines = append(lines, line)
+		}
 		entry := map[string]interface{}{
 			"name":        s.Name(),
 			"description": s.Description(),
 			"content":     s.Content(),
 			"executable":  s.Executable(),
-			"lines":       s.Lines(),
+			"lines":       lines,
 		}
 		result = append(result, entry)
 	}
 
-	data, err := json.Marshal(result)
-	if err != nil {
-		return err.Error()
-	}
-
-	return string(data)
+	return result
 }
