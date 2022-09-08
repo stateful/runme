@@ -1,3 +1,4 @@
+// Main package of the rdme tool
 package main
 
 import (

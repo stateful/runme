@@ -1,3 +1,4 @@
+// Parser testing methods
 package parser
 
 import (
@@ -77,9 +78,9 @@ go run <FILENAME>
 	// When
 	snippets6 := p6.Snippets()
 	assert.Len(t, snippets6, 1)
-	snippets6[0].FillInParameters([]string{"main.go"})
+  err := snippets6[0].FillInParameters([]string{"main.go"})
 	// Then
+  assert.NotEqual(t, nil, err)
 	assert.EqualValues(t, []string{"run"}, snippets6.Names())
 	assert.EqualValues(t, "go run main.go", snippets6[0].Content())
 }
-

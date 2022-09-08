@@ -15,8 +15,10 @@ type Snippet struct {
 	parameters  []string
 }
 
-var descriptionEndingsRe = regexp.MustCompile(`[:?!]$`)
-var parameterRe = regexp.MustCompile("<[a-zA-Z0-9_ ]*>")
+var (
+	descriptionEndingsRe = regexp.MustCompile(`[:?!]$`)
+	parameterRe          = regexp.MustCompile("<[a-zA-Z0-9_ ]*>")
+)
 
 func (s *Snippet) Executable() string {
 	if s.language != "" {
@@ -125,4 +127,3 @@ func (s *Snippet) FillInParameters(values []string) error {
 	s.ReplaceContent(s.mapParameterValues(parameters, values))
 	return nil
 }
-

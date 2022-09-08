@@ -1,3 +1,4 @@
+// Package cmd containing a library of common commands
 package cmd
 
 import (
