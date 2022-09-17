@@ -15,21 +15,22 @@ func printCmd() *cobra.Command {
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := newParser()
+			blocks, err := getCodeBlocks()
 			if err != nil {
 				return err
 			}
 
-			snippet, err := lookup(p.Snippets(), args[0])
+			block, err := lookupCodeBlock(blocks, args[0])
 			if err != nil {
 				return err
 			}
 
-			w := &bulkWriter{Writer: cmd.OutOrStdout()}
-
-			_, _ = w.Write([]byte(snippet.GetContent()))
-			_, err = w.Write([]byte{'\n'})
-			return errors.Wrap(err, "failed to write to stdout")
+			w := bulkWriter{
+				Writer: cmd.OutOrStdout(),
+			}
+			w.Write([]byte(block.Content()))
+			w.Write([]byte{'\n'})
+			return errors.Wrap(w.Err(), "failed to write to stdout")
 		},
 	}
 
@@ -38,12 +39,23 @@ func printCmd() *cobra.Command {
 
 type bulkWriter struct {
 	io.Writer
+	n   int
 	err error
 }
 
-func (w *bulkWriter) Write(p []byte) (n int, err error) {
+func (w *bulkWriter) Err() error {
+	return w.err
+}
+
+func (w *bulkWriter) Result() (int, error) {
+	return w.n, w.err
+}
+
+func (w *bulkWriter) Write(p []byte) {
 	if w.err != nil {
-		return 0, err
+		return
 	}
-	return w.Writer.Write(p)
+	n, err := w.Writer.Write(p)
+	w.n += n
+	w.err = err
 }

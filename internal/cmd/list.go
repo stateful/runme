@@ -17,12 +17,10 @@ func listCmd() *cobra.Command {
 		Short:   "List available commands.",
 		Long:    "Displays list of parsed command blocks, their name, number of commands in a block, and description from a given markdown file, such as README.md.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := newParser()
+			blocks, err := getCodeBlocks()
 			if err != nil {
 				return err
 			}
-
-			snippets := p.Snippets()
 
 			// there might be a way to get this from cmd
 			io := iostreams.System()
@@ -35,11 +33,11 @@ func listCmd() *cobra.Command {
 			table.AddField(strings.ToUpper("Description"), nil, nil)
 			table.EndRow()
 
-			for _, snippet := range snippets {
-				table.AddField(snippet.GetName(), nil, nil)
-				table.AddField(snippet.FirstLine(), nil, nil)
-				table.AddField(fmt.Sprintf("%d", len(snippet.GetLines())), nil, nil)
-				table.AddField(snippet.GetDescription(), nil, nil)
+			for _, block := range blocks {
+				table.AddField(block.Name(), nil, nil)
+				table.AddField(block.Line(0), nil, nil)
+				table.AddField(fmt.Sprintf("%d", block.LineCount()), nil, nil)
+				table.AddField(block.Intro(), nil, nil)
 				table.EndRow()
 			}
 
