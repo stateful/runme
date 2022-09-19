@@ -1,4 +1,3 @@
-// Parser testing methods
 package parser
 
 import (
@@ -68,19 +67,3 @@ $ curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b
 	assert.Equal(t, []string{`curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f/ -d '{"message": "Modified!"}'`}, p5Snippet.Lines())
 }
 
-func TestParameterSubstition_Snippets(t *testing.T) {
-	// Given
-	p6 := New([]byte(`
-Snippet without proper annotations:
-` + "```sh { name=run }" + `
-go run <FILENAME>
-` + "```"))
-	// When
-	snippets6 := p6.Snippets()
-	assert.Len(t, snippets6, 1)
-  err := snippets6[0].FillInParameters([]string{"main.go"})
-	// Then
-  assert.NotEqual(t, nil, err)
-	assert.EqualValues(t, []string{"run"}, snippets6.Names())
-	assert.EqualValues(t, "go run main.go", snippets6[0].Content())
-}

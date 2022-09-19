@@ -1,4 +1,3 @@
-// Listing the different release notes
 package main
 
 import (
