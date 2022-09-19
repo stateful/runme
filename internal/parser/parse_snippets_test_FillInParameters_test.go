@@ -67,7 +67,7 @@ gh auth login \
   --scopes scope`, snippets[0].Content())
 }
 
-func TestParser_FillInParameters_multi_command_without_parameter(t *testing.T) {
+func TestParser_FillInParameters_multi_command_without_parameters(t *testing.T) {
 	// Given
 	cmd := New([]byte(`
 Snippet without proper annotations:
@@ -84,7 +84,7 @@ gh comment <number>
 	assert.EqualValues(t, "gh comment <number>", snippets[0].Content())
 }
 
-func TestParser_FillInParameters_multi_command(t *testing.T) {
+func TestParser_FillInParameters_missing_parameter(t *testing.T) {
 	// Given
 	cmd := New([]byte(`
 Snippet without proper annotations:
