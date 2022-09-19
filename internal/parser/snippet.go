@@ -2,6 +2,7 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -110,11 +111,9 @@ func (s *Snippet) extractParameters() []string {
 }
 
 func (s *Snippet) mapParameterValues(parameters []string, values []string) string {
-	var paramExp regexp.Regexp
 	newCmd := s.Content()
 	for i := range parameters {
-		paramExp = *regexp.MustCompile(parameters[i])
-		newCmd = paramExp.ReplaceAllString(newCmd, values[i])
+		newCmd = strings.ReplaceAll(newCmd, parameters[i], values[i])
 	}
 	return newCmd
 }
@@ -122,7 +121,7 @@ func (s *Snippet) mapParameterValues(parameters []string, values []string) strin
 func (s *Snippet) FillInParameters(values []string) error {
 	parameters := s.extractParameters()
 	if len(parameters) != len(values) {
-		return errors.New("Mismatch between the number of parameters and the number of values provided")
+		return fmt.Errorf("mismatch between the number of parameters and the number of arguments provided; expected %d, got %d", len(parameters), len(values))
 	}
 	s.ReplaceContent(s.mapParameterValues(parameters, values))
 	return nil
