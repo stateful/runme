@@ -1,4 +1,3 @@
-// Package runner defining an interface defining for an executable
 package runner
 
 import (

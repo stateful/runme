@@ -66,4 +66,3 @@ $ curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b
 	p5Snippet, _ := snippets5.Lookup("patch-feedback")
 	assert.Equal(t, []string{`curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f/ -d '{"message": "Modified!"}'`}, p5Snippet.Lines())
 }
-

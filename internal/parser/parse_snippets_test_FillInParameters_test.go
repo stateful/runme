@@ -1,8 +1,9 @@
 package parser
 
 import (
-  "testing"
-  "github.com/stretchr/testify/assert"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParser_FillInParameters_one_substitution(t *testing.T) {
@@ -16,10 +17,10 @@ go run <FILENAME>
 	// When
 	snippets := cmd.Snippets()
 	assert.Len(t, snippets, 1)
-  err := snippets[0].FillInParameters([]string{"main.go"})
+	err := snippets[0].FillInParameters([]string{"main.go"})
 
 	// Then
-  assert.Equal(t, nil, err)
+	assert.Equal(t, nil, err)
 	assert.EqualValues(t, []string{"run"}, snippets.Names())
 	assert.EqualValues(t, "go run main.go", snippets[0].Content())
 }
@@ -35,10 +36,10 @@ gh auth login --hostname <hostname> --scopes <scope>
 	// When
 	snippets := cmd.Snippets()
 	assert.Len(t, snippets, 1)
-  err := snippets[0].FillInParameters([]string{"hostname", "scope"})
+	err := snippets[0].FillInParameters([]string{"hostname", "scope"})
 
 	// Then
-  assert.Equal(t, nil, err)
+	assert.Equal(t, nil, err)
 	assert.EqualValues(t, []string{"auth"}, snippets.Names())
 	assert.EqualValues(t, "gh auth login --hostname hostname --scopes scope", snippets[0].Content())
 }
@@ -56,10 +57,10 @@ gh auth login \
 	// When
 	snippets := cmd.Snippets()
 	assert.Len(t, snippets, 1)
-  err := snippets[0].FillInParameters([]string{"hostname", "scope"})
+	err := snippets[0].FillInParameters([]string{"hostname", "scope"})
 
 	// Then
-  assert.Equal(t, nil, err)
+	assert.Equal(t, nil, err)
 	assert.EqualValues(t, []string{"auth"}, snippets.Names())
 	assert.EqualValues(t, `gh auth login \
   --hostname hostname \
@@ -94,9 +95,8 @@ gh comment <number> --body <message>
 	// When
 	snippets := cmd.Snippets()
 	assert.Len(t, snippets, 1)
-  err := snippets[0].FillInParameters([]string{"12"})
+	err := snippets[0].FillInParameters([]string{"12"})
 
 	// Then
-  assert.NotEqual(t, nil, err)
+	assert.NotEqual(t, nil, err)
 }
-

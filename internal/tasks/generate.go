@@ -1,4 +1,3 @@
-// Package tasks describes the generation of tasks from descriptions
 package tasks
 
 import (
