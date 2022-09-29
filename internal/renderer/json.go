@@ -41,9 +41,9 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 
 		if lastCodeBlock != nil {
 			prevStop := r.getMarkdownStop(*lastCodeBlock)
-			mdStr := string(source[prevStop:start])
+			md := string(source[prevStop:start])
 			snip := snippets.Snippet{
-				Markdown: mdStr,
+				Markdown: md,
 			}
 			snips = append(snips, &snip)
 
