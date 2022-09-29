@@ -2,10 +2,10 @@ package renderer
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/yuin/goldmark/ast"
 	goldrender "github.com/yuin/goldmark/renderer"
 )
@@ -14,17 +14,16 @@ type renderer struct {
 	source []byte
 }
 
-func New(options ...goldrender.Option) goldrender.Renderer {
-	r := &renderer{}
+func NewJSON(source []byte, options ...goldrender.Option) goldrender.Renderer {
+	r := &renderer{source}
 
 	return r
 }
 
 func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	segments := []map[string]interface{}{}
-
-	r.source = source
 	lastCodeBlock := &n
+	remainingNode := n
 
 	err := ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		s := ast.WalkStatus(ast.WalkContinue)
@@ -33,34 +32,24 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 			return s, nil
 		}
 
-		var content strings.Builder
-
-		switch n.Type() {
-		case ast.TypeInline:
-			content.Write(n.Text(source))
-		default:
-			for i := 0; i < n.Lines().Len(); i++ {
-				line := n.Lines().At(i)
-				_, _ = content.Write(source[line.Start:line.Stop])
-			}
-		}
-
-		codeBlock := n.(*ast.FencedCodeBlock)
-		start := r.getCodeBlockStart(codeBlock)
+		start := r.getMarkdownStart(n)
 
 		if lastCodeBlock != nil {
-			lastStop := r.getStop(lastCodeBlock)
-			mdStr := string(source[lastStop:start])
+			prevStop := r.getMarkdownStop(*lastCodeBlock)
+			mdStr := string(source[prevStop:start])
 			seg := map[string]interface{}{"Markdown": mdStr}
 			segments = append(segments, seg)
 			lastCodeBlock = &n
 		}
 
+		codeBlock := n.(*ast.FencedCodeBlock)
 		seg := map[string]interface{}{}
-		seg["Code"] = content.String()
+		seg["Code"] = r.getContent(n)
 		seg["Language"] = string(codeBlock.Language(source))
-		seg["Description"] = string(n.PreviousSibling().Text(source))
+		seg["Description"] = r.getContent(n.PreviousSibling())
 		segments = append(segments, seg)
+
+		remainingNode = n.NextSibling()
 
 		return s, nil
 	})
@@ -68,26 +57,60 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 		return err
 	}
 
+	if remainingNode != nil {
+		start := remainingNode.Lines().At(0).Start
+		stop := len(source) - 1
+		seg := map[string]interface{}{"Markdown": string(r.source[start:stop])}
+		segments = append(segments, seg)
+	}
+
 	doc := map[string]interface{}{"Document": segments}
-	jStr, _ := json.Marshal(doc)
-	fmt.Println(string(jStr))
+
+	jsonDoc, err := json.Marshal(doc)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling json doc")
+	}
+
+	_, err = w.Write(jsonDoc)
+	if err != nil {
+		return errors.Wrapf(err, "error writing json doc")
+	}
 
 	return nil
 }
 
-func (r *renderer) getCodeBlockStart(n *ast.FencedCodeBlock) int {
-	if n.Info != nil {
-		return n.Info.Segment.Start
+func (r *renderer) getContent(n ast.Node) string {
+	var content strings.Builder
+	switch n.Type() {
+	case ast.TypeInline:
+		content.Write(n.Text(r.source))
+	default:
+		for i := 0; i < n.Lines().Len(); i++ {
+			line := n.Lines().At(i)
+			_, _ = content.Write(r.source[line.Start:line.Stop])
+		}
 	}
-	return n.Lines().At(0).Start
+	return content.String()
 }
 
-func (r *renderer) getStop(n *ast.Node) int {
-	l := (*n).Lines().Len()
-	if l > 0 {
-		return (*n).Lines().At(l - 1).Stop
+func (r *renderer) getMarkdownStart(n ast.Node) int {
+	c := n.PreviousSibling()
+	return c.Lines().At(0).Stop
+}
+
+func (r *renderer) getMarkdownStop(n ast.Node) int {
+	curr := n
+	next := n.NextSibling()
+	if next != nil {
+		curr = next
 	}
-	return 0
+
+	l := curr.Lines().Len()
+	if l == 0 {
+		return 0
+	}
+
+	return curr.Lines().At(l - 1).Start
 }
 
 // AddOptions has no effect
