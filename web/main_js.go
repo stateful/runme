@@ -27,25 +27,15 @@ func GetSnippets(this js.Value, args []js.Value) interface{} {
 
 	p := parser.New([]byte(readme))
 	snippets := p.Snippets()
-
-	var result []interface{}
-
 	for _, s := range snippets {
-		var lines []interface{}
-		for _, line := range s.Lines() {
-			lines = append(lines, line)
-		}
-		entry := map[string]interface{}{
-			"name":        s.GetName(),
-			"description": s.GetDescription(),
-			"content":     s.GetContent(),
-			"executable":  s.Executable(),
-			"lines":       lines,
-		}
-		result = append(result, entry)
+		s.Lines = s.GetLines()
 	}
+	b, _ := json.Marshal(snippets)
 
-	return result
+	var dynamic []interface{}
+	json.Unmarshal(b, &dynamic)
+
+	return dynamic
 }
 
 func GetDocument(this js.Value, args []js.Value) interface{} {

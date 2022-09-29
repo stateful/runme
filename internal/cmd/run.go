@@ -69,7 +69,7 @@ func newExecutable(cmd *cobra.Command, s *snippets.Snippet) (runner.Executable, 
 	switch s.Executable() {
 	case "sh":
 		return &runner.Shell{
-			Cmds: s.Lines(),
+			Cmds: s.GetLines(),
 			Base: runner.Base{
 				Dir:    chdir,
 				Stdin:  cmd.InOrStdin(),

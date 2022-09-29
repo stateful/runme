@@ -58,6 +58,7 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 			Description: r.getContent(n.PreviousSibling()),
 			Language:    string(codeBlock.Language(source)),
 		}
+		snip.Lines = snip.GetLines() // ugly hack
 		snips = append(snips, &snip)
 
 		remainingNode = n.NextSibling()

@@ -38,7 +38,7 @@ func listCmd() *cobra.Command {
 			for _, snippet := range snippets {
 				table.AddField(snippet.GetName(), nil, nil)
 				table.AddField(snippet.FirstLine(), nil, nil)
-				table.AddField(fmt.Sprintf("%d", len(snippet.Lines())), nil, nil)
+				table.AddField(fmt.Sprintf("%d", len(snippet.GetLines())), nil, nil)
 				table.AddField(snippet.GetDescription(), nil, nil)
 				table.EndRow()
 			}

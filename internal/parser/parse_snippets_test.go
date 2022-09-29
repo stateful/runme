@@ -15,7 +15,7 @@ go run main.go
 	snippets0 := p0.Snippets()
 	assert.Len(t, snippets0, 1)
 	assert.EqualValues(t, []string{"go-run"}, snippets0.GetNames())
-	assert.EqualValues(t, []string{"go run main.go"}, snippets0[0].Lines())
+	assert.EqualValues(t, []string{"go run main.go"}, snippets0[0].GetLines())
 	assert.EqualValues(t, "go run main.go", snippets0[0].FirstLine())
 
 	p1 := New([]byte(`
@@ -64,5 +64,5 @@ $ curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b
 	assert.Len(t, snippets5, 1)
 	assert.EqualValues(t, []string{"patch-feedback"}, snippets5.GetNames())
 	p5Snippet, _ := snippets5.Lookup("patch-feedback")
-	assert.Equal(t, []string{`curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f/ -d '{"message": "Modified!"}'`}, p5Snippet.Lines())
+	assert.Equal(t, []string{`curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f/ -d '{"message": "Modified!"}'`}, p5Snippet.GetLines())
 }

@@ -12,6 +12,7 @@ type Snippet struct {
 	Name        string            `json:"name,omitempty"`
 	Markdown    string            `json:"markdown,omitempty"`
 	Language    string            `json:"language,omitempty"`
+	Lines       []string          `json:"lines,omitempty"` // Kinda ugly
 }
 
 func (s *Snippet) Executable() string {
@@ -29,7 +30,7 @@ func (s *Snippet) ReplaceContent(val string) {
 	s.Content = val
 }
 
-func (s *Snippet) Lines() []string {
+func (s *Snippet) GetLines() []string {
 	var cmds []string
 
 	firstHasDollar := false
@@ -60,7 +61,7 @@ func (s *Snippet) Lines() []string {
 }
 
 func (s *Snippet) FirstLine() string {
-	cmds := s.Lines()
+	cmds := s.GetLines()
 	if len(cmds) > 0 {
 		return cmds[0]
 	}
