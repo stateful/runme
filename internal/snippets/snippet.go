@@ -6,7 +6,7 @@ import (
 )
 
 type Snippet struct {
-	Attributes  map[string]string `json:"args,omitempty"`
+	Attributes  map[string]string `json:"attributes,omitempty"`
 	Content     string            `json:"content,omitempty"`
 	Description string            `json:"description,omitempty"` // preceeding paragraph
 	Name        string            `json:"name,omitempty"`

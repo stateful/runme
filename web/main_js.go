@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"syscall/js"
 
 	"github.com/stateful/rdme/internal/parser"
@@ -15,6 +16,7 @@ var (
 
 func main() {
 	js.Global().Set("GetSnippets", js.FuncOf(GetSnippets))
+	js.Global().Set("GetDocument", js.FuncOf(GetDocument))
 
 	select {}
 }
@@ -33,9 +35,9 @@ func GetSnippets(this js.Value, args []js.Value) interface{} {
 			lines = append(lines, line)
 		}
 		entry := map[string]interface{}{
-			"name":        s.Name(),
-			"description": s.Description(),
-			"content":     s.Content(),
+			"name":        s.GetName(),
+			"description": s.GetDescription(),
+			"content":     s.GetContent(),
 			"executable":  s.Executable(),
 			"lines":       lines,
 		}
@@ -43,4 +45,14 @@ func GetSnippets(this js.Value, args []js.Value) interface{} {
 	}
 
 	return result
+}
+
+func GetDocument(this js.Value, args []js.Value) interface{} {
+	readme := args[0].String()
+	p := parser.New([]byte(readme))
+
+	var b bytes.Buffer
+	p.Render(&b)
+
+	return b.String()
 }
