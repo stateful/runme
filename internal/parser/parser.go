@@ -26,7 +26,7 @@ func New(src []byte) *Parser {
 }
 
 func (p *Parser) Render(w io.Writer) error {
-	mdr := goldmark.New(goldmark.WithRenderer(renderer.NewJSON(p.src)))
+	mdr := goldmark.New(goldmark.WithRenderer(renderer.NewJSON(p.src, p.rootNode)))
 	err := mdr.Renderer().Render(w, p.src, p.rootNode)
 	if err != nil {
 		return errors.Wrapf(err, "error rendering to json doc")

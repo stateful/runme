@@ -12,15 +12,16 @@ import (
 )
 
 type renderer struct {
-	source []byte
+	source   []byte
+	rootNode ast.Node
 }
 
 type document struct {
 	Document snippets.Snippets `json:"document,omitempty"`
 }
 
-func NewJSON(source []byte, options ...goldrender.Option) goldrender.Renderer {
-	r := &renderer{source}
+func NewJSON(source []byte, rootNode ast.Node, options ...goldrender.Option) goldrender.Renderer {
+	r := &renderer{source, rootNode}
 
 	return r
 }
