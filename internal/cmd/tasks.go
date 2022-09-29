@@ -26,7 +26,7 @@ func tasksCmd() *cobra.Command {
 			}
 
 			tasksDef, err := tasks.GenerateFromShellCommand(
-				snippet.Name(),
+				snippet.GetName(),
 				snippet.FirstLine(),
 				&tasks.ShellCommandOpts{
 					Cwd: chdir,

@@ -6,12 +6,17 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/stateful/rdme/internal/snippets"
 	"github.com/yuin/goldmark/ast"
 	goldrender "github.com/yuin/goldmark/renderer"
 )
 
 type renderer struct {
 	source []byte
+}
+
+type document struct {
+	Document snippets.Snippets `json:"document,omitempty"`
 }
 
 func NewJSON(source []byte, options ...goldrender.Option) goldrender.Renderer {
@@ -21,7 +26,7 @@ func NewJSON(source []byte, options ...goldrender.Option) goldrender.Renderer {
 }
 
 func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
-	segments := []map[string]interface{}{}
+	var snips snippets.Snippets
 	lastCodeBlock := &n
 	remainingNode := n
 
@@ -37,17 +42,22 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 		if lastCodeBlock != nil {
 			prevStop := r.getMarkdownStop(*lastCodeBlock)
 			mdStr := string(source[prevStop:start])
-			seg := map[string]interface{}{"Markdown": mdStr}
-			segments = append(segments, seg)
+			snip := snippets.Snippet{
+				Markdown: mdStr,
+			}
+			snips = append(snips, &snip)
+
 			lastCodeBlock = &n
 		}
 
 		codeBlock := n.(*ast.FencedCodeBlock)
-		seg := map[string]interface{}{}
-		seg["Code"] = r.getContent(n)
-		seg["Language"] = string(codeBlock.Language(source))
-		seg["Description"] = r.getContent(n.PreviousSibling())
-		segments = append(segments, seg)
+		snip := snippets.Snippet{
+			Attributes:  snippets.ParseAttributes(snippets.ExtractRawAttributes(r.source, codeBlock)),
+			Content:     r.getContent(n),
+			Description: r.getContent(n.PreviousSibling()),
+			Language:    string(codeBlock.Language(source)),
+		}
+		snips = append(snips, &snip)
 
 		remainingNode = n.NextSibling()
 
@@ -60,11 +70,15 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	if remainingNode != nil {
 		start := remainingNode.Lines().At(0).Start
 		stop := len(source) - 1
-		seg := map[string]interface{}{"Markdown": string(r.source[start:stop])}
-		segments = append(segments, seg)
+		snip := snippets.Snippet{
+			Markdown: string(r.source[start:stop]),
+		}
+		snips = append(snips, &snip)
 	}
 
-	doc := map[string]interface{}{"Document": segments}
+	doc := document{
+		Document: snips,
+	}
 
 	jsonDoc, err := json.Marshal(doc)
 	if err != nil {

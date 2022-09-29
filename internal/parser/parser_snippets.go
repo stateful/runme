@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/stateful/rdme/internal/utils"
+	"github.com/stateful/rdme/internal/snippets"
 	"github.com/yuin/goldmark/ast"
 )
 
-func (p *Parser) Snippets() (result Snippets) {
+func (p *Parser) Snippets() (result snippets.Snippets) {
 	nameIndexes := make(map[string]int)
 
 	for c := p.rootNode.FirstChild(); c != nil; c = c.NextSibling() {
@@ -23,17 +23,17 @@ func (p *Parser) Snippets() (result Snippets) {
 		}
 
 		strContent := content.String()
-		if utils.InvalidCommand(strContent) {
+		if snippets.InvalidCommand(strContent) {
 			continue
 		}
 
 		codeBlock := c.(*ast.FencedCodeBlock)
 
-		s := Snippet{
-			attributes:  utils.ParseAttributes(utils.ExtractRawAttributes(p.src, codeBlock)),
-			content:     strContent,
-			description: string(c.PreviousSibling().Text(p.src)),
-			language:    string(codeBlock.Language(p.src)),
+		s := snippets.Snippet{
+			Attributes:  snippets.ParseAttributes(snippets.ExtractRawAttributes(p.src, codeBlock)),
+			Content:     strContent,
+			Description: string(c.PreviousSibling().Text(p.src)),
+			Language:    string(codeBlock.Language(p.src)),
 		}
 
 		// Set a name for the snippet.
@@ -42,17 +42,17 @@ func (p *Parser) Snippets() (result Snippets) {
 		// of the snippet.
 		// Both options require us to dedup names.
 		var name string
-		if n, ok := s.attributes["name"]; ok && n != "" {
+		if n, ok := s.Attributes["name"]; ok && n != "" {
 			name = n
 		} else {
-			name = utils.SanitizeName(s.FirstLine())
+			name = snippets.SanitizeName(s.FirstLine())
 		}
 		nameIndexes[name]++
 		if nameIndexes[name] > 1 {
 			name = fmt.Sprintf("%s_%d", name, nameIndexes[name])
 		}
 
-		s.name = name
+		s.Name = name
 
 		result = append(result, &s)
 	}

@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
-	"github.com/stateful/rdme/internal/parser"
 	"github.com/stateful/rdme/internal/runner"
+	"github.com/stateful/rdme/internal/snippets"
 )
 
 func runCmd() *cobra.Command {
@@ -65,7 +65,7 @@ func runCmd() *cobra.Command {
 	return &cmd
 }
 
-func newExecutable(cmd *cobra.Command, s *parser.Snippet) (runner.Executable, error) {
+func newExecutable(cmd *cobra.Command, s *snippets.Snippet) (runner.Executable, error) {
 	switch s.Executable() {
 	case "sh":
 		return &runner.Shell{
@@ -79,7 +79,7 @@ func newExecutable(cmd *cobra.Command, s *parser.Snippet) (runner.Executable, er
 		}, nil
 	case "go":
 		return &runner.Go{
-			Source: s.Content(),
+			Source: s.GetContent(),
 			Base: runner.Base{
 				Dir:    chdir,
 				Stdin:  cmd.InOrStdin(),
@@ -106,12 +106,12 @@ func sigCtxCancel(ctx context.Context) (context.Context, context.CancelFunc) {
 	return ctx, cancel
 }
 
-func replace(snippet *parser.Snippet, scripts []string) error {
+func replace(snippet *snippets.Snippet, scripts []string) error {
 	if len(scripts) == 0 {
 		return nil
 	}
 
-	content := snippet.Content()
+	content := snippet.GetContent()
 
 	for _, script := range scripts {
 		engine, err := sed.New(strings.NewReader(script))
