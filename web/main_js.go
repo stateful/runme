@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"syscall/js"
 
 	"github.com/stateful/rdme/internal/parser"
@@ -54,5 +55,8 @@ func GetDocument(this js.Value, args []js.Value) interface{} {
 	var b bytes.Buffer
 	p.Render(&b)
 
-	return b.String()
+	dynamic := make(map[string]interface{})
+	json.Unmarshal(b.Bytes(), &dynamic)
+
+	return dynamic
 }
