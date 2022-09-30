@@ -1,4 +1,4 @@
-package parser
+package renderer
 
 import (
 	"bytes"
@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/bradleyjkemp/cupaloy/v2"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/text"
 )
 
 var testCases = []string{"happy", "simple"}
@@ -16,9 +18,13 @@ func TestParser_Renderer(t *testing.T) {
 	for _, testName := range testCases {
 		t.Run(testName, func(t *testing.T) {
 			source, _ := os.ReadFile(filepath.Join("testdata", testName+".md"))
-			p := New(source)
+			mdp := goldmark.DefaultParser()
+			rootNode := mdp.Parse(text.NewReader(source))
+
 			var b bytes.Buffer
-			p.Render(&b)
+			mdr := goldmark.New(goldmark.WithRenderer(NewJSON(source, rootNode)))
+			mdr.Renderer().Render(&b, source, rootNode)
+
 			snapshotter.SnapshotT(t, b.String())
 		})
 	}
