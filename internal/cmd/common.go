@@ -13,7 +13,7 @@ func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]stri
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	names := p.Snippets().Names()
+	names := p.Snippets().GetNames()
 
 	var filtered []string
 	for _, name := range names {

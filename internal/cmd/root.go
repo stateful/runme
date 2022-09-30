@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/rdme/internal/parser"
+	"github.com/stateful/rdme/internal/snippets"
 )
 
 var (
@@ -35,6 +36,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(listCmd())
 	cmd.AddCommand(printCmd())
 	cmd.AddCommand(tasksCmd())
+	cmd.AddCommand(jsonCmd())
 
 	return &cmd
 }
@@ -48,10 +50,10 @@ func newParser() (*parser.Parser, error) {
 	return parser.New(source), nil
 }
 
-func lookup(snippets parser.Snippets, name string) (*parser.Snippet, error) {
+func lookup(snippets snippets.Snippets, name string) (*snippets.Snippet, error) {
 	snippet, found := snippets.Lookup(name)
 	if !found {
-		return nil, errors.Errorf("command %q not found; known command names: %s", name, snippets.Names())
+		return nil, errors.Errorf("command %q not found; known command names: %s", name, snippets.GetNames())
 	}
 	return snippet, nil
 }

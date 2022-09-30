@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cli/cli/v2 v2.14.2
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510

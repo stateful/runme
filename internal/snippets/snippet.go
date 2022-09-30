@@ -1,4 +1,4 @@
-package parser
+package snippets
 
 import (
 	"regexp"
@@ -6,33 +6,35 @@ import (
 )
 
 type Snippet struct {
-	attributes  map[string]string
-	content     string
-	description string // preceeding paragraph
-	name        string
-	language    string
+	Attributes  map[string]string `json:"attributes,omitempty"`
+	Content     string            `json:"content,omitempty"`
+	Description string            `json:"description,omitempty"` // preceeding paragraph
+	Name        string            `json:"name,omitempty"`
+	Markdown    string            `json:"markdown,omitempty"`
+	Language    string            `json:"language,omitempty"`
+	Lines       []string          `json:"lines,omitempty"` // Kinda ugly
 }
 
 func (s *Snippet) Executable() string {
-	if s.language != "" {
-		return s.language
+	if s.Language != "" {
+		return s.Language
 	}
 	return "sh"
 }
 
-func (s *Snippet) Content() string {
-	return strings.TrimSpace(s.content)
+func (s *Snippet) GetContent() string {
+	return strings.TrimSpace(s.Content)
 }
 
 func (s *Snippet) ReplaceContent(val string) {
-	s.content = val
+	s.Content = val
 }
 
-func (s *Snippet) Lines() []string {
+func (s *Snippet) GetLines() []string {
 	var cmds []string
 
 	firstHasDollar := false
-	lines := strings.Split(s.content, "\n")
+	lines := strings.Split(s.Content, "\n")
 
 	for _, line := range lines {
 		if strings.HasPrefix(line, "$") {
@@ -59,7 +61,7 @@ func (s *Snippet) Lines() []string {
 }
 
 func (s *Snippet) FirstLine() string {
-	cmds := s.Lines()
+	cmds := s.GetLines()
 	if len(cmds) > 0 {
 		return cmds[0]
 	}
@@ -68,29 +70,29 @@ func (s *Snippet) FirstLine() string {
 
 var descriptionEndingsRe = regexp.MustCompile(`[:?!]$`)
 
-func (s *Snippet) Description() string {
-	result := descriptionEndingsRe.ReplaceAllString(s.description, ".")
+func (s *Snippet) GetDescription() string {
+	result := descriptionEndingsRe.ReplaceAllString(s.Description, ".")
 	return result
 }
 
-func (s *Snippet) Name() string {
-	return s.name
+func (s *Snippet) GetName() string {
+	return s.Name
 }
 
 type Snippets []*Snippet
 
 func (s Snippets) Lookup(name string) (*Snippet, bool) {
 	for _, snippet := range s {
-		if snippet.Name() == name {
+		if snippet.GetName() == name {
 			return snippet, true
 		}
 	}
 	return nil, false
 }
 
-func (s Snippets) Names() (result []string) {
+func (s Snippets) GetNames() (result []string) {
 	for _, snippet := range s {
-		result = append(result, snippet.Name())
+		result = append(result, snippet.GetName())
 	}
 	return result
 }

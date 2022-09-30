@@ -21,6 +21,7 @@
       WebAssembly.instantiateStreaming(fetch("rdme.wasm"), go.importObject).then((rdme) => {
         go.run(rdme.instance);
         console.log(GetSnippets(markdown));
+        console.log(GetDocument(markdown));
       });
     </script>
   </head>
