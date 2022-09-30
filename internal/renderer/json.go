@@ -28,7 +28,7 @@ func NewJSON(source []byte, rootNode ast.Node, options ...goldrender.Option) gol
 
 func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 	var snips snippets.Snippets
-	lastCodeBlock := &n
+	lastCodeBlock := n
 	remainingNode := n
 
 	err := ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -41,14 +41,14 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 		start := r.getMarkdownStart(n)
 
 		if lastCodeBlock != nil {
-			prevStop := r.getMarkdownStop(*lastCodeBlock)
+			prevStop := r.getMarkdownStop(lastCodeBlock)
 			md := string(source[prevStop:start])
 			snip := snippets.Snippet{
 				Markdown: md,
 			}
 			snips = append(snips, &snip)
 
-			lastCodeBlock = &n
+			lastCodeBlock = n
 		}
 
 		codeBlock := n.(*ast.FencedCodeBlock)
