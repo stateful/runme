@@ -24,6 +24,10 @@ wasm:
 test:
 	@TZ=UTC go test ./...
 
+.PHONY: test/update-snapshots
+test/update-snapshots:
+	@TZ=UTC UPDATE_SNAPSHOTS=true go test ./...
+
 .PHONY: fmt
 fmt:
 	@gofumpt -w .
