@@ -9,7 +9,7 @@ import (
 	"github.com/bradleyjkemp/cupaloy/v2"
 )
 
-var testCases = []string{"happy"}
+var testCases = []string{"happy", "simple"}
 
 func TestParser_Renderer(t *testing.T) {
 	snapshotter := cupaloy.New(cupaloy.SnapshotSubdirectory("testdata/.snapshots"))
