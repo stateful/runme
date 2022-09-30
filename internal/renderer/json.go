@@ -51,11 +51,20 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 			lastCodeBlock = n
 		}
 
+		nContent, err := r.getContent(n)
+		if err != nil {
+			return s, errors.Wrapf(err, "error getting content")
+		}
+		pnContent, err := r.getContent(n.PreviousSibling())
+		if err != nil {
+			return s, errors.Wrapf(err, "error getting content")
+		}
+
 		codeBlock := n.(*ast.FencedCodeBlock)
 		snip := snippets.Snippet{
 			Attributes:  snippets.ParseAttributes(snippets.ExtractRawAttributes(r.source, codeBlock)),
-			Content:     r.getContent(n),
-			Description: r.getContent(n.PreviousSibling()),
+			Content:     nContent,
+			Description: pnContent,
 			Language:    string(codeBlock.Language(source)),
 		}
 		snip.Lines = snip.GetLines() // ugly hack
@@ -104,18 +113,19 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	return nil
 }
 
-func (r *renderer) getContent(n ast.Node) string {
+func (r *renderer) getContent(n ast.Node) (string, error) {
 	var content strings.Builder
 	switch n.Type() {
 	case ast.TypeInline:
-		content.Write(n.Text(r.source))
+		_, err := content.Write(n.Text(r.source))
+		return "", err
 	default:
 		for i := 0; i < n.Lines().Len(); i++ {
 			line := n.Lines().At(i)
 			_, _ = content.Write(r.source[line.Start:line.Stop])
 		}
 	}
-	return content.String()
+	return content.String(), nil
 }
 
 func (r *renderer) getMarkdownStart(n ast.Node) int {
