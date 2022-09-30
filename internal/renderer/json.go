@@ -26,7 +26,7 @@ func NewJSON(source []byte, rootNode ast.Node, options ...goldrender.Option) gol
 	return r
 }
 
-func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
+func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 	var snips snippets.Snippets
 	lastCodeBlock := &n
 	remainingNode := n
@@ -66,7 +66,7 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 		return s, nil
 	})
 	if err != nil {
-		return err
+		return document{}, err
 	}
 
 	if remainingNode != nil {
@@ -80,6 +80,15 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 
 	doc := document{
 		Document: snips,
+	}
+
+	return doc, nil
+}
+
+func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
+	doc, err := r.GetDocument(source, r.rootNode)
+	if err != nil {
+		return errors.Wrapf(err, "error processing ast")
 	}
 
 	jsonDoc, err := json.Marshal(doc)
