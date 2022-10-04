@@ -91,6 +91,10 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 		snips = append(snips, &snip)
 	}
 
+	if len(snips) == 2 && snips[0].Content == "" {
+		snips = snips[1:]
+	}
+
 	doc := document{
 		Document: snips,
 	}
@@ -118,6 +122,9 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 }
 
 func (r *renderer) getContent(n ast.Node) (string, error) {
+	if n == nil {
+		return "", nil
+	}
 	var content strings.Builder
 	switch n.Type() {
 	case ast.TypeInline:
@@ -133,8 +140,12 @@ func (r *renderer) getContent(n ast.Node) (string, error) {
 }
 
 func (r *renderer) getMarkdownStart(n ast.Node) int {
-	c := n.PreviousSibling()
-	return c.Lines().At(0).Stop
+	curr := n
+	prev := n.PreviousSibling()
+	if prev != nil {
+		curr = prev
+	}
+	return curr.Lines().At(0).Stop
 }
 
 func (r *renderer) getMarkdownStop(n ast.Node) int {
