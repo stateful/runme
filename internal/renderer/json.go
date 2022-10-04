@@ -78,6 +78,10 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 		return document{}, err
 	}
 
+	if remainingNode != nil && remainingNode.Lines().Len() == 0 {
+		remainingNode = remainingNode.NextSibling()
+	}
+
 	if remainingNode != nil {
 		start := remainingNode.Lines().At(0).Start
 		stop := len(source) - 1
