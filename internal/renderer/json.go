@@ -42,12 +42,14 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 
 		if lastCodeBlock != nil {
 			prevStop := r.getMarkdownStop(lastCodeBlock)
-			md := string(source[prevStop:start])
-			snip := snippets.Snippet{
-				Markdown: md,
+			// check for existence of markdown in between code blocks
+			if start > prevStop {
+				md := string(source[prevStop:start])
+				snip := snippets.Snippet{
+					Markdown: md,
+				}
+				snips = append(snips, &snip)
 			}
-			snips = append(snips, &snip)
-
 			lastCodeBlock = n
 		}
 
