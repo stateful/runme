@@ -14,12 +14,11 @@
             "host": "127.0.0.1"
         },
         {
-            "name": "Launch Package",
+            "name": "Launch rdme json",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
-            "cwd": "/Users/sourishkrout/Projects/stateful/2022Q2/tortuga/api",
             "args": [
                 "json"
             ]
