@@ -149,7 +149,16 @@ func (r *renderer) getMarkdownStop(n ast.Node) int {
 		return 0
 	}
 
-	return curr.Lines().At(l - 1).Start
+	stop := curr.Lines().At(l - 1).Start
+
+	// add back markdown heading levels
+	if curr.Kind() == ast.KindHeading {
+		heading := curr.(*ast.Heading)
+		// simple math to add back ## incl trailing space
+		stop = stop - 1 - heading.Level
+	}
+
+	return stop
 }
 
 // AddOptions has no effect
