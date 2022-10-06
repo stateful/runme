@@ -80,10 +80,12 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 		return document{}, err
 	}
 
+	// Never encounter a code block, stuck on document node
 	if remainingNode == n {
 		remainingNode = remainingNode.FirstChild()
 	}
 
+	// Skip remainingNodes unless it's got lines
 	for remainingNode != nil && remainingNode.Lines().Len() == 0 {
 		remainingNode = remainingNode.NextSibling()
 	}
