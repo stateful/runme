@@ -13,7 +13,14 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-var testCases = []string{"happy", "simple", "linesless", "singleblock", "doublecode"}
+var testCases = []string{
+	"happy",
+	"simple",
+	"linesless",
+	"singleblock",
+	"doublecode",
+	"nocodeblock",
+}
 
 func TestParser_Renderer(t *testing.T) {
 	snapshotter := cupaloy.New(cupaloy.SnapshotSubdirectory("testdata/.snapshots"))

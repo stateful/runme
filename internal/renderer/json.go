@@ -80,7 +80,11 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 		return document{}, err
 	}
 
-	if remainingNode != nil && remainingNode.Lines().Len() == 0 {
+	if remainingNode == n {
+		remainingNode = remainingNode.FirstChild()
+	}
+
+	for remainingNode != nil && remainingNode.Lines().Len() == 0 {
 		remainingNode = remainingNode.NextSibling()
 	}
 
