@@ -38,15 +38,15 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 			return s, nil
 		}
 
-		start := r.getMarkdownStart(n)
+		start := r.getPrevStart(n)
 
 		if lastCodeBlock != nil {
-			prevStop := r.getMarkdownStop(lastCodeBlock)
+			prevStop := r.getNextStop(lastCodeBlock)
 			// check for existence of markdown in between code blocks
 			if start > prevStop {
-				md := string(source[prevStop:start])
+				markdown, _ := r.getRange(n, prevStop, start)
 				snip := snippets.Snippet{
-					Markdown: md,
+					Markdown: markdown,
 				}
 				snips = append(snips, &snip)
 			}
@@ -80,15 +80,22 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 		return document{}, err
 	}
 
-	if remainingNode != nil && remainingNode.Lines().Len() == 0 {
+	// Never encounter a code block, stuck on document node
+	if remainingNode == n {
+		remainingNode = remainingNode.FirstChild()
+	}
+
+	// Skip remainingNodes unless it's got lines
+	for remainingNode != nil && remainingNode.Lines().Len() == 0 {
 		remainingNode = remainingNode.NextSibling()
 	}
 
 	if remainingNode != nil {
 		start := remainingNode.Lines().At(0).Start
 		stop := len(source) - 1
+		markdown, _ := r.getRange(remainingNode, start, stop)
 		snip := snippets.Snippet{
-			Markdown: string(r.source[start:stop]),
+			Markdown: markdown,
 		}
 		snips = append(snips, &snip)
 	}
@@ -135,13 +142,27 @@ func (r *renderer) getContent(n ast.Node) (string, error) {
 	default:
 		for i := 0; i < n.Lines().Len(); i++ {
 			line := n.Lines().At(i)
-			_, _ = content.Write(r.source[line.Start:line.Stop])
+			chunk, _ := r.getRange(n, line.Start, line.Stop)
+			_, _ = content.WriteString(chunk)
 		}
 	}
 	return content.String(), nil
 }
 
-func (r *renderer) getMarkdownStart(n ast.Node) int {
+func (r *renderer) getRange(n ast.Node, start int, stop int) (string, error) {
+	var content strings.Builder
+	switch n.Kind() {
+	case ast.KindHeading:
+		heading := n.(*ast.Heading)
+		offset := 1 + heading.Level
+		_, _ = content.Write(r.source[start-offset : stop])
+	default:
+		_, _ = content.Write(r.source[start:stop])
+	}
+	return content.String(), nil
+}
+
+func (r *renderer) getPrevStart(n ast.Node) int {
 	curr := n
 	prev := n.PreviousSibling()
 	if prev != nil {
@@ -150,7 +171,7 @@ func (r *renderer) getMarkdownStart(n ast.Node) int {
 	return curr.Lines().At(0).Stop
 }
 
-func (r *renderer) getMarkdownStop(n ast.Node) int {
+func (r *renderer) getNextStop(n ast.Node) int {
 	curr := n
 	next := n.NextSibling()
 	if next != nil {
