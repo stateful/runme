@@ -38,10 +38,10 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 			return s, nil
 		}
 
-		start := r.getMarkdownStart(n)
+		start := r.getPrevStart(n)
 
 		if lastCodeBlock != nil {
-			prevStop := r.getMarkdownStop(lastCodeBlock)
+			prevStop := r.getNextStop(lastCodeBlock)
 			// check for existence of markdown in between code blocks
 			if start > prevStop {
 				md := string(source[prevStop:start])
@@ -141,7 +141,7 @@ func (r *renderer) getContent(n ast.Node) (string, error) {
 	return content.String(), nil
 }
 
-func (r *renderer) getMarkdownStart(n ast.Node) int {
+func (r *renderer) getPrevStart(n ast.Node) int {
 	curr := n
 	prev := n.PreviousSibling()
 	if prev != nil {
@@ -150,7 +150,7 @@ func (r *renderer) getMarkdownStart(n ast.Node) int {
 	return curr.Lines().At(0).Stop
 }
 
-func (r *renderer) getMarkdownStop(n ast.Node) int {
+func (r *renderer) getNextStop(n ast.Node) int {
 	curr := n
 	next := n.NextSibling()
 	if next != nil {
