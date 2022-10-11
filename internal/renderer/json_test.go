@@ -21,6 +21,7 @@ var testCases = []string{
 	"doublecode",
 	"nocodeblock",
 	"equalvshash",
+	"symbols",
 }
 
 func TestParser_Renderer(t *testing.T) {
