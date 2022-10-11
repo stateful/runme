@@ -22,6 +22,7 @@ var testCases = []string{
 	"nocodeblock",
 	"equalvshash",
 	"symbols",
+	"singlebslash",
 }
 
 func TestParser_Renderer(t *testing.T) {
