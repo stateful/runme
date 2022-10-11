@@ -155,6 +155,10 @@ func (r *renderer) getRange(n ast.Node, start int, stop int) (string, error) {
 	case ast.KindHeading:
 		heading := n.(*ast.Heading)
 		offset := 1 + heading.Level
+		// shield from inital ======= vs ### heading
+		if start-offset < 0 {
+			offset = 0
+		}
 		_, _ = content.Write(r.source[start-offset : stop])
 	default:
 		_, _ = content.Write(r.source[start:stop])
@@ -165,7 +169,7 @@ func (r *renderer) getRange(n ast.Node, start int, stop int) (string, error) {
 func (r *renderer) getPrevStart(n ast.Node) int {
 	curr := n
 	prev := n.PreviousSibling()
-	if prev != nil {
+	if prev != nil && prev.Lines().Len() > 0 {
 		curr = prev
 	}
 	return curr.Lines().At(0).Stop

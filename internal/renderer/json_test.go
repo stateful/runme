@@ -20,6 +20,7 @@ var testCases = []string{
 	"singleblock",
 	"doublecode",
 	"nocodeblock",
+	"equalvshash",
 }
 
 func TestParser_Renderer(t *testing.T) {
