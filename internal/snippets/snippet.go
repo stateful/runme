@@ -41,12 +41,10 @@ func (s *Snippet) GetLines() []string {
 		if strings.HasPrefix(line, "$") {
 			firstHasDollar = true
 			line = strings.TrimLeft(line, "$")
-		} else if strings.HasSuffix(strings.TrimSpace(line), "\\") {
-			// really long shell command lines are often
-			// spaced out over multiple lines using \
-			firstHasDollar = false
-			hasBslashSuffix = true
-		} else if firstHasDollar {
+			// it's common to line-wrap long shell commands
+			// with a backslash
+			hasBslashSuffix = strings.HasSuffix(strings.TrimSpace(line), "\\")
+		} else if firstHasDollar && !hasBslashSuffix {
 			// If the first line was prefixed with "$",
 			// then all commands should be as well.
 			// If they are not, it's likely that
@@ -54,8 +52,12 @@ func (s *Snippet) GetLines() []string {
 			continue
 		}
 
-		if !hasBslashSuffix {
+		if firstHasDollar || !hasBslashSuffix {
 			line = strings.TrimSpace(line)
+		}
+
+		if hasBslashSuffix {
+			firstHasDollar = false
 		}
 
 		if line == "" {
