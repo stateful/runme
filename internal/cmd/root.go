@@ -1,13 +1,7 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/rdme/internal/parser"
-	"github.com/stateful/rdme/internal/snippets"
 )
 
 var (
@@ -39,21 +33,4 @@ func Root() *cobra.Command {
 	cmd.AddCommand(jsonCmd())
 
 	return &cmd
-}
-
-func newParser() (*parser.Parser, error) {
-	source, err := os.ReadFile(filepath.Join(chdir, fileName))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return parser.New(source), nil
-}
-
-func lookup(snippets snippets.Snippets, name string) (*snippets.Snippet, error) {
-	snippet, found := snippets.Lookup(name)
-	if !found {
-		return nil, errors.Errorf("command %q not found; known command names: %s", name, snippets.GetNames())
-	}
-	return snippet, nil
 }

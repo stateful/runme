@@ -34,7 +34,7 @@ func TestParser_Renderer(t *testing.T) {
 			rootNode := mdp.Parse(text.NewReader(source))
 
 			var b bytes.Buffer
-			mdr := goldmark.New(goldmark.WithRenderer(NewJSON(source, rootNode)))
+			mdr := goldmark.New(goldmark.WithRenderer(NewJSON()))
 			mdr.Renderer().Render(&b, source, rootNode)
 
 			snapshotter.SnapshotT(t, b.String())

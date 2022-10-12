@@ -15,19 +15,19 @@ func tasksCmd() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := newParser()
+			blocks, err := getCodeBlocks()
 			if err != nil {
 				return err
 			}
 
-			snippet, err := lookup(p.Snippets(), args[0])
+			block, err := lookupCodeBlock(blocks, args[0])
 			if err != nil {
 				return err
 			}
 
 			tasksDef, err := tasks.GenerateFromShellCommand(
-				snippet.GetName(),
-				snippet.FirstLine(),
+				block.Name(),
+				block.Line(0),
 				&tasks.ShellCommandOpts{
 					Cwd: chdir,
 				},

@@ -7,23 +7,19 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stateful/rdme/internal/snippets"
+	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	goldrender "github.com/yuin/goldmark/renderer"
 )
 
-type renderer struct {
-	source   []byte
-	rootNode ast.Node
-}
+type renderer struct{}
 
 type document struct {
 	Document snippets.Snippets `json:"document,omitempty"`
 }
 
-func NewJSON(source []byte, rootNode ast.Node, options ...goldrender.Option) goldrender.Renderer {
-	r := &renderer{source, rootNode}
-
-	return r
+func NewJSON(options ...goldrender.Option) goldrender.Renderer {
+	return &renderer{}
 }
 
 func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
@@ -44,7 +40,7 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 			prevStop := r.getNextStop(lastCodeBlock)
 			// check for existence of markdown in between code blocks
 			if start > prevStop {
-				markdown, _ := r.getRange(n, prevStop, start)
+				markdown, _ := r.getRange(source, n, prevStop, start)
 				snip := snippets.Snippet{
 					Markdown: markdown,
 				}
@@ -53,18 +49,18 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 			lastCodeBlock = n
 		}
 
-		nContent, err := r.getContent(n)
+		nContent, err := r.getContent(source, n)
 		if err != nil {
 			return s, errors.Wrapf(err, "error getting content")
 		}
-		pnContent, err := r.getContent(n.PreviousSibling())
+		pnContent, err := r.getContent(source, n.PreviousSibling())
 		if err != nil {
 			return s, errors.Wrapf(err, "error getting content")
 		}
 
 		codeBlock := n.(*ast.FencedCodeBlock)
 		snip := snippets.Snippet{
-			Attributes:  snippets.ParseAttributes(snippets.ExtractRawAttributes(r.source, codeBlock)),
+			Attributes:  snippets.ParseAttributes(snippets.ExtractRawAttributes(source, codeBlock)),
 			Content:     nContent,
 			Description: pnContent,
 			Language:    string(codeBlock.Language(source)),
@@ -93,7 +89,7 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 	if remainingNode != nil {
 		start := remainingNode.Lines().At(0).Start
 		stop := len(source) - 1
-		markdown, _ := r.getRange(remainingNode, start, stop)
+		markdown, _ := r.getRange(source, remainingNode, start, stop)
 		snip := snippets.Snippet{
 			Markdown: markdown,
 		}
@@ -112,7 +108,7 @@ func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
 }
 
 func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
-	doc, err := r.GetDocument(source, r.rootNode)
+	doc, err := r.GetDocument(source, n)
 	if err != nil {
 		return errors.Wrapf(err, "error processing ast")
 	}
@@ -130,26 +126,26 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	return nil
 }
 
-func (r *renderer) getContent(n ast.Node) (string, error) {
+func (r *renderer) getContent(source []byte, n ast.Node) (string, error) {
 	if n == nil {
 		return "", nil
 	}
 	var content strings.Builder
 	switch n.Type() {
 	case ast.TypeInline:
-		_, err := content.Write(n.Text(r.source))
+		_, err := content.Write(n.Text(source))
 		return "", err
 	default:
 		for i := 0; i < n.Lines().Len(); i++ {
 			line := n.Lines().At(i)
-			chunk, _ := r.getRange(n, line.Start, line.Stop)
+			chunk, _ := r.getRange(source, n, line.Start, line.Stop)
 			_, _ = content.WriteString(chunk)
 		}
 	}
 	return content.String(), nil
 }
 
-func (r *renderer) getRange(n ast.Node, start int, stop int) (string, error) {
+func (r *renderer) getRange(source []byte, n ast.Node, start int, stop int) (string, error) {
 	var content strings.Builder
 	switch n.Kind() {
 	case ast.KindHeading:
@@ -159,9 +155,9 @@ func (r *renderer) getRange(n ast.Node, start int, stop int) (string, error) {
 		if start-offset < 0 {
 			offset = 0
 		}
-		_, _ = content.Write(r.source[start-offset : stop])
+		_, _ = content.Write(source[start-offset : stop])
 	default:
-		_, _ = content.Write(r.source[start:stop])
+		_, _ = content.Write(source[start:stop])
 	}
 	return content.String(), nil
 }
@@ -202,4 +198,10 @@ func (r *renderer) getNextStop(n ast.Node) int {
 // AddOptions has no effect
 func (r *renderer) AddOptions(_ ...goldrender.Option) {
 	// Nothing to do here
+}
+
+func RenderToJSON(w io.Writer, source []byte, root ast.Node) error {
+	mdr := goldmark.New(goldmark.WithRenderer(NewJSON()))
+	err := mdr.Renderer().Render(w, source, root)
+	return errors.WithStack(err)
 }

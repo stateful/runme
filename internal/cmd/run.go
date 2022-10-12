@@ -7,11 +7,12 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/stateful/rdme/internal/document"
+
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
 	"github.com/stateful/rdme/internal/runner"
-	"github.com/stateful/rdme/internal/snippets"
 )
 
 func runCmd() *cobra.Command {
@@ -28,21 +29,21 @@ func runCmd() *cobra.Command {
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := newParser()
+			blocks, err := getCodeBlocks()
 			if err != nil {
 				return err
 			}
 
-			snippet, err := lookup(p.Snippets(), args[0])
+			block, err := lookupCodeBlock(blocks, args[0])
 			if err != nil {
 				return err
 			}
 
-			if err := replace(snippet, replaceScripts); err != nil {
+			if err := replace(block, replaceScripts); err != nil {
 				return err
 			}
 
-			executable, err := newExecutable(cmd, snippet)
+			executable, err := newExecutable(cmd, block)
 			if err != nil {
 				return err
 			}
@@ -65,11 +66,11 @@ func runCmd() *cobra.Command {
 	return &cmd
 }
 
-func newExecutable(cmd *cobra.Command, s *snippets.Snippet) (runner.Executable, error) {
-	switch s.Executable() {
+func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Executable, error) {
+	switch block.Executable() {
 	case "sh":
 		return &runner.Shell{
-			Cmds: s.GetLines(),
+			Cmds: block.Lines(),
 			Base: runner.Base{
 				Dir:    chdir,
 				Stdin:  cmd.InOrStdin(),
@@ -79,7 +80,7 @@ func newExecutable(cmd *cobra.Command, s *snippets.Snippet) (runner.Executable, 
 		}, nil
 	case "go":
 		return &runner.Go{
-			Source: s.GetContent(),
+			Source: block.Content(),
 			Base: runner.Base{
 				Dir:    chdir,
 				Stdin:  cmd.InOrStdin(),
@@ -88,7 +89,7 @@ func newExecutable(cmd *cobra.Command, s *snippets.Snippet) (runner.Executable, 
 			},
 		}, nil
 	default:
-		return nil, errors.Errorf("unknown executable: %q", s.Executable())
+		return nil, errors.Errorf("unknown executable: %q", block.Executable())
 	}
 }
 
@@ -106,12 +107,12 @@ func sigCtxCancel(ctx context.Context) (context.Context, context.CancelFunc) {
 	return ctx, cancel
 }
 
-func replace(snippet *snippets.Snippet, scripts []string) error {
+func replace(block *document.CodeBlock, scripts []string) error {
 	if len(scripts) == 0 {
 		return nil
 	}
 
-	content := snippet.GetContent()
+	content := block.Content()
 
 	for _, script := range scripts {
 		engine, err := sed.New(strings.NewReader(script))
@@ -125,7 +126,7 @@ func replace(snippet *snippets.Snippet, scripts []string) error {
 		}
 	}
 
-	snippet.ReplaceContent(content)
+	block.SetContent(content)
 
 	return nil
 }
