@@ -1,5 +1,4 @@
 {
     // Uncomment if you want to work on files in ./web.
-    "go.buildTags": "js,wasm",
-    // "stateful.ingressUrl": "http://127.0.0.1:8080"
+    // "go.buildTags": "js,wasm"
 }
