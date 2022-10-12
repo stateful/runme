@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/rdme/internal/document"
 	"github.com/stateful/rdme/internal/renderer"
-	"github.com/yuin/goldmark"
 )
 
 func getCodeBlocks() (document.CodeBlocks, error) {
@@ -37,8 +36,7 @@ func renderToJSON(w io.Writer) error {
 	parsed := source.Parse()
 	sourceData, root := parsed.Source(), parsed.Root()
 
-	mdr := goldmark.New(goldmark.WithRenderer(renderer.NewJSON(sourceData, root)))
-	err = mdr.Renderer().Render(w, sourceData, root)
+	err = renderer.RenderToJSON(w, sourceData, root)
 	return errors.WithMessage(err, "failed to render to JSON")
 }
 
