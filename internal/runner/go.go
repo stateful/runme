@@ -34,7 +34,7 @@ func (g Go) Run(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to find %q executable", "go")
 	}
 
-	tmpDir, err := os.MkdirTemp("", "rdme-*")
+	tmpDir, err := os.MkdirTemp("", "runme-*")
 	if err != nil {
 		return errors.Wrapf(err, "failed to create a temp dir")
 	}

@@ -12,13 +12,13 @@ LDFLAGS := -s -w \
 
 .PHONY: build
 build:
-	go build -o rdme -ldflags="$(LDFLAGS)" main.go
+	go build -o runme -ldflags="$(LDFLAGS)" main.go
 
 .PHONY: wasm
 wasm: WASM_OUTPUT ?= examples/web
 wasm:
 	cp $(GO_ROOT)/misc/wasm/wasm_exec.js $(WASM_OUTPUT)
-	GOOS=js GOARCH=wasm go build -o $(WASM_OUTPUT)/rdme.wasm -ldflags="$(LDFLAGS)" ./web
+	GOOS=js GOARCH=wasm go build -o $(WASM_OUTPUT)/runme.wasm -ldflags="$(LDFLAGS)" ./web
 
 .PHONY: test
 test:

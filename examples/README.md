@@ -5,13 +5,13 @@
 This is a basic snippet with shell command:
 
 ```sh
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ```
 
 With `{name=hello}` you can annotate it and give it a nice name:
 
 ```sh {name=echo}
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ```
 
 It can contain multiple lines too:
@@ -25,13 +25,13 @@ $ echo "3"
 Also, the dollar sign is not needed:
 
 ```sh
-echo "Hello, rdme! Again!"
+echo "Hello, runme! Again!"
 ```
 
 It works with `cd`, `pushd`, and similar because all lines are executed as a single script:
 
 ```sh
-temp_dir=$(mktemp -d -t "rdme-")
+temp_dir=$(mktemp -d -t "runme-")
 pushd $temp_dir
 echo "hi!" > hi.txt
 pwd
@@ -52,6 +52,6 @@ import (
 )
 
 func main() {
-    fmt.Println("Hello from Go, rdme!")
+    fmt.Println("Hello from Go, runme!")
 }
 ```

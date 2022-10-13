@@ -14,7 +14,7 @@
             "host": "127.0.0.1"
         },
         {
-            "name": "Launch rdme json",
+            "name": "Launch runme json",
             "type": "go",
             "request": "launch",
             "mode": "auto",

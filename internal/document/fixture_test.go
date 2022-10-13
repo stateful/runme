@@ -10,13 +10,13 @@ var testREADME = []byte(`
 This is a basic snippet with a shell command:
 
 ` + "```" + `sh
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```" + `
 
 It can have an annotation with a name:
 
 ` + "```" + `sh {name=echo}
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```" + `
 
 It can contain multiple lines too:
@@ -30,7 +30,7 @@ $ echo "3"
 Also, the dollar sign is not needed:
 
 ` + "```" + `sh
-echo "Hello, rdme! Again!"
+echo "Hello, runme! Again!"
 ` + "```" + `
 
 ## Go
@@ -45,7 +45,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello from Go, rdme!")
+	fmt.Println("Hello from Go, runme!")
 }
 ` + "```")
 

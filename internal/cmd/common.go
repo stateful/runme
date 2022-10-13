@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/rdme/internal/document"
-	"github.com/stateful/rdme/internal/renderer"
+	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/renderer"
 )
 
 func getCodeBlocks() (document.CodeBlocks, error) {

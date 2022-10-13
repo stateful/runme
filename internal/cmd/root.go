@@ -11,7 +11,7 @@ var (
 
 func Root() *cobra.Command {
 	cmd := cobra.Command{
-		Use:           "rdme",
+		Use:           "runme",
 		Short:         "Execute commands directly from a README",
 		Long:          "Parses commands directly from a README (best-effort) to make them executable under a unique name.",
 		SilenceErrors: true,

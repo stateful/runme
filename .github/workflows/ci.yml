@@ -48,8 +48,8 @@ jobs:
           go-version: ${{ matrix.go }}
       - name: Build
         run: |
-          go build -o rdme main.go
-          ./rdme --version
+          go build -o runme main.go
+          ./runme --version
       - name: Test
         run: TZ=UTC go test ./...
         if: ${{ matrix.os == 'ubuntu-latest' }}
