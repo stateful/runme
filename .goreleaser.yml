@@ -21,6 +21,17 @@ builds:
       - -trimpath
     ldflags:
       - -s -w -X main.BuildDate={{ .CommitDate }} -X main.BuildVersion={{.Version}} -X main.Commit={{.Commit}}
+  - id: wasm
+    main: ./web
+    goos:
+      - js
+    goarch:
+      - wasm
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.BuildDate={{ .CommitDate }} -X main.BuildVersion={{.Version}} -X main.Commit={{.Commit}}
 
 release:
   prerelease: auto
@@ -42,6 +53,9 @@ changelog:
 
 archives:
   - id: cli
+    builds:
+      - cli
+      - wasm
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     replacements:
       386: i386
