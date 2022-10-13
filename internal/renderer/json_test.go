@@ -13,15 +13,15 @@ import (
 )
 
 var testCases = []string{
-	// "happy",
-	// "simple",
-	// "linesless",
+	"happy",
+	"simple",
+	"linesless",
 	"singleblock",
-	// "doublecode",
-	// "nocodeblock",
-	// "equalvshash",
-	// "symbols",
-	// "singlebslash",
+	"doublecode",
+	"nocodeblock",
+	"equalvshash",
+	"symbols",
+	"singlebslash",
 }
 
 func TestParser_Renderer(t *testing.T) {

@@ -200,8 +200,9 @@ func (s *ParsedSource) SquashedBlocks() (blocks Blocks, err error) {
 		blocks = append(blocks, &MarkdownBlock{content: markdown})
 	}
 
+	// Handle a single code block
 	if len(blocks) == 2 {
-		if _, ok := blocks[0].(*MarkdownBlock); ok {
+		if b, ok := blocks[0].(*MarkdownBlock); ok && strings.HasPrefix(b.content, "```") {
 			blocks = blocks[1:]
 		}
 	}
