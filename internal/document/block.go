@@ -3,6 +3,7 @@ package document
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"regexp"
 	"strings"
 
@@ -16,6 +17,7 @@ type CodeBlock struct {
 
 	attributes map[string]string
 	content    string
+	intro      string
 }
 
 func (b *CodeBlock) rawAttributes() []byte {
@@ -107,7 +109,12 @@ func normalizeIntro(s string) string {
 // Intro returns a normalized description of the code block
 // based on the preceding paragraph.
 func (b *CodeBlock) Intro() string {
-	return normalizeIntro(string(b.inner.PreviousSibling().Text(b.source)))
+	if b.intro == "" {
+		if prevNode := b.inner.PreviousSibling(); prevNode != nil {
+			b.intro = normalizeIntro(string(prevNode.Text(b.source)))
+		}
+	}
+	return b.intro
 }
 
 func normalizeLine(s string) string {
@@ -177,21 +184,19 @@ func (b *CodeBlock) Name() string {
 
 func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 	type codeBlock struct {
-		Attributes  map[string]string `json:"attributes,omitempty"`
-		Content     string            `json:"content,omitempty"`
-		Description string            `json:"description,omitempty"`
-		Name        string            `json:"name,omitempty"`
-		Language    string            `json:"language,omitempty"`
-		Lines       []string          `json:"lines,omitempty"`
+		Attributes map[string]string `json:"attributes,omitempty"`
+		Content    string            `json:"content,omitempty"`
+		Name       string            `json:"name,omitempty"`
+		Language   string            `json:"language,omitempty"`
+		Lines      []string          `json:"lines,omitempty"`
 	}
 
 	block := codeBlock{
-		Attributes:  b.Attributes(),
-		Content:     b.Content(),
-		Description: b.Intro(),
-		Name:        b.Name(),
-		Language:    b.Executable(),
-		Lines:       b.Lines(),
+		Attributes: b.Attributes(),
+		Content:    b.Content(),
+		Name:       b.Name(),
+		Language:   b.Executable(),
+		Lines:      b.Lines(),
 	}
 
 	return json.Marshal(block)
@@ -204,13 +209,23 @@ type MarkdownBlock struct {
 	content string
 }
 
+func writeLines(w io.Writer, n ast.Node, source []byte) {
+	if n.Type() == ast.TypeBlock {
+		for i := 0; i < n.Lines().Len(); i++ {
+			line := n.Lines().At(i)
+			_, _ = w.Write(line.Value(source))
+		}
+	}
+
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		writeLines(w, c, source)
+	}
+}
+
 func (b *MarkdownBlock) Content() string {
 	if b.content == "" {
 		var content strings.Builder
-		for i := 0; i < b.inner.Lines().Len(); i++ {
-			line := b.inner.Lines().At(i)
-			_, _ = content.Write(b.source[line.Start:line.Stop])
-		}
+		writeLines(&content, b.inner, b.source)
 		b.content = content.String()
 	}
 	return b.content

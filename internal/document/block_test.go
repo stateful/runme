@@ -1,9 +1,11 @@
 package document
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCodeBlock_Attributes(t *testing.T) {
@@ -92,4 +94,23 @@ $ echo "Hello, rdme!"
 	blocks := source.Parse().CodeBlocks()
 	assert.Equal(t, "echo-hello", blocks[0].Name())
 	assert.Equal(t, "myname", blocks[1].Name())
+}
+
+func TestBlock_MarshalJSON(t *testing.T) {
+	data := []byte(`
+# Hi
+
+This is a basic snippet with a shell command:
+
+> Warning!
+> **Warning!**
+
+` + "```" + `sh
+$ echo "Hello, rdme!"
+` + "```")
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	data, err := json.Marshal(blocks)
+	require.NoError(t, err)
+	require.Equal(t, `[{"markdown":"Hi"},{"markdown":"This is a basic snippet with a shell command:"},{"markdown":"Warning!\n**Warning!**"},{"content":"$ echo \"Hello, rdme!\"\n","name":"echo-hello","language":"sh","lines":["echo \"Hello, rdme!\""]}]`, string(data))
 }

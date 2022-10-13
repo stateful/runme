@@ -3,205 +3,42 @@ package renderer
 import (
 	"encoding/json"
 	"io"
-	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/rdme/internal/snippets"
+	"github.com/stateful/rdme/internal/document"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	goldrender "github.com/yuin/goldmark/renderer"
 )
 
-type renderer struct{}
+type jsonRenderer struct{}
 
-type document struct {
-	Document snippets.Snippets `json:"document,omitempty"`
-}
-
-func NewJSON(options ...goldrender.Option) goldrender.Renderer {
-	return &renderer{}
-}
-
-func (r *renderer) GetDocument(source []byte, n ast.Node) (document, error) {
-	var snips snippets.Snippets
-	lastCodeBlock := n
-	remainingNode := n
-
-	err := ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		s := ast.WalkStatus(ast.WalkContinue)
-
-		if n.Kind() != ast.KindFencedCodeBlock || !entering {
-			return s, nil
-		}
-
-		start := r.getPrevStart(n)
-
-		if lastCodeBlock != nil {
-			prevStop := r.getNextStop(lastCodeBlock)
-			// check for existence of markdown in between code blocks
-			if start > prevStop {
-				markdown, _ := r.getRange(source, n, prevStop, start)
-				snip := snippets.Snippet{
-					Markdown: markdown,
-				}
-				snips = append(snips, &snip)
-			}
-			lastCodeBlock = n
-		}
-
-		nContent, err := r.getContent(source, n)
-		if err != nil {
-			return s, errors.Wrapf(err, "error getting content")
-		}
-		pnContent, err := r.getContent(source, n.PreviousSibling())
-		if err != nil {
-			return s, errors.Wrapf(err, "error getting content")
-		}
-
-		codeBlock := n.(*ast.FencedCodeBlock)
-		snip := snippets.Snippet{
-			Attributes:  snippets.ParseAttributes(snippets.ExtractRawAttributes(source, codeBlock)),
-			Content:     nContent,
-			Description: pnContent,
-			Language:    string(codeBlock.Language(source)),
-		}
-		snip.Lines = snip.GetLines() // ugly hack
-		snips = append(snips, &snip)
-
-		remainingNode = n.NextSibling()
-
-		return s, nil
-	})
+func (r *jsonRenderer) Render(w io.Writer, source []byte, n ast.Node) error {
+	blocks, err := document.NewSource(source).Parse().SquashedBlocks()
 	if err != nil {
-		return document{}, err
+		return errors.WithMessage(err, "failed to parse source")
 	}
 
-	// Never encounter a code block, stuck on document node
-	if remainingNode == n {
-		remainingNode = remainingNode.FirstChild()
+	type wrapper struct {
+		Document document.Blocks `json:"document,omitempty"`
 	}
 
-	// Skip remainingNodes unless it's got lines
-	for remainingNode != nil && remainingNode.Lines().Len() == 0 {
-		remainingNode = remainingNode.NextSibling()
-	}
-
-	if remainingNode != nil {
-		start := remainingNode.Lines().At(0).Start
-		stop := len(source) - 1
-		markdown, _ := r.getRange(source, remainingNode, start, stop)
-		snip := snippets.Snippet{
-			Markdown: markdown,
-		}
-		snips = append(snips, &snip)
-	}
-
-	if len(snips) == 2 && snips[0].Content == "" {
-		snips = snips[1:]
-	}
-
-	doc := document{
-		Document: snips,
-	}
-
-	return doc, nil
-}
-
-func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
-	doc, err := r.GetDocument(source, n)
+	jsonDoc, err := json.Marshal(&wrapper{Document: blocks})
 	if err != nil {
-		return errors.Wrapf(err, "error processing ast")
-	}
-
-	jsonDoc, err := json.Marshal(doc)
-	if err != nil {
-		return errors.Wrapf(err, "error marshaling json doc")
+		return errors.WithMessage(err, "error marshaling json")
 	}
 
 	_, err = w.Write(jsonDoc)
-	if err != nil {
-		return errors.Wrapf(err, "error writing json doc")
-	}
-
-	return nil
-}
-
-func (r *renderer) getContent(source []byte, n ast.Node) (string, error) {
-	if n == nil {
-		return "", nil
-	}
-	var content strings.Builder
-	switch n.Type() {
-	case ast.TypeInline:
-		_, err := content.Write(n.Text(source))
-		return "", err
-	default:
-		for i := 0; i < n.Lines().Len(); i++ {
-			line := n.Lines().At(i)
-			chunk, _ := r.getRange(source, n, line.Start, line.Stop)
-			_, _ = content.WriteString(chunk)
-		}
-	}
-	return content.String(), nil
-}
-
-func (r *renderer) getRange(source []byte, n ast.Node, start int, stop int) (string, error) {
-	var content strings.Builder
-	switch n.Kind() {
-	case ast.KindHeading:
-		heading := n.(*ast.Heading)
-		offset := 1 + heading.Level
-		// shield from inital ======= vs ### heading
-		if start-offset < 0 {
-			offset = 0
-		}
-		_, _ = content.Write(source[start-offset : stop])
-	default:
-		_, _ = content.Write(source[start:stop])
-	}
-	return content.String(), nil
-}
-
-func (r *renderer) getPrevStart(n ast.Node) int {
-	curr := n
-	prev := n.PreviousSibling()
-	if prev != nil && prev.Lines().Len() > 0 {
-		curr = prev
-	}
-	return curr.Lines().At(0).Stop
-}
-
-func (r *renderer) getNextStop(n ast.Node) int {
-	curr := n
-	next := n.NextSibling()
-	if next != nil {
-		curr = next
-	}
-
-	l := curr.Lines().Len()
-	if l == 0 {
-		return 0
-	}
-
-	stop := curr.Lines().At(l - 1).Start
-
-	// add back markdown heading levels
-	if curr.Kind() == ast.KindHeading {
-		heading := curr.(*ast.Heading)
-		// simple math to add back ## incl trailing space
-		stop = stop - 1 - heading.Level
-	}
-
-	return stop
+	return errors.WithMessage(err, "error writing json")
 }
 
 // AddOptions has no effect
-func (r *renderer) AddOptions(_ ...goldrender.Option) {
+func (r *jsonRenderer) AddOptions(_ ...goldrender.Option) {
 	// Nothing to do here
 }
 
 func RenderToJSON(w io.Writer, source []byte, root ast.Node) error {
-	mdr := goldmark.New(goldmark.WithRenderer(NewJSON()))
+	mdr := goldmark.New(goldmark.WithRenderer(&jsonRenderer{}))
 	err := mdr.Renderer().Render(w, source, root)
 	return errors.WithStack(err)
 }
