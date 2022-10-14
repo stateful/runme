@@ -7,12 +7,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/stateful/rdme/internal/document"
+	"github.com/stateful/runme/internal/document"
 
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
-	"github.com/stateful/rdme/internal/runner"
+	"github.com/stateful/runme/internal/runner"
 )
 
 func runCmd() *cobra.Command {

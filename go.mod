@@ -1,4 +1,4 @@
-module github.com/stateful/rdme
+module github.com/stateful/runme
 
 go 1.18
 

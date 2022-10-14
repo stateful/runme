@@ -13,13 +13,13 @@ func TestCodeBlock_Attributes(t *testing.T) {
 This is a basic snippet with a shell command:
 
 ` + "```" + `sh
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```" + `
 
 It can have an annotation with a name:
 
 ` + "```" + `sh {name=echo first= second=2}
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```")
 	source := NewSource(data)
 	blocks := source.Parse().CodeBlocks()
@@ -33,11 +33,11 @@ $ echo "Hello, rdme!"
 
 func TestCodeBlock_Content(t *testing.T) {
 	data := []byte("```" + `sh
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```")
 	source := NewSource(data)
 	block := source.Parse().CodeBlocks()[0]
-	assert.Equal(t, "$ echo \"Hello, rdme!\"\n", block.Content())
+	assert.Equal(t, "$ echo \"Hello, runme!\"\n", block.Content())
 
 	block.SetContent("reset")
 	assert.Equal(t, "reset", block.Content())
@@ -45,7 +45,7 @@ $ echo "Hello, rdme!"
 
 func TestCodeBlock_Executable(t *testing.T) {
 	data := []byte("```" + `sh
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```")
 	source := NewSource(data)
 	block := source.Parse().CodeBlocks()[0]
@@ -57,7 +57,7 @@ func TestCodeBlock_Intro(t *testing.T) {
 This is a basic snippet with a shell command:
 
 ` + "```" + `sh
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```")
 	source := NewSource(data)
 	block := source.Parse().CodeBlocks()[0]
@@ -69,7 +69,7 @@ func TestCodeBlock_Lines(t *testing.T) {
 	blocks := source.Parse().CodeBlocks()
 	assert.Len(t, blocks, 5)
 	assert.Equal(t, 1, blocks[0].LineCount())
-	assert.Equal(t, "echo \"Hello, rdme!\"", blocks[0].Line(0))
+	assert.Equal(t, "echo \"Hello, runme!\"", blocks[0].Line(0))
 	assert.Equal(t, []string{
 		"echo \"1\"",
 		"echo \"2\"",
@@ -82,13 +82,13 @@ func TestCodeBlock_Name(t *testing.T) {
 This is a basic snippet with a shell command:
 
 ` + "```" + `sh
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```" + `
 
 It can have an annotation with a name:
 
 ` + "```" + `sh {name=myname first= second=2}
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```")
 	source := NewSource(data)
 	blocks := source.Parse().CodeBlocks()
@@ -106,11 +106,11 @@ This is a basic snippet with a shell command:
 > **Warning!**
 
 ` + "```" + `sh
-$ echo "Hello, rdme!"
+$ echo "Hello, runme!"
 ` + "```")
 	source := NewSource(data)
 	blocks := source.Parse().Blocks()
 	data, err := json.Marshal(blocks)
 	require.NoError(t, err)
-	require.Equal(t, `[{"markdown":"Hi"},{"markdown":"This is a basic snippet with a shell command:"},{"markdown":"Warning!\n**Warning!**"},{"content":"$ echo \"Hello, rdme!\"\n","name":"echo-hello","language":"sh","lines":["echo \"Hello, rdme!\""]}]`, string(data))
+	require.Equal(t, `[{"markdown":"Hi"},{"markdown":"This is a basic snippet with a shell command:"},{"markdown":"Warning!\n**Warning!**"},{"content":"$ echo \"Hello, runme!\"\n","name":"echo-hello","language":"sh","lines":["echo \"Hello, runme!\""]}]`, string(data))
 }

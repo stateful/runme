@@ -34,28 +34,28 @@ var tpl = template.Must(template.New("").Funcs(template.FuncMap{"split": split})
 
 ### macOS:
 
-* [rdme_darwin_x86_64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_darwin_x86_64.tar.gz)
-* [rdme_darwin_arm64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_darwin_arm64.tar.gz)
+* [runme_darwin_x86_64.tar.gz](https://download.stateful.com/runme/{{ .Version }}/runme_darwin_x86_64.tar.gz)
+* [runme_darwin_arm64.tar.gz](https://download.stateful.com/runme/{{ .Version }}/runme_darwin_arm64.tar.gz)
 
 ### Linux
 
-* [rdme_linux_x86_64.deb](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.deb)
-* [rdme_linux_arm64.deb](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.deb)
-* [rdme_linux_x86_64.rpm](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.rpm)
-* [rdme_linux_arm64.rpm](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.rpm)
-* [rdme_linux_x86_64.apk](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.apk)
-* [rdme_linux_arm64.apk](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.apk)
-* [rdme_linux_x86_64.tar.gz](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_x86_64.tar.gz)
-* [rdme_linux_arm64.tar.tz](https://download.stateful.com/rdme/{{ .Version }}/rdme_linux_arm64.tar.gz)
+* [runme_linux_x86_64.deb](https://download.stateful.com/runme/{{ .Version }}/runme_linux_x86_64.deb)
+* [runme_linux_arm64.deb](https://download.stateful.com/runme/{{ .Version }}/runme_linux_arm64.deb)
+* [runme_linux_x86_64.rpm](https://download.stateful.com/runme/{{ .Version }}/runme_linux_x86_64.rpm)
+* [runme_linux_arm64.rpm](https://download.stateful.com/runme/{{ .Version }}/runme_linux_arm64.rpm)
+* [runme_linux_x86_64.apk](https://download.stateful.com/runme/{{ .Version }}/runme_linux_x86_64.apk)
+* [runme_linux_arm64.apk](https://download.stateful.com/runme/{{ .Version }}/runme_linux_arm64.apk)
+* [runme_linux_x86_64.tar.gz](https://download.stateful.com/runme/{{ .Version }}/runme_linux_x86_64.tar.gz)
+* [runme_linux_arm64.tar.tz](https://download.stateful.com/runme/{{ .Version }}/runme_linux_arm64.tar.gz)
 
 ### Windows
 
-* [rdme_windows_x86_64.zip](https://download.stateful.com/rdme/{{ .Version }}/rdme_windows_x86_64.zip)
-* [rdme_windows_arm64.zip](https://download.stateful.com/rdme/{{ .Version }}/rdme_windows_arm64.zip)
+* [runme_windows_x86_64.zip](https://download.stateful.com/runme/{{ .Version }}/runme_windows_x86_64.zip)
+* [runme_windows_arm64.zip](https://download.stateful.com/runme/{{ .Version }}/runme_windows_arm64.zip)
 
 ## Changelog
 
-[Full changelog](https://github.com/stateful/rdme/compare/v{{ or .PreviousVersion "main" }}...v{{ .Version }})
+[Full changelog](https://github.com/stateful/runme/compare/v{{ or .PreviousVersion "main" }}...v{{ .Version }})
 
 {{ range $value := .Commits -}}
 * {{ $value.SHA }}: {{ (split "\n" $value.Commit.Message)._0 }} ([@{{ $value.Author.Login }}]({{ $value.Author.HTMLURL }}))
@@ -83,7 +83,7 @@ var flagsConfig = config{}
 
 func init() {
 	flag.StringVar(&flagsConfig.Owner, "owner", "stateful", "Owner of the repository")
-	flag.StringVar(&flagsConfig.Repo, "repo", "rdme", "Repository name")
+	flag.StringVar(&flagsConfig.Repo, "repo", "runme", "Repository name")
 	flag.StringVar(&flagsConfig.Version, "version", "", "The new version, for example v0.1.1")
 
 	flag.Usage = func() {

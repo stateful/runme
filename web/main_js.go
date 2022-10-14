@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"syscall/js"
 
-	"github.com/stateful/rdme/internal/document"
-	"github.com/stateful/rdme/internal/renderer"
+	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/renderer"
 )
 
 // These are variables so that they can be set during the build time.

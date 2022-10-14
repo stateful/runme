@@ -1,8 +1,8 @@
-# rdme
+# runme
 
 Discover and run code snippets directly from your `README.md` or other markdowns (defaults to local `README.md`).
 
-rdme makes a best effort approach to extracts all code snippets defined in code blocks and allowing to explore and execute them. rdme is currently in early alpha.
+runme makes a best effort approach to extracts all code snippets defined in code blocks and allowing to explore and execute them. runme is currently in early alpha.
 
 You can execute commands from a different directory using a `--chdir` flag.
 To select a different file than `README.md`, use `--filename`.
@@ -12,16 +12,16 @@ To select a different file than `README.md`, use `--filename`.
 The easiest way on MacOS is to use Homebrew:
 
 ```sh
-$ brew install stateful/tap/rdme
+$ brew install stateful/tap/runme
 ```
 
-Alternatively, check out [rdme's releases](https://github.com/stateful/rdme/releases) and select
+Alternatively, check out [runme's releases](https://github.com/stateful/runme/releases) and select
 a binary for your operating system.
 
 If you have Go developer tools installed, you can install it with `go install`:
 
 ```sh
-$ go install github.com/stateful/rdme@latest
+$ go install github.com/stateful/runme@latest
 ```
 
 ## Contributing & Feedback

@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/rdme/internal/document"
+	"github.com/stateful/runme/internal/document"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	goldrender "github.com/yuin/goldmark/renderer"

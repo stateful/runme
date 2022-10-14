@@ -1,4 +1,4 @@
-project_name: rdme
+project_name: runme
 
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
@@ -69,13 +69,13 @@ archives:
 
 blobs:
   - provider: gs
-    bucket: rdme-artifacts-b4e64f
+    bucket: runme-artifacts-41eac6
     ids:
       - cli
     folder: "{{ .Version }}"
 
 brews:
-  - name: rdme
+  - name: runme
     ids:
       - cli
     homepage: https://stateful.com
@@ -84,7 +84,7 @@ brews:
       owner: stateful
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    url_template: "https://download.stateful.com/rdme/{{ .Version }}/{{ .ArtifactName }}"
+    url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
     dependencies: []
     skip_upload: auto
     folder: Formula
@@ -93,16 +93,16 @@ brews:
       name: release-bot
       email: bot@stateful.com
     install: |
-      bin.install "rdme"
-      (bash_completion/"rdme").write `#{bin}/rdme completion bash`
-      (fish_completion/"rdme.fish").write `#{bin}/rdme completion fish`
-      (zsh_completion/"_rdme").write `#{bin}/rdme completion zsh`
+      bin.install "runme"
+      (bash_completion/"runme").write `#{bin}/runme completion bash`
+      (fish_completion/"runme.fish").write `#{bin}/runme completion fish`
+      (zsh_completion/"_runme").write `#{bin}/runme completion zsh`
     test: |
-      assert_match "rdme #{version}", shell_output("#{bin}/rdme version")
+      assert_match "runme #{version}", shell_output("#{bin}/runme version")
 
 nfpms:
   - id: cli
-    package_name: rdme
+    package_name: runme
     builds:
       - cli
     replacements:
@@ -119,7 +119,7 @@ nfpms:
       - rpm
 
 scoop:
-  url_template: "https://download.stateful.com/rdme/{{ .Version }}/{{ .ArtifactName }}"
+  url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
   bucket:
     owner: stateful
     name: scoop-bucket

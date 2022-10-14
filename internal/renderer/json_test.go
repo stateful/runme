@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/bradleyjkemp/cupaloy/v2"
-	"github.com/stateful/rdme/internal/document"
+	"github.com/stateful/runme/internal/document"
 	"github.com/stretchr/testify/require"
 )
 
