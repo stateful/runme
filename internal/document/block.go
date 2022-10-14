@@ -151,6 +151,12 @@ func sanitizeName(s string) string {
 		return sanitizeName(s[:idx])
 	}
 
+	limit := len(s)
+	if limit > 32 {
+		limit = 32
+	}
+	s = s[0:limit]
+
 	fragments := strings.Split(s, " ")
 	if len(fragments) > 1 {
 		s = strings.Join(fragments[:2], " ")
@@ -158,8 +164,7 @@ func sanitizeName(s string) string {
 		s = fragments[0]
 	}
 
-	var b bytes.Buffer
-
+	var b strings.Builder
 	for _, r := range strings.ToLower(s) {
 		if r == ' ' && b.Len() > 0 {
 			_, _ = b.WriteRune('-')
@@ -167,7 +172,6 @@ func sanitizeName(s string) string {
 			_, _ = b.WriteRune(r)
 		}
 	}
-
 	return b.String()
 }
 

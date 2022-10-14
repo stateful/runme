@@ -80,6 +80,9 @@ func (s *ParsedSource) CodeBlocks() CodeBlocks {
 		cache:        map[interface{}]string{},
 	}
 
+	// TODO(adamb): check the case when a paragraph is immediately
+	// followed by a code block without a new line separating them.
+	// Currently, such a code block is not detected at all.
 	for c := s.root.FirstChild(); c != nil; c = c.NextSibling() {
 		if c.Kind() == ast.KindFencedCodeBlock {
 			result = append(result, &CodeBlock{
