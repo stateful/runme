@@ -124,20 +124,22 @@ func getPrevStart(n ast.Node) int {
 
 func getNextStop(n ast.Node) int {
 	curr := n
+	if curr.Kind() == ast.KindDocument {
+		curr = curr.FirstChild()
+	}
 	next := n.NextSibling()
-	if next != nil {
+
+	stop := 0
+	if next != nil && next.Lines().Len() > 0 {
 		curr = next
+		stop = curr.Lines().At(0).Start
+	} else {
+		l := curr.Lines().Len()
+		stop = curr.Lines().At(l - 1).Start
 	}
-
-	l := curr.Lines().Len()
-	if l == 0 {
-		return 0
-	}
-
-	stop := curr.Lines().At(l - 1).Start
 
 	// add back markdown heading levels
-	if curr.Kind() == ast.KindHeading {
+	if stop > 0 && curr.Kind() == ast.KindHeading {
 		heading := curr.(*ast.Heading)
 		// simple math to add back ## incl trailing space
 		stop = stop - 1 - heading.Level
