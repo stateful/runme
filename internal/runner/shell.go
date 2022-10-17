@@ -14,7 +14,7 @@ import (
 )
 
 type Shell struct {
-	Base
+	*Base
 	Cmds []string
 }
 

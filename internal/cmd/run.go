@@ -67,30 +67,15 @@ func runCmd() *cobra.Command {
 }
 
 func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Executable, error) {
-	switch block.Executable() {
-	case "sh":
-		return &runner.Shell{
-			Cmds: block.Lines(),
-			Base: runner.Base{
-				Dir:    chdir,
-				Stdin:  cmd.InOrStdin(),
-				Stdout: cmd.OutOrStdout(),
-				Stderr: cmd.ErrOrStderr(),
-			},
-		}, nil
-	case "go":
-		return &runner.Go{
-			Source: block.Content(),
-			Base: runner.Base{
-				Dir:    chdir,
-				Stdin:  cmd.InOrStdin(),
-				Stdout: cmd.OutOrStdout(),
-				Stderr: cmd.ErrOrStderr(),
-			},
-		}, nil
-	default:
-		return nil, errors.Errorf("unknown executable: %q", block.Executable())
-	}
+	return runner.New(
+		block,
+		&runner.Base{
+			Dir:    chdir,
+			Stdin:  cmd.InOrStdin(),
+			Stdout: cmd.OutOrStdout(),
+			Stderr: cmd.ErrOrStderr(),
+		},
+	)
 }
 
 func sigCtxCancel(ctx context.Context) (context.Context, context.CancelFunc) {
