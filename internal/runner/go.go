@@ -12,7 +12,7 @@ import (
 )
 
 type Go struct {
-	Base
+	*Base
 	Source string
 }
 
