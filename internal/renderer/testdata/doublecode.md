@@ -29,6 +29,6 @@ yarn global add webdriverio
 
 ## Stdin Example
 
-```
+```sh
 node ./scripts/stdin.js
 ```
