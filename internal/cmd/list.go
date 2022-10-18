@@ -44,5 +44,6 @@ func listCmd() *cobra.Command {
 			return errors.Wrap(table.Render(), "failed to render")
 		},
 	}
+
 	return &cmd
 }

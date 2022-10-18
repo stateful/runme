@@ -36,3 +36,10 @@ func New(block *document.CodeBlock, base *Base) (Executable, error) {
 		return nil, errors.Errorf("unknown executable: %q", block.Executable())
 	}
 }
+
+var supportedExecutables = map[string]struct{}{"sh": {}, "shell": {}, "go": {}}
+
+func IsSupported(block *document.CodeBlock) bool {
+	_, ok := supportedExecutables[block.Executable()]
+	return ok
+}
