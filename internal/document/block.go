@@ -14,10 +14,12 @@ type CodeBlock struct {
 	inner        *ast.FencedCodeBlock
 	nameResolver *nameResolver
 	source       []byte
-
-	attributes map[string]string
-	content    string
-	intro      string
+	cache        struct {
+		attributes map[string]string
+		content    string
+		intro      string
+		lines      []string
+	}
 }
 
 func (b *CodeBlock) rawAttributes() []byte {
@@ -68,28 +70,23 @@ func (b *CodeBlock) parseAttributes(raw []byte) map[string]string {
 // Attributes returns code block attributes detected in the first line.
 // They are of a form: "sh { attr=value }".
 func (b *CodeBlock) Attributes() map[string]string {
-	if b.attributes == nil {
-		b.attributes = b.parseAttributes(b.rawAttributes())
+	if b.cache.attributes == nil {
+		b.cache.attributes = b.parseAttributes(b.rawAttributes())
 	}
-	return b.attributes
+	return b.cache.attributes
 }
 
 // Content returns unaltered snippet as a single blob of text.
 func (b *CodeBlock) Content() string {
-	if b.content == "" {
-		var content strings.Builder
+	if b.cache.content == "" {
+		var buf strings.Builder
 		for i := 0; i < b.inner.Lines().Len(); i++ {
 			line := b.inner.Lines().At(i)
-			_, _ = content.Write(b.source[line.Start:line.Stop])
+			_, _ = buf.Write(line.Value(b.source))
 		}
-		b.content = content.String()
+		b.cache.content = buf.String()
 	}
-	return b.content
-}
-
-// SetContent sets a new content of the block.
-func (b *CodeBlock) SetContent(str string) {
-	b.content = str
+	return b.cache.content
 }
 
 // Executable returns an identifier of a program to execute the block.
@@ -109,40 +106,60 @@ func normalizeIntro(s string) string {
 // Intro returns a normalized description of the code block
 // based on the preceding paragraph.
 func (b *CodeBlock) Intro() string {
-	if b.intro == "" {
+	if b.cache.intro == "" {
 		if prevNode := b.inner.PreviousSibling(); prevNode != nil {
-			b.intro = normalizeIntro(string(prevNode.Text(b.source)))
+			b.cache.intro = normalizeIntro(string(prevNode.Text(b.source)))
 		}
 	}
-	return b.intro
+	return b.cache.intro
+}
+
+// Line returns a normalized code block line at index.
+func (b *CodeBlock) Line(idx int) string {
+	lines := b.lines()
+	if idx >= len(lines) {
+		return ""
+	}
+	return lines[idx]
+}
+
+// LineCount returns the number of code block lines.
+func (b *CodeBlock) LineCount() int {
+	return len(b.lines())
 }
 
 func normalizeLine(s string) string {
 	return strings.TrimSpace(strings.TrimLeft(s, "$"))
 }
 
-// Line returns a normalized code block line at index.
-func (b *CodeBlock) Line(idx int) string {
-	lines := b.inner.Lines()
-	if idx >= lines.Len() {
-		return ""
+func (b *CodeBlock) lines() []string {
+	if b.cache.lines == nil {
+		var result []string
+		for i := 0; i < b.inner.Lines().Len(); i++ {
+			line := b.inner.Lines().At(i)
+			result = append(result, normalizeLine(string(line.Value(b.source))))
+		}
+		b.cache.lines = result
 	}
-	line := lines.At(idx)
-
-	return normalizeLine(string(b.source[line.Start:line.Stop]))
-}
-
-// LineCount returns the number of code block lines.
-func (b *CodeBlock) LineCount() int {
-	return b.inner.Lines().Len()
+	return b.cache.lines
 }
 
 // Lines returns all code block lines, normalized.
 func (b *CodeBlock) Lines() (result []string) {
-	for i := 0; i < b.inner.Lines().Len(); i++ {
-		result = append(result, b.Line(i))
+	return b.lines()
+}
+
+func (b *CodeBlock) MapLines(fn func(string) (string, error)) error {
+	var result []string
+	for _, line := range b.lines() {
+		v, err := fn(line)
+		if err != nil {
+			return err
+		}
+		result = append(result, v)
 	}
-	return
+	b.cache.lines = result
+	return nil
 }
 
 func sanitizeName(s string) string {

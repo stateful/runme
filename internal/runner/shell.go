@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/google/shlex"
@@ -77,7 +78,11 @@ func prepareScript(cmds []string) string {
 				detectedWord = true
 			}
 
-			_, _ = b.WriteString(word)
+			if strings.Contains(word, " ") {
+				_, _ = b.WriteString(strconv.Quote(word))
+			} else {
+				_, _ = b.WriteString(word)
+			}
 		}
 	}
 

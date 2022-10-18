@@ -2,6 +2,7 @@ package document
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,9 +39,6 @@ $ echo "Hello, runme!"
 	source := NewSource(data)
 	block := source.Parse().CodeBlocks()[0]
 	assert.Equal(t, "$ echo \"Hello, runme!\"\n", block.Content())
-
-	block.SetContent("reset")
-	assert.Equal(t, "reset", block.Content())
 }
 
 func TestCodeBlock_Executable(t *testing.T) {
@@ -75,6 +73,21 @@ func TestCodeBlock_Lines(t *testing.T) {
 		"echo \"2\"",
 		"echo \"3\"",
 	}, blocks[2].Lines())
+}
+
+func TestCodeBlock_MapLines(t *testing.T) {
+	data := []byte("```" + `sh
+echo 1
+echo 2
+echo 3
+` + "```")
+	source := NewSource(data)
+	block := source.Parse().CodeBlocks()[0]
+	err := block.MapLines(func(s string) (string, error) {
+		return strings.Split(s, " ")[1], nil
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"1", "2", "3"}, block.Lines())
 }
 
 func TestCodeBlock_Name(t *testing.T) {
