@@ -94,7 +94,7 @@ func (b *CodeBlock) Executable() string {
 	if lang := string(b.inner.Language(b.source)); lang != "" {
 		return lang
 	}
-	return "sh"
+	return ""
 }
 
 var replaceEndingRe = regexp.MustCompile(`([^a-z0-9!?\.])$`)
