@@ -48,6 +48,10 @@ func (s *Shell) Run(ctx context.Context) error {
 	return execSingle(ctx, sh, s.Dir, prepareScript(s.Cmds), s.Stdin, s.Stdout, s.Stderr)
 }
 
+func PrepareScript(cmds []string) string {
+	return prepareScript(cmds)
+}
+
 func prepareScript(cmds []string) string {
 	var b strings.Builder
 

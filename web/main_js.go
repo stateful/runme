@@ -7,6 +7,7 @@ import (
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer"
+	"github.com/stateful/runme/internal/runner"
 )
 
 // These are variables so that they can be set during the build time.
@@ -19,6 +20,7 @@ var (
 func main() {
 	js.Global().Set("GetSnippets", js.FuncOf(GetBlocks))
 	js.Global().Set("GetDocument", js.FuncOf(GetDocument))
+	js.Global().Set("PrepareScript", js.FuncOf(PrepareScript))
 
 	select {}
 }
@@ -58,4 +60,14 @@ func GetDocument(this js.Value, args []js.Value) interface{} {
 	json.Unmarshal(b.Bytes(), &dynamic)
 
 	return dynamic
+}
+
+func PrepareScript(this js.Value, args []js.Value) interface{} {
+	lines := args[0]
+	len := lines.Length()
+	scriptLines := make([]string, 0, len)
+	for i := 0; i < len; i++ {
+		scriptLines = append(scriptLines, lines.Index(i).String())
+	}
+	return runner.PrepareScript(scriptLines)
 }
