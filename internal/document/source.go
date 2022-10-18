@@ -118,6 +118,8 @@ func getPrevStart(n ast.Node) int {
 	prev := n.PreviousSibling()
 	if prev != nil && prev.Lines().Len() > 0 {
 		curr = prev
+		l := curr.Lines().Len()
+		return curr.Lines().At(l - 1).Stop
 	}
 	return curr.Lines().At(0).Stop
 }

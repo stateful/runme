@@ -22,6 +22,7 @@ var testCases = []string{
 	"equalvshash",
 	"symbols",
 	"singlebslash",
+	"intro",
 }
 
 func TestParser_Renderer(t *testing.T) {
