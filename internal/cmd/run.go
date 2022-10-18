@@ -97,21 +97,19 @@ func replace(block *document.CodeBlock, scripts []string) error {
 		return nil
 	}
 
-	content := block.Content()
-
 	for _, script := range scripts {
 		engine, err := sed.New(strings.NewReader(script))
 		if err != nil {
 			return errors.Wrapf(err, "failed to compile sed script %q", script)
 		}
 
-		content, err = engine.RunString(content)
+		err = block.MapLines(func(s string) (string, error) {
+			return engine.RunString(s)
+		})
 		if err != nil {
 			return errors.Wrapf(err, "failed to run sed script %q", script)
 		}
 	}
-
-	block.SetContent(content)
 
 	return nil
 }
