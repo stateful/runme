@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer"
+	"github.com/stateful/runme/internal/runner"
 )
 
 func getCodeBlocks() (document.CodeBlocks, error) {
@@ -16,7 +17,16 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return source.Parse().CodeBlocks(), nil
+
+	blocks := source.Parse().CodeBlocks()
+
+	var filtered document.CodeBlocks
+	for _, b := range blocks {
+		if b.Executable() != "" && runner.IsSupported(b) {
+			filtered = append(filtered, b)
+		}
+	}
+	return filtered, nil
 }
 
 func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlock, error) {

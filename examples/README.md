@@ -55,3 +55,15 @@ func main() {
     fmt.Println("Hello from Go, runme!")
 }
 ```
+
+## Unknown snippets
+
+Snippets without provided type are ignored.
+
+To still display unknown snippets, provide `--allow-unknown` to the `list` command.
+
+```
+[database]
+username = admin
+password = admin
+```
