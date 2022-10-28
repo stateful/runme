@@ -14,16 +14,13 @@ import (
 type jsonRenderer struct{}
 
 func (r *jsonRenderer) Render(w io.Writer, source []byte, n ast.Node) error {
-	blocks, err := document.NewSource(source).Parse().SquashedBlocks()
-	if err != nil {
-		return errors.WithMessage(err, "failed to parse source")
-	}
+	blocks := document.NewSource(source).Parse().Blocks()
 
 	type wrapper struct {
-		Document document.Blocks `json:"document,omitempty"`
+		Cells document.Blocks `json:"cells"`
 	}
 
-	jsonDoc, err := json.Marshal(&wrapper{Document: blocks})
+	jsonDoc, err := json.Marshal(&wrapper{Cells: blocks})
 	if err != nil {
 		return errors.WithMessage(err, "error marshaling json")
 	}
