@@ -3,7 +3,6 @@ package document
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"regexp"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 )
 
 type CodeBlock struct {
+	id           string
 	inner        *ast.FencedCodeBlock
 	nameResolver *nameResolver
 	source       []byte
@@ -79,11 +79,51 @@ func (b *CodeBlock) Attributes() map[string]string {
 // Content returns unaltered snippet as a single blob of text.
 func (b *CodeBlock) Content() string {
 	if b.cache.content == "" {
+		linesCount := b.inner.Lines().Len()
+
+		if linesCount == 0 {
+			return ""
+		}
+
+		start := b.inner.Lines().At(0).Start
+
+		for newLines := 0; start > 0; start-- {
+			ch := b.source[start]
+			if ch == '\n' {
+				newLines++
+
+				if newLines == 2 {
+					start++
+					break
+				}
+			}
+		}
+
 		var buf strings.Builder
+
+		_, _ = buf.Write(b.source[start:b.inner.Lines().At(0).Start])
+
 		for i := 0; i < b.inner.Lines().Len(); i++ {
 			line := b.inner.Lines().At(i)
 			_, _ = buf.Write(line.Value(b.source))
 		}
+
+		stop := b.inner.Lines().At(b.inner.Lines().Len() - 1).Stop
+
+		for newLines := 0; stop < len(b.source); stop++ {
+			ch := b.source[stop]
+			if ch == '\n' {
+				newLines++
+
+				if newLines == 2 {
+					stop--
+					break
+				}
+			}
+		}
+
+		_, _ = buf.Write(b.source[b.inner.Lines().At(b.inner.Lines().Len()-1).Stop:stop])
+
 		b.cache.content = buf.String()
 	}
 	return b.cache.content
@@ -205,60 +245,118 @@ func (b *CodeBlock) Name() string {
 
 func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 	type codeBlock struct {
-		Attributes map[string]string `json:"attributes,omitempty"`
-		Content    string            `json:"content,omitempty"`
-		Name       string            `json:"name,omitempty"`
-		Language   string            `json:"language,omitempty"`
-		Lines      []string          `json:"lines,omitempty"`
+		Attributes map[string]string `json:"attributes"`
+		Name       string            `json:"name"`
+		Executable string            `json:"executable"`
+		Lines      []string          `json:"lines"`
+		Source     string            `json:"source"`
+		Type       string            `json:"type"`
 	}
 
 	block := codeBlock{
 		Attributes: b.Attributes(),
-		Content:    b.Content(),
 		Name:       b.Name(),
-		Language:   b.Executable(),
+		Executable: b.Executable(),
 		Lines:      b.Lines(),
+		Source:     b.Content(),
+		Type:       "code",
 	}
 
 	return json.Marshal(block)
 }
 
 type MarkdownBlock struct {
+	id     string
 	inner  ast.Node
 	source []byte
 
-	content string
+	cache struct {
+		content string
+	}
 }
 
-func writeLines(w io.Writer, n ast.Node, source []byte) {
-	if n.Type() == ast.TypeBlock {
-		for i := 0; i < n.Lines().Len(); i++ {
-			line := n.Lines().At(i)
-			_, _ = w.Write(line.Value(source))
-		}
+func findFirstBlockChild(node ast.Node) ast.Node {
+	if !node.HasChildren() || node.FirstChild().Type() != ast.TypeBlock {
+		return node
 	}
+	node = node.FirstChild()
+	for node.FirstChild() != nil && node.FirstChild().Type() == ast.TypeBlock {
+		node = node.FirstChild()
+	}
+	return node
+}
 
-	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-		writeLines(w, c, source)
+func findLastBlockChild(node ast.Node) ast.Node {
+	if !node.HasChildren() || node.LastChild().Type() != ast.TypeBlock {
+		return node
 	}
+	node = node.LastChild()
+	for node.LastChild() != nil && node.LastChild().Type() == ast.TypeBlock {
+		node = node.LastChild()
+	}
+	return node
 }
 
 func (b *MarkdownBlock) Content() string {
-	if b.content == "" {
-		var content strings.Builder
-		writeLines(&content, b.inner, b.source)
-		b.content = content.String()
+	if b.cache.content == "" {
+		switch b.inner.Kind() {
+		case ast.KindHeading:
+			var buf strings.Builder
+			_, _ = buf.WriteString(strings.Repeat("#", b.inner.(*ast.Heading).Level))
+			_ = buf.WriteByte(' ')
+			for i := 0; i < b.inner.Lines().Len(); i++ {
+				line := b.inner.Lines().At(i)
+				value := line.Value(b.source)
+				_, _ = buf.Write(value)
+			}
+			b.cache.content = buf.String()
+		case ast.KindList, ast.KindBlockquote, ast.KindParagraph:
+			firstChild := findFirstBlockChild(b.inner)
+			lastChild := findLastBlockChild(b.inner)
+
+			if firstChild == nil || lastChild == nil {
+				return ""
+			}
+
+			start := firstChild.Lines().At(0).Start
+			if start > 0 {
+				if idx := bytes.LastIndexByte(b.source[0:start], '\n'); idx != -1 {
+					start = idx + 1
+				} else {
+					start = 0
+				}
+			}
+
+			stop := lastChild.Lines().At(lastChild.Lines().Len() - 1).Stop
+			if idx := bytes.IndexByte(b.source[stop:], '\n'); idx != -1 {
+				stop = stop + idx
+			}
+
+			b.cache.content = string(b.source[start:stop])
+		case ast.KindThematicBreak:
+			b.cache.content = "-----"
+		default:
+			var buf strings.Builder
+			for i := 0; i < b.inner.Lines().Len(); i++ {
+				line := b.inner.Lines().At(i)
+				value := line.Value(b.source)
+				_, _ = buf.Write(value)
+			}
+			b.cache.content = buf.String()
+		}
 	}
-	return b.content
+	return b.cache.content
 }
 
 func (b *MarkdownBlock) MarshalJSON() ([]byte, error) {
 	type markdownBlock struct {
-		Markdown string `json:"markdown,omitempty"`
+		Source string `json:"source"`
+		Type   string `json:"type"`
 	}
 
 	block := markdownBlock{
-		Markdown: b.Content(),
+		Source: b.Content(),
+		Type:   "markdown",
 	}
 
 	return json.Marshal(block)

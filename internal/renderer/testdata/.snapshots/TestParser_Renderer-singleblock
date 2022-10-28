@@ -1,1 +1,1 @@
-{"document":[{"content":"echo \"Foo 👀\"\nsleep 2\necho \"Bar 🕺\"\nsleep 2\necho \"Loo 🚀\"\n","name":"echo-foo","language":"sh","lines":["echo \"Foo 👀\"","sleep 2","echo \"Bar 🕺\"","sleep 2","echo \"Loo 🚀\""]}]}
+{"cells":[{"attributes":{},"name":"echo-foo","executable":"sh","lines":["echo \"Foo 👀\"","sleep 2","echo \"Bar 🕺\"","sleep 2","echo \"Loo 🚀\""],"source":"```sh\necho \"Foo 👀\"\nsleep 2\necho \"Bar 🕺\"\nsleep 2\necho \"Loo 🚀\"\n```\n","type":"code"}]}
