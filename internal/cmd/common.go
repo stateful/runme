@@ -22,7 +22,7 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 
 	var filtered document.CodeBlocks
 	for _, b := range blocks {
-		if b.Executable() != "" && runner.IsSupported(b) {
+		if allowUnknown || (b.Executable() != "" && runner.IsSupported(b)) {
 			filtered = append(filtered, b)
 		}
 	}
