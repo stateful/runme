@@ -27,6 +27,11 @@ func New(block *document.CodeBlock, base *Base) (Executable, error) {
 			Cmds: block.Lines(),
 			Base: base,
 		}, nil
+	case "sh-raw":
+		return &ShellRaw{
+			Cmds: block.Lines(),
+			Base: base,
+		}, nil
 	case "go":
 		return &Go{
 			Source: block.Content(),
