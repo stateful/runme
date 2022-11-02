@@ -18,7 +18,7 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	blocks := source.Parse().CodeBlocks()
+	blocks := source.Parse().Blocks().CodeBlocks()
 
 	var filtered document.CodeBlocks
 	for _, b := range blocks {
@@ -44,9 +44,8 @@ func renderToJSON(w io.Writer) error {
 	}
 
 	parsed := source.Parse()
-	sourceData, root := parsed.Source(), parsed.Root()
 
-	err = renderer.RenderToJSON(w, sourceData, root)
+	err = renderer.ToJSON(parsed, w)
 	return errors.WithMessage(err, "failed to render to JSON")
 }
 
