@@ -9,16 +9,31 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
+type NameResolver interface {
+	Get(interface{}, string) string
+}
+
 type CodeBlock struct {
-	id           string
 	inner        *ast.FencedCodeBlock
-	nameResolver *nameResolver
+	nameResolver NameResolver
 	source       []byte
-	cache        struct {
-		attributes map[string]string
-		content    string
-		intro      string
-		lines      []string
+
+	attributes map[string]string
+	content    string
+	intro      string
+	lines      []string
+	start      int
+	stop       int
+}
+
+func newCodeBlock(source []byte, nameResolver NameResolver, node *ast.FencedCodeBlock) *CodeBlock {
+	return &CodeBlock{
+		inner:        node,
+		nameResolver: nameResolver,
+		source:       source,
+
+		start: -1,
+		stop:  -1,
 	}
 }
 
@@ -70,34 +85,16 @@ func (b *CodeBlock) parseAttributes(raw []byte) map[string]string {
 // Attributes returns code block attributes detected in the first line.
 // They are of a form: "sh { attr=value }".
 func (b *CodeBlock) Attributes() map[string]string {
-	if b.cache.attributes == nil {
-		b.cache.attributes = b.parseAttributes(b.rawAttributes())
+	if b.attributes == nil {
+		b.attributes = b.parseAttributes(b.rawAttributes())
 	}
-	return b.cache.attributes
+	return b.attributes
 }
 
 // Content returns unaltered snippet as a single blob of text.
 func (b *CodeBlock) Content() string {
-	if b.cache.content == "" {
-		linesCount := b.inner.Lines().Len()
-
-		if linesCount == 0 {
-			return ""
-		}
-
-		start := b.inner.Lines().At(0).Start
-
-		for newLines := 0; start > 0; start-- {
-			ch := b.source[start]
-			if ch == '\n' {
-				newLines++
-
-				if newLines == 2 {
-					start++
-					break
-				}
-			}
-		}
+	if b.content == "" {
+		start, stop := getContentRange(b.source, b.inner)
 
 		var buf strings.Builder
 
@@ -108,25 +105,27 @@ func (b *CodeBlock) Content() string {
 			_, _ = buf.Write(line.Value(b.source))
 		}
 
-		stop := b.inner.Lines().At(b.inner.Lines().Len() - 1).Stop
-
-		for newLines := 0; stop < len(b.source); stop++ {
-			ch := b.source[stop]
-			if ch == '\n' {
-				newLines++
-
-				if newLines == 2 {
-					stop--
-					break
-				}
-			}
-		}
-
 		_, _ = buf.Write(b.source[b.inner.Lines().At(b.inner.Lines().Len()-1).Stop:stop])
 
-		b.cache.content = buf.String()
+		b.content = buf.String()
+		b.start = start
+		b.stop = stop
 	}
-	return b.cache.content
+	return b.content
+}
+
+func (b *CodeBlock) Start() int {
+	if b.start == -1 {
+		_ = b.Content()
+	}
+	return b.start
+}
+
+func (b *CodeBlock) Stop() int {
+	if b.stop == -1 {
+		_ = b.Content()
+	}
+	return b.stop
 }
 
 // Executable returns an identifier of a program to execute the block.
@@ -146,17 +145,17 @@ func normalizeIntro(s string) string {
 // Intro returns a normalized description of the code block
 // based on the preceding paragraph.
 func (b *CodeBlock) Intro() string {
-	if b.cache.intro == "" {
+	if b.intro == "" {
 		if prevNode := b.inner.PreviousSibling(); prevNode != nil {
-			b.cache.intro = normalizeIntro(string(prevNode.Text(b.source)))
+			b.intro = normalizeIntro(string(prevNode.Text(b.source)))
 		}
 	}
-	return b.cache.intro
+	return b.intro
 }
 
 // Line returns a normalized code block line at index.
 func (b *CodeBlock) Line(idx int) string {
-	lines := b.lines()
+	lines := b.getLines()
 	if idx >= len(lines) {
 		return ""
 	}
@@ -165,40 +164,40 @@ func (b *CodeBlock) Line(idx int) string {
 
 // LineCount returns the number of code block lines.
 func (b *CodeBlock) LineCount() int {
-	return len(b.lines())
+	return len(b.getLines())
 }
 
 func normalizeLine(s string) string {
 	return strings.TrimSpace(strings.TrimLeft(s, "$"))
 }
 
-func (b *CodeBlock) lines() []string {
-	if b.cache.lines == nil {
+func (b *CodeBlock) getLines() []string {
+	if b.lines == nil {
 		var result []string
 		for i := 0; i < b.inner.Lines().Len(); i++ {
 			line := b.inner.Lines().At(i)
 			result = append(result, normalizeLine(string(line.Value(b.source))))
 		}
-		b.cache.lines = result
+		b.lines = result
 	}
-	return b.cache.lines
+	return b.lines
 }
 
 // Lines returns all code block lines, normalized.
 func (b *CodeBlock) Lines() (result []string) {
-	return b.lines()
+	return b.getLines()
 }
 
 func (b *CodeBlock) MapLines(fn func(string) (string, error)) error {
 	var result []string
-	for _, line := range b.lines() {
+	for _, line := range b.getLines() {
 		v, err := fn(line)
 		if err != nil {
 			return err
 		}
 		result = append(result, v)
 	}
-	b.cache.lines = result
+	b.lines = result
 	return nil
 }
 
@@ -266,16 +265,25 @@ func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 }
 
 type MarkdownBlock struct {
-	id     string
 	inner  ast.Node
 	source []byte
 
-	cache struct {
-		content string
+	content string
+	start   int
+	stop    int
+}
+
+func newMarkdownBlock(source []byte, node ast.Node) *MarkdownBlock {
+	return &MarkdownBlock{
+		inner:  node,
+		source: source,
+
+		start: -1,
+		stop:  -1,
 	}
 }
 
-func findFirstBlockChild(node ast.Node) ast.Node {
+func findFirstBlock(node ast.Node) ast.Node {
 	if !node.HasChildren() || node.FirstChild().Type() != ast.TypeBlock {
 		return node
 	}
@@ -286,7 +294,7 @@ func findFirstBlockChild(node ast.Node) ast.Node {
 	return node
 }
 
-func findLastBlockChild(node ast.Node) ast.Node {
+func findLastBlock(node ast.Node) ast.Node {
 	if !node.HasChildren() || node.LastChild().Type() != ast.TypeBlock {
 		return node
 	}
@@ -297,26 +305,44 @@ func findLastBlockChild(node ast.Node) ast.Node {
 	return node
 }
 
+func peekLine(b []byte) []byte {
+	idx := bytes.IndexByte(b, '\n')
+	if idx == -1 {
+		return b
+	}
+	return b[:idx]
+}
+
 func (b *MarkdownBlock) Content() string {
-	if b.cache.content == "" {
+	if b.content == "" {
 		switch b.inner.Kind() {
 		case ast.KindHeading:
-			var buf strings.Builder
-			_, _ = buf.WriteString(strings.Repeat("#", b.inner.(*ast.Heading).Level))
-			_ = buf.WriteByte(' ')
-			for i := 0; i < b.inner.Lines().Len(); i++ {
-				line := b.inner.Lines().At(i)
-				value := line.Value(b.source)
-				_, _ = buf.Write(value)
+			start := b.inner.Lines().At(0).Start
+			if start > 0 {
+				if idx := bytes.LastIndexByte(b.source[0:start], '\n'); idx != -1 {
+					start = idx + 1
+				} else {
+					start = 0
+				}
 			}
-			b.cache.content = buf.String()
-		case ast.KindList, ast.KindBlockquote, ast.KindParagraph:
-			firstChild := findFirstBlockChild(b.inner)
-			lastChild := findLastBlockChild(b.inner)
 
-			if firstChild == nil || lastChild == nil {
-				return ""
+			stop := b.inner.Lines().At(b.inner.Lines().Len() - 1).Stop
+			if idx := bytes.IndexByte(b.source[stop:], '\n'); idx != -1 {
+				stop = stop + idx
 			}
+
+			if stop+1 < len(b.source) {
+				if line := peekLine(b.source[stop+1:]); bytes.ContainsAny(line, "=-") {
+					stop += len(line) + 1
+				}
+			}
+
+			b.content = string(b.source[start:stop])
+			b.start = start
+			b.stop = stop
+		case ast.KindList, ast.KindBlockquote, ast.KindParagraph:
+			firstChild := findFirstBlock(b.inner)
+			lastChild := findLastBlock(b.inner)
 
 			start := firstChild.Lines().At(0).Start
 			if start > 0 {
@@ -332,9 +358,41 @@ func (b *MarkdownBlock) Content() string {
 				stop = stop + idx
 			}
 
-			b.cache.content = string(b.source[start:stop])
+			b.content = string(b.source[start:stop])
+			b.start = start
+			b.stop = stop
 		case ast.KindThematicBreak:
-			b.cache.content = "-----"
+			previousBlock := b.inner.PreviousSibling()
+			for previousBlock != nil && !hasLine(previousBlock) {
+				previousBlock = previousBlock.PreviousSibling()
+			}
+
+			start := 0
+			if previousBlock != nil {
+				_, start = getContentRange(b.source, previousBlock)
+				start++
+			}
+			for ch := b.source[start]; ch == '\n'; ch = b.source[start] {
+				start++
+			}
+
+			nextBlock := b.inner.NextSibling()
+			for nextBlock != nil && !hasLine(nextBlock) {
+				nextBlock.NextSibling()
+			}
+
+			stop := len(b.source) - 1
+			if nextBlock != nil {
+				stop, _ = getContentRange(b.source, nextBlock)
+				stop--
+			}
+			for ch := b.source[stop]; ch == '\n'; ch = b.source[stop] {
+				stop--
+			}
+
+			b.content = string(b.source[start : stop+1])
+			b.start = start
+			b.stop = stop
 		default:
 			var buf strings.Builder
 			for i := 0; i < b.inner.Lines().Len(); i++ {
@@ -342,10 +400,26 @@ func (b *MarkdownBlock) Content() string {
 				value := line.Value(b.source)
 				_, _ = buf.Write(value)
 			}
-			b.cache.content = buf.String()
+			b.content = buf.String()
+			b.start = b.inner.Lines().At(0).Start
+			b.stop = b.inner.Lines().At(b.inner.Lines().Len() - 1).Stop
 		}
 	}
-	return b.cache.content
+	return b.content
+}
+
+func (b *MarkdownBlock) Start() int {
+	if b.start == -1 {
+		_ = b.Content()
+	}
+	return b.start
+}
+
+func (b *MarkdownBlock) Stop() int {
+	if b.stop == -1 {
+		_ = b.Content()
+	}
+	return b.stop
 }
 
 func (b *MarkdownBlock) MarshalJSON() ([]byte, error) {
@@ -364,6 +438,9 @@ func (b *MarkdownBlock) MarshalJSON() ([]byte, error) {
 
 type Block interface {
 	json.Marshaler
+	Content() string
+	Start() int
+	Stop() int
 }
 
 type Blocks []Block
@@ -393,4 +470,48 @@ func (b CodeBlocks) Names() (result []string) {
 		result = append(result, block.Name())
 	}
 	return result
+}
+
+func getContentRange(source []byte, node ast.Node) (int, int) {
+	switch node.Kind() {
+	case ast.KindFencedCodeBlock:
+		start := node.Lines().At(0).Start
+
+		// Find first back tick.
+		for start > 0 {
+			ch := source[start]
+			if ch == '`' {
+				break
+			}
+			start--
+		}
+		// Go back until the end of back ticks.
+		for start > 0 {
+			ch := source[start]
+			if ch != '`' {
+				start++
+				break
+			}
+			start--
+		}
+
+		stop := node.Lines().At(node.Lines().Len() - 1).Stop
+
+		// The source has no end line.
+		if stop == len(source) {
+			stop--
+		} else {
+			for stop < len(source) {
+				ch := source[stop]
+				if ch == '\n' {
+					break
+				}
+				stop++
+			}
+		}
+
+		return start, stop
+	default:
+		return node.Lines().At(0).Start, node.Lines().At(node.Lines().Len() - 1).Stop
+	}
 }

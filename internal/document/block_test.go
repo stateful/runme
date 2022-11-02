@@ -22,7 +22,7 @@ It can have an annotation with a name:
 $ echo "Hello, runme!"
 ` + "```")
 	source := NewSource(data)
-	blocks := source.Parse().CodeBlocks()
+	blocks := source.Parse().Blocks().CodeBlocks()
 
 	assert.EqualValues(t, map[string]string{}, blocks[0].Attributes())
 	assert.Equal(t, "echo-hello", blocks[0].Name())
@@ -47,7 +47,7 @@ echo 2
 echo 3
 ` + "```")
 	source := NewSource(data)
-	block := source.Parse().CodeBlocks()[0]
+	block := source.Parse().Blocks().CodeBlocks()[0]
 	err := block.MapLines(func(s string) (string, error) {
 		return strings.Split(s, " ")[1], nil
 	})
@@ -95,4 +95,62 @@ echo 2
 	assert.Equal(t, "1. Item 1\n1. Item 2", blocks[1].(*MarkdownBlock).Content())
 	assert.Equal(t, "```sh\necho 1\necho 2\n```", blocks[2].(*CodeBlock).Content())
 	assert.Equal(t, "   a\n   b", blocks[3].(*MarkdownBlock).Content())
+}
+
+func TestMarkdownBlock_Content_Headings(t *testing.T) {
+	data := []byte(`# ATX Heading
+
+## ATX Heading 2
+
+###
+
+Setext 1
+========
+
+Setext 2
+--------`)
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	assert.Equal(t, 4, len(blocks))
+	assert.Equal(t, "# ATX Heading", blocks[0].(*MarkdownBlock).Content())
+	assert.Equal(t, "## ATX Heading 2", blocks[1].(*MarkdownBlock).Content())
+	assert.Equal(t, "Setext 1\n========", blocks[2].(*MarkdownBlock).Content())
+	assert.Equal(t, "Setext 2\n--------", blocks[3].(*MarkdownBlock).Content())
+}
+
+func TestMarkdownBlock_Content_ThematicBreaks(t *testing.T) {
+	data := []byte(`Paragraph 1
+
+---
+
+Paragraph 2
+
+---
+
+` + "```" + `
+
+` + "```" + `
+
+---
+
+<p>html</p>`)
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	assert.Equal(t, 7, len(blocks))
+	assert.Equal(t, "Paragraph 1", blocks[0].(*MarkdownBlock).Content())
+	assert.Equal(t, "---", blocks[1].(*MarkdownBlock).Content())
+	assert.Equal(t, "Paragraph 2", blocks[2].(*MarkdownBlock).Content())
+	assert.Equal(t, "---", blocks[3].(*MarkdownBlock).Content())
+}
+
+func TestGetContentRange(t *testing.T) {
+	data := []byte("Start\n\n```\n\n```\nMid\n\n```\n\n```")
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	assert.Equal(t, 4, len(blocks))
+	start, stop := getContentRange(data, blocks[1].(*CodeBlock).inner)
+	assert.Equal(t, "```\n\n```", string(data[start:stop]))
+
+	start, stop = getContentRange(data, blocks[3].(*CodeBlock).inner)
+	assert.Equal(t, "```\n\n```", string(data[start:stop]))
 }

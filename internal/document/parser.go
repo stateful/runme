@@ -3,7 +3,6 @@ package document
 import (
 	"fmt"
 
-	"github.com/rs/xid"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -40,37 +39,72 @@ func (s *ParsedSource) hasChildOfKind(node ast.Node, kind ast.NodeKind) (ast.Nod
 	return nil, false
 }
 
+func hasLine(node ast.Node) bool {
+	return node.Lines().Len() > 0
+}
+
+func hasLineRecursive(node ast.Node) bool {
+	if hasLine(node) {
+		return true
+	}
+
+	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
+		if hasLineRecursive(child) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (result Blocks) {
 	for c := docNode.FirstChild(); c != nil; c = c.NextSibling() {
 		switch c.Kind() {
 		case ast.KindFencedCodeBlock:
-			result = append(result, &CodeBlock{
-				id:           newID(),
-				inner:        c.(*ast.FencedCodeBlock),
-				nameResolver: nameRes,
-				source:       s.data,
-			})
+			if !hasLine(c) {
+				break
+			}
+
+			result = append(result, newCodeBlock(s.data, nameRes, c.(*ast.FencedCodeBlock)))
+
 		default:
 			if innerCodeBlock, ok := s.hasChildOfKind(c, ast.KindFencedCodeBlock); ok {
-				fmt.Printf("found inner fenced code block\n")
+				if !hasLine(innerCodeBlock) {
+					break
+				}
 
 				switch c.Kind() {
 				case ast.KindList:
 					listItem := innerCodeBlock.Parent()
 
-					// move the code block into the root node
-					listItem.RemoveChild(listItem, innerCodeBlock)
-					docNode.InsertAfter(docNode, c, innerCodeBlock)
+					// Move the code block into the root node,
+					// as well as all its next siblings.
+					innerNodesToMove := []ast.Node{innerCodeBlock}
+					for node := innerCodeBlock.NextSibling(); node != nil; node = node.NextSibling() {
+						innerNodesToMove = append(innerNodesToMove, node)
+					}
 
-					// split the list if there are any list items
-					// after listItem
+					itemToInsertAfter := c
+					for _, node := range innerNodesToMove {
+						listItem.RemoveChild(listItem, node)
+						docNode.InsertAfter(docNode, itemToInsertAfter, node)
+						itemToInsertAfter = node
+					}
+
+					// Split the list if there are any list items
+					// after listItem.
 					if listItem.NextSibling() != nil {
-						newList := ast.NewList(c.(*ast.List).Marker)
+						var itemsToMove []ast.Node
 						for item := listItem.NextSibling(); item != nil; item = item.NextSibling() {
+							itemsToMove = append(itemsToMove, item)
+						}
+
+						newList := ast.NewList(c.(*ast.List).Marker)
+						for _, item := range itemsToMove {
 							c.RemoveChild(c, item)
 							newList.AppendChild(newList, item)
 						}
-						docNode.InsertAfter(docNode, innerCodeBlock, newList)
+						docNode.InsertAfter(docNode, itemToInsertAfter, newList)
 					}
 				case ast.KindBlockquote:
 					nextParagraph := innerCodeBlock.NextSibling()
@@ -82,8 +116,13 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 					// move all paragraphs after the code block
 					// into the new block quote
 					if nextParagraph != nil {
-						newBlockQuote := ast.NewBlockquote()
+						var itemsToMove []ast.Node
 						for item := nextParagraph; item != nil; item = item.NextSibling() {
+							itemsToMove = append(itemsToMove, item)
+						}
+
+						newBlockQuote := ast.NewBlockquote()
+						for _, item := range itemsToMove {
 							c.RemoveChild(c, item)
 							newBlockQuote.AppendChild(newBlockQuote, item)
 						}
@@ -92,11 +131,9 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 				}
 			}
 
-			result = append(result, &MarkdownBlock{
-				id:     newID(),
-				inner:  c,
-				source: s.data,
-			})
+			if hasLineRecursive(c) || c.Kind() == ast.KindThematicBreak {
+				result = append(result, newMarkdownBlock(s.data, c))
+			}
 		}
 	}
 	return
@@ -108,31 +145,6 @@ func (s *ParsedSource) Blocks() Blocks {
 		cache:        map[interface{}]string{},
 	}
 	return s.findBlocks(nameRes, s.root)
-}
-
-func (s *ParsedSource) CodeBlocks() CodeBlocks {
-	var result CodeBlocks
-
-	nameRes := &nameResolver{
-		namesCounter: map[string]int{},
-		cache:        map[interface{}]string{},
-	}
-
-	// TODO(adamb): check the case when a paragraph is immediately
-	// followed by a code block without a new line separating them.
-	// Currently, such a code block is not detected at all.
-	for c := s.root.FirstChild(); c != nil; c = c.NextSibling() {
-		if c.Kind() == ast.KindFencedCodeBlock {
-			result = append(result, &CodeBlock{
-				id:           newID(),
-				inner:        c.(*ast.FencedCodeBlock),
-				nameResolver: nameRes,
-				source:       s.data,
-			})
-		}
-	}
-
-	return result
 }
 
 type defaultParser struct {
@@ -171,8 +183,4 @@ func (r *nameResolver) Get(obj interface{}, name string) string {
 	r.cache[obj] = result
 
 	return result
-}
-
-func newID() string {
-	return xid.New().String()
 }

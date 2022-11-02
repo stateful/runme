@@ -1,6 +1,11 @@
 package cmd
 
 import (
+	"os"
+	"os/user"
+	"path/filepath"
+	"strings"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +22,19 @@ func Root() *cobra.Command {
 		Long:          "Parses commands directly from a README (best-effort) to make them executable under a unique name.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if strings.HasPrefix(chdir, "~") {
+				cmd.PrintErrf("WARNING: --chdir starts with ~ which should be resolved by shell. Try re-running with --chdir %s (note lack of =) if it fails.\n\n", chdir)
+
+				usr, _ := user.Current()
+
+				if chdir == "~" {
+					chdir = usr.HomeDir
+				} else if strings.HasPrefix(chdir, "~/") {
+					chdir = filepath.Join(usr.HomeDir, chdir[2:])
+				}
+			}
+		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		},
@@ -25,7 +43,7 @@ func Root() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 
 	pflags.BoolVar(&allowUnknown, "allow-unknown", false, "Display snippets without known executor.")
-	pflags.StringVar(&chdir, "chdir", ".", "Switch to a different working directory before exeucing the command.")
+	pflags.StringVar(&chdir, "chdir", getCwd(), "Switch to a different working directory before exeucing the command.")
 	pflags.StringVar(&fileName, "filename", "README.md", "A name of the README file.")
 
 	cmd.AddCommand(runCmd())
@@ -35,4 +53,12 @@ func Root() *cobra.Command {
 	cmd.AddCommand(jsonCmd())
 
 	return &cmd
+}
+
+func getCwd() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = "."
+	}
+	return cwd
 }
