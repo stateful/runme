@@ -5,8 +5,9 @@ import (
 )
 
 var (
-	chdir    string
-	fileName string
+	allowUnknown bool
+	chdir        string
+	fileName     string
 )
 
 func Root() *cobra.Command {
@@ -23,6 +24,7 @@ func Root() *cobra.Command {
 
 	pflags := cmd.PersistentFlags()
 
+	pflags.BoolVar(&allowUnknown, "allow-unknown", false, "Display snippets without known executor.")
 	pflags.StringVar(&chdir, "chdir", ".", "Switch to a different working directory before exeucing the command.")
 	pflags.StringVar(&fileName, "filename", "README.md", "A name of the README file.")
 
