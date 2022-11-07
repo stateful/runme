@@ -58,6 +58,8 @@ func hasLineRecursive(node ast.Node) bool {
 }
 
 func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (result Blocks) {
+	extractedCodeBlocks := make(map[ast.Node]struct{})
+
 	for c := docNode.FirstChild(); c != nil; c = c.NextSibling() {
 		switch c.Kind() {
 		case ast.KindFencedCodeBlock:
@@ -65,7 +67,14 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 				break
 			}
 
-			result = append(result, newCodeBlock(s.data, nameRes, c.(*ast.FencedCodeBlock)))
+			block := newCodeBlock(s.data, nameRes, c.(*ast.FencedCodeBlock))
+
+			if _, ok := extractedCodeBlocks[c]; ok {
+				block.SetExtracted(true)
+				delete(extractedCodeBlocks, c)
+			}
+
+			result = append(result, block)
 
 		default:
 			if innerCodeBlock, ok := s.hasChildOfKind(c, ast.KindFencedCodeBlock); ok {
@@ -88,12 +97,15 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 					for _, node := range innerNodesToMove {
 						listItem.RemoveChild(listItem, node)
 						docNode.InsertAfter(docNode, itemToInsertAfter, node)
+						extractedCodeBlocks[node] = struct{}{}
 						itemToInsertAfter = node
 					}
 
 					// Split the list if there are any list items
 					// after listItem.
 					if listItem.NextSibling() != nil {
+						extractedCodeBlocks[listItem] = struct{}{}
+
 						var itemsToMove []ast.Node
 						for item := listItem.NextSibling(); item != nil; item = item.NextSibling() {
 							itemsToMove = append(itemsToMove, item)
@@ -103,8 +115,10 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 						for _, item := range itemsToMove {
 							c.RemoveChild(c, item)
 							newList.AppendChild(newList, item)
+							extractedCodeBlocks[item] = struct{}{}
 						}
 						docNode.InsertAfter(docNode, itemToInsertAfter, newList)
+						extractedCodeBlocks[newList] = struct{}{}
 					}
 				case ast.KindBlockquote:
 					nextParagraph := innerCodeBlock.NextSibling()
@@ -112,6 +126,7 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 					// move the code block into the root node
 					c.RemoveChild(c, innerCodeBlock)
 					docNode.InsertAfter(docNode, c, innerCodeBlock)
+					extractedCodeBlocks[innerCodeBlock] = struct{}{}
 
 					// move all paragraphs after the code block
 					// into the new block quote
@@ -125,14 +140,23 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 						for _, item := range itemsToMove {
 							c.RemoveChild(c, item)
 							newBlockQuote.AppendChild(newBlockQuote, item)
+							extractedCodeBlocks[item] = struct{}{}
 						}
 						docNode.InsertAfter(docNode, innerCodeBlock, newBlockQuote)
+						extractedCodeBlocks[newBlockQuote] = struct{}{}
 					}
 				}
 			}
 
 			if hasLineRecursive(c) || c.Kind() == ast.KindThematicBreak {
-				result = append(result, newMarkdownBlock(s.data, c))
+				block := newMarkdownBlock(s.data, c)
+
+				if _, ok := extractedCodeBlocks[c]; ok {
+					block.SetExtracted(true)
+					delete(extractedCodeBlocks, c)
+				}
+
+				result = append(result, block)
 			}
 		}
 	}

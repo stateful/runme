@@ -13,15 +13,15 @@ import (
 )
 
 var testCases = []string{
-	// "happy",
-	// "simple",
-	// "linesless",
-	// "singleblock",
-	// "doublecode",
-	// "nocodeblock",
-	// "equalvshash",
-	// "symbols",
-	// "singlebslash",
+	"happy",
+	"simple",
+	"linesless",
+	"singleblock",
+	"doublecode",
+	"nocodeblock",
+	"equalvshash",
+	"symbols",
+	"singlebslash",
 	"intro",
 }
 
