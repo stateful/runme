@@ -14,6 +14,7 @@ type NameResolver interface {
 }
 
 type CodeBlock struct {
+	extracted    bool // extracted from another block like a list or block quote
 	inner        *ast.FencedCodeBlock
 	nameResolver NameResolver
 	source       []byte
@@ -112,6 +113,10 @@ func (b *CodeBlock) Content() string {
 		b.stop = stop
 	}
 	return b.content
+}
+
+func (b *CodeBlock) SetExtracted(val bool) {
+	b.extracted = val
 }
 
 func (b *CodeBlock) Start() int {
@@ -246,6 +251,7 @@ func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 	type codeBlock struct {
 		Attributes map[string]string `json:"attributes"`
 		Name       string            `json:"name"`
+		Editable   bool              `json:"editable"`
 		Executable string            `json:"executable"`
 		Lines      []string          `json:"lines"`
 		Source     string            `json:"source"`
@@ -255,6 +261,7 @@ func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 	block := codeBlock{
 		Attributes: b.Attributes(),
 		Name:       b.Name(),
+		Editable:   !b.extracted,
 		Executable: b.Executable(),
 		Lines:      b.Lines(),
 		Source:     b.Content(),
@@ -265,8 +272,9 @@ func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 }
 
 type MarkdownBlock struct {
-	inner  ast.Node
-	source []byte
+	extracted bool // extracted from another block like a list or block quote
+	inner     ast.Node
+	source    []byte
 
 	content string
 	start   int
@@ -408,6 +416,10 @@ func (b *MarkdownBlock) Content() string {
 	return b.content
 }
 
+func (b *MarkdownBlock) SetExtracted(val bool) {
+	b.extracted = val
+}
+
 func (b *MarkdownBlock) Start() int {
 	if b.start == -1 {
 		_ = b.Content()
@@ -424,13 +436,15 @@ func (b *MarkdownBlock) Stop() int {
 
 func (b *MarkdownBlock) MarshalJSON() ([]byte, error) {
 	type markdownBlock struct {
-		Source string `json:"source"`
-		Type   string `json:"type"`
+		Editable bool   `json:"editable"`
+		Source   string `json:"source"`
+		Type     string `json:"type"`
 	}
 
 	block := markdownBlock{
-		Source: b.Content(),
-		Type:   "markdown",
+		Editable: !b.extracted,
+		Source:   b.Content(),
+		Type:     "markdown",
 	}
 
 	return json.Marshal(block)
