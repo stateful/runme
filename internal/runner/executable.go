@@ -27,6 +27,11 @@ func New(block *document.CodeBlock, base *Base) (Executable, error) {
 			Cmds: block.Lines(),
 			Base: base,
 		}, nil
+	case "sh-raw":
+		return &ShellRaw{
+			Cmds: block.Lines(),
+			Base: base,
+		}, nil
 	case "go":
 		return &Go{
 			Source: block.Content(),
@@ -37,7 +42,7 @@ func New(block *document.CodeBlock, base *Base) (Executable, error) {
 	}
 }
 
-var supportedExecutables = map[string]struct{}{"sh": {}, "shell": {}, "go": {}}
+var supportedExecutables = map[string]struct{}{"sh": {}, "shell": {}, "sh-raw": {}, "go": {}}
 
 func IsSupported(block *document.CodeBlock) bool {
 	_, ok := supportedExecutables[block.Executable()]
