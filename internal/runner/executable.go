@@ -42,7 +42,7 @@ func New(block *document.CodeBlock, base *Base) (Executable, error) {
 	}
 }
 
-var supportedExecutables = map[string]struct{}{"sh": {}, "shell": {}, "go": {}}
+var supportedExecutables = map[string]struct{}{"sh": {}, "shell": {}, "sh-raw": {}, "go": {}}
 
 func IsSupported(block *document.CodeBlock) bool {
 	_, ok := supportedExecutables[block.Executable()]
