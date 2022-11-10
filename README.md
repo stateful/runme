@@ -10,7 +10,11 @@ To select a different file than `README.md`, use `--filename`.
 ## Installation
 
 The easiest way on MacOS is to use Homebrew:
+```sh { name=update-brew }
+$ brew update  
+```
 
+Install runme
 ```sh
 $ brew install stateful/tap/runme
 ```
@@ -22,6 +26,38 @@ If you have Go developer tools installed, you can install it with `go install`:
 
 ```sh
 $ go install github.com/stateful/runme@latest
+```
+
+## Commands
+
+### Help
+
+```sh {interactive=false}
+$ runme help
+```
+
+### List 
+
+```sh
+$ runme list
+```
+
+### Print
+
+```sh {interactive=false}
+$ runme print hello-world
+```
+
+### Run selected command, Example: Update brew
+
+```sh
+$ runme run update-brew
+```
+
+### Example Command
+
+```sh {name=hello-world}
+echo "hello world"
 ```
 
 ## Contributing & Feedback
