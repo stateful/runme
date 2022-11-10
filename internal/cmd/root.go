@@ -54,6 +54,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(tasksCmd())
 	cmd.AddCommand(fmtCmd())
 	cmd.AddCommand(daemonCmd())
+	cmd.AddCommand(shellCmd())
 
 	return &cmd
 }
