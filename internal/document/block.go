@@ -386,7 +386,7 @@ func (b *MarkdownBlock) Content() string {
 
 			nextBlock := b.inner.NextSibling()
 			for nextBlock != nil && !hasLine(nextBlock) {
-				nextBlock.NextSibling()
+				nextBlock = nextBlock.NextSibling()
 			}
 
 			stop := len(b.source) - 1
