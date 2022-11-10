@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/cli/cli/v2 v2.14.2
+	github.com/creack/pty v1.1.18
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/rogpeppe/go-internal v1.9.0
@@ -12,6 +13,7 @@ require (
 	github.com/yuin/goldmark v1.4.12
 	golang.org/x/exp v0.0.0-20221208044002-44028be4359e
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
+	golang.org/x/term v0.2.0
 )
 
 require (
@@ -37,8 +39,7 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
-	golang.org/x/sys v0.1.0 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
