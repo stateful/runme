@@ -11,7 +11,7 @@ To select a different file than `README.md`, use `--filename`.
 
 The easiest way on MacOS is to use Homebrew:
 ```sh { name=update-brew }
-$ brew update  
+$ brew update
 ```
 
 Install runme
@@ -36,7 +36,7 @@ $ go install github.com/stateful/runme@latest
 $ runme help
 ```
 
-### List 
+### List
 
 ```sh
 $ runme list
