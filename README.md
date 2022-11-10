@@ -29,19 +29,20 @@ $ go install github.com/stateful/runme@latest
 ```
 
 ## Commands
+
 ### Help
 ```sh {interactive=false}
-  runme help
+runme help
 ```
 
 ### List 
 ```sh
-  runme list
+runme list
 ```
 
 ### Print
 ```sh {interactive=false}
-  runme print hello-world
+runme print hello-world
 ```
 
 ### Run selected command, Example: Update brew
