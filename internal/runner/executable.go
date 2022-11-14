@@ -35,3 +35,8 @@ func IsSupported(lang string) bool {
 	}
 	return false
 }
+
+func IsShell(block *document.CodeBlock) bool {
+	exec := block.Executable()
+	return exec == "sh" || exec == "shell" || exec == "sh-raw"
+}

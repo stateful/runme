@@ -8,7 +8,11 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+<<<<<<< HEAD
 	github.com/rogpeppe/go-internal v1.9.0
+=======
+	github.com/rs/zerolog v1.28.0
+>>>>>>> b1b79ec (Recognize shell presence in run command)
 	github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef
 	github.com/yuin/goldmark v1.4.12
 	golang.org/x/exp v0.0.0-20221208044002-44028be4359e
@@ -28,8 +32,8 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
