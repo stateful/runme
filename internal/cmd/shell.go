@@ -5,27 +5,27 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+	xpty "github.com/stateful/runme/internal/pty"
 	"golang.org/x/term"
 )
 
 func shellCmd() *cobra.Command {
 	rand.Seed(time.Now().Unix())
+
+	var commandName string
 
 	cmd := cobra.Command{
 		Use:   "shell",
@@ -35,8 +35,8 @@ func shellCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id := rand.Intn(1024)
 
-			c := exec.Command("bash", "-l", "-i")
-			c.Env = append(c.Env, "RUNMESHELL="+strconv.Itoa(id))
+			c := exec.Command(commandName)
+			c.Env = append(os.Environ(), "RUNMESHELL="+strconv.Itoa(id))
 
 			ptmx, err := pty.Start(c)
 			if err != nil {
@@ -44,17 +44,8 @@ func shellCmd() *cobra.Command {
 			}
 			defer func() { _ = ptmx.Close() }()
 
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, syscall.SIGWINCH)
-			go func() {
-				for range ch {
-					if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
-						log.Printf("error resizing pty: %s", err)
-					}
-				}
-			}()
-			ch <- syscall.SIGWINCH                        // Initial resize.
-			defer func() { signal.Stop(ch); close(ch) }() // Cleanup signals when done.
+			cancelResize := xpty.Resize(ptmx)
+			defer cancelResize()
 
 			// Set stdin in raw mode.
 			oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
@@ -79,19 +70,16 @@ func shellCmd() *cobra.Command {
 				return errors.Wrap(err, "failed to create a log file")
 			}
 
-			// When DEBUG=1 is set then duplicate all logs to stderr.
-			var logW io.Writer = logF
-			if debug, _ := strconv.ParseBool(os.Getenv("DEBUG")); debug {
-				logW = io.MultiWriter(&terminalWriter{}, logF)
-			}
-			logger := zerolog.New(logW)
+			logger := zerolog.New(logF)
 
-			// sockFile := filepath.Join(tmpdir, "runme.sock")
-			sockFile := "/tmp/runme-" + strconv.Itoa(id) + ".sock"
-			l, err := net.Listen("unix", sockFile)
+			sockPath := "/tmp/runme-" + strconv.Itoa(id) + ".sock"
+
+			var lc net.ListenConfig
+			l, err := lc.Listen(cmd.Context(), "unix", sockPath)
 			if err != nil {
 				return errors.Wrap(err, "failed to listen to sock")
 			}
+			defer func() { _ = l.Close(); _ = os.Remove(sockPath) }()
 
 			logger.Info().Stringer("addr", l.Addr()).Msg("starting to listen")
 
@@ -119,7 +107,7 @@ func shellCmd() *cobra.Command {
 
 							go func() {
 								// TODO: change it and use channels to synchronize
-								time.Sleep(time.Millisecond * 300)
+								time.Sleep(time.Second)
 
 								w := bulkWriter{Writer: &writer}
 
@@ -151,6 +139,16 @@ func shellCmd() *cobra.Command {
 		},
 	}
 
+	defaultShell := os.Getenv("SHELL")
+	if defaultShell == "" {
+		defaultShell, _ = exec.LookPath("bash")
+		if defaultShell == "" {
+			defaultShell = "/bin/sh"
+		}
+	}
+
+	cmd.Flags().StringVar(&commandName, "command", defaultShell, "Command to execute and watch.")
+
 	return &cmd
 }
 
@@ -172,16 +170,4 @@ func (w *singleWriter) Write(b []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.Writer.Write(b)
-}
-
-type terminalWriter struct{}
-
-func (w *terminalWriter) Write(b []byte) (int, error) {
-	out := os.Stderr
-	n, err := os.Stderr.Write(bytes.TrimSpace(b))
-	if err != nil {
-		return n, err
-	}
-	m, err := out.Write([]byte("\r\n"))
-	return n + m, err
 }
