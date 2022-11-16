@@ -372,7 +372,8 @@ func (b *MarkdownBlock) Content() string {
 		case ast.KindThematicBreak:
 			previousBlock := b.inner.PreviousSibling()
 			for previousBlock != nil && !hasLine(previousBlock) {
-				previousBlock = previousBlock.PreviousSibling()
+				previousBlock.PreviousSibling()
+				panic(1)
 			}
 
 			start := 0
