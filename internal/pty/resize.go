@@ -14,7 +14,7 @@ import (
 
 type CancelFn func()
 
-func Resize(tty *os.File) CancelFn {
+func ResizeOnSig(tty *os.File) CancelFn {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGWINCH)
 	go func() {
