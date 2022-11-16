@@ -83,6 +83,7 @@ jobs:
           ./runme --version
       - name: Run robustness test
         run: make test/robustness
+        timeout-minutes: 5
       # - name: 🐛 Debug Build
       #   uses: stateful/vscode-server-action@v1
       #   if: failure()
