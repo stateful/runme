@@ -44,7 +44,7 @@ func shellCmd() *cobra.Command {
 			}
 			defer func() { _ = ptmx.Close() }()
 
-			cancelResize := xpty.Resize(ptmx)
+			cancelResize := xpty.ResizeOnSig(ptmx)
 			defer cancelResize()
 
 			// Set stdin in raw mode.
@@ -69,11 +69,9 @@ func shellCmd() *cobra.Command {
 			if err != nil {
 				return errors.Wrap(err, "failed to create a log file")
 			}
-
 			logger := zerolog.New(logF)
 
 			sockPath := "/tmp/runme-" + strconv.Itoa(id) + ".sock"
-
 			var lc net.ListenConfig
 			l, err := lc.Listen(cmd.Context(), "unix", sockPath)
 			if err != nil {
@@ -106,7 +104,12 @@ func shellCmd() *cobra.Command {
 							data = bytes.TrimSpace(data)
 
 							go func() {
-								// TODO: change it and use channels to synchronize
+								// TODO: use channels to synchronize instead of sleeping.
+								// I don't have a better idea than using ptrace to
+								// monitor the state of the shell. If there are no child processes,
+								// then it means that the shell is not busy and can be written to.
+								//
+								// Alternatively, eBPF might be also a good idea.
 								time.Sleep(time.Second)
 
 								w := bulkWriter{Writer: &writer}
