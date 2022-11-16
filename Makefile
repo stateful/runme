@@ -30,7 +30,7 @@ test/update-snapshots:
 
 .PHONY: test/robustness
 test/robustness:
-	@cd integration/subject && npm install
+	@cd integration/subject && npm install --include=dev
 	@RESULTS=`find . -name "README.md" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 ./runme json --chdir`
 
 .PHONY: fmt
