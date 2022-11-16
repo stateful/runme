@@ -28,6 +28,12 @@ test:
 test/update-snapshots:
 	@TZ=UTC UPDATE_SNAPSHOTS=true go test ./...
 
+.PHONY: test/robustness
+test/robustness:
+	@cd integration/subject && npm install --no-package-lock
+	@export DIRS=`find . -name "README.md" | grep -v "\/\." | xargs dirname | uniq`
+	@RESULTS=`echo "$$DIRS" | xargs -n1 runme json --chdir`
+
 .PHONY: fmt
 fmt:
 	@gofumpt -w .
