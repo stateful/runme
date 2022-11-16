@@ -32,7 +32,7 @@ test/update-snapshots:
 test/robustness:
 	@cd integration/subject && npm install --no-package-lock
 	@export DIRS=`find . -name "README.md" | grep -v "\/\." | xargs dirname | uniq`
-	@RESULTS=`echo "$$DIRS" | xargs -n1 runme json --chdir`
+	@RESULTS=`echo "$$DIRS" | xargs -n1 ./runme json --chdir`
 
 .PHONY: fmt
 fmt:
