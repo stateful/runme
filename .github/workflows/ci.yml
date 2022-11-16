@@ -60,7 +60,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
 
   build-and-robustness-test:
-    name: Build and test against vast amount of READMEs
+    name: Test parser against vast amount of READMEs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
