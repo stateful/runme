@@ -69,7 +69,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v2
         with:
-          go-version: "1.19"
+          go-version: ">=1.19"
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -82,3 +82,6 @@ jobs:
           ./runme --version
       - name: Run robustness test
         run: make test/robustness
+      - name: 🐛 Debug Build
+        uses: stateful/vscode-server-action@v1
+        if: failure()
