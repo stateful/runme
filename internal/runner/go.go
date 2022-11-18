@@ -16,7 +16,7 @@ type Go struct {
 	Source string
 }
 
-var _ Executable = (*Shell)(nil)
+var _ Executable = (*Go)(nil)
 
 func (g *Go) DryRun(ctx context.Context, w io.Writer) {
 	_, err := exec.LookPath("go")

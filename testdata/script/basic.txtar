@@ -1,0 +1,117 @@
+exec runme ls
+cmp stdout golden-list.txt
+! stderr .
+
+exec runme ls --allow-unknown
+cmp stdout golden-list-allow-unknown.txt
+! stderr .
+
+exec runme run echo
+stdout 'Hello, runme!'
+! stderr .
+
+exec runme run echo-1
+stdout '1\n2\n3'
+! stderr .
+
+exec runme run tempdir
+stdout 'hi!'
+! stderr .
+
+! exec runme run --allow-unknown database
+! stdout .
+stderr 'unknown executable: ""'
+
+env HOME=/tmp
+exec sh -c 'runme run package-main'
+stdout 'Hello from Go, runme!'
+! stderr .
+
+-- README.md --
+# Examples
+
+## Shell
+
+This is a basic snippet with shell command:
+
+```sh
+$ echo "Hello, runme!"
+```
+
+With `{name=hello}` you can annotate it and give it a nice name:
+
+```sh {name=echo}
+$ echo "Hello, runme!"
+```
+
+It can contain multiple lines too:
+
+```sh
+$ echo "1"
+$ echo "2"
+$ echo "3"
+```
+
+Also, the dollar sign is not needed:
+
+```sh
+echo "Hello, runme! Again!"
+```
+
+It works with `cd`, `pushd`, and similar because all lines are executed as a single script:
+
+```sh
+temp_dir=$(mktemp -d -t "runme-")
+pushd $temp_dir
+echo "hi!" > hi.txt
+pwd
+cat hi.txt
+popd
+pwd
+```
+
+## Go
+
+It can also execute a snippet of Go code:
+
+```go
+package main
+
+import (
+    "fmt"
+)
+
+func main() {
+    fmt.Println("Hello from Go, runme!")
+}
+```
+
+## Unknown snippets
+
+Snippets without provided type are ignored.
+
+To still display unknown snippets, provide `--allow-unknown` to the `list` command.
+
+```
+[database]
+username = admin
+password = admin
+```
+
+-- golden-list.txt --
+NAME	FIRST COMMAND	# OF COMMANDS	DESCRIPTION
+echo-hello	echo "Hello, runme!"	1	This is a basic snippet with shell command.
+echo	echo "Hello, runme!"	1	With {name=hello} you can annotate it and give it a nice name.
+echo-1	echo "1"	3	It can contain multiple lines too.
+echo-hello-2	echo "Hello, runme! Again!"	1	Also, the dollar sign is not needed.
+tempdir	temp_dir=$(mktemp -d -t "runme-")	7	It works with cd, pushd, and similar because all lines are executed as a single script.
+package-main	package main	9	It can also execute a snippet of Go code.
+-- golden-list-allow-unknown.txt --
+NAME	FIRST COMMAND	# OF COMMANDS	DESCRIPTION
+echo-hello	echo "Hello, runme!"	1	This is a basic snippet with shell command.
+echo	echo "Hello, runme!"	1	With {name=hello} you can annotate it and give it a nice name.
+echo-1	echo "1"	3	It can contain multiple lines too.
+echo-hello-2	echo "Hello, runme! Again!"	1	Also, the dollar sign is not needed.
+tempdir	temp_dir=$(mktemp -d -t "runme-")	7	It works with cd, pushd, and similar because all lines are executed as a single script.
+package-main	package main	9	It can also execute a snippet of Go code.
+database	[database]	3	To still display unknown snippets, provide --allow-unknown to the list command.

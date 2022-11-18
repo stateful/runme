@@ -14,13 +14,16 @@ var (
 	Commit       = "unknown"
 )
 
-func main() {
+func root() int {
 	root := cmd.Root()
 	root.Version = fmt.Sprintf("stateful %s (%s) on %s", BuildVersion, Commit, BuildDate)
-
 	if err := root.Execute(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
+		return 1
 	}
-	os.Exit(0)
+	return 0
+}
+
+func main() {
+	os.Exit(root())
 }

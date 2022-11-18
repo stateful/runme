@@ -1,0 +1,3 @@
+exec runme --version
+stdout 'runme version stateful 0.0.0'
+! stderr .
