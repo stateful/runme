@@ -28,6 +28,11 @@ test:
 test/update-snapshots:
 	@TZ=UTC UPDATE_SNAPSHOTS=true go test ./...
 
+.PHONY: test/robustness
+test/robustness:
+	@cd integration/subject && npm install --include=dev
+	find . -name "README.md" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 ./runme json --chdir &>/dev/null
+
 .PHONY: fmt
 fmt:
 	@gofumpt -w .
