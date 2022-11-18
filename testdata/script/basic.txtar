@@ -6,14 +6,17 @@ exec runme ls --allow-unknown
 cmp stdout golden-list-allow-unknown.txt
 ! stderr .
 
+env SHELL=/bin/bash
 exec runme run echo
 stdout 'Hello, runme!'
 ! stderr .
 
+env SHELL=/bin/bash
 exec runme run echo-1
 stdout '1\n2\n3'
 ! stderr .
 
+env SHELL=/bin/bash
 exec runme run tempdir
 stdout 'hi!'
 ! stderr .

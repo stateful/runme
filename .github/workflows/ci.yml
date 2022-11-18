@@ -51,7 +51,7 @@ jobs:
           go build -o runme main.go
           ./runme --version
       - name: Test
-        run: TZ=UTC go test ./...
+        run: SHELL=/bin/bash TZ=UTC go test ./...
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Test
         run: |
