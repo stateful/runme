@@ -31,7 +31,7 @@ echo "Hello, runme! Again!"
 It works with `cd`, `pushd`, and similar because all lines are executed as a single script:
 
 ```sh
-temp_dir=$(mktemp -d -t "runme-")
+temp_dir=$(mktemp -d -t "runme-XXXXXXX")
 pushd $temp_dir
 echo "hi!" > hi.txt
 pwd
