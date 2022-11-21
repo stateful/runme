@@ -1,5 +1,4 @@
-An Awesome VSCode Extension
-===========================
+# An Awesome VSCode Extension
 
 [![Tests](https://github.com/stateful/vscode-awesome-ux/actions/workflows/test.yaml/badge.svg)](https://github.com/stateful/vscode-awesome-ux/actions/workflows/test.yaml)
 ![vscode version](https://vsmarketplacebadge.apphb.com/version/stateful.awesome-ux.svg)
@@ -30,7 +29,7 @@ If you have more best practices, please share them with us by raising a PR or [f
 
 This extension contributes the following settings:
 
-* `vscode-awesome-ux.configuration.defaultNotifications`: The default value of received example notification (default `0`)
+- `vscode-awesome-ux.configuration.defaultNotifications`: The default value of received example notification (default `0`)
 
 ## Release Notes
 

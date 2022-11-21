@@ -28,7 +28,7 @@ func printCmd() *cobra.Command {
 			w := bulkWriter{
 				Writer: cmd.OutOrStdout(),
 			}
-			w.Write([]byte(block.Content()))
+			w.Write([]byte(block.Value()))
 			w.Write([]byte{'\n'})
 			return errors.Wrap(w.Err(), "failed to write to stdout")
 		},

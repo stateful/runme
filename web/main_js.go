@@ -1,15 +1,11 @@
 package main
 
 import (
-	"bytes"
-	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"syscall/js"
 
-	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer"
-	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/internal/document/edit"
 )
 
 // These are variables so that they can be set during the build time.
@@ -21,114 +17,90 @@ var (
 
 func main() {
 	runme := map[string]interface{}{
-		"initialize":    js.FuncOf(initialize),
-		"getCell":       js.FuncOf(getCell),
-		"getCells":      js.FuncOf(getCells),
-		"getSource":     js.FuncOf(getSource),
-		"updateCell":    js.FuncOf(updateCell),
-		"prepareScript": js.FuncOf(prepareScript),
+		"deserialize": js.FuncOf(deserialize),
+		"serialize":   js.FuncOf(serialize),
 	}
 	js.Global().Set("Runme", js.ValueOf(runme))
 
 	select {}
 }
 
-var (
-	parsed     *document.ParsedSource
-	sourceHash [16]byte
-)
+var editor = edit.New()
 
-func assertParsed() js.Value {
-	if parsed == nil {
-		return toJSError(errors.New("call initialize() first"))
+func assertEditor() js.Value {
+	if editor == nil {
+		return toJSError(errors.New("call deserialize() first"))
 	}
 	return js.Null()
 }
 
-func initialize(this js.Value, args []js.Value) any {
+func toMap(o any) (map[string]any, error) {
+	data, err := json.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]any{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func deserialize(this js.Value, args []js.Value) any {
 	source := args[0].String()
 
-	parsed = document.NewSource([]byte(source)).Parse()
-	sourceHash = md5.Sum([]byte(source))
+	handler := js.FuncOf(func(this js.Value, args []js.Value) any {
+		resolve := args[0]
+		reject := args[1]
 
-	return nil
+		go func() {
+			notebook, err := editor.Deserialize([]byte(source))
+			if err != nil {
+				reject.Invoke(toJSError(err))
+				return
+			}
+			result, err := toMap(notebook)
+			if err != nil {
+				reject.Invoke(toJSError(err))
+				return
+			}
+			resolve.Invoke(js.ValueOf(result))
+		}()
+
+		return nil
+	})
+
+	return js.Global().Get("Promise").New(handler)
 }
 
-func getCell(this js.Value, args []js.Value) any {
-	if val := assertParsed(); !val.IsNull() {
-		return val
-	}
+func serialize(this js.Value, args []js.Value) any {
+	// Notebook is sent as a JSON string. This is for convenience
+	// to avoid a cumbersome conversion of a JS object
+	// into a Go object would be needed.
+	data := args[0].String()
 
-	idx := args[0].Int()
-	blocks := parsed.Blocks()
+	handler := js.FuncOf(func(this js.Value, args []js.Value) any {
+		resolve := args[0]
+		reject := args[1]
 
-	if idx >= len(blocks) {
-		return toJSError(errors.New("block index out of range"))
-	}
+		go func() {
+			var notebook edit.Notebook
+			if err := json.Unmarshal([]byte(data), &notebook); err != nil {
+				reject.Invoke(toJSError(err))
+				return
+			}
+			result, err := editor.Serialize(&notebook)
+			if err != nil {
+				reject.Invoke(toJSError(err))
+				return
+			}
+			resolve.Invoke(js.ValueOf(string(result)))
+		}()
 
-	data, err := json.Marshal(blocks[idx])
-	if err != nil {
-		return toJSError(err)
-	}
+		return nil
+	})
 
-	result := make(map[string]interface{})
-	if err := json.Unmarshal(data, &result); err != nil {
-		return toJSError(err)
-	}
-	return result
-}
-
-func getCells(this js.Value, args []js.Value) any {
-	if val := assertParsed(); !val.IsNull() {
-		return val
-	}
-
-	var b bytes.Buffer
-	if err := renderer.ToJSON(parsed, &b); err != nil {
-		return toJSError(err)
-	}
-
-	result := make(map[string]interface{})
-	if err := json.Unmarshal(b.Bytes(), &result); err != nil {
-		return toJSError(err)
-	}
-	return result
-}
-
-func getSource(this js.Value, args []js.Value) any {
-	if val := assertParsed(); !val.IsNull() {
-		return val
-	}
-	return string(parsed.Source())
-}
-
-func updateCell(this js.Value, args []js.Value) any {
-	if val := assertParsed(); !val.IsNull() {
-		return val
-	}
-
-	idx := args[0].Int()
-	newSource := args[1].String()
-
-	updater := document.NewUpdater(parsed)
-	if err := updater.UpdateBlock(idx, newSource); err != nil {
-		return toJSError(err)
-	}
-
-	parsed = updater.Parsed()
-	sourceHash = md5.Sum(parsed.Source())
-
-	return nil
-}
-
-func prepareScript(this js.Value, args []js.Value) interface{} {
-	lines := args[0]
-	len := lines.Length()
-	scriptLines := make([]string, 0, len)
-	for i := 0; i < len; i++ {
-		scriptLines = append(scriptLines, lines.Index(i).String())
-	}
-	return runner.PrepareScript(scriptLines)
+	return js.Global().Get("Promise").New(handler)
 }
 
 func toJSError(err error) js.Value {
