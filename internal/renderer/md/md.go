@@ -9,13 +9,24 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
+type emptySourceProvider struct{}
+
+func (emptySourceProvider) Value(ast.Node) ([]byte, bool) { return nil, false }
+
 func Render(doc ast.Node, source []byte) ([]byte, error) {
-	return new(renderer).render(doc, source)
+	return new(renderer).render(doc, source, &emptySourceProvider{})
+}
+
+type SourceProvider interface {
+	Value(ast.Node) ([]byte, bool)
+}
+
+func RenderWithSourceProvider(doc ast.Node, source []byte, p SourceProvider) ([]byte, error) {
+	return new(renderer).render(doc, source, p)
 }
 
 type renderer struct {
 	noLinebreaks bool
-	beginContent bool
 	beginLine    bool
 	needCR       int
 	prefix       string
@@ -46,7 +57,6 @@ func (r *renderer) out(w bulkWriter, data []byte) error {
 			}
 		}
 
-		r.beginContent = true
 		r.beginLine = true
 		r.needCR--
 	}
@@ -58,61 +68,86 @@ func (r *renderer) out(w bulkWriter, data []byte) error {
 
 		if c == '\n' {
 			w.WriteByte('\n')
-			r.beginContent = true
 			r.beginLine = true
 		} else {
 			w.WriteRune(c)
 			r.beginLine = false
-			r.beginContent = false
 		}
 	}
 
 	return w.Err()
 }
 
-func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
+func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte, error) {
 	var buf bytes.Buffer
 
 	err := ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		w := bulkWriter{buf: &buf}
+		status := ast.WalkContinue
 
 		switch node.Kind() {
 		// blocks
 		case ast.KindDocument:
-			if !entering {
-				r.needCR = 1
-				if err := r.out(w, nil); err != nil {
-					return ast.WalkStop, err
-				}
-			}
+
 		case ast.KindHeading:
-			n := node.(*ast.Heading)
 			if entering {
-				err := r.out(w, bytes.Repeat([]byte{'#'}, n.Level))
+				value, ok := p.Value(node)
+				if !ok {
+					n := node.(*ast.Heading)
+					value = bytes.Repeat([]byte{'#'}, n.Level)
+					value = append(value, ' ')
+				} else {
+					status = ast.WalkSkipChildren
+				}
+
+				err := r.out(w, value)
 				if err != nil {
 					return ast.WalkStop, err
 				}
-				w.WriteByte(' ')
 				r.noLinebreaks = true
-				r.beginContent = true
 			} else {
 				r.noLinebreaks = false
 				r.blankline()
 			}
+
 		case ast.KindBlockquote:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				} else {
+					r.blankline()
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if entering {
 				err := r.out(w, []byte("> "))
 				if err != nil {
 					return ast.WalkStop, err
 				}
-				r.beginContent = true
 				r.prefix = "> "
 			} else {
 				r.prefix = r.prefix[0 : len(r.prefix)-2]
 				r.blankline()
 			}
+
 		case ast.KindCodeBlock, ast.KindFencedCodeBlock:
 			// TODO: fix it and follow CMARK_NODE_CODE
+
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				} else {
+					r.blankline()
+				}
+				return ast.WalkSkipChildren, nil
+			}
 
 			var code bytes.Buffer
 			for ll, i := node.Lines().Len(), 0; i < ll; i++ {
@@ -161,6 +196,18 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 			return ast.WalkContinue, nil
 
 		case ast.KindHTMLBlock:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				} else {
+					r.blankline()
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if !entering {
 				break
 			}
@@ -182,7 +229,18 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 				}
 				r.blankline()
 			}
+
 		case ast.KindListItem:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			listNode := node.Parent().(*ast.List)
 			isBulletList := listNode.Start == 0
 
@@ -192,7 +250,6 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 					if err != nil {
 						return ast.WalkStop, err
 					}
-					r.beginContent = true
 				} else {
 					itemNumber := listNode.Start
 					tmp := node
@@ -208,7 +265,6 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 					if err != nil {
 						return ast.WalkStop, err
 					}
-					r.beginContent = true
 				}
 				r.prefix += "    "
 			} else {
@@ -216,16 +272,36 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 			}
 
 		case ast.KindParagraph:
-			if !entering {
+			if entering {
+				value, ok := p.Value(node)
+				if ok {
+					status = ast.WalkSkipChildren
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+			} else {
 				r.blankline()
 			}
 
 		case ast.KindTextBlock:
 			if !entering {
-				r.blankline()
+				r.cr()
 			}
 
 		case ast.KindThematicBreak:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					r.blankline()
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+					r.blankline()
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if entering {
 				r.blankline()
 				if err := r.out(w, []byte("-----")); err != nil {
@@ -236,6 +312,16 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 
 		// inline
 		case ast.KindAutoLink:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			n := node.(*ast.AutoLink)
 			if entering {
 				var b strings.Builder
@@ -254,10 +340,31 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 			}
 
 		case ast.KindCodeSpan:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if err := r.out(w, []byte("`")); err != nil {
 				return ast.WalkStop, err
 			}
+
 		case ast.KindEmphasis:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			n := node.(*ast.Emphasis)
 			mark := "*"
 			if n.Level > 1 {
@@ -266,7 +373,18 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 			if err := r.out(w, []byte(mark)); err != nil {
 				return ast.WalkStop, err
 			}
+
 		case ast.KindImage:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if entering {
 				if err := r.out(w, []byte("![")); err != nil {
 					return ast.WalkStop, err
@@ -288,7 +406,18 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 					return ast.WalkStop, err
 				}
 			}
+
 		case ast.KindLink:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if entering {
 				if err := r.out(w, []byte{'['}); err != nil {
 					return ast.WalkStop, err
@@ -310,20 +439,62 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 					return ast.WalkStop, err
 				}
 			}
+
 		case ast.KindRawHTML:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if entering {
 				if err := r.out(w, node.Text(source)); err != nil {
 					return ast.WalkStop, err
 				}
 				return ast.WalkSkipChildren, nil
 			}
+
 		case ast.KindText:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if entering {
 				if err := r.out(w, node.Text(source)); err != nil {
 					return ast.WalkStop, err
 				}
+				n := node.(*ast.Text)
+				if n.SoftLineBreak() {
+					r.cr()
+				} else if n.HardLineBreak() {
+					if err := r.out(w, []byte("  ")); err != nil {
+						return ast.WalkStop, err
+					}
+					r.cr()
+				}
 			}
+
 		case ast.KindString:
+			value, ok := p.Value(node)
+			if ok {
+				if entering {
+					if err := r.out(w, value); err != nil {
+						return ast.WalkStop, err
+					}
+				}
+				return ast.WalkSkipChildren, nil
+			}
+
 			if entering {
 				if err := r.out(w, node.Text(source)); err != nil {
 					return ast.WalkStop, err
@@ -331,9 +502,15 @@ func (r *renderer) render(doc ast.Node, source []byte) ([]byte, error) {
 			}
 		}
 
-		return ast.WalkContinue, nil
+		return status, nil
 	})
+	if err != nil {
+		return buf.Bytes(), errors.WithStack(err)
+	}
 
+	// Finish writing any outstanding characters.
+	r.needCR = 1
+	err = r.out(bulkWriter{buf: &buf}, nil)
 	return buf.Bytes(), errors.WithStack(err)
 }
 

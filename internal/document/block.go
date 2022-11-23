@@ -68,6 +68,10 @@ func (b *CodeBlock) Name() string {
 	return b.name
 }
 
+func (b *CodeBlock) Unwrap() ast.Node {
+	return b.inner
+}
+
 func (b *CodeBlock) Value() []byte {
 	return b.value
 }
@@ -208,11 +212,16 @@ func newMarkdownBlock(source []byte, node ast.Node) *MarkdownBlock {
 	}
 }
 
+func (b *MarkdownBlock) Unwrap() ast.Node {
+	return b.inner
+}
+
 func (b *MarkdownBlock) Value() []byte {
 	return b.value
 }
 
 type Block interface {
+	Unwrap() ast.Node
 	Value() []byte
 }
 

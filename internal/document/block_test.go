@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBlocks(t *testing.T) {
@@ -20,10 +21,10 @@ $ echo "Hello, runme!"
 ` + "```")
 	source := NewSource(data)
 	blocks := source.Parse().Blocks()
-	assert.Equal(t, "# Examples", string(blocks[0].Value()))
-	assert.Equal(t, "```sh\n$ echo \"Hello, runme!\"\n```", string(blocks[1].Value()))
-	assert.Equal(t, "It can have an annotation with a name:", string(blocks[2].Value()))
-	assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```", string(blocks[3].Value()))
+	assert.Equal(t, "# Examples\n", string(blocks[0].Value()))
+	assert.Equal(t, "```sh\n$ echo \"Hello, runme!\"\n```\n", string(blocks[1].Value()))
+	assert.Equal(t, "It can have an annotation with a name:\n", string(blocks[2].Value()))
+	assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```\n", string(blocks[3].Value()))
 
 	codeBlocks := blocks.CodeBlocks()
 	assert.Equal(t, "echo-hello", codeBlocks[0].Name())
@@ -32,6 +33,72 @@ $ echo "Hello, runme!"
 	assert.Equal(t, map[string]string{"name": "echo", "first": "", "second": "2"}, codeBlocks[1].Attributes())
 	assert.Equal(t, "sh", codeBlocks[0].Language())
 	assert.Equal(t, "sh", codeBlocks[1].Language())
+}
+
+func TestMarkdownBlock_Paragraph(t *testing.T) {
+	data := []byte("Test paragraph **with** emphasis\nSecond line\n")
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	require.Len(t, blocks, 1)
+	require.Equal(t, "Test paragraph **with** emphasis\nSecond line\n", string(blocks[0].Value()))
+}
+
+func TestMarkdownBlock_Blockquote(t *testing.T) {
+	data := []byte(`> bq 1
+> bq 2
+> bq 3
+`)
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	require.Len(t, blocks, 1)
+	require.Equal(t, "> bq 1\n> bq 2\n> bq 3\n", string(blocks[0].Value()))
+}
+
+func TestMarkdownBlock_List(t *testing.T) {
+	data := []byte(`1. Item 1
+2. Item 2
+3. Item 3
+`)
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	require.Len(t, blocks, 1)
+	require.Equal(t, string(data), string(blocks[0].Value()))
+}
+
+func TestBlocks_List_Nested(t *testing.T) {
+	data := []byte(`1. Item 1
+2. Item 2
+   ` + "```sh" + `
+   echo 1
+   ` + "```" + `
+3. Item 3
+4. Item 4
+`)
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	require.Len(t, blocks, 3)
+	require.Equal(t, "1. Item 1\n2. Item 2\n", string(blocks[0].Value()))
+	require.Equal(t, "```sh\necho 1\n```\n", string(blocks[1].Value()))
+	require.Equal(t, "3. Item 3\n4. Item 4\n", string(blocks[2].Value()))
+}
+
+func TestBlocks_List_Nested_Relaxed(t *testing.T) {
+	data := []byte(`1. Item 1
+2. Item 2
+
+   ` + "```sh" + `
+   echo 1
+   ` + "```" + `
+
+3. Item 3
+4. Item 4
+`)
+	source := NewSource(data)
+	blocks := source.Parse().Blocks()
+	require.Len(t, blocks, 3)
+	require.Equal(t, "1. Item 1\n2. Item 2\n", string(blocks[0].Value()))
+	require.Equal(t, "```sh\necho 1\n```\n", string(blocks[1].Value()))
+	require.Equal(t, "3. Item 3\n", string(blocks[2].Value()))
 }
 
 // func TestCodeBlock_MapLines(t *testing.T) {

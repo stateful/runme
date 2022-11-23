@@ -117,6 +117,7 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 							newList.AppendChild(newList, item)
 							// extractedCodeBlocks[item] = struct{}{}
 						}
+						newList.Start = c.(*ast.List).Start + c.ChildCount()
 						docNode.InsertAfter(docNode, itemToInsertAfter, newList)
 						// extractedCodeBlocks[newList] = struct{}{}
 					}
