@@ -14,8 +14,11 @@ type NameResolver interface {
 }
 
 type CodeBlock struct {
-	inner        *ast.FencedCodeBlock
-	nameResolver NameResolver
+	inner           *ast.FencedCodeBlock
+	isExtra         bool     // true for a block created for exracted blocks
+	parent          ast.Node // for extracted blocks
+	previousSibling ast.Node // for extracted blocks
+	nameResolver    NameResolver
 
 	attributes map[string]string
 	intro      string
@@ -197,8 +200,11 @@ func getName(node *ast.FencedCodeBlock, source []byte, nameResolver NameResolver
 }
 
 type MarkdownBlock struct {
-	inner  ast.Node
-	source []byte
+	inner           ast.Node
+	isExtra         bool     // true for a block created for exracted blocks
+	parent          ast.Node // for extracted blocks
+	previousSibling ast.Node // for extracted blocks
+	source          []byte
 
 	value []byte
 }

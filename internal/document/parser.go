@@ -57,8 +57,14 @@ func hasLineRecursive(node ast.Node) bool {
 	return false
 }
 
+type extractedNode struct {
+	isExtra         bool
+	parent          ast.Node
+	previousSibling ast.Node
+}
+
 func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (result Blocks) {
-	// extractedCodeBlocks := make(map[ast.Node]struct{})
+	extractedCodeBlocks := make(map[ast.Node]extractedNode)
 
 	for c := docNode.FirstChild(); c != nil; c = c.NextSibling() {
 		switch c.Kind() {
@@ -69,10 +75,12 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 
 			block := newCodeBlock(s.data, nameRes, c.(*ast.FencedCodeBlock))
 
-			// if _, ok := extractedCodeBlocks[c]; ok {
-			// 	block.SetExtracted(true)
-			// 	delete(extractedCodeBlocks, c)
-			// }
+			if info, ok := extractedCodeBlocks[c]; ok {
+				block.isExtra = info.isExtra
+				block.parent = info.parent
+				block.previousSibling = info.previousSibling
+				delete(extractedCodeBlocks, c)
+			}
 
 			result = append(result, block)
 
@@ -95,17 +103,18 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 
 					itemToInsertAfter := c
 					for _, node := range innerNodesToMove {
+						extractedCodeBlocks[node] = extractedNode{
+							parent:          node.Parent(),
+							previousSibling: node.PreviousSibling(),
+						}
 						listItem.RemoveChild(listItem, node)
 						docNode.InsertAfter(docNode, itemToInsertAfter, node)
-						// extractedCodeBlocks[node] = struct{}{}
 						itemToInsertAfter = node
 					}
 
 					// Split the list if there are any list items
 					// after listItem.
 					if listItem.NextSibling() != nil {
-						// extractedCodeBlocks[listItem] = struct{}{}
-
 						var itemsToMove []ast.Node
 						for item := listItem.NextSibling(); item != nil; item = item.NextSibling() {
 							itemsToMove = append(itemsToMove, item)
@@ -113,21 +122,29 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 
 						newList := ast.NewList(c.(*ast.List).Marker)
 						for _, item := range itemsToMove {
+							extractedCodeBlocks[listItem] = extractedNode{
+								parent:          item.Parent(),
+								previousSibling: item.PreviousSibling(),
+							}
 							c.RemoveChild(c, item)
 							newList.AppendChild(newList, item)
-							// extractedCodeBlocks[item] = struct{}{}
 						}
 						newList.Start = c.(*ast.List).Start + c.ChildCount()
 						docNode.InsertAfter(docNode, itemToInsertAfter, newList)
-						// extractedCodeBlocks[newList] = struct{}{}
+						extractedCodeBlocks[newList] = extractedNode{
+							isExtra: true,
+						}
 					}
 				case ast.KindBlockquote:
 					nextParagraph := innerCodeBlock.NextSibling()
 
 					// move the code block into the root node
+					extractedCodeBlocks[innerCodeBlock] = extractedNode{
+						parent:          innerCodeBlock.Parent(),
+						previousSibling: innerCodeBlock.PreviousSibling(),
+					}
 					c.RemoveChild(c, innerCodeBlock)
 					docNode.InsertAfter(docNode, c, innerCodeBlock)
-					// extractedCodeBlocks[innerCodeBlock] = struct{}{}
 
 					// move all paragraphs after the code block
 					// into the new block quote
@@ -139,12 +156,15 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 
 						newBlockQuote := ast.NewBlockquote()
 						for _, item := range itemsToMove {
+							extractedCodeBlocks[item] = extractedNode{
+								parent:          item.Parent(),
+								previousSibling: item.PreviousSibling(),
+							}
 							c.RemoveChild(c, item)
 							newBlockQuote.AppendChild(newBlockQuote, item)
-							// extractedCodeBlocks[item] = struct{}{}
 						}
 						docNode.InsertAfter(docNode, innerCodeBlock, newBlockQuote)
-						// extractedCodeBlocks[newBlockQuote] = struct{}{}
+						extractedCodeBlocks[newBlockQuote] = extractedNode{isExtra: true}
 					}
 				}
 			}
@@ -152,10 +172,12 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 			if hasLineRecursive(c) || c.Kind() == ast.KindThematicBreak {
 				block := newMarkdownBlock(s.data, c)
 
-				// if _, ok := extractedCodeBlocks[c]; ok {
-				// 	block.SetExtracted(true)
-				// 	delete(extractedCodeBlocks, c)
-				// }
+				if info, ok := extractedCodeBlocks[c]; ok {
+					block.isExtra = info.isExtra
+					block.parent = info.parent
+					block.previousSibling = info.previousSibling
+					delete(extractedCodeBlocks, c)
+				}
 
 				result = append(result, block)
 			}
