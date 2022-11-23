@@ -39,7 +39,7 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			if err := replace(block, replaceScripts); err != nil {
+			if err := replace(replaceScripts, block.Lines()); err != nil {
 				return err
 			}
 
@@ -67,15 +67,36 @@ func runCmd() *cobra.Command {
 }
 
 func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Executable, error) {
-	return runner.New(
-		block,
-		&runner.Base{
-			Dir:    chdir,
-			Stdin:  cmd.InOrStdin(),
-			Stdout: cmd.OutOrStdout(),
-			Stderr: cmd.ErrOrStderr(),
-		},
-	)
+	base := &runner.Base{
+		Dir:    chdir,
+		Stdin:  cmd.InOrStdin(),
+		Stdout: cmd.OutOrStdout(),
+		Stderr: cmd.ErrOrStderr(),
+	}
+
+	switch block.Language() {
+	case "sh", "shell":
+		return &runner.Shell{
+			Cmds: block.Lines(),
+			Base: base,
+		}, nil
+	case "sh-raw":
+		return &runner.ShellRaw{
+			Cmds: block.Lines(),
+			Base: base,
+		}, nil
+	case "go":
+		lines := strings.Split(string(block.Value()), "\n")
+		if len(lines) < 2 {
+			return nil, errors.New("invalid content for \"go\" executable")
+		}
+		return &runner.Go{
+			Source: strings.Join(lines[1:len(lines)-1], "\n"),
+			Base:   base,
+		}, nil
+	default:
+		return nil, errors.Errorf("unknown executable: %q", block.Language())
+	}
 }
 
 func sigCtxCancel(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -92,7 +113,7 @@ func sigCtxCancel(ctx context.Context) (context.Context, context.CancelFunc) {
 	return ctx, cancel
 }
 
-func replace(block *document.CodeBlock, scripts []string) error {
+func replace(scripts []string, lines []string) error {
 	if len(scripts) == 0 {
 		return nil
 	}
@@ -103,11 +124,12 @@ func replace(block *document.CodeBlock, scripts []string) error {
 			return errors.Wrapf(err, "failed to compile sed script %q", script)
 		}
 
-		err = block.MapLines(func(s string) (string, error) {
-			return engine.RunString(s)
-		})
-		if err != nil {
-			return errors.Wrapf(err, "failed to run sed script %q", script)
+		for idx, line := range lines {
+			var err error
+			lines[idx], err = engine.RunString(line)
+			if err != nil {
+				return errors.Wrapf(err, "failed to run sed script %q on line %q", script, line)
+			}
 		}
 	}
 

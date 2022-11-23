@@ -8,6 +8,7 @@ import (
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer"
+	"github.com/stateful/runme/internal/renderer/md"
 )
 
 // These are variables so that they can be set during the build time.
@@ -58,7 +59,7 @@ func serialize(this js.Value, args []js.Value) any {
 		return toJSError(err)
 	}
 
-	// TODO: serialize Notebook to a byte array
+	md.Render(parsed.Root(), []byte(source))
 
 	return nil
 }

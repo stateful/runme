@@ -34,9 +34,11 @@ func listCmd() *cobra.Command {
 			table.EndRow()
 
 			for _, block := range blocks {
+				lines := block.Lines()
+
 				table.AddField(block.Name(), nil, nil)
-				table.AddField(block.Line(0), nil, nil)
-				table.AddField(fmt.Sprintf("%d", block.LineCount()), nil, nil)
+				table.AddField(lines[0], nil, nil)
+				table.AddField(fmt.Sprintf("%d", len(lines)), nil, nil)
 				table.AddField(block.Intro(), nil, nil)
 				table.EndRow()
 			}
