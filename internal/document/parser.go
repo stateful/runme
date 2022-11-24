@@ -57,6 +57,20 @@ func hasLineRecursive(node ast.Node) bool {
 	return false
 }
 
+func (s *ParsedSource) buildBlocksTree(nameRes *nameResolver, parent ast.Node, node *Node) {
+	for astNode := parent.FirstChild(); astNode != nil; astNode = astNode.NextSibling() {
+		switch astNode.Kind() {
+		case ast.KindFencedCodeBlock:
+			node.Add(newCodeBlock(s.data, nameRes, astNode.(*ast.FencedCodeBlock)))
+		case ast.KindBlockquote, ast.KindList, ast.KindListItem:
+			nNode := node.Add(newInnerBlock(astNode))
+			s.buildBlocksTree(nameRes, astNode, nNode)
+		default:
+			node.Add(newMarkdownBlock(s.data, astNode))
+		}
+	}
+}
+
 type extractedNode struct {
 	isExtra         bool
 	parent          ast.Node
@@ -74,13 +88,6 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 			}
 
 			block := newCodeBlock(s.data, nameRes, c.(*ast.FencedCodeBlock))
-
-			if info, ok := extractedCodeBlocks[c]; ok {
-				block.isExtra = info.isExtra
-				block.parent = info.parent
-				block.previousSibling = info.previousSibling
-				delete(extractedCodeBlocks, c)
-			}
 
 			result = append(result, block)
 
@@ -135,6 +142,7 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 							isExtra: true,
 						}
 					}
+
 				case ast.KindBlockquote:
 					nextParagraph := innerCodeBlock.NextSibling()
 
@@ -172,13 +180,6 @@ func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (resu
 			if hasLineRecursive(c) || c.Kind() == ast.KindThematicBreak {
 				block := newMarkdownBlock(s.data, c)
 
-				if info, ok := extractedCodeBlocks[c]; ok {
-					block.isExtra = info.isExtra
-					block.parent = info.parent
-					block.previousSibling = info.previousSibling
-					delete(extractedCodeBlocks, c)
-				}
-
 				result = append(result, block)
 			}
 		}
@@ -192,6 +193,16 @@ func (s *ParsedSource) Blocks() Blocks {
 		cache:        map[interface{}]string{},
 	}
 	return s.findBlocks(nameRes, s.root)
+}
+
+func (s *ParsedSource) BlocksTree() *Node {
+	nameRes := &nameResolver{
+		namesCounter: map[string]int{},
+		cache:        map[interface{}]string{},
+	}
+	tree := &Node{}
+	s.buildBlocksTree(nameRes, s.root, tree)
+	return tree
 }
 
 type defaultParser struct {

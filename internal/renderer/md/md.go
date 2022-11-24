@@ -50,6 +50,9 @@ func (r *renderer) out(w bulkWriter, data []byte) error {
 	for r.needCR > 0 {
 		if k < 0 || w.buf.Bytes()[k] == '\n' {
 			k--
+			if r.beginLine && r.needCR > 1 {
+				w.Write(bytes.TrimRight([]byte(r.prefix), " "))
+			}
 		} else {
 			w.WriteByte('\n')
 			if r.needCR > 1 {
@@ -111,6 +114,18 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindBlockquote:
+			if entering {
+				err := r.out(w, []byte("> "))
+				if err != nil {
+					return ast.WalkStop, err
+				}
+				r.prefix += "> "
+			} else {
+				r.prefix = r.prefix[0 : len(r.prefix)-2]
+				r.blankline()
+			}
+
+		case ast.KindCodeBlock:
 			value, ok := p.Value(node)
 			if ok {
 				if entering {
@@ -123,20 +138,31 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 				return ast.WalkSkipChildren, nil
 			}
 
+			var code bytes.Buffer
+			for ll, i := node.Lines().Len(), 0; i < ll; i++ {
+				line := node.Lines().At(i)
+				_, _ = code.Write(line.Value(source))
+			}
+
 			if entering {
-				err := r.out(w, []byte("> "))
-				if err != nil {
+				firstInListItem := node.PreviousSibling() == nil && node.Parent() != nil && node.Parent().Kind() == ast.KindListItem
+				if !firstInListItem {
+					r.blankline()
+				}
+
+				r.prefix += "    "
+
+				if err := r.out(w, code.Bytes()); err != nil {
 					return ast.WalkStop, err
 				}
-				r.prefix = "> "
 			} else {
-				r.prefix = r.prefix[0 : len(r.prefix)-2]
+				r.prefix = r.prefix[0 : len(r.prefix)-4]
 				r.blankline()
 			}
 
-		case ast.KindCodeBlock, ast.KindFencedCodeBlock:
-			// TODO: fix it and follow CMARK_NODE_CODE
+			return ast.WalkContinue, nil
 
+		case ast.KindFencedCodeBlock:
 			value, ok := p.Value(node)
 			if ok {
 				if entering {
@@ -231,16 +257,6 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindListItem:
-			value, ok := p.Value(node)
-			if ok {
-				if entering {
-					if err := r.out(w, value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			listNode := node.Parent().(*ast.List)
 			isBulletList := listNode.Start == 0
 
@@ -266,9 +282,9 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 						return ast.WalkStop, err
 					}
 				}
-				r.prefix += "    "
+				r.prefix += "   "
 			} else {
-				r.prefix = r.prefix[0 : len(r.prefix)-4]
+				r.prefix = r.prefix[0 : len(r.prefix)-3]
 			}
 
 		case ast.KindParagraph:

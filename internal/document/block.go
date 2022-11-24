@@ -14,13 +14,8 @@ type NameResolver interface {
 }
 
 type CodeBlock struct {
-	inner           *ast.FencedCodeBlock
-	isExtra         bool     // true for a block created for exracted blocks
-	parent          ast.Node // for extracted blocks
-	previousSibling ast.Node // for extracted blocks
-	nameResolver    NameResolver
-
 	attributes map[string]string
+	inner      *ast.FencedCodeBlock
 	intro      string
 	language   string
 	lines      []string
@@ -40,14 +35,13 @@ func newCodeBlock(source []byte, nameResolver NameResolver, node *ast.FencedCode
 	value, _ := md.Render(node, source)
 
 	return &CodeBlock{
-		inner:        node,
-		nameResolver: nameResolver,
-		attributes:   attributes,
-		intro:        getIntro(node, source),
-		language:     getLanguage(node, source),
-		lines:        getLines(node, source),
-		name:         name,
-		value:        value,
+		inner:      node,
+		attributes: attributes,
+		intro:      getIntro(node, source),
+		language:   getLanguage(node, source),
+		lines:      getLines(node, source),
+		name:       name,
+		value:      value,
 	}
 }
 
@@ -200,21 +194,15 @@ func getName(node *ast.FencedCodeBlock, source []byte, nameResolver NameResolver
 }
 
 type MarkdownBlock struct {
-	inner           ast.Node
-	isExtra         bool     // true for a block created for exracted blocks
-	parent          ast.Node // for extracted blocks
-	previousSibling ast.Node // for extracted blocks
-	source          []byte
-
+	inner ast.Node
 	value []byte
 }
 
 func newMarkdownBlock(source []byte, node ast.Node) *MarkdownBlock {
 	value, _ := md.Render(node, source)
 	return &MarkdownBlock{
-		inner:  node,
-		source: source,
-		value:  value,
+		inner: node,
+		value: value,
 	}
 }
 
@@ -224,6 +212,24 @@ func (b *MarkdownBlock) Unwrap() ast.Node {
 
 func (b *MarkdownBlock) Value() []byte {
 	return b.value
+}
+
+type InnerBlock struct {
+	inner ast.Node
+}
+
+func newInnerBlock(node ast.Node) *InnerBlock {
+	return &InnerBlock{
+		inner: node,
+	}
+}
+
+func (b *InnerBlock) Unwrap() ast.Node {
+	return b.inner
+}
+
+func (b *InnerBlock) Value() []byte {
+	return nil
 }
 
 type Block interface {

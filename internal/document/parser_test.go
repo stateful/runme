@@ -1,5 +1,37 @@
 package document
 
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestParsedSource_buildBlocksTree(t *testing.T) {
+	data := []byte(`# Examples
+
+1. Item 1
+
+    ` + "```" + `sh {name=echo first= second=2}
+    $ echo "Hello, runme!"
+    ` + "```" + `
+
+    Inner paragraph
+
+2. Item 2
+`)
+	source := NewSource(data)
+	parsed := source.Parse()
+
+	nameRes := &nameResolver{
+		namesCounter: map[string]int{},
+		cache:        map[interface{}]string{},
+	}
+
+	tree := &Node{}
+	parsed.buildBlocksTree(nameRes, parsed.Root(), tree)
+	assert.Len(t, tree.children, 2)
+}
+
 // func TestParsedSource_Blocks_nestedFancedCodeBlocks(t *testing.T) {
 // 	data := []byte(`Test involving nested blocks:
 

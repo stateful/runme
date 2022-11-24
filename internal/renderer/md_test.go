@@ -10,14 +10,13 @@ import (
 )
 
 type sourceProvider struct {
-	blocks document.Blocks
+	node *document.Node
 }
 
-func (p *sourceProvider) Value(node ast.Node) ([]byte, bool) {
-	for _, block := range p.blocks {
-		if node == block.Unwrap() {
-			return block.Value(), true
-		}
+func (p *sourceProvider) Value(astNode ast.Node) ([]byte, bool) {
+	result := document.FindByInner(p.node, astNode)
+	if result != nil {
+		return result.Value().Value(), true
 	}
 	return nil, false
 }
@@ -33,6 +32,9 @@ $ echo "Hello, runme!"
 
 > bq 1
 > bq 2
+>
+>     echo 1
+>
 > b1 3
 
 1. Item 1
@@ -41,13 +43,14 @@ $ echo "Hello, runme!"
    $ echo "Hello, runme!"
    ` + "```" + `
 
+   Inner paragraph
+
 2. Item 2
 `)
 	source := document.NewSource(data)
 	parsed := source.Parse()
-	blocks := parsed.Blocks()
-
-	result, err := md.RenderWithSourceProvider(parsed.Root(), data, &sourceProvider{blocks: blocks})
+	tree := parsed.BlocksTree()
+	result, err := md.RenderWithSourceProvider(parsed.Root(), data, &sourceProvider{node: tree})
 	require.NoError(t, err)
 	require.Equal(t, string(data), string(result))
 }
