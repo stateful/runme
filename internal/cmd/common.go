@@ -1,26 +1,30 @@
 package cmd
 
 import (
-	"io"
 	"os"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer"
+	"github.com/stateful/runme/internal/renderer/md"
 	"github.com/stateful/runme/internal/runner"
 )
 
 func getCodeBlocks() (document.CodeBlocks, error) {
-	source, err := document.NewSourceFromFile(os.DirFS(chdir), fileName)
+	source, err := document.NewSourceFromFile(os.DirFS(chdir), fileName, md.Render)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	tree, err := source.Parse().BlocksTree()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	blocks := source.Parse().Blocks().CodeBlocks()
+	var blocks document.CodeBlocks
+	document.CollectCodeBlocks(tree, &blocks)
 
-	var filtered document.CodeBlocks
+	filtered := make(document.CodeBlocks, 0, len(blocks))
 	for _, b := range blocks {
 		if allowUnknown || (b.Language() != "" && runner.IsSupported(b.Language())) {
 			filtered = append(filtered, b)
@@ -35,18 +39,6 @@ func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlo
 		return nil, errors.Errorf("command %q not found; known command names: %s", name, blocks.Names())
 	}
 	return block, nil
-}
-
-func renderToJSON(w io.Writer) error {
-	source, err := document.NewSourceFromFile(os.DirFS(chdir), fileName)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	parsed := source.Parse()
-
-	err = renderer.ToJSON(parsed, w)
-	return errors.WithMessage(err, "failed to render to JSON")
 }
 
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

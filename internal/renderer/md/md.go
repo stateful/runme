@@ -9,20 +9,18 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-type emptySourceProvider struct{}
-
-func (emptySourceProvider) Value(ast.Node) ([]byte, bool) { return nil, false }
+type NodeSourceProvider func(ast.Node) ([]byte, bool)
 
 func Render(doc ast.Node, source []byte) ([]byte, error) {
-	return new(renderer).render(doc, source, &emptySourceProvider{})
+	return new(renderer).render(doc, source, func(ast.Node) ([]byte, bool) { return nil, false })
 }
 
-type SourceProvider interface {
-	Value(ast.Node) ([]byte, bool)
-}
-
-func RenderWithSourceProvider(doc ast.Node, source []byte, p SourceProvider) ([]byte, error) {
-	return new(renderer).render(doc, source, p)
+func RenderWithSourceProvider(
+	doc ast.Node,
+	source []byte,
+	provider NodeSourceProvider,
+) ([]byte, error) {
+	return new(renderer).render(doc, source, provider)
 }
 
 type renderer struct {
@@ -81,7 +79,11 @@ func (r *renderer) out(w bulkWriter, data []byte) error {
 	return w.Err()
 }
 
-func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte, error) {
+func (r *renderer) render(
+	doc ast.Node,
+	source []byte,
+	nodeSourceProvider NodeSourceProvider,
+) ([]byte, error) {
 	var buf bytes.Buffer
 
 	err := ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -94,7 +96,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 
 		case ast.KindHeading:
 			if entering {
-				value, ok := p.Value(node)
+				value, ok := nodeSourceProvider(node)
 				if !ok {
 					n := node.(*ast.Heading)
 					value = bytes.Repeat([]byte{'#'}, n.Level)
@@ -126,7 +128,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindCodeBlock:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -163,7 +165,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			return ast.WalkContinue, nil
 
 		case ast.KindFencedCodeBlock:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -222,7 +224,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			return ast.WalkContinue, nil
 
 		case ast.KindHTMLBlock:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -289,7 +291,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 
 		case ast.KindParagraph:
 			if entering {
-				value, ok := p.Value(node)
+				value, ok := nodeSourceProvider(node)
 				if ok {
 					status = ast.WalkSkipChildren
 					if err := r.out(w, value); err != nil {
@@ -306,7 +308,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindThematicBreak:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					r.blankline()
@@ -328,7 +330,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 
 		// inline
 		case ast.KindAutoLink:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -356,7 +358,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindCodeSpan:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -371,7 +373,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindEmphasis:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -391,7 +393,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindImage:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -424,7 +426,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindLink:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -457,7 +459,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindRawHTML:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -475,7 +477,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindText:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {
@@ -501,7 +503,7 @@ func (r *renderer) render(doc ast.Node, source []byte, p SourceProvider) ([]byte
 			}
 
 		case ast.KindString:
-			value, ok := p.Value(node)
+			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
 					if err := r.out(w, value); err != nil {

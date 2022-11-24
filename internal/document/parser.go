@@ -10,8 +10,9 @@ import (
 )
 
 type ParsedSource struct {
-	data []byte
-	root ast.Node
+	data     []byte
+	renderer Renderer
+	root     ast.Node
 }
 
 func (s *ParsedSource) Root() ast.Node {
@@ -22,187 +23,39 @@ func (s *ParsedSource) Source() []byte {
 	return s.data
 }
 
-func (s *ParsedSource) hasChildOfKind(node ast.Node, kind ast.NodeKind) (ast.Node, bool) {
-	if node.Type() != ast.TypeBlock {
-		return nil, false
-	}
-
-	if node.Kind() == kind {
-		return node, true
-	}
-
-	for c := node.FirstChild(); c != nil; c = c.NextSibling() {
-		if node, ok := s.hasChildOfKind(c, kind); ok {
-			return node, ok
-		}
-	}
-	return nil, false
-}
-
-func hasLine(node ast.Node) bool {
-	return node.Lines().Len() > 0
-}
-
-func hasLineRecursive(node ast.Node) bool {
-	if hasLine(node) {
-		return true
-	}
-
-	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
-		if hasLineRecursive(child) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (s *ParsedSource) buildBlocksTree(nameRes *nameResolver, parent ast.Node, node *Node) {
+func (s *ParsedSource) buildBlocksTree(nameRes *nameResolver, parent ast.Node, node *Node) error {
 	for astNode := parent.FirstChild(); astNode != nil; astNode = astNode.NextSibling() {
 		switch astNode.Kind() {
 		case ast.KindFencedCodeBlock:
-			node.Add(newCodeBlock(s.data, nameRes, astNode.(*ast.FencedCodeBlock)))
+			block, err := newCodeBlock(astNode.(*ast.FencedCodeBlock), nameRes, s.data, s.renderer)
+			if err != nil {
+				return err
+			}
+			node.Add(block)
 		case ast.KindBlockquote, ast.KindList, ast.KindListItem:
 			nNode := node.Add(newInnerBlock(astNode))
 			s.buildBlocksTree(nameRes, astNode, nNode)
 		default:
-			node.Add(newMarkdownBlock(s.data, astNode))
+			block, err := newMarkdownBlock(astNode, s.data, s.renderer)
+			if err != nil {
+				return err
+			}
+			node.Add(block)
 		}
 	}
+	return nil
 }
 
-type extractedNode struct {
-	isExtra         bool
-	parent          ast.Node
-	previousSibling ast.Node
-}
-
-func (s *ParsedSource) findBlocks(nameRes *nameResolver, docNode ast.Node) (result Blocks) {
-	extractedCodeBlocks := make(map[ast.Node]extractedNode)
-
-	for c := docNode.FirstChild(); c != nil; c = c.NextSibling() {
-		switch c.Kind() {
-		case ast.KindFencedCodeBlock:
-			if !hasLine(c) {
-				break
-			}
-
-			block := newCodeBlock(s.data, nameRes, c.(*ast.FencedCodeBlock))
-
-			result = append(result, block)
-
-		default:
-			if innerCodeBlock, ok := s.hasChildOfKind(c, ast.KindFencedCodeBlock); ok {
-				if !hasLine(innerCodeBlock) {
-					break
-				}
-
-				switch c.Kind() {
-				case ast.KindList:
-					listItem := innerCodeBlock.Parent()
-
-					// Move the code block into the root node,
-					// as well as all its next siblings.
-					innerNodesToMove := []ast.Node{innerCodeBlock}
-					for node := innerCodeBlock.NextSibling(); node != nil; node = node.NextSibling() {
-						innerNodesToMove = append(innerNodesToMove, node)
-					}
-
-					itemToInsertAfter := c
-					for _, node := range innerNodesToMove {
-						extractedCodeBlocks[node] = extractedNode{
-							parent:          node.Parent(),
-							previousSibling: node.PreviousSibling(),
-						}
-						listItem.RemoveChild(listItem, node)
-						docNode.InsertAfter(docNode, itemToInsertAfter, node)
-						itemToInsertAfter = node
-					}
-
-					// Split the list if there are any list items
-					// after listItem.
-					if listItem.NextSibling() != nil {
-						var itemsToMove []ast.Node
-						for item := listItem.NextSibling(); item != nil; item = item.NextSibling() {
-							itemsToMove = append(itemsToMove, item)
-						}
-
-						newList := ast.NewList(c.(*ast.List).Marker)
-						for _, item := range itemsToMove {
-							extractedCodeBlocks[listItem] = extractedNode{
-								parent:          item.Parent(),
-								previousSibling: item.PreviousSibling(),
-							}
-							c.RemoveChild(c, item)
-							newList.AppendChild(newList, item)
-						}
-						newList.Start = c.(*ast.List).Start + c.ChildCount()
-						docNode.InsertAfter(docNode, itemToInsertAfter, newList)
-						extractedCodeBlocks[newList] = extractedNode{
-							isExtra: true,
-						}
-					}
-
-				case ast.KindBlockquote:
-					nextParagraph := innerCodeBlock.NextSibling()
-
-					// move the code block into the root node
-					extractedCodeBlocks[innerCodeBlock] = extractedNode{
-						parent:          innerCodeBlock.Parent(),
-						previousSibling: innerCodeBlock.PreviousSibling(),
-					}
-					c.RemoveChild(c, innerCodeBlock)
-					docNode.InsertAfter(docNode, c, innerCodeBlock)
-
-					// move all paragraphs after the code block
-					// into the new block quote
-					if nextParagraph != nil {
-						var itemsToMove []ast.Node
-						for item := nextParagraph; item != nil; item = item.NextSibling() {
-							itemsToMove = append(itemsToMove, item)
-						}
-
-						newBlockQuote := ast.NewBlockquote()
-						for _, item := range itemsToMove {
-							extractedCodeBlocks[item] = extractedNode{
-								parent:          item.Parent(),
-								previousSibling: item.PreviousSibling(),
-							}
-							c.RemoveChild(c, item)
-							newBlockQuote.AppendChild(newBlockQuote, item)
-						}
-						docNode.InsertAfter(docNode, innerCodeBlock, newBlockQuote)
-						extractedCodeBlocks[newBlockQuote] = extractedNode{isExtra: true}
-					}
-				}
-			}
-
-			if hasLineRecursive(c) || c.Kind() == ast.KindThematicBreak {
-				block := newMarkdownBlock(s.data, c)
-
-				result = append(result, block)
-			}
-		}
-	}
-	return
-}
-
-func (s *ParsedSource) Blocks() Blocks {
-	nameRes := &nameResolver{
-		namesCounter: map[string]int{},
-		cache:        map[interface{}]string{},
-	}
-	return s.findBlocks(nameRes, s.root)
-}
-
-func (s *ParsedSource) BlocksTree() *Node {
+func (s *ParsedSource) BlocksTree() (*Node, error) {
 	nameRes := &nameResolver{
 		namesCounter: map[string]int{},
 		cache:        map[interface{}]string{},
 	}
 	tree := &Node{}
-	s.buildBlocksTree(nameRes, s.root, tree)
-	return tree
+	if err := s.buildBlocksTree(nameRes, s.root, tree); err != nil {
+		return nil, err
+	}
+	return tree, nil
 }
 
 type defaultParser struct {
@@ -213,9 +66,9 @@ func newDefaultParser() *defaultParser {
 	return &defaultParser{parser: goldmark.DefaultParser()}
 }
 
-func (p *defaultParser) Parse(data []byte) *ParsedSource {
+func (p *defaultParser) Parse(data []byte, r Renderer) *ParsedSource {
 	root := p.parser.Parse(text.NewReader(data))
-	return &ParsedSource{data: data, root: root}
+	return &ParsedSource{data: data, renderer: r, root: root}
 }
 
 type nameResolver struct {

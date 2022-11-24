@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -86,12 +87,9 @@ func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Execut
 			Base: base,
 		}, nil
 	case "go":
-		lines := strings.Split(string(block.Value()), "\n")
-		if len(lines) < 2 {
-			return nil, errors.New("invalid content for \"go\" executable")
-		}
+		log.Printf("source: %s", block.Content())
 		return &runner.Go{
-			Source: strings.Join(lines[1:len(lines)-1], "\n"),
+			Source: string(block.Content()),
 			Base:   base,
 		}, nil
 	default:

@@ -7,12 +7,6 @@ type Node struct {
 	value    Block
 }
 
-func newNode(value Block) *Node {
-	return &Node{
-		value: value,
-	}
-}
-
 func (n *Node) Value() Block {
 	return n.value
 }
@@ -43,4 +37,30 @@ func FindByInner(node *Node, inner ast.Node) *Node {
 	}
 
 	return nil
+}
+
+func CollectBlocks(node *Node, result *Blocks) {
+	if node == nil {
+		return
+	}
+
+	for _, child := range node.children {
+		if item, ok := child.Value().(*InnerBlock); !ok {
+			*result = append(*result, item)
+		}
+		CollectBlocks(child, result)
+	}
+}
+
+func CollectCodeBlocks(node *Node, result *CodeBlocks) {
+	if node == nil {
+		return
+	}
+
+	for _, child := range node.children {
+		if item, ok := child.Value().(*CodeBlock); ok {
+			*result = append(*result, item)
+		}
+		CollectCodeBlocks(child, result)
+	}
 }

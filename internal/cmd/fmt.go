@@ -37,7 +37,8 @@ func fmtCmd() *cobra.Command {
 				}
 			}
 
-			result, err := md.Render(document.NewSource(data).Parse().Root(), data)
+			root := document.NewSource(data, md.Render).Parse().Root()
+			result, err := md.Render(root, data)
 			if err != nil {
 				return errors.Wrap(err, "failed to format source")
 			}

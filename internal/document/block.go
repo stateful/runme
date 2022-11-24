@@ -5,13 +5,39 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/stateful/runme/internal/renderer/md"
 	"github.com/yuin/goldmark/ast"
 )
+
+type Block interface {
+	Unwrap() ast.Node
+	Value() []byte
+}
+
+type Blocks []Block
+
+type CodeBlocks []*CodeBlock
+
+func (b CodeBlocks) Lookup(name string) *CodeBlock {
+	for _, block := range b {
+		if block.Name() == name {
+			return block
+		}
+	}
+	return nil
+}
+
+func (b CodeBlocks) Names() (result []string) {
+	for _, block := range b {
+		result = append(result, block.Name())
+	}
+	return result
+}
 
 type NameResolver interface {
 	Get(interface{}, string) string
 }
+
+type Renderer func(ast.Node, []byte) ([]byte, error)
 
 type CodeBlock struct {
 	attributes map[string]string
@@ -23,7 +49,12 @@ type CodeBlock struct {
 	value      []byte
 }
 
-func newCodeBlock(source []byte, nameResolver NameResolver, node *ast.FencedCodeBlock) *CodeBlock {
+func newCodeBlock(
+	node *ast.FencedCodeBlock,
+	nameResolver NameResolver,
+	source []byte,
+	render Renderer,
+) (*CodeBlock, error) {
 	name := getName(node, source, nameResolver)
 
 	attributes := make(map[string]string)
@@ -32,7 +63,10 @@ func newCodeBlock(source []byte, nameResolver NameResolver, node *ast.FencedCode
 	}
 	attributes["name"] = name
 
-	value, _ := md.Render(node, source)
+	value, err := render(node, source)
+	if err != nil {
+		return nil, err
+	}
 
 	return &CodeBlock{
 		inner:      node,
@@ -42,11 +76,20 @@ func newCodeBlock(source []byte, nameResolver NameResolver, node *ast.FencedCode
 		lines:      getLines(node, source),
 		name:       name,
 		value:      value,
-	}
+	}, nil
 }
 
 func (b *CodeBlock) Attributes() map[string]string {
 	return b.attributes
+}
+
+func (b *CodeBlock) Content() []byte {
+	value := bytes.Trim(b.value, "\n")
+	lines := bytes.Split(value, []byte{'\n'})
+	if len(lines) < 2 {
+		return b.value
+	}
+	return bytes.Join(lines[1:len(lines)-1], []byte{'\n'})
 }
 
 func (b *CodeBlock) Intro() string {
@@ -198,12 +241,19 @@ type MarkdownBlock struct {
 	value []byte
 }
 
-func newMarkdownBlock(source []byte, node ast.Node) *MarkdownBlock {
-	value, _ := md.Render(node, source)
+func newMarkdownBlock(
+	node ast.Node,
+	source []byte,
+	render Renderer,
+) (*MarkdownBlock, error) {
+	value, err := render(node, source)
+	if err != nil {
+		return nil, err
+	}
 	return &MarkdownBlock{
 		inner: node,
 		value: value,
-	}
+	}, nil
 }
 
 func (b *MarkdownBlock) Unwrap() ast.Node {
@@ -230,38 +280,4 @@ func (b *InnerBlock) Unwrap() ast.Node {
 
 func (b *InnerBlock) Value() []byte {
 	return nil
-}
-
-type Block interface {
-	Unwrap() ast.Node
-	Value() []byte
-}
-
-type Blocks []Block
-
-func (b Blocks) CodeBlocks() (result CodeBlocks) {
-	for _, block := range b {
-		if v, ok := block.(*CodeBlock); ok {
-			result = append(result, v)
-		}
-	}
-	return
-}
-
-type CodeBlocks []*CodeBlock
-
-func (b CodeBlocks) Lookup(name string) *CodeBlock {
-	for _, block := range b {
-		if block.name == name {
-			return block
-		}
-	}
-	return nil
-}
-
-func (b CodeBlocks) Names() (result []string) {
-	for _, block := range b {
-		result = append(result, block.name)
-	}
-	return result
 }

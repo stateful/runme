@@ -9,18 +9,6 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-type sourceProvider struct {
-	node *document.Node
-}
-
-func (p *sourceProvider) Value(astNode ast.Node) ([]byte, bool) {
-	result := document.FindByInner(p.node, astNode)
-	if result != nil {
-		return result.Value().Value(), true
-	}
-	return nil, false
-}
-
 func TestRenderWithSourceProvider(t *testing.T) {
 	data := []byte(`# Examples
 
@@ -47,10 +35,21 @@ $ echo "Hello, runme!"
 
 2. Item 2
 `)
-	source := document.NewSource(data)
+	source := document.NewSource(data, md.Render)
 	parsed := source.Parse()
-	tree := parsed.BlocksTree()
-	result, err := md.RenderWithSourceProvider(parsed.Root(), data, &sourceProvider{node: tree})
+	tree, err := parsed.BlocksTree()
+	require.NoError(t, err)
+	result, err := md.RenderWithSourceProvider(
+		parsed.Root(),
+		data,
+		func(astNode ast.Node) ([]byte, bool) {
+			result := document.FindByInner(tree, astNode)
+			if result != nil {
+				return result.Value().Value(), true
+			}
+			return nil, false
+		},
+	)
 	require.NoError(t, err)
 	require.Equal(t, string(data), string(result))
 }

@@ -7,21 +7,22 @@ import (
 )
 
 type Source struct {
-	data []byte
+	data     []byte
+	renderer Renderer
 }
 
-func NewSource(data []byte) *Source {
-	return &Source{data: data}
+func NewSource(data []byte, renderer Renderer) *Source {
+	return &Source{data: data, renderer: renderer}
 }
 
-func NewSourceFromFile(f fs.FS, filename string) (*Source, error) {
+func NewSourceFromFile(f fs.FS, filename string, renderer Renderer) (*Source, error) {
 	data, err := fs.ReadFile(f, filename)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return NewSource(data), nil
+	return NewSource(data, renderer), nil
 }
 
 func (s *Source) Parse() *ParsedSource {
-	return newDefaultParser().Parse(s.data)
+	return newDefaultParser().Parse(s.data, s.renderer)
 }
