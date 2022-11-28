@@ -33,7 +33,11 @@ func (s *ParsedSource) buildBlocksTree(nameRes *nameResolver, parent ast.Node, n
 			}
 			node.Add(block)
 		case ast.KindBlockquote, ast.KindList, ast.KindListItem:
-			nNode := node.Add(newInnerBlock(astNode))
+			block, err := newInnerBlock(astNode, s.data, s.renderer)
+			if err != nil {
+				return err
+			}
+			nNode := node.Add(block)
 			s.buildBlocksTree(nameRes, astNode, nNode)
 		default:
 			block, err := newMarkdownBlock(astNode, s.data, s.renderer)

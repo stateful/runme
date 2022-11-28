@@ -5,10 +5,23 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/rs/xid"
 	"github.com/yuin/goldmark/ast"
 )
 
+type blockKind int
+
+const (
+	innerBlock blockKind = iota + 1
+	codeBlock
+	markdownBlock
+)
+
 type Block interface {
+	kind() blockKind
+	id() string
+	setValue([]byte)
+
 	Unwrap() ast.Node
 	Value() []byte
 }
@@ -61,6 +74,7 @@ func newCodeBlock(
 	if node.Info != nil {
 		attributes = parseRawAttributes(rawAttributes(node.Info.Text(source)))
 	}
+	attributes["_blockId"] = getID()
 	attributes["name"] = name
 
 	value, err := render(node, source)
@@ -69,8 +83,8 @@ func newCodeBlock(
 	}
 
 	return &CodeBlock{
-		inner:      node,
 		attributes: attributes,
+		inner:      node,
 		intro:      getIntro(node, source),
 		language:   getLanguage(node, source),
 		lines:      getLines(node, source),
@@ -78,6 +92,12 @@ func newCodeBlock(
 		value:      value,
 	}, nil
 }
+
+func (CodeBlock) kind() blockKind { return codeBlock }
+
+func (b *CodeBlock) id() string { return b.attributes["_blockId"] }
+
+func (b *CodeBlock) setValue(value []byte) { b.value = value }
 
 func (b *CodeBlock) Attributes() map[string]string {
 	return b.attributes
@@ -237,8 +257,9 @@ func getName(node *ast.FencedCodeBlock, source []byte, nameResolver NameResolver
 }
 
 type MarkdownBlock struct {
-	inner ast.Node
-	value []byte
+	attributes map[string]string
+	inner      ast.Node
+	value      []byte
 }
 
 func newMarkdownBlock(
@@ -246,15 +267,25 @@ func newMarkdownBlock(
 	source []byte,
 	render Renderer,
 ) (*MarkdownBlock, error) {
+	attributes := map[string]string{"_blockId": getID()}
 	value, err := render(node, source)
 	if err != nil {
 		return nil, err
 	}
 	return &MarkdownBlock{
-		inner: node,
-		value: value,
+		attributes: attributes,
+		inner:      node,
+		value:      value,
 	}, nil
 }
+
+func (MarkdownBlock) kind() blockKind { return markdownBlock }
+
+func (b *MarkdownBlock) id() string { return b.attributes["_blockId"] }
+
+func (b *MarkdownBlock) setValue(value []byte) { b.value = value }
+
+func (b *MarkdownBlock) Attributes() map[string]string { return b.attributes }
 
 func (b *MarkdownBlock) Unwrap() ast.Node {
 	return b.inner
@@ -265,19 +296,42 @@ func (b *MarkdownBlock) Value() []byte {
 }
 
 type InnerBlock struct {
-	inner ast.Node
+	attributes map[string]string
+	inner      ast.Node
+	value      []byte
 }
 
-func newInnerBlock(node ast.Node) *InnerBlock {
-	return &InnerBlock{
-		inner: node,
+func newInnerBlock(
+	node ast.Node,
+	source []byte,
+	render Renderer,
+) (*InnerBlock, error) {
+	attributes := map[string]string{"_blockId": getID()}
+	value, err := render(node, source)
+	if err != nil {
+		return nil, err
 	}
+	return &InnerBlock{
+		attributes: attributes,
+		inner:      node,
+		value:      value,
+	}, nil
 }
+
+func (InnerBlock) kind() blockKind { return innerBlock }
+
+func (b *InnerBlock) id() string { return b.attributes["_blockId"] }
+
+func (b *InnerBlock) setValue(value []byte) { b.value = value }
 
 func (b *InnerBlock) Unwrap() ast.Node {
 	return b.inner
 }
 
 func (b *InnerBlock) Value() []byte {
-	return nil
+	return b.value
+}
+
+func getID() string {
+	return xid.New().String()
 }

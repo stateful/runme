@@ -5,6 +5,7 @@ import (
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yuin/goldmark/ast"
 )
@@ -51,5 +52,5 @@ $ echo "Hello, runme!"
 		},
 	)
 	require.NoError(t, err)
-	require.Equal(t, string(data), string(result))
+	assert.Equal(t, string(data), string(result))
 }

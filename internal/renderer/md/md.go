@@ -2,6 +2,7 @@ package md
 
 import (
 	"bytes"
+	"io"
 	"strconv"
 	"strings"
 
@@ -11,8 +12,15 @@ import (
 
 type NodeSourceProvider func(ast.Node) ([]byte, bool)
 
+type Breaker func(ast.Node) bool
+
 func Render(doc ast.Node, source []byte) ([]byte, error) {
-	return new(renderer).render(doc, source, func(ast.Node) ([]byte, bool) { return nil, false })
+	return new(Renderer).Render(
+		doc,
+		source,
+		func(ast.Node) ([]byte, bool) { return nil, false },
+		func(ast.Node, bool) (ast.WalkStatus, bool) { return ast.WalkContinue, false },
+	)
 }
 
 func RenderWithSourceProvider(
@@ -20,41 +28,52 @@ func RenderWithSourceProvider(
 	source []byte,
 	provider NodeSourceProvider,
 ) ([]byte, error) {
-	return new(renderer).render(doc, source, provider)
+	return new(Renderer).Render(
+		doc,
+		source,
+		provider,
+		func(ast.Node, bool) (ast.WalkStatus, bool) { return ast.WalkContinue, false },
+	)
 }
 
-type renderer struct {
-	noLinebreaks bool
-	beginLine    bool
-	needCR       int
-	prefix       string
+type Renderer struct {
+	beginLine bool
+	buf       bytes.Buffer
+	needCR    int
+	prefix    string
 }
 
-func (r *renderer) blankline() {
+func (r *Renderer) blankline() {
 	if r.needCR < 2 {
 		r.needCR = 2
 	}
 }
 
-func (r *renderer) cr() {
+func (r *Renderer) cr() {
 	if r.needCR < 1 {
 		r.needCR = 1
 	}
 }
 
-func (r *renderer) out(w bulkWriter, data []byte) error {
-	k := len(w.Bytes()) - 1
+func (r *Renderer) write(data []byte) error {
+	k := len(r.buf.Bytes()) - 1
 
 	for r.needCR > 0 {
-		if k < 0 || w.buf.Bytes()[k] == '\n' {
+		if k < 0 || r.buf.Bytes()[k] == '\n' {
 			k--
 			if r.beginLine && r.needCR > 1 {
-				w.Write(bytes.TrimRight([]byte(r.prefix), " "))
+				if _, err := r.buf.Write(bytes.TrimRight([]byte(r.prefix), " ")); err != nil {
+					return err
+				}
 			}
 		} else {
-			w.WriteByte('\n')
+			if err := r.buf.WriteByte('\n'); err != nil {
+				return err
+			}
 			if r.needCR > 1 {
-				w.Write([]byte(r.prefix))
+				if _, err := r.buf.Write([]byte(r.prefix)); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -64,31 +83,46 @@ func (r *renderer) out(w bulkWriter, data []byte) error {
 
 	for _, c := range string(data) {
 		if r.beginLine {
-			w.Write([]byte(r.prefix))
+			if _, err := r.buf.Write([]byte(r.prefix)); err != nil {
+				return err
+			}
 		}
 
+		var err error
 		if c == '\n' {
-			w.WriteByte('\n')
+			err = r.buf.WriteByte('\n')
 			r.beginLine = true
 		} else {
-			w.WriteRune(c)
+			_, err = r.buf.WriteRune(c)
 			r.beginLine = false
+		}
+		if err != nil {
+			return err
 		}
 	}
 
-	return w.Err()
+	return nil
 }
 
-func (r *renderer) render(
+func (r *Renderer) Prefix() string {
+	return r.prefix
+}
+
+func (r *Renderer) WriteTo(w io.Writer) (int64, error) {
+	return r.buf.WriteTo(w)
+}
+
+func (r *Renderer) Render(
 	doc ast.Node,
 	source []byte,
 	nodeSourceProvider NodeSourceProvider,
+	callback func(ast.Node, bool) (_ ast.WalkStatus, skip bool),
 ) ([]byte, error) {
-	var buf bytes.Buffer
-
 	err := ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-		w := bulkWriter{buf: &buf}
-		status := ast.WalkContinue
+		status, skip := callback(node, entering)
+		if skip {
+			return status, nil
+		}
 
 		switch node.Kind() {
 		// blocks
@@ -105,19 +139,17 @@ func (r *renderer) render(
 					status = ast.WalkSkipChildren
 				}
 
-				err := r.out(w, value)
+				err := r.write(value)
 				if err != nil {
 					return ast.WalkStop, err
 				}
-				r.noLinebreaks = true
 			} else {
-				r.noLinebreaks = false
 				r.blankline()
 			}
 
 		case ast.KindBlockquote:
 			if entering {
-				err := r.out(w, []byte("> "))
+				err := r.write([]byte("> "))
 				if err != nil {
 					return ast.WalkStop, err
 				}
@@ -131,7 +163,7 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				} else {
@@ -154,7 +186,7 @@ func (r *renderer) render(
 
 				r.prefix += "    "
 
-				if err := r.out(w, code.Bytes()); err != nil {
+				if err := r.write(code.Bytes()); err != nil {
 					return ast.WalkStop, err
 				}
 			} else {
@@ -162,13 +194,11 @@ func (r *renderer) render(
 				r.blankline()
 			}
 
-			return ast.WalkContinue, nil
-
 		case ast.KindFencedCodeBlock:
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				} else {
@@ -194,14 +224,14 @@ func (r *renderer) render(
 					r.blankline()
 				}
 
-				err := r.out(w, bytes.Repeat([]byte{'`'}, ticksCount))
+				err := r.write(bytes.Repeat([]byte{'`'}, ticksCount))
 				if err != nil {
 					return ast.WalkStop, err
 				}
 
 				if n, ok := node.(*ast.FencedCodeBlock); ok && n.Info != nil {
 					info := n.Info.Segment.Value(source)
-					err := r.out(w, info)
+					err := r.write(info)
 					if err != nil {
 						return ast.WalkStop, err
 					}
@@ -209,25 +239,23 @@ func (r *renderer) render(
 
 				r.cr()
 
-				if err := r.out(w, code.Bytes()); err != nil {
+				if err := r.write(code.Bytes()); err != nil {
 					return ast.WalkStop, err
 				}
 			} else {
 				r.cr()
-				err := r.out(w, bytes.Repeat([]byte{'`'}, ticksCount))
+				err := r.write(bytes.Repeat([]byte{'`'}, ticksCount))
 				if err != nil {
 					return ast.WalkStop, err
 				}
 				r.blankline()
 			}
 
-			return ast.WalkContinue, nil
-
 		case ast.KindHTMLBlock:
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				} else {
@@ -240,18 +268,16 @@ func (r *renderer) render(
 				break
 			}
 			r.blankline()
-			err := r.out(w, node.Text(source))
+			err := r.write(node.Text(source))
 			if err != nil {
 				return ast.WalkStop, err
 			}
 			r.blankline()
 
-			return ast.WalkSkipChildren, nil
-
 		case ast.KindList:
 			if !entering && node.NextSibling() != nil && node.NextSibling().Kind() == ast.KindList {
 				r.cr()
-				err := r.out(w, []byte("<!-- end list -->"))
+				err := r.write([]byte("<!-- end list -->"))
 				if err != nil {
 					return ast.WalkStop, err
 				}
@@ -264,7 +290,7 @@ func (r *renderer) render(
 
 			if entering {
 				if isBulletList {
-					err := r.out(w, []byte("  - "))
+					err := r.write([]byte("  - "))
 					if err != nil {
 						return ast.WalkStop, err
 					}
@@ -275,11 +301,11 @@ func (r *renderer) render(
 						tmp = tmp.PreviousSibling()
 						itemNumber++
 					}
-					err := r.out(w, []byte(strconv.Itoa(itemNumber)))
+					err := r.write([]byte(strconv.Itoa(itemNumber)))
 					if err != nil {
 						return ast.WalkStop, err
 					}
-					err = r.out(w, []byte(". "))
+					err = r.write([]byte(". "))
 					if err != nil {
 						return ast.WalkStop, err
 					}
@@ -294,7 +320,7 @@ func (r *renderer) render(
 				value, ok := nodeSourceProvider(node)
 				if ok {
 					status = ast.WalkSkipChildren
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
@@ -312,7 +338,7 @@ func (r *renderer) render(
 			if ok {
 				if entering {
 					r.blankline()
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 					r.blankline()
@@ -322,7 +348,7 @@ func (r *renderer) render(
 
 			if entering {
 				r.blankline()
-				if err := r.out(w, []byte("-----")); err != nil {
+				if err := r.write([]byte("-----")); err != nil {
 					return ast.WalkStop, err
 				}
 				r.blankline()
@@ -333,7 +359,7 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
@@ -352,7 +378,7 @@ func (r *renderer) render(
 				_, _ = b.WriteString(string(n.URL(source)))
 				_, _ = b.WriteString(">")
 
-				if err := r.out(w, []byte(b.String())); err != nil {
+				if err := r.write([]byte(b.String())); err != nil {
 					return ast.WalkStop, err
 				}
 			}
@@ -361,14 +387,14 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
 				return ast.WalkSkipChildren, nil
 			}
 
-			if err := r.out(w, []byte("`")); err != nil {
+			if err := r.write([]byte("`")); err != nil {
 				return ast.WalkStop, err
 			}
 
@@ -376,7 +402,7 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
@@ -388,7 +414,7 @@ func (r *renderer) render(
 			if n.Level > 1 {
 				mark = "**"
 			}
-			if err := r.out(w, []byte(mark)); err != nil {
+			if err := r.write([]byte(mark)); err != nil {
 				return ast.WalkStop, err
 			}
 
@@ -396,7 +422,7 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
@@ -404,7 +430,7 @@ func (r *renderer) render(
 			}
 
 			if entering {
-				if err := r.out(w, []byte("![")); err != nil {
+				if err := r.write([]byte("![")); err != nil {
 					return ast.WalkStop, err
 				}
 			} else {
@@ -420,7 +446,7 @@ func (r *renderer) render(
 				}
 				_, _ = b.WriteString(")")
 
-				if err := r.out(w, []byte(b.String())); err != nil {
+				if err := r.write([]byte(b.String())); err != nil {
 					return ast.WalkStop, err
 				}
 			}
@@ -429,7 +455,7 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
@@ -437,7 +463,7 @@ func (r *renderer) render(
 			}
 
 			if entering {
-				if err := r.out(w, []byte{'['}); err != nil {
+				if err := r.write([]byte{'['}); err != nil {
 					return ast.WalkStop, err
 				}
 			} else {
@@ -453,7 +479,7 @@ func (r *renderer) render(
 				}
 				_, _ = b.WriteString(")")
 
-				if err := r.out(w, []byte(b.String())); err != nil {
+				if err := r.write([]byte(b.String())); err != nil {
 					return ast.WalkStop, err
 				}
 			}
@@ -462,7 +488,7 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
@@ -470,7 +496,7 @@ func (r *renderer) render(
 			}
 
 			if entering {
-				if err := r.out(w, node.Text(source)); err != nil {
+				if err := r.write(node.Text(source)); err != nil {
 					return ast.WalkStop, err
 				}
 				return ast.WalkSkipChildren, nil
@@ -480,7 +506,7 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
@@ -488,14 +514,14 @@ func (r *renderer) render(
 			}
 
 			if entering {
-				if err := r.out(w, node.Text(source)); err != nil {
+				if err := r.write(node.Text(source)); err != nil {
 					return ast.WalkStop, err
 				}
 				n := node.(*ast.Text)
 				if n.SoftLineBreak() {
 					r.cr()
 				} else if n.HardLineBreak() {
-					if err := r.out(w, []byte("  ")); err != nil {
+					if err := r.write([]byte("  ")); err != nil {
 						return ast.WalkStop, err
 					}
 					r.cr()
@@ -506,7 +532,7 @@ func (r *renderer) render(
 			value, ok := nodeSourceProvider(node)
 			if ok {
 				if entering {
-					if err := r.out(w, value); err != nil {
+					if err := r.write(value); err != nil {
 						return ast.WalkStop, err
 					}
 				}
@@ -514,7 +540,7 @@ func (r *renderer) render(
 			}
 
 			if entering {
-				if err := r.out(w, node.Text(source)); err != nil {
+				if err := r.write(node.Text(source)); err != nil {
 					return ast.WalkStop, err
 				}
 			}
@@ -523,13 +549,13 @@ func (r *renderer) render(
 		return status, nil
 	})
 	if err != nil {
-		return buf.Bytes(), errors.WithStack(err)
+		return r.buf.Bytes(), errors.WithStack(err)
 	}
 
 	// Finish writing any outstanding characters.
 	r.needCR = 1
-	err = r.out(bulkWriter{buf: &buf}, nil)
-	return buf.Bytes(), errors.WithStack(err)
+	err = r.write(nil)
+	return r.buf.Bytes(), errors.WithStack(err)
 }
 
 func longestBacktickSeq(data []byte) int {
@@ -545,47 +571,4 @@ func longestBacktickSeq(data []byte) int {
 		}
 	}
 	return longest
-}
-
-type bulkWriter struct {
-	buf *bytes.Buffer
-	n   int
-	err error
-}
-
-func (w *bulkWriter) Bytes() []byte {
-	return w.buf.Bytes()
-}
-
-func (w *bulkWriter) Err() error {
-	return w.err
-}
-
-func (w *bulkWriter) Result() (int, error) {
-	return w.n, w.err
-}
-
-func (w *bulkWriter) Write(p []byte) {
-	if w.err != nil {
-		return
-	}
-	n, err := w.buf.Write(p)
-	w.n += n
-	w.err = err
-}
-
-func (w *bulkWriter) WriteByte(b byte) {
-	if w.err != nil {
-		return
-	}
-	w.Write([]byte{b})
-}
-
-func (w *bulkWriter) WriteRune(r rune) {
-	if w.err != nil {
-		return
-	}
-	n, err := w.buf.WriteRune(r)
-	w.n += n
-	w.err = err
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -87,7 +86,6 @@ func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Execut
 			Base: base,
 		}, nil
 	case "go":
-		log.Printf("source: %s", block.Content())
 		return &runner.Go{
 			Source: string(block.Content()),
 			Base:   base,
