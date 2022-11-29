@@ -46,7 +46,7 @@ $ echo "Hello, runme!"
 		func(astNode ast.Node) ([]byte, bool) {
 			result := document.FindByInner(tree, astNode)
 			if result != nil {
-				return result.Value().Value(), true
+				return result.Item().Value(), true
 			}
 			return nil, false
 		},

@@ -22,6 +22,7 @@ type Block interface {
 	id() string
 	setValue([]byte)
 
+	Attributes() map[string]string
 	Unwrap() ast.Node
 	Value() []byte
 }
@@ -326,6 +327,8 @@ func (InnerBlock) kind() blockKind { return innerBlock }
 func (b *InnerBlock) id() string { return b.attributes["_blockId"] }
 
 func (b *InnerBlock) setValue(value []byte) { b.value = value }
+
+func (b *InnerBlock) Attributes() map[string]string { return b.attributes }
 
 func (b *InnerBlock) Unwrap() ast.Node {
 	return b.inner
