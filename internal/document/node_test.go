@@ -26,6 +26,8 @@ $ echo "Hello, runme!"
 
 1. Item 1
 
+   Before inner paragraph
+
    ` + "```" + `sh {name=echo first= second=2}
    $ echo "Hello, runme!"
    ` + "```" + `
@@ -35,6 +37,7 @@ $ echo "Hello, runme!"
    Second inner paragraph
 
 2. Item 2
+3. Item 3
 `)
 	source := NewSource(data, md.Render)
 	parsed := source.Parse()
@@ -52,8 +55,5 @@ $ echo "Hello, runme!"
 	assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```\n", cells[5].Value)
 	assert.Equal(t, "First inner paragraph", cells[6].Value)
 	assert.Equal(t, "Second inner paragraph", cells[7].Value)
-	assert.Equal(t, "2. Item 2\n", cells[8].Value)
-
-	result := Serialize(cells)
-	assert.Equal(t, string(data), result)
+	assert.Equal(t, "2. Item 2\n\n3. Item 3\n", cells[8].Value)
 }

@@ -2,7 +2,6 @@ package md
 
 import (
 	"bytes"
-	"io"
 	"strconv"
 	"strings"
 
@@ -11,8 +10,6 @@ import (
 )
 
 type NodeSourceProvider func(ast.Node) ([]byte, bool)
-
-type Breaker func(ast.Node) bool
 
 func Render(doc ast.Node, source []byte) ([]byte, error) {
 	return new(Renderer).Render(
@@ -104,12 +101,20 @@ func (r *Renderer) write(data []byte) error {
 	return nil
 }
 
-func (r *Renderer) Prefix() string {
-	return r.prefix
+func (r *Renderer) BufferBytes() ([]byte, error) {
+	var buf bytes.Buffer
+	if _, err := r.buf.WriteTo(&buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
-func (r *Renderer) WriteTo(w io.Writer) (int64, error) {
-	return r.buf.WriteTo(w)
+func (r *Renderer) RawBufferBytes() ([]byte, error) {
+	var buf bytes.Buffer
+	if _, err := r.buf.WriteTo(&buf); err != nil {
+		return nil, err
+	}
+	return bytes.TrimPrefix(buf.Bytes(), []byte(r.prefix)), nil
 }
 
 func (r *Renderer) Render(

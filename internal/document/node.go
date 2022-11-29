@@ -1,9 +1,6 @@
 package document
 
 import (
-	"bytes"
-	"strings"
-
 	"github.com/stateful/runme/internal/renderer/md"
 	"github.com/yuin/goldmark/ast"
 )
@@ -57,124 +54,139 @@ func CollectCodeBlocks(node *Node, result *CodeBlocks) {
 }
 
 func ToCells(
-	node *Node,
+	blocksTree *Node,
 	cells *[]*Cell,
 	source []byte,
 ) {
-	toCells(node, cells, source)
+	toCells(blocksTree, cells, source)
 }
 
-func toCells(node *Node, cells *[]*Cell, source []byte) {
-	if node == nil {
+type innerBlockProcessor struct {
+	node   *Node
+	source []byte
+
+	cells           []*Cell
+	foundCodeBlock  bool
+	inListItemBlock bool
+	renderer        *md.Renderer
+}
+
+func (p *innerBlockProcessor) callback(astNode ast.Node, entering bool) (ast.WalkStatus, bool) {
+	if astNode.Kind() == ast.KindListItem {
+		p.inListItemBlock = entering
+		if !entering {
+			p.foundCodeBlock = false // reset after leaving a list item
+		}
+	} else if astNode.Kind() == ast.KindFencedCodeBlock {
+		if !entering {
+			return ast.WalkSkipChildren, true
+		}
+
+		p.foundCodeBlock = true
+
+		value, _ := p.renderer.BufferBytes()
+		p.cells = append(
+			p.cells,
+			&Cell{
+				Kind:     MarkupKind,
+				Value:    string(value),
+				Metadata: map[string]any{},
+			},
+		)
+
+		codeBlock := FindByInner(p.node, astNode).Value().(*CodeBlock)
+		metadata := make(map[string]any)
+		for k, v := range codeBlock.Attributes() {
+			metadata[k] = v
+		}
+		p.cells = append(
+			p.cells,
+			&Cell{
+				Kind:     CodeKind,
+				Value:    string(codeBlock.Value()),
+				LangID:   codeBlock.Language(),
+				Metadata: metadata,
+			},
+		)
+
+		return ast.WalkSkipChildren, true
+	} else if p.inListItemBlock && p.foundCodeBlock && !entering {
+		// All blocks after the fenced code block within the list item
+		// should be renderer as separate cells.
+		value, _ := p.renderer.RawBufferBytes()
+		if len(value) > 0 {
+			p.cells = append(
+				p.cells,
+				&Cell{
+					Kind:     MarkupKind,
+					Value:    string(value),
+					Metadata: map[string]any{},
+				},
+			)
+		}
+	}
+	return ast.WalkContinue, false
+}
+
+func (p *innerBlockProcessor) Process(cells []*Cell) []*Cell {
+	p.cells = cells
+	p.foundCodeBlock = false
+	p.inListItemBlock = false
+	p.renderer = new(md.Renderer)
+
+	leftover, _ := p.renderer.Render(
+		p.node.Value().Unwrap(),
+		p.source,
+		func(ast.Node) ([]byte, bool) { return nil, false },
+		p.callback,
+	)
+	if len(leftover) > 0 {
+		p.cells = append(p.cells, &Cell{
+			Kind:     MarkupKind,
+			Value:    string(leftover),
+			Metadata: map[string]any{},
+		})
+	}
+
+	return p.cells
+}
+
+func toCells(blocksTree *Node, cells *[]*Cell, source []byte) {
+	if blocksTree == nil {
 		return
 	}
 
-	for _, child := range node.children {
+	for _, child := range blocksTree.children {
 		switch block := child.Value().(type) {
 		case *InnerBlock:
-			r := new(md.Renderer)
-			inListItemBlock := false
-			foundCodeBlock := false
-
-			result, _ := r.Render(
-				block.Unwrap(),
-				source,
-				func(astNode ast.Node) ([]byte, bool) {
-					return nil, false
-				},
-				func(n ast.Node, entering bool) (ast.WalkStatus, bool) {
-					if n.Kind() == ast.KindListItem {
-						inListItemBlock = entering
-						if !entering {
-							foundCodeBlock = false
-						}
-					} else if n.Kind() == ast.KindFencedCodeBlock {
-						foundCodeBlock = true
-
-						if entering {
-							var buf bytes.Buffer
-							_, _ = r.WriteTo(&buf)
-							*cells = append(
-								*cells,
-								&Cell{
-									Kind:     MarkupKind,
-									Value:    buf.String(),
-									Metadata: map[string]any{},
-								},
-							)
-
-							codeBlock := FindByInner(child, n).Value().(*CodeBlock)
-							metadata := make(map[string]any)
-							for k, v := range codeBlock.Attributes() {
-								metadata[k] = v
-							}
-							*cells = append(
-								*cells,
-								&Cell{
-									Kind:     CodeKind,
-									Value:    string(codeBlock.Value()),
-									LangID:   codeBlock.Language(),
-									Metadata: metadata,
-								},
-							)
-						}
-						return ast.WalkSkipChildren, true
-					} else if inListItemBlock && foundCodeBlock && !entering {
-						var buf bytes.Buffer
-						_, _ = r.WriteTo(&buf)
-						value := bytes.TrimPrefix(buf.Bytes(), []byte(r.Prefix()))
-						if len(value) > 0 {
-							*cells = append(
-								*cells,
-								&Cell{
-									Kind:     MarkupKind,
-									Value:    string(value),
-									Metadata: map[string]any{},
-								},
-							)
-						}
-					}
-					return ast.WalkContinue, false
-				},
-			)
-
-			if len(result) > 0 {
-				*cells = append(*cells, &Cell{
-					Kind:     MarkupKind,
-					Value:    string(result),
-					Metadata: map[string]any{},
-				})
+			r := &innerBlockProcessor{
+				node:   child,
+				source: source,
 			}
+			*cells = r.Process(*cells)
+
 		case *CodeBlock:
-			metadata := make(map[string]any)
-			for k, v := range block.Attributes() {
-				metadata[k] = v
-			}
 			*cells = append(*cells, &Cell{
 				Kind:     CodeKind,
 				Value:    string(block.Value()),
 				LangID:   block.Language(),
-				Metadata: metadata,
+				Metadata: attrsToMetadata(block.Attributes()),
 			})
+
 		case *MarkdownBlock:
-			metadata := make(map[string]any)
-			for k, v := range block.Attributes() {
-				metadata[k] = v
-			}
 			*cells = append(*cells, &Cell{
 				Kind:     MarkupKind,
 				Value:    string(block.Value()),
-				Metadata: metadata,
+				Metadata: attrsToMetadata(block.attributes),
 			})
 		}
 	}
 }
 
-func Serialize(cells []*Cell) string {
-	var b strings.Builder
-	for _, cell := range cells {
-		_, _ = b.WriteString(cell.Value)
-		_ = b.WriteByte('\n')
+func attrsToMetadata(m map[string]string) map[string]any {
+	metadata := make(map[string]any)
+	for k, v := range m {
+		metadata[k] = v
 	}
-	return b.String()
+	return metadata
 }

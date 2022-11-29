@@ -295,6 +295,9 @@ func (b *MarkdownBlock) Value() []byte {
 	return b.value
 }
 
+// InnerBlock represents a non-leaf block.
+// It helps to handle nested fenced code blocks
+// for block quotes and list items.
 type InnerBlock struct {
 	attributes map[string]string
 	inner      ast.Node
