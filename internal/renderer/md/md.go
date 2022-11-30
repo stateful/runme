@@ -323,6 +323,7 @@ func (r *Renderer) Render(
 				}
 				r.prefix += "   "
 			} else {
+				r.inTightListItem = false
 				r.prefix = r.prefix[0 : len(r.prefix)-3]
 			}
 
