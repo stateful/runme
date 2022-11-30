@@ -31,7 +31,7 @@ First paragraph.
 2. Item 2
 3. Item 3
 `)
-	doc := NewDocument(data, md.Render)
+	doc := New(data, md.Render)
 
 	t.Run("Parse", func(t *testing.T) {
 		node, err := doc.Parse()

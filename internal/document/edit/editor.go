@@ -14,7 +14,7 @@ func New() *Editor {
 }
 
 func (e *Editor) Deserialize(data []byte) (*Notebook, error) {
-	e.doc = document.NewDocument(data, md.Render)
+	e.doc = document.New(data, md.Render)
 	node, err := e.doc.Parse()
 	if err != nil {
 		return nil, err

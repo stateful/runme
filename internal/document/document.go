@@ -20,7 +20,7 @@ type Document struct {
 	source       []byte
 }
 
-func NewDocument(source []byte, renderer Renderer) *Document {
+func New(source []byte, renderer Renderer) *Document {
 	return &Document{
 		nameResolver: &nameResolver{
 			namesCounter: map[string]int{},
@@ -48,17 +48,13 @@ func (d *Document) Parse() (*Node, error) {
 
 func (d *Document) Render() ([]byte, error) {
 	if d.astNode == nil {
-		_, err := d.Parse()
-		if err != nil {
-			return nil, err
-		}
+		d.astNode = d.parse()
 	}
-
 	return md.RenderWithSourceProvider(
 		d.astNode,
 		d.source,
 		func(astNode ast.Node) ([]byte, bool) {
-			result := FindNodePreOrder(d.node, func(n *Node) bool {
+			result := findNodePreOrder(d.node, func(n *Node) bool {
 				return n.Item() != nil && n.Item().Unwrap() == astNode
 			})
 			if result != nil {

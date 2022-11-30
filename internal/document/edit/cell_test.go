@@ -38,7 +38,7 @@ $ echo "Hello, runme!"
 2. Item 2
 3. Item 3
 `)
-	doc := document.NewDocument(data, md.Render)
+	doc := document.New(data, md.Render)
 	node, err := doc.Parse()
 	require.NoError(t, err)
 
@@ -64,7 +64,7 @@ func Test_toCells_NoCodeBlock(t *testing.T) {
 2. Item 2
 3. Item 3
 `)
-	doc := document.NewDocument(data, md.Render)
+	doc := document.New(data, md.Render)
 	node, err := doc.Parse()
 	require.NoError(t, err)
 
@@ -83,7 +83,7 @@ func Test_applyCells(t *testing.T) {
 
 Last paragraph.
 `)
-	doc := document.NewDocument(data, md.Render)
+	doc := document.New(data, md.Render)
 	node, err := doc.Parse()
 	require.NoError(t, err)
 

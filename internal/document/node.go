@@ -86,7 +86,7 @@ func FindNode(node *Node, fn func(*Node) bool) *Node {
 	return nil
 }
 
-func FindNodePreOrder(node *Node, fn func(*Node) bool) *Node {
+func findNodePreOrder(node *Node, fn func(*Node) bool) *Node {
 	if node == nil {
 		return nil
 	}

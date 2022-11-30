@@ -46,10 +46,6 @@ func (b CodeBlocks) Names() (result []string) {
 	return result
 }
 
-type NameResolver interface {
-	Get(interface{}, string) string
-}
-
 type Renderer func(ast.Node, []byte) ([]byte, error)
 
 type CodeBlock struct {
@@ -64,7 +60,7 @@ type CodeBlock struct {
 
 func newCodeBlock(
 	node *ast.FencedCodeBlock,
-	nameResolver NameResolver,
+	nameResolver *nameResolver,
 	source []byte,
 	render Renderer,
 ) (*CodeBlock, error) {
@@ -238,7 +234,7 @@ func sanitizeName(s string) string {
 	return b.String()
 }
 
-func getName(node *ast.FencedCodeBlock, source []byte, nameResolver NameResolver) string {
+func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolver) string {
 	attributes := make(map[string]string)
 	if node.Info != nil {
 		attributes = parseRawAttributes(rawAttributes(node.Info.Text(source)))

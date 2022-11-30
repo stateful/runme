@@ -31,7 +31,7 @@ func TestCollectCodeBlocks(t *testing.T) {
 echo 1
 ` + "```" + `
 `)
-	doc := NewDocument(data, md.Render)
+	doc := New(data, md.Render)
 	tree, err := doc.Parse()
 	require.NoError(t, err)
 	codeBlocks := CollectCodeBlocks(tree)

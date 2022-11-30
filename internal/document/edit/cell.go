@@ -44,7 +44,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 		bid, ok := cell.Metadata["_blockId"].(string)
 		if !ok || bid == "" {
 			if lastNode != nil {
-				doc := document.NewDocument([]byte(cell.Value), md.Render)
+				doc := document.New([]byte(cell.Value), md.Render)
 				node, _ := doc.Parse()
 				for _, child := range node.Children() {
 					idx := lastNode.Index()
