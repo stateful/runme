@@ -12,6 +12,7 @@ import (
 )
 
 type Document struct {
+	astNode      ast.Node
 	nameResolver *nameResolver
 	node         *Node
 	parser       parser.Parser
@@ -32,9 +33,12 @@ func NewDocument(source []byte, renderer Renderer) *Document {
 }
 
 func (d *Document) Parse() (*Node, error) {
+	if d.astNode == nil {
+		d.astNode = d.parse()
+	}
 	if d.node == nil {
 		node := &Node{}
-		if err := d.buildBlocksTree(d.parse(), node); err != nil {
+		if err := d.buildBlocksTree(d.astNode, node); err != nil {
 			return nil, errors.WithStack(err)
 		}
 		d.node = node
@@ -43,11 +47,20 @@ func (d *Document) Parse() (*Node, error) {
 }
 
 func (d *Document) Render() ([]byte, error) {
+	if d.astNode == nil {
+		_, err := d.Parse()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return md.RenderWithSourceProvider(
-		d.node.Item().Unwrap(),
+		d.astNode,
 		d.source,
 		func(astNode ast.Node) ([]byte, bool) {
-			result := FindByInner(d.node, astNode)
+			result := FindNodePreOrder(d.node, func(n *Node) bool {
+				return n.Item() != nil && n.Item().Unwrap() == astNode
+			})
 			if result != nil {
 				return result.Item().Value(), true
 			}
@@ -80,7 +93,9 @@ func (d *Document) buildBlocksTree(parent ast.Node, node *Node) error {
 				return errors.WithStack(err)
 			}
 			nNode := node.add(block)
-			d.buildBlocksTree(astNode, nNode)
+			if err := d.buildBlocksTree(astNode, nNode); err != nil {
+				return err
+			}
 		default:
 			block, err := newMarkdownBlock(astNode, d.source, d.renderer)
 			if err != nil {

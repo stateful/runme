@@ -9,22 +9,21 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-type blockKind int
+type BlockKind int
 
 const (
-	innerBlock blockKind = iota + 1
-	codeBlock
-	markdownBlock
+	InnerBlockKind BlockKind = iota + 1
+	CodeBlockKind
+	MarkdownBlockKind
 )
 
 type Block interface {
-	kind() blockKind
-	id() string
-	setValue([]byte)
-
 	Attributes() map[string]string
+	Kind() BlockKind
+	ID() string
 	Unwrap() ast.Node
 	Value() []byte
+	SetValue([]byte)
 }
 
 type Blocks []Block
@@ -94,15 +93,13 @@ func newCodeBlock(
 	}, nil
 }
 
-func (CodeBlock) kind() blockKind { return codeBlock }
-
-func (b *CodeBlock) id() string { return b.attributes["_blockId"] }
-
-func (b *CodeBlock) setValue(value []byte) { b.value = value }
-
 func (b *CodeBlock) Attributes() map[string]string {
 	return b.attributes
 }
+
+func (CodeBlock) Kind() BlockKind { return CodeBlockKind }
+
+func (b *CodeBlock) ID() string { return b.attributes["_blockId"] }
 
 func (b *CodeBlock) Content() []byte {
 	value := bytes.Trim(b.value, "\n")
@@ -136,6 +133,8 @@ func (b *CodeBlock) Unwrap() ast.Node {
 func (b *CodeBlock) Value() []byte {
 	return b.value
 }
+
+func (b *CodeBlock) SetValue(value []byte) { b.value = value }
 
 func rawAttributes(source []byte) []byte {
 	start, stop := -1, -1
@@ -280,13 +279,11 @@ func newMarkdownBlock(
 	}, nil
 }
 
-func (MarkdownBlock) kind() blockKind { return markdownBlock }
-
-func (b *MarkdownBlock) id() string { return b.attributes["_blockId"] }
-
-func (b *MarkdownBlock) setValue(value []byte) { b.value = value }
-
 func (b *MarkdownBlock) Attributes() map[string]string { return b.attributes }
+
+func (MarkdownBlock) Kind() BlockKind { return MarkdownBlockKind }
+
+func (b *MarkdownBlock) ID() string { return b.attributes["_blockId"] }
 
 func (b *MarkdownBlock) Unwrap() ast.Node {
 	return b.inner
@@ -295,6 +292,8 @@ func (b *MarkdownBlock) Unwrap() ast.Node {
 func (b *MarkdownBlock) Value() []byte {
 	return b.value
 }
+
+func (b *MarkdownBlock) SetValue(value []byte) { b.value = value }
 
 // InnerBlock represents a non-leaf block.
 // It helps to handle nested fenced code blocks
@@ -322,13 +321,11 @@ func newInnerBlock(
 	}, nil
 }
 
-func (InnerBlock) kind() blockKind { return innerBlock }
-
-func (b *InnerBlock) id() string { return b.attributes["_blockId"] }
-
-func (b *InnerBlock) setValue(value []byte) { b.value = value }
-
 func (b *InnerBlock) Attributes() map[string]string { return b.attributes }
+
+func (InnerBlock) Kind() BlockKind { return InnerBlockKind }
+
+func (b *InnerBlock) ID() string { return b.attributes["_blockId"] }
 
 func (b *InnerBlock) Unwrap() ast.Node {
 	return b.inner
@@ -337,6 +334,8 @@ func (b *InnerBlock) Unwrap() ast.Node {
 func (b *InnerBlock) Value() []byte {
 	return b.value
 }
+
+func (b *InnerBlock) SetValue(value []byte) { b.value = value }
 
 func getID() string {
 	return xid.New().String()

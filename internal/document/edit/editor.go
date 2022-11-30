@@ -6,25 +6,27 @@ import (
 )
 
 type Editor struct {
-	doc  *document.Document
-	node *document.Node
+	doc *document.Document
 }
 
 func New() *Editor {
 	return &Editor{}
 }
 
-func (e *Editor) Deserialize(data []byte) ([]*document.Cell, error) {
+func (e *Editor) Deserialize(data []byte) (*Notebook, error) {
 	e.doc = document.NewDocument(data, md.Render)
-	var err error
-	e.node, err = e.doc.Parse()
+	node, err := e.doc.Parse()
 	if err != nil {
 		return nil, err
 	}
-	return document.ToCells(e.node, data), nil
+	return &Notebook{Cells: toCells(node, data)}, nil
 }
 
-func (e *Editor) Serialize(cells []*document.Cell) ([]byte, error) {
-	document.ApplyCells(e.node, cells)
+func (e *Editor) Serialize(notebook *Notebook) ([]byte, error) {
+	node, err := e.doc.Parse()
+	if err != nil {
+		return nil, err
+	}
+	applyCells(node, notebook.Cells)
 	return e.doc.Render()
 }

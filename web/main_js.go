@@ -5,7 +5,6 @@ import (
 	"errors"
 	"syscall/js"
 
-	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/edit"
 )
 
@@ -49,11 +48,11 @@ func toMap(o any) (map[string]any, error) {
 
 func deserialize(this js.Value, args []js.Value) any {
 	source := args[0].String()
-	cells, err := editor.Deserialize([]byte(source))
+	notebook, err := editor.Deserialize([]byte(source))
 	if err != nil {
 		return toJSError(err)
 	}
-	result, err := toMap(document.Notebook{Cells: cells})
+	result, err := toMap(notebook)
 	if err != nil {
 		return toJSError(err)
 	}
@@ -65,11 +64,11 @@ func serialize(this js.Value, args []js.Value) any {
 	if err != nil {
 		return toJSError(err)
 	}
-	var notebook document.Notebook
+	var notebook edit.Notebook
 	if err := json.Unmarshal(data, &notebook); err != nil {
 		return toJSError(err)
 	}
-	data, err = editor.Serialize(notebook.Cells)
+	data, err = editor.Serialize(&notebook)
 	if err != nil {
 		return toJSError(err)
 	}

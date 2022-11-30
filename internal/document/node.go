@@ -1,26 +1,16 @@
 package document
 
-import (
-	"github.com/stateful/runme/internal/renderer/md"
-	"github.com/yuin/goldmark/ast"
-)
-
 type Node struct {
 	children []*Node
 	parent   *Node
 	item     Block
 }
 
-func (n *Node) add(item Block) *Node {
-	node := &Node{
-		item:   item,
-		parent: n,
-	}
-	n.children = append(n.children, node)
-	return node
+func (n *Node) Children() []*Node {
+	return n.children
 }
 
-func (n *Node) index() int {
+func (n *Node) Index() int {
 	if n.parent == nil {
 		return -1
 	}
@@ -33,7 +23,7 @@ func (n *Node) index() int {
 	return i
 }
 
-func (n *Node) insertAt(idx int, item Block) *Node {
+func (n *Node) InsertAt(idx int, item Block) *Node {
 	node := &Node{
 		item:   item,
 		parent: n,
@@ -49,6 +39,19 @@ func (n *Node) insertAt(idx int, item Block) *Node {
 
 func (n *Node) Item() Block {
 	return n.item
+}
+
+func (n *Node) Parent() *Node {
+	return n.parent
+}
+
+func (n *Node) add(item Block) *Node {
+	node := &Node{
+		item:   item,
+		parent: n,
+	}
+	n.children = append(n.children, node)
+	return node
 }
 
 func CollectCodeBlocks(node *Node) (result CodeBlocks) {
@@ -68,27 +71,12 @@ func collectCodeBlocks(node *Node, result *CodeBlocks) {
 	}
 }
 
-func FindByInner(node *Node, inner ast.Node) *Node {
-	if node == nil {
-		return nil
-	}
-	if node.item != nil && node.item.Unwrap() == inner {
-		return node
-	}
-	for _, child := range node.children {
-		if n := FindByInner(child, inner); n != nil {
-			return n
-		}
-	}
-	return nil
-}
-
-func findNode(node *Node, fn func(*Node) bool) *Node {
+func FindNode(node *Node, fn func(*Node) bool) *Node {
 	if node == nil {
 		return nil
 	}
 	for _, child := range node.children {
-		if n := findNode(child, fn); n != nil {
+		if n := FindNode(child, fn); n != nil {
 			return n
 		}
 	}
@@ -98,170 +86,17 @@ func findNode(node *Node, fn func(*Node) bool) *Node {
 	return nil
 }
 
-func findByBlockKind(node *Node, kind blockKind) *Node {
+func FindNodePreOrder(node *Node, fn func(*Node) bool) *Node {
 	if node == nil {
 		return nil
 	}
-	if node.item != nil && node.item.kind() == kind {
+	if fn(node) {
 		return node
 	}
 	for _, child := range node.children {
-		if n := findByBlockKind(child, kind); n != nil {
+		if n := FindNode(child, fn); n != nil {
 			return n
 		}
 	}
 	return nil
-}
-
-func ToCells(
-	blocksTree *Node,
-	source []byte,
-) (result []*Cell) {
-	toCells(blocksTree, &result, source)
-	return
-}
-
-func toCells(blocksTree *Node, cells *[]*Cell, source []byte) {
-	if blocksTree == nil {
-		return
-	}
-
-	for _, child := range blocksTree.children {
-		switch block := child.Item().(type) {
-		case *InnerBlock:
-			switch block.inner.Kind() {
-			case ast.KindList:
-				if n := findByBlockKind(child, codeBlock); n == nil {
-					*cells = append(*cells, &Cell{
-						Kind:     MarkupKind,
-						Value:    string(block.Value()),
-						Metadata: attrsToMetadata(block.Attributes()),
-					})
-				} else {
-					for _, listItemNode := range child.children {
-						nodeWithCodeBlock := findByBlockKind(listItemNode, codeBlock)
-						if nodeWithCodeBlock != nil {
-							toCells(listItemNode, cells, source)
-						} else {
-							*cells = append(*cells, &Cell{
-								Kind:     MarkupKind,
-								Value:    string(listItemNode.Item().Value()),
-								Metadata: attrsToMetadata(listItemNode.Item().Attributes()),
-							})
-						}
-					}
-				}
-
-			case ast.KindBlockquote:
-				nodeWithCodeBlock := findByBlockKind(child, codeBlock)
-				if nodeWithCodeBlock != nil {
-					toCells(child, cells, source)
-				} else {
-					*cells = append(*cells, &Cell{
-						Kind:     MarkupKind,
-						Value:    string(block.Value()),
-						Metadata: attrsToMetadata(block.Attributes()),
-					})
-				}
-			}
-
-		case *CodeBlock:
-			*cells = append(*cells, &Cell{
-				Kind:     CodeKind,
-				Value:    string(block.Value()),
-				LangID:   block.Language(),
-				Metadata: attrsToMetadata(block.Attributes()),
-			})
-
-		case *MarkdownBlock:
-			*cells = append(*cells, &Cell{
-				Kind:     MarkupKind,
-				Value:    string(block.Value()),
-				Metadata: attrsToMetadata(block.Attributes()),
-			})
-		}
-	}
-}
-
-func findByID(node *Node, id string) *Node {
-	if node == nil {
-		return nil
-	}
-	if block := node.Item(); block != nil {
-		if bid := block.Attributes()["_blockId"]; bid == id {
-			return node
-		}
-	} else {
-		// TODO
-	}
-	for _, child := range node.children {
-		if n := findByID(child, id); n != nil {
-			return n
-		}
-	}
-	return nil
-}
-
-func iterTree(node *Node, fn func(*Node)) {
-	if node == nil {
-		return
-	}
-	for _, child := range node.children {
-		iterTree(child, fn)
-	}
-	fn(node)
-}
-
-func ApplyCells(node *Node, cells []*Cell) {
-	blockIds := map[string]bool{}
-	iterTree(node, func(n *Node) {
-		block := n.Item()
-		if block == nil {
-			// TODO
-		} else {
-			blockIds[block.id()] = false
-		}
-	})
-
-	var lastNode *Node
-
-	for _, cell := range cells {
-		bid, ok := cell.Metadata["_blockId"].(string)
-		if !ok || bid == "" {
-			if lastNode != nil {
-				doc := NewDocument([]byte(cell.Value), md.Render)
-				blocksTree, _ := doc.Parse()
-				for _, child := range blocksTree.children {
-					idx := lastNode.index()
-					lastNode.parent.insertAt(idx+1, child.item)
-				}
-			}
-			continue
-		}
-		node := findByID(node, bid)
-		if node == nil {
-			continue
-		}
-		node.item.setValue([]byte(cell.Value))
-		blockIds[bid] = true
-		lastNode = node
-	}
-
-	for bid, visited := range blockIds {
-		if !visited {
-			node := findByID(node, bid)
-			if node == nil {
-				continue
-			}
-			node.item.setValue(nil)
-		}
-	}
-}
-
-func attrsToMetadata(m map[string]string) map[string]any {
-	metadata := make(map[string]any)
-	for k, v := range m {
-		metadata[k] = v
-	}
-	return metadata
 }
