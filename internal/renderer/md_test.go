@@ -35,7 +35,35 @@ $ echo "Hello, runme!"
    Inner paragraph
 
 2. Item 2
+3. Item 3
 `)
+	source := document.NewSource(data, md.Render)
+	parsed := source.Parse()
+	tree, err := parsed.BlocksTree()
+	require.NoError(t, err)
+	result, err := md.RenderWithSourceProvider(
+		parsed.Root(),
+		data,
+		func(astNode ast.Node) ([]byte, bool) {
+			result := document.FindByInner(tree, astNode)
+			if result != nil {
+				return result.Item().Value(), true
+			}
+			return nil, false
+		},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, string(data), string(result))
+}
+
+func TestRenderWithSourceProvider_TightList(t *testing.T) {
+	data := []byte(`List example:
+
+1. Item 1
+2. Item 2
+3. Item 3
+`)
+
 	source := document.NewSource(data, md.Render)
 	parsed := source.Parse()
 	tree, err := parsed.BlocksTree()

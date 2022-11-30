@@ -34,10 +34,11 @@ func RenderWithSourceProvider(
 }
 
 type Renderer struct {
-	beginLine bool
-	buf       bytes.Buffer
-	needCR    int
-	prefix    string
+	beginLine       bool
+	buf             bytes.Buffer
+	inTightListItem bool
+	needCR          int
+	prefix          string
 }
 
 func (r *Renderer) blankline() {
@@ -68,7 +69,7 @@ func (r *Renderer) write(data []byte) error {
 				return err
 			}
 			if r.needCR > 1 {
-				if _, err := r.buf.Write([]byte(r.prefix)); err != nil {
+				if _, err := r.buf.Write(bytes.TrimRight([]byte(r.prefix), " ")); err != nil {
 					return err
 				}
 			}
@@ -294,6 +295,8 @@ func (r *Renderer) Render(
 			isBulletList := listNode.Start == 0
 
 			if entering {
+				r.inTightListItem = node.ChildCount() == 1
+
 				if isBulletList {
 					err := r.write([]byte("  - "))
 					if err != nil {
@@ -330,7 +333,11 @@ func (r *Renderer) Render(
 					}
 				}
 			} else {
-				r.blankline()
+				if r.inTightListItem {
+					r.cr()
+				} else {
+					r.blankline()
+				}
 			}
 
 		case ast.KindTextBlock:

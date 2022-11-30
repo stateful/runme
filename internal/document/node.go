@@ -7,8 +7,8 @@ import (
 
 type Node struct {
 	children []*Node
-	item     Block
 	parent   *Node
+	item     Block
 }
 
 func (n *Node) add(item Block) *Node {
@@ -33,7 +33,7 @@ func (n *Node) index() int {
 	return i
 }
 
-func (n *Node) insertAt(item Block, idx int) *Node {
+func (n *Node) insertAt(idx int, item Block) *Node {
 	node := &Node{
 		item:   item,
 		parent: n,
@@ -55,11 +55,9 @@ func FindByInner(node *Node, inner ast.Node) *Node {
 	if node == nil {
 		return nil
 	}
-
 	if node.item != nil && node.item.Unwrap() == inner {
 		return node
 	}
-
 	for _, child := range node.children {
 		if n := FindByInner(child, inner); n != nil {
 			return n
@@ -86,17 +84,14 @@ func findByBlockKind(node *Node, kind blockKind) *Node {
 	if node == nil {
 		return nil
 	}
-
 	if node.item != nil && node.item.kind() == kind {
 		return node
 	}
-
 	for _, child := range node.children {
 		if n := findByBlockKind(child, kind); n != nil {
 			return n
 		}
 	}
-
 	return nil
 }
 
@@ -221,7 +216,7 @@ func SyncCells(blocksTree *Node, cells []*Cell) {
 				blocksTree, _ := parsed.BlocksTree()
 				for _, child := range blocksTree.children {
 					idx := lastNode.index()
-					lastNode.parent.insertAt(child.item, idx+1)
+					lastNode.parent.insertAt(idx+1, child.item)
 				}
 			}
 			continue

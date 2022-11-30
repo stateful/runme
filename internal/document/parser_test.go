@@ -39,7 +39,11 @@ First paragraph.
 	assert.Len(t, tree.children[2].children, 3)
 	assert.Len(t, tree.children[3].children, 3)
 	assert.Len(t, tree.children[3].children[0].children, 3)
-	assert.Equal(t, "> bq1\n>     \n>     echo \"inside bq\"\n>\n> bq2\n> bq3\n", string(tree.children[2].Item().Value()))
+
+	assert.Equal(t, "> bq1\n>\n>     echo \"inside bq\"\n>\n> bq2\n> bq3\n", string(tree.children[2].Item().Value()))
+	assert.Equal(t, "1. Item 1\n\n   ```sh {name=echo first= second=2}\n   $ echo \"Hello, runme!\"\n   ```\n\n   Inner paragraph\n", string(tree.children[3].children[0].Item().Value()))
+	assert.Equal(t, "2. Item 2\n", string(tree.children[3].children[1].Item().Value()))
+	assert.Equal(t, "3. Item 3\n", string(tree.children[3].children[2].Item().Value()))
 }
 
 func TestParsedSource_CodeBlocks(t *testing.T) {
