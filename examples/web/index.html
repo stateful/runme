@@ -21,25 +21,13 @@
       WebAssembly.instantiateStreaming(fetch("runme.wasm"), go.importObject).then((obj) => {
         go.run(obj.instance);
 
-        console.log("return error", Runme.getSource());
+        let notebook = Runme.deserialize(markdown);
+        console.log("notebook", notebook);
 
-        Runme.initialize(markdown);
+        let formattedMarkdown = Runme.serialize(notebook);
+        console.log("formatted Markdown", formattedMarkdown);
 
-        let cells = Runme.getCells();
-        console.log("cells", cells);
-        document.body.innerHTML = "<pre><code>" + JSON.stringify(cells, null, "\t") + "</pre></code>";
-
-        setTimeout(function() {
-          console.log("updating cell with index [3]", Runme.updateCell(3, "## EDITED!!!"));
-          console.log("updated cell with index [3]", Runme.getCell(3));
-
-          let cells = Runme.getCells();
-          console.log("cells", cells);
-          console.log("raw source", Runme.getSource());
-          document.body.innerHTML = "<pre><code>" + JSON.stringify(cells, null, "\t") + "</pre></code>";
-        }, 3000);
-
-        console.log(Runme.prepareScript(["bash -c 'echo \"1\"'"]));
+        document.body.innerHTML = "<pre><code>" + formattedMarkdown + "</pre></code>";
       });
     </script>
   </head>

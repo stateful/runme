@@ -51,6 +51,23 @@ func (n *Node) Item() Block {
 	return n.item
 }
 
+func CollectCodeBlocks(node *Node) (result CodeBlocks) {
+	collectCodeBlocks(node, &result)
+	return
+}
+
+func collectCodeBlocks(node *Node, result *CodeBlocks) {
+	if node == nil {
+		return
+	}
+	for _, child := range node.children {
+		if item, ok := child.Item().(*CodeBlock); ok {
+			*result = append(*result, item)
+		}
+		collectCodeBlocks(child, result)
+	}
+}
+
 func FindByInner(node *Node, inner ast.Node) *Node {
 	if node == nil {
 		return nil
@@ -63,21 +80,22 @@ func FindByInner(node *Node, inner ast.Node) *Node {
 			return n
 		}
 	}
-
 	return nil
 }
 
-func CollectCodeBlocks(node *Node, result *CodeBlocks) {
+func findNode(node *Node, fn func(*Node) bool) *Node {
 	if node == nil {
-		return
+		return nil
 	}
-
 	for _, child := range node.children {
-		if item, ok := child.Item().(*CodeBlock); ok {
-			*result = append(*result, item)
+		if n := findNode(child, fn); n != nil {
+			return n
 		}
-		CollectCodeBlocks(child, result)
 	}
+	if fn(node) {
+		return node
+	}
+	return nil
 }
 
 func findByBlockKind(node *Node, kind blockKind) *Node {
@@ -97,10 +115,10 @@ func findByBlockKind(node *Node, kind blockKind) *Node {
 
 func ToCells(
 	blocksTree *Node,
-	cells *[]*Cell,
 	source []byte,
-) {
-	toCells(blocksTree, cells, source)
+) (result []*Cell) {
+	toCells(blocksTree, &result, source)
+	return
 }
 
 func toCells(blocksTree *Node, cells *[]*Cell, source []byte) {
@@ -194,9 +212,9 @@ func iterTree(node *Node, fn func(*Node)) {
 	fn(node)
 }
 
-func SyncCells(blocksTree *Node, cells []*Cell) {
+func ApplyCells(node *Node, cells []*Cell) {
 	blockIds := map[string]bool{}
-	iterTree(blocksTree, func(n *Node) {
+	iterTree(node, func(n *Node) {
 		block := n.Item()
 		if block == nil {
 			// TODO
@@ -211,9 +229,8 @@ func SyncCells(blocksTree *Node, cells []*Cell) {
 		bid, ok := cell.Metadata["_blockId"].(string)
 		if !ok || bid == "" {
 			if lastNode != nil {
-				source := NewSource([]byte(cell.Value), md.Render)
-				parsed := source.Parse()
-				blocksTree, _ := parsed.BlocksTree()
+				doc := NewDocument([]byte(cell.Value), md.Render)
+				blocksTree, _ := doc.Parse()
 				for _, child := range blocksTree.children {
 					idx := lastNode.index()
 					lastNode.parent.insertAt(idx+1, child.item)
@@ -221,7 +238,7 @@ func SyncCells(blocksTree *Node, cells []*Cell) {
 			}
 			continue
 		}
-		node := findByID(blocksTree, bid)
+		node := findByID(node, bid)
 		if node == nil {
 			continue
 		}
@@ -232,7 +249,7 @@ func SyncCells(blocksTree *Node, cells []*Cell) {
 
 	for bid, visited := range blockIds {
 		if !visited {
-			node := findByID(blocksTree, bid)
+			node := findByID(node, bid)
 			if node == nil {
 				continue
 			}

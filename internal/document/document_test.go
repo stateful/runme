@@ -9,7 +9,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-func TestDocument_Parse(t *testing.T) {
+func TestDocument_BlocksTree(t *testing.T) {
 	data := []byte(`# Examples
 
 First paragraph.
@@ -63,7 +63,7 @@ First paragraph.
 	})
 }
 
-func TestCollectCodeBlocks(t *testing.T) {
+func TestDocument_CodeBlocks(t *testing.T) {
 	data := []byte(`> bq1
 >
 >     echo "inside bq but not fenced"
@@ -87,9 +87,9 @@ echo 1
 ` + "```" + `
 `)
 	doc := NewDocument(data, md.Render)
-	tree, err := doc.Parse()
+	node, err := doc.Parse()
 	require.NoError(t, err)
-	codeBlocks := CollectCodeBlocks(tree)
+	codeBlocks := CollectCodeBlocks(node)
 	assert.Len(t, codeBlocks, 2)
 	assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```\n", string(codeBlocks[0].Value()))
 	assert.Equal(t, "```sh\necho 1\n```\n", string(codeBlocks[1].Value()))

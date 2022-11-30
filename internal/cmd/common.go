@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"io"
 	"os"
 	"strings"
 
@@ -12,17 +13,22 @@ import (
 )
 
 func getCodeBlocks() (document.CodeBlocks, error) {
-	source, err := document.NewSourceFromFile(os.DirFS(chdir), fileName, md.Render)
+	f, err := os.DirFS(chdir).Open(fileName)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	tree, err := source.Parse().BlocksTree()
+	data, err := io.ReadAll(f)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	var blocks document.CodeBlocks
-	document.CollectCodeBlocks(tree, &blocks)
+	doc := document.NewDocument(data, md.Render)
+	node, err := doc.Parse()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	blocks := document.CollectCodeBlocks(node)
 
 	filtered := make(document.CodeBlocks, 0, len(blocks))
 	for _, b := range blocks {

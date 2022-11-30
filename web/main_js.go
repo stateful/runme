@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"syscall/js"
 
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer"
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/document/edit"
 )
 
 // These are variables so that they can be set during the build time.
@@ -28,40 +26,54 @@ func main() {
 	select {}
 }
 
-var (
-	parsed *document.ParsedSource
-)
+var editor = edit.New()
 
-func assertParsed() js.Value {
-	if parsed == nil {
-		return toJSError(errors.New("call initialize() first"))
+func assertEditor() js.Value {
+	if editor == nil {
+		return toJSError(errors.New("call deserialize() first"))
 	}
 	return js.Null()
 }
 
+func toMap(o any) (map[string]any, error) {
+	data, err := json.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]any{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func deserialize(this js.Value, args []js.Value) any {
 	source := args[0].String()
-
-	parsed = document.NewSource([]byte(source)).Parse()
-
-	var buf bytes.Buffer
-	if err := renderer.ToNotebookData(parsed, &buf); err != nil {
+	cells, err := editor.Deserialize([]byte(source))
+	if err != nil {
 		return toJSError(err)
 	}
-	return buf.String()
+	result, err := toMap(document.Notebook{Cells: cells})
+	if err != nil {
+		return toJSError(err)
+	}
+	return result
 }
 
 func serialize(this js.Value, args []js.Value) any {
-	source := args[0].String()
-
-	var notebook document.Notebook
-	if err := json.Unmarshal([]byte(source), &notebook); err != nil {
+	data, err := json.Marshal(args[0])
+	if err != nil {
 		return toJSError(err)
 	}
-
-	md.Render(parsed.Root(), []byte(source))
-
-	return nil
+	var notebook document.Notebook
+	if err := json.Unmarshal(data, &notebook); err != nil {
+		return toJSError(err)
+	}
+	data, err = editor.Serialize(notebook.Cells)
+	if err != nil {
+		return toJSError(err)
+	}
+	return string(data)
 }
 
 func toJSError(err error) js.Value {

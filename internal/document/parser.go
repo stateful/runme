@@ -1,12 +1,7 @@
 package document
 
 import (
-	"fmt"
-
-	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/text"
 )
 
 type ParsedSource struct {
@@ -60,42 +55,4 @@ func (s *ParsedSource) BlocksTree() (*Node, error) {
 		return nil, err
 	}
 	return tree, nil
-}
-
-type defaultParser struct {
-	parser parser.Parser
-}
-
-func newDefaultParser() *defaultParser {
-	return &defaultParser{parser: goldmark.DefaultParser()}
-}
-
-func (p *defaultParser) Parse(data []byte, r Renderer) *ParsedSource {
-	root := p.parser.Parse(text.NewReader(data))
-	return &ParsedSource{data: data, renderer: r, root: root}
-}
-
-type nameResolver struct {
-	namesCounter map[string]int
-	cache        map[interface{}]string
-}
-
-func (r *nameResolver) Get(obj interface{}, name string) string {
-	if v, ok := r.cache[obj]; ok {
-		return v
-	}
-
-	var result string
-
-	r.namesCounter[name]++
-
-	if r.namesCounter[name] == 1 {
-		result = name
-	} else {
-		result = fmt.Sprintf("%s-%d", name, r.namesCounter[name])
-	}
-
-	r.cache[obj] = result
-
-	return result
 }
