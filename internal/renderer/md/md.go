@@ -274,9 +274,12 @@ func (r *Renderer) Render(
 				break
 			}
 			r.blankline()
-			err := r.write(node.Text(source))
-			if err != nil {
-				return ast.WalkStop, err
+			for i := 0; i < node.Lines().Len(); i++ {
+				line := node.Lines().At(i)
+				err := r.write(line.Value(source))
+				if err != nil {
+					return ast.WalkStop, err
+				}
 			}
 			r.blankline()
 
@@ -298,7 +301,7 @@ func (r *Renderer) Render(
 				r.inTightListItem = node.ChildCount() == 1
 
 				if isBulletList {
-					err := r.write([]byte("  - "))
+					err := r.write([]byte{listNode.Marker, ' '})
 					if err != nil {
 						return ast.WalkStop, err
 					}
@@ -360,7 +363,7 @@ func (r *Renderer) Render(
 
 			if entering {
 				r.blankline()
-				if err := r.write([]byte("-----")); err != nil {
+				if err := r.write([]byte("---")); err != nil {
 					return ast.WalkStop, err
 				}
 				r.blankline()

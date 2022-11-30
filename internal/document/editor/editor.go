@@ -11,6 +11,10 @@ type Editor struct {
 	source     *document.Source
 }
 
+func New() *Editor {
+	return &Editor{}
+}
+
 func (e *Editor) Deserialize(data []byte) ([]*document.Cell, error) {
 	e.source = document.NewSource(data, md.Render)
 	e.parsed = e.source.Parse()

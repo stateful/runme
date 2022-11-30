@@ -6,6 +6,7 @@ import (
 	"github.com/stateful/runme/internal/renderer/md"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yuin/goldmark/ast"
 )
 
 func TestParsedSource_BlocksTree(t *testing.T) {
@@ -22,11 +23,11 @@ First paragraph.
 
 1. Item 1
 
-    ` + "```" + `sh {name=echo first= second=2}
-    $ echo "Hello, runme!"
-    ` + "```" + `
+   ` + "```" + `sh {name=echo first= second=2}
+   $ echo "Hello, runme!"
+   ` + "```" + `
 
-    Inner paragraph
+   Inner paragraph
 
 2. Item 2
 3. Item 3
@@ -44,6 +45,23 @@ First paragraph.
 	assert.Equal(t, "1. Item 1\n\n   ```sh {name=echo first= second=2}\n   $ echo \"Hello, runme!\"\n   ```\n\n   Inner paragraph\n", string(tree.children[3].children[0].Item().Value()))
 	assert.Equal(t, "2. Item 2\n", string(tree.children[3].children[1].Item().Value()))
 	assert.Equal(t, "3. Item 3\n", string(tree.children[3].children[2].Item().Value()))
+
+	// Validate if rendering using the blocks tree works as expected.
+	t.Run("RenderWithSourceProvider", func(t *testing.T) {
+		result, err := md.RenderWithSourceProvider(
+			parsed.Root(),
+			data,
+			func(astNode ast.Node) ([]byte, bool) {
+				result := FindByInner(tree, astNode)
+				if result != nil {
+					return result.Item().Value(), true
+				}
+				return nil, false
+			},
+		)
+		require.NoError(t, err)
+		assert.Equal(t, string(data), string(result))
+	})
 }
 
 func TestParsedSource_CodeBlocks(t *testing.T) {
@@ -56,11 +74,11 @@ func TestParsedSource_CodeBlocks(t *testing.T) {
 
 1. Item 1
 
-    ` + "```" + `sh {name=echo first= second=2}
-    $ echo "Hello, runme!"
-    ` + "```" + `
+   ` + "```" + `sh {name=echo first= second=2}
+   $ echo "Hello, runme!"
+   ` + "```" + `
 
-    Inner paragraph
+   Inner paragraph
 
 2. Item 2
 3. Item 3

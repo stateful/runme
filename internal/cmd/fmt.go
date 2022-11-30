@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"io"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/document/editor"
 )
 
 func fmtCmd() *cobra.Command {
@@ -26,6 +28,19 @@ func fmtCmd() *cobra.Command {
 				if err != nil {
 					return errors.Wrap(err, "failed to read from stdin")
 				}
+			} else if strings.HasPrefix(fileName, "https://") {
+				client := http.Client{
+					Timeout: time.Second * 10,
+				}
+				resp, err := client.Get(fileName)
+				if err != nil {
+					return errors.Wrapf(err, "failed to get a file %q", fileName)
+				}
+				data, err = io.ReadAll(resp.Body)
+				_ = resp.Body.Close()
+				if err != nil {
+					return errors.Wrap(err, "failed to read body")
+				}
 			} else {
 				f, err := os.Open(fileName)
 				if err != nil {
@@ -37,12 +52,15 @@ func fmtCmd() *cobra.Command {
 				}
 			}
 
-			root := document.NewSource(data, md.Render).Parse().Root()
-			result, err := md.Render(root, data)
+			edit := editor.New()
+			cells, err := edit.Deserialize(data)
 			if err != nil {
-				return errors.Wrap(err, "failed to format source")
+				return errors.Wrap(err, "failed to deserialize source")
 			}
-
+			result, err := edit.Serialize(cells)
+			if err != nil {
+				return errors.Wrap(err, "failed to serialize cells")
+			}
 			_, err = cmd.OutOrStdout().Write(result)
 			return errors.Wrap(err, "failed to write result")
 		},
