@@ -1,6 +1,8 @@
 package edit
 
 import (
+	"bytes"
+
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/md"
 	"github.com/yuin/goldmark/ast"
@@ -42,32 +44,60 @@ func applyCells(node *document.Node, cells []*Cell) {
 	var lastNode *document.Node
 	for _, cell := range cells {
 		bid, ok := cell.Metadata["_blockId"].(string)
+		// A new line is detected.
 		if !ok || bid == "" {
 			if lastNode != nil {
 				doc := document.New([]byte(cell.Value), md.Render)
-				node, _ := doc.Parse()
-				for _, child := range node.Children() {
+				newNode, _ := doc.Parse()
+				for _, child := range newNode.Children() {
 					idx := lastNode.Index()
 					lastNode.Parent().InsertAt(idx+1, child.Item())
+					lastNode = child
+				}
+			} else {
+				doc := document.New([]byte(cell.Value), md.Render)
+				newNode, _ := doc.Parse()
+				for idx, child := range newNode.Children() {
+					node.InsertAt(idx, child.Item())
+					lastNode = child
 				}
 			}
-			// TODO: it might be the first node so it should be prepended.
 			continue
 		}
+		// Trying to find a node and change its value.
 		node := document.FindNode(node, func(n *document.Node) bool {
 			return n.Item() != nil && n.Item().ID() == bid
 		})
 		if node == nil {
 			continue
 		}
-		node.Item().SetValue([]byte(cell.Value))
-		// Mark this block as well as all its children as visited.
+		// If the number of new lines is different,
+		// a parser is involved as it might be more
+		// drastical change.
+		currentLinesCount := bytes.Count(node.Item().Value(), []byte{'\n'})
+		newLinesCount := bytes.Count([]byte(cell.Value), []byte{'\n'})
+		if currentLinesCount != newLinesCount {
+			idx := node.Index()
+
+			doc := document.New([]byte(cell.Value), md.Render)
+			newNode, _ := doc.Parse()
+			for _, child := range newNode.Children() {
+				node.Parent().InsertAt(idx, child.Item())
+				lastNode = child
+			}
+
+			node.Parent().Remove(node)
+		} else {
+			node.Item().SetValue([]byte(cell.Value))
+			lastNode = node
+		}
+
+		// Mark this block visisted as well as all its children.
 		blockIds[bid] = true
 		_ = document.FindNode(node, func(n *document.Node) bool {
 			blockIds[n.Item().ID()] = true
 			return false
 		})
-		lastNode = node
 	}
 
 	for bid, visited := range blockIds {
@@ -78,7 +108,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 			if node == nil {
 				continue
 			}
-			node.Item().SetValue(nil)
+			node.Parent().Remove(node)
 		}
 	}
 }

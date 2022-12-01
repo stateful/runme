@@ -45,6 +45,30 @@ func (n *Node) Parent() *Node {
 	return n.parent
 }
 
+func (n *Node) Remove(nodeToRemove *Node) bool {
+	if len(n.children) == 0 {
+		return false
+	}
+	idx := -1
+	for i := 0; i < len(n.children); i++ {
+		if n.children[i] == nodeToRemove {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return false
+	}
+	if idx == 0 {
+		n.children = n.children[1:]
+	} else if idx == len(n.children)-1 {
+		n.children = n.children[:len(n.children)-1]
+	} else {
+		n.children = append(n.children[0:idx], n.children[idx+1:]...)
+	}
+	return true
+}
+
 func (n *Node) add(item Block) *Node {
 	node := &Node{
 		item:   item,

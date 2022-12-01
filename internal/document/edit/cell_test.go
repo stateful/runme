@@ -83,30 +83,93 @@ func Test_applyCells(t *testing.T) {
 
 Last paragraph.
 `)
+
+	parse := func() (*document.Node, []*Cell) {
+		doc := document.New(data, md.Render)
+		node, err := doc.Parse()
+		require.NoError(t, err)
+		cells := toCells(node, data)
+		assert.Len(t, cells, 3)
+		return node, cells
+	}
+
+	t.Run("SimpleEdit", func(t *testing.T) {
+		node, cells := parse()
+		cells[0].Value = "# New header\n"
+		applyCells(node, cells)
+		assert.Equal(t, "# New header\n", string(node.Children()[0].Item().Value()))
+	})
+
+	t.Run("AddNewCell", func(t *testing.T) {
+		t.Run("First", func(t *testing.T) {
+			node, cells := parse()
+			cells = append([]*Cell{
+				{
+					Kind:     MarkupKind,
+					Value:    "# Title",
+					Metadata: map[string]any{},
+				},
+			}, cells...)
+			applyCells(node, cells)
+			assert.Equal(t, "# Title\n", string(node.Children()[0].Item().Value()))
+			assert.Equal(t, "# Examples\n", string(node.Children()[1].Item().Value()))
+		})
+
+		t.Run("Middle", func(t *testing.T) {
+			node, cells := parse()
+			cells = append(cells[:2], cells[1:]...)
+			cells[1] = &Cell{
+				Kind:     MarkupKind,
+				Value:    "A new paragraph.\n",
+				Metadata: map[string]any{},
+			}
+			applyCells(node, cells)
+			assert.Equal(t, "# Examples\n", string(node.Children()[0].Item().Value()))
+			assert.Equal(t, "A new paragraph.\n", string(node.Children()[1].Item().Value()))
+			assert.Equal(t, "1. Item 1\n2. Item 2\n3. Item 3\n", string(node.Children()[2].Item().Value()))
+		})
+
+		t.Run("Last", func(t *testing.T) {
+			node, cells := parse()
+			cells = append(cells, &Cell{
+				Kind:     MarkupKind,
+				Value:    "Paragraph after the last one.\n",
+				Metadata: map[string]any{},
+			})
+			applyCells(node, cells)
+			l := len(cells)
+			assert.Equal(t, "Last paragraph.\n", string(node.Children()[l-2].Item().Value()))
+			assert.Equal(t, "Paragraph after the last one.\n", string(node.Children()[l-1].Item().Value()))
+		})
+	})
+
+	t.Run("RemoveCell", func(t *testing.T) {
+		node, cells := parse()
+		cells = append(cells[:1], cells[2:]...)
+		applyCells(node, cells)
+		assert.Equal(t, "# Examples\n", string(node.Children()[0].Item().Value()))
+		assert.Equal(t, "Last paragraph.\n", string(node.Children()[1].Item().Value()))
+	})
+}
+
+func Test_applyCells_insertCodeInListItem(t *testing.T) {
+	data := []byte(`# Examples
+
+1. Item 1
+2. Item 2
+3. Item 3
+
+End paragraph.
+`)
+
 	doc := document.New(data, md.Render)
 	node, err := doc.Parse()
 	require.NoError(t, err)
-
 	cells := toCells(node, data)
-	assert.Len(t, cells, 3)
+	assert.Len(t, cells, 2)
 
-	// simply change a value of a cell
-	cells[0].Value = "# Changed value\n"
+	cells[1].Value = "1. Item\n   ```sh\n   echo 1\n   ```\n2. Item 2\n3. Item 3\n"
 	applyCells(node, cells)
-	assert.Equal(t, "# Changed value\n", string(node.Children()[0].Item().Value()))
-
-	// add a new cell
-	cells = append(cells[:2], cells[1:]...)
-	cells[1] = &Cell{
-		Kind:     MarkupKind,
-		Value:    "A new paragraph.\n",
-		Metadata: map[string]any{},
-	}
-	applyCells(node, cells)
-	assert.Equal(t, "# Changed value\n", string(node.Children()[0].Item().Value()))
-	assert.Equal(t, "A new paragraph.\n", string(node.Children()[1].Item().Value()))
-	assert.Equal(t, "1. Item 1\n2. Item 2\n3. Item 3\n", string(node.Children()[2].Item().Value()))
-
-	// delete a cell
-	// TODO: implement
+	assert.Len(t, cells, 6)
+	assert.Equal(t, "", string(node.Children()[1].Item().Value()))
 }
