@@ -284,12 +284,7 @@ func (r *Renderer) Render(
 			r.blankline()
 
 		case ast.KindList:
-			if !entering && node.NextSibling() != nil && node.NextSibling().Kind() == ast.KindList {
-				r.cr()
-				err := r.write([]byte("<!-- end list -->"))
-				if err != nil {
-					return ast.WalkStop, err
-				}
+			if !entering {
 				r.blankline()
 			}
 
@@ -298,6 +293,8 @@ func (r *Renderer) Render(
 			isBulletList := listNode.Start == 0
 
 			if entering {
+				// Some tight list items have TextBlock as an only child and others
+				// have Paragraph.
 				r.inTightListItem = node.ChildCount() == 1
 
 				if isBulletList {

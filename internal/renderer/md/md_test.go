@@ -1,6 +1,10 @@
 package md_test
 
 import (
+	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stateful/runme/internal/renderer/md"
@@ -44,4 +48,54 @@ func TestRender_List_Marker(t *testing.T) {
 * Tutorial assumes you have Docker installed on your computer. If not, you can install it here: https://docs.docker.com/docker-for-mac/install/
 `)
 	testEquality(t, data)
+}
+
+func TestRender_ListWithCodeBlock(t *testing.T) {
+	data := []byte(`1. **Clone this repository.**
+
+` + "```" + `
+git clone https://github.com/my/repo.git
+cd my-repo
+` + "```" + `
+
+2. **Create a cluster.**
+
+- Autopilot mode:
+
+` + "```" + `
+REGION=us-central1
+cluster-create
+` + "```" + `
+
+- Standard mode:
+
+` + "```" + `
+REGION=us-central1
+cluster-create-std
+` + "```" + `
+
+4. **Deploy the sample app to the cluster.**
+`)
+
+	testEquality(t, data)
+}
+
+func TestRender_Testdata(t *testing.T) {
+	err := filepath.Walk("../testdata", func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			f, err := os.Open(path)
+			require.NoError(t, err)
+			data, err := io.ReadAll(f)
+			require.NoError(t, err)
+			testEquality(t, data)
+		})
+		return nil
+	})
+	require.NoError(t, err)
 }

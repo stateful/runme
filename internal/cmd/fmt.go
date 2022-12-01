@@ -9,7 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/document/edit"
+	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/renderer/md"
 )
 
 func fmtCmd() *cobra.Command {
@@ -52,16 +53,16 @@ func fmtCmd() *cobra.Command {
 				}
 			}
 
-			editor := edit.New()
-			cells, err := editor.Deserialize(data)
+			doc := document.New(data, md.Render)
+			_, err := doc.Parse()
 			if err != nil {
-				return errors.Wrap(err, "failed to deserialize source")
+				return errors.Wrap(err, "failed to parse source")
 			}
-			result, err := editor.Serialize(cells)
+			formatted, err := doc.Render()
 			if err != nil {
-				return errors.Wrap(err, "failed to serialize cells")
+				return errors.Wrap(err, "failed to render")
 			}
-			_, err = cmd.OutOrStdout().Write(result)
+			_, err = cmd.OutOrStdout().Write(formatted)
 			return errors.Wrap(err, "failed to write result")
 		},
 	}

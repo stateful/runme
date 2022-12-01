@@ -1,5 +1,4 @@
-Runme Examples
-==============
+# Runme Examples
 
 This `README.md` contains some example for testing this extension.
 
