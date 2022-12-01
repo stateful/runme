@@ -208,7 +208,6 @@ End paragraph.
 
 	cells[1].Value = "1. Item 1\n   ```sh\n   echo 1\n   ```\n2. Item 2\n3. Item 3\n"
 	applyCells(node, cells)
-
 	assert.Equal(
 		t,
 		`# Examples
