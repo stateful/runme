@@ -5,6 +5,7 @@ import (
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/tidwall/btree"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -32,11 +33,14 @@ type Notebook struct {
 }
 
 func applyCells(node *document.Node, cells []*Cell) {
-	blockIds := map[string]bool{}
+	var blockIds btree.Map[string, bool]
 	// TODO: FindNode is used as iterator. Propose a new function.
 	_ = document.FindNode(node, func(n *document.Node) bool {
+		if node == n {
+			return false
+		}
 		if n.Item() != nil {
-			blockIds[n.Item().ID()] = false
+			blockIds.Set(n.Item().ID(), false)
 		}
 		return false
 	})
@@ -44,11 +48,12 @@ func applyCells(node *document.Node, cells []*Cell) {
 	var lastNode *document.Node
 	for _, cell := range cells {
 		bid, ok := cell.Metadata["_blockId"].(string)
-		// A new line is detected.
+		// A new cell is found.
 		if !ok || bid == "" {
+			doc := document.New([]byte(cell.Value), md.Render)
+			newNode, _, _ := doc.Parse()
+
 			if lastNode != nil {
-				doc := document.New([]byte(cell.Value), md.Render)
-				newNode, _ := doc.Parse()
 				for _, child := range newNode.Children() {
 					idx := lastNode.Index()
 					lastNode.Parent().InsertAt(idx+1, child.Item())
@@ -56,7 +61,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 				}
 			} else {
 				doc := document.New([]byte(cell.Value), md.Render)
-				newNode, _ := doc.Parse()
+				newNode, _, _ := doc.Parse()
 				for idx, child := range newNode.Children() {
 					node.InsertAt(idx, child.Item())
 					lastNode = child
@@ -80,7 +85,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 			idx := node.Index()
 
 			doc := document.New([]byte(cell.Value), md.Render)
-			newNode, _ := doc.Parse()
+			newNode, _, _ := doc.Parse()
 			for _, child := range newNode.Children() {
 				node.Parent().InsertAt(idx, child.Item())
 				lastNode = child
@@ -93,24 +98,46 @@ func applyCells(node *document.Node, cells []*Cell) {
 		}
 
 		// Mark this block visisted as well as all its children.
-		blockIds[bid] = true
+		blockIds.Set(bid, true)
 		_ = document.FindNode(node, func(n *document.Node) bool {
-			blockIds[n.Item().ID()] = true
+			blockIds.Set(n.Item().ID(), true)
 			return false
 		})
 	}
 
-	for bid, visited := range blockIds {
-		if !visited {
-			node := document.FindNode(node, func(n *document.Node) bool {
-				return n.Item() != nil && n.Item().ID() == bid
-			})
-			if node == nil {
-				continue
-			}
+	// Make inner blocks as visited if all their children are visited.
+	blockIds.Reverse(func(id string, visited bool) bool {
+		if visited {
+			return true
+		}
+		node := document.FindNode(node, func(n *document.Node) bool {
+			return n.Item().ID() == id
+		})
+		if len(node.Children()) == 0 {
+			return true
+		}
+		notVisitedChild := document.FindNode(node, func(n *document.Node) bool {
+			visited, found := blockIds.Get(n.Item().ID())
+			return n != node && found && !visited
+		})
+		if notVisitedChild == nil {
+			blockIds.Set(id, true)
+		}
+		return true
+	})
+
+	blockIds.Scan(func(id string, visited bool) bool {
+		if visited {
+			return true
+		}
+		node := document.FindNode(node, func(n *document.Node) bool {
+			return n.Item() != nil && n.Item().ID() == id
+		})
+		if node != nil {
 			node.Parent().Remove(node)
 		}
-	}
+		return true
+	})
 }
 
 func toCells(node *document.Node, source []byte) (result []*Cell) {

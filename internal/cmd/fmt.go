@@ -54,11 +54,11 @@ func fmtCmd() *cobra.Command {
 			}
 
 			doc := document.New(data, md.Render)
-			_, err := doc.Parse()
+			_, astNode, err := doc.Parse()
 			if err != nil {
 				return errors.Wrap(err, "failed to parse source")
 			}
-			formatted, err := doc.Render()
+			formatted, err := md.Render(astNode, data)
 			if err != nil {
 				return errors.Wrap(err, "failed to render")
 			}

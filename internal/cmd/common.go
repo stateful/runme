@@ -23,7 +23,7 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 	}
 
 	doc := document.New(data, md.Render)
-	node, err := doc.Parse()
+	node, _, err := doc.Parse()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

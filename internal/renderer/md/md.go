@@ -20,19 +20,6 @@ func Render(doc ast.Node, source []byte) ([]byte, error) {
 	)
 }
 
-func RenderWithSourceProvider(
-	doc ast.Node,
-	source []byte,
-	provider NodeSourceProvider,
-) ([]byte, error) {
-	return new(Renderer).Render(
-		doc,
-		source,
-		provider,
-		func(ast.Node, bool) (ast.WalkStatus, bool) { return ast.WalkContinue, false },
-	)
-}
-
 type Renderer struct {
 	beginLine       bool
 	buf             bytes.Buffer

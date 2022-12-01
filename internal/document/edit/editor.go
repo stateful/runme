@@ -15,7 +15,7 @@ func New() *Editor {
 
 func (e *Editor) Deserialize(data []byte) (*Notebook, error) {
 	e.doc = document.New(data, md.Render)
-	node, err := e.doc.Parse()
+	node, _, err := e.doc.Parse()
 	if err != nil {
 		return nil, err
 	}
@@ -23,10 +23,10 @@ func (e *Editor) Deserialize(data []byte) (*Notebook, error) {
 }
 
 func (e *Editor) Serialize(notebook *Notebook) ([]byte, error) {
-	node, err := e.doc.Parse()
+	node, _, err := e.doc.Parse()
 	if err != nil {
 		return nil, err
 	}
 	applyCells(node, notebook.Cells)
-	return e.doc.Render()
+	return []byte(node.String()), nil
 }

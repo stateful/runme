@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/renderer/md"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -32,37 +31,20 @@ func New(source []byte, renderer Renderer) *Document {
 	}
 }
 
-func (d *Document) Parse() (*Node, error) {
+func (d *Document) Parse() (*Node, ast.Node, error) {
 	if d.astNode == nil {
 		d.astNode = d.parse()
 	}
+
 	if d.node == nil {
 		node := &Node{}
 		if err := d.buildBlocksTree(d.astNode, node); err != nil {
-			return nil, errors.WithStack(err)
+			return nil, nil, errors.WithStack(err)
 		}
 		d.node = node
 	}
-	return d.node, nil
-}
 
-func (d *Document) Render() ([]byte, error) {
-	if d.astNode == nil {
-		d.astNode = d.parse()
-	}
-	return md.RenderWithSourceProvider(
-		d.astNode,
-		d.source,
-		func(astNode ast.Node) ([]byte, bool) {
-			result := findNodePreOrder(d.node, func(n *Node) bool {
-				return n.Item() != nil && n.Item().Unwrap() == astNode
-			})
-			if result != nil {
-				return result.Item().Value(), true
-			}
-			return nil, false
-		},
-	)
+	return d.node, d.astNode, nil
 }
 
 func (d *Document) parse() ast.Node {

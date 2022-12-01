@@ -1,5 +1,7 @@
 package document
 
+import "strings"
+
 type Node struct {
 	children []*Node
 	parent   *Node
@@ -69,6 +71,17 @@ func (n *Node) Remove(nodeToRemove *Node) bool {
 	return true
 }
 
+func (n *Node) String() string {
+	var b strings.Builder
+	for idx, child := range n.children {
+		_, _ = b.WriteString(string(child.Item().Value()))
+		if idx != len(n.children)-1 {
+			_ = b.WriteByte('\n')
+		}
+	}
+	return b.String()
+}
+
 func (n *Node) add(item Block) *Node {
 	node := &Node{
 		item:   item,
@@ -106,21 +119,6 @@ func FindNode(node *Node, fn func(*Node) bool) *Node {
 	}
 	if fn(node) {
 		return node
-	}
-	return nil
-}
-
-func findNodePreOrder(node *Node, fn func(*Node) bool) *Node {
-	if node == nil {
-		return nil
-	}
-	if fn(node) {
-		return node
-	}
-	for _, child := range node.children {
-		if n := FindNode(child, fn); n != nil {
-			return n
-		}
 	}
 	return nil
 }

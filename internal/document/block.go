@@ -70,7 +70,7 @@ func newCodeBlock(
 	if node.Info != nil {
 		attributes = parseRawAttributes(rawAttributes(node.Info.Text(source)))
 	}
-	attributes["_blockId"] = getID()
+	attributes["_blockId"] = getID(CodeBlockKind)
 	attributes["name"] = name
 
 	value, err := render(node, source)
@@ -263,7 +263,7 @@ func newMarkdownBlock(
 	source []byte,
 	render Renderer,
 ) (*MarkdownBlock, error) {
-	attributes := map[string]string{"_blockId": getID()}
+	attributes := map[string]string{"_blockId": getID(MarkdownBlockKind)}
 	value, err := render(node, source)
 	if err != nil {
 		return nil, err
@@ -305,7 +305,7 @@ func newInnerBlock(
 	source []byte,
 	render Renderer,
 ) (*InnerBlock, error) {
-	attributes := map[string]string{"_blockId": getID()}
+	attributes := map[string]string{"_blockId": getID(InnerBlockKind)}
 	value, err := render(node, source)
 	if err != nil {
 		return nil, err
@@ -333,6 +333,15 @@ func (b *InnerBlock) Value() []byte {
 
 func (b *InnerBlock) SetValue(value []byte) { b.value = value }
 
-func getID() string {
-	return xid.New().String()
+func getID(kind BlockKind) string {
+	prefix := ""
+	// switch kind {
+	// case CodeBlockKind:
+	// 	prefix = "b_"
+	// case MarkdownBlockKind:
+	// 	prefix = "m_"
+	// case InnerBlockKind:
+	// 	prefix = "i_"
+	// }
+	return prefix + xid.New().String()
 }

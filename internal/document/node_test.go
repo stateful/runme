@@ -8,8 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCollectCodeBlocks(t *testing.T) {
-	data := []byte(`> bq1
+var testDataNested = []byte(`> bq1
 >
 >     echo "inside bq but not fenced"
 >
@@ -31,10 +30,19 @@ func TestCollectCodeBlocks(t *testing.T) {
 echo 1
 ` + "```" + `
 `)
-	doc := New(data, md.Render)
-	tree, err := doc.Parse()
+
+func TestNode_String(t *testing.T) {
+	doc := New(testDataNested, md.Render)
+	node, _, err := doc.Parse()
 	require.NoError(t, err)
-	codeBlocks := CollectCodeBlocks(tree)
+	assert.Equal(t, string(testDataNested), node.String())
+}
+
+func TestCollectCodeBlocks(t *testing.T) {
+	doc := New(testDataNested, md.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	codeBlocks := CollectCodeBlocks(node)
 	assert.Len(t, codeBlocks, 2)
 	assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```\n", string(codeBlocks[0].Value()))
 	assert.Equal(t, "```sh\necho 1\n```\n", string(codeBlocks[1].Value()))

@@ -10,6 +10,7 @@ require (
 	github.com/rogpeppe/go-internal v1.9.0
 	github.com/rs/xid v1.4.0
 	github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef
+	github.com/tidwall/btree v1.5.2
 	github.com/yuin/goldmark v1.4.12
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
 )
@@ -52,5 +53,4 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.7.5
-	golang.org/x/exp v0.0.0-20221126150942-6ab00d035af9
 )
