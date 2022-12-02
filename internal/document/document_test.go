@@ -3,7 +3,7 @@ package document
 import (
 	"testing"
 
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +31,7 @@ First paragraph.
 2. Item 2
 3. Item 3
 `)
-	doc := New(data, md.Render)
+	doc := New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 

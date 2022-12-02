@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/tidwall/btree"
 	"github.com/yuin/goldmark/ast"
 )
@@ -50,7 +50,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 		bid, ok := cell.Metadata["_blockId"].(string)
 		// A new cell is found.
 		if !ok || bid == "" {
-			doc := document.New([]byte(cell.Value), md.Render)
+			doc := document.New([]byte(cell.Value), cmark.Render)
 			newNode, _, _ := doc.Parse()
 
 			if lastNode != nil {
@@ -60,7 +60,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 					lastNode = child
 				}
 			} else {
-				doc := document.New([]byte(cell.Value), md.Render)
+				doc := document.New([]byte(cell.Value), cmark.Render)
 				newNode, _, _ := doc.Parse()
 				for idx, child := range newNode.Children() {
 					node.InsertAt(idx, child.Item())
@@ -84,7 +84,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 		if currentLinesCount != newLinesCount {
 			idx := node.Index()
 
-			doc := document.New([]byte(cell.Value), md.Render)
+			doc := document.New([]byte(cell.Value), cmark.Render)
 			newNode, _, _ := doc.Parse()
 			for _, child := range newNode.Children() {
 				node.Parent().InsertAt(idx, child.Item())

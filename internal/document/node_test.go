@@ -3,7 +3,7 @@ package document
 import (
 	"testing"
 
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,14 +32,14 @@ echo 1
 `)
 
 func TestNode_String(t *testing.T) {
-	doc := New(testDataNested, md.Render)
+	doc := New(testDataNested, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	assert.Equal(t, string(testDataNested), node.String())
 }
 
 func TestCollectCodeBlocks(t *testing.T) {
-	doc := New(testDataNested, md.Render)
+	doc := New(testDataNested, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	codeBlocks := CollectCodeBlocks(node)

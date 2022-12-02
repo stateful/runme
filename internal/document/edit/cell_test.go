@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +39,7 @@ $ echo "Hello, runme!"
 `)
 
 func Test_toCells_Basic(t *testing.T) {
-	doc := document.New(testDataNested, md.Render)
+	doc := document.New(testDataNested, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 
@@ -64,7 +64,7 @@ func Test_toCells_NoCodeBlock(t *testing.T) {
 2. Item 2
 3. Item 3
 `)
-	doc := document.New(data, md.Render)
+	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 
@@ -85,7 +85,7 @@ Last paragraph.
 `)
 
 	parse := func() (*document.Node, []*Cell) {
-		doc := document.New(data, md.Render)
+		doc := document.New(data, cmark.Render)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
 		cells := toCells(node, data)
@@ -178,7 +178,7 @@ Last paragraph.
 }
 
 func Test_applyCells_testDataNested(t *testing.T) {
-	doc := document.New(testDataNested, md.Render)
+	doc := document.New(testDataNested, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	cells := toCells(node, testDataNested)
@@ -200,7 +200,7 @@ func Test_applyCells_insertCodeInListItem(t *testing.T) {
 End paragraph.
 `)
 
-	doc := document.New(data, md.Render)
+	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	cells := toCells(node, data)

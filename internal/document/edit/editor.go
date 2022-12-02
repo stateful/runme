@@ -2,7 +2,7 @@ package edit
 
 import (
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
 type Editor struct {
@@ -14,7 +14,7 @@ func New() *Editor {
 }
 
 func (e *Editor) Deserialize(data []byte) (*Notebook, error) {
-	e.doc = document.New(data, md.Render)
+	e.doc = document.New(data, cmark.Render)
 	node, _, err := e.doc.Parse()
 	if err != nil {
 		return nil, err

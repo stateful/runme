@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stateful/runme/internal/runner"
 )
 
@@ -22,7 +22,7 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	doc := document.New(data, md.Render)
+	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	if err != nil {
 		return nil, errors.WithStack(err)

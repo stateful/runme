@@ -1,4 +1,4 @@
-package md_test
+package cmark_test
 
 import (
 	"io"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yuin/goldmark"
@@ -17,7 +17,7 @@ import (
 func testEquality(t *testing.T, data []byte) {
 	parser := goldmark.DefaultParser()
 	ast := parser.Parse(text.NewReader(data))
-	result, err := md.Render(ast, data)
+	result, err := cmark.Render(ast, data)
 	require.NoError(t, err)
 	assert.Equal(t, string(data), string(result))
 }

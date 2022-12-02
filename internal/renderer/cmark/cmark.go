@@ -1,9 +1,10 @@
-package md
+package cmark
 
 import (
 	"bytes"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/pkg/errors"
 	"github.com/yuin/goldmark/ast"
@@ -12,51 +13,48 @@ import (
 type NodeSourceProvider func(ast.Node) ([]byte, bool)
 
 func Render(doc ast.Node, source []byte) ([]byte, error) {
-	return new(Renderer).Render(
-		doc,
-		source,
-		func(ast.Node) ([]byte, bool) { return nil, false },
-		func(ast.Node, bool) (ast.WalkStatus, bool) { return ast.WalkContinue, false },
-	)
+	return new(renderer).Render(doc, source)
 }
 
-type Renderer struct {
+type renderer struct {
 	beginLine       bool
 	buf             bytes.Buffer
 	inTightListItem bool
 	needCR          int
-	prefix          string
+	prefix          []byte
 }
 
-func (r *Renderer) blankline() {
+func (r *renderer) blankline() {
 	if r.needCR < 2 {
 		r.needCR = 2
 	}
 }
 
-func (r *Renderer) cr() {
+func (r *renderer) cr() {
 	if r.needCR < 1 {
 		r.needCR = 1
 	}
 }
 
-func (r *Renderer) write(data []byte) error {
+func (r *renderer) write(data []byte) error {
 	k := len(r.buf.Bytes()) - 1
 
 	for r.needCR > 0 {
 		if k < 0 || r.buf.Bytes()[k] == '\n' {
 			k--
 			if r.beginLine && r.needCR > 1 {
-				if _, err := r.buf.Write(bytes.TrimRight([]byte(r.prefix), " ")); err != nil {
+				prefix := bytes.TrimFunc(r.prefix, unicode.IsSpace)
+				if _, err := r.buf.Write(prefix); err != nil {
 					return err
 				}
 			}
 		} else {
-			if err := r.buf.WriteByte('\n'); err != nil {
+			if _, err := r.buf.Write(lineBreak); err != nil {
 				return err
 			}
 			if r.needCR > 1 {
-				if _, err := r.buf.Write(bytes.TrimRight([]byte(r.prefix), " ")); err != nil {
+				prefix := bytes.TrimFunc(r.prefix, unicode.IsSpace)
+				if _, err := r.buf.Write(prefix); err != nil {
 					return err
 				}
 			}
@@ -66,30 +64,24 @@ func (r *Renderer) write(data []byte) error {
 		r.needCR--
 	}
 
-	for _, c := range string(data) {
+	for _, c := range data {
 		if r.beginLine {
-			if _, err := r.buf.Write([]byte(r.prefix)); err != nil {
+			if _, err := r.buf.Write(r.prefix); err != nil {
 				return err
 			}
 		}
 
-		var err error
-		if c == '\n' {
-			err = r.buf.WriteByte('\n')
-			r.beginLine = true
-		} else {
-			_, err = r.buf.WriteRune(c)
-			r.beginLine = false
-		}
-		if err != nil {
+		if err := r.buf.WriteByte(c); err != nil {
 			return err
 		}
+
+		r.beginLine = c == '\n'
 	}
 
 	return nil
 }
 
-func (r *Renderer) BufferBytes() ([]byte, error) {
+func (r *renderer) BufferBytes() ([]byte, error) {
 	var buf bytes.Buffer
 	if _, err := r.buf.WriteTo(&buf); err != nil {
 		return nil, err
@@ -97,25 +89,17 @@ func (r *Renderer) BufferBytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (r *Renderer) RawBufferBytes() ([]byte, error) {
+func (r *renderer) RawBufferBytes() ([]byte, error) {
 	var buf bytes.Buffer
 	if _, err := r.buf.WriteTo(&buf); err != nil {
 		return nil, err
 	}
-	return bytes.TrimPrefix(buf.Bytes(), []byte(r.prefix)), nil
+	return bytes.TrimPrefix(buf.Bytes(), r.prefix), nil
 }
 
-func (r *Renderer) Render(
-	doc ast.Node,
-	source []byte,
-	nodeSourceProvider NodeSourceProvider,
-	callback func(ast.Node, bool) (_ ast.WalkStatus, skip bool),
-) ([]byte, error) {
+func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 	err := ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-		status, skip := callback(node, entering)
-		if skip {
-			return status, nil
-		}
+		status := ast.WalkContinue
 
 		switch node.Kind() {
 		// blocks
@@ -123,15 +107,8 @@ func (r *Renderer) Render(
 
 		case ast.KindHeading:
 			if entering {
-				value, ok := nodeSourceProvider(node)
-				if !ok {
-					n := node.(*ast.Heading)
-					value = bytes.Repeat([]byte{'#'}, n.Level)
-					value = append(value, ' ')
-				} else {
-					status = ast.WalkSkipChildren
-				}
-
+				n := node.(*ast.Heading)
+				value := append(bytes.Repeat([]byte{'#'}, n.Level), ' ')
 				err := r.write(value)
 				if err != nil {
 					return ast.WalkStop, err
@@ -141,35 +118,25 @@ func (r *Renderer) Render(
 			}
 
 		case ast.KindBlockquote:
+			prefix := []byte{'>', ' '}
 			if entering {
-				err := r.write([]byte("> "))
-				if err != nil {
+				if err := r.write(prefix); err != nil {
 					return ast.WalkStop, err
 				}
-				r.prefix += "> "
+				r.prefix = append(r.prefix, prefix...)
 			} else {
-				r.prefix = r.prefix[0 : len(r.prefix)-2]
+				r.prefix = r.prefix[0 : len(r.prefix)-len(prefix)]
 				r.blankline()
 			}
 
 		case ast.KindCodeBlock:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				} else {
-					r.blankline()
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			var code bytes.Buffer
 			for ll, i := node.Lines().Len(), 0; i < ll; i++ {
 				line := node.Lines().At(i)
 				_, _ = code.Write(line.Value(source))
 			}
+
+			prefix := []byte{' ', ' ', ' ', ' '}
 
 			if entering {
 				firstInListItem := node.PreviousSibling() == nil && node.Parent() != nil && node.Parent().Kind() == ast.KindListItem
@@ -177,29 +144,17 @@ func (r *Renderer) Render(
 					r.blankline()
 				}
 
-				r.prefix += "    "
+				r.prefix = append(r.prefix, prefix...)
 
 				if err := r.write(code.Bytes()); err != nil {
 					return ast.WalkStop, err
 				}
 			} else {
-				r.prefix = r.prefix[0 : len(r.prefix)-4]
+				r.prefix = r.prefix[0 : len(r.prefix)-len(prefix)]
 				r.blankline()
 			}
 
 		case ast.KindFencedCodeBlock:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				} else {
-					r.blankline()
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			var code bytes.Buffer
 			for ll, i := node.Lines().Len(), 0; i < ll; i++ {
 				line := node.Lines().At(i)
@@ -245,18 +200,6 @@ func (r *Renderer) Render(
 			}
 
 		case ast.KindHTMLBlock:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				} else {
-					r.blankline()
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			if !entering {
 				break
 			}
@@ -305,22 +248,14 @@ func (r *Renderer) Render(
 						return ast.WalkStop, err
 					}
 				}
-				r.prefix += "   "
+				r.prefix = append(r.prefix, []byte{' ', ' ', ' '}...)
 			} else {
 				r.inTightListItem = false
 				r.prefix = r.prefix[0 : len(r.prefix)-3]
 			}
 
 		case ast.KindParagraph:
-			if entering {
-				value, ok := nodeSourceProvider(node)
-				if ok {
-					status = ast.WalkSkipChildren
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-			} else {
+			if !entering {
 				if r.inTightListItem {
 					r.cr()
 				} else {
@@ -334,18 +269,6 @@ func (r *Renderer) Render(
 			}
 
 		case ast.KindThematicBreak:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					r.blankline()
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-					r.blankline()
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			if entering {
 				r.blankline()
 				if err := r.write([]byte("---")); err != nil {
@@ -356,16 +279,6 @@ func (r *Renderer) Render(
 
 		// inline
 		case ast.KindAutoLink:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			n := node.(*ast.AutoLink)
 			if entering {
 				var b strings.Builder
@@ -384,51 +297,21 @@ func (r *Renderer) Render(
 			}
 
 		case ast.KindCodeSpan:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
-			if err := r.write([]byte("`")); err != nil {
+			if err := r.write([]byte{'`'}); err != nil {
 				return ast.WalkStop, err
 			}
 
 		case ast.KindEmphasis:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			n := node.(*ast.Emphasis)
-			mark := "*"
+			mark := []byte{'*'}
 			if n.Level > 1 {
-				mark = "**"
+				mark = []byte{'*', '*'}
 			}
-			if err := r.write([]byte(mark)); err != nil {
+			if err := r.write(mark); err != nil {
 				return ast.WalkStop, err
 			}
 
 		case ast.KindImage:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			if entering {
 				if err := r.write([]byte("![")); err != nil {
 					return ast.WalkStop, err
@@ -452,16 +335,6 @@ func (r *Renderer) Render(
 			}
 
 		case ast.KindLink:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			if entering {
 				if err := r.write([]byte{'['}); err != nil {
 					return ast.WalkStop, err
@@ -469,32 +342,22 @@ func (r *Renderer) Render(
 			} else {
 				n := node.(*ast.Link)
 
-				var b strings.Builder
-				_, _ = b.WriteString("](")
-				_, _ = b.Write(n.Destination)
+				var buf bytes.Buffer
+				_, _ = buf.Write([]byte{']', '('})
+				_, _ = buf.Write(n.Destination)
 				if title := n.Title; len(title) > 0 {
-					_, _ = b.WriteString(` "`)
-					_, _ = b.Write(title)
-					_, _ = b.WriteString(`"`)
+					_, _ = buf.Write([]byte{' ', '"'})
+					_, _ = buf.Write(title)
+					_ = buf.WriteByte('"')
 				}
-				_, _ = b.WriteString(")")
+				_ = buf.WriteByte(')')
 
-				if err := r.write([]byte(b.String())); err != nil {
+				if err := r.write(buf.Bytes()); err != nil {
 					return ast.WalkStop, err
 				}
 			}
 
 		case ast.KindRawHTML:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			if entering {
 				if err := r.write(node.Text(source)); err != nil {
 					return ast.WalkStop, err
@@ -503,16 +366,6 @@ func (r *Renderer) Render(
 			}
 
 		case ast.KindText:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			if entering {
 				if err := r.write(node.Text(source)); err != nil {
 					return ast.WalkStop, err
@@ -529,16 +382,6 @@ func (r *Renderer) Render(
 			}
 
 		case ast.KindString:
-			value, ok := nodeSourceProvider(node)
-			if ok {
-				if entering {
-					if err := r.write(value); err != nil {
-						return ast.WalkStop, err
-					}
-				}
-				return ast.WalkSkipChildren, nil
-			}
-
 			if entering {
 				if err := r.write(node.Text(source)); err != nil {
 					return ast.WalkStop, err

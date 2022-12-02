@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/md"
+	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
 func fmtCmd() *cobra.Command {
@@ -53,12 +53,12 @@ func fmtCmd() *cobra.Command {
 				}
 			}
 
-			doc := document.New(data, md.Render)
+			doc := document.New(data, cmark.Render)
 			_, astNode, err := doc.Parse()
 			if err != nil {
 				return errors.Wrap(err, "failed to parse source")
 			}
-			formatted, err := md.Render(astNode, data)
+			formatted, err := cmark.Render(astNode, data)
 			if err != nil {
 				return errors.Wrap(err, "failed to render")
 			}
