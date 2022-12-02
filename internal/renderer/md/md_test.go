@@ -1,11 +1,12 @@
 package md_test
 
 import (
+	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/stateful/runme/internal/renderer"
 	"github.com/stateful/runme/internal/renderer/md"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,7 +81,7 @@ cluster-create-std
 }
 
 func TestRender_Testdata(t *testing.T) {
-	err := fs.WalkDir(renderer.TestContent, ".", func(path string, info fs.DirEntry, err error) error {
+	err := filepath.Walk("../testdata", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -88,7 +89,9 @@ func TestRender_Testdata(t *testing.T) {
 			return nil
 		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
-			data, err := fs.ReadFile(renderer.TestContent, path)
+			f, err := os.Open(path)
+			require.NoError(t, err)
+			data, err := io.ReadAll(f)
 			require.NoError(t, err)
 			testEquality(t, data)
 		})
