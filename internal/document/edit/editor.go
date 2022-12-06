@@ -5,17 +5,15 @@ import (
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
-type Editor struct {
-	doc *document.Document
-}
+type Editor struct{}
 
 func New() *Editor {
 	return &Editor{}
 }
 
 func (e *Editor) Deserialize(data []byte) (*Notebook, error) {
-	e.doc = document.New(data, cmark.Render)
-	node, _, err := e.doc.Parse()
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
 	if err != nil {
 		return nil, err
 	}
@@ -23,18 +21,6 @@ func (e *Editor) Deserialize(data []byte) (*Notebook, error) {
 }
 
 func (e *Editor) Serialize(notebook *Notebook) ([]byte, error) {
-	node, _, err := e.doc.Parse()
-	if err != nil {
-		return nil, err
-	}
-
-	applyCells(node, notebook.Cells)
-
-	result := node.Bytes()
-	e.doc = document.New(result, cmark.Render)
-	_, _, err = e.doc.Parse()
-	if err != nil {
-		return nil, err
-	}
+	result := serializeCells(notebook.Cells)
 	return result, nil
 }

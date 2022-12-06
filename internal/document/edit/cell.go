@@ -1,12 +1,13 @@
 package edit
 
 import (
+	"bufio"
 	"bytes"
-	"log"
+	"strconv"
+	"strings"
 
+	"github.com/rs/xid"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/cmark"
-	"github.com/tidwall/btree"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -33,139 +34,21 @@ type Notebook struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
-func applyCells(root *document.Node, cells []*Cell) {
-	var blockIds btree.Map[string, bool]
-	// TODO: FindNode is used as iterator. Propose a new function.
-	_ = document.FindNode(root, func(n *document.Node) bool {
-		if root == n {
-			return false
-		}
-		if n.Item() != nil {
-			blockIds.Set(n.Item().ID(), false)
-		}
-		return false
-	})
-	log.Printf("found blockIDs: %+v", blockIds.Keys())
-
-	var lastNode *document.Node
-	for _, cell := range cells {
-		log.Printf("processing a cell: %+v", cell)
-
-		bid, ok := cell.Metadata["_blockId"].(string)
-		// A new cell is found.
-		if !ok || bid == "" {
-			log.Printf("new cell discovered")
-
-			doc := document.New([]byte(cell.Value), cmark.Render)
-			newNode, _, _ := doc.Parse()
-
-			if lastNode != nil {
-				idx := lastNode.Index()
-				for j, child := range newNode.Children() {
-					lastNode.Parent().InsertAt(idx+j+1, child.Item())
-					lastNode = child
-				}
-			} else {
-				for idx, child := range newNode.Children() {
-					root.InsertAt(idx, child.Item())
-					lastNode = child
-				}
-			}
-			continue
-		}
-		// Trying to find a node and change its value.
-		node := document.FindNode(root, func(n *document.Node) bool {
-			return n.Item() != nil && n.Item().ID() == bid
-		})
-		if node == nil {
-			log.Printf("node for blockID %s not found", bid)
-			continue
-		}
-		// If the number of new lines is different,
-		// a parser is involved as it might be more
-		// drastical change.
-		currentLinesCount := bytes.Count(node.Item().Value(), []byte{'\n'})
-		newLinesCount := bytes.Count([]byte(cell.Value), []byte{'\n'})
-		if currentLinesCount != newLinesCount {
-			idx := node.Index()
-			parent := node.Parent()
-
-			log.Printf("replacing node at index: %d", idx)
-
-			doc := document.New([]byte(cell.Value), cmark.Render)
-			newNode, _, _ := doc.Parse()
-			if len(newNode.Children()) != 1 {
-				log.Printf("cannot convert single cell to multiple nodes")
-				continue
-			} else {
-				newNode := newNode.Children()[0]
-				// TODO: set _blockId to bid in newNode
-				parent.InsertAt(idx, newNode.Item())
-				lastNode = newNode
-				parent.Remove(node)
-			}
-		} else {
-			log.Printf("setting value: %s (old value: %s)", cell.Value, node.Item().Value())
-			node.Item().SetValue([]byte(cell.Value))
-			lastNode = node
-		}
-
-		// Mark this block visisted as well as all its children.
-		blockIds.Set(bid, true)
-		_ = document.FindNode(node, func(n *document.Node) bool {
-			blockIds.Set(n.Item().ID(), true)
-			return false
-		})
-		log.Printf("marked blockID %s as visited", bid)
-	}
-
-	// Make inner blocks as visited if all their children are visited.
-	blockIds.Reverse(func(id string, visited bool) bool {
-		if visited {
-			return true
-		}
-		node := document.FindNode(root, func(n *document.Node) bool {
-			return n.Item().ID() == id
-		})
-		if len(node.Children()) == 0 {
-			return true
-		}
-		notVisitedChild := document.FindNode(node, func(n *document.Node) bool {
-			visited, found := blockIds.Get(n.Item().ID())
-			return n != node && found && !visited
-		})
-		if notVisitedChild == nil {
-			blockIds.Set(id, true)
-		}
-		return true
-	})
-
-	blockIds.Scan(func(id string, visited bool) bool {
-		if visited {
-			return true
-		}
-		node := document.FindNode(root, func(n *document.Node) bool {
-			return n.Item() != nil && n.Item().ID() == id
-		})
-		if node != nil {
-			log.Printf("removing a node: %s with blockID: %s", node.String(), id)
-			node.Parent().Remove(node)
-		}
-		return true
-	})
-}
-
 func toCells(node *document.Node, source []byte) (result []*Cell) {
 	toCellsRec(node, &result, source)
 	return
 }
 
-func toCellsRec(node *document.Node, cells *[]*Cell, source []byte) {
+func toCellsRec(
+	node *document.Node,
+	cells *[]*Cell,
+	source []byte,
+) {
 	if node == nil {
 		return
 	}
 
-	for _, child := range node.Children() {
+	for childIdx, child := range node.Children() {
 		switch block := child.Item().(type) {
 		case *document.InnerBlock:
 			switch block.Unwrap().Kind() {
@@ -175,9 +58,13 @@ func toCellsRec(node *document.Node, cells *[]*Cell, source []byte) {
 				})
 				if nodeWithCode == nil {
 					*cells = append(*cells, &Cell{
-						Kind:     MarkupKind,
-						Value:    string(block.Value()),
-						Metadata: attrsToMetadata(block.Attributes()),
+						Kind:  MarkupKind,
+						Value: string(block.Value()),
+						Metadata: map[string]any{
+							"_id":   genUUID(),
+							"_kind": "list",
+							"_type": "compound",
+						},
 					})
 				} else {
 					for _, listItemNode := range child.Children() {
@@ -187,10 +74,21 @@ func toCellsRec(node *document.Node, cells *[]*Cell, source []byte) {
 						if nodeWithCode != nil {
 							toCellsRec(listItemNode, cells, source)
 						} else {
+							metadata := map[string]any{
+								"_id":   genUUID(),
+								"_kind": "listItem",
+								"_type": "compound",
+							}
+
+							inTightListItem := listItemNode.Item().Unwrap().ChildCount() == 1
+							if inTightListItem {
+								metadata["_tight"] = true
+							}
+
 							*cells = append(*cells, &Cell{
 								Kind:     MarkupKind,
 								Value:    string(listItemNode.Item().Value()),
-								Metadata: attrsToMetadata(listItemNode.Item().Attributes()),
+								Metadata: metadata,
 							})
 						}
 					}
@@ -204,35 +102,146 @@ func toCellsRec(node *document.Node, cells *[]*Cell, source []byte) {
 					toCellsRec(child, cells, source)
 				} else {
 					*cells = append(*cells, &Cell{
-						Kind:     MarkupKind,
-						Value:    string(block.Value()),
-						Metadata: attrsToMetadata(block.Attributes()),
+						Kind:  MarkupKind,
+						Value: string(block.Value()),
+						Metadata: map[string]any{
+							"_id":   genUUID(),
+							"_kind": "blockquote",
+							"_type": "compound",
+						},
 					})
 				}
 			}
 
 		case *document.CodeBlock:
+			metadata := map[string]any{
+				"_id":   genUUID(),
+				"_kind": "code",
+				"_type": "simple",
+			}
+
+			value := block.Value()
+
+			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
+
+			if childIdx == 0 && isListItem {
+				listItem := node.Item().Unwrap().(*ast.ListItem)
+				list := listItem.Parent().(*ast.List)
+				isBulletList := list.Start == 0
+
+				var prefix []byte
+
+				if isBulletList {
+					prefix = append(prefix, []byte{list.Marker, ' '}...)
+				} else {
+					itemNumber := list.Start
+					tmp := child.Item().Unwrap()
+					for tmp.PreviousSibling() != nil {
+						tmp = tmp.PreviousSibling()
+						itemNumber++
+					}
+					prefix = append([]byte(strconv.Itoa(itemNumber)), '.', ' ')
+				}
+
+				value = append(prefix, value...)
+			} else if isListItem {
+				metadata["_prefix"] = "   "
+			}
+
 			*cells = append(*cells, &Cell{
 				Kind:     CodeKind,
-				Value:    string(block.Value()),
+				Value:    string(value),
 				LangID:   block.Language(),
-				Metadata: attrsToMetadata(block.Attributes()),
+				Metadata: metadata,
 			})
 
 		case *document.MarkdownBlock:
+			metadata := map[string]any{
+				"_id":   genUUID(),
+				"_kind": "markdown",
+				"_type": "simple",
+			}
+
+			value := block.Value()
+
+			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
+
+			if childIdx == 0 && isListItem {
+				listItem := node.Item().Unwrap().(*ast.ListItem)
+				list := listItem.Parent().(*ast.List)
+				isBulletList := list.Start == 0
+
+				var prefix []byte
+
+				if isBulletList {
+					prefix = append(prefix, []byte{list.Marker, ' '}...)
+				} else {
+					itemNumber := list.Start
+					tmp := child.Item().Unwrap()
+					for tmp.PreviousSibling() != nil {
+						tmp = tmp.PreviousSibling()
+						itemNumber++
+					}
+					prefix = append([]byte(strconv.Itoa(itemNumber)), '.', ' ')
+				}
+
+				value = append(prefix, value...)
+			} else if isListItem {
+				metadata["_prefix"] = "   "
+			}
+
 			*cells = append(*cells, &Cell{
 				Kind:     MarkupKind,
-				Value:    string(block.Value()),
-				Metadata: attrsToMetadata(block.Attributes()),
+				Value:    string(value),
+				Metadata: metadata,
 			})
 		}
 	}
 }
 
-func attrsToMetadata(m map[string]string) map[string]any {
-	metadata := make(map[string]any)
-	for k, v := range m {
-		metadata[k] = v
+func genUUID() string {
+	return xid.New().String()
+}
+
+func countTrailingNewLines(b []byte) int {
+	count := 0
+	for i := len(b) - 1; i >= 0; i-- {
+		if b[i] == '\n' {
+			count++
+		} else {
+			break
+		}
 	}
-	return metadata
+	return count
+}
+
+func serializeCells(cells []*Cell) []byte {
+	var buf bytes.Buffer
+
+	for idx, cell := range cells {
+		prefix := ""
+		if p, ok := cell.Metadata["_prefix"].(string); ok && p != "" {
+			prefix = p
+		}
+
+		s := bufio.NewScanner(strings.NewReader(cell.Value))
+		for s.Scan() {
+			_, _ = buf.WriteString(prefix)
+			_, _ = buf.Write(s.Bytes())
+			_ = buf.WriteByte('\n')
+		}
+
+		if idx != len(cells)-1 {
+			nlCount := countTrailingNewLines(buf.Bytes())
+			nlRequired := 2
+			if val, ok := cell.Metadata["_tight"].(bool); ok && val {
+				nlRequired = 1
+			}
+			for i := nlCount; i < nlRequired; i++ {
+				_ = buf.WriteByte('\n')
+			}
+		}
+	}
+
+	return buf.Bytes()
 }

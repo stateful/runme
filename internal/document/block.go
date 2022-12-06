@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/rs/xid"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -18,12 +17,9 @@ const (
 )
 
 type Block interface {
-	Attributes() map[string]string
 	Kind() BlockKind
-	ID() string
 	Unwrap() ast.Node
 	Value() []byte
-	SetValue([]byte)
 }
 
 type Blocks []Block
@@ -49,13 +45,12 @@ func (b CodeBlocks) Names() (result []string) {
 type Renderer func(ast.Node, []byte) ([]byte, error)
 
 type CodeBlock struct {
-	attributes map[string]string
-	inner      *ast.FencedCodeBlock
-	intro      string
-	language   string
-	lines      []string
-	name       string
-	value      []byte
+	inner    *ast.FencedCodeBlock
+	intro    string
+	language string
+	lines    []string
+	name     string
+	value    []byte
 }
 
 func newCodeBlock(
@@ -66,36 +61,22 @@ func newCodeBlock(
 ) (*CodeBlock, error) {
 	name := getName(node, source, nameResolver)
 
-	attributes := make(map[string]string)
-	if node.Info != nil {
-		attributes = parseRawAttributes(rawAttributes(node.Info.Text(source)))
-	}
-	attributes["_blockId"] = getID(CodeBlockKind)
-	attributes["name"] = name
-
 	value, err := render(node, source)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CodeBlock{
-		attributes: attributes,
-		inner:      node,
-		intro:      getIntro(node, source),
-		language:   getLanguage(node, source),
-		lines:      getLines(node, source),
-		name:       name,
-		value:      value,
+		inner:    node,
+		intro:    getIntro(node, source),
+		language: getLanguage(node, source),
+		lines:    getLines(node, source),
+		name:     name,
+		value:    value,
 	}, nil
 }
 
-func (b *CodeBlock) Attributes() map[string]string {
-	return b.attributes
-}
-
 func (CodeBlock) Kind() BlockKind { return CodeBlockKind }
-
-func (b *CodeBlock) ID() string { return b.attributes["_blockId"] }
 
 func (b *CodeBlock) Content() []byte {
 	value := bytes.Trim(b.value, "\n")
@@ -129,8 +110,6 @@ func (b *CodeBlock) Unwrap() ast.Node {
 func (b *CodeBlock) Value() []byte {
 	return b.value
 }
-
-func (b *CodeBlock) SetValue(value []byte) { b.value = value }
 
 func rawAttributes(source []byte) []byte {
 	start, stop := -1, -1
@@ -253,9 +232,8 @@ func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolve
 }
 
 type MarkdownBlock struct {
-	attributes map[string]string
-	inner      ast.Node
-	value      []byte
+	inner ast.Node
+	value []byte
 }
 
 func newMarkdownBlock(
@@ -263,23 +241,17 @@ func newMarkdownBlock(
 	source []byte,
 	render Renderer,
 ) (*MarkdownBlock, error) {
-	attributes := map[string]string{"_blockId": getID(MarkdownBlockKind)}
 	value, err := render(node, source)
 	if err != nil {
 		return nil, err
 	}
 	return &MarkdownBlock{
-		attributes: attributes,
-		inner:      node,
-		value:      value,
+		inner: node,
+		value: value,
 	}, nil
 }
 
-func (b *MarkdownBlock) Attributes() map[string]string { return b.attributes }
-
 func (MarkdownBlock) Kind() BlockKind { return MarkdownBlockKind }
-
-func (b *MarkdownBlock) ID() string { return b.attributes["_blockId"] }
 
 func (b *MarkdownBlock) Unwrap() ast.Node {
 	return b.inner
@@ -289,15 +261,12 @@ func (b *MarkdownBlock) Value() []byte {
 	return b.value
 }
 
-func (b *MarkdownBlock) SetValue(value []byte) { b.value = value }
-
 // InnerBlock represents a non-leaf block.
 // It helps to handle nested fenced code blocks
 // for block quotes and list items.
 type InnerBlock struct {
-	attributes map[string]string
-	inner      ast.Node
-	value      []byte
+	inner ast.Node
+	value []byte
 }
 
 func newInnerBlock(
@@ -305,23 +274,17 @@ func newInnerBlock(
 	source []byte,
 	render Renderer,
 ) (*InnerBlock, error) {
-	attributes := map[string]string{"_blockId": getID(InnerBlockKind)}
 	value, err := render(node, source)
 	if err != nil {
 		return nil, err
 	}
 	return &InnerBlock{
-		attributes: attributes,
-		inner:      node,
-		value:      value,
+		inner: node,
+		value: value,
 	}, nil
 }
 
-func (b *InnerBlock) Attributes() map[string]string { return b.attributes }
-
 func (InnerBlock) Kind() BlockKind { return InnerBlockKind }
-
-func (b *InnerBlock) ID() string { return b.attributes["_blockId"] }
 
 func (b *InnerBlock) Unwrap() ast.Node {
 	return b.inner
@@ -329,19 +292,4 @@ func (b *InnerBlock) Unwrap() ast.Node {
 
 func (b *InnerBlock) Value() []byte {
 	return b.value
-}
-
-func (b *InnerBlock) SetValue(value []byte) { b.value = value }
-
-func getID(kind BlockKind) string {
-	prefix := ""
-	// switch kind {
-	// case CodeBlockKind:
-	// 	prefix = "b_"
-	// case MarkdownBlockKind:
-	// 	prefix = "m_"
-	// case InnerBlockKind:
-	// 	prefix = "i_"
-	// }
-	return prefix + xid.New().String()
 }
