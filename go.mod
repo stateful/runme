@@ -8,7 +8,6 @@ require (
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/rogpeppe/go-internal v1.9.0
-	github.com/rs/xid v1.4.0
 	github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef
 	github.com/yuin/goldmark v1.4.12
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0

@@ -195,38 +195,6 @@ func Test_serializeCells_nestedCode(t *testing.T) {
 	)
 }
 
-func Test_serializeCells_insertCodeInListItem(t *testing.T) {
-	data := []byte(`# Examples
-
-1. Item 1
-2. Item 2
-3. Item 3
-
-End paragraph.
-`)
-
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
-	cells := toCells(node, data)
-	assert.Len(t, cells, 3)
-
-	// TODO: from the user perspective, they should split the list cell first and
-	// then add a code cell in between.
-}
-
-func Test_serializeCells_testDataNested(t *testing.T) {
-	doc := document.New(testDataNested, cmark.Render)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
-	cells := toCells(node, testDataNested)
-	assert.Equal(
-		t,
-		string(testDataNested),
-		string(serializeCells(cells)),
-	)
-}
-
 func Test_serializeCells_addLine(t *testing.T) {
 	data := []byte(`# Examples
 

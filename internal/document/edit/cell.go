@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rs/xid"
 	"github.com/stateful/runme/internal/document"
 	"github.com/yuin/goldmark/ast"
 )
@@ -60,11 +59,6 @@ func toCellsRec(
 					*cells = append(*cells, &Cell{
 						Kind:  MarkupKind,
 						Value: string(block.Value()),
-						Metadata: map[string]any{
-							"_id":   genUUID(),
-							"_kind": "list",
-							"_type": "compound",
-						},
 					})
 				} else {
 					for _, listItemNode := range child.Children() {
@@ -74,21 +68,9 @@ func toCellsRec(
 						if nodeWithCode != nil {
 							toCellsRec(listItemNode, cells, source)
 						} else {
-							metadata := map[string]any{
-								"_id":   genUUID(),
-								"_kind": "listItem",
-								"_type": "compound",
-							}
-
-							inTightListItem := listItemNode.Item().Unwrap().ChildCount() == 1
-							if inTightListItem {
-								metadata["_tight"] = true
-							}
-
 							*cells = append(*cells, &Cell{
-								Kind:     MarkupKind,
-								Value:    string(listItemNode.Item().Value()),
-								Metadata: metadata,
+								Kind:  MarkupKind,
+								Value: string(listItemNode.Item().Value()),
 							})
 						}
 					}
@@ -104,22 +86,11 @@ func toCellsRec(
 					*cells = append(*cells, &Cell{
 						Kind:  MarkupKind,
 						Value: string(block.Value()),
-						Metadata: map[string]any{
-							"_id":   genUUID(),
-							"_kind": "blockquote",
-							"_type": "compound",
-						},
 					})
 				}
 			}
 
 		case *document.CodeBlock:
-			metadata := map[string]any{
-				"_id":   genUUID(),
-				"_kind": "code",
-				"_type": "simple",
-			}
-
 			value := block.Value()
 
 			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
@@ -144,24 +115,15 @@ func toCellsRec(
 				}
 
 				value = append(prefix, value...)
-			} else if isListItem {
-				metadata["_prefix"] = "   "
 			}
 
 			*cells = append(*cells, &Cell{
-				Kind:     CodeKind,
-				Value:    string(value),
-				LangID:   block.Language(),
-				Metadata: metadata,
+				Kind:   CodeKind,
+				Value:  string(value),
+				LangID: block.Language(),
 			})
 
 		case *document.MarkdownBlock:
-			metadata := map[string]any{
-				"_id":   genUUID(),
-				"_kind": "markdown",
-				"_type": "simple",
-			}
-
 			value := block.Value()
 
 			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
@@ -186,21 +148,14 @@ func toCellsRec(
 				}
 
 				value = append(prefix, value...)
-			} else if isListItem {
-				metadata["_prefix"] = "   "
 			}
 
 			*cells = append(*cells, &Cell{
-				Kind:     MarkupKind,
-				Value:    string(value),
-				Metadata: metadata,
+				Kind:  MarkupKind,
+				Value: string(value),
 			})
 		}
 	}
-}
-
-func genUUID() string {
-	return xid.New().String()
 }
 
 func countTrailingNewLines(b []byte) int {
@@ -215,13 +170,88 @@ func countTrailingNewLines(b []byte) int {
 	return count
 }
 
+func isBetweenListItems(cells []*Cell, idx int) (int, int, bool) {
+	if idx == 0 || idx >= len(cells)-1 {
+		return -1, -1, false
+	}
+
+	prev := cells[idx-1]
+
+	for i := idx + 1; i < len(cells); i++ {
+		next := cells[i]
+
+		// Between bullet list items
+		if prev.Value[0:1] == "* " && next.Value[0:1] == "* " {
+			return idx - 1, i, true
+		}
+
+		// Between ordered list items
+		numberPrevStop := strings.Index(prev.Value, ". ")
+		numberNextStop := strings.Index(next.Value, ". ")
+		if numberPrevStop == -1 || numberNextStop == -1 {
+			continue
+		}
+		prevNumber, err := strconv.Atoi(prev.Value[0:numberPrevStop])
+		if err != nil {
+			return -1, -1, false
+		}
+		nextNumber, err := strconv.Atoi(next.Value[0:numberNextStop])
+		if err != nil {
+			continue
+		}
+		if nextNumber-prevNumber == 1 {
+			return idx - 1, i, true
+		}
+	}
+	return -1, -1, false
+}
+
+func isInTightList(cells []*Cell, idx int) bool {
+	if idx >= len(cells)-1 {
+		return false
+	}
+
+	cell := cells[idx]
+	next := cells[idx+1]
+
+	// Between bullet list items
+	if cell.Value[0:1] == "* " && next.Value[0:1] == "* " {
+		return true
+	}
+
+	// Between ordered list items
+	numberPrevStop := strings.Index(cell.Value, ". ")
+	numberNextStop := strings.Index(next.Value, ". ")
+	if numberPrevStop == -1 || numberNextStop == -1 {
+		return false
+	}
+	cellNumber, err := strconv.Atoi(cell.Value[0:numberPrevStop])
+	if err != nil {
+		return false
+	}
+	nextNumber, err := strconv.Atoi(next.Value[0:numberNextStop])
+	if err != nil {
+		return false
+	}
+	if nextNumber-cellNumber == 1 {
+		return true
+	}
+	return false
+}
+
 func serializeCells(cells []*Cell) []byte {
 	var buf bytes.Buffer
 
+	prefix := ""
+	prefixReset := map[int]func(string) string{}
+
 	for idx, cell := range cells {
-		prefix := ""
-		if p, ok := cell.Metadata["_prefix"].(string); ok && p != "" {
-			prefix = p
+		if _, stop, ok := isBetweenListItems(cells, idx); ok {
+			prefix += "   "
+			prefixReset[stop] = func(s string) string { return s[0 : len(s)-3] }
+		}
+		if fn, ok := prefixReset[idx]; ok {
+			prefix = fn(prefix)
 		}
 
 		s := bufio.NewScanner(strings.NewReader(cell.Value))
@@ -234,7 +264,7 @@ func serializeCells(cells []*Cell) []byte {
 		if idx != len(cells)-1 {
 			nlCount := countTrailingNewLines(buf.Bytes())
 			nlRequired := 2
-			if val, ok := cell.Metadata["_tight"].(bool); ok && val {
+			if isInTightList(cells, idx) {
 				nlRequired = 1
 			}
 			for i := nlCount; i < nlRequired; i++ {

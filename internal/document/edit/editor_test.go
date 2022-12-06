@@ -13,7 +13,11 @@ func TestEditor(t *testing.T) {
 	require.NoError(t, err)
 	result, err := e.Serialize(notebook)
 	require.NoError(t, err)
-	assert.Equal(t, string(testDataNested), string(result))
+	assert.Equal(
+		t,
+		string(testDataNested),
+		string(result),
+	)
 }
 
 func TestEditor_list(t *testing.T) {
