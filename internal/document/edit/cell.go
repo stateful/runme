@@ -2,6 +2,7 @@ package edit
 
 import (
 	"bytes"
+	"log"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
@@ -32,11 +33,11 @@ type Notebook struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
-func applyCells(node *document.Node, cells []*Cell) {
+func applyCells(root *document.Node, cells []*Cell) {
 	var blockIds btree.Map[string, bool]
 	// TODO: FindNode is used as iterator. Propose a new function.
-	_ = document.FindNode(node, func(n *document.Node) bool {
-		if node == n {
+	_ = document.FindNode(root, func(n *document.Node) bool {
+		if root == n {
 			return false
 		}
 		if n.Item() != nil {
@@ -44,36 +45,40 @@ func applyCells(node *document.Node, cells []*Cell) {
 		}
 		return false
 	})
+	log.Printf("found blockIDs: %+v", blockIds.Keys())
 
 	var lastNode *document.Node
 	for _, cell := range cells {
+		log.Printf("processing a cell: %+v", cell)
+
 		bid, ok := cell.Metadata["_blockId"].(string)
 		// A new cell is found.
 		if !ok || bid == "" {
+			log.Printf("new cell discovered")
+
 			doc := document.New([]byte(cell.Value), cmark.Render)
 			newNode, _, _ := doc.Parse()
 
 			if lastNode != nil {
-				for _, child := range newNode.Children() {
-					idx := lastNode.Index()
-					lastNode.Parent().InsertAt(idx+1, child.Item())
+				idx := lastNode.Index()
+				for j, child := range newNode.Children() {
+					lastNode.Parent().InsertAt(idx+j+1, child.Item())
 					lastNode = child
 				}
 			} else {
-				doc := document.New([]byte(cell.Value), cmark.Render)
-				newNode, _, _ := doc.Parse()
 				for idx, child := range newNode.Children() {
-					node.InsertAt(idx, child.Item())
+					root.InsertAt(idx, child.Item())
 					lastNode = child
 				}
 			}
 			continue
 		}
 		// Trying to find a node and change its value.
-		node := document.FindNode(node, func(n *document.Node) bool {
+		node := document.FindNode(root, func(n *document.Node) bool {
 			return n.Item() != nil && n.Item().ID() == bid
 		})
 		if node == nil {
+			log.Printf("node for blockID %s not found", bid)
 			continue
 		}
 		// If the number of new lines is different,
@@ -83,16 +88,24 @@ func applyCells(node *document.Node, cells []*Cell) {
 		newLinesCount := bytes.Count([]byte(cell.Value), []byte{'\n'})
 		if currentLinesCount != newLinesCount {
 			idx := node.Index()
+			parent := node.Parent()
+
+			log.Printf("replacing node at index: %d", idx)
 
 			doc := document.New([]byte(cell.Value), cmark.Render)
 			newNode, _, _ := doc.Parse()
-			for _, child := range newNode.Children() {
-				node.Parent().InsertAt(idx, child.Item())
-				lastNode = child
+			if len(newNode.Children()) != 1 {
+				log.Printf("cannot convert single cell to multiple nodes")
+				continue
+			} else {
+				newNode := newNode.Children()[0]
+				// TODO: set _blockId to bid in newNode
+				parent.InsertAt(idx, newNode.Item())
+				lastNode = newNode
+				parent.Remove(node)
 			}
-
-			node.Parent().Remove(node)
 		} else {
+			log.Printf("setting value: %s (old value: %s)", cell.Value, node.Item().Value())
 			node.Item().SetValue([]byte(cell.Value))
 			lastNode = node
 		}
@@ -103,6 +116,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 			blockIds.Set(n.Item().ID(), true)
 			return false
 		})
+		log.Printf("marked blockID %s as visited", bid)
 	}
 
 	// Make inner blocks as visited if all their children are visited.
@@ -110,7 +124,7 @@ func applyCells(node *document.Node, cells []*Cell) {
 		if visited {
 			return true
 		}
-		node := document.FindNode(node, func(n *document.Node) bool {
+		node := document.FindNode(root, func(n *document.Node) bool {
 			return n.Item().ID() == id
 		})
 		if len(node.Children()) == 0 {
@@ -130,10 +144,11 @@ func applyCells(node *document.Node, cells []*Cell) {
 		if visited {
 			return true
 		}
-		node := document.FindNode(node, func(n *document.Node) bool {
+		node := document.FindNode(root, func(n *document.Node) bool {
 			return n.Item() != nil && n.Item().ID() == id
 		})
 		if node != nil {
+			log.Printf("removing a node: %s with blockID: %s", node.String(), id)
 			node.Parent().Remove(node)
 		}
 		return true

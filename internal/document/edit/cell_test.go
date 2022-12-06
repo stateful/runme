@@ -190,6 +190,60 @@ func Test_applyCells_testDataNested(t *testing.T) {
 	)
 }
 
+func Test_applyCells_addLine(t *testing.T) {
+	data := []byte(`# Examples
+
+Paragraph 1
+Paragraph 2
+`)
+
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	cells := toCells(node, data)
+	assert.Len(t, cells, 2)
+
+	cells[1].Value = "Paragraph 1\nParagraph 2\nParagraph 3\n"
+	applyCells(node, cells)
+	assert.Equal(
+		t,
+		`# Examples
+
+Paragraph 1
+Paragraph 2
+Paragraph 3
+`,
+		node.String(),
+	)
+}
+
+func Test_applyCells_insertListItem(t *testing.T) {
+	data := []byte(`# Examples
+
+1. Item 1
+2. Item 2
+`)
+
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	cells := toCells(node, data)
+	assert.Len(t, cells, 2)
+
+	cells[1].Value = "1. Item 1\n2. Item 2\n 3. Item 3\n"
+	applyCells(node, cells)
+	assert.Equal(
+		t,
+		`# Examples
+
+1. Item 1
+2. Item 2
+3. Item 3
+`,
+		node.String(),
+	)
+}
+
 func Test_applyCells_insertCodeInListItem(t *testing.T) {
 	data := []byte(`# Examples
 

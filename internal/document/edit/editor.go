@@ -27,6 +27,14 @@ func (e *Editor) Serialize(notebook *Notebook) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	applyCells(node, notebook.Cells)
-	return []byte(node.String()), nil
+
+	result := node.Bytes()
+	e.doc = document.New(result, cmark.Render)
+	_, _, err = e.doc.Parse()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

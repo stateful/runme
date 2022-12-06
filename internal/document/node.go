@@ -1,6 +1,8 @@
 package document
 
-import "strings"
+import (
+	"bytes"
+)
 
 type Node struct {
 	children []*Node
@@ -71,15 +73,19 @@ func (n *Node) Remove(nodeToRemove *Node) bool {
 	return true
 }
 
-func (n *Node) String() string {
-	var b strings.Builder
+func (n *Node) Bytes() []byte {
+	var b bytes.Buffer
 	for idx, child := range n.children {
-		_, _ = b.WriteString(string(child.Item().Value()))
+		_, _ = b.Write(child.Item().Value())
 		if idx != len(n.children)-1 {
 			_ = b.WriteByte('\n')
 		}
 	}
-	return b.String()
+	return b.Bytes()
+}
+
+func (n *Node) String() string {
+	return string(n.Bytes())
 }
 
 func (n *Node) add(item Block) *Node {
