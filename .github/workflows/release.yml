@@ -1,0 +1,61 @@
+name: release
+on:
+  push:
+    tags:
+      - "*"
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      deployments: write
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Prepare
+        id: prepare
+        run: |
+          # Get rid of v prefix.
+          ref_name="${GITHUB_REF_NAME/v/}"
+          echo "version=$ref_name" >> $GITHUB_ENV
+
+          # Check if tag is a valid semver without any suffixes; it must not be a pre-release.
+          if [[ "$ref_name" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "pre_release=false" >> $GITHUB_ENV
+          fi
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18"
+      - name: Auth to GCP
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v0
+      - name: Release notes
+        run: |
+          go run ./cmd/release-notes/main.go -version "${GITHUB_REF_NAME}" > ${{ runner.temp }}/releasenotes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --release-notes=${{ runner.temp }}/releasenotes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          SCOOP_BUCKET_GITHUB_TOKEN: ${{ secrets.SCOOP_BUCKET_GITHUB_TOKEN }}
+      - name: Copy to latest
+        if: env.pre_release == 'false'
+        run: gsutil -m cp "gs://runme-artifacts-41eac6/${{ env.version }}/*" gs://runme-artifacts-41eac6/latest

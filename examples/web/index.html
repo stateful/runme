@@ -1,0 +1,47 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="wasm_exec.js"></script>
+    <script>
+      function b64DecodeUnicode(str) {
+        // Going backwards: from bytestream, to percent-encoding, to original string.
+        return decodeURIComponent(
+          atob(str)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+      }
+      const markdown = b64DecodeUnicode(
+        "IyBUb3J0dWdhIEFQSQoKVGhlIEFQSSBidWlsdCBmb3IgW1RvcnR1Z2EgUHJvdG90eXBlXShodHRwczovL3d3dy5ub3Rpb24uc28vc3RhdGVmdWxocS9Ub3J0dWdhLVByb3RvdHlwZS1jNDA2ZGQ1ZmExYWQ0NTJkYmExNTU2MGE2Y2VhZDVmOSkuCgo+ICoqV2FybmluZyEqKiBBbGwgY29kZSBzbmlwcGV0cyBiZWxvdyBhc3N1bWUgeW91J3JlIGluIHRoZSAqKmAuL2FwaWAqKiBkaXJlY3RvcnkuCgojIyBTdGFydAoKRmlyc3QsIGluc3RhbGwgZGV2IGRlcGVuZGVuY2llczoKCmBgYHNoIHsgbmFtZT1pbnN0YWxsIH0KYnJldyBidW5kbGUKYGBgCgpOZXh0IHJ1biBkZXBlbmRlbmNpZXM6CgpgYGBzaCB7IG5hbWU9ZG9ja2VyLWNvbXBvc2UgfQokIGRvY2tlciBjb21wb3NlIHVwIC1kCmBgYAoKVGhlbiB5b3Ugc2hvdWxkIGJlIGFibGUgdG8gc3VjY2Vzc2Z1bGx5IHJ1bjoKCmBgYHNoIHsgbmFtZT1ydW4gfQokIGVjaG8gIlJ1bm5pbmciCiQgZ28gcnVuIC4vY21kL2FwaS9tYWluLmdvCjIwMjIvMDUvMTAgMTI6MTg6MTggc3RhcnRpbmcgdG8gbGlzdGVuIG9uOiA6ODA4MApgYGAKCiMjIERldmVsb3BtZW50Cgo+IEN1cnJlbnRseSwgVlMgQ29kZSBhbmQgR28gZXh0ZW5zaW9uIHJlcXVpcmUgb3BlbmluZyBgLi9hcGlgIGFzIGEgcHJvamVjdCByb290IGRpcmVjdG9yeSB0byB3b3JrIHByb3Blcmx5Lgo+IFlvdSBjYW4gdXNlIFdvcmtzcGFjZXMgdG8gb3BlbiB0aGUgcHJvamVjdCByb290IGRpcmVjdG9yeSBhbmQgYC4vYXBpYCBhcyBhIHNlY29uZCBmb2xkZXIuCgpUcnkgdXNpbmcgW3dhdGNoZXhlY10oaHR0cHM6Ly9naXRodWIuY29tL3dhdGNoZXhlYy93YXRjaGV4ZWMpIHRvIGF1dG9yZWxvYWQuCgpgYGBzaCB7IG5hbWU9d2F0Y2ggfQp3YXRjaGV4ZWMgLXIgLWUgZ28gLS0gZ28gcnVuIC4vY21kL2FwaS9tYWluLmdvCmBgYAoKIyMgRGVwbG95bWVudAoKRGVwbG95bWVudHMgYXJlIG1hbmFnZWQgd2l0aCBUZXJyYWZvcm0uIEdvIHRvIFtpbmZyYV0oLi4vaW5mcmEpIHRvIGxlYXJuIGhvdyB0byBydW4gaXQuCgpbaW5mcmFdKC4uL2luZnJhKSBhdXRvbWF0aWNhbGx5IGRpc2NvdmVycyBpZiBzb3VyY2UgZmlsZXMgb2YgdGhlIGFwaSBjaGFuZ2VkLiBJZiBzbywgaXQgdHJpZ2dlcnMgYSBEb2NrZXIgaW1hZ2UgYnVpbGQgYW5kIHVwZGF0ZXMgYSBDbG91ZCBSdW4gc2VydmljZS4KCiMjIERhdGFiYXNlCgpJdCB1c2VzIFBvc3RncmVTUUwuCgojIyMgTWlncmF0aW9ucwoKW0F0bGFzIENMSV0oaHR0cHM6Ly9hdGxhc2dvLmlvL2NsaS9nZXR0aW5nLXN0YXJ0ZWQvc2V0dGluZy11cCkgaXMgdXNlZCB0byBtYW5hZ2UgZGF0YWJhc2UgbWlncmF0aW9ucyBpbiBhIGRlY2xhcmF0aXZlIHdheS4KCk1pZ3JhdGlvbnMgYXJlIHJ1biBhdXRvbWF0aWNhbGx5IGJ5IHRoZSBBUEkgc2VydmVyIHByb2Nlc3MuCgpJbiBhIGNhc2UgeW91IHdhbnQgdG8gcnVuIHRoZW0gbWFudWFsbHkgYW5kIHJlLXVzZSBQb3N0Z3JlcyBmcm9tIERvY2tlciBDb21wb3NlOgoKYGBgc2ggeyBuYW1lPW1pZ3JhdGUgfQokIGF0bGFzIHNjaGVtYSBhcHBseSAtdSAicG9zdGdyZXM6Ly9wb3N0Z3Jlczpwb3N0Z3Jlc0Bsb2NhbGhvc3Q6MTU0MzIvdG9ydHVnYT9zc2xtb2RlPWRpc2FibGUiIC1mIGF0bGFzLmhjbApgYGAKCiMjIEFQSQoKPiBFYWNoIGluc2VydCBhY2NlcHRzIGFsc28gYHVzZXJfaWRgIHdoaWNoIGlzIG51bGxhYmxlIGZvciBub3cuCj4gQWxsIGVuZHBvaW50cyBpbXBsZW1lbnQgYWxzbyBgR0VUYCBtZXRob2QgdG8gcmV0dXJuIGFsbCBjb2xsZWN0ZWQgcmVzdWx0cyBzbyBmYXIgc3RhcnRpbmcgZnJvbSB0aGUgbW9zdCByZWNlbnQuCgojIyMgVGFza3MKCkluc2VydGluZyB0YXNrIGV4ZWN1dGlvbiBtZXRhZGF0YToKCmBgYHNoIHsgbmFtZT1wb3N0LXRhc2sgfQokIGN1cmwgLVhQT1NUIC1IICJDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL2pzb24iIGxvY2FsaG9zdDo4MDgwL3Rhc2tzLyAtZCAneyJkdXJhdGlvbiI6ICIxMHMiLCAiZXhpdF9jb2RlIjogMCwgIm5hbWUiOiAiUnVuIHRhc2siLCAicnVuYm9va19uYW1lIjogIlJCIDEiLCAicnVuYm9va19ydW5faWQiOiAiNmU5NzVmMWItMGMwZi00NzY1LWIyNGEtMmFhODdiOTAxYzA2IiwgInN0YXJ0X3RpbWUiOiAiMjAyMi0wNS0wNVQwNDoxMjo0M1oiLCAiY29tbWFuZCI6ICIvYmluL3NoIiwgImFyZ3MiOiAiZWNobyBoZWxsbyIsICJmZWVkYmFjayI6ICJ0aGlzIGlzIGNvb2whIiwgImV4dHJhIjogIntcImhlbGxvXCI6IFwid29ybGRcIn0ifScKeyJpZCI6IjZlOTc1ZjFiLTBjMGYtNDc2NS1iMjRhLTJhYTg3YjkwMWMwNiJ9CmBgYAoKQSB0YXNrIGNhbiBiZSBwYXRjaGVkOgoKYGBgc2ggeyBuYW1lPXBhdGNoLXRhc2sgfQokIGN1cmwgLVggUEFUQ0ggLUggIkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24vanNvbiIgbG9jYWxob3N0OjgwODAvdGFza3MvNmU5NzVmMWItMGMwZi00NzY1LWIyNGEtMmFhODdiOTAxYzA2LyAtZCAneyJkdXJhdGlvbiI6ICIxNXMiLCAiZXhpdF9jb2RlIjogMX0nCnsiaWQiOiI2ZTk3NWYxYi0wYzBmLTQ3NjUtYjI0YS0yYWE4N2I5MDFjMDYifQpgYGAKCiMjIyBGZWVkYmFjawoKSW5zZXJ0aW5nIGZlZWRiYWNrIGNhbiBvcHRpb25hbGx5IHRha2UgYSBgdGFza19pZGA6CgpgYGBzaCB7IG5hbWU9cG9zdC1mZWVkYmFjayB9CiQgY3VybCAtWFBPU1QgLUggIkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24vanNvbiIgbG9jYWxob3N0OjgwODAvZmVlZGJhY2svIC1kICd7Im1lc3NhZ2UiOiAiTXkgZmVlZGJhY2shIiwgInRhc2tfaWQiOiAiNmU5NzVmMWItMGMwZi00NzY1LWIyNGEtMmFhODdiOTAxYzA2In0nCnsiaWQiOiJhMDJiNmI1Zi00NmM0LTQwZmYtODE2MC1mZjdkNTViOGNhNmYifQpgYGAKCkZlZWRiYWNrIGNhbiBiZSBwYXRjaGVkOgoKYGBgc2ggeyBuYW1lPXBhdGNoLWZlZWRiYWNrIH0KJCBjdXJsIC1YIFBBVENIIC1IICJDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL2pzb24iIGxvY2FsaG9zdDo4MDgwL2ZlZWRiYWNrL2EwMmI2YjVmLTQ2YzQtNDBmZi04MTYwLWZmN2Q1NWI4Y2E2Zi8gLWQgJ3sibWVzc2FnZSI6ICJNb2RpZmllZCEifScKeyJpZCI6ImEwMmI2YjVmLTQ2YzQtNDBmZi04MTYwLWZmN2Q1NWI4Y2E2ZiJ9CmBgYAoKIyMjIEVkaXRvciBjb25maWdzCgpJbnNlcnRpbmcgZWRpdG9yIGNvbmZpZ3M6CgpgYGBzaCB7IG5hbWU9cG9zdC1lZGl0b3ItY29uZmlnIH0KJCBjdXJsIC1YUE9TVCAtSCAiQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi9qc29uIiBsb2NhbGhvc3Q6ODA4MC9lZGl0b3ItY29uZmlncy8gLWQgJ3siZGF0YSI6ICJ7XCJmaWxlcy5hdXRvU2F2ZVwiOiBcImFmdGVyRGVsYXlcIn0ifScKeyJpZCI6IjRjN2Q2ZmI1LWViNTMtNDRmNy04ODgzLTgwZjI3NmFmNjVhMSJ9CmBgYAo="
+      );
+      const go = new Go();
+      WebAssembly.instantiateStreaming(fetch("runme.wasm"), go.importObject).then(async (obj) => {
+        go.run(obj.instance);
+
+        let notebook;
+
+        try {
+          notebook = await Runme.deserialize(markdown);
+          console.log("notebook", notebook);
+        } catch (err) {
+          console.error("caught Runme.deserialize error", err);
+        }
+
+        try {
+          // Note that we pass a JSON string to to Runme.serialize.
+          // It could be avoided but then a cumbersome conversion of
+          // a JS object into a Go object would be needed.
+          let formattedMarkdown = await Runme.serialize(JSON.stringify(notebook));
+          console.log("formatted Markdown", formattedMarkdown);
+          document.body.innerHTML = "<pre><code>" + formattedMarkdown + "</pre></code>";
+        } catch (err) {
+          console.error("caught Runme.serialize error", err);
+        }
+      });
+    </script>
+  </head>
+  <body></body>
+</html>

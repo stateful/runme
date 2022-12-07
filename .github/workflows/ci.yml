@@ -1,0 +1,89 @@
+name: ci
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ["1.19"]
+    name: Lint with Go ${{ matrix.go }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Install dependencies
+        run: make install/dev
+      # It duplicates running linter from pre-commit
+      # but as revive is set up differently, we want
+      # to make sure that `make lint` also works.
+      - name: Run lint from Makefile
+        run: make lint
+      - uses: pre-commit/action@v2.0.3
+      - name: pre-commit
+        run: pre-commit run --files $(git diff-tree --no-commit-id --name-only -r HEAD)
+
+  build-and-test:
+    # Don't use make here as this job needs to be cross-platform.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go: ["1.19"]
+        os: [ubuntu-latest, windows-latest]
+    name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Build
+        run: |
+          go build -o runme main.go
+          ./runme --version
+      - name: Test
+        run: SHELL=/bin/bash TZ=UTC go test ./...
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Test
+        run: |
+          Set-Timezone -Id "UTC" -PassThru
+          go test ./...
+        if: ${{ matrix.os == 'windows-latest' }}
+
+  build-and-robustness-test:
+    name: Test parser against vast amount of READMEs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Node version
+        uses: actions/setup-node@v1
+        with:
+          node-version: 18
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ">=1.19"
+      - name: Install dependencies
+        run: make install/dev
+      - name: Build
+        run: |
+          go build -o runme main.go
+          ./runme --version
+      - name: Run robustness test
+        run: make test/robustness
+        timeout-minutes: 5
+      # - name: 🐛 Debug Build
+      #   uses: stateful/vscode-server-action@v1
+      #   if: failure()

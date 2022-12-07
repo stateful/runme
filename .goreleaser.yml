@@ -1,0 +1,132 @@
+project_name: runme
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+builds:
+  - id: cli
+    main: .
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - 386
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.BuildDate={{ .CommitDate }} -X main.BuildVersion={{.Version}} -X main.Commit={{.Commit}}
+  - id: wasm
+    main: ./web
+    goos:
+      - js
+    goarch:
+      - wasm
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.BuildDate={{ .CommitDate }} -X main.BuildVersion={{.Version}} -X main.Commit={{.Commit}}
+
+release:
+  prerelease: auto
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore"
+      - Merge pull request
+      - Merge branch
+      - go mod tidy
+
+archives:
+  - id: cli
+    builds:
+      - cli
+      - wasm
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    replacements:
+      386: i386
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+
+blobs:
+  - provider: gs
+    bucket: runme-artifacts-41eac6
+    ids:
+      - cli
+    folder: "{{ .Version }}"
+
+brews:
+  - name: runme
+    ids:
+      - cli
+    homepage: https://stateful.com
+    description: "Execute code snippets directly from Markdown files."
+    tap:
+      owner: stateful
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
+    dependencies: []
+    skip_upload: auto
+    folder: Formula
+    download_strategy: CurlDownloadStrategy
+    commit_author:
+      name: release-bot
+      email: bot@stateful.com
+    install: |
+      bin.install "runme"
+      (bash_completion/"runme").write `#{bin}/runme completion bash`
+      (fish_completion/"runme.fish").write `#{bin}/runme completion fish`
+      (zsh_completion/"_runme").write `#{bin}/runme completion zsh`
+    test: |
+      assert_match "runme #{version}", shell_output("#{bin}/runme version")
+
+nfpms:
+  - id: cli
+    package_name: runme
+    builds:
+      - cli
+    replacements:
+      386: i386
+      amd64: x86_64
+    vendor: Stateful Inc.
+    homepage: https://stateful.com
+    maintainer: Adam Babik <adam.babik@stateful.com>
+    description: "Execute code snippets directly from Markdown files."
+    file_name_template: "{{ .PackageName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}"
+    formats:
+      - deb
+      - apk
+      - rpm
+
+scoop:
+  url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
+  bucket:
+    owner: stateful
+    name: scoop-bucket
+    token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
+  commit_author:
+    name: release-bot
+    email: bot@stateful.com
+  homepage: "https://stateful.com"
+  description: "Execute code snippets directly from Markdown files."
+  skip_upload: auto
