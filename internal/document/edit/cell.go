@@ -170,130 +170,12 @@ func countTrailingNewLines(b []byte) int {
 	return count
 }
 
-var (
-	bulletMarkers  = []string{"- ", "* "}
-	orderedMarkers = []string{". ", ") "}
-)
-
-func isBetweenListItems(cells []*Cell, idx int) (int, int, bool) {
-	if idx <= 0 || idx >= len(cells)-1 {
-		return -1, -1, false
-	}
-
-	prev := cells[idx-1]
-
-	// Only patterns like "MARKER " and "NUMBER. " are checked
-	// which means that the value must be at least 2 characters.
-	if len(prev.Value) < 2 {
-		return -1, -1, false
-	}
-
-	for i := idx + 1; i < len(cells); i++ {
-		next := cells[i]
-		if len(next.Value) < 2 {
-			continue
-		}
-
-		// Between bullet list items
-		for _, marker := range bulletMarkers {
-			if prev.Value[0:2] == marker && next.Value[0:2] == marker {
-				return idx - 1, i, true
-			}
-		}
-
-		// Between ordered list items
-		numberPrevStop, numberNextStop := -1, -1
-		for _, marker := range orderedMarkers {
-			prevIdx := strings.Index(prev.Value, marker)
-			nextIdx := strings.Index(next.Value, marker)
-			if prevIdx > -1 && nextIdx > -1 {
-				numberPrevStop = prevIdx
-				numberNextStop = nextIdx
-				break
-			}
-		}
-		if numberPrevStop == -1 || numberNextStop == -1 {
-			continue
-		}
-		prevNumber, err := strconv.Atoi(prev.Value[0:numberPrevStop])
-		if err != nil {
-			return -1, -1, false
-		}
-		nextNumber, err := strconv.Atoi(next.Value[0:numberNextStop])
-		if err != nil {
-			continue
-		}
-		if nextNumber-prevNumber == 1 {
-			return idx - 1, i, true
-		}
-	}
-	return -1, -1, false
-}
-
-func isInTightList(cells []*Cell, idx int) bool {
-	if idx < 0 || idx >= len(cells)-1 {
-		return false
-	}
-
-	cell := cells[idx]
-	next := cells[idx+1]
-
-	// Only patterns like "MARKER " and "NUMBER. " are checked
-	// which means that the value must be at least 2 characters.
-	if len(cell.Value) < 2 || len(next.Value) < 2 {
-		return false
-	}
-
-	// Between bullet list items
-	for _, marker := range bulletMarkers {
-		if cell.Value[0:2] == marker && next.Value[0:2] == marker {
-			return true
-		}
-	}
-
-	// Between ordered list items
-	numberPrevStop, numberNextStop := -1, -1
-	for _, marker := range orderedMarkers {
-		prevIdx := strings.Index(cell.Value, marker)
-		nextIdx := strings.Index(next.Value, marker)
-		if prevIdx > -1 && nextIdx > -1 {
-			numberPrevStop = prevIdx
-			numberNextStop = nextIdx
-			break
-		}
-	}
-	if numberPrevStop == -1 || numberNextStop == -1 {
-		return false
-	}
-	cellNumber, err := strconv.Atoi(cell.Value[0:numberPrevStop])
-	if err != nil {
-		return false
-	}
-	nextNumber, err := strconv.Atoi(next.Value[0:numberNextStop])
-	if err != nil {
-		return false
-	}
-	return nextNumber-cellNumber == 1
-}
-
 func serializeCells(cells []*Cell) []byte {
 	var buf bytes.Buffer
 
-	prefix := ""
-	prefixReset := map[int]func(string) string{}
-
 	for idx, cell := range cells {
-		if _, stop, ok := isBetweenListItems(cells, idx); ok {
-			prefix += "   "
-			prefixReset[stop] = func(s string) string { return s[0 : len(s)-3] }
-		}
-		if fn, ok := prefixReset[idx]; ok {
-			prefix = fn(prefix)
-		}
-
 		s := bufio.NewScanner(strings.NewReader(cell.Value))
 		for s.Scan() {
-			_, _ = buf.WriteString(prefix)
 			_, _ = buf.Write(s.Bytes())
 			_ = buf.WriteByte('\n')
 		}
@@ -301,9 +183,6 @@ func serializeCells(cells []*Cell) []byte {
 		if idx != len(cells)-1 {
 			nlCount := countTrailingNewLines(buf.Bytes())
 			nlRequired := 2
-			if isInTightList(cells, idx) {
-				nlRequired = 1
-			}
 			for i := nlCount; i < nlRequired; i++ {
 				_ = buf.WriteByte('\n')
 			}

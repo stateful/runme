@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testDataNested = []byte(`# Examples
+var (
+	testDataNested = []byte(`# Examples
 
 It can have an annotation with a name:
 
@@ -37,6 +38,37 @@ $ echo "Hello, runme!"
 2. Item 2
 3. Item 3
 `)
+
+	testDataNestedFlattened = []byte(`# Examples
+
+It can have an annotation with a name:
+
+` + "```" + `sh {name=echo first= second=2}
+$ echo "Hello, runme!"
+` + "```" + `
+
+> bq 1
+> bq 2
+>
+>     echo 1
+>
+> b1 3
+
+1. Item 1
+
+` + "```" + `sh {name=echo first= second=2}
+$ echo "Hello, runme!"
+` + "```" + `
+
+First inner paragraph
+
+Second inner paragraph
+
+2. Item 2
+
+3. Item 3
+`)
+)
 
 func Test_toCells(t *testing.T) {
 	t.Run("TestDataNested", func(t *testing.T) {
@@ -190,7 +222,16 @@ func Test_serializeCells_nestedCode(t *testing.T) {
 	cells := toCells(node, testDataNested)
 	assert.Equal(
 		t,
-		string(data),
+		`# Example
+
+1. Item
+
+`+"```sh"+`
+echo 1
+`+"```"+`
+
+2. Item
+`,
 		string(serializeCells(cells)),
 	)
 }

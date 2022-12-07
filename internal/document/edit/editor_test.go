@@ -15,7 +15,7 @@ func TestEditor(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		string(testDataNested),
+		string(testDataNestedFlattened),
 		string(result),
 	)
 }
