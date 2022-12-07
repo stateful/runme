@@ -1,10 +1,8 @@
 package edit
 
 import (
-	"bufio"
 	"bytes"
 	"strconv"
-	"strings"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/yuin/goldmark/ast"
@@ -38,6 +36,10 @@ func toCells(node *document.Node, source []byte) (result []*Cell) {
 	return
 }
 
+func fmtValue(s []byte) string {
+	return string(trimRightNewLine(s))
+}
+
 func toCellsRec(
 	node *document.Node,
 	cells *[]*Cell,
@@ -58,7 +60,7 @@ func toCellsRec(
 				if nodeWithCode == nil {
 					*cells = append(*cells, &Cell{
 						Kind:  MarkupKind,
-						Value: string(block.Value()),
+						Value: fmtValue(block.Value()),
 					})
 				} else {
 					for _, listItemNode := range child.Children() {
@@ -70,7 +72,7 @@ func toCellsRec(
 						} else {
 							*cells = append(*cells, &Cell{
 								Kind:  MarkupKind,
-								Value: string(listItemNode.Item().Value()),
+								Value: fmtValue(listItemNode.Item().Value()),
 							})
 						}
 					}
@@ -85,41 +87,15 @@ func toCellsRec(
 				} else {
 					*cells = append(*cells, &Cell{
 						Kind:  MarkupKind,
-						Value: string(block.Value()),
+						Value: fmtValue(block.Value()),
 					})
 				}
 			}
 
 		case *document.CodeBlock:
-			value := block.Value()
-
-			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
-
-			if childIdx == 0 && isListItem {
-				listItem := node.Item().Unwrap().(*ast.ListItem)
-				list := listItem.Parent().(*ast.List)
-				isBulletList := list.Start == 0
-
-				var prefix []byte
-
-				if isBulletList {
-					prefix = append(prefix, []byte{list.Marker, ' '}...)
-				} else {
-					itemNumber := list.Start
-					tmp := child.Item().Unwrap()
-					for tmp.PreviousSibling() != nil {
-						tmp = tmp.PreviousSibling()
-						itemNumber++
-					}
-					prefix = append([]byte(strconv.Itoa(itemNumber)), '.', ' ')
-				}
-
-				value = append(prefix, value...)
-			}
-
 			*cells = append(*cells, &Cell{
 				Kind:   CodeKind,
-				Value:  string(value),
+				Value:  string(block.Content()),
 				LangID: block.Language(),
 			})
 
@@ -127,15 +103,13 @@ func toCellsRec(
 			value := block.Value()
 
 			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
-
 			if childIdx == 0 && isListItem {
 				listItem := node.Item().Unwrap().(*ast.ListItem)
 				list := listItem.Parent().(*ast.List)
-				isBulletList := list.Start == 0
 
 				var prefix []byte
 
-				if isBulletList {
+				if !list.IsOrdered() {
 					prefix = append(prefix, []byte{list.Marker, ' '}...)
 				} else {
 					itemNumber := list.Start
@@ -152,7 +126,7 @@ func toCellsRec(
 
 			*cells = append(*cells, &Cell{
 				Kind:  MarkupKind,
-				Value: string(value),
+				Value: fmtValue(value),
 			})
 		}
 	}
@@ -174,20 +148,55 @@ func serializeCells(cells []*Cell) []byte {
 	var buf bytes.Buffer
 
 	for idx, cell := range cells {
-		s := bufio.NewScanner(strings.NewReader(cell.Value))
-		for s.Scan() {
-			_, _ = buf.Write(s.Bytes())
+		value := cell.Value
+
+		switch cell.Kind {
+		case CodeKind:
+			ticksCount := longestBacktickSeq(value)
+			if ticksCount < 3 {
+				ticksCount = 3
+			}
+
+			_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
+			_, _ = buf.WriteString(cell.LangID)
 			_ = buf.WriteByte('\n')
+			_, _ = buf.WriteString(cell.Value)
+			_ = buf.WriteByte('\n')
+			_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
+
+		case MarkupKind:
+			_, _ = buf.WriteString(cell.Value)
 		}
 
-		if idx != len(cells)-1 {
-			nlCount := countTrailingNewLines(buf.Bytes())
-			nlRequired := 2
-			for i := nlCount; i < nlRequired; i++ {
-				_ = buf.WriteByte('\n')
-			}
+		nlRequired := 2
+		if idx == len(cells)-1 {
+			nlRequired = 1
+		}
+		nlCount := countTrailingNewLines(buf.Bytes())
+		for i := nlCount; i < nlRequired; i++ {
+			_ = buf.WriteByte('\n')
 		}
 	}
 
 	return buf.Bytes()
+}
+
+func longestBacktickSeq(data string) int {
+	longest, current := 0, 0
+	for _, b := range data {
+		if b == '`' {
+			current++
+		} else {
+			if current > longest {
+				longest = current
+			}
+			current = 0
+		}
+	}
+	return longest
+}
+
+func trimRightNewLine(s []byte) []byte {
+	s = bytes.TrimRight(s, "\r\n")
+	return bytes.TrimRight(s, "\n")
 }

@@ -43,7 +43,7 @@ $ echo "Hello, runme!"
 
 It can have an annotation with a name:
 
-` + "```" + `sh {name=echo first= second=2}
+` + "```" + `sh
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -56,7 +56,7 @@ $ echo "Hello, runme!"
 
 1. Item 1
 
-` + "```" + `sh {name=echo first= second=2}
+` + "```" + `sh
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -78,16 +78,16 @@ func Test_toCells(t *testing.T) {
 
 		cells := toCells(node, testDataNested)
 		assert.Len(t, cells, 10)
-		assert.Equal(t, "# Examples\n", cells[0].Value)
-		assert.Equal(t, "It can have an annotation with a name:\n", cells[1].Value)
-		assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```\n", cells[2].Value)
-		assert.Equal(t, "> bq 1\n> bq 2\n>\n>     echo 1\n>\n> b1 3\n", cells[3].Value)
-		assert.Equal(t, "1. Item 1\n", cells[4].Value)
-		assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```\n", cells[5].Value)
-		assert.Equal(t, "First inner paragraph\n", cells[6].Value)
-		assert.Equal(t, "Second inner paragraph\n", cells[7].Value)
-		assert.Equal(t, "2. Item 2\n", cells[8].Value)
-		assert.Equal(t, "3. Item 3\n", cells[9].Value)
+		assert.Equal(t, "# Examples", cells[0].Value)
+		assert.Equal(t, "It can have an annotation with a name:", cells[1].Value)
+		assert.Equal(t, "$ echo \"Hello, runme!\"", cells[2].Value)
+		assert.Equal(t, "> bq 1\n> bq 2\n>\n>     echo 1\n>\n> b1 3", cells[3].Value)
+		assert.Equal(t, "1. Item 1", cells[4].Value)
+		assert.Equal(t, "$ echo \"Hello, runme!\"", cells[5].Value)
+		assert.Equal(t, "First inner paragraph", cells[6].Value)
+		assert.Equal(t, "Second inner paragraph", cells[7].Value)
+		assert.Equal(t, "2. Item 2", cells[8].Value)
+		assert.Equal(t, "3. Item 3", cells[9].Value)
 	})
 
 	t.Run("ListWithoutCode", func(t *testing.T) {
@@ -103,8 +103,8 @@ func Test_toCells(t *testing.T) {
 
 		cells := toCells(node, data)
 		assert.Len(t, cells, 2)
-		assert.Equal(t, "# Examples\n", cells[0].Value)
-		assert.Equal(t, "1. Item 1\n2. Item 2\n3. Item 3\n", cells[1].Value)
+		assert.Equal(t, "# Examples", cells[0].Value)
+		assert.Equal(t, "1. Item 1\n2. Item 2\n3. Item 3", cells[1].Value)
 	})
 }
 
@@ -183,7 +183,7 @@ Last paragraph.
 			cells := parse()
 			cells = append(cells, &Cell{
 				Kind:     MarkupKind,
-				Value:    "Paragraph after the last one.\n",
+				Value:    "Paragraph after the last one.",
 				Metadata: map[string]any{},
 			})
 			assert.Equal(
