@@ -170,24 +170,48 @@ func countTrailingNewLines(b []byte) int {
 	return count
 }
 
+var (
+	bulletMarkers  = []string{"- ", "* "}
+	orderedMarkers = []string{". ", ") "}
+)
+
 func isBetweenListItems(cells []*Cell, idx int) (int, int, bool) {
-	if idx == 0 || idx >= len(cells)-1 {
+	if idx <= 0 || idx >= len(cells)-1 {
 		return -1, -1, false
 	}
 
 	prev := cells[idx-1]
 
+	// Only patterns like "MARKER " and "NUMBER. " are checked
+	// which means that the value must be at least 2 characters.
+	if len(prev.Value) < 2 {
+		return -1, -1, false
+	}
+
 	for i := idx + 1; i < len(cells); i++ {
 		next := cells[i]
+		if len(next.Value) < 2 {
+			continue
+		}
 
 		// Between bullet list items
-		if prev.Value[0:1] == "* " && next.Value[0:1] == "* " {
-			return idx - 1, i, true
+		for _, marker := range bulletMarkers {
+			if prev.Value[0:2] == marker && next.Value[0:2] == marker {
+				return idx - 1, i, true
+			}
 		}
 
 		// Between ordered list items
-		numberPrevStop := strings.Index(prev.Value, ". ")
-		numberNextStop := strings.Index(next.Value, ". ")
+		numberPrevStop, numberNextStop := -1, -1
+		for _, marker := range orderedMarkers {
+			prevIdx := strings.Index(prev.Value, marker)
+			nextIdx := strings.Index(next.Value, marker)
+			if prevIdx > -1 && nextIdx > -1 {
+				numberPrevStop = prevIdx
+				numberNextStop = nextIdx
+				break
+			}
+		}
 		if numberPrevStop == -1 || numberNextStop == -1 {
 			continue
 		}
@@ -207,21 +231,37 @@ func isBetweenListItems(cells []*Cell, idx int) (int, int, bool) {
 }
 
 func isInTightList(cells []*Cell, idx int) bool {
-	if idx >= len(cells)-1 {
+	if idx < 0 || idx >= len(cells)-1 {
 		return false
 	}
 
 	cell := cells[idx]
 	next := cells[idx+1]
 
+	// Only patterns like "MARKER " and "NUMBER. " are checked
+	// which means that the value must be at least 2 characters.
+	if len(cell.Value) < 2 || len(next.Value) < 2 {
+		return false
+	}
+
 	// Between bullet list items
-	if cell.Value[0:1] == "* " && next.Value[0:1] == "* " {
-		return true
+	for _, marker := range bulletMarkers {
+		if cell.Value[0:2] == marker && next.Value[0:2] == marker {
+			return true
+		}
 	}
 
 	// Between ordered list items
-	numberPrevStop := strings.Index(cell.Value, ". ")
-	numberNextStop := strings.Index(next.Value, ". ")
+	numberPrevStop, numberNextStop := -1, -1
+	for _, marker := range orderedMarkers {
+		prevIdx := strings.Index(cell.Value, marker)
+		nextIdx := strings.Index(next.Value, marker)
+		if prevIdx > -1 && nextIdx > -1 {
+			numberPrevStop = prevIdx
+			numberNextStop = nextIdx
+			break
+		}
+	}
 	if numberPrevStop == -1 || numberNextStop == -1 {
 		return false
 	}
@@ -233,10 +273,7 @@ func isInTightList(cells []*Cell, idx int) bool {
 	if err != nil {
 		return false
 	}
-	if nextNumber-cellNumber == 1 {
-		return true
-	}
-	return false
+	return nextNumber-cellNumber == 1
 }
 
 func serializeCells(cells []*Cell) []byte {

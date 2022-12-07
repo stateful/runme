@@ -13,10 +13,23 @@ import (
 type NodeSourceProvider func(ast.Node) ([]byte, bool)
 
 func Render(doc ast.Node, source []byte) ([]byte, error) {
-	return new(renderer).Render(doc, source)
+	lineBreak := []byte{'\n'}
+
+	crlfCount := bytes.Count(source, []byte{'\r', '\n'})
+	lfCount := bytes.Count(source, []byte{'\n'})
+	if crlfCount == lfCount {
+		lineBreak = []byte{'\r', '\n'}
+	}
+
+	r := renderer{
+		lineBreak: lineBreak,
+	}
+	return r.Render(doc, source)
 }
 
 type renderer struct {
+	lineBreak []byte
+
 	beginLine       bool
 	buf             bytes.Buffer
 	inTightListItem bool
@@ -49,7 +62,7 @@ func (r *renderer) write(data []byte) error {
 				}
 			}
 		} else {
-			if _, err := r.buf.Write(lineBreak); err != nil {
+			if _, err := r.buf.Write(r.lineBreak); err != nil {
 				return err
 			}
 			if r.needCR > 1 {
@@ -220,14 +233,13 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 
 		case ast.KindListItem:
 			listNode := node.Parent().(*ast.List)
-			isBulletList := listNode.Start == 0
 
 			if entering {
 				// Some tight list items have TextBlock as an only child and others
 				// have Paragraph.
 				r.inTightListItem = node.ChildCount() == 1
 
-				if isBulletList {
+				if !listNode.IsOrdered() {
 					err := r.write([]byte{listNode.Marker, ' '})
 					if err != nil {
 						return ast.WalkStop, err
