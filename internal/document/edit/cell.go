@@ -153,7 +153,7 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 		return
 	}
 
-	_, _ = w.Write([]byte{' ', '{'})
+	_, _ = w.Write([]byte{' ', '{', ' '})
 
 	// Sort attributes by key, however, keep the element
 	// with the key "name" in front.
@@ -181,7 +181,7 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 		}
 	}
 
-	_, _ = w.Write([]byte{'}'})
+	_, _ = w.Write([]byte{' ', '}'})
 }
 
 func serializeCells(cells []*Cell) []byte {

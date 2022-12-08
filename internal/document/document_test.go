@@ -45,3 +45,17 @@ First paragraph.
 	assert.Equal(t, "2. Item 2\n", string(node.children[3].children[1].Item().Value()))
 	assert.Equal(t, "3. Item 3\n", string(node.children[3].children[2].Item().Value()))
 }
+
+func TestDocument_Parse_UnsupportedLang(t *testing.T) {
+	data := []byte(`## Non-Supported Languages
+
+` + "```py { readonly=true }" + `
+def hello():
+    print("Hello World")
+` + "```" + `
+`)
+	doc := New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	assert.Equal(t, string(data), node.String())
+}

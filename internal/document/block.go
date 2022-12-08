@@ -60,10 +60,8 @@ func newCodeBlock(
 	source []byte,
 	render Renderer,
 ) (*CodeBlock, error) {
-	name := getName(node, source, nameResolver)
-
 	attributes := getAttributes(node, source)
-	attributes["name"] = name
+	name := getName(node, source, nameResolver)
 
 	value, err := render(node, source)
 	if err != nil {
