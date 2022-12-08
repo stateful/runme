@@ -45,12 +45,13 @@ func (b CodeBlocks) Names() (result []string) {
 type Renderer func(ast.Node, []byte) ([]byte, error)
 
 type CodeBlock struct {
-	inner    *ast.FencedCodeBlock
-	intro    string
-	language string
-	lines    []string
-	name     string
-	value    []byte
+	attributes map[string]string
+	inner      *ast.FencedCodeBlock
+	intro      string
+	language   string
+	lines      []string
+	name       string
+	value      []byte
 }
 
 func newCodeBlock(
@@ -61,20 +62,26 @@ func newCodeBlock(
 ) (*CodeBlock, error) {
 	name := getName(node, source, nameResolver)
 
+	attributes := getAttributes(node, source)
+	attributes["name"] = name
+
 	value, err := render(node, source)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CodeBlock{
-		inner:    node,
-		intro:    getIntro(node, source),
-		language: getLanguage(node, source),
-		lines:    getLines(node, source),
-		name:     name,
-		value:    value,
+		attributes: attributes,
+		inner:      node,
+		intro:      getIntro(node, source),
+		language:   getLanguage(node, source),
+		lines:      getLines(node, source),
+		name:       name,
+		value:      value,
 	}, nil
 }
+
+func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
 
 func (CodeBlock) Kind() BlockKind { return CodeBlockKind }
 
@@ -148,6 +155,14 @@ func parseRawAttributes(source []byte) map[string]string {
 	}
 
 	return result
+}
+
+func getAttributes(node *ast.FencedCodeBlock, source []byte) map[string]string {
+	attributes := make(map[string]string)
+	if node.Info != nil {
+		attributes = parseRawAttributes(rawAttributes(node.Info.Text(source)))
+	}
+	return attributes
 }
 
 func getLanguage(node *ast.FencedCodeBlock, source []byte) string {

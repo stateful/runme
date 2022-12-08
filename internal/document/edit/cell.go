@@ -2,10 +2,13 @@ package edit
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/yuin/goldmark/ast"
+	"golang.org/x/exp/slices"
 )
 
 type CellKind int
@@ -34,10 +37,6 @@ type Notebook struct {
 func toCells(node *document.Node, source []byte) (result []*Cell) {
 	toCellsRec(node, &result, source)
 	return
-}
-
-func fmtValue(s []byte) string {
-	return string(trimRightNewLine(s))
 }
 
 func toCellsRec(
@@ -94,9 +93,10 @@ func toCellsRec(
 
 		case *document.CodeBlock:
 			*cells = append(*cells, &Cell{
-				Kind:   CodeKind,
-				Value:  string(block.Content()),
-				LangID: block.Language(),
+				Kind:     CodeKind,
+				Value:    string(block.Content()),
+				LangID:   block.Language(),
+				Metadata: convertAttrsToMetadata(block.Attributes()),
 			})
 
 		case *document.MarkdownBlock:
@@ -113,7 +113,7 @@ func toCellsRec(
 					prefix = append(prefix, []byte{list.Marker, ' '}...)
 				} else {
 					itemNumber := list.Start
-					tmp := child.Item().Unwrap()
+					tmp := node.Item().Unwrap()
 					for tmp.PreviousSibling() != nil {
 						tmp = tmp.PreviousSibling()
 						itemNumber++
@@ -134,14 +134,54 @@ func toCellsRec(
 
 func countTrailingNewLines(b []byte) int {
 	count := 0
+	lastIdx := 0
 	for i := len(b) - 1; i >= 0; i-- {
 		if b[i] == '\n' {
+			lastIdx = i
 			count++
+		} else if b[i] == '\r' && lastIdx-i == 1 {
+			continue
 		} else {
 			break
 		}
 	}
 	return count
+}
+
+func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
+	if len(cell.Metadata) == 0 {
+		return
+	}
+
+	_, _ = w.Write([]byte{' ', '{'})
+
+	// Sort attributes by key, however, keep the element
+	// with the key "name" in front.
+	keys := make([]string, 0, len(cell.Metadata))
+	for k := range cell.Metadata {
+		keys = append(keys, k)
+	}
+	slices.SortFunc(keys, func(a, b string) bool {
+		if a == "name" {
+			return true
+		}
+		if b == "name" {
+			return false
+		}
+		return a < b
+	})
+
+	i := 0
+	for _, k := range keys {
+		v := cell.Metadata[k]
+		_, _ = w.Write([]byte(fmt.Sprintf("%s=%v", k, v)))
+		i++
+		if i < len(cell.Metadata) {
+			_, _ = w.Write([]byte{' '})
+		}
+	}
+
+	_, _ = w.Write([]byte{'}'})
 }
 
 func serializeCells(cells []*Cell) []byte {
@@ -159,6 +199,9 @@ func serializeCells(cells []*Cell) []byte {
 
 			_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
 			_, _ = buf.WriteString(cell.LangID)
+
+			serializeFencedCodeAttributes(&buf, cell)
+
 			_ = buf.WriteByte('\n')
 			_, _ = buf.WriteString(cell.Value)
 			_ = buf.WriteByte('\n')
@@ -196,7 +239,19 @@ func longestBacktickSeq(data string) int {
 	return longest
 }
 
+func fmtValue(s []byte) string {
+	return string(trimRightNewLine(s))
+}
+
 func trimRightNewLine(s []byte) []byte {
 	s = bytes.TrimRight(s, "\r\n")
 	return bytes.TrimRight(s, "\n")
+}
+
+func convertAttrsToMetadata(m map[string]string) map[string]any {
+	result := make(map[string]any, len(m))
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
 }

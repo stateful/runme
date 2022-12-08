@@ -80,6 +80,11 @@ cluster-create-std
 	testEquality(t, data)
 }
 
+func TestRender_FencedCodeBlockAttributes(t *testing.T) {
+	data := []byte("```sh {name=echo first= second=2}\necho 1\n```\n")
+	testEquality(t, data)
+}
+
 func TestRender_Testdata(t *testing.T) {
 	err := filepath.Walk("../testdata", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {

@@ -10,6 +10,7 @@ require (
 	github.com/rogpeppe/go-internal v1.9.0
 	github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef
 	github.com/yuin/goldmark v1.4.12
+	golang.org/x/exp v0.0.0-20221208044002-44028be4359e
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
 )
 

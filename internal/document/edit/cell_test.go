@@ -43,7 +43,7 @@ $ echo "Hello, runme!"
 
 It can have an annotation with a name:
 
-` + "```" + `sh
+` + "```" + `sh {name=echo first= second=2}
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -56,7 +56,7 @@ $ echo "Hello, runme!"
 
 1. Item 1
 
-` + "```" + `sh
+` + "```" + `sh {name=echo-2 first= second=2}
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -206,59 +206,53 @@ Last paragraph.
 }
 
 func Test_serializeCells_nestedCode(t *testing.T) {
-	data := []byte(`# Example
+	data := []byte(`# Development
 
-1. Item
+1. Ensure you have [dev](https://github.com/stateful/dev) setup and running
 
-   ` + "```sh" + `
-   echo 1
+2. Install MacOS dependencies
+
+   ` + "```" + `sh
+   brew bundle --no-lock
    ` + "```" + `
 
-2. Item
+3. Setup pre-commit
+
+   ` + "```" + `sh
+   pre-commit install
+   ` + "```" + `
 `)
 	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
-	cells := toCells(node, testDataNested)
+	cells := toCells(node, data)
 	assert.Equal(
 		t,
-		`# Example
+		`# Development
 
-1. Item
+1. Ensure you have [dev](https://github.com/stateful/dev) setup and running
 
-`+"```sh"+`
-echo 1
+2. Install MacOS dependencies
+
+`+"```"+`sh {name=brew-bundle}
+brew bundle --no-lock
 `+"```"+`
 
-2. Item
+3. Setup pre-commit
+
+`+"```"+`sh {name=precommit-install}
+pre-commit install
+`+"```"+`
 `,
 		string(serializeCells(cells)),
 	)
 }
 
-func Test_serializeCells_addLine(t *testing.T) {
-	data := []byte(`# Examples
-
-Paragraph 1
-Paragraph 2
-`)
-
+func Test_serializeCells_attributes(t *testing.T) {
+	data := []byte("```sh {name=echo first= second=2}\necho 1\n```\n")
 	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	cells := toCells(node, data)
-	assert.Len(t, cells, 2)
-
-	cells[1].Value = "Paragraph 1\nParagraph 2\nParagraph 3\n"
-
-	assert.Equal(
-		t,
-		`# Examples
-
-Paragraph 1
-Paragraph 2
-Paragraph 3
-`,
-		string(serializeCells(cells)),
-	)
+	assert.Equal(t, string(data), string(serializeCells(cells)))
 }
