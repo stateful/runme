@@ -27,7 +27,7 @@ $ echo "Hello, runme!"
 
 1. Item 1
 
-   ` + "```" + `sh {name=echo first= second=2}
+   ` + "```" + `sh {name=echo-2 first= second=2}
    $ echo "Hello, runme!"
    ` + "```" + `
 
@@ -43,7 +43,7 @@ $ echo "Hello, runme!"
 
 It can have an annotation with a name:
 
-` + "```" + `sh {name=echo first= second=2}
+` + "```" + `sh { name=echo first= second=2 }
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -56,7 +56,7 @@ $ echo "Hello, runme!"
 
 1. Item 1
 
-` + "```" + `sh {name=echo-2 first= second=2}
+` + "```" + `sh { name=echo-2 first= second=2 }
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -234,13 +234,13 @@ func Test_serializeCells_nestedCode(t *testing.T) {
 
 2. Install MacOS dependencies
 
-`+"```"+`sh {name=brew-bundle}
+`+"```"+`sh
 brew bundle --no-lock
 `+"```"+`
 
 3. Setup pre-commit
 
-`+"```"+`sh {name=precommit-install}
+`+"```"+`sh
 pre-commit install
 `+"```"+`
 `,
@@ -248,8 +248,23 @@ pre-commit install
 	)
 }
 
+func Test_serializeCells_unknownLang(t *testing.T) {
+	data := []byte(`## Non-Supported Languages
+
+` + "```py { readonly=true }" + `
+def hello():
+    print("Hello World")
+` + "```" + `
+`)
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	cells := toCells(node, data)
+	assert.Equal(t, string(data), string(serializeCells(cells)))
+}
+
 func Test_serializeCells_attributes(t *testing.T) {
-	data := []byte("```sh {name=echo first= second=2}\necho 1\n```\n")
+	data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
 	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
