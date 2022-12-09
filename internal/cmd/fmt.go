@@ -60,6 +60,8 @@ func fmtCmd() *cobra.Command {
 		},
 	}
 
+	setDefaultFlags(&cmd)
+
 	cmd.Flags().BoolVar(&flatten, "flatten", false, "Flatten nested blocks in the output.")
 	cmd.Flags().BoolVarP(&write, "write", "w", false, "Write result to the source file instead of stdout.")
 

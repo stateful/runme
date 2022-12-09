@@ -47,5 +47,7 @@ func listCmd() *cobra.Command {
 		},
 	}
 
+	setDefaultFlags(&cmd)
+
 	return &cmd
 }

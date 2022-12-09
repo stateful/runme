@@ -34,6 +34,8 @@ func printCmd() *cobra.Command {
 		},
 	}
 
+	setDefaultFlags(&cmd)
+
 	return &cmd
 }
 
