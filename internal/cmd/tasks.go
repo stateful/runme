@@ -29,7 +29,7 @@ func tasksCmd() *cobra.Command {
 				block.Name(),
 				block.Lines()[0],
 				&tasks.ShellCommandOpts{
-					Cwd: chdir,
+					Cwd: fChdir,
 				},
 			)
 			if err != nil {

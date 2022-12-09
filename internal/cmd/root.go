@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	allowUnknown bool
-	chdir        string
-	fileName     string
+	fAllowUnknown bool
+	fChdir        string
+	fFileName     string
 )
 
 func Root() *cobra.Command {
@@ -23,15 +23,15 @@ func Root() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if strings.HasPrefix(chdir, "~") {
-				cmd.PrintErrf("WARNING: --chdir starts with ~ which should be resolved by shell. Try re-running with --chdir %s (note lack of =) if it fails.\n\n", chdir)
+			if strings.HasPrefix(fChdir, "~") {
+				cmd.PrintErrf("WARNING: --chdir starts with ~ which should be resolved by shell. Try re-running with --chdir %s (note lack of =) if it fails.\n\n", fChdir)
 
 				usr, _ := user.Current()
 
-				if chdir == "~" {
-					chdir = usr.HomeDir
-				} else if strings.HasPrefix(chdir, "~/") {
-					chdir = filepath.Join(usr.HomeDir, chdir[2:])
+				if fChdir == "~" {
+					fChdir = usr.HomeDir
+				} else if strings.HasPrefix(fChdir, "~/") {
+					fChdir = filepath.Join(usr.HomeDir, fChdir[2:])
 				}
 			}
 		},
@@ -42,9 +42,9 @@ func Root() *cobra.Command {
 
 	pflags := cmd.PersistentFlags()
 
-	pflags.BoolVar(&allowUnknown, "allow-unknown", false, "Display snippets without known executor.")
-	pflags.StringVar(&chdir, "chdir", getCwd(), "Switch to a different working directory before exeucing the command.")
-	pflags.StringVar(&fileName, "filename", "README.md", "A name of the README file.")
+	pflags.BoolVar(&fAllowUnknown, "allow-unknown", false, "Display snippets without known executor.")
+	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before exeucing the command.")
+	pflags.StringVar(&fFileName, "filename", "README.md", "A name of the README file.")
 
 	cmd.AddCommand(runCmd())
 	cmd.AddCommand(listCmd())

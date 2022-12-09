@@ -10,11 +10,13 @@ To select a different file than `README.md`, use `--filename`.
 ## Installation
 
 The easiest way on MacOS is to use Homebrew:
+
 ```sh { name=update-brew }
 $ brew update
 ```
 
 Install runme
+
 ```sh
 $ brew install stateful/tap/runme
 ```

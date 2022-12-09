@@ -68,7 +68,7 @@ func runCmd() *cobra.Command {
 
 func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Executable, error) {
 	base := &runner.Base{
-		Dir:    chdir,
+		Dir:    fChdir,
 		Stdin:  cmd.InOrStdin(),
 		Stdout: cmd.OutOrStdout(),
 		Stderr: cmd.ErrOrStderr(),
