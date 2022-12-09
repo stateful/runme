@@ -1,12 +1,6 @@
 package cmd
 
 import (
-	"io"
-	"net/http"
-	"os"
-	"strings"
-	"time"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
@@ -15,45 +9,19 @@ import (
 )
 
 func fmtCmd() *cobra.Command {
-	var flatten bool
+	var (
+		flatten bool
+		write   bool
+	)
 
 	cmd := cobra.Command{
-		Use:    "fmt",
-		Short:  "Format a Markdown file into canonical format. Caution, this is experimental.",
-		Hidden: true,
-		Args:   cobra.ExactArgs(1),
+		Use:   "fmt",
+		Short: "Format a Markdown file into canonical format.",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var data []byte
-
-			fileName := args[0]
-			if fileName == "-" {
-				var err error
-				data, err = io.ReadAll(os.Stdin)
-				if err != nil {
-					return errors.Wrap(err, "failed to read from stdin")
-				}
-			} else if strings.HasPrefix(fileName, "https://") {
-				client := http.Client{
-					Timeout: time.Second * 10,
-				}
-				resp, err := client.Get(fileName)
-				if err != nil {
-					return errors.Wrapf(err, "failed to get a file %q", fileName)
-				}
-				data, err = io.ReadAll(resp.Body)
-				_ = resp.Body.Close()
-				if err != nil {
-					return errors.Wrap(err, "failed to read body")
-				}
-			} else {
-				f, err := os.Open(fileName)
-				if err != nil {
-					return errors.Wrapf(err, "failed to open file %q", fileName)
-				}
-				data, err = io.ReadAll(f)
-				if err != nil {
-					return errors.Wrapf(err, "failed to read from file %q", fileName)
-				}
+			data, err := readMarkdownFile(args)
+			if err != nil {
+				return err
 			}
 
 			var formatted []byte
@@ -80,12 +48,20 @@ func fmtCmd() *cobra.Command {
 				}
 			}
 
-			_, err := cmd.OutOrStdout().Write(formatted)
-			return errors.Wrap(err, "failed to write result")
+			if write {
+				err = writeMarkdownFile(args, formatted)
+			} else {
+				_, err = cmd.OutOrStdout().Write(formatted)
+				if err != nil {
+					err = errors.Wrap(err, "failed to write out result")
+				}
+			}
+			return err
 		},
 	}
 
 	cmd.Flags().BoolVar(&flatten, "flatten", false, "Flatten nested blocks in the output.")
+	cmd.Flags().BoolVarP(&write, "write", "w", false, "Write result to the source file instead of stdout.")
 
 	return &cmd
 }

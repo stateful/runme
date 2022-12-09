@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -12,27 +15,102 @@ import (
 	"github.com/stateful/runme/internal/runner"
 )
 
-func getCodeBlocks() (document.CodeBlocks, error) {
-	f, err := os.DirFS(chdir).Open(fileName)
-	if err != nil {
-		return nil, errors.WithStack(err)
+func readMarkdownFile(args []string) ([]byte, error) {
+	arg := ""
+	if len(args) == 1 {
+		arg = args[0]
 	}
-	data, err := io.ReadAll(f)
+
+	if arg == "" {
+		f, err := os.DirFS(fChdir).Open(fFileName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read %s", filepath.Join(fChdir, fFileName))
+		}
+		defer func() { _ = f.Close() }()
+		data, err := io.ReadAll(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read data")
+		}
+		return data, nil
+	}
+
+	var (
+		data []byte
+		err  error
+	)
+
+	if arg == "-" {
+		data, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read from stdin")
+		}
+	} else if strings.HasPrefix(arg, "https://") {
+		client := http.Client{
+			Timeout: time.Second * 5,
+		}
+		resp, err := client.Get(arg)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get a file %q", arg)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		data, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read body")
+		}
+	} else {
+		f, err := os.Open(arg)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to open file %q", arg)
+		}
+		defer func() { _ = f.Close() }()
+		data, err = io.ReadAll(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read from file %q", arg)
+		}
+	}
+
+	return data, nil
+}
+
+func writeMarkdownFile(args []string, data []byte) error {
+	arg := ""
+	if len(args) == 1 {
+		arg = args[0]
+	}
+
+	if arg == "-" {
+		return errors.New("cannot write to stdin")
+	}
+
+	if strings.HasPrefix(arg, "https://") {
+		return errors.New("cannot write to HTTP location")
+	}
+
+	fullFilename := arg
+	if fullFilename == "" {
+		fullFilename = filepath.Join(fChdir, fFileName)
+	}
+	err := os.WriteFile(fullFilename, data, 0)
+	return errors.Wrapf(err, "failed to write to %s", fullFilename)
+}
+
+func getCodeBlocks() (document.CodeBlocks, error) {
+	data, err := readMarkdownFile(nil)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	blocks := document.CollectCodeBlocks(node)
 
 	filtered := make(document.CodeBlocks, 0, len(blocks))
 	for _, b := range blocks {
-		if allowUnknown || (b.Language() != "" && runner.IsSupported(b.Language())) {
+		if fAllowUnknown || (b.Language() != "" && runner.IsSupported(b.Language())) {
 			filtered = append(filtered, b)
 		}
 	}
