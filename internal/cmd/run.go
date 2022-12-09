@@ -60,6 +60,8 @@ func runCmd() *cobra.Command {
 		},
 	}
 
+	setDefaultFlags(&cmd)
+
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 

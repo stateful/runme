@@ -40,6 +40,8 @@ func Root() *cobra.Command {
 		},
 	}
 
+	setDefaultFlags(&cmd)
+
 	pflags := cmd.PersistentFlags()
 
 	pflags.BoolVar(&fAllowUnknown, "allow-unknown", false, "Display snippets without known executor.")

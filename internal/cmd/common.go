@@ -142,3 +142,26 @@ func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]stri
 	}
 	return filtered, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
+
+func setDefaultFlags(cmd *cobra.Command) {
+	usage := "Help for "
+	if n := cmd.Name(); n != "" {
+		usage += n
+	} else {
+		usage += "this command"
+	}
+	usage += "."
+	cmd.Flags().BoolP("help", "h", false, usage)
+
+	// For the root command, set up the --version flag.
+	if cmd.Use == "runme" {
+		usage := "Version of "
+		if n := cmd.Name(); n != "" {
+			usage += n
+		} else {
+			usage += "this command"
+		}
+		usage += "."
+		cmd.Flags().BoolP("version", "v", false, usage)
+	}
+}

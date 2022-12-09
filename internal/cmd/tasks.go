@@ -45,5 +45,8 @@ func tasksCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	setDefaultFlags(&cmd)
+
 	return &cmd
 }
