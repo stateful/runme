@@ -146,7 +146,10 @@ func shellID() (int, bool) {
 		return 0, false
 	}
 	i, err := strconv.Atoi(id)
-	return i, err == nil
+	if err != nil {
+		return -1, false
+	}
+	return i, true
 }
 
 func executeInShell(id int, block *document.CodeBlock) error {
