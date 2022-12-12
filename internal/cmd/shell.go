@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,6 +34,40 @@ func shellCmd() *cobra.Command {
 		Long:  "Activate runme shell. This is an experimental feature.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// detect promptDetectOut
+			var (
+				promptDetectOut []byte
+				err             error
+			)
+			switch {
+			case strings.HasSuffix(commandName, "bash"):
+				promptDetectOut, err = exec.Command(commandName, "-i", "-c", "echo ${PS1@P}").CombinedOutput()
+			case strings.HasSuffix(commandName, "zsh"):
+				promptDetectOut, err = exec.Command(commandName, "-i", "-c", "print -P $PS1").CombinedOutput()
+			default:
+				err = errors.New("unsupported shell")
+			}
+			if len(promptDetectOut) == 0 {
+				err = errors.New("empty prompt")
+			}
+			if err != nil {
+				return errors.Wrapf(err, "failed to detect a valid prompt: %s", promptDetectOut)
+			}
+
+			promptSlice := bytes.Split(promptDetectOut, []byte{'\n'})
+
+			// Find the last non-empty line and consider this to be a prompt
+			// we will be looking for.
+			var prompt []byte
+			for i := len(promptSlice) - 1; i >= 0; i-- {
+				s := promptSlice[i]
+				if len(s) > 0 {
+					prompt = s
+					break
+				}
+			}
+			printf("detected prompt: %s", prompt)
+
 			id := rand.Intn(1024)
 
 			c := exec.Command(commandName)
@@ -137,6 +172,7 @@ func shellCmd() *cobra.Command {
 			}()
 
 			// TODO: copy log file
+			// TODO: detect if ends with the prompt. If so, then it means the command finished.
 			_, err = io.Copy(os.Stdout, ptmx)
 			return err
 		},
@@ -145,9 +181,9 @@ func shellCmd() *cobra.Command {
 	defaultShell := os.Getenv("SHELL")
 	if defaultShell == "" {
 		defaultShell, _ = exec.LookPath("bash")
-		if defaultShell == "" {
-			defaultShell = "/bin/sh"
-		}
+	}
+	if defaultShell == "" {
+		defaultShell = "/bin/sh"
 	}
 
 	cmd.Flags().StringVar(&commandName, "command", defaultShell, "Command to execute and watch.")
