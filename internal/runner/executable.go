@@ -3,6 +3,8 @@ package runner
 import (
 	"context"
 	"io"
+
+	"github.com/stateful/runme/internal/document"
 )
 
 type Executable interface {
@@ -37,6 +39,6 @@ func IsSupported(lang string) bool {
 }
 
 func IsShell(block *document.CodeBlock) bool {
-	exec := block.Executable()
-	return exec == "sh" || exec == "shell" || exec == "sh-raw"
+	lang := block.Language()
+	return lang == "sh" || lang == "shell" || lang == "sh-raw"
 }
