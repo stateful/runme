@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/yuin/goldmark/ast"
@@ -155,12 +156,16 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 
 	_, _ = w.Write([]byte{' ', '{', ' '})
 
-	// Sort attributes by key, however, keep the element
-	// with the key "name" in front.
+	// Filter out private keys, i.e. starting with "_" or "runme.dev/".
 	keys := make([]string, 0, len(cell.Metadata))
 	for k := range cell.Metadata {
+		if strings.HasPrefix(k, "_") || strings.HasPrefix(k, "runme.dev/") {
+			continue
+		}
 		keys = append(keys, k)
 	}
+	// Sort attributes by key, however, keep the element
+	// with the key "name" in front.
 	slices.SortFunc(keys, func(a, b string) bool {
 		if a == "name" {
 			return true
@@ -176,7 +181,7 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 		v := cell.Metadata[k]
 		_, _ = w.Write([]byte(fmt.Sprintf("%s=%v", k, v)))
 		i++
-		if i < len(cell.Metadata) {
+		if i < len(keys) {
 			_, _ = w.Write([]byte{' '})
 		}
 	}

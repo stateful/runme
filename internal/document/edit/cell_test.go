@@ -248,6 +248,29 @@ pre-commit install
 	)
 }
 
+func Test_serializeCells_attributes(t *testing.T) {
+	data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	cells := toCells(node, data)
+	assert.Equal(t, string(data), string(serializeCells(cells)))
+}
+
+func Test_serializeCells_privateFields(t *testing.T) {
+	data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+
+	cells := toCells(node, data)
+	// Add private fields whcih will be filtered out durign serialization.
+	cells[0].Metadata["_private"] = "private"
+	cells[0].Metadata["runme.dev/internal"] = "internal"
+
+	assert.Equal(t, string(data), string(serializeCells(cells)))
+}
+
 func Test_serializeCells_unknownLang(t *testing.T) {
 	data := []byte(`## Non-Supported Languages
 
@@ -256,15 +279,6 @@ def hello():
     print("Hello World")
 ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
-	cells := toCells(node, data)
-	assert.Equal(t, string(data), string(serializeCells(cells)))
-}
-
-func Test_serializeCells_attributes(t *testing.T) {
-	data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
 	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
