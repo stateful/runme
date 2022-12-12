@@ -100,14 +100,19 @@ func shellCmd() *cobra.Command {
 			printf("runme: artifacts will be stored in %s", tmpdir)
 			printf("") // new line
 
+			// Logger setup
+			zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
 			logF, err := os.Create(filepath.Join(tmpdir, "runme.log"))
 			if err != nil {
 				return errors.Wrap(err, "failed to create a log file")
 			}
+
 			logger := zerolog.New(logF)
 
 			sockPath := "/tmp/runme-" + strconv.Itoa(id) + ".sock"
 			var lc net.ListenConfig
+			// TODO: context should be closed only after the goroutine below is closed.
 			l, err := lc.Listen(cmd.Context(), "unix", sockPath)
 			if err != nil {
 				return errors.Wrap(err, "failed to listen to sock")
@@ -121,6 +126,7 @@ func shellCmd() *cobra.Command {
 
 				for {
 					conn, err := l.Accept()
+					// TODO: handle the case when a conn is closed
 					if err != nil {
 						logger.Error().Err(err).Msg("failed to accept connection")
 						continue
@@ -128,23 +134,23 @@ func shellCmd() *cobra.Command {
 
 					go func() {
 						for {
-							buf := bufio.NewReaderSize(conn, 1024)
-
-							data, err := buf.ReadBytes('\n')
+							r := bufio.NewReader(conn)
+							data, err := r.ReadBytes('\n')
 							if err != nil {
 								logger.Warn().Err(err).Msg("failed to read from a client")
 								return
 							}
-
 							data = bytes.TrimSpace(data)
 
+							if len(data) == 0 {
+								logger.Info().Msg("read empty line from a client")
+								return
+							}
+
+							logger.Info().Str("data", string(data)).Msg("read from client")
+
 							go func() {
-								// TODO: use channels to synchronize instead of sleeping.
-								// I don't have a better idea than using ptrace to
-								// monitor the state of the shell. If there are no child processes,
-								// then it means that the shell is not busy and can be written to.
-								//
-								// Alternatively, eBPF might be also a good idea.
+								// TODO: use detected prompt to figure this out.
 								time.Sleep(time.Second)
 
 								w := bulkWriter{Writer: &writer}
@@ -162,7 +168,6 @@ func shellCmd() *cobra.Command {
 				}
 			}()
 
-			// Copy stdin to the pty.
 			go func() {
 				// TODO: copy log file
 				_, err := io.Copy(ptmx, os.Stdin)
@@ -171,8 +176,6 @@ func shellCmd() *cobra.Command {
 				}
 			}()
 
-			// TODO: copy log file
-			// TODO: detect if ends with the prompt. If so, then it means the command finished.
 			_, err = io.Copy(os.Stdout, ptmx)
 			return err
 		},
