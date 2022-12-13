@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/runner"
 	"github.com/yuin/goldmark/ast"
 	"golang.org/x/exp/slices"
 )
@@ -93,12 +94,19 @@ func toCellsRec(
 			}
 
 		case *document.CodeBlock:
-			*cells = append(*cells, &Cell{
-				Kind:     CodeKind,
-				Value:    string(block.Content()),
-				LangID:   block.Language(),
-				Metadata: convertAttrsToMetadata(block.Attributes()),
-			})
+			if runner.IsSupported(block.Language()) {
+				*cells = append(*cells, &Cell{
+					Kind:     CodeKind,
+					Value:    string(block.Content()),
+					LangID:   block.Language(),
+					Metadata: convertAttrsToMetadata(block.Attributes()),
+				})
+			} else {
+				*cells = append(*cells, &Cell{
+					Kind:  MarkupKind,
+					Value: fmtValue(block.Value()),
+				})
+			}
 
 		case *document.MarkdownBlock:
 			value := block.Value()
