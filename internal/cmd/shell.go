@@ -121,6 +121,8 @@ func shellCmd() *cobra.Command {
 
 			logger.Info().Stringer("addr", l.Addr()).Msg("starting to listen")
 
+			notifyWriter := make(chan struct{}, 1)
+
 			go func() error {
 				writer := singleWriter{Writer: ptmx}
 
@@ -130,6 +132,15 @@ func shellCmd() *cobra.Command {
 					if err != nil {
 						logger.Error().Err(err).Msg("failed to accept connection")
 						continue
+					}
+
+				drain:
+					for {
+						select {
+						case <-notifyWriter:
+						default:
+							break drain
+						}
 					}
 
 					go func() {
@@ -150,14 +161,11 @@ func shellCmd() *cobra.Command {
 							logger.Info().Str("data", string(data)).Msg("read from client")
 
 							go func() {
-								// TODO: use detected prompt to figure this out.
-								time.Sleep(time.Second)
+								<-notifyWriter
 
 								w := bulkWriter{Writer: &writer}
-
 								w.Write(data)
 								w.Write([]byte("\n"))
-
 								if _, err := w.Result(); err != nil {
 									logger.Warn().Err(err).Msg("failed to write to a client")
 									return
@@ -176,7 +184,7 @@ func shellCmd() *cobra.Command {
 				}
 			}()
 
-			_, err = io.Copy(os.Stdout, ptmx)
+			_, err = copyBufferAndDetect(os.Stdout, ptmx, prompt, notifyWriter)
 			return err
 		},
 	}
@@ -212,4 +220,57 @@ func (w *singleWriter) Write(b []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.Writer.Write(b)
+}
+
+// Largerly copied from io.copyBuffer from the Go source code.
+func copyBufferAndDetect(dst io.Writer, src io.Reader, line []byte, notif chan<- struct{}) (written int64, err error) {
+	size := 32 * 1024
+	if l, ok := src.(*io.LimitedReader); ok && int64(size) > l.N {
+		if l.N < 1 {
+			size = 1
+		} else {
+			size = int(l.N)
+		}
+	}
+	buf := make([]byte, size)
+
+	if cap(buf) < len(line) {
+		return -1, errors.Errorf("line is longer than buffer size (%d vs %d)", len(line), cap(buf))
+	}
+
+	for {
+		nr, er := src.Read(buf)
+		if nr > 0 {
+			nw, ew := dst.Write(buf[0:nr])
+			if nw < 0 || nr < nw {
+				nw = 0
+				if ew == nil {
+					ew = errors.New("invalid write result")
+				}
+			}
+			written += int64(nw)
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er != nil {
+			if er != io.EOF {
+				err = er
+			}
+			break
+		}
+
+		if bytes.Contains(buf[0:nr], line) {
+			select {
+			case notif <- struct{}{}:
+			default:
+			}
+		}
+	}
+	return written, err
 }
