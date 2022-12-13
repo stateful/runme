@@ -108,6 +108,22 @@ func Test_toCells(t *testing.T) {
 	})
 }
 
+func Test_toCells_UnsupportedLang(t *testing.T) {
+	data := []byte(`## Non-Supported Languages
+
+` + "```py { readonly=true }" + `
+def hello():
+    print("Hello World")
+` + "```" + `
+`)
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	cells := toCells(node, data)
+	assert.Len(t, cells, 2)
+	assert.Equal(t, "```py { readonly=true }\ndef hello():\n    print(\"Hello World\")\n```", cells[1].Value)
+}
+
 func Test_serializeCells(t *testing.T) {
 	data := []byte(`# Examples
 
@@ -271,7 +287,7 @@ func Test_serializeCells_privateFields(t *testing.T) {
 	assert.Equal(t, string(data), string(serializeCells(cells)))
 }
 
-func Test_serializeCells_unknownLang(t *testing.T) {
+func Test_serializeCells_UnsupportedLang(t *testing.T) {
 	data := []byte(`## Non-Supported Languages
 
 ` + "```py { readonly=true }" + `
