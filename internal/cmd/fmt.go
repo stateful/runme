@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
@@ -10,8 +13,9 @@ import (
 
 func fmtCmd() *cobra.Command {
 	var (
-		flatten bool
-		write   bool
+		formatJSON bool
+		flatten    bool
+		write      bool
 	)
 
 	cmd := cobra.Command{
@@ -19,6 +23,15 @@ func fmtCmd() *cobra.Command {
 		Short: "Format a Markdown file into canonical format.",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if formatJSON {
+				if write {
+					return errors.New("invalid usage of --json with --write")
+				}
+				if !flatten {
+					return errors.New("invalid usage of --json without --flatten")
+				}
+			}
+
 			data, err := readMarkdownFile(args)
 			if err != nil {
 				return err
@@ -32,9 +45,20 @@ func fmtCmd() *cobra.Command {
 				if err != nil {
 					return errors.Wrap(err, "failed to deserialize")
 				}
-				formatted, err = editor.Serialize(notebook)
-				if err != nil {
-					return errors.Wrap(err, "failed to serialize")
+
+				if formatJSON {
+					var buf bytes.Buffer
+					enc := json.NewEncoder(&buf)
+					enc.SetIndent("", "  ")
+					if err := enc.Encode(notebook); err != nil {
+						return errors.Wrap(err, "failed to encode to JSON")
+					}
+					formatted = buf.Bytes()
+				} else {
+					formatted, err = editor.Serialize(notebook)
+					if err != nil {
+						return errors.Wrap(err, "failed to serialize")
+					}
 				}
 			} else {
 				doc := document.New(data, cmark.Render)
@@ -63,6 +87,7 @@ func fmtCmd() *cobra.Command {
 	setDefaultFlags(&cmd)
 
 	cmd.Flags().BoolVar(&flatten, "flatten", false, "Flatten nested blocks in the output.")
+	cmd.Flags().BoolVar(&formatJSON, "json", false, "Print out data as JSON. Only possible with --flatten and not allowed with --write.")
 	cmd.Flags().BoolVarP(&write, "write", "w", false, "Write result to the source file instead of stdout.")
 
 	return &cmd
