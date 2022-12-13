@@ -1,6 +1,7 @@
 package edit
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stateful/runme/internal/document"
@@ -300,4 +301,39 @@ def hello():
 	require.NoError(t, err)
 	cells := toCells(node, data)
 	assert.Equal(t, string(data), string(serializeCells(cells)))
+}
+
+func Test_serializeFencedCodeAttributes(t *testing.T) {
+	t.Run("NoMetadata", func(t *testing.T) {
+		var buf bytes.Buffer
+		serializeFencedCodeAttributes(&buf, &Cell{
+			Metadata: nil,
+		})
+		assert.Equal(t, "", buf.String())
+	})
+
+	t.Run("OnlyPrivateMetadata", func(t *testing.T) {
+		var buf bytes.Buffer
+		serializeFencedCodeAttributes(&buf, &Cell{
+			Metadata: map[string]any{
+				"_key":              "_value",
+				"runme.dev/private": "private",
+				"index":             "index",
+			},
+		})
+		assert.Equal(t, "", buf.String())
+	})
+
+	t.Run("NamePriority", func(t *testing.T) {
+		var buf bytes.Buffer
+		serializeFencedCodeAttributes(&buf, &Cell{
+			Metadata: map[string]any{
+				"a":    "a",
+				"b":    "b",
+				"c":    "c",
+				"name": "name",
+			},
+		})
+		assert.Equal(t, " { name=name a=a b=b c=c }", buf.String())
+	})
 }
