@@ -17,9 +17,21 @@ type Base struct {
 	Stderr io.Writer
 }
 
-var supportedExecutables = map[string]struct{}{"sh": {}, "shell": {}, "sh-raw": {}, "go": {}}
+var supportedExecutables = []string{
+	"bash",
+	"bat", // fallback to sh
+	"sh",
+	"sh-raw",
+	"shell",
+	"zsh",
+	"go",
+}
 
 func IsSupported(lang string) bool {
-	_, ok := supportedExecutables[lang]
-	return ok
+	for _, item := range supportedExecutables {
+		if item == lang {
+			return true
+		}
+	}
+	return false
 }
