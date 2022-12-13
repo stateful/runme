@@ -77,7 +77,7 @@ func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Execut
 	}
 
 	switch block.Language() {
-	case "sh", "shell":
+	case "bash", "bat", "sh", "shell", "zsh":
 		return &runner.Shell{
 			Cmds: block.Lines(),
 			Base: base,
