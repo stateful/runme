@@ -158,16 +158,11 @@ func countTrailingNewLines(b []byte) int {
 }
 
 func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
-	if len(cell.Metadata) == 0 {
-		return
-	}
-
-	_, _ = w.Write([]byte{' ', '{', ' '})
-
 	// Filter out private keys, i.e. starting with "_" or "runme.dev/".
+	// A key with a name "index" that comes from VS Code is also filtered out.
 	keys := make([]string, 0, len(cell.Metadata))
 	for k := range cell.Metadata {
-		if strings.HasPrefix(k, "_") || strings.HasPrefix(k, "runme.dev/") {
+		if k == "index" || strings.HasPrefix(k, "_") || strings.HasPrefix(k, "runme.dev/") {
 			continue
 		}
 		keys = append(keys, k)
@@ -183,7 +178,11 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 		}
 		return a < b
 	})
+	if len(keys) == 0 {
+		return
+	}
 
+	_, _ = w.Write([]byte{' ', '{', ' '})
 	i := 0
 	for _, k := range keys {
 		v := cell.Metadata[k]
@@ -193,7 +192,6 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 			_, _ = w.Write([]byte{' '})
 		}
 	}
-
 	_, _ = w.Write([]byte{' ', '}'})
 }
 
