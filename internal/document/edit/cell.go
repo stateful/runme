@@ -13,6 +13,11 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+const (
+	internalAttributePrefix = "runme.dev"
+	privateAttributePrefix  = "_"
+)
+
 type CellKind int
 
 const (
@@ -95,11 +100,13 @@ func toCellsRec(
 
 		case *document.CodeBlock:
 			if runner.IsSupported(block.Language()) {
+				metadata := convertAttrsToMetadata(block.Attributes())
+				metadata[prefixAttributeName(internalAttributePrefix, "name")] = block.Name()
 				*cells = append(*cells, &Cell{
 					Kind:     CodeKind,
 					Value:    string(block.Content()),
 					LangID:   block.Language(),
-					Metadata: convertAttrsToMetadata(block.Attributes()),
+					Metadata: metadata,
 				})
 			} else {
 				*cells = append(*cells, &Cell{
@@ -157,12 +164,23 @@ func countTrailingNewLines(b []byte) int {
 	return count
 }
 
+func prefixAttributeName(prefix, name string) string {
+	switch prefix {
+	case internalAttributePrefix:
+		return prefix + "/" + name
+	case privateAttributePrefix:
+		fallthrough
+	default:
+		return prefix + name
+	}
+}
+
 func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 	// Filter out private keys, i.e. starting with "_" or "runme.dev/".
 	// A key with a name "index" that comes from VS Code is also filtered out.
 	keys := make([]string, 0, len(cell.Metadata))
 	for k := range cell.Metadata {
-		if k == "index" || strings.HasPrefix(k, "_") || strings.HasPrefix(k, "runme.dev/") {
+		if k == "index" || strings.HasPrefix(k, privateAttributePrefix) || strings.HasPrefix(k, internalAttributePrefix) {
 			continue
 		}
 		keys = append(keys, k)
