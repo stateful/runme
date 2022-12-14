@@ -71,48 +71,60 @@ Second inner paragraph
 `)
 )
 
-func Test_toCells(t *testing.T) {
-	t.Run("TestDataNested", func(t *testing.T) {
-		doc := document.New(testDataNested, cmark.Render)
-		node, _, err := doc.Parse()
-		require.NoError(t, err)
+func Test_toCells_DataNested(t *testing.T) {
+	doc := document.New(testDataNested, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	cells := toCells(node, testDataNested)
+	assert.Len(t, cells, 10)
+	assert.Equal(t, "# Examples", cells[0].Value)
+	assert.Equal(t, "It can have an annotation with a name:", cells[1].Value)
+	assert.Equal(t, "$ echo \"Hello, runme!\"", cells[2].Value)
+	assert.Equal(t, "> bq 1\n> bq 2\n>\n>     echo 1\n>\n> b1 3", cells[3].Value)
+	assert.Equal(t, "1. Item 1", cells[4].Value)
+	assert.Equal(t, "$ echo \"Hello, runme!\"", cells[5].Value)
+	assert.Equal(t, "First inner paragraph", cells[6].Value)
+	assert.Equal(t, "Second inner paragraph", cells[7].Value)
+	assert.Equal(t, "2. Item 2", cells[8].Value)
+	assert.Equal(t, "3. Item 3", cells[9].Value)
+}
 
-		cells := toCells(node, testDataNested)
-		assert.Len(t, cells, 10)
-		assert.Equal(t, "# Examples", cells[0].Value)
-		assert.Equal(t, "It can have an annotation with a name:", cells[1].Value)
-		assert.Equal(t, "$ echo \"Hello, runme!\"", cells[2].Value)
-		assert.Equal(t, "> bq 1\n> bq 2\n>\n>     echo 1\n>\n> b1 3", cells[3].Value)
-		assert.Equal(t, "1. Item 1", cells[4].Value)
-		assert.Equal(t, "$ echo \"Hello, runme!\"", cells[5].Value)
-		assert.Equal(t, "First inner paragraph", cells[6].Value)
-		assert.Equal(t, "Second inner paragraph", cells[7].Value)
-		assert.Equal(t, "2. Item 2", cells[8].Value)
-		assert.Equal(t, "3. Item 3", cells[9].Value)
-	})
-
+func Test_toCells_Lists(t *testing.T) {
 	t.Run("ListWithoutCode", func(t *testing.T) {
-		data := []byte(`# Examples
-
-1. Item 1
+		data := []byte(`1. Item 1
 2. Item 2
 3. Item 3
 `)
 		doc := document.New(data, cmark.Render)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
-
 		cells := toCells(node, data)
-		assert.Len(t, cells, 2)
-		assert.Equal(t, "# Examples", cells[0].Value)
-		assert.Equal(t, "1. Item 1\n2. Item 2\n3. Item 3", cells[1].Value)
+		assert.Len(t, cells, 1)
+		assert.Equal(t, "1. Item 1\n2. Item 2\n3. Item 3", cells[0].Value)
+	})
+
+	t.Run("ListWithCode", func(t *testing.T) {
+		data := []byte(`1. Item 1
+2. Item 2
+   ` + "```sh" + `
+   echo 1
+   ` + "```" + `
+3. Item 3
+`)
+		doc := document.New(data, cmark.Render)
+		node, _, err := doc.Parse()
+		require.NoError(t, err)
+		cells := toCells(node, data)
+		assert.Len(t, cells, 4)
+		assert.Equal(t, "1. Item 1", cells[0].Value)
+		assert.Equal(t, "2. Item 2", cells[1].Value)
+		assert.Equal(t, "echo 1", cells[2].Value)
+		assert.Equal(t, "3. Item 3", cells[3].Value)
 	})
 }
 
 func Test_toCells_UnsupportedLang(t *testing.T) {
-	data := []byte(`## Non-Supported Languages
-
-` + "```py { readonly=true }" + `
+	data := []byte("```py { readonly=true }" + `
 def hello():
     print("Hello World")
 ` + "```" + `
@@ -121,11 +133,13 @@ def hello():
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	cells := toCells(node, data)
-	assert.Len(t, cells, 2)
-	assert.Equal(t, "```py { readonly=true }\ndef hello():\n    print(\"Hello World\")\n```", cells[1].Value)
+	assert.Len(t, cells, 1)
+	cell := cells[0]
+	assert.Equal(t, MarkupKind, cell.Kind)
+	assert.Equal(t, "```py { readonly=true }\ndef hello():\n    print(\"Hello World\")\n```", cell.Value)
 }
 
-func Test_serializeCells(t *testing.T) {
+func Test_serializeCells_Edited(t *testing.T) {
 	data := []byte(`# Examples
 
 1. Item 1
@@ -144,7 +158,7 @@ Last paragraph.
 		return cells
 	}
 
-	t.Run("SimpleEdit", func(t *testing.T) {
+	t.Run("ChangeInplace", func(t *testing.T) {
 		cells := parse()
 		cells[0].Value = "# New header"
 		assert.Equal(
