@@ -15,7 +15,7 @@ The easiest way on MacOS is to use Homebrew:
 $ brew update
 ```
 
-Install runme
+Install runme:
 
 ```sh
 $ brew install stateful/tap/runme
@@ -34,7 +34,7 @@ $ go install github.com/stateful/runme@latest
 
 ### Help
 
-```sh {interactive=false}
+```sh { interactive=false }
 $ runme help
 ```
 
@@ -46,7 +46,7 @@ $ runme list
 
 ### Print
 
-```sh {interactive=false}
+```sh { interactive=false }
 $ runme print hello-world
 ```
 
@@ -58,7 +58,7 @@ $ runme run update-brew
 
 ### Example Command
 
-```sh {name=hello-world}
+```sh { name=hello-world }
 echo "hello world"
 ```
 
