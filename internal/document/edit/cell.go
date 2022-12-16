@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/runner"
 	"github.com/yuin/goldmark/ast"
 	"golang.org/x/exp/slices"
 )
@@ -99,7 +98,10 @@ func toCellsRec(
 			}
 
 		case *document.CodeBlock:
-			if runner.IsSupported(block.Language()) {
+			// If the lang is unknown (empty) or supported then return a code cell.
+			// Otherwise, return a markup cell (#85).
+			// In the future, we will include language detection (#77).
+			if lang := block.Language(); lang == "" || isEditorSupported(lang) {
 				metadata := convertAttrsToMetadata(block.Attributes())
 				metadata[prefixAttributeName(internalAttributePrefix, "name")] = block.Name()
 				*cells = append(*cells, &Cell{
@@ -283,4 +285,21 @@ func convertAttrsToMetadata(m map[string]string) map[string]any {
 		result[k] = v
 	}
 	return result
+}
+
+var supportedExecutables = []string{
+	"bash",
+	"bat", // fallback to sh
+	"sh",
+	"shell",
+	"zsh",
+}
+
+func isEditorSupported(lang string) bool {
+	for _, item := range supportedExecutables {
+		if item == lang {
+			return true
+		}
+	}
+	return false
 }

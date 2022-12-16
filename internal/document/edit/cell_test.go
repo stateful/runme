@@ -123,6 +123,21 @@ func Test_toCells_Lists(t *testing.T) {
 	})
 }
 
+func Test_toCells_EmptyLang(t *testing.T) {
+	data := []byte("```" + `
+echo 1
+` + "```" + `
+`)
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	cells := toCells(node, data)
+	assert.Len(t, cells, 1)
+	cell := cells[0]
+	assert.Equal(t, CodeKind, cell.Kind)
+	assert.Equal(t, "echo 1", cell.Value)
+}
+
 func Test_toCells_UnsupportedLang(t *testing.T) {
 	data := []byte("```py { readonly=true }" + `
 def hello():
