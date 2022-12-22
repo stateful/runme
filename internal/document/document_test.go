@@ -34,7 +34,6 @@ First paragraph.
 	doc := New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
-
 	assert.Len(t, node.children, 4)
 	assert.Len(t, node.children[0].children, 0)
 	assert.Len(t, node.children[1].children, 0)
