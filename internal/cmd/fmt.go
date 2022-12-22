@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/document/edit"
+	"github.com/stateful/runme/internal/document/editor"
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
@@ -40,7 +40,6 @@ func fmtCmd() *cobra.Command {
 			var formatted []byte
 
 			if flatten {
-				editor := edit.New()
 				notebook, err := editor.Deserialize(data)
 				if err != nil {
 					return errors.Wrap(err, "failed to deserialize")

@@ -1,4 +1,4 @@
-package edit
+package editor
 
 import (
 	"testing"
@@ -8,10 +8,9 @@ import (
 )
 
 func TestEditor(t *testing.T) {
-	e := new(Editor)
-	notebook, err := e.Deserialize(testDataNested)
+	notebook, err := Deserialize(testDataNested)
 	require.NoError(t, err)
-	result, err := e.Serialize(notebook)
+	result, err := Serialize(notebook)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -25,13 +24,12 @@ func TestEditor_List(t *testing.T) {
 2. Item 2
 3. Item 3
 `)
-	e := new(Editor)
-	notebook, err := e.Deserialize(data)
+	notebook, err := Deserialize(data)
 	require.NoError(t, err)
 
 	notebook.Cells[0].Value = "1. Item 1\n2. Item 2\n"
 
-	newData, err := e.Serialize(notebook)
+	newData, err := Serialize(notebook)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -41,7 +39,7 @@ func TestEditor_List(t *testing.T) {
 		string(newData),
 	)
 
-	newData, err = e.Serialize(notebook)
+	newData, err = Serialize(notebook)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -55,8 +53,7 @@ func TestEditor_List(t *testing.T) {
 func TestEditor_CodeBlock(t *testing.T) {
 	t.Run("ProvideGeneratedName", func(t *testing.T) {
 		data := []byte("```sh\necho 1\n```\n")
-		e := new(Editor)
-		notebook, err := e.Deserialize(data)
+		notebook, err := Deserialize(data)
 		require.NoError(t, err)
 		cell := notebook.Cells[0]
 		assert.Equal(
@@ -69,15 +66,14 @@ func TestEditor_CodeBlock(t *testing.T) {
 			t,
 			cell.Metadata["name"],
 		)
-		result, err := e.Serialize(notebook)
+		result, err := Serialize(notebook)
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
 
 	t.Run("PreserveName", func(t *testing.T) {
 		data := []byte("```sh { name=name1 }\necho 1\n```\n")
-		e := new(Editor)
-		notebook, err := e.Deserialize(data)
+		notebook, err := Deserialize(data)
 		require.NoError(t, err)
 		cell := notebook.Cells[0]
 		assert.Equal(
@@ -91,8 +87,29 @@ func TestEditor_CodeBlock(t *testing.T) {
 			cell.Metadata["name"].(string),
 			"name1",
 		)
-		result, err := e.Serialize(notebook)
+		result, err := Serialize(notebook)
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
+}
+
+func TestEditor_FrontMatter(t *testing.T) {
+	data := []byte(`+++
+prop1 = "val1"
+prop2 = "val2"
++++
+
+# Example
+
+A paragraph
+`)
+	notebook, err := Deserialize(data)
+	require.NoError(t, err)
+	result, err := Serialize(notebook)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		string(data),
+		string(result),
+	)
 }

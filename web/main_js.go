@@ -2,10 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"syscall/js"
 
-	"github.com/stateful/runme/internal/document/edit"
+	"github.com/stateful/runme/internal/document/editor"
 )
 
 // These are variables so that they can be set during the build time.
@@ -23,15 +22,6 @@ func main() {
 	js.Global().Set("Runme", js.ValueOf(runme))
 
 	select {}
-}
-
-var editor = edit.New()
-
-func assertEditor() js.Value {
-	if editor == nil {
-		return toJSError(errors.New("call deserialize() first"))
-	}
-	return js.Null()
 }
 
 func toMap(o any) (map[string]any, error) {
@@ -84,7 +74,7 @@ func serialize(this js.Value, args []js.Value) any {
 		reject := args[1]
 
 		go func() {
-			var notebook edit.Notebook
+			var notebook editor.Notebook
 			if err := json.Unmarshal([]byte(data), &notebook); err != nil {
 				reject.Invoke(toJSError(err))
 				return
