@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package runme.v1;
+
+option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/v1;runmev1";
+
+message Notebook {
+    repeated Cell cells = 1;
+    map<string, string> metadata = 2;
+}
+
+enum CellKind {
+    CELL_KIND_UNSPECIFIED = 0;
+    CELL_KIND_MARKUP = 1;
+    CELL_KIND_CODE = 2;
+}
+
+message Cell {
+    CellKind kind = 1;
+    string value = 2;
+    string lang_id = 3;
+    map<string, string> metadata = 4;
+}
+
+message DeserializeRequest {
+    bytes source = 1;
+}
+
+message DeserializeResponse {
+    Notebook notebook = 1;
+}
