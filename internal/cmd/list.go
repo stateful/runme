@@ -22,8 +22,9 @@ func listCmd() *cobra.Command {
 				return err
 			}
 
-			// there might be a way to get this from cmd
+			// TODO: this should be taken from cmd.
 			io := iostreams.System()
+			//lint:ignore SA1019 utils is deprecated but that's ok for now.
 			table := utils.NewTablePrinter(io)
 
 			// table header

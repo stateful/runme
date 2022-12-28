@@ -29,3 +29,16 @@ message DeserializeRequest {
 message DeserializeResponse {
     Notebook notebook = 1;
 }
+
+message SerializeRequest {
+    Notebook notebook = 1;
+}
+
+message SerializeResponse {
+    bytes result = 1;
+}
+
+service RunmeService {
+    rpc Deserialize(DeserializeRequest) returns (DeserializeResponse) {}
+    rpc Serialize(SerializeRequest) returns (SerializeResponse) {}
+}

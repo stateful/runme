@@ -1,12 +1,12 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.3.0
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/TekWizely/pre-commit-golang
-    rev: v1.0.0-beta.5
+    rev: v1.0.0-rc.1
     hooks:
       - id: go-fumpt
         exclude: ^internal/gen/.*$
