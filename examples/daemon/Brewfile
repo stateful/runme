@@ -1,0 +1,2 @@
+brew "bufbuild/buf/buf"
+brew "grpcurl"
