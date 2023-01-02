@@ -10,7 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document/editor"
+	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/kernel/v1"
 	runmev1 "github.com/stateful/runme/internal/gen/proto/go/runme/v1"
+	"github.com/stateful/runme/internal/kernel"
 	"google.golang.org/grpc"
 )
 
@@ -31,7 +33,11 @@ func daemonCmd() *cobra.Command {
 			var opts []grpc.ServerOption
 			server := grpc.NewServer(opts...)
 			runmev1.RegisterRunmeServiceServer(server, &runmeServiceServer{})
+<<<<<<< HEAD
 			printf("starting listen on %s", addr)
+=======
+			kernelv1.RegisterKernelServiceServer(server, &kernel.KernelServiceServer{})
+>>>>>>> e482ff7 (kernel: implement execution with writer)
 			return server.Serve(lis)
 		},
 	}

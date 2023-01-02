@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package kernel.v1;
+
+option go_package = "github.com/stateful/runme/internal/gen/proto/go/kernel/v1;kernelv1";
+
+message Session {
+    string id = 1;
+}
+
+message DeleteSessionRequest {
+    string session_id = 1;
+}
+
+message DeleteSessionResponse {}
+
+message PostSessionRequest {
+    string command_name = 1;
+}
+
+message PostSessionResponse {
+    Session session = 1;
+}
+
+message ExecuteRequest {
+    string session_id = 1;
+    bytes command = 2;
+}
+
+message ExecuteResponse {
+    uint32 exit_code = 1;
+    bytes stdout = 2;
+}
+
+service KernelService {
+    rpc PostSession(PostSessionRequest) returns (PostSessionResponse) {}
+    rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
+    rpc Execute(ExecuteRequest) returns (stream ExecuteResponse) {}
+}

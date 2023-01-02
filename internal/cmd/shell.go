@@ -33,6 +33,7 @@ func shellCmd() *cobra.Command {
 		Short: "Activate runme shell.",
 		Long:  "Activate runme shell. This is an experimental feature.",
 		Args:  cobra.NoArgs,
+<<<<<<< HEAD
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// detect promptDetectOut
 			var (
@@ -50,11 +51,25 @@ func shellCmd() *cobra.Command {
 			if len(promptDetectOut) == 0 {
 				err = errors.New("empty prompt")
 			}
+=======
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			prompt, err := kernel.DetectPrompt(commandName)
+>>>>>>> e482ff7 (kernel: implement execution with writer)
 			if err != nil {
 				return errors.Wrapf(err, "failed to detect a valid prompt: %s", promptDetectOut)
 			}
 
+<<<<<<< HEAD
 			promptSlice := bytes.Split(promptDetectOut, []byte{'\n'})
+=======
+			session, err := kernel.NewSession(prompt, commandName)
+			if err != nil {
+				return err
+			}
+			defer func() { _ = session.Destroy() }()
+
+			printfInfo("runme: welcome to runme shell")
+>>>>>>> e482ff7 (kernel: implement execution with writer)
 
 			// Find the last non-empty line and consider this to be a prompt
 			// we will be looking for.
@@ -119,6 +134,7 @@ func shellCmd() *cobra.Command {
 			}
 			defer func() { _ = l.Close(); _ = os.Remove(sockPath) }()
 
+<<<<<<< HEAD
 			logger.Info().Stringer("addr", l.Addr()).Msg("starting to listen")
 
 			notifyWriter := make(chan struct{}, 1)
@@ -126,20 +142,44 @@ func shellCmd() *cobra.Command {
 			go func() error {
 				writer := singleWriter{Writer: ptmx}
 
+=======
+			errC := make(chan error, 1)
+
+			go func() {
+>>>>>>> e482ff7 (kernel: implement execution with writer)
 				for {
 					conn, err := l.Accept()
-					// TODO: handle the case when a conn is closed
 					if err != nil {
 						logger.Error().Err(err).Msg("failed to accept connection")
 						continue
 					}
 
+<<<<<<< HEAD
 				drain:
 					for {
 						select {
 						case <-notifyWriter:
 						default:
 							break drain
+=======
+					// TODO: handle the case when a conn is closed
+
+					for {
+						r := bufio.NewReader(conn)
+						data, err := r.ReadBytes('\n')
+						if err != nil {
+							errC <- err
+							return
+						}
+						data = bytes.TrimSpace(data)
+						if len(data) == 0 {
+							continue
+						}
+
+						if _, err := session.Execute(data, nil); err != nil {
+							errC <- err
+							return
+>>>>>>> e482ff7 (kernel: implement execution with writer)
 						}
 					}
 
@@ -176,6 +216,7 @@ func shellCmd() *cobra.Command {
 				}
 			}()
 
+<<<<<<< HEAD
 			go func() {
 				// TODO: copy log file
 				_, err := io.Copy(ptmx, os.Stdin)
@@ -186,6 +227,14 @@ func shellCmd() *cobra.Command {
 
 			_, err = copyBufferAndDetect(os.Stdout, ptmx, prompt, notifyWriter)
 			return err
+=======
+			select {
+			case <-session.Done():
+				return session.Err()
+			case err := <-errC:
+				return err
+			}
+>>>>>>> e482ff7 (kernel: implement execution with writer)
 		},
 	}
 

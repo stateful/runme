@@ -8,7 +8,9 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.9.0
+	github.com/rs/xid v1.4.0
 	github.com/rs/zerolog v1.28.0
 	github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef
 	github.com/yuin/goldmark v1.4.12
@@ -28,6 +30,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -54,6 +57,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.7.5
+	github.com/stretchr/testify v1.8.0
 	google.golang.org/grpc v1.51.0
 )
