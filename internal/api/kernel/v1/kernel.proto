@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package kernel.v1;
 
+import "google/protobuf/wrappers.proto";
+
 option go_package = "github.com/stateful/runme/internal/gen/proto/go/kernel/v1;kernelv1";
 
 message Session {
@@ -16,6 +18,10 @@ message DeleteSessionResponse {}
 
 message PostSessionRequest {
     string command_name = 1;
+
+    // prompt is only used for debug purposes.
+    // Leave it blank to be auto-detected.
+    string prompt = 2;
 }
 
 message PostSessionResponse {
@@ -28,7 +34,7 @@ message ExecuteRequest {
 }
 
 message ExecuteResponse {
-    uint32 exit_code = 1;
+    google.protobuf.UInt32Value exit_code = 1;
     bytes stdout = 2;
 }
 

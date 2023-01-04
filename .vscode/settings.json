@@ -1,4 +1,10 @@
 {
+    "go.testTimeout": "10s",
+    "protoc": {
+        "options": [
+            "--proto_path=/usr/local/include/protoc"
+        ]
+    },
     // Uncomment if you want to work on files in ./web.
     // "go.buildTags": "js,wasm"
 }

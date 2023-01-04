@@ -13,6 +13,7 @@ import (
 	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/kernel/v1"
 	runmev1 "github.com/stateful/runme/internal/gen/proto/go/runme/v1"
 	"github.com/stateful/runme/internal/kernel"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -24,20 +25,26 @@ func daemonCmd() *cobra.Command {
 		Short: "Start a daemon with a shell session.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			logger, err := zap.NewDevelopment()
+			if err != nil {
+				return err
+			}
+			defer logger.Sync()
+
+			// TODO: figure out better handling of the socket creation and removal.
 			_ = os.Remove(addr)
 
 			lis, err := net.Listen("unix", addr)
 			if err != nil {
 				return err
 			}
+
+			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
+
 			var opts []grpc.ServerOption
 			server := grpc.NewServer(opts...)
 			runmev1.RegisterRunmeServiceServer(server, &runmeServiceServer{})
-<<<<<<< HEAD
-			printf("starting listen on %s", addr)
-=======
-			kernelv1.RegisterKernelServiceServer(server, &kernel.KernelServiceServer{})
->>>>>>> e482ff7 (kernel: implement execution with writer)
+			kernelv1.RegisterKernelServiceServer(server, kernel.NewKernelServiceServer(logger))
 			return server.Serve(lis)
 		},
 	}

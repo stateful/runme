@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import { Message, proto3, UInt32Value } from "@bufbuild/protobuf";
 
 /**
  * @generated from message kernel.v1.Session
@@ -120,6 +120,14 @@ export class PostSessionRequest extends Message<PostSessionRequest> {
    */
   commandName = "";
 
+  /**
+   * prompt is only used for debug purposes.
+   * Leave it blank to be auto-detected.
+   *
+   * @generated from field: string prompt = 2;
+   */
+  prompt = "";
+
   constructor(data?: PartialMessage<PostSessionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -129,6 +137,7 @@ export class PostSessionRequest extends Message<PostSessionRequest> {
   static readonly typeName = "kernel.v1.PostSessionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "command_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "prompt", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PostSessionRequest {
@@ -233,9 +242,9 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
  */
 export class ExecuteResponse extends Message<ExecuteResponse> {
   /**
-   * @generated from field: uint32 exit_code = 1;
+   * @generated from field: google.protobuf.UInt32Value exit_code = 1;
    */
-  exitCode = 0;
+  exitCode?: number;
 
   /**
    * @generated from field: bytes stdout = 2;
@@ -250,7 +259,7 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
   static readonly runtime = proto3;
   static readonly typeName = "kernel.v1.ExecuteResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "exit_code", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: "exit_code", kind: "message", T: UInt32Value },
     { no: 2, name: "stdout", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ]);
 

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -164,4 +166,13 @@ func setDefaultFlags(cmd *cobra.Command) {
 		usage += "."
 		cmd.Flags().BoolP("version", "v", false, usage)
 	}
+}
+
+func printfInfo(msg string, args ...any) {
+	var buf bytes.Buffer
+	_, _ = buf.WriteString("\x1b[0;32m")
+	_, _ = fmt.Fprintf(&buf, msg, args...)
+	_, _ = buf.WriteString("\x1b[0m")
+	_, _ = buf.WriteString("\r\n")
+	_, _ = os.Stderr.Write(buf.Bytes())
 }
