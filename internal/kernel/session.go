@@ -1,6 +1,7 @@
 package kernel
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"os"
@@ -55,10 +56,10 @@ func NewSession(
 	}
 
 	go func() {
+		defer close(s.done)
 		err := s.copyOutput()
 		if err != nil && errors.Is(err, io.EOF) {
 			err = nil
-			close(s.done)
 		}
 		s.logger.With(zap.Error(err)).Info("finished copying from ptmx to outputs")
 		s.setErrorf(err, "failed to copy from ptmx to stdout")
@@ -93,149 +94,12 @@ func (s *Session) Destroy() error {
 	return nil
 }
 
-type bufferedWriter struct {
-	buf         []byte
-	passthrough bool
-	start       []byte
-	end         []byte
-	n           int
-	err         error
-	wr          io.Writer
-}
-
-func newBufferedWriterSize(w io.Writer, start, end []byte, size int) *bufferedWriter {
-	if size <= 0 {
-		size = 4096
-	}
-	if (len(start)+len(end))*2 > size {
-		panic("size of buffer is too small")
-	}
-	return &bufferedWriter{
-		buf:   make([]byte, size),
-		start: start,
-		end:   end,
-		wr:    w,
-	}
-}
-
-func (b *bufferedWriter) Available() int { return len(b.buf) - b.n }
-
-func (b *bufferedWriter) Buffered() int { return b.n }
-
-func (b *bufferedWriter) Reset(w io.Writer) {
-	b.err = nil
-	b.n = 0
-	b.wr = w
-}
-
-func (b *bufferedWriter) Flush() error {
-	if err := b.write(); err != nil {
-		return err
-	}
-	if b.n == 0 {
-		return nil
-	}
-	var (
-		n   int
-		err error
-	)
-	if b.passthrough {
-		n, err = b.wr.Write(b.buf[0:b.n])
-	} else {
-		n = b.n
-	}
-	b.err = err
-	b.n -= n
-	return b.err
-}
-
-func (b *bufferedWriter) Write(p []byte) (nn int, err error) {
-	for len(p) > b.Available() && b.err == nil {
-		n := copy(b.buf[b.n:], p)
-		b.n += n
-		b.write()
-		nn += n
-		p = p[n:]
-	}
-	if b.err != nil {
-		return nn, b.err
-	}
-	n := copy(b.buf[b.n:], p)
-	b.n += n
-	nn += n
-	return nn, nil
-}
-
-func (b *bufferedWriter) write() error {
-	if b.err != nil {
-		return b.err
-	}
-	if b.n == 0 {
-		return nil
-	}
-
-	var (
-		n   int
-		err error
-	)
-
-start:
-	if b.passthrough {
-		idx := bytes.Index(b.buf[0:b.n], b.end)
-		if idx > -1 {
-			n, err = b.wr.Write(b.buf[0:idx])
-			if n < idx && err == nil {
-				err = io.ErrShortWrite
-			}
-			n += len(b.end)
-			b.passthrough = false
-		} else {
-			m := b.n - len(b.end) + 1
-			n, err = b.wr.Write(b.buf[0:m])
-			if n < m && err == nil {
-				err = io.ErrShortWrite
-			}
-			copy(b.buf[0:], b.buf[m:])
-		}
-	} else {
-		idx := bytes.Index(b.buf[0:b.n], b.start)
-		if idx > -1 {
-			s := idx + len(b.start)
-			copy(b.buf[0:], b.buf[s:])
-			b.n -= s
-			b.passthrough = true
-			goto start
-		} else {
-			copy(b.buf[0:], b.buf[b.n-len(b.start):])
-			n = b.n - len(b.start)
-		}
-	}
-	b.n -= n
-	if err != nil {
-		b.err = err
-	}
-	return nil
-}
-
 func (s *Session) Execute(command []byte, output io.Writer) (int, error) {
 	s.logger.Info("executing command", zap.ByteString("command", command))
 
-	w := newBufferedWriterSize(
-		output,
-		append(command, '\r', '\n'),
-		append([]byte{'\r', '\n'}, s.prompt...),
-		-1,
-	)
-
-	s.logger.Info("new buffered writer", zap.ByteString("command", command), zap.ByteString("prompt", s.prompt))
-
-	err := s.execute(command, w)
+	err := s.execute(command, output)
 	if err != nil {
 		s.logger.Error("failed to execute command", zap.Error(err))
-		return -1, err
-	}
-	if err := w.Flush(); err != nil {
-		s.logger.Error("failed to flush buffered writer", zap.Error(err))
 		return -1, err
 	}
 
@@ -248,7 +112,10 @@ func (s *Session) Execute(command []byte, output io.Writer) (int, error) {
 	return code, err
 }
 
-var crlf = []byte{'\r', '\n'}
+var (
+	crlf = []byte{'\r', '\n'}
+	lf   = []byte{'\n'}
+)
 
 func (s *Session) getExitCode() (int, error) {
 	exitCodeCommand := []byte("echo $?")
@@ -302,7 +169,10 @@ func (s *Session) execute(command []byte, w io.Writer) error {
 		return errors.WithStack(err)
 	}
 
-	<-s.promptNotifier
+	expectedPrompts := bytes.Count(command, lf)
+	for i := 0; i < expectedPrompts; i++ {
+		<-s.promptNotifier
+	}
 	s.outputMu.Lock()
 	s.output = prevOutput
 	s.outputMu.Unlock()
@@ -311,38 +181,19 @@ func (s *Session) execute(command []byte, w io.Writer) error {
 }
 
 func (s *Session) copyOutput() error {
-	buf := make([]byte, 32*1024)
-	if cap(buf) < len(s.prompt) {
-		return errors.Errorf("prompt is longer than buffer size (%d vs %d)", len(s.prompt), cap(buf))
-	}
-	var err error
-	for {
-		nr, er := s.ptmx.Read(buf)
-		s.logger.Info("read from ptmx", zap.ByteString("data", buf[0:nr]), zap.Error(err))
-		if nr > 0 {
-			s.outputMu.Lock()
-			nw, ew := s.output.Write(buf[0:nr])
-			s.outputMu.Unlock()
-			if nw < 0 || nr < nw {
-				nw = 0
-				if ew == nil {
-					ew = errors.New("invalid write result")
-				}
-			}
-			if ew != nil {
-				err = ew
-				break
-			}
-			if nr != nw {
-				err = errors.WithStack(io.ErrShortWrite)
-				break
-			}
+	scanner := bufio.NewScanner(s.ptmx)
+	scanner.Split(scanLinesPrompt(s.prompt))
+
+	for scanner.Scan() {
+		line := scanner.Bytes()
+
+		s.logger.Info("read line", zap.ByteString("line", line))
+
+		if len(line) == 0 {
+			continue
 		}
-		if er != nil {
-			err = errors.WithStack(er)
-			break
-		}
-		if bytes.Contains(buf[0:nr], s.prompt) {
+
+		if bytes.HasSuffix(line, s.prompt) {
 			s.logger.Info("detected prompt in the output", zap.Bool("ready", s.isReady))
 			if !s.isReady {
 				s.isReady = true
@@ -353,7 +204,54 @@ func (s *Session) copyOutput() error {
 				default:
 				}
 			}
+			continue
+		}
+
+		_, err := s.output.Write(line)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		_, err = s.output.Write(crlf)
+		if err != nil {
+			return errors.WithStack(err)
 		}
 	}
-	return err
+
+	return errors.WithStack(scanner.Err())
+}
+
+func scanLinesPrompt(prompt []byte) bufio.SplitFunc {
+	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		return scanLines(data, atEOF, prompt)
+	}
+}
+
+func scanLines(data []byte, atEOF bool, prompt []byte) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.Index(data, prompt); i >= 0 {
+		m := i + len(prompt)
+		if len(data) >= m && data[m] == ' ' {
+			m++
+		}
+		return m, data[0 : i+len(prompt)], nil
+	}
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + 1, dropCR(data[0:i]), nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), dropCR(data), nil
+	}
+	// Request more data.
+	return 0, nil, nil
+}
+
+func dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		return data[0 : len(data)-1]
+	}
+	return data
 }
