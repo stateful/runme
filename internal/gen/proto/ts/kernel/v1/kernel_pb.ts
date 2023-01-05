@@ -204,9 +204,9 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
   sessionId = "";
 
   /**
-   * @generated from field: bytes command = 2;
+   * @generated from field: string command = 2;
    */
-  command = new Uint8Array(0);
+  command = "";
 
   constructor(data?: PartialMessage<ExecuteRequest>) {
     super();
@@ -217,7 +217,7 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
   static readonly typeName = "kernel.v1.ExecuteRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "command", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "command", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteRequest {
@@ -247,9 +247,9 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
   exitCode?: number;
 
   /**
-   * @generated from field: bytes stdout = 2;
+   * @generated from field: string stdout = 2;
    */
-  stdout = new Uint8Array(0);
+  stdout = "";
 
   constructor(data?: PartialMessage<ExecuteResponse>) {
     super();
@@ -260,7 +260,7 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
   static readonly typeName = "kernel.v1.ExecuteResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "exit_code", kind: "message", T: UInt32Value },
-    { no: 2, name: "stdout", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "stdout", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteResponse {

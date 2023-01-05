@@ -30,12 +30,12 @@ message PostSessionResponse {
 
 message ExecuteRequest {
     string session_id = 1;
-    bytes command = 2;
+    string command = 2;
 }
 
 message ExecuteResponse {
     google.protobuf.UInt32Value exit_code = 1;
-    bytes stdout = 2;
+    string stdout = 2;
 }
 
 service KernelService {

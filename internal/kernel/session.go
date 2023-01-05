@@ -182,7 +182,7 @@ func (s *Session) execute(command []byte, w io.Writer) error {
 
 func (s *Session) copyOutput() error {
 	scanner := bufio.NewScanner(s.ptmx)
-	scanner.Split(scanLinesPrompt(s.prompt))
+	scanner.Split(scanLines(s.prompt))
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
@@ -220,26 +220,27 @@ func (s *Session) copyOutput() error {
 	return errors.WithStack(scanner.Err())
 }
 
-func scanLinesPrompt(prompt []byte) bufio.SplitFunc {
+func scanLines(prompt []byte) bufio.SplitFunc {
 	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		return scanLines(data, atEOF, prompt)
+		return scanLinesPrompt(data, atEOF, prompt)
 	}
 }
 
-func scanLines(data []byte, atEOF bool, prompt []byte) (advance int, token []byte, err error) {
+func scanLinesPrompt(data []byte, atEOF bool, prompt []byte) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
-	if i := bytes.Index(data, prompt); i >= 0 {
-		m := i + len(prompt)
+	promptIdx := bytes.Index(data, prompt)
+	newLineIdx := bytes.IndexByte(data, '\n')
+	if promptIdx >= 0 && (newLineIdx < 0 || promptIdx < newLineIdx) {
+		m := promptIdx + len(prompt)
 		if len(data) >= m && data[m] == ' ' {
 			m++
 		}
-		return m, data[0 : i+len(prompt)], nil
-	}
-	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		return m, data[0 : promptIdx+len(prompt)], nil
+	} else if newLineIdx >= 0 {
 		// We have a full newline-terminated line.
-		return i + 1, dropCR(data[0:i]), nil
+		return newLineIdx + 1, dropCR(data[0:newLineIdx]), nil
 	}
 	// If we're at EOF, we have a final, non-terminated line. Return it.
 	if atEOF {

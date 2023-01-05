@@ -48,7 +48,7 @@ func TestSession_MultilineCommand(t *testing.T) {
 	require.NoError(t, sess.Destroy())
 }
 
-func TestSession_Persistency(t *testing.T) {
+func TestSession_Persistence(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 	defer logger.Sync()
 	sess, err := NewSession(
