@@ -48,8 +48,17 @@ install/dev:
 	go install honnef.co/go/tools/cmd/staticcheck@v0.3.3
 	go install mvdan.cc/gofumpt@v0.3.1
 
+.PHONY: install/goreleaser
 install/goreleaser:
 	go install github.com/goreleaser/goreleaser@v1.10.2
+
+.PHONY: generate
+generate:
+	buf generate
+
+.PHONY: gen/clean
+generate/clean:
+	rm -rf internal/gen/proto
 
 .PHONY: release
 release: install/goreleaser

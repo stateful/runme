@@ -8,7 +8,7 @@ import (
 	"io"
 	"time"
 
-	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/kernel/v1"
+	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/wrapperspb"

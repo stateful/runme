@@ -10,20 +10,25 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document/editor"
-	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/kernel/v1"
-	runmev1 "github.com/stateful/runme/internal/gen/proto/go/runme/v1"
+	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
+	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/internal/kernel"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-func daemonCmd() *cobra.Command {
+func serverCmd() *cobra.Command {
 	var addr string
 
 	cmd := cobra.Command{
-		Use:   "daemon",
-		Short: "Start a daemon with a shell session.",
-		Args:  cobra.NoArgs,
+		Use:   "server",
+		Short: "Start a server with various services and a gRPC interface.",
+		Long: `The server provides two services: kernel and parser.
+
+The parser allows serializing and deserializing markdown content.
+
+The kernel is used to run long running processes like shells and interacting with them.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger, err := zap.NewDevelopment()
 			if err != nil {
@@ -43,7 +48,7 @@ func daemonCmd() *cobra.Command {
 
 			var opts []grpc.ServerOption
 			server := grpc.NewServer(opts...)
-			runmev1.RegisterRunmeServiceServer(server, &runmeServiceServer{})
+			parserv1.RegisterParserServiceServer(server, &parserServiceServer{})
 			kernelv1.RegisterKernelServiceServer(server, kernel.NewKernelServiceServer(logger))
 			return server.Serve(lis)
 		},
@@ -56,35 +61,35 @@ func daemonCmd() *cobra.Command {
 	return &cmd
 }
 
-type runmeServiceServer struct {
-	runmev1.UnimplementedRunmeServiceServer
+type parserServiceServer struct {
+	parserv1.UnimplementedParserServiceServer
 }
 
-func (s *runmeServiceServer) Deserialize(_ context.Context, req *runmev1.DeserializeRequest) (*runmev1.DeserializeResponse, error) {
+func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.DeserializeRequest) (*parserv1.DeserializeResponse, error) {
 	notebook, err := editor.Deserialize(req.Source)
 	if err != nil {
 		return nil, err
 	}
 
-	cells := make([]*runmev1.Cell, 0, len(notebook.Cells))
+	cells := make([]*parserv1.Cell, 0, len(notebook.Cells))
 	for _, cell := range notebook.Cells {
-		cells = append(cells, &runmev1.Cell{
-			Kind:     runmev1.CellKind(cell.Kind),
+		cells = append(cells, &parserv1.Cell{
+			Kind:     parserv1.CellKind(cell.Kind),
 			Value:    cell.Value,
 			LangId:   cell.LangID,
 			Metadata: stringifyMapValue(cell.Metadata),
 		})
 	}
 
-	return &runmev1.DeserializeResponse{
-		Notebook: &runmev1.Notebook{
+	return &parserv1.DeserializeResponse{
+		Notebook: &parserv1.Notebook{
 			Cells:    cells,
 			Metadata: stringifyMapValue(notebook.Metadata),
 		},
 	}, nil
 }
 
-func (s *runmeServiceServer) Serialize(_ context.Context, req *runmev1.SerializeRequest) (*runmev1.SerializeResponse, error) {
+func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.SerializeRequest) (*parserv1.SerializeResponse, error) {
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
 		cells = append(cells, &editor.Cell{
@@ -101,7 +106,7 @@ func (s *runmeServiceServer) Serialize(_ context.Context, req *runmev1.Serialize
 	if err != nil {
 		return nil, err
 	}
-	return &runmev1.SerializeResponse{Result: data}, nil
+	return &parserv1.SerializeResponse{Result: data}, nil
 }
 
 func stringifyMapValue(meta map[string]any) map[string]string {

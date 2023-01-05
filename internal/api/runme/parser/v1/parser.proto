@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package runme.v1;
+package runme.parser.v1;
 
-option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/v1;runmev1";
+option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1;parserv1";
 
 message Notebook {
     repeated Cell cells = 1;
@@ -38,7 +38,7 @@ message SerializeResponse {
     bytes result = 1;
 }
 
-service RunmeService {
+service ParserService {
     rpc Deserialize(DeserializeRequest) returns (DeserializeResponse) {}
     rpc Serialize(SerializeRequest) returns (SerializeResponse) {}
 }

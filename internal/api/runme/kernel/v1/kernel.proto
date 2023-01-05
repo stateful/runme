@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package kernel.v1;
+package runme.kernel.v1;
 
 import "google/protobuf/wrappers.proto";
 
-option go_package = "github.com/stateful/runme/internal/gen/proto/go/kernel/v1;kernelv1";
+option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1;kernelv1";
 
 message Session {
     string id = 1;

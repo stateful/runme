@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: kernel/v1/kernel.proto
+// source: runme/kernel/v1/kernel.proto
 
 package kernelv1
 
@@ -37,7 +37,7 @@ func NewKernelServiceClient(cc grpc.ClientConnInterface) KernelServiceClient {
 
 func (c *kernelServiceClient) PostSession(ctx context.Context, in *PostSessionRequest, opts ...grpc.CallOption) (*PostSessionResponse, error) {
 	out := new(PostSessionResponse)
-	err := c.cc.Invoke(ctx, "/kernel.v1.KernelService/PostSession", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/runme.kernel.v1.KernelService/PostSession", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (c *kernelServiceClient) PostSession(ctx context.Context, in *PostSessionRe
 
 func (c *kernelServiceClient) DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error) {
 	out := new(DeleteSessionResponse)
-	err := c.cc.Invoke(ctx, "/kernel.v1.KernelService/DeleteSession", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/runme.kernel.v1.KernelService/DeleteSession", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (c *kernelServiceClient) DeleteSession(ctx context.Context, in *DeleteSessi
 }
 
 func (c *kernelServiceClient) Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (KernelService_ExecuteClient, error) {
-	stream, err := c.cc.NewStream(ctx, &KernelService_ServiceDesc.Streams[0], "/kernel.v1.KernelService/Execute", opts...)
+	stream, err := c.cc.NewStream(ctx, &KernelService_ServiceDesc.Streams[0], "/runme.kernel.v1.KernelService/Execute", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func _KernelService_PostSession_Handler(srv interface{}, ctx context.Context, de
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/kernel.v1.KernelService/PostSession",
+		FullMethod: "/runme.kernel.v1.KernelService/PostSession",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(KernelServiceServer).PostSession(ctx, req.(*PostSessionRequest))
@@ -149,7 +149,7 @@ func _KernelService_DeleteSession_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/kernel.v1.KernelService/DeleteSession",
+		FullMethod: "/runme.kernel.v1.KernelService/DeleteSession",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(KernelServiceServer).DeleteSession(ctx, req.(*DeleteSessionRequest))
@@ -182,7 +182,7 @@ func (x *kernelServiceExecuteServer) Send(m *ExecuteResponse) error {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var KernelService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "kernel.v1.KernelService",
+	ServiceName: "runme.kernel.v1.KernelService",
 	HandlerType: (*KernelServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -201,5 +201,5 @@ var KernelService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "kernel/v1/kernel.proto",
+	Metadata: "runme/kernel/v1/kernel.proto",
 }
