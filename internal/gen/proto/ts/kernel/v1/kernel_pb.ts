@@ -247,9 +247,9 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
   exitCode?: number;
 
   /**
-   * @generated from field: string stdout = 2;
+   * @generated from field: bytes stdout = 2;
    */
-  stdout = "";
+  stdout = new Uint8Array(0);
 
   constructor(data?: PartialMessage<ExecuteResponse>) {
     super();
@@ -260,7 +260,7 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
   static readonly typeName = "kernel.v1.ExecuteResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "exit_code", kind: "message", T: UInt32Value },
-    { no: 2, name: "stdout", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "stdout", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteResponse {

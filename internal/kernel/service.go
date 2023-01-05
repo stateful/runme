@@ -93,7 +93,7 @@ func (m *kernelServiceServer) Execute(req *kernelv1.ExecuteRequest, srv kernelv1
 				}
 			}
 
-			err := srv.Send(&kernelv1.ExecuteResponse{Stdout: string(p[:n])})
+			err := srv.Send(&kernelv1.ExecuteResponse{Stdout: p[:n]})
 			if err != nil {
 				return err
 			}
@@ -114,8 +114,8 @@ func (m *kernelServiceServer) Execute(req *kernelv1.ExecuteRequest, srv kernelv1
 			return err
 		}
 
-		data := buf.String()
-		m.logger.Info("finished executing command", zap.Int("code", exitCode), zap.String("data", data), zap.Error(err))
+		data := buf.Bytes()
+		m.logger.Info("finished executing command", zap.Int("code", exitCode), zap.ByteString("data", data), zap.Error(err))
 		return srv.Send(&kernelv1.ExecuteResponse{
 			Stdout:   data,
 			ExitCode: wrapperspb.UInt32(uint32(exitCode)),

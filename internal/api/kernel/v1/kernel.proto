@@ -35,7 +35,7 @@ message ExecuteRequest {
 
 message ExecuteResponse {
     google.protobuf.UInt32Value exit_code = 1;
-    string stdout = 2;
+    bytes stdout = 2;
 }
 
 service KernelService {
