@@ -196,6 +196,9 @@ func (s *Session) copyOutput() error {
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		s.logger.Debug("read line to copy", zap.ByteString("line", line))
+		line = dropANSIEscape(line)
+		line = dropCRPrefix(line)
+		s.logger.Debug("line after clean up", zap.ByteString("line", line))
 		if len(line) == 0 {
 			continue
 		}
@@ -268,6 +271,13 @@ func scanLinesPrompt(data []byte, atEOF bool, prompt []byte) (advance int, token
 func dropCR(data []byte) []byte {
 	if len(data) > 0 && data[len(data)-1] == '\r' {
 		return data[0 : len(data)-1]
+	}
+	return data
+}
+
+func dropCRPrefix(data []byte) []byte {
+	if len(data) > 0 && data[0] == '\r' {
+		return data[1:]
 	}
 	return data
 }
