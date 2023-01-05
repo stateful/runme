@@ -30,6 +30,7 @@ func (m *kernelServiceServer) PostSession(ctx context.Context, req *kernelv1.Pos
 	if len(prompt) == 0 {
 		var err error
 		prompt, err = DetectPrompt(req.CommandName)
+		m.logger.Info("detected prompt", zap.Error(err), zap.ByteString("prompt", prompt))
 		if err != nil {
 			return nil, fmt.Errorf("failed to detect prompt: %w", err)
 		}

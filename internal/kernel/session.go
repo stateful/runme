@@ -252,7 +252,7 @@ func scanLinesPrompt(data []byte, atEOF bool, prompt []byte) (advance int, token
 	newLineIdx := bytes.IndexByte(data, '\n')
 	if promptIdx >= 0 && (newLineIdx < 0 || promptIdx < newLineIdx) {
 		m := promptIdx + len(prompt)
-		if len(data) >= m && data[m] == ' ' {
+		if len(data) > m && data[m] == ' ' {
 			m++
 		}
 		return m, data[0 : promptIdx+len(prompt)], nil
