@@ -95,6 +95,9 @@ func (s *ShellSession) copyOutput() error {
 			err = errors.WithStack(er)
 			break
 		}
+		// TODO: improve this fragment. It seems that it is possible that prompt
+		// is split between multiple reads. If that's correct, this code won't
+		// detect that.
 		if bytes.Contains(buf[0:nr], s.prompt) {
 			s.promptDetected()
 		}

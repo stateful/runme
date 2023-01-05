@@ -23,7 +23,7 @@ type Session struct {
 	cmd            *exec.Cmd
 	ptmx           *os.File
 	isReady        bool
-	ready          chan struct{} // notifies when the process is ready; for shell after observing first prompt
+	ready          chan struct{} // notifies when the process is ready; for shells upon observing the first prompt
 	outputMu       sync.Mutex
 	output         io.Writer
 	outputCopyFunc func() error
