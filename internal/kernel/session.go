@@ -18,15 +18,16 @@ import (
 
 type Session struct {
 	id             string
-	done           chan struct{}
-	err            error
+	done           chan struct{} // notifies when Session's process is finished
+	err            error         // error from background processing, e.g. copy output
 	cmd            *exec.Cmd
 	ptmx           *os.File
-	ready          chan struct{}
 	isReady        bool
+	ready          chan struct{} // notifies when the process is ready; for shell after observing first prompt
 	outputMu       sync.Mutex
 	output         io.Writer
-	prompt         []byte // detected prompt
+	outputCopyFunc func() error
+	prompt         []byte
 	promptNotifier chan struct{}
 	logger         *zap.Logger
 }
@@ -46,6 +47,8 @@ func NewSession(
 		logger:         logger,
 	}
 
+	s.outputCopyFunc = s.copyOutput
+
 	s.cmd = exec.Command(commandName)
 	s.cmd.Env = append(os.Environ(), "RUNMESHELL="+s.id)
 
@@ -57,7 +60,7 @@ func NewSession(
 
 	go func() {
 		defer close(s.done)
-		err := s.copyOutput()
+		err := s.outputCopyFunc()
 		if err != nil && errors.Is(err, io.EOF) {
 			err = nil
 		}
@@ -68,22 +71,27 @@ func NewSession(
 	return &s, nil
 }
 
-func (s *Session) setErrorf(err error, msg string, args ...interface{}) {
-	if err != nil {
-		s.err = multierror.Append(s.err, errors.WithMessagef(err, msg, args...))
-	}
-}
-
-func (s *Session) Err() error {
-	return s.err
-}
-
 func (s *Session) ID() string {
 	return s.id
 }
 
 func (s *Session) Done() <-chan struct{} {
 	return s.done
+}
+
+func (s *Session) Err() error {
+	return s.err
+}
+
+func (s *Session) Wait() error {
+	<-s.done
+	return s.err
+}
+
+func (s *Session) setErrorf(err error, msg string, args ...interface{}) {
+	if err != nil {
+		s.err = multierror.Append(s.err, errors.WithMessagef(err, msg, args...))
+	}
 }
 
 func (s *Session) Destroy() error {
@@ -96,7 +104,6 @@ func (s *Session) Destroy() error {
 
 func (s *Session) Execute(command []byte, output io.Writer) (int, error) {
 	s.logger.Info("executing command", zap.ByteString("command", command))
-
 	err := s.execute(command, output)
 	if err != nil {
 		s.logger.Error("failed to execute command", zap.Error(err))
@@ -104,8 +111,7 @@ func (s *Session) Execute(command []byte, output io.Writer) (int, error) {
 	}
 
 	s.logger.Info("getting exit code for command", zap.ByteString("command", command))
-
-	code, err := s.getExitCode()
+	code, err := s.exitCode()
 	if err != nil {
 		s.logger.Error("failed to get exit code", zap.Error(err))
 	}
@@ -113,13 +119,12 @@ func (s *Session) Execute(command []byte, output io.Writer) (int, error) {
 }
 
 var (
-	crlf = []byte{'\r', '\n'}
-	lf   = []byte{'\n'}
+	crlf            = []byte{'\r', '\n'}
+	lf              = []byte{'\n'}
+	exitCodeCommand = []byte("echo $?")
 )
 
-func (s *Session) getExitCode() (int, error) {
-	exitCodeCommand := []byte("echo $?")
-
+func (s *Session) exitCode() (int, error) {
 	var buf bytes.Buffer
 	err := s.execute(exitCodeCommand, &buf)
 	if err != nil {
@@ -127,22 +132,17 @@ func (s *Session) getExitCode() (int, error) {
 	}
 
 	data := buf.Bytes()
-
-	s.logger.Info("got output for exit code command", zap.ByteString("data", data))
-
+	s.logger.Info("output for exit code command", zap.ByteString("data", data))
 	// Remove the command itself if it is a prefix.
 	data = bytes.TrimPrefix(data, exitCodeCommand)
 	// Remove any CRLF prefix.
-	for bytes.HasPrefix(data, crlf) {
-		data = data[len(crlf):]
-	}
+	data = bytes.TrimPrefix(data, crlf)
 	// Remove all suffixes.
 	for lastIdx := len(data); lastIdx > -1; lastIdx = bytes.LastIndex(data, crlf) {
 		data = data[:lastIdx]
 	}
 
 	s.logger.Info("extracted exit code from output", zap.ByteString("code", data))
-
 	exitCode, err := strconv.ParseInt(string(data), 10, 8)
 	if err != nil {
 		return -1, errors.WithStack(err)
@@ -151,8 +151,9 @@ func (s *Session) getExitCode() (int, error) {
 }
 
 func (s *Session) execute(command []byte, w io.Writer) error {
-	<-s.ready
+	<-s.ready // wait for the first prompt before executing anything
 
+	// command must end with a new line, otherwise it won't be executed
 	if command[len(command)-1] != '\n' {
 		command = append(command, '\n')
 	}
@@ -164,15 +165,23 @@ func (s *Session) execute(command []byte, w io.Writer) error {
 	s.output = io.MultiWriter(prevOutput, w)
 	s.outputMu.Unlock()
 
+	// collect N prompts; depending on the number of new lines in command
+	prompts := make(chan struct{})
+	go func() {
+		n := bytes.Count(command, lf)
+		for i := 0; i < n; i++ {
+			<-s.promptNotifier
+		}
+		close(prompts)
+	}()
+
 	_, err := s.ptmx.Write(command)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	expectedPrompts := bytes.Count(command, lf)
-	for i := 0; i < expectedPrompts; i++ {
-		<-s.promptNotifier
-	}
+	<-prompts
+
 	s.outputMu.Lock()
 	s.output = prevOutput
 	s.outputMu.Unlock()
@@ -186,38 +195,44 @@ func (s *Session) copyOutput() error {
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
-
-		s.logger.Info("read line", zap.ByteString("line", line))
-
+		s.logger.Debug("read line to copy", zap.ByteString("line", line))
 		if len(line) == 0 {
 			continue
 		}
 
 		if bytes.HasSuffix(line, s.prompt) {
-			s.logger.Info("detected prompt in the output", zap.Bool("ready", s.isReady))
-			if !s.isReady {
-				s.isReady = true
-				close(s.ready)
-			} else {
-				select {
-				case s.promptNotifier <- struct{}{}:
-				default:
-				}
-			}
+			s.logger.Info("detected prompt in the line", zap.Bool("ready", s.isReady))
+			s.promptDetected()
 			continue
 		}
 
-		_, err := s.output.Write(line)
+		s.outputMu.Lock()
+		out := s.output
+		s.outputMu.Unlock()
+
+		_, err := out.Write(line)
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		_, err = s.output.Write(crlf)
+		_, err = out.Write(crlf)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 	}
 
 	return errors.WithStack(scanner.Err())
+}
+
+func (s *Session) promptDetected() {
+	if !s.isReady {
+		s.isReady = true
+		close(s.ready)
+	} else {
+		select {
+		case s.promptNotifier <- struct{}{}:
+		default:
+		}
+	}
 }
 
 func scanLines(prompt []byte) bufio.SplitFunc {

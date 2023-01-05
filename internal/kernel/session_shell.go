@@ -1,6 +1,7 @@
 package kernel
 
 import (
+	"bytes"
 	"io"
 	"os"
 
@@ -28,7 +29,9 @@ func NewShellSession(
 
 	s := ShellSession{Session: sess}
 	s.logger = zap.NewNop()
+
 	s.output = os.Stdout
+	s.outputCopyFunc = s.copyOutput
 
 	s.cancelResize = xpty.ResizeOnSig(s.ptmx)
 
@@ -55,4 +58,46 @@ func (s *ShellSession) Destroy() error {
 	}
 
 	return s.Session.Destroy()
+}
+
+func (s *ShellSession) copyOutput() error {
+	buf := make([]byte, 4096)
+	if cap(buf) < len(s.prompt) {
+		return errors.Errorf("prompt is longer than buffer size (%d vs %d)", len(s.prompt), cap(buf))
+	}
+
+	var err error
+
+	for {
+		nr, er := s.ptmx.Read(buf)
+		if nr > 0 {
+			s.outputMu.Lock()
+			out := s.output
+			s.outputMu.Unlock()
+
+			nw, ew := out.Write(buf[0:nr])
+			if nw < 0 || nr < nw {
+				nw = 0
+				if ew == nil {
+					ew = errors.New("invalid write result")
+				}
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = errors.WithStack(io.ErrShortWrite)
+				break
+			}
+		}
+		if er != nil {
+			err = errors.WithStack(er)
+			break
+		}
+		if bytes.Contains(buf[0:nr], s.prompt) {
+			s.promptDetected()
+		}
+	}
+	return err
 }
