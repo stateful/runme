@@ -3,6 +3,8 @@
 package kernel
 
 import (
+	"os/exec"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +12,9 @@ import (
 )
 
 func TestDetectPrompt(t *testing.T) {
-	prompt, err := DetectPrompt("/usr/local/bin/bash")
+	bashBin, err := exec.LookPath("bash")
 	require.NoError(t, err)
-	assert.Equal(t, "bash-5.2$", string(prompt))
+	prompt, err := DetectPrompt(bashBin)
+	require.NoError(t, err)
+	assert.Regexp(t, regexp.MustCompile("^bash.*$"), string(prompt))
 }

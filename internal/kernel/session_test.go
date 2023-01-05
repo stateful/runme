@@ -22,7 +22,7 @@ func testCreateSession(t *testing.T) *Session {
 	require.NoError(t, err)
 	sess, err := NewSession(
 		prompt,
-		"/usr/local/bin/bash",
+		bashBin,
 		logger,
 	)
 	require.NoError(t, err)
