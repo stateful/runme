@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
 
@@ -124,13 +122,4 @@ func parseMapValue(meta map[string]string) map[string]any {
 		result[k] = v
 	}
 	return result
-}
-
-func printf(msg string, args ...any) {
-	var buf bytes.Buffer
-	_, _ = buf.WriteString("\x1b[0;32m")
-	_, _ = fmt.Fprintf(&buf, msg, args...)
-	_, _ = buf.WriteString("\x1b[0m")
-	_, _ = buf.WriteString("\r\n")
-	_, _ = os.Stderr.Write(buf.Bytes())
 }

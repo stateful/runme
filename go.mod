@@ -11,7 +11,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.9.0
 	github.com/rs/xid v1.4.0
-	github.com/rs/zerolog v1.28.0
 	github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef
 	github.com/yuin/goldmark v1.4.12
 	golang.org/x/exp v0.0.0-20221208044002-44028be4359e
