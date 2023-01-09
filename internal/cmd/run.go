@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -43,12 +45,16 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
+			if id, ok := shellID(); ok && runner.IsShell(block) {
+				return executeInShell(id, block)
+			}
+
 			executable, err := newExecutable(cmd, block)
 			if err != nil {
 				return err
 			}
 
-			ctx, cancel := sigCtxCancel(cmd.Context())
+			ctx, cancel := ctxWithSigCancel(cmd.Context())
 			defer cancel()
 
 			if dryRun {
@@ -97,7 +103,7 @@ func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Execut
 	}
 }
 
-func sigCtxCancel(ctx context.Context) (context.Context, context.CancelFunc) {
+func ctxWithSigCancel(ctx context.Context) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	sigs := make(chan os.Signal, 1)
@@ -131,5 +137,35 @@ func replace(scripts []string, lines []string) error {
 		}
 	}
 
+	return nil
+}
+
+func shellID() (int, bool) {
+	id := os.Getenv("RUNMESHELL")
+	if id == "" {
+		return 0, false
+	}
+	i, err := strconv.Atoi(id)
+	if err != nil {
+		return -1, false
+	}
+	return i, true
+}
+
+func executeInShell(id int, block *document.CodeBlock) error {
+	conn, err := net.Dial("unix", "/tmp/runme-"+strconv.Itoa(id)+".sock")
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	for _, line := range block.Lines() {
+		line = strings.TrimSpace(line)
+
+		if _, err := conn.Write([]byte(line)); err != nil {
+			return errors.WithStack(err)
+		}
+		if _, err := conn.Write([]byte("\n")); err != nil {
+			return errors.WithStack(err)
+		}
+	}
 	return nil
 }

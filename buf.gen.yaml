@@ -1,0 +1,12 @@
+version: v1
+plugins:
+  - plugin: go
+    out: internal/gen/proto/go
+    opt: paths=source_relative
+  - plugin: go-grpc
+    out: internal/gen/proto/go
+    opt: paths=source_relative
+  - name: es
+    path: ./node_modules/.bin/protoc-gen-es
+    opt: target=ts
+    out: internal/gen/proto/ts

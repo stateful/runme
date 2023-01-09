@@ -1,4 +1,12 @@
 {
+    "go.testTimeout": "10s",
+    "protoc": {
+        "options": [
+            // It's not a typical location, you likely need to symlink it
+            // from a location where you installed protoc.
+            "--proto_path=/usr/local/include/protoc"
+        ]
+    },
     // Uncomment if you want to work on files in ./web.
     // "go.buildTags": "js,wasm"
 }
