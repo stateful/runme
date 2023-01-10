@@ -52,13 +52,19 @@ install/dev:
 install/goreleaser:
 	go install github.com/goreleaser/goreleaser@v1.10.2
 
-.PHONY: generate
-generate:
+.PHONY: proto/generate
+proto/generate:
 	buf generate
 
-.PHONY: gen/clean
-generate/clean:
+.PHONY: proto/clean
+proto/clean:
 	rm -rf internal/gen/proto
+
+# Remember to set up buf registry beforehand.
+# More: https://docs.buf.build/bsr/authentication
+.PHONY: proto/publish
+proto/publish:
+	@cd ./internal/api && buf push
 
 .PHONY: release
 release: install/goreleaser

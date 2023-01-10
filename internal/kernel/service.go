@@ -21,8 +21,8 @@ func NewKernelServiceServer(logger *zap.Logger) kernelv1.KernelServiceServer {
 type kernelServiceServer struct {
 	kernelv1.UnimplementedKernelServiceServer
 
-	sessions []*Session
-	logger   *zap.Logger
+	kernel *kernel
+	logger *zap.Logger
 }
 
 func (m *kernelServiceServer) PostSession(ctx context.Context, req *kernelv1.PostSessionRequest) (*kernelv1.PostSessionResponse, error) {
@@ -36,12 +36,12 @@ func (m *kernelServiceServer) PostSession(ctx context.Context, req *kernelv1.Pos
 		}
 	}
 
-	s, err := NewSession(prompt, req.CommandName, m.logger)
+	s, err := NewSession(prompt, req.CommandName, req.RawOutput, m.logger)
 	if err != nil {
 		return nil, err
 	}
 
-	m.sessions = append(m.sessions, s)
+	m.kernel.AddSession(s)
 
 	return &kernelv1.PostSessionResponse{
 		Session: &kernelv1.Session{Id: s.id},
@@ -49,27 +49,36 @@ func (m *kernelServiceServer) PostSession(ctx context.Context, req *kernelv1.Pos
 }
 
 func (m *kernelServiceServer) DeleteSession(ctx context.Context, req *kernelv1.DeleteSessionRequest) (*kernelv1.DeleteSessionResponse, error) {
-	for idx, s := range m.sessions {
-		if s.id == req.SessionId {
-			if err := s.Destroy(); err != nil {
-				return nil, err
-			}
-
-			if idx == len(m.sessions)-1 {
-				m.sessions = m.sessions[:idx]
-			} else {
-				m.sessions = append(m.sessions[:idx], m.sessions[idx+1:]...)
-			}
-
-			return &kernelv1.DeleteSessionResponse{}, nil
-		}
+	session := m.kernel.FindSession(req.SessionId)
+	if session == nil {
+		return nil, errors.New("session not found")
 	}
+
+	if err := session.Destroy(); err != nil {
+		return nil, err
+	}
+
+	m.kernel.DeleteSession(session)
+
 	return nil, errors.New("session does not exist")
 }
 
+func (m *kernelServiceServer) ListSessions(ctx context.Context, req *kernelv1.ListSessionsRequest) (*kernelv1.ListSessionsResponse, error) {
+	sessions := m.kernel.Sessions()
+	resp := kernelv1.ListSessionsResponse{
+		Sessions: make([]*kernelv1.Session, len(sessions)),
+	}
+	for idx, s := range sessions {
+		resp.Sessions[idx] = &kernelv1.Session{
+			Id: s.ID(),
+		}
+	}
+	return &resp, nil
+}
+
 func (m *kernelServiceServer) Execute(req *kernelv1.ExecuteRequest, srv kernelv1.KernelService_ExecuteServer) error {
-	sess := m.findSession(req.SessionId)
-	if sess == nil {
+	session := m.kernel.FindSession(req.SessionId)
+	if session == nil {
 		return errors.New("session not found")
 	}
 
@@ -78,8 +87,10 @@ func (m *kernelServiceServer) Execute(req *kernelv1.ExecuteRequest, srv kernelv1
 	g, _ := errgroup.WithContext(srv.Context())
 
 	g.Go(func() error {
+		// Stream up to 4KB of data per chunk. If there is no data available,
+		// check every 200 ms.
 		for {
-			p := make([]byte, 1024)
+			p := make([]byte, 4096)
 			n, rerr := buf.Read(p)
 			m.logger.Info("read output from command", zap.ByteString("data", p[:n]), zap.Error(rerr))
 			if rerr != nil && rerr != io.EOF {
@@ -109,7 +120,7 @@ func (m *kernelServiceServer) Execute(req *kernelv1.ExecuteRequest, srv kernelv1
 		command := make([]byte, len(req.Command))
 		copy(command, req.Command)
 
-		exitCode, err := sess.Execute(command, buf)
+		exitCode, err := session.Execute(command, buf)
 		close(execDone)
 		if err != nil {
 			return err
@@ -124,13 +135,4 @@ func (m *kernelServiceServer) Execute(req *kernelv1.ExecuteRequest, srv kernelv1
 	})
 
 	return g.Wait()
-}
-
-func (m *kernelServiceServer) findSession(id string) *Session {
-	for _, session := range m.sessions {
-		if session.ID() == id {
-			return session
-		}
-	}
-	return nil
 }

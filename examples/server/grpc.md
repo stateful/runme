@@ -1,12 +1,12 @@
 # Daemon/kernel functionality
 
-Install system dependencies
+Install system dependencies:
 
 ```sh
 $ brew bundle --no-lock
 ```
 
-Let's build the project first and include working directory into PATH
+Let's build the project first and include working directory into `$PATH`:
 
 ```sh
 $ cd ../..
@@ -17,19 +17,19 @@ $ export PATH="$CWD:$PATH"
 
 ## Exercise GRPC interface
 
-Bring up the server. It's GRPC based.
+Bring up the server. It's gRPC based:
 
 ```sh { background=true }
-$ runme daemon --address ./runme.sock
+$ runme server --address ./runme.sock
 ```
 
-Issue a simple call to the deserialize API, first set markdown input data
+Issue a simple call to the deserialize API, first set markdown input data:
 
 ```sh
 export mddata="# Ohai this is my cool headline"
 ```
 
-Then issue RPC call and display the result
+Then issue RPC call and display the result:
 
 ```sh { closeTerminalOnSuccess=false }
 $ data="$(echo $mddata | openssl base64 | tr -d '\n')"

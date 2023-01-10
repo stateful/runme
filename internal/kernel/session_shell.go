@@ -22,19 +22,18 @@ func NewShellSession(
 	prompt []byte,
 	commandName string,
 ) (*ShellSession, error) {
-	sess, err := NewSession(prompt, commandName, zap.NewNop())
+	s := &ShellSession{}
+
+	var err error
+	s.Session, err = NewSession(prompt, commandName, false, zap.NewNop())
 	if err != nil {
 		return nil, err
 	}
-
-	s := ShellSession{Session: sess}
-	s.logger = zap.NewNop()
-
-	s.output = os.Stdout
-	s.outputCopyFunc = s.copyOutput
+	s.Session.logger = zap.NewNop()
+	s.Session.output = os.Stdout
+	s.Session.outputCopyFunc = s.copyOuput
 
 	s.cancelResize = xpty.ResizeOnSig(s.ptmx)
-
 	// Set stdin in raw mode.
 	s.stdinOldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
@@ -47,7 +46,7 @@ func NewShellSession(
 		s.setErrorf(err, "failed to copy stdin to ptmx")
 	}()
 
-	return &s, nil
+	return s, nil
 }
 
 func (s *ShellSession) Destroy() error {
@@ -60,6 +59,7 @@ func (s *ShellSession) Destroy() error {
 	return s.Session.Destroy()
 }
 
+//lint:ignore U1000 staticcheck bug; this function is used
 func (s *ShellSession) copyOutput() error {
 	buf := make([]byte, 4096)
 	if cap(buf) < len(s.prompt) {

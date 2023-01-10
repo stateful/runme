@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <title>Runme</title>
+        <link rel="stylesheet" href="xterm.css" />
+        <script src="xterm.js"></script>
+    </head>
+    <body>
+        <p>
+            All sessions:
+            <ul id="sessions"></ul>
+            <button onclick="runme.handleListSessions()">List</button>
+        </p>
+
+        <p>
+            Active session ID: <pre id="sessionID"></pre>
+            <button onclick="runme.handleCreateSession()">Create</button>
+            <button onclick="runme.handleDeleteSession()">Destroy</button>
+        </p>
+
+        <p>
+            Command:
+            <textarea id="command" rows="10" cols="40">echo Hello</textarea>
+            <div id="terminal"></div>
+            <pre id="exitCode"></pre>
+            <button onclick="runme.handleExecute()">Execute</button>
+        </p>
+
+        <script type="application/javascript" src="index.js"></script>
+    </body>
+</html>
