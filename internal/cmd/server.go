@@ -24,6 +24,8 @@ import (
 )
 
 func serverCmd() *cobra.Command {
+	const defaultSocketAddr = "/var/run/runme.sock"
+
 	var (
 		addr string
 		web  bool
@@ -48,6 +50,10 @@ The kernel is used to run long running processes like shells and interacting wit
 			// When web is true, the server command exposes a gRPC-compatible HTTP API.
 			// Read more on https://connect.build/docs/introduction.
 			if web {
+				if addr == defaultSocketAddr {
+					addr = "localhost:8080"
+				}
+
 				mux := http.NewServeMux()
 				compress1KB := connect.WithCompressMinBytes(1024)
 				mux.Handle(kernelv1connect.NewKernelServiceHandler(kernel.NewKernelServiceHandler(logger)))
@@ -98,7 +104,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().StringVarP(&addr, "address", "a", "/var/run/runme.sock", "Address to bind server.")
+	cmd.Flags().StringVarP(&addr, "address", "a", defaultSocketAddr, "Address to bind server.")
 	cmd.Flags().BoolVar(&web, "web", false, "Use Connect Protocol (https://connect.build/).")
 
 	return &cmd

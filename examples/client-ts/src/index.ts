@@ -26,16 +26,10 @@ const term = new Terminal()
 term.open(document.getElementById("terminal") as HTMLDivElement)
 
 async function createSession() {
-    // It will work only in bash 4.4+. Alternatively, you can pass the "prompt" key with a value
-    // corresponding to your bash default prompt. For example:
-    //
-    //    PostSessionRequest({
-    //      commandName: "/usr/local/bin/bash",
-    //      prompt: "bash-3.2$"
-    //    })
-    //
+    // Prompt can be auto-detected but it will work only in bash 4.4+.
     let req = new PostSessionRequest({
-        commandName: "/usr/local/bin/bash",
+        commandName: "/bin/bash",
+        prompt: "bash-3.2$",
         rawOutput: true,
     })
 
