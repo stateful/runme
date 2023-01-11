@@ -24,9 +24,10 @@ type Session struct {
 	ptmx           *os.File
 	isReady        bool
 	ready          chan struct{} // notifies when the process is ready; for shells upon observing the first prompt
-	outputMu       sync.Mutex
+	outputMu       sync.Mutex    // for output; outputCopyFunc is immutable after initialization
 	output         io.Writer
 	outputCopyFunc func() error
+	outputRaw      bool
 	prompt         []byte
 	promptNotifier chan struct{}
 	logger         *zap.Logger
@@ -35,6 +36,7 @@ type Session struct {
 func NewSession(
 	prompt []byte,
 	commandName string,
+	raw bool,
 	logger *zap.Logger,
 ) (*Session, error) {
 	s := Session{
@@ -42,12 +44,13 @@ func NewSession(
 		done:           make(chan struct{}),
 		ready:          make(chan struct{}),
 		output:         io.Discard,
+		outputRaw:      raw,
 		prompt:         prompt,
 		promptNotifier: make(chan struct{}, 1),
 		logger:         logger,
 	}
 
-	s.outputCopyFunc = s.copyOutput
+	s.outputCopyFunc = s.copyOuput
 
 	s.cmd = exec.Command(commandName)
 	s.cmd.Env = append(os.Environ(), "RUNMESHELL="+s.id)
@@ -124,6 +127,18 @@ var (
 	exitCodeCommand = []byte("echo $?")
 )
 
+func cleanExitCodeOutput(data []byte) []byte {
+	data = dropANSIEscape(data)
+	data = bytes.TrimPrefix(data, crlf)
+	data = bytes.TrimPrefix(data, exitCodeCommand)
+	data = bytes.TrimPrefix(data, crlf)
+	data = dropCRPrefix(data)
+	for lastIdx := len(data); lastIdx > -1; lastIdx = bytes.LastIndex(data, crlf) {
+		data = data[:lastIdx]
+	}
+	return data
+}
+
 func (s *Session) exitCode() (int, error) {
 	var buf bytes.Buffer
 	err := s.execute(exitCodeCommand, &buf)
@@ -133,16 +148,9 @@ func (s *Session) exitCode() (int, error) {
 
 	data := buf.Bytes()
 	s.logger.Info("output for exit code command", zap.ByteString("data", data))
-	// Remove the command itself if it is a prefix.
-	data = bytes.TrimPrefix(data, exitCodeCommand)
-	// Remove any CRLF prefix.
-	data = bytes.TrimPrefix(data, crlf)
-	// Remove all suffixes.
-	for lastIdx := len(data); lastIdx > -1; lastIdx = bytes.LastIndex(data, crlf) {
-		data = data[:lastIdx]
-	}
-
+	data = cleanExitCodeOutput(data)
 	s.logger.Info("extracted exit code from output", zap.ByteString("code", data))
+
 	exitCode, err := strconv.ParseInt(string(data), 10, 8)
 	if err != nil {
 		return -1, errors.WithStack(err)
@@ -189,24 +197,34 @@ func (s *Session) execute(command []byte, w io.Writer) error {
 	return nil
 }
 
-func (s *Session) copyOutput() error {
+func (s *Session) copyOuput() error {
 	scanner := bufio.NewScanner(s.ptmx)
 	scanner.Split(scanLines(s.prompt))
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		s.logger.Debug("read line to copy", zap.ByteString("line", line))
-		line = dropANSIEscape(line)
-		line = dropCRPrefix(line)
-		s.logger.Debug("line after clean up", zap.ByteString("line", line))
+
+		if !s.outputRaw {
+			line = dropCRPrefix(dropANSIEscape(line))
+			s.logger.Debug("line after clean up", zap.ByteString("line", line))
+		}
+
 		if len(line) == 0 {
 			continue
 		}
 
+		hasPrompt := false
+
 		if bytes.HasSuffix(line, s.prompt) {
 			s.logger.Info("detected prompt in the line", zap.Bool("ready", s.isReady))
+
+			hasPrompt = true
 			s.promptDetected()
-			continue
+
+			if !s.outputRaw {
+				continue
+			}
 		}
 
 		s.outputMu.Lock()
@@ -217,9 +235,17 @@ func (s *Session) copyOutput() error {
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		_, err = out.Write(crlf)
-		if err != nil {
-			return errors.WithStack(err)
+
+		if !hasPrompt {
+			_, err = out.Write(crlf)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		} else {
+			_, err = out.Write([]byte{' '})
+			if err != nil {
+				return errors.WithStack(err)
+			}
 		}
 	}
 

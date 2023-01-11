@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type KernelServiceClient interface {
 	PostSession(ctx context.Context, in *PostSessionRequest, opts ...grpc.CallOption) (*PostSessionResponse, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
+	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (KernelService_ExecuteClient, error)
 }
 
@@ -47,6 +48,15 @@ func (c *kernelServiceClient) PostSession(ctx context.Context, in *PostSessionRe
 func (c *kernelServiceClient) DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error) {
 	out := new(DeleteSessionResponse)
 	err := c.cc.Invoke(ctx, "/runme.kernel.v1.KernelService/DeleteSession", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *kernelServiceClient) ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error) {
+	out := new(ListSessionsResponse)
+	err := c.cc.Invoke(ctx, "/runme.kernel.v1.KernelService/ListSessions", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +101,7 @@ func (x *kernelServiceExecuteClient) Recv() (*ExecuteResponse, error) {
 type KernelServiceServer interface {
 	PostSession(context.Context, *PostSessionRequest) (*PostSessionResponse, error)
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
+	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	Execute(*ExecuteRequest, KernelService_ExecuteServer) error
 	mustEmbedUnimplementedKernelServiceServer()
 }
@@ -104,6 +115,9 @@ func (UnimplementedKernelServiceServer) PostSession(context.Context, *PostSessio
 }
 func (UnimplementedKernelServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
+}
+func (UnimplementedKernelServiceServer) ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSessions not implemented")
 }
 func (UnimplementedKernelServiceServer) Execute(*ExecuteRequest, KernelService_ExecuteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
@@ -157,6 +171,24 @@ func _KernelService_DeleteSession_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _KernelService_ListSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KernelServiceServer).ListSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/runme.kernel.v1.KernelService/ListSessions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KernelServiceServer).ListSessions(ctx, req.(*ListSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _KernelService_Execute_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ExecuteRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -192,6 +224,10 @@ var KernelService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSession",
 			Handler:    _KernelService_DeleteSession_Handler,
+		},
+		{
+			MethodName: "ListSessions",
+			Handler:    _KernelService_ListSessions_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -16,12 +16,22 @@ message DeleteSessionRequest {
 
 message DeleteSessionResponse {}
 
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+    repeated Session sessions = 1;
+}
+
 message PostSessionRequest {
     string command_name = 1;
 
     // prompt is only used for debug purposes.
     // Leave it blank to be auto-detected.
     string prompt = 2;
+
+    // raw_output returns unaltered output when true
+    // including ANSI escape sequences.
+    bool raw_output = 3;
 }
 
 message PostSessionResponse {
@@ -41,5 +51,6 @@ message ExecuteResponse {
 service KernelService {
     rpc PostSession(PostSessionRequest) returns (PostSessionResponse) {}
     rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
+    rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {}
     rpc Execute(ExecuteRequest) returns (stream ExecuteResponse) {}
 }

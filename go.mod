@@ -4,19 +4,24 @@ go 1.19
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/bufbuild/connect-go v1.4.1
+	github.com/bufbuild/connect-grpchealth-go v1.0.0
+	github.com/bufbuild/connect-grpcreflect-go v1.0.0
 	github.com/cli/cli/v2 v2.21.1
 	github.com/creack/pty v1.1.18
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.9.0
+	github.com/rs/cors v1.8.3
 	github.com/rs/xid v1.4.0
 	github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef
 	github.com/yuin/goldmark v1.4.12
 	golang.org/x/exp v0.0.0-20221208044002-44028be4359e
+	golang.org/x/net v0.0.0-20220923203811-8be639271d50
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
 	golang.org/x/term v0.2.0
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -44,7 +49,6 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
-	golang.org/x/net v0.0.0-20220923203811-8be639271d50 // indirect
 	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

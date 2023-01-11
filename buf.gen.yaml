@@ -1,12 +1,22 @@
 version: v1
 plugins:
-  - plugin: go
+  # Remote plugin. You can switch to a local one by using "go".
+  - plugin: buf.build/protocolbuffers/go
     out: internal/gen/proto/go
     opt: paths=source_relative
-  - plugin: go-grpc
+
+  # Remote plugin. You can switch to a local one by using "go-grpc".
+  - plugin: buf.build/grpc/go
     out: internal/gen/proto/go
     opt: paths=source_relative
-  - name: es
-    path: ./node_modules/.bin/protoc-gen-es
-    opt: target=ts
+
+  # Remote plugin. You can switch to a local one by using "connect-go".
+  - plugin: buf.build/bufbuild/connect-go
+    out: internal/gen/proto/go
+    opt: paths=source_relative
+
+  # Remote plugin. You can switch to a local one by using "protoc-gen-es" which
+  # need to be in the $PATH or you can set path directly using "path: ./node_modules/.bin/protoc-gen-es".
+  - plugin: buf.build/bufbuild/es
     out: internal/gen/proto/ts
+    opt: target=ts

@@ -23,6 +23,7 @@ func testCreateSession(t *testing.T) *Session {
 	sess, err := NewSession(
 		prompt,
 		bashBin,
+		false,
 		logger,
 	)
 	require.NoError(t, err)
@@ -63,4 +64,9 @@ func TestSession_Persistence(t *testing.T) {
 	assert.Equal(t, "echo $TEST\r\ntest-value\r\n", buf.String())
 
 	require.NoError(t, sess.Destroy())
+}
+
+func Test_cleanExitCodeOutput(t *testing.T) {
+	data := []byte("echo $?\r\n\u001b[?2004l\r0\r\n")
+	assert.Equal(t, "0", string(cleanExitCodeOutput(data)))
 }

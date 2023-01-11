@@ -1,0 +1,23 @@
+{
+  "name": "client-ts",
+  "version": "1.0.0",
+  "description": "Demo client talking to runme server using gRPC.",
+  "main": "client.ts",
+  "scripts": {
+    "start": "npm run serve",
+    "serve": "tsc --noEmit && esbuild src/index.ts --serve=localhost:3000 --servedir=www --outdir=www --bundle --global-name=runme",
+    "build": "esbuild src/index.ts --bundle --outfile=dist/out.js"
+  },
+  "author": "Adam Babik <adam.babik@stateful.com>",
+  "license": "Apache License, Version 2.0",
+  "dependencies": {
+    "@buf/stateful_runme.bufbuild_connect-web": "^0.6.0-20230110110111-94b197c83bd9.1",
+    "@buf/stateful_runme.bufbuild_es": "^1.0.0-20230110110111-94b197c83bd9.1",
+    "xterm": "^5.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.16.16",
+    "nodemon": "^2.0.20",
+    "ts-node": "^10.9.1"
+  }
+}
