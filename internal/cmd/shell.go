@@ -24,21 +24,19 @@ func shellCmd() *cobra.Command {
 		Long:  "Activate runme shell. This is an experimental feature.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			var prompt []byte
 			if promptStr == "" {
-				prompt, err = kernel.DetectPrompt(commandName)
+				prompt, err := kernel.DetectPrompt(commandName)
 				if err != nil {
 					return errors.Wrap(err, "failed to detect prompt")
 				}
-			} else {
-				prompt = []byte(promptStr)
+				promptStr = string(prompt)
 			}
 
-			session, err := kernel.NewShellSession(prompt, commandName)
+			session, err := kernel.NewShellSession(commandName, promptStr)
 			if err != nil {
 				return errors.Wrap(err, "failed to create shell session")
 			}
-			defer func() { _ = session.Destroy() }()
+			defer func() { _ = session.Close() }()
 
 			printfInfo("runme: welcome to runme shell")
 
@@ -50,6 +48,8 @@ func shellCmd() *cobra.Command {
 				return errors.Wrap(err, "failed to listen to sock")
 			}
 			defer func() { _ = l.Close(); _ = os.Remove(sockPath) }()
+
+			printfInfo("runme: starting backloop communication on %s", sockPath)
 
 			errC := make(chan error, 1)
 
@@ -69,7 +69,7 @@ func shellCmd() *cobra.Command {
 						if len(line) == 0 {
 							continue
 						}
-						if _, err := session.Execute(line, nil); err != nil {
+						if err := session.Send(line); err != nil {
 							errC <- err
 							return
 						}

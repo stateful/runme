@@ -3,6 +3,7 @@
 package kernel
 
 import (
+	"os"
 	"os/exec"
 	"regexp"
 	"testing"
@@ -12,11 +13,17 @@ import (
 )
 
 func TestDetectPrompt(t *testing.T) {
+	var promptRe *regexp.Regexp
+
+	if os.Getenv("CI") == "true" {
+		promptRe = regexp.MustCompile("^runner@.*:.*$")
+	} else {
+		promptRe = regexp.MustCompile("^bash-.*$")
+	}
+
 	bashBin, err := exec.LookPath("bash")
 	require.NoError(t, err)
 	prompt, err := DetectPrompt(bashBin)
 	require.NoError(t, err)
-	// TODO: improve assert by e.g. setting prompt.
-	// Overall more reproducible approach is in need.
-	assert.Regexp(t, regexp.MustCompile("^.*$"), string(prompt))
+	assert.Regexp(t, promptRe, string(prompt))
 }
