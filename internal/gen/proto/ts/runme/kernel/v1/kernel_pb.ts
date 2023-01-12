@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, UInt32Value } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64, UInt32Value } from "@bufbuild/protobuf";
 
 /**
  * @generated from message runme.kernel.v1.Session
@@ -184,25 +184,17 @@ export class ListSessionsResponse extends Message<ListSessionsResponse> {
  */
 export class PostSessionRequest extends Message<PostSessionRequest> {
   /**
-   * @generated from field: string command_name = 1;
+   * @generated from field: string command = 1;
    */
-  commandName = "";
+  command = "";
 
   /**
-   * prompt is only used for debug purposes.
-   * Leave it blank to be auto-detected.
+   * prompt typically is used for debug purposes.
+   * Leave it blank to have it auto-detected.
    *
    * @generated from field: string prompt = 2;
    */
   prompt = "";
-
-  /**
-   * raw_output returns unaltered output when true
-   * including ANSI escape sequences.
-   *
-   * @generated from field: bool raw_output = 3;
-   */
-  rawOutput = false;
 
   constructor(data?: PartialMessage<PostSessionRequest>) {
     super();
@@ -212,9 +204,8 @@ export class PostSessionRequest extends Message<PostSessionRequest> {
   static readonly runtime = proto3;
   static readonly typeName = "runme.kernel.v1.PostSessionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "command_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "command", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "prompt", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "raw_output", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PostSessionRequest {
@@ -243,6 +234,13 @@ export class PostSessionResponse extends Message<PostSessionResponse> {
    */
   session?: Session;
 
+  /**
+   * output contains data preceeding the first prompt.
+   *
+   * @generated from field: bytes intro_data = 2;
+   */
+  introData = new Uint8Array(0);
+
   constructor(data?: PartialMessage<PostSessionResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -252,6 +250,7 @@ export class PostSessionResponse extends Message<PostSessionResponse> {
   static readonly typeName = "runme.kernel.v1.PostSessionResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "session", kind: "message", T: Session },
+    { no: 2, name: "intro_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PostSessionResponse {
@@ -285,6 +284,11 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
    */
   command = "";
 
+  /**
+   * @generated from field: uint64 timeout_ms = 3;
+   */
+  timeoutMs = protoInt64.zero;
+
   constructor(data?: PartialMessage<ExecuteRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -295,6 +299,7 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "command", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "timeout_ms", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteRequest {
@@ -324,9 +329,12 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
   exitCode?: number;
 
   /**
-   * @generated from field: bytes stdout = 2;
+   * data is the actual output from the command without
+   * prompt, ANSI escape sequences, etc.
+   *
+   * @generated from field: bytes data = 2;
    */
-  stdout = new Uint8Array(0);
+  data = new Uint8Array(0);
 
   constructor(data?: PartialMessage<ExecuteResponse>) {
     super();
@@ -337,7 +345,7 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
   static readonly typeName = "runme.kernel.v1.ExecuteResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "exit_code", kind: "message", T: UInt32Value },
-    { no: 2, name: "stdout", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteResponse {
@@ -354,5 +362,156 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
 
   static equals(a: ExecuteResponse | PlainMessage<ExecuteResponse> | undefined, b: ExecuteResponse | PlainMessage<ExecuteResponse> | undefined): boolean {
     return proto3.util.equals(ExecuteResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message runme.kernel.v1.InputRequest
+ */
+export class InputRequest extends Message<InputRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId = "";
+
+  /**
+   * data is the raw input. It might contain ANSI escape sequences and
+   * other control characters.
+   *
+   * @generated from field: bytes data = 2;
+   */
+  data = new Uint8Array(0);
+
+  constructor(data?: PartialMessage<InputRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime = proto3;
+  static readonly typeName = "runme.kernel.v1.InputRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): InputRequest {
+    return new InputRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): InputRequest {
+    return new InputRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): InputRequest {
+    return new InputRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: InputRequest | PlainMessage<InputRequest> | undefined, b: InputRequest | PlainMessage<InputRequest> | undefined): boolean {
+    return proto3.util.equals(InputRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message runme.kernel.v1.InputResponse
+ */
+export class InputResponse extends Message<InputResponse> {
+  constructor(data?: PartialMessage<InputResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime = proto3;
+  static readonly typeName = "runme.kernel.v1.InputResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): InputResponse {
+    return new InputResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): InputResponse {
+    return new InputResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): InputResponse {
+    return new InputResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: InputResponse | PlainMessage<InputResponse> | undefined, b: InputResponse | PlainMessage<InputResponse> | undefined): boolean {
+    return proto3.util.equals(InputResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message runme.kernel.v1.OutputRequest
+ */
+export class OutputRequest extends Message<OutputRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId = "";
+
+  constructor(data?: PartialMessage<OutputRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime = proto3;
+  static readonly typeName = "runme.kernel.v1.OutputRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): OutputRequest {
+    return new OutputRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): OutputRequest {
+    return new OutputRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): OutputRequest {
+    return new OutputRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: OutputRequest | PlainMessage<OutputRequest> | undefined, b: OutputRequest | PlainMessage<OutputRequest> | undefined): boolean {
+    return proto3.util.equals(OutputRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message runme.kernel.v1.OutputResponse
+ */
+export class OutputResponse extends Message<OutputResponse> {
+  /**
+   * @generated from field: bytes data = 1;
+   */
+  data = new Uint8Array(0);
+
+  constructor(data?: PartialMessage<OutputResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime = proto3;
+  static readonly typeName = "runme.kernel.v1.OutputResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): OutputResponse {
+    return new OutputResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): OutputResponse {
+    return new OutputResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): OutputResponse {
+    return new OutputResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: OutputResponse | PlainMessage<OutputResponse> | undefined, b: OutputResponse | PlainMessage<OutputResponse> | undefined): boolean {
+    return proto3.util.equals(OutputResponse, a, b);
   }
 }

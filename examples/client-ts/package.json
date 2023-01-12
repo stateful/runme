@@ -11,8 +11,8 @@
   "author": "Adam Babik <adam.babik@stateful.com>",
   "license": "Apache License, Version 2.0",
   "dependencies": {
-    "@buf/stateful_runme.bufbuild_connect-web": "^0.6.0-20230110110111-94b197c83bd9.1",
-    "@buf/stateful_runme.bufbuild_es": "^1.0.0-20230110110111-94b197c83bd9.1",
+    "@buf/stateful_runme.bufbuild_connect-web": "^0.6.0-20230113161945-c5ab557c6cc7.1",
+    "@buf/stateful_runme.bufbuild_es": "^1.0.0-20230113161945-c5ab557c6cc7.1",
     "xterm": "^5.1.0"
   },
   "devDependencies": {

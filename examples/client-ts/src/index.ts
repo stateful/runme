@@ -22,15 +22,35 @@ export function setActiveSession(id: string) {
     sessionIdElem.textContent = id
 }
 
+function prompt(term: Terminal) {
+    term.write('\r\n$ ')
+}
+
 const term = new Terminal()
 term.open(document.getElementById("terminal") as HTMLDivElement)
+term.onData(e => {
+    console.log("onData", e.codePointAt(0))
+
+    switch (e) {
+        case '\r': // Enter
+            term.writeln("")
+            break
+        case '\u007F': // Backspace (DEL)
+            term.write('\b \b')
+            break
+        case '\u0003': // Ctrl+C
+            term.write('^C')
+            break
+        default:
+            term.write(e)
+    }
+});
 
 async function createSession() {
     // Prompt can be auto-detected but it will work only in bash 4.4+.
     let req = new PostSessionRequest({
-        commandName: "/bin/bash",
+        command: "/bin/bash",
         prompt: "bash-3.2$",
-        rawOutput: true,
     })
 
     const resp = await client.postSession(req)
@@ -90,15 +110,15 @@ async function execute() {
     term.clear()
     exitCodeElem.textContent = ""
 
-    let req = new ExecuteRequest({
+    const req = new ExecuteRequest({
         sessionId: sessionID,
         command: command,
     })
 
-    for await (const resp of client.execute(req)) {
+    for await (const resp of client.executeStream(req)) {
         console.log("execute response", resp)
 
-        term.write(resp.stdout)
+        term.write(resp.data)
 
         if (resp.exitCode != undefined) {
             exitCodeElem.textContent = resp.exitCode?.toString()

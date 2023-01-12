@@ -4,21 +4,21 @@ import (
 	"sync"
 )
 
-type kernel struct {
+type sessionsContainer struct {
 	mu       sync.RWMutex
-	sessions []*Session
+	sessions []*session
 }
 
-func (k *kernel) AddSession(s *Session) {
-	k.mu.Lock()
-	defer k.mu.Unlock()
-	k.sessions = append(k.sessions, s)
+func (c *sessionsContainer) AddSession(s *session) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.sessions = append(c.sessions, s)
 }
 
-func (k *kernel) FindSession(id string) *Session {
-	k.mu.RLock()
-	defer k.mu.RUnlock()
-	for _, s := range k.sessions {
+func (c *sessionsContainer) FindSession(id string) *session {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for _, s := range c.sessions {
 		if s.id == id {
 			return s
 		}
@@ -26,21 +26,21 @@ func (k *kernel) FindSession(id string) *Session {
 	return nil
 }
 
-func (k *kernel) DeleteSession(session *Session) {
-	k.mu.Lock()
-	defer k.mu.Unlock()
-	for idx, s := range k.sessions {
+func (c *sessionsContainer) DeleteSession(session *session) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for idx, s := range c.sessions {
 		if s.id == session.id {
-			if idx == len(k.sessions)-1 {
-				k.sessions = k.sessions[:idx]
+			if idx == len(c.sessions)-1 {
+				c.sessions = c.sessions[:idx]
 			} else {
-				k.sessions = append(k.sessions[:idx], k.sessions[idx+1:]...)
+				c.sessions = append(c.sessions[:idx], c.sessions[idx+1:]...)
 			}
 			return
 		}
 	}
 }
 
-func (k *kernel) Sessions() []*Session {
-	return k.sessions
+func (c *sessionsContainer) Sessions() []*session {
+	return c.sessions
 }

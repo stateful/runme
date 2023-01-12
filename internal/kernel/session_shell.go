@@ -1,106 +1,112 @@
 package kernel
 
 import (
-	"bytes"
 	"io"
 	"os"
+	"os/exec"
+	"sync"
 
+	"github.com/creack/pty"
 	"github.com/pkg/errors"
+	"github.com/rs/xid"
 	xpty "github.com/stateful/runme/internal/pty"
-	"go.uber.org/zap"
 	"golang.org/x/term"
 )
 
 type ShellSession struct {
-	*Session
-
+	id            string
+	cmd           *exec.Cmd
+	ptmx          *os.File
 	cancelResize  xpty.CancelFn
 	stdinOldState *term.State
+	done          chan struct{}
+	mu            sync.Mutex
+	err           error
 }
 
-func NewShellSession(
-	prompt []byte,
-	commandName string,
-) (*ShellSession, error) {
-	s := &ShellSession{}
+func NewShellSession(command, prompt string) (*ShellSession, error) {
+	id := xid.New().String()
 
-	var err error
-	s.Session, err = NewSession(prompt, commandName, false, zap.NewNop())
+	cmd := exec.Command(command)
+	cmd.Env = append(os.Environ(), "RUNMESHELL="+id)
+
+	ptmx, err := pty.Start(cmd)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	s.Session.logger = zap.NewNop()
-	s.Session.output = os.Stdout
-	s.Session.outputCopyFunc = s.copyOuput
 
-	s.cancelResize = xpty.ResizeOnSig(s.ptmx)
+	cancelResize := xpty.ResizeOnSig(ptmx)
 	// Set stdin in raw mode.
-	s.stdinOldState, err = term.MakeRaw(int(os.Stdin.Fd()))
+	stdinOldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to put stdin in raw mode")
 	}
 
+	s := &ShellSession{
+		id:            id,
+		cmd:           cmd,
+		ptmx:          ptmx,
+		cancelResize:  cancelResize,
+		stdinOldState: stdinOldState,
+		done:          make(chan struct{}),
+	}
+
+	go func() {
+		defer close(s.done)
+		_, err := io.Copy(os.Stdout, ptmx)
+		if err != nil && errors.Is(err, io.EOF) {
+			err = nil
+		}
+		s.setErrorf(err, "failed to copy ptmx to stdout")
+	}()
+
 	go func() {
 		// TODO: cancel this goroutine when ptmx is closed
-		_, err := io.Copy(s.ptmx, os.Stdin)
+		_, err := io.Copy(ptmx, os.Stdin)
 		s.setErrorf(err, "failed to copy stdin to ptmx")
 	}()
 
 	return s, nil
 }
 
-func (s *ShellSession) Destroy() error {
+func (s *ShellSession) ID() string {
+	return s.id
+}
+
+func (s *ShellSession) Close() error {
 	s.cancelResize()
 
 	if err := term.Restore(int(os.Stdin.Fd()), s.stdinOldState); err != nil {
 		return errors.WithStack(err)
 	}
 
-	return s.Session.Destroy()
+	if err := s.cmd.Process.Kill(); err != nil {
+		return errors.Wrap(err, "failed to kill command")
+	}
+	<-s.done
+	return nil
 }
 
-//lint:ignore U1000 staticcheck bug; this function is used
-func (s *ShellSession) copyOutput() error {
-	buf := make([]byte, 4096)
-	if cap(buf) < len(s.prompt) {
-		return errors.Errorf("prompt is longer than buffer size (%d vs %d)", len(s.prompt), cap(buf))
+func (s *ShellSession) Done() <-chan struct{} {
+	return s.done
+}
+
+func (s *ShellSession) Err() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.err
+}
+
+func (s *ShellSession) Send(data []byte) error {
+	_, err := s.ptmx.Write(data)
+	return errors.Wrap(err, "failed to write data to ptmx")
+}
+
+func (s *ShellSession) setErrorf(err error, msg string, args ...interface{}) {
+	if s.err != nil || err == nil {
+		return
 	}
-
-	var err error
-
-	for {
-		nr, er := s.ptmx.Read(buf)
-		if nr > 0 {
-			s.outputMu.Lock()
-			out := s.output
-			s.outputMu.Unlock()
-
-			nw, ew := out.Write(buf[0:nr])
-			if nw < 0 || nr < nw {
-				nw = 0
-				if ew == nil {
-					ew = errors.New("invalid write result")
-				}
-			}
-			if ew != nil {
-				err = ew
-				break
-			}
-			if nr != nw {
-				err = errors.WithStack(io.ErrShortWrite)
-				break
-			}
-		}
-		if er != nil {
-			err = errors.WithStack(er)
-			break
-		}
-		// TODO: improve this fragment. It seems that it is possible that prompt
-		// is split between multiple reads. If that's correct, this code won't
-		// detect that.
-		if bytes.Contains(buf[0:nr], s.prompt) {
-			s.promptDetected()
-		}
-	}
-	return err
+	s.mu.Lock()
+	s.err = errors.WithMessagef(err, msg, args...)
+	s.mu.Unlock()
 }

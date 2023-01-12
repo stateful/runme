@@ -3,307 +3,480 @@ package kernel
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/creack/pty"
-	"github.com/hashicorp/go-multierror"
+	expect "github.com/google/goexpect"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
 
-type Session struct {
-	id             string
-	done           chan struct{} // notifies when Session's process is finished
-	err            error         // error from background processing, e.g. copy output
-	cmd            *exec.Cmd
-	ptmx           *os.File
-	isReady        bool
-	ready          chan struct{} // notifies when the process is ready; for shells upon observing the first prompt
-	outputMu       sync.Mutex    // for output; outputCopyFunc is immutable after initialization
-	output         io.Writer
-	outputCopyFunc func() error
-	outputRaw      bool
-	prompt         []byte
-	promptNotifier chan struct{}
-	logger         *zap.Logger
+type limitedBuffer struct {
+	*bytes.Buffer // TODO: switch to a ring buffer
+	mu            sync.Mutex
+	state         *atomic.Uint32
+	more          chan struct{}
+	closed        chan struct{}
 }
 
-func NewSession(
-	prompt []byte,
-	commandName string,
-	raw bool,
-	logger *zap.Logger,
-) (*Session, error) {
-	s := Session{
-		id:             xid.New().String(),
-		done:           make(chan struct{}),
-		ready:          make(chan struct{}),
-		output:         io.Discard,
-		outputRaw:      raw,
-		prompt:         prompt,
-		promptNotifier: make(chan struct{}, 1),
-		logger:         logger,
+func (b *limitedBuffer) Close() error {
+	b.state.Store(1)
+	close(b.closed)
+	return nil
+}
+
+func (b *limitedBuffer) Read(p []byte) (int, error) {
+	b.mu.Lock()
+	n, err := b.Buffer.Read(p)
+	b.mu.Unlock()
+	if err != nil && errors.Is(err, io.EOF) && b.state.Load() == 0 {
+		select {
+		case <-b.more:
+		case <-b.closed:
+			return 0, io.EOF
+		}
+		return n, nil
 	}
+	return n, err
+}
 
-	s.outputCopyFunc = s.copyOuput
+func (b *limitedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	n, _ := b.Buffer.Write(p)
+	b.mu.Unlock()
+	select {
+	case b.more <- struct{}{}:
+	default:
+	}
+	return n, nil
+}
 
-	s.cmd = exec.Command(commandName)
-	s.cmd.Env = append(os.Environ(), "RUNMESHELL="+s.id)
+type session struct {
+	id       string
+	prompt   string
+	promptRe *regexp.Regexp
+	ptmx     *os.File
+	expctr   expect.Expecter
+	output   *limitedBuffer
+	done     chan struct{}
+	err      error
+	logger   *zap.Logger
+}
 
-	var err error
-	s.ptmx, err = pty.Start(s.cmd)
+func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, error) {
+	promptRe, err := compileLiteralRegexp(prompt)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed to start shell in pty")
+		return nil, nil, errors.WithStack(err)
 	}
+
+	buf := &limitedBuffer{
+		Buffer: bytes.NewBuffer(nil),
+		state:  atomic.NewUint32(0),
+		more:   make(chan struct{}),
+		closed: make(chan struct{}),
+	}
+
+	_, ptmx, expctr, cmdErr, err := spawnPty(
+		command,
+		-1,
+		expect.Tee(buf),
+		expect.Verbose(true),
+		expect.CheckDuration(time.Millisecond*300),
+	)
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+
+	s := &session{
+		id:       xid.New().String(),
+		prompt:   prompt,
+		promptRe: promptRe,
+		ptmx:     ptmx,
+		expctr:   expctr,
+		output:   buf,
+		done:     make(chan struct{}),
+		logger:   logger,
+	}
+
+	data, _, err := s.waitForReady(time.Second)
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+
+	// Bash 5.1+ has this enabled by default and it makes it harder to parse the output.
+	// We disable it here so that the output is consistent between old and new bash versions.
+	_, exitCode, err := s.Execute("bind 'set enable-bracketed-paste off'", time.Second)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to disable bracketed paste")
+	}
+	if exitCode != 0 {
+		return nil, nil, errors.Wrapf(err, "failed to disable bracketed paste: %d", exitCode)
+	}
+
+	// Reset buffer as we don't want to send the setting changes back.
+	_, _ = io.Copy(io.Discard, s.output)
 
 	go func() {
-		defer close(s.done)
-		err := s.outputCopyFunc()
-		if err != nil && errors.Is(err, io.EOF) {
-			err = nil
-		}
-		s.logger.With(zap.Error(err)).Info("finished copying from ptmx to outputs")
-		s.setErrorf(err, "failed to copy from ptmx to stdout")
+		s.err = <-cmdErr
+		close(s.done)
 	}()
 
-	return &s, nil
+	return s, data, nil
 }
 
-func (s *Session) ID() string {
+func (s *session) ID() string {
 	return s.id
 }
 
-func (s *Session) Done() <-chan struct{} {
-	return s.done
-}
-
-func (s *Session) Err() error {
-	return s.err
-}
-
-func (s *Session) Wait() error {
+func (s *session) Close() error {
+	if err := s.expctr.Close(); err != nil {
+		return errors.WithStack(err)
+	}
 	<-s.done
 	return s.err
 }
 
-func (s *Session) setErrorf(err error, msg string, args ...interface{}) {
-	if err != nil {
-		s.err = multierror.Append(s.err, errors.WithMessagef(err, msg, args...))
-	}
+func (s *session) Send(data []byte) error {
+	return s.expctr.Send(string(data))
 }
 
-func (s *Session) Destroy() error {
-	if err := s.cmd.Process.Kill(); err != nil {
-		return errors.Wrap(err, "failed to kill command")
-	}
-	<-s.done
-	return nil
+func (s *session) Read(p []byte) (int, error) {
+	return s.output.Read(p)
 }
 
-func (s *Session) Execute(command []byte, output io.Writer) (int, error) {
-	s.logger.Info("executing command", zap.ByteString("command", command))
-	err := s.execute(command, output)
-	if err != nil {
-		s.logger.Error("failed to execute command", zap.Error(err))
-		return -1, err
-	}
-
-	s.logger.Info("getting exit code for command", zap.ByteString("command", command))
-	code, err := s.exitCode()
-	if err != nil {
-		s.logger.Error("failed to get exit code", zap.Error(err))
-	}
-	return code, err
-}
-
-var (
-	crlf            = []byte{'\r', '\n'}
-	lf              = []byte{'\n'}
-	exitCodeCommand = []byte("echo $?")
-)
-
-func cleanExitCodeOutput(data []byte) []byte {
-	data = dropANSIEscape(data)
-	data = bytes.TrimPrefix(data, crlf)
-	data = bytes.TrimPrefix(data, exitCodeCommand)
-	data = bytes.TrimPrefix(data, crlf)
-	data = dropCRPrefix(data)
-	for lastIdx := len(data); lastIdx > -1; lastIdx = bytes.LastIndex(data, crlf) {
-		data = data[:lastIdx]
-	}
-	return data
-}
-
-func (s *Session) exitCode() (int, error) {
-	var buf bytes.Buffer
-	err := s.execute(exitCodeCommand, &buf)
-	if err != nil {
-		return -1, err
-	}
-
-	data := buf.Bytes()
-	s.logger.Info("output for exit code command", zap.ByteString("data", data))
-	data = cleanExitCodeOutput(data)
-	s.logger.Info("extracted exit code from output", zap.ByteString("code", data))
-
-	exitCode, err := strconv.ParseInt(string(data), 10, 8)
-	if err != nil {
-		return -1, errors.WithStack(err)
-	}
-	return int(exitCode), nil
-}
-
-func (s *Session) execute(command []byte, w io.Writer) error {
-	<-s.ready // wait for the first prompt before executing anything
-
-	// command must end with a new line, otherwise it won't be executed
-	if command[len(command)-1] != '\n' {
-		command = append(command, '\n')
-	}
-
-	var prevOutput io.Writer
-
-	s.outputMu.Lock()
-	prevOutput = s.output
-	s.output = io.MultiWriter(prevOutput, w)
-	s.outputMu.Unlock()
-
-	// collect N prompts; depending on the number of new lines in command
-	prompts := make(chan struct{})
-	go func() {
-		n := bytes.Count(command, lf)
-		for i := 0; i < n; i++ {
-			<-s.promptNotifier
-		}
-		close(prompts)
-	}()
-
-	_, err := s.ptmx.Write(command)
+func (s *session) setPrompt(prompt string) (err error) {
+	s.prompt = prompt
+	s.promptRe, err = compileLiteralRegexp(prompt)
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	return
+}
 
-	<-prompts
+func (s *session) ChangePrompt(prompt string) (err error) {
+	prevPrompt := s.prompt
+	prevPromptRe := s.promptRe
+	defer func() {
+		if err != nil {
+			s.prompt = prevPrompt
+			s.promptRe = prevPromptRe
+		}
+	}()
 
-	s.outputMu.Lock()
-	s.output = prevOutput
-	s.outputMu.Unlock()
+	if err := s.setPrompt(prompt + "$"); err != nil {
+		return err
+	}
 
+	err = s.expctr.Send(fmt.Sprintf("PS1='%s$ ' PS2='%s+ ' PROMPT_COMMAND=''\n", prompt, prompt))
+	if err != nil {
+		return errors.Wrap(err, "failed to send command")
+	}
+
+	data, match, err := s.expctr.Expect(s.promptRe, time.Second)
+	if err != nil {
+		return errors.Wrap(err, "failed to wait for prompt")
+	}
+
+	switch strings.Count(data, match[0]) {
+	case 0:
+		return errors.New("unreachable")
+	case 1:
+		// Wait for the prompt again because above execute() call was matched by
+		// the command itself.
+		_, _, err = s.waitForReady(time.Second)
+		return err
+	default:
+		return nil
+	}
+}
+
+func (s *session) waitForReady(timeout time.Duration) ([]byte, []byte, error) {
+	data, match, err := s.expctr.Expect(s.promptRe, timeout)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to wait for prompt")
+	}
+	return []byte(data), []byte(match[0]), nil
+}
+
+func (s *session) Execute(command string, timeout time.Duration) ([]byte, int, error) {
+	s.logger.Info("execute command", zap.String("command", command))
+
+	if s.err != nil {
+		return nil, -1, errors.WithStack(s.err)
+	}
+
+	data, err := s.execute(command, timeout)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	exitCode, err := s.exitCode()
+	return data, exitCode, err
+}
+
+func (s *session) ExecuteWithWriter(command string, timeout time.Duration, w io.Writer) (int, error) {
+	s.logger.Info("execute command with writer", zap.String("command", command))
+
+	if s.err != nil {
+		return -1, errors.WithStack(s.err)
+	}
+
+	chunks := make(chan []byte)
+	errC := make(chan error, 1)
+
+	go func() {
+		defer close(errC)
+		for line := range chunks {
+			_, err := w.Write(line)
+			if err != nil {
+				// Propagate only the first error.
+				select {
+				case errC <- errors.Wrap(err, "failed to write to writer"):
+				default:
+				}
+			}
+		}
+	}()
+
+	err := s.executeWithChannel(command, timeout, chunks)
+	if err != nil {
+		close(chunks)
+		return -1, err
+	}
+
+	close(chunks)
+
+	if err := <-errC; err != nil {
+		return -1, err
+	}
+
+	return s.exitCode()
+}
+
+func (s *session) ExecuteWithChannel(command string, timeout time.Duration, chunks chan<- []byte) (int, error) {
+	s.logger.Info("execute command with channel", zap.String("command", command))
+
+	if s.err != nil {
+		return -1, errors.WithStack(s.err)
+	}
+
+	err := s.executeWithChannel(command, timeout, chunks)
+	if err != nil {
+		return -1, err
+	}
+
+	return s.exitCode()
+}
+
+func (s *session) execute(command string, timeout time.Duration) ([]byte, error) {
+	if command[len(command)-1] != '\n' {
+		command += "\n"
+	}
+
+	if err := s.expctr.Send(command); err != nil {
+		return nil, errors.Wrap(err, "failed to send command")
+	}
+
+	data, match, err := s.waitForReady(timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("matched data", zap.ByteString("data", data))
+
+	data = dropANSIEscape(data)
+
+	commandLinesCount := strings.Count(command, "\n")
+	for i := 0; i < commandLinesCount; i++ {
+		idx := bytes.Index(data, crlf)
+		if idx > -1 {
+			data = data[idx+len(crlf):]
+		} else {
+			break
+		}
+	}
+
+	data = bytes.TrimSpace(data)
+	data = bytes.TrimSuffix(data, match)
+	data = bytes.TrimSpace(data)
+
+	s.logger.Info("cleaned matched data", zap.ByteString("data", data))
+
+	return data, nil
+}
+
+type readCloser struct {
+	io.Reader
+	closed atomic.Bool
+}
+
+func (r *readCloser) Close() error {
+	r.closed.Store(true)
 	return nil
 }
 
-func (s *Session) copyOuput() error {
-	scanner := bufio.NewScanner(s.ptmx)
-	scanner.Split(scanLines(s.prompt))
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		s.logger.Debug("read line to copy", zap.ByteString("line", line))
-
-		if !s.outputRaw {
-			line = dropCRPrefix(dropANSIEscape(line))
-			s.logger.Debug("line after clean up", zap.ByteString("line", line))
-		}
-
-		if len(line) == 0 {
-			continue
-		}
-
-		hasPrompt := false
-
-		if bytes.HasSuffix(line, s.prompt) {
-			s.logger.Info("detected prompt in the line", zap.Bool("ready", s.isReady))
-
-			hasPrompt = true
-			s.promptDetected()
-
-			if !s.outputRaw {
-				continue
-			}
-		}
-
-		s.outputMu.Lock()
-		out := s.output
-		s.outputMu.Unlock()
-
-		_, err := out.Write(line)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		if !hasPrompt {
-			_, err = out.Write(crlf)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		} else {
-			_, err = out.Write([]byte{' '})
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
+func (r *readCloser) Read(p []byte) (int, error) {
+	if r.closed.Load() {
+		return 0, io.EOF
 	}
-
-	return errors.WithStack(scanner.Err())
+	return r.Reader.Read(p)
 }
 
-func (s *Session) promptDetected() {
-	if !s.isReady {
-		s.isReady = true
-		close(s.ready)
-	} else {
-		select {
-		case s.promptNotifier <- struct{}{}:
+func (s *session) executeWithChannel(command string, timeout time.Duration, chunks chan<- []byte) error {
+	if command[len(command)-1] != '\n' {
+		command += "\n"
+	}
+
+	// TODO: s.output is shared here and in Read().
+	// FIgure out a better solution.
+	s.output.Reset()
+
+	start := time.Now()
+
+	if err := s.expctr.Send(command); err != nil {
+		return errors.Wrap(err, "failed to send command")
+	}
+
+	// commandRe, err := compileLiteralRegexp(strings.Trim(command, "\r\n"))
+	// if err != nil {
+	// 	return -1, errors.Wrap(err, "failed to compile command to regexp")
+	// }
+
+	// _, _, err = s.expctr.Expect(commandRe, timeout-time.Since(start))
+	// if err != nil {
+	// 	return -1, errors.Wrap(err, "failed to wait for echoed command")
+	// }
+
+	errC := make(chan error, 1)
+	reader := &readCloser{Reader: s.output}
+	promptBytes := []byte(s.prompt)
+
+	go func() {
+		scanner := bufio.NewScanner(reader)
+		scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+			return scanLinesUntil(data, atEOF, promptBytes)
+		})
+
+		for scanner.Scan() {
+			line := scanner.Bytes()
+			chunks <- line
+		}
+
+		errC <- scanner.Err()
+	}()
+
+	_, _, err := s.waitForReady(timeout)
+	if err != nil {
+		return err
+	}
+
+	_ = reader.Close()
+
+	select {
+	case err := <-errC:
+		return err
+	case <-time.After(timeout - time.Since(start)):
+		return errors.New("waiting for read loop end timed out")
+	}
+}
+
+const exitCodeCommand = "echo $?"
+
+func (s *session) exitCode() (int, error) {
+	data, err := s.execute(exitCodeCommand, time.Second)
+	if err != nil {
+		return -1, errors.Wrap(err, "failed to execute exitCodeCommand")
+	}
+	code, err := strconv.ParseInt(string(data), 10, 16)
+	if err != nil {
+		return -1, errors.Wrap(err, "failed to parse exit code")
+	}
+	return int(code), nil
+}
+
+func spawnPty(command string, timeout time.Duration, opts ...expect.Option) (
+	*exec.Cmd, *os.File, expect.Expecter, <-chan error, error,
+) {
+	cmd := exec.Command(command)
+	cmd.Env = os.Environ()
+
+	ptmx, err := pty.Start(cmd)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	running := atomic.NewBool(true)
+	resCh := make(chan error)
+
+	expecter, cmdErr, err := expect.SpawnGeneric(&expect.GenOptions{
+		In:  ptmx,
+		Out: ptmx,
+		Wait: func() error {
+			return <-resCh
+		},
+		Close: func() error {
+			close(resCh)
+			running.Store(false)
+			return cmd.Process.Kill()
+		},
+		Check: func() bool {
+			return running.Load()
+		},
+	}, timeout, opts...)
+
+	return cmd, ptmx, expecter, cmdErr, err
+}
+
+var crlf = []byte{'\r', '\n'}
+
+// func dropCRPrefix(data []byte) []byte {
+// 	if len(data) > 0 && data[0] == '\r' {
+// 		return data[1:]
+// 	}
+// 	return data
+// }
+
+func compileLiteralRegexp(str string) (*regexp.Regexp, error) {
+	b := new(strings.Builder)
+	for _, c := range str {
+		switch c {
+		case '$', '^', '\\', '.', '|', '?', '*', '+', '(', ')', '[', ']', '{', '}':
+			_, _ = b.WriteString(string([]rune{'\\', c}))
 		default:
+			_, _ = b.WriteRune(c)
 		}
 	}
+	return regexp.Compile(b.String())
 }
 
-func scanLines(prompt []byte) bufio.SplitFunc {
-	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		return scanLinesPrompt(data, atEOF, prompt)
-	}
-}
-
-func scanLinesPrompt(data []byte, atEOF bool, prompt []byte) (advance int, token []byte, err error) {
+func scanLinesUntil(data []byte, atEOF bool, stop []byte) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
-	promptIdx := bytes.Index(data, prompt)
+	stopIdx := bytes.Index(data, stop)
 	newLineIdx := bytes.IndexByte(data, '\n')
-	if promptIdx >= 0 && (newLineIdx < 0 || promptIdx < newLineIdx) {
-		m := promptIdx + len(prompt)
-		if len(data) > m && data[m] == ' ' {
-			m++
-		}
-		return m, data[0 : promptIdx+len(prompt)], nil
+	if stopIdx >= 0 && (newLineIdx < 0 || stopIdx < newLineIdx) {
+		return len(data), data[0:stopIdx], io.EOF
 	} else if newLineIdx >= 0 {
-		// We have a full newline-terminated line.
-		return newLineIdx + 1, dropCR(data[0:newLineIdx]), nil
+		if len(data) > newLineIdx+1 && data[newLineIdx+1] == '\r' {
+			newLineIdx++
+		}
+		return newLineIdx + 1, data[0 : newLineIdx+1], nil
 	}
 	// If we're at EOF, we have a final, non-terminated line. Return it.
 	if atEOF {
-		return len(data), dropCR(data), nil
+		return len(data), data, nil
 	}
 	// Request more data.
 	return 0, nil, nil
-}
-
-func dropCR(data []byte) []byte {
-	if len(data) > 0 && data[len(data)-1] == '\r' {
-		return data[0 : len(data)-1]
-	}
-	return data
-}
-
-func dropCRPrefix(data []byte) []byte {
-	if len(data) > 0 && data[0] == '\r' {
-		return data[1:]
-	}
-	return data
 }

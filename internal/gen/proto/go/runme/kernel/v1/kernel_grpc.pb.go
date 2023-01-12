@@ -25,7 +25,10 @@ type KernelServiceClient interface {
 	PostSession(ctx context.Context, in *PostSessionRequest, opts ...grpc.CallOption) (*PostSessionResponse, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
-	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (KernelService_ExecuteClient, error)
+	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error)
+	ExecuteStream(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (KernelService_ExecuteStreamClient, error)
+	Input(ctx context.Context, in *InputRequest, opts ...grpc.CallOption) (*InputResponse, error)
+	Output(ctx context.Context, in *OutputRequest, opts ...grpc.CallOption) (KernelService_OutputClient, error)
 }
 
 type kernelServiceClient struct {
@@ -63,12 +66,21 @@ func (c *kernelServiceClient) ListSessions(ctx context.Context, in *ListSessions
 	return out, nil
 }
 
-func (c *kernelServiceClient) Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (KernelService_ExecuteClient, error) {
-	stream, err := c.cc.NewStream(ctx, &KernelService_ServiceDesc.Streams[0], "/runme.kernel.v1.KernelService/Execute", opts...)
+func (c *kernelServiceClient) Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error) {
+	out := new(ExecuteResponse)
+	err := c.cc.Invoke(ctx, "/runme.kernel.v1.KernelService/Execute", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &kernelServiceExecuteClient{stream}
+	return out, nil
+}
+
+func (c *kernelServiceClient) ExecuteStream(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (KernelService_ExecuteStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &KernelService_ServiceDesc.Streams[0], "/runme.kernel.v1.KernelService/ExecuteStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &kernelServiceExecuteStreamClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -78,17 +90,58 @@ func (c *kernelServiceClient) Execute(ctx context.Context, in *ExecuteRequest, o
 	return x, nil
 }
 
-type KernelService_ExecuteClient interface {
+type KernelService_ExecuteStreamClient interface {
 	Recv() (*ExecuteResponse, error)
 	grpc.ClientStream
 }
 
-type kernelServiceExecuteClient struct {
+type kernelServiceExecuteStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *kernelServiceExecuteClient) Recv() (*ExecuteResponse, error) {
+func (x *kernelServiceExecuteStreamClient) Recv() (*ExecuteResponse, error) {
 	m := new(ExecuteResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *kernelServiceClient) Input(ctx context.Context, in *InputRequest, opts ...grpc.CallOption) (*InputResponse, error) {
+	out := new(InputResponse)
+	err := c.cc.Invoke(ctx, "/runme.kernel.v1.KernelService/Input", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *kernelServiceClient) Output(ctx context.Context, in *OutputRequest, opts ...grpc.CallOption) (KernelService_OutputClient, error) {
+	stream, err := c.cc.NewStream(ctx, &KernelService_ServiceDesc.Streams[1], "/runme.kernel.v1.KernelService/Output", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &kernelServiceOutputClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type KernelService_OutputClient interface {
+	Recv() (*OutputResponse, error)
+	grpc.ClientStream
+}
+
+type kernelServiceOutputClient struct {
+	grpc.ClientStream
+}
+
+func (x *kernelServiceOutputClient) Recv() (*OutputResponse, error) {
+	m := new(OutputResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -102,7 +155,10 @@ type KernelServiceServer interface {
 	PostSession(context.Context, *PostSessionRequest) (*PostSessionResponse, error)
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
-	Execute(*ExecuteRequest, KernelService_ExecuteServer) error
+	Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error)
+	ExecuteStream(*ExecuteRequest, KernelService_ExecuteStreamServer) error
+	Input(context.Context, *InputRequest) (*InputResponse, error)
+	Output(*OutputRequest, KernelService_OutputServer) error
 	mustEmbedUnimplementedKernelServiceServer()
 }
 
@@ -119,8 +175,17 @@ func (UnimplementedKernelServiceServer) DeleteSession(context.Context, *DeleteSe
 func (UnimplementedKernelServiceServer) ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSessions not implemented")
 }
-func (UnimplementedKernelServiceServer) Execute(*ExecuteRequest, KernelService_ExecuteServer) error {
-	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
+func (UnimplementedKernelServiceServer) Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (UnimplementedKernelServiceServer) ExecuteStream(*ExecuteRequest, KernelService_ExecuteStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method ExecuteStream not implemented")
+}
+func (UnimplementedKernelServiceServer) Input(context.Context, *InputRequest) (*InputResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Input not implemented")
+}
+func (UnimplementedKernelServiceServer) Output(*OutputRequest, KernelService_OutputServer) error {
+	return status.Errorf(codes.Unimplemented, "method Output not implemented")
 }
 func (UnimplementedKernelServiceServer) mustEmbedUnimplementedKernelServiceServer() {}
 
@@ -189,24 +254,81 @@ func _KernelService_ListSessions_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _KernelService_Execute_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _KernelService_Execute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KernelServiceServer).Execute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/runme.kernel.v1.KernelService/Execute",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KernelServiceServer).Execute(ctx, req.(*ExecuteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _KernelService_ExecuteStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ExecuteRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(KernelServiceServer).Execute(m, &kernelServiceExecuteServer{stream})
+	return srv.(KernelServiceServer).ExecuteStream(m, &kernelServiceExecuteStreamServer{stream})
 }
 
-type KernelService_ExecuteServer interface {
+type KernelService_ExecuteStreamServer interface {
 	Send(*ExecuteResponse) error
 	grpc.ServerStream
 }
 
-type kernelServiceExecuteServer struct {
+type kernelServiceExecuteStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *kernelServiceExecuteServer) Send(m *ExecuteResponse) error {
+func (x *kernelServiceExecuteStreamServer) Send(m *ExecuteResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _KernelService_Input_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InputRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KernelServiceServer).Input(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/runme.kernel.v1.KernelService/Input",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KernelServiceServer).Input(ctx, req.(*InputRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _KernelService_Output_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(OutputRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(KernelServiceServer).Output(m, &kernelServiceOutputServer{stream})
+}
+
+type KernelService_OutputServer interface {
+	Send(*OutputResponse) error
+	grpc.ServerStream
+}
+
+type kernelServiceOutputServer struct {
+	grpc.ServerStream
+}
+
+func (x *kernelServiceOutputServer) Send(m *OutputResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -229,11 +351,24 @@ var KernelService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ListSessions",
 			Handler:    _KernelService_ListSessions_Handler,
 		},
+		{
+			MethodName: "Execute",
+			Handler:    _KernelService_Execute_Handler,
+		},
+		{
+			MethodName: "Input",
+			Handler:    _KernelService_Input_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Execute",
-			Handler:       _KernelService_Execute_Handler,
+			StreamName:    "ExecuteStream",
+			Handler:       _KernelService_ExecuteStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Output",
+			Handler:       _KernelService_Output_Handler,
 			ServerStreams: true,
 		},
 	},
