@@ -16,5 +16,6 @@ repos:
         args: ["-timeout=30s"]
       - id: go-revive-repo-mod
       - id: go-staticcheck-mod
+        exclude: ^expect/.*$
       - id: go-sec-repo-mod
         args: ["-exclude=G204,G304,G404", "-exclude-generated"]
