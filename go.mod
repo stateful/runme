@@ -9,8 +9,8 @@ require (
 	github.com/bufbuild/connect-grpcreflect-go v1.0.0
 	github.com/cli/cli/v2 v2.21.1
 	github.com/creack/pty v1.1.18
+	github.com/fatih/color v1.13.0
 	github.com/google/go-github/v45 v45.2.0
-	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/rogpeppe/go-internal v1.9.0
 	github.com/rs/cors v1.8.3
@@ -30,12 +30,10 @@ require (
 	github.com/cli/go-gh v1.0.0 // indirect
 	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/fatih/color v1.7.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/goterm v0.0.0-20190703233501-fc88cf888a3f // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

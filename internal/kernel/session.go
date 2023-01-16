@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/creack/pty"
-	expect "github.com/google/goexpect"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
+	"github.com/stateful/runme/expect"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
@@ -177,6 +177,13 @@ func (s *session) ChangePrompt(prompt string) (err error) {
 		return err
 	}
 
+	// We don't use Execute() here because setting a prompt
+	// makes matching it more difficult as different results
+	// are possible.
+	// To do it properly, we send the command and examine
+	// the expected result. If the result contains
+	// the new prompt twice, we don't need to do additional
+	// check, which is required otherwise.
 	err = s.expctr.Send(fmt.Sprintf("PS1='%s$ ' PS2='%s+ ' PROMPT_COMMAND=''\n", prompt, prompt))
 	if err != nil {
 		return errors.Wrap(err, "failed to send command")
