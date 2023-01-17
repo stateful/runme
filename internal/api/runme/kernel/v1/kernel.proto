@@ -41,8 +41,6 @@ message ExecuteRequest {
     string session_id = 1;
 
     string command = 2;
-
-    uint64 timeout_ms = 3;
 }
 
 message ExecuteResponse {

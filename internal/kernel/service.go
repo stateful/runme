@@ -2,10 +2,11 @@ package kernel
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"io"
 	"time"
 
+	"github.com/pkg/errors"
 	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -88,4 +89,79 @@ func (s *kernelServiceServer) Execute(ctx context.Context, req *kernelv1.Execute
 		Data:     data,
 		ExitCode: wrapperspb.UInt32(uint32(exitCode)),
 	}, nil
+}
+
+func (s *kernelServiceServer) ExecuteStream(req *kernelv1.ExecuteRequest, srv kernelv1.KernelService_ExecuteStreamServer) error {
+	session := s.sessions.FindSession(req.SessionId)
+	if session == nil {
+		return errors.New("session not found")
+	}
+
+	chunks := make(chan []byte)
+	defer close(chunks)
+	errC := make(chan error, 1)
+
+	go func() {
+		defer close(errC)
+		for line := range chunks {
+			err := srv.Send(&kernelv1.ExecuteResponse{
+				Data: line,
+			})
+			if err != nil {
+				// Propagate only the first error.
+				select {
+				case errC <- errors.Wrap(err, "failed to write to writer"):
+				default:
+				}
+			}
+		}
+	}()
+
+	exitCode, err := session.ExecuteWithChannel(req.Command, time.Minute, chunks)
+	if err != nil {
+		return err
+	}
+
+	return srv.Send(&kernelv1.ExecuteResponse{
+		ExitCode: wrapperspb.UInt32(uint32(exitCode)),
+	})
+}
+
+func (s *kernelServiceServer) Input(ctx context.Context, req *kernelv1.InputRequest) (*kernelv1.InputResponse, error) {
+	session := s.sessions.FindSession(req.SessionId)
+	if session == nil {
+		return nil, errors.New("session not found")
+	}
+	if err := session.Send(req.Data); err != nil {
+		return nil, err
+	}
+	return &kernelv1.InputResponse{}, nil
+}
+
+func (s *kernelServiceServer) Output(req *kernelv1.OutputRequest, srv kernelv1.KernelService_OutputServer) error {
+	session := s.sessions.FindSession(req.SessionId)
+	if session == nil {
+		return errors.New("session not found")
+	}
+
+	for {
+		p := make([]byte, 1024)
+		n, rerr := session.Read(p)
+		s.logger.Info("read output from session", zap.ByteString("data", p[:n]), zap.Error(rerr))
+		if rerr != nil && rerr != io.EOF {
+			return rerr
+		}
+		if rerr == io.EOF {
+			select {
+			case <-time.After(time.Millisecond * 200):
+			case <-srv.Context().Done():
+				return srv.Context().Err()
+			}
+		}
+
+		err := srv.Send(&kernelv1.OutputResponse{Data: p[:n]})
+		if err != nil {
+			return err
+		}
+	}
 }
