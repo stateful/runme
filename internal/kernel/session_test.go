@@ -94,7 +94,7 @@ done
 
 	err = sess.Close()
 	require.NoError(t, err)
-	assert.Equal(t, "while read line\r\n> do\r\n>   echo \"$line\"\r\n> done\r\nTEST\r\nTEST\r\n^C\r\n"+prompt+" ", buf.String())
+	assert.Equal(t, prompt+" while read line\r\n> do\r\n>   echo \"$line\"\r\n> done\r\nTEST\r\nTEST\r\n^C\r\n"+prompt+" ", buf.String())
 }
 
 func Test_session_RawOutput(t *testing.T) {

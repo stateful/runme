@@ -2,7 +2,7 @@ import {
     createPromiseClient,
     createConnectTransport,
 } from '@bufbuild/connect-web'
-import { DeleteSessionRequest, PostSessionRequest, ListSessionsRequest, ExecuteRequest } from "@buf/stateful_runme.bufbuild_es/runme/kernel/v1/kernel_pb.js"
+import { DeleteSessionRequest, PostSessionRequest, ListSessionsRequest, ExecuteRequest, InputRequest, OutputRequest } from "@buf/stateful_runme.bufbuild_es/runme/kernel/v1/kernel_pb.js"
 import { KernelService } from "@buf/stateful_runme.bufbuild_connect-web/runme/kernel/v1/kernel_connectweb.js"
 import { Terminal } from "xterm";
 
@@ -13,44 +13,83 @@ const client = createPromiseClient(
     })
 )
 
-let executeChunkMode = false;
-
 const sessionIdElem = document.getElementById("sessionID") as HTMLPreElement
-const commandElem = document.getElementById("command") as HTMLTextAreaElement
-const exitCodeElem = document.getElementById("exitCode") as HTMLPreElement
 const sessionsElem = document.getElementById("sessions") as HTMLUListElement
 
 export function setActiveSession(id: string) {
     sessionIdElem.textContent = id
-}
 
-export function handleChangeExecuteMode(checked: boolean) {
-    executeChunkMode = checked
+    subscribeOutput()
 }
 
 function prompt(term: Terminal) {
-    term.write('\r\n$ ')
+    term.write("bash-3.2$ ")
 }
 
 const term = new Terminal()
 term.open(document.getElementById("terminal") as HTMLDivElement)
-term.onData(e => {
+
+let buffer = ""
+let lastCommand = ""
+
+term.onData(async e => {
     console.log("onData", e.codePointAt(0))
 
     switch (e) {
         case '\r': // Enter
-            term.writeln("")
+            const command = buffer + "\n"
+
+            lastCommand = buffer
+            buffer = ""
+
+            console.log("sending input", command)
+
+            const resp = await client.input(new InputRequest({
+                sessionId: sessionIdElem.textContent || undefined,
+                data: new TextEncoder().encode(command),
+            }))
+            console.log("input response", resp)
+
             break
         case '\u007F': // Backspace (DEL)
-            term.write('\b \b')
+            if (buffer.length > 0) {
+                term.write('\b \b');
+                if (buffer.length > 0) {
+                    buffer = buffer.substr(0, buffer.length - 1);
+                }
+            }
             break
         case '\u0003': // Ctrl+C
             term.write('^C')
             break
         default:
-            term.write(e)
+            if (e >= String.fromCharCode(0x20) && e <= String.fromCharCode(0x7E) || e >= '\u00a0') {
+                buffer += e
+                term.write(e)
+            }
     }
 });
+
+prompt(term)
+
+async function subscribeOutput() {
+    const req = new OutputRequest({
+        sessionId: sessionIdElem.textContent || undefined,
+    })
+
+    for await (const resp of client.output(req)) {
+        const data = new TextDecoder().decode(resp.data)
+        console.log("output response", data)
+
+        if (data == lastCommand) {
+            continue
+        }
+
+        term.write(data)
+    }
+
+    console.log("finished reading output")
+}
 
 async function createSession() {
     // Prompt can be auto-detected but it will work only in bash 4.4+.
@@ -100,45 +139,4 @@ async function listSessions() {
 
 export function handleListSessions() {
     listSessions()
-}
-
-async function execute() {
-    const sessionID = sessionIdElem.textContent
-    if (sessionID === null || sessionID === "") {
-        return
-    }
-
-    const command = commandElem.value
-    if (command === "") {
-        return
-    }
-
-    term.clear()
-    exitCodeElem.innerHTML = "<em>executing...</em>"
-
-    const req = new ExecuteRequest({
-        sessionId: sessionID,
-        command: command,
-    })
-
-    if (executeChunkMode) {
-        for await (const resp of client.executeStream(req)) {
-            console.log("execute response", resp)
-
-            term.write(resp.data)
-
-            if (resp.exitCode != undefined) {
-                exitCodeElem.textContent = resp.exitCode?.toString()
-            }
-        }
-    } else {
-        const resp = await client.execute(req)
-        term.write(resp.data)
-        term.writeln("")
-        exitCodeElem.textContent = resp.exitCode?.toString() || "-1"
-    }
-}
-
-export function handleExecute() {
-    execute();
 }

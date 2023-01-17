@@ -11,7 +11,6 @@ import (
 	v1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
 	"github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1/kernelv1connect"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -150,32 +149,24 @@ func (h *kernelServiceHandler) Output(ctx context.Context, req *connect.Request[
 		return errors.New("session not found")
 	}
 
-	execDone := make(chan struct{})
-	g, _ := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		for {
-			p := make([]byte, 1024)
-			n, rerr := session.Read(p)
-			h.logger.Info("read output from session", zap.ByteString("data", p[:n]), zap.Error(rerr))
-			if rerr != nil && rerr != io.EOF {
-				return rerr
-			}
-			if rerr == io.EOF {
-				select {
-				case <-time.After(time.Millisecond * 200):
-					continue
-				case <-execDone:
-					return nil
-				}
-			}
-
-			err := srv.Send(&v1.OutputResponse{Data: p[:n]})
-			if err != nil {
-				return err
+	for {
+		p := make([]byte, 1024)
+		n, rerr := session.Read(p)
+		h.logger.Info("read output from session", zap.ByteString("data", p[:n]), zap.Error(rerr))
+		if rerr != nil && rerr != io.EOF {
+			return rerr
+		}
+		if rerr == io.EOF {
+			select {
+			case <-time.After(time.Millisecond * 200):
+			case <-ctx.Done():
+				return ctx.Err()
 			}
 		}
-	})
 
-	return nil
+		err := srv.Send(&v1.OutputResponse{Data: p[:n]})
+		if err != nil {
+			return err
+		}
+	}
 }

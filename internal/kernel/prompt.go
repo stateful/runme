@@ -45,5 +45,5 @@ func detectPrompt(cmdName string) ([]byte, error) {
 			break
 		}
 	}
-	return dropANSIEscape(prompt), nil
+	return prompt, nil
 }

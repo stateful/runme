@@ -92,6 +92,7 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 		expect.Tee(buf),
 		expect.Verbose(true),
 		expect.CheckDuration(time.Millisecond*300),
+		expect.PartialMatch(true),
 	)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
@@ -108,13 +109,32 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 		logger:   logger,
 	}
 
-	data, _, err := s.waitForReady(time.Second)
+	data, match, err := s.waitForReady(time.Second)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 
 	// Bash 5.1+ has this enabled by default and it makes it harder to parse the output.
 	// We disable it here so that the output is consistent between old and new bash versions.
+	//
+	// Note that it has consequences. When bracketed paste is enabled, you can paste
+	// a multi-line command and it won't be executed until you hit the Enter key:
+	//
+	//   bash-5.2$ echo 1
+	//   echo 2
+	//   1
+	//   2
+	//
+	// If it's disabled, you will likely see the following result:
+	//
+	//   bash-5.2$ echo 1
+	//   1
+	//   bash-5.2$ echo 2
+	//   2
+	//
+	// In our case, when keeping it disabled, the natural cause is that pasting
+	// multiple commands in one request may result in undefined behaviour.
+	// Source: https://askubuntu.com/a/1251430
 	_, exitCode, err := s.Execute("bind 'set enable-bracketed-paste off'", time.Second)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to disable bracketed paste")
@@ -125,6 +145,10 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 
 	// Reset buffer as we don't want to send the setting changes back.
 	_, _ = io.Copy(io.Discard, s.output)
+
+	// Write the matched prompt back as invitation.
+	_, _ = s.output.Write(match)
+	_, _ = s.output.WriteRune(' ')
 
 	go func() {
 		s.err = <-cmdErr
@@ -285,22 +309,14 @@ func (s *session) ExecuteWithChannel(command string, timeout time.Duration, chun
 	return s.exitCode()
 }
 
-func (s *session) execute(command string, timeout time.Duration) ([]byte, error) {
+func ensureEndsWithNewLine(command string) string {
 	if command[len(command)-1] != '\n' {
 		command += "\n"
 	}
+	return command
+}
 
-	if err := s.expctr.Send(command); err != nil {
-		return nil, errors.Wrap(err, "failed to send command")
-	}
-
-	data, match, err := s.waitForReady(timeout)
-	if err != nil {
-		return nil, err
-	}
-
-	s.logger.Info("matched data", zap.ByteString("data", data))
-
+func cleanOutput(command string, data, match []byte) []byte {
 	data = dropANSIEscape(data)
 
 	commandLinesCount := strings.Count(command, "\n")
@@ -316,6 +332,25 @@ func (s *session) execute(command string, timeout time.Duration) ([]byte, error)
 	data = bytes.TrimSpace(data)
 	data = bytes.TrimSuffix(data, match)
 	data = bytes.TrimSpace(data)
+
+	return data
+}
+
+func (s *session) execute(command string, timeout time.Duration) ([]byte, error) {
+	command = ensureEndsWithNewLine(command)
+
+	if err := s.expctr.Send(command); err != nil {
+		return nil, errors.Wrap(err, "failed to send command")
+	}
+
+	data, match, err := s.waitForReady(timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("matched data", zap.ByteString("data", data))
+
+	data = cleanOutput(command, data, match)
 
 	s.logger.Info("cleaned matched data", zap.ByteString("data", data))
 
@@ -345,7 +380,7 @@ func (s *session) executeWithChannel(command string, timeout time.Duration, chun
 	}
 
 	// TODO: s.output is shared here and in Read().
-	// FIgure out a better solution.
+	// Figure out a better solution.
 	s.output.Reset()
 
 	start := time.Now()
@@ -399,12 +434,41 @@ func (s *session) executeWithChannel(command string, timeout time.Duration, chun
 
 const exitCodeCommand = "echo $?"
 
-func (s *session) exitCode() (int, error) {
-	data, err := s.execute(exitCodeCommand, time.Second)
+var exitCommandRe = func() *regexp.Regexp {
+	re, err := compileLiteralRegexp(exitCodeCommand + "\r\n")
 	if err != nil {
-		return -1, errors.Wrap(err, "failed to execute exitCodeCommand")
+		panic(err)
 	}
-	code, err := strconv.ParseInt(string(data), 10, 16)
+	return re
+}()
+
+func (s *session) exitCode() (int, error) {
+	command := ensureEndsWithNewLine(exitCodeCommand)
+
+	if err := s.expctr.Send(command); err != nil {
+		return -1, errors.Wrap(err, "failed to send command")
+	}
+
+	_, _, err := s.expctr.Expect(exitCommandRe, time.Second)
+	if err != nil {
+		return -1, errors.Wrap(err, "failed to wait for command")
+	}
+
+	data, _, err := s.waitForReady(time.Second)
+	if err != nil {
+		return -1, err
+	}
+
+	s.logger.Info("matched data", zap.ByteString("data", data))
+
+	lines := bytes.SplitN(data, crlf, 2)
+	if len(lines) == 0 {
+		return -1, errors.New("failed to locate exit code")
+	}
+
+	s.logger.Info("cleaned matched data", zap.ByteString("data", lines[0]))
+
+	code, err := strconv.ParseInt(string(lines[0]), 10, 16)
 	if err != nil {
 		return -1, errors.Wrap(err, "failed to parse exit code")
 	}
