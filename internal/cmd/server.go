@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/bufbuild/connect-go"
@@ -87,10 +88,14 @@ The kernel is used to run long running processes like shells and interacting wit
 				return srv.ListenAndServe()
 			}
 
+			// TODO: consolidate removing address into a single place
+			_ = os.Remove(addr)
+
 			lis, err := net.Listen("unix", addr)
 			if err != nil {
 				return err
 			}
+			defer func() { _ = os.Remove(addr) }()
 
 			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
 
