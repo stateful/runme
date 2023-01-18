@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -48,6 +49,16 @@ func Root() *cobra.Command {
 	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before exeucing the command.")
 	pflags.StringVar(&fFileName, "filename", "README.md", "A name of the README file.")
 
+	tuiCmd := tuiCmd()
+	cmd.RunE = tuiCmd.RunE
+
+	tuiCmd.Flags().VisitAll(func(f *pflag.Flag) {
+		if flag := cmd.Flags().Lookup(f.Name); flag == nil {
+			cmd.Flags().AddFlag(f)
+		}
+	})
+
+	cmd.AddCommand(tuiCmd)
 	cmd.AddCommand(runCmd())
 	cmd.AddCommand(listCmd())
 	cmd.AddCommand(printCmd())
