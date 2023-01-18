@@ -87,7 +87,7 @@ The kernel is used to run long running processes like shells and interacting wit
 				return srv.ListenAndServe()
 			}
 
-			lis, err := net.Listen("tcp", addr)
+			lis, err := net.Listen("unix", addr)
 			if err != nil {
 				return err
 			}
@@ -104,7 +104,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().StringVarP(&addr, "address", "a", defaultSocketAddr, "Address to bind server.")
+	cmd.Flags().StringVarP(&addr, "address", "a", defaultSocketAddr, "A path to create a socket.")
 	cmd.Flags().BoolVar(&web, "web", false, "Use Connect Protocol (https://connect.build/).")
 
 	return &cmd
