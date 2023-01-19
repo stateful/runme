@@ -90,9 +90,9 @@ export class Cell extends Message<Cell> {
   value = "";
 
   /**
-   * @generated from field: string lang_id = 3;
+   * @generated from field: string language_id = 3;
    */
-  langId = "";
+  languageId = "";
 
   /**
    * @generated from field: map<string, string> metadata = 4;
@@ -109,7 +109,7 @@ export class Cell extends Message<Cell> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "kind", kind: "enum", T: proto3.getEnumType(CellKind) },
     { no: 2, name: "value", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "lang_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "language_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "metadata", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
   ]);
 

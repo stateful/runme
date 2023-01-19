@@ -128,10 +128,10 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 	cells := make([]*parserv1.Cell, 0, len(notebook.Cells))
 	for _, cell := range notebook.Cells {
 		cells = append(cells, &parserv1.Cell{
-			Kind:     parserv1.CellKind(cell.Kind),
-			Value:    cell.Value,
-			LangId:   cell.LangID,
-			Metadata: stringifyMapValue(cell.Metadata),
+			Kind:       parserv1.CellKind(cell.Kind),
+			Value:      cell.Value,
+			LanguageId: cell.LanguageID,
+			Metadata:   stringifyMapValue(cell.Metadata),
 		})
 	}
 
@@ -147,10 +147,10 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
 		cells = append(cells, &editor.Cell{
-			Kind:     editor.CellKind(cell.Kind),
-			Value:    cell.Value,
-			LangID:   cell.LangId,
-			Metadata: parseMapValue(cell.Metadata),
+			Kind:       editor.CellKind(cell.Kind),
+			Value:      cell.Value,
+			LanguageID: cell.LanguageId,
+			Metadata:   parseMapValue(cell.Metadata),
 		})
 	}
 	data, err := editor.Serialize(&editor.Notebook{
