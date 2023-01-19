@@ -34,6 +34,7 @@ type KernelServiceClient interface {
 	ExecuteStream(context.Context, *connect_go.Request[v1.ExecuteRequest]) (*connect_go.ServerStreamForClient[v1.ExecuteResponse], error)
 	Input(context.Context, *connect_go.Request[v1.InputRequest]) (*connect_go.Response[v1.InputResponse], error)
 	Output(context.Context, *connect_go.Request[v1.OutputRequest]) (*connect_go.ServerStreamForClient[v1.OutputResponse], error)
+	IO(context.Context) *connect_go.BidiStreamForClient[v1.IORequest, v1.IOResponse]
 }
 
 // NewKernelServiceClient constructs a client for the runme.kernel.v1.KernelService service. By
@@ -81,6 +82,11 @@ func NewKernelServiceClient(httpClient connect_go.HTTPClient, baseURL string, op
 			baseURL+"/runme.kernel.v1.KernelService/Output",
 			opts...,
 		),
+		iO: connect_go.NewClient[v1.IORequest, v1.IOResponse](
+			httpClient,
+			baseURL+"/runme.kernel.v1.KernelService/IO",
+			opts...,
+		),
 	}
 }
 
@@ -93,6 +99,7 @@ type kernelServiceClient struct {
 	executeStream *connect_go.Client[v1.ExecuteRequest, v1.ExecuteResponse]
 	input         *connect_go.Client[v1.InputRequest, v1.InputResponse]
 	output        *connect_go.Client[v1.OutputRequest, v1.OutputResponse]
+	iO            *connect_go.Client[v1.IORequest, v1.IOResponse]
 }
 
 // PostSession calls runme.kernel.v1.KernelService.PostSession.
@@ -130,6 +137,11 @@ func (c *kernelServiceClient) Output(ctx context.Context, req *connect_go.Reques
 	return c.output.CallServerStream(ctx, req)
 }
 
+// IO calls runme.kernel.v1.KernelService.IO.
+func (c *kernelServiceClient) IO(ctx context.Context) *connect_go.BidiStreamForClient[v1.IORequest, v1.IOResponse] {
+	return c.iO.CallBidiStream(ctx)
+}
+
 // KernelServiceHandler is an implementation of the runme.kernel.v1.KernelService service.
 type KernelServiceHandler interface {
 	PostSession(context.Context, *connect_go.Request[v1.PostSessionRequest]) (*connect_go.Response[v1.PostSessionResponse], error)
@@ -139,6 +151,7 @@ type KernelServiceHandler interface {
 	ExecuteStream(context.Context, *connect_go.Request[v1.ExecuteRequest], *connect_go.ServerStream[v1.ExecuteResponse]) error
 	Input(context.Context, *connect_go.Request[v1.InputRequest]) (*connect_go.Response[v1.InputResponse], error)
 	Output(context.Context, *connect_go.Request[v1.OutputRequest], *connect_go.ServerStream[v1.OutputResponse]) error
+	IO(context.Context, *connect_go.BidiStream[v1.IORequest, v1.IOResponse]) error
 }
 
 // NewKernelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -183,6 +196,11 @@ func NewKernelServiceHandler(svc KernelServiceHandler, opts ...connect_go.Handle
 		svc.Output,
 		opts...,
 	))
+	mux.Handle("/runme.kernel.v1.KernelService/IO", connect_go.NewBidiStreamHandler(
+		"/runme.kernel.v1.KernelService/IO",
+		svc.IO,
+		opts...,
+	))
 	return "/runme.kernel.v1.KernelService/", mux
 }
 
@@ -215,4 +233,8 @@ func (UnimplementedKernelServiceHandler) Input(context.Context, *connect_go.Requ
 
 func (UnimplementedKernelServiceHandler) Output(context.Context, *connect_go.Request[v1.OutputRequest], *connect_go.ServerStream[v1.OutputResponse]) error {
 	return connect_go.NewError(connect_go.CodeUnimplemented, errors.New("runme.kernel.v1.KernelService.Output is not implemented"))
+}
+
+func (UnimplementedKernelServiceHandler) IO(context.Context, *connect_go.BidiStream[v1.IORequest, v1.IOResponse]) error {
+	return connect_go.NewError(connect_go.CodeUnimplemented, errors.New("runme.kernel.v1.KernelService.IO is not implemented"))
 }

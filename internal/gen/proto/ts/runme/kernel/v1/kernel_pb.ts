@@ -509,3 +509,83 @@ export class OutputResponse extends Message<OutputResponse> {
     return proto3.util.equals(OutputResponse, a, b);
   }
 }
+
+/**
+ * @generated from message runme.kernel.v1.IORequest
+ */
+export class IORequest extends Message<IORequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId = "";
+
+  /**
+   * @generated from field: bytes data = 2;
+   */
+  data = new Uint8Array(0);
+
+  constructor(data?: PartialMessage<IORequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime = proto3;
+  static readonly typeName = "runme.kernel.v1.IORequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): IORequest {
+    return new IORequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): IORequest {
+    return new IORequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): IORequest {
+    return new IORequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: IORequest | PlainMessage<IORequest> | undefined, b: IORequest | PlainMessage<IORequest> | undefined): boolean {
+    return proto3.util.equals(IORequest, a, b);
+  }
+}
+
+/**
+ * @generated from message runme.kernel.v1.IOResponse
+ */
+export class IOResponse extends Message<IOResponse> {
+  /**
+   * @generated from field: bytes data = 1;
+   */
+  data = new Uint8Array(0);
+
+  constructor(data?: PartialMessage<IOResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime = proto3;
+  static readonly typeName = "runme.kernel.v1.IOResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): IOResponse {
+    return new IOResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): IOResponse {
+    return new IOResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): IOResponse {
+    return new IOResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: IOResponse | PlainMessage<IOResponse> | undefined, b: IOResponse | PlainMessage<IOResponse> | undefined): boolean {
+    return proto3.util.equals(IOResponse, a, b);
+  }
+}

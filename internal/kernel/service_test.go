@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"regexp"
 	"testing"
 	"time"
 
@@ -57,6 +58,8 @@ func testCreateSessionUsingKernelService(t *testing.T, client kernelv1.KernelSer
 }
 
 func Test_kernelServiceServer_PostSession(t *testing.T) {
+	t.Parallel()
+
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -64,6 +67,8 @@ func Test_kernelServiceServer_PostSession(t *testing.T) {
 }
 
 func Test_kernelServiceServer_DeleteSession(t *testing.T) {
+	t.Parallel()
+
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -84,6 +89,8 @@ func Test_kernelServiceServer_DeleteSession(t *testing.T) {
 }
 
 func Test_kernelServiceServer_ListSessions(t *testing.T) {
+	t.Parallel()
+
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -107,6 +114,8 @@ func Test_kernelServiceServer_ListSessions(t *testing.T) {
 }
 
 func Test_kernelServiceServer_Execute(t *testing.T) {
+	t.Parallel()
+
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -126,6 +135,8 @@ func Test_kernelServiceServer_Execute(t *testing.T) {
 }
 
 func Test_kernelServiceServer_ExecuteStream(t *testing.T) {
+	t.Parallel()
+
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -161,6 +172,8 @@ func Test_kernelServiceServer_ExecuteStream(t *testing.T) {
 }
 
 func Test_kernelServiceServer_InputOutput(t *testing.T) {
+	t.Parallel()
+
 	lis, _ := testStartKernelServiceServer(t)
 	// defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -209,4 +222,41 @@ func Test_kernelServiceServer_InputOutput(t *testing.T) {
 	cancel()
 	err = <-rErr
 	require.ErrorIs(t, err, status.FromContextError(context.Canceled).Err())
+}
+
+func Test_kernelServiceServer_IO(t *testing.T) {
+	t.Parallel()
+
+	lis, stop := testStartKernelServiceServer(t)
+	defer stop()
+	conn, client := testCreateKernelServiceClient(t, lis)
+
+	sessionID := testCreateSessionUsingKernelService(t, client)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	stream, err := client.IO(ctx)
+	require.NoError(t, err)
+
+	err = stream.Send(&kernelv1.IORequest{
+		SessionId: sessionID,
+		Data:      []byte("echo 'Hello'\n"),
+	})
+	require.NoError(t, err)
+
+	re := regexp.MustCompile(`(?m:^Hello\s$)`)
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			require.Fail(t, "no match")
+		}
+		if re.Match(resp.Data) {
+			break
+		}
+	}
+
+	cancel()
+	err = stream.CloseSend()
+	require.NoError(t, err)
+	err = conn.Close()
+	require.NoError(t, err)
 }
