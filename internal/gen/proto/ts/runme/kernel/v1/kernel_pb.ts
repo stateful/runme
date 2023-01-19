@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, protoInt64, UInt32Value } from "@bufbuild/protobuf";
+import { Message, proto3, UInt32Value } from "@bufbuild/protobuf";
 
 /**
  * @generated from message runme.kernel.v1.Session
@@ -284,11 +284,6 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
    */
   command = "";
 
-  /**
-   * @generated from field: uint64 timeout_ms = 3;
-   */
-  timeoutMs = protoInt64.zero;
-
   constructor(data?: PartialMessage<ExecuteRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -299,7 +294,6 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "command", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "timeout_ms", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteRequest {

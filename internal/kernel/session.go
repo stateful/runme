@@ -401,12 +401,12 @@ func (s *session) executeWithChannel(command string, timeout time.Duration, chun
 
 	errC := make(chan error, 1)
 	reader := &readCloser{Reader: s.output}
-	promptBytes := []byte(s.prompt)
+	defer func() { _ = reader.Close() }()
 
 	go func() {
 		scanner := bufio.NewScanner(reader)
 		scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-			return scanLinesUntil(data, atEOF, promptBytes)
+			return scanLinesUntil(data, atEOF, []byte(s.prompt))
 		})
 
 		for scanner.Scan() {
