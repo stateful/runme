@@ -28,7 +28,7 @@ func testStartKernelServiceServer(t *testing.T) (
 	server := grpc.NewServer()
 	kernelv1.RegisterKernelServiceServer(server, NewKernelServiceServer(zap.NewNop()))
 	go server.Serve(lis)
-	return lis, server.GracefulStop
+	return lis, server.Stop
 }
 
 func testCreateKernelServiceClient(
@@ -217,11 +217,14 @@ func Test_kernelServiceServer_InputOutput(t *testing.T) {
 func Test_kernelServiceServer_IO(t *testing.T) {
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
+
 	conn, client := testCreateKernelServiceClient(t, lis)
 
 	sessionID := testCreateSessionUsingKernelService(t, client)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	stream, err := client.IO(ctx)
 	require.NoError(t, err)
 
@@ -236,15 +239,13 @@ func Test_kernelServiceServer_IO(t *testing.T) {
 		resp, err := stream.Recv()
 		if err != nil {
 			require.Fail(t, "no match")
+			break
 		}
 		if re.Match(resp.Data) {
 			break
 		}
 	}
 
-	cancel()
-	err = stream.CloseSend()
-	require.NoError(t, err)
-	err = conn.Close()
-	require.NoError(t, err)
+	assert.NoError(t, conn.Close())
+	assert.NoError(t, stream.CloseSend())
 }
