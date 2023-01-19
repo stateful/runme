@@ -27,10 +27,10 @@ const (
 // Cell resembles NotebookCellData from VS Code.
 // https://github.com/microsoft/vscode/blob/085c409898bbc89c83409f6a394e73130b932add/src/vscode-dts/vscode.d.ts#L13715
 type Cell struct {
-	Kind     CellKind       `json:"kind"`
-	Value    string         `json:"value"`
-	LangID   string         `json:"languageId"`
-	Metadata map[string]any `json:"metadata,omitempty"`
+	Kind       CellKind       `json:"kind"`
+	Value      string         `json:"value"`
+	LanguageID string         `json:"languageId"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
 }
 
 // Notebook resembles NotebookData form VS Code.
@@ -105,10 +105,10 @@ func toCellsRec(
 				metadata := convertAttrsToMetadata(block.Attributes())
 				metadata[prefixAttributeName(internalAttributePrefix, "name")] = block.Name()
 				*cells = append(*cells, &Cell{
-					Kind:     CodeKind,
-					Value:    string(block.Content()),
-					LangID:   block.Language(),
-					Metadata: metadata,
+					Kind:       CodeKind,
+					Value:      string(block.Content()),
+					LanguageID: block.Language(),
+					Metadata:   metadata,
 				})
 			} else {
 				*cells = append(*cells, &Cell{
@@ -229,7 +229,7 @@ func serializeCells(cells []*Cell) []byte {
 			}
 
 			_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
-			_, _ = buf.WriteString(cell.LangID)
+			_, _ = buf.WriteString(cell.LanguageID)
 
 			serializeFencedCodeAttributes(&buf, cell)
 

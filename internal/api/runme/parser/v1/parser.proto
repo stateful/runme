@@ -18,7 +18,7 @@ enum CellKind {
 message Cell {
     CellKind kind = 1;
     string value = 2;
-    string lang_id = 3;
+    string language_id = 3;
     map<string, string> metadata = 4;
 }
 
