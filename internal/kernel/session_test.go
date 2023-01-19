@@ -34,8 +34,6 @@ func testCreateSession(t *testing.T, logger *zap.Logger) (*session, string) {
 }
 
 func Test_session_Basic(t *testing.T) {
-	t.Parallel()
-
 	sess, _ := testCreateSession(t, nil)
 
 	data, exitCode, err := sess.Execute("echo Hello\n", time.Second)
@@ -48,8 +46,6 @@ func Test_session_Basic(t *testing.T) {
 }
 
 func Test_session_Multiline(t *testing.T) {
-	t.Parallel()
-
 	sess, _ := testCreateSession(t, nil)
 
 	// **Note** that this is a single command.
@@ -65,8 +61,6 @@ func Test_session_Multiline(t *testing.T) {
 }
 
 func Test_session_Input(t *testing.T) {
-	t.Parallel()
-
 	simulateUserInputLag := func() {
 		<-time.After(time.Millisecond * 500)
 	}
@@ -109,8 +103,6 @@ done
 }
 
 func Test_session_RawOutput(t *testing.T) {
-	t.Parallel()
-
 	sess, _ := testCreateSession(t, nil)
 
 	errC := make(chan error)
@@ -140,8 +132,6 @@ func Test_session_RawOutput(t *testing.T) {
 }
 
 func Test_session_Timeout(t *testing.T) {
-	t.Parallel()
-
 	sess, _ := testCreateSession(t, nil)
 
 	_, _, err := sess.Execute("sleep 2\n", time.Second)
@@ -152,8 +142,6 @@ func Test_session_Timeout(t *testing.T) {
 }
 
 func Test_session_ExecuteWithWriter(t *testing.T) {
-	t.Parallel()
-
 	if os.Getenv("CI") == "true" {
 		t.SkipNow()
 	}
@@ -181,8 +169,6 @@ func Test_session_ExecuteWithWriter(t *testing.T) {
 }
 
 func Test_session_ChangePrompt(t *testing.T) {
-	t.Parallel()
-
 	sess, _ := testCreateSession(t, nil)
 
 	err := sess.ChangePrompt("RUNME")

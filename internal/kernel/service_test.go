@@ -58,8 +58,6 @@ func testCreateSessionUsingKernelService(t *testing.T, client kernelv1.KernelSer
 }
 
 func Test_kernelServiceServer_PostSession(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -67,8 +65,6 @@ func Test_kernelServiceServer_PostSession(t *testing.T) {
 }
 
 func Test_kernelServiceServer_DeleteSession(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -89,8 +85,6 @@ func Test_kernelServiceServer_DeleteSession(t *testing.T) {
 }
 
 func Test_kernelServiceServer_ListSessions(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -114,8 +108,6 @@ func Test_kernelServiceServer_ListSessions(t *testing.T) {
 }
 
 func Test_kernelServiceServer_Execute(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -135,8 +127,6 @@ func Test_kernelServiceServer_Execute(t *testing.T) {
 }
 
 func Test_kernelServiceServer_ExecuteStream(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -172,8 +162,6 @@ func Test_kernelServiceServer_ExecuteStream(t *testing.T) {
 }
 
 func Test_kernelServiceServer_InputOutput(t *testing.T) {
-	t.Parallel()
-
 	lis, _ := testStartKernelServiceServer(t)
 	// defer stop()
 	_, client := testCreateKernelServiceClient(t, lis)
@@ -225,8 +213,6 @@ func Test_kernelServiceServer_InputOutput(t *testing.T) {
 }
 
 func Test_kernelServiceServer_IO(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartKernelServiceServer(t)
 	defer stop()
 	conn, client := testCreateKernelServiceClient(t, lis)
