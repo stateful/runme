@@ -58,11 +58,11 @@ func TestEditor_CodeBlock(t *testing.T) {
 		cell := notebook.Cells[0]
 		assert.Equal(
 			t,
-			cell.Metadata[prefixAttributeName(internalAttributePrefix, "name")].(string),
+			cell.Metadata[prefixAttributeName(internalAttributePrefix, "name")],
 			"echo-1",
 		)
-		// "name" is nil because it was not included in the original snippet.
-		assert.Nil(
+		// "name" is empty because it was not included in the original snippet.
+		assert.Empty(
 			t,
 			cell.Metadata["name"],
 		)
@@ -78,13 +78,13 @@ func TestEditor_CodeBlock(t *testing.T) {
 		cell := notebook.Cells[0]
 		assert.Equal(
 			t,
-			cell.Metadata[prefixAttributeName(internalAttributePrefix, "name")].(string),
+			cell.Metadata[prefixAttributeName(internalAttributePrefix, "name")],
 			"name1",
 		)
 		// "name" is not nil because it was included in the original snippet.
 		assert.Equal(
 			t,
-			cell.Metadata["name"].(string),
+			cell.Metadata["name"],
 			"name1",
 		)
 		result, err := Serialize(notebook)
