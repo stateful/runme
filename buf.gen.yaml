@@ -20,3 +20,8 @@ plugins:
   - plugin: buf.build/bufbuild/es
     out: internal/gen/proto/ts
     opt: target=ts
+
+  # Remote plugin. You can switch to a local one by using "timostamm-protobuf-ts".
+  - plugin: buf.build/community/timostamm-protobuf-ts
+    out: internal/gen/proto/ts
+    opt: output_javascript,optimize_code_size,long_type_string,add_pb_suffix,ts_nocheck,eslint_disable
