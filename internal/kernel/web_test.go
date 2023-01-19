@@ -4,11 +4,9 @@ package kernel
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-	"sync"
 	"testing"
 
 	"github.com/bufbuild/connect-go"
@@ -20,10 +18,6 @@ import (
 )
 
 func Test_kernelServiceHandler_IO(t *testing.T) {
-	// TODO: revise it later. It fails to receive
-	// messages sent before closing the send side.
-	t.SkipNow()
-
 	mux := http.NewServeMux()
 	mux.Handle(
 		kernelv1connect.NewKernelServiceHandler(
@@ -56,38 +50,28 @@ func Test_kernelServiceHandler_IO(t *testing.T) {
 	require.NoError(t, err)
 
 	stream := client.IO(ctx)
+	t.Cleanup(func() {
+		go stream.CloseRequest()
+		go stream.CloseResponse()
+	})
 
-	var wg sync.WaitGroup
-
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
 		err := stream.Send(&kernelv1.IORequest{
 			SessionId: sessionResp.Msg.Session.Id,
 			Data:      []byte("echo 'Hello'\n"),
 		})
 		assert.NoError(t, err)
-		assert.NoError(t, stream.CloseRequest())
 	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		re := regexp.MustCompile(`(?m:^Hello\s$)`)
-		matched := false
-		for {
-			resp, err := stream.Receive()
-			if err != nil && errors.Unwrap(err).Error() == "EOF" {
-				break
-			}
-			require.NoError(t, err)
-			if re.Match(resp.Data) {
-				matched = true
-			}
+	re := regexp.MustCompile(`(?m:^Hello\s$)`)
+	matched := false
+	for {
+		resp, err := stream.Receive()
+		require.NoError(t, err)
+		if re.Match(resp.Data) {
+			matched = true
+			break
 		}
-		assert.True(t, matched)
-		assert.NoError(t, stream.CloseResponse())
-	}()
-
-	wg.Wait()
+	}
+	assert.True(t, matched)
 }
