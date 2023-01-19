@@ -9,6 +9,7 @@ import (
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -18,7 +19,7 @@ import (
 func Test_parserServiceServer(t *testing.T) {
 	lis := bufconn.Listen(2048)
 	server := grpc.NewServer()
-	parserv1.RegisterParserServiceServer(server, NewParserServiceServer())
+	parserv1.RegisterParserServiceServer(server, NewParserServiceServer(zap.NewNop()))
 	go server.Serve(lis)
 
 	conn, err := grpc.Dial(
