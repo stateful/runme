@@ -5,19 +5,26 @@ import (
 
 	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
+	"go.uber.org/zap"
+	"golang.org/x/exp/constraints"
 )
 
 type parserServiceServer struct {
 	parserv1.UnimplementedParserServiceServer
+
+	logger *zap.Logger
 }
 
-func NewParserServiceServer() parserv1.ParserServiceServer {
-	return &parserServiceServer{}
+func NewParserServiceServer(logger *zap.Logger) parserv1.ParserServiceServer {
+	return &parserServiceServer{logger: logger}
 }
 
 func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.DeserializeRequest) (*parserv1.DeserializeResponse, error) {
+	s.logger.Info("Deserialize", zap.ByteString("source", req.Source[:min(len(req.Source), 64)]))
+
 	notebook, err := editor.Deserialize(req.Source)
 	if err != nil {
+		s.logger.Info("failed to call Deserialize", zap.Error(err))
 		return nil, err
 	}
 
@@ -40,6 +47,8 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 }
 
 func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.SerializeRequest) (*parserv1.SerializeResponse, error) {
+	s.logger.Info("Serialize")
+
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
 		cells = append(cells, &editor.Cell{
@@ -54,7 +63,15 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		Metadata: req.Notebook.Metadata,
 	})
 	if err != nil {
+		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err
 	}
 	return &parserv1.SerializeResponse{Result: data}, nil
+}
+
+func min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
 }

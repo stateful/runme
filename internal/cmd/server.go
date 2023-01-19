@@ -99,7 +99,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 			var opts []grpc.ServerOption
 			server := grpc.NewServer(opts...)
-			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer())
+			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			kernelv1.RegisterKernelServiceServer(server, kernel.NewKernelServiceServer(logger))
 			return server.Serve(lis)
 		},
