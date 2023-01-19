@@ -69,6 +69,15 @@ message OutputResponse {
     bytes data = 1;
 }
 
+message IORequest {
+    string session_id = 1;
+    bytes data = 2;
+}
+
+message IOResponse {
+    bytes data = 1;
+}
+
 service KernelService {
     rpc PostSession(PostSessionRequest) returns (PostSessionResponse) {}
     rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
@@ -77,4 +86,5 @@ service KernelService {
     rpc ExecuteStream(ExecuteRequest) returns (stream ExecuteResponse) {}
     rpc Input(InputRequest) returns (InputResponse) {}
     rpc Output(OutputRequest) returns (stream OutputResponse) {}
+    rpc IO(stream IORequest) returns (stream IOResponse) {}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -215,4 +216,103 @@ func (s *kernelServiceServer) Output(req *kernelv1.OutputRequest, srv kernelv1.K
 	}
 	<-done
 	return rErr
+}
+
+func (s *kernelServiceServer) io(ctx context.Context, in <-chan *kernelv1.IORequest, out chan<- *kernelv1.IOResponse) error {
+	var session *session
+
+	g, ctx := errgroup.WithContext(ctx)
+	sessionReady := make(chan struct{})
+
+	g.Go(func() error {
+		for {
+			select {
+			case req := <-in:
+				if session == nil {
+					session = s.sessions.FindSession(req.SessionId)
+					if session == nil {
+						return errors.New("session not found")
+					}
+					close(sessionReady)
+				} else if session.ID() != req.SessionId {
+					return errors.New("already started writing to another session")
+				}
+
+				if len(req.Data) > 0 {
+					if err := session.Send(req.Data); err != nil {
+						return errors.Wrap(err, "failed to write data")
+					}
+				}
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	})
+
+	g.Go(func() error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-sessionReady:
+			// continue
+		}
+
+		for {
+			p := make([]byte, 1024)
+			n, rerr := session.Read(p)
+			if rerr != nil {
+				return rerr
+			}
+			if n == 0 {
+				continue
+			}
+			select {
+			case out <- &kernelv1.IOResponse{Data: p[:n]}:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	})
+
+	return g.Wait()
+}
+
+func (s *kernelServiceServer) IO(srv kernelv1.KernelService_IOServer) error {
+	in := make(chan *kernelv1.IORequest)
+	out := make(chan *kernelv1.IOResponse)
+
+	g, ctx := errgroup.WithContext(srv.Context())
+
+	g.Go(func() error {
+		return s.io(ctx, in, out)
+	})
+
+	g.Go(func() error {
+		for {
+			msg, err := srv.Recv()
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			select {
+			case in <- msg:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	})
+
+	g.Go(func() error {
+		for {
+			select {
+			case msg := <-out:
+				if err := srv.Send(msg); err != nil {
+					return errors.WithStack(err)
+				}
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	})
+
+	return g.Wait()
 }

@@ -5,9 +5,11 @@ import (
 	"io"
 
 	"github.com/bufbuild/connect-go"
+	"github.com/pkg/errors"
 	v1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
 	"github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1/kernelv1connect"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 type kernelServiceHandler struct {
@@ -113,4 +115,44 @@ func (h *kernelServiceHandler) Output(ctx context.Context, req *connect.Request[
 	}()
 
 	return <-errC
+}
+
+func (h *kernelServiceHandler) IO(ctx context.Context, stream *connect.BidiStream[v1.IORequest, v1.IOResponse]) error {
+	in := make(chan *v1.IORequest)
+	out := make(chan *v1.IOResponse)
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return h.server.io(ctx, in, out)
+	})
+
+	g.Go(func() error {
+		for {
+			msg, err := stream.Receive()
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			select {
+			case in <- msg:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	})
+
+	g.Go(func() error {
+		for {
+			select {
+			case msg := <-out:
+				if err := stream.Send(msg); err != nil {
+					return errors.WithStack(err)
+				}
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	})
+
+	return g.Wait()
 }

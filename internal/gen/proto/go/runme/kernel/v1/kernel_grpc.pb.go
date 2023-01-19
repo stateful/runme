@@ -29,6 +29,7 @@ type KernelServiceClient interface {
 	ExecuteStream(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (KernelService_ExecuteStreamClient, error)
 	Input(ctx context.Context, in *InputRequest, opts ...grpc.CallOption) (*InputResponse, error)
 	Output(ctx context.Context, in *OutputRequest, opts ...grpc.CallOption) (KernelService_OutputClient, error)
+	IO(ctx context.Context, opts ...grpc.CallOption) (KernelService_IOClient, error)
 }
 
 type kernelServiceClient struct {
@@ -148,6 +149,37 @@ func (x *kernelServiceOutputClient) Recv() (*OutputResponse, error) {
 	return m, nil
 }
 
+func (c *kernelServiceClient) IO(ctx context.Context, opts ...grpc.CallOption) (KernelService_IOClient, error) {
+	stream, err := c.cc.NewStream(ctx, &KernelService_ServiceDesc.Streams[2], "/runme.kernel.v1.KernelService/IO", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &kernelServiceIOClient{stream}
+	return x, nil
+}
+
+type KernelService_IOClient interface {
+	Send(*IORequest) error
+	Recv() (*IOResponse, error)
+	grpc.ClientStream
+}
+
+type kernelServiceIOClient struct {
+	grpc.ClientStream
+}
+
+func (x *kernelServiceIOClient) Send(m *IORequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *kernelServiceIOClient) Recv() (*IOResponse, error) {
+	m := new(IOResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // KernelServiceServer is the server API for KernelService service.
 // All implementations must embed UnimplementedKernelServiceServer
 // for forward compatibility
@@ -159,6 +191,7 @@ type KernelServiceServer interface {
 	ExecuteStream(*ExecuteRequest, KernelService_ExecuteStreamServer) error
 	Input(context.Context, *InputRequest) (*InputResponse, error)
 	Output(*OutputRequest, KernelService_OutputServer) error
+	IO(KernelService_IOServer) error
 	mustEmbedUnimplementedKernelServiceServer()
 }
 
@@ -186,6 +219,9 @@ func (UnimplementedKernelServiceServer) Input(context.Context, *InputRequest) (*
 }
 func (UnimplementedKernelServiceServer) Output(*OutputRequest, KernelService_OutputServer) error {
 	return status.Errorf(codes.Unimplemented, "method Output not implemented")
+}
+func (UnimplementedKernelServiceServer) IO(KernelService_IOServer) error {
+	return status.Errorf(codes.Unimplemented, "method IO not implemented")
 }
 func (UnimplementedKernelServiceServer) mustEmbedUnimplementedKernelServiceServer() {}
 
@@ -332,6 +368,32 @@ func (x *kernelServiceOutputServer) Send(m *OutputResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _KernelService_IO_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(KernelServiceServer).IO(&kernelServiceIOServer{stream})
+}
+
+type KernelService_IOServer interface {
+	Send(*IOResponse) error
+	Recv() (*IORequest, error)
+	grpc.ServerStream
+}
+
+type kernelServiceIOServer struct {
+	grpc.ServerStream
+}
+
+func (x *kernelServiceIOServer) Send(m *IOResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *kernelServiceIOServer) Recv() (*IORequest, error) {
+	m := new(IORequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // KernelService_ServiceDesc is the grpc.ServiceDesc for KernelService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -370,6 +432,12 @@ var KernelService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "Output",
 			Handler:       _KernelService_Output_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "IO",
+			Handler:       _KernelService_IO_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "runme/kernel/v1/kernel.proto",
