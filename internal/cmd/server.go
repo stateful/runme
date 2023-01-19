@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1/kernelv1connect"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/internal/kernel"
+	"github.com/stateful/runme/internal/socket"
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -89,7 +89,7 @@ The kernel is used to run long running processes like shells and interacting wit
 			// TODO: consolidate removing address into a single place
 			_ = os.Remove(addr)
 
-			lis, err := net.Listen("unix", addr)
+			lis, err := socket.ListenPipe(addr)
 			if err != nil {
 				return err
 			}
