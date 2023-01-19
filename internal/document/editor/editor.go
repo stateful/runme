@@ -7,13 +7,9 @@ import (
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
-const (
-	frontmatterKey = "runme.dev/frontmatter"
-)
+const FrontmatterKey = "runme.dev/frontmatter"
 
 func Deserialize(data []byte) (*Notebook, error) {
-	var notebook Notebook
-
 	sections, err := document.ParseSections(data)
 	if err != nil {
 		return nil, err
@@ -25,22 +21,25 @@ func Deserialize(data []byte) (*Notebook, error) {
 	if err != nil {
 		return nil, err
 	}
-	notebook.Cells = toCells(node, data)
+
+	notebook := &Notebook{
+		Cells: toCells(node, data),
+	}
 
 	// If Front Matter exists, store it in Notebook's metadata.
 	if len(sections.FrontMatter) > 0 {
-		notebook.Metadata = map[string]any{
-			frontmatterKey: string(sections.FrontMatter),
+		notebook.Metadata = map[string]string{
+			FrontmatterKey: string(sections.FrontMatter),
 		}
 	}
 
-	return &notebook, nil
+	return notebook, nil
 }
 
 func Serialize(notebook *Notebook) ([]byte, error) {
 	var result []byte
 
-	if intro, ok := notebook.Metadata[frontmatterKey].(string); ok {
+	if intro, ok := notebook.Metadata[FrontmatterKey]; ok {
 		intro := []byte(intro)
 		lb := detectLineBreak(intro)
 		result = append(

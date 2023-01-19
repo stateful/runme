@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"net"
 	"net/http"
 	"os"
@@ -13,7 +11,7 @@ import (
 	grpcreflect "github.com/bufbuild/connect-grpcreflect-go"
 	"github.com/rs/cors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/document/editor"
+	"github.com/stateful/runme/internal/document/editor/editorservice"
 	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
 	"github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1/kernelv1connect"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
@@ -101,7 +99,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 			var opts []grpc.ServerOption
 			server := grpc.NewServer(opts...)
-			parserv1.RegisterParserServiceServer(server, &parserServiceServer{})
+			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer())
 			kernelv1.RegisterKernelServiceServer(server, kernel.NewKernelServiceServer(logger))
 			return server.Serve(lis)
 		},
@@ -113,71 +111,6 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().BoolVar(&web, "web", false, "Use Connect Protocol (https://connect.build/).")
 
 	return &cmd
-}
-
-type parserServiceServer struct {
-	parserv1.UnimplementedParserServiceServer
-}
-
-func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.DeserializeRequest) (*parserv1.DeserializeResponse, error) {
-	notebook, err := editor.Deserialize(req.Source)
-	if err != nil {
-		return nil, err
-	}
-
-	cells := make([]*parserv1.Cell, 0, len(notebook.Cells))
-	for _, cell := range notebook.Cells {
-		cells = append(cells, &parserv1.Cell{
-			Kind:       parserv1.CellKind(cell.Kind),
-			Value:      cell.Value,
-			LanguageId: cell.LanguageID,
-			Metadata:   stringifyMapValue(cell.Metadata),
-		})
-	}
-
-	return &parserv1.DeserializeResponse{
-		Notebook: &parserv1.Notebook{
-			Cells:    cells,
-			Metadata: stringifyMapValue(notebook.Metadata),
-		},
-	}, nil
-}
-
-func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.SerializeRequest) (*parserv1.SerializeResponse, error) {
-	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
-	for _, cell := range req.Notebook.Cells {
-		cells = append(cells, &editor.Cell{
-			Kind:       editor.CellKind(cell.Kind),
-			Value:      cell.Value,
-			LanguageID: cell.LanguageId,
-			Metadata:   parseMapValue(cell.Metadata),
-		})
-	}
-	data, err := editor.Serialize(&editor.Notebook{
-		Cells:    cells,
-		Metadata: parseMapValue(req.Notebook.Metadata),
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &parserv1.SerializeResponse{Result: data}, nil
-}
-
-func stringifyMapValue(meta map[string]any) map[string]string {
-	result := make(map[string]string, len(meta))
-	for k, v := range meta {
-		rawValue, _ := json.Marshal(v)
-		result[k] = string(rawValue)
-	}
-	return result
-}
-
-func parseMapValue(meta map[string]string) map[string]any {
-	result := make(map[string]any, len(meta))
-	for k, v := range meta {
-		result[k] = v
-	}
-	return result
 }
 
 func newCORS() *cors.Cors {

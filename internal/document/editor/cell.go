@@ -27,17 +27,17 @@ const (
 // Cell resembles NotebookCellData from VS Code.
 // https://github.com/microsoft/vscode/blob/085c409898bbc89c83409f6a394e73130b932add/src/vscode-dts/vscode.d.ts#L13715
 type Cell struct {
-	Kind       CellKind       `json:"kind"`
-	Value      string         `json:"value"`
-	LanguageID string         `json:"languageId"`
-	Metadata   map[string]any `json:"metadata,omitempty"`
+	Kind       CellKind          `json:"kind"`
+	Value      string            `json:"value"`
+	LanguageID string            `json:"languageId"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 // Notebook resembles NotebookData form VS Code.
 // https://github.com/microsoft/vscode/blob/085c409898bbc89c83409f6a394e73130b932add/src/vscode-dts/vscode.d.ts#L13767
 type Notebook struct {
-	Cells    []*Cell        `json:"cells"`
-	Metadata map[string]any `json:"metadata,omitempty"`
+	Cells    []*Cell           `json:"cells"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 func toCells(node *document.Node, source []byte) (result []*Cell) {
@@ -102,7 +102,7 @@ func toCellsRec(
 			// Otherwise, return a markup cell (#85).
 			// In the future, we will include language detection (#77).
 			if lang := block.Language(); lang == "" || isEditorSupported(lang) {
-				metadata := convertAttrsToMetadata(block.Attributes())
+				metadata := block.Attributes()
 				metadata[prefixAttributeName(internalAttributePrefix, "name")] = block.Name()
 				*cells = append(*cells, &Cell{
 					Kind:       CodeKind,
@@ -277,14 +277,6 @@ func fmtValue(s []byte) string {
 func trimRightNewLine(s []byte) []byte {
 	s = bytes.TrimRight(s, "\r\n")
 	return bytes.TrimRight(s, "\n")
-}
-
-func convertAttrsToMetadata(m map[string]string) map[string]any {
-	result := make(map[string]any, len(m))
-	for k, v := range m {
-		result[k] = v
-	}
-	return result
 }
 
 var supportedExecutables = []string{

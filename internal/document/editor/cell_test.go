@@ -200,7 +200,7 @@ Last paragraph.
 				{
 					Kind:     MarkupKind,
 					Value:    "# Title",
-					Metadata: map[string]any{},
+					Metadata: map[string]string{},
 				},
 			}, cells...)
 			assert.Equal(
@@ -216,7 +216,7 @@ Last paragraph.
 			cells[1] = &Cell{
 				Kind:     MarkupKind,
 				Value:    "A new paragraph.\n",
-				Metadata: map[string]any{},
+				Metadata: map[string]string{},
 			}
 			assert.Equal(
 				t,
@@ -230,7 +230,7 @@ Last paragraph.
 			cells = append(cells, &Cell{
 				Kind:     MarkupKind,
 				Value:    "Paragraph after the last one.",
-				Metadata: map[string]any{},
+				Metadata: map[string]string{},
 			})
 			assert.Equal(
 				t,
@@ -344,7 +344,7 @@ func Test_serializeFencedCodeAttributes(t *testing.T) {
 	t.Run("OnlyPrivateMetadata", func(t *testing.T) {
 		var buf bytes.Buffer
 		serializeFencedCodeAttributes(&buf, &Cell{
-			Metadata: map[string]any{
+			Metadata: map[string]string{
 				"_key":              "_value",
 				"runme.dev/private": "private",
 				"index":             "index",
@@ -356,7 +356,7 @@ func Test_serializeFencedCodeAttributes(t *testing.T) {
 	t.Run("NamePriority", func(t *testing.T) {
 		var buf bytes.Buffer
 		serializeFencedCodeAttributes(&buf, &Cell{
-			Metadata: map[string]any{
+			Metadata: map[string]string{
 				"a":    "a",
 				"b":    "b",
 				"c":    "c",
