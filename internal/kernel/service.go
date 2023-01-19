@@ -13,7 +13,14 @@ import (
 )
 
 func NewKernelServiceServer(logger *zap.Logger) kernelv1.KernelServiceServer {
-	return &kernelServiceServer{logger: logger}
+	return newKernelServiceServer(logger)
+}
+
+func newKernelServiceServer(logger *zap.Logger) *kernelServiceServer {
+	return &kernelServiceServer{
+		sessions: &sessionsContainer{},
+		logger:   logger,
+	}
 }
 
 type kernelServiceServer struct {
@@ -91,28 +98,25 @@ func (s *kernelServiceServer) Execute(ctx context.Context, req *kernelv1.Execute
 	}, nil
 }
 
-func (s *kernelServiceServer) ExecuteStream(req *kernelv1.ExecuteRequest, srv kernelv1.KernelService_ExecuteStreamServer) error {
+func (s *kernelServiceServer) executeStream(
+	_ context.Context, // TODO: pass ctx to ExecuteWithChannel()
+	req *kernelv1.ExecuteRequest,
+	resp chan<- *kernelv1.ExecuteResponse,
+) error {
+	defer close(resp)
+
 	session := s.sessions.FindSession(req.SessionId)
 	if session == nil {
 		return errors.New("session not found")
 	}
 
-	chunks := make(chan []byte)
+	chunks := make(chan []byte, 10)
 	defer close(chunks)
-	errC := make(chan error, 1)
 
 	go func() {
-		defer close(errC)
-		for line := range chunks {
-			err := srv.Send(&kernelv1.ExecuteResponse{
-				Data: line,
-			})
-			if err != nil {
-				// Propagate only the first error.
-				select {
-				case errC <- errors.Wrap(err, "failed to write to writer"):
-				default:
-				}
+		for data := range chunks {
+			resp <- &kernelv1.ExecuteResponse{
+				Data: data,
 			}
 		}
 	}()
@@ -121,10 +125,34 @@ func (s *kernelServiceServer) ExecuteStream(req *kernelv1.ExecuteRequest, srv ke
 	if err != nil {
 		return err
 	}
+	resp <- &kernelv1.ExecuteResponse{ExitCode: wrapperspb.UInt32(uint32(exitCode))}
+	return nil
+}
 
-	return srv.Send(&kernelv1.ExecuteResponse{
-		ExitCode: wrapperspb.UInt32(uint32(exitCode)),
-	})
+func (s *kernelServiceServer) ExecuteStream(req *kernelv1.ExecuteRequest, srv kernelv1.KernelService_ExecuteStreamServer) error {
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	resp := make(chan *kernelv1.ExecuteResponse)
+	done := make(chan struct{})
+	var rErr error
+	go func() {
+		defer close(done)
+		for msg := range resp {
+			rErr = srv.Send(msg)
+			if rErr != nil {
+				rErr = errors.WithStack(rErr)
+				cancel() // interrupt executeStream()
+				return
+			}
+		}
+	}()
+
+	if err := s.executeStream(ctx, req, resp); err != nil {
+		return err
+	}
+	<-done
+	return rErr
 }
 
 func (s *kernelServiceServer) Input(ctx context.Context, req *kernelv1.InputRequest) (*kernelv1.InputResponse, error) {
@@ -138,7 +166,13 @@ func (s *kernelServiceServer) Input(ctx context.Context, req *kernelv1.InputRequ
 	return &kernelv1.InputResponse{}, nil
 }
 
-func (s *kernelServiceServer) Output(req *kernelv1.OutputRequest, srv kernelv1.KernelService_OutputServer) error {
+func (s *kernelServiceServer) output(
+	_ context.Context,
+	req *kernelv1.OutputRequest,
+	resp chan<- *kernelv1.OutputResponse,
+) error {
+	defer close(resp)
+
 	session := s.sessions.FindSession(req.SessionId)
 	if session == nil {
 		return errors.New("session not found")
@@ -147,21 +181,38 @@ func (s *kernelServiceServer) Output(req *kernelv1.OutputRequest, srv kernelv1.K
 	for {
 		p := make([]byte, 1024)
 		n, rerr := session.Read(p)
-		s.logger.Info("read output from session", zap.ByteString("data", p[:n]), zap.Error(rerr))
-		if rerr != nil && rerr != io.EOF {
+		if rerr != nil {
 			return rerr
 		}
-		if rerr == io.EOF {
-			select {
-			case <-time.After(time.Millisecond * 200):
-			case <-srv.Context().Done():
-				return srv.Context().Err()
+		if n == 0 {
+			continue
+		}
+		resp <- &kernelv1.OutputResponse{Data: p[:n]}
+	}
+}
+
+func (s *kernelServiceServer) Output(req *kernelv1.OutputRequest, srv kernelv1.KernelService_OutputServer) error {
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	resp := make(chan *kernelv1.OutputResponse)
+	done := make(chan struct{})
+	var rErr error
+	go func() {
+		defer close(done)
+		for msg := range resp {
+			rErr = srv.Send(msg)
+			if rErr != nil {
+				rErr = errors.WithStack(rErr)
+				cancel() // interrupt output()
+				return
 			}
 		}
+	}()
 
-		err := srv.Send(&kernelv1.OutputResponse{Data: p[:n]})
-		if err != nil {
-			return err
-		}
+	if err := s.output(ctx, req, resp); err != nil && err != io.EOF {
+		return err
 	}
+	<-done
+	return rErr
 }

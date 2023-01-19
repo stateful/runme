@@ -15,14 +15,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func testCreateSession(t *testing.T, logger *zap.Logger) (*session, string) {
-	if logger == nil {
-		logger = zap.NewNop()
-	}
+func testGetBash(t *testing.T) (string, string) {
 	bashBin, err := exec.LookPath("bash")
 	require.NoError(t, err)
 	prompt, err := DetectPrompt(bashBin)
 	require.NoError(t, err)
+	return bashBin, string(prompt)
+}
+
+func testCreateSession(t *testing.T, logger *zap.Logger) (*session, string) {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+	bashBin, prompt := testGetBash(t)
 	sess, _, err := newSession(bashBin, string(prompt), logger)
 	require.NoError(t, err)
 	return sess, string(prompt)

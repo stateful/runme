@@ -11,8 +11,8 @@ type sessionsContainer struct {
 
 func (c *sessionsContainer) AddSession(s *session) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.sessions = append(c.sessions, s)
+	c.mu.Unlock()
 }
 
 func (c *sessionsContainer) FindSession(id string) *session {
@@ -42,5 +42,7 @@ func (c *sessionsContainer) DeleteSession(session *session) {
 }
 
 func (c *sessionsContainer) Sessions() []*session {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.sessions
 }
