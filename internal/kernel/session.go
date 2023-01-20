@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
 	"github.com/stateful/runme/expect"
-	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
 
@@ -62,15 +62,17 @@ func (b *limitedBuffer) Write(p []byte) (int, error) {
 }
 
 type session struct {
-	id       string
-	prompt   string
-	promptRe *regexp.Regexp
-	ptmx     *os.File
-	expctr   expect.Expecter
-	output   *limitedBuffer
-	done     chan struct{}
-	err      error
-	logger   *zap.Logger
+	id        string
+	prompt    string
+	promptRe  *regexp.Regexp
+	ptmx      *os.File
+	expctr    expect.Expecter
+	output    *limitedBuffer
+	execGuard chan struct{}
+	done      chan struct{}
+	mx        sync.RWMutex
+	err       error
+	logger    *zap.Logger
 }
 
 func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, error) {
@@ -81,7 +83,7 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 
 	buf := &limitedBuffer{
 		Buffer: bytes.NewBuffer(nil),
-		state:  atomic.NewUint32(0),
+		state:  new(atomic.Uint32),
 		more:   make(chan struct{}),
 		closed: make(chan struct{}),
 	}
@@ -99,14 +101,15 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 	}
 
 	s := &session{
-		id:       xid.New().String(),
-		prompt:   prompt,
-		promptRe: promptRe,
-		ptmx:     ptmx,
-		expctr:   expctr,
-		output:   buf,
-		done:     make(chan struct{}),
-		logger:   logger,
+		id:        xid.New().String(),
+		prompt:    prompt,
+		promptRe:  promptRe,
+		ptmx:      ptmx,
+		expctr:    expctr,
+		output:    buf,
+		execGuard: make(chan struct{}, 1),
+		done:      make(chan struct{}),
+		logger:    logger,
 	}
 
 	data, match, err := s.waitForReady(time.Second)
@@ -151,11 +154,26 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 	_, _ = s.output.WriteRune(' ')
 
 	go func() {
-		s.err = <-cmdErr
+		s.setErr(<-cmdErr)
 		close(s.done)
 	}()
 
 	return s, data, nil
+}
+
+func (s *session) getErr() error {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+	return s.err
+}
+
+func (s *session) setErr(err error) {
+	if err == nil {
+		return
+	}
+	s.mx.Lock()
+	s.err = err
+	s.mx.Unlock()
 }
 
 func (s *session) ID() string {
@@ -178,6 +196,21 @@ func (s *session) Read(p []byte) (int, error) {
 	return s.output.Read(p)
 }
 
+func (s *session) acquireWithTimeout(timeout *time.Duration) bool {
+	start := time.Now()
+	select {
+	case s.execGuard <- struct{}{}:
+		*timeout -= time.Since(start)
+		return true
+	case <-time.After(*timeout):
+		return false
+	}
+}
+
+func (s *session) free() {
+	<-s.execGuard
+}
+
 func (s *session) setPrompt(prompt string) (err error) {
 	s.prompt = prompt
 	s.promptRe, err = compileLiteralRegexp(prompt)
@@ -187,7 +220,7 @@ func (s *session) setPrompt(prompt string) (err error) {
 	return
 }
 
-func (s *session) ChangePrompt(prompt string) (err error) {
+func (s *session) changePrompt(prompt string) (err error) {
 	prevPrompt := s.prompt
 	prevPromptRe := s.promptRe
 	defer func() {
@@ -239,12 +272,19 @@ func (s *session) waitForReady(timeout time.Duration) ([]byte, []byte, error) {
 	return []byte(data), []byte(match[0]), nil
 }
 
+var errBusy = errors.New("session is busy")
+
 func (s *session) Execute(command string, timeout time.Duration) ([]byte, int, error) {
 	s.logger.Info("execute command", zap.String("command", command))
 
-	if s.err != nil {
-		return nil, -1, errors.WithStack(s.err)
+	if err := s.getErr(); err != nil {
+		return nil, -1, err
 	}
+
+	if ok := s.acquireWithTimeout(&timeout); !ok {
+		return nil, -1, errBusy
+	}
+	defer s.free()
 
 	data, err := s.execute(command, timeout)
 	if err != nil {
@@ -258,9 +298,14 @@ func (s *session) Execute(command string, timeout time.Duration) ([]byte, int, e
 func (s *session) ExecuteWithWriter(command string, timeout time.Duration, w io.Writer) (int, error) {
 	s.logger.Info("execute command with writer", zap.String("command", command))
 
-	if s.err != nil {
-		return -1, errors.WithStack(s.err)
+	if err := s.getErr(); err != nil {
+		return -1, err
 	}
+
+	if ok := s.acquireWithTimeout(&timeout); !ok {
+		return -1, errBusy
+	}
+	defer s.free()
 
 	chunks := make(chan []byte)
 	errC := make(chan error, 1)
@@ -297,9 +342,14 @@ func (s *session) ExecuteWithWriter(command string, timeout time.Duration, w io.
 func (s *session) ExecuteWithChannel(command string, timeout time.Duration, chunks chan<- []byte) (int, error) {
 	s.logger.Info("execute command with channel", zap.String("command", command))
 
-	if s.err != nil {
-		return -1, errors.WithStack(s.err)
+	if err := s.getErr(); err != nil {
+		return -1, err
 	}
+
+	if ok := s.acquireWithTimeout(&timeout); !ok {
+		return -1, errBusy
+	}
+	defer s.free()
 
 	err := s.executeWithChannel(command, timeout, chunks)
 	if err != nil {
@@ -310,7 +360,7 @@ func (s *session) ExecuteWithChannel(command string, timeout time.Duration, chun
 }
 
 func ensureEndsWithNewLine(command string) string {
-	if command[len(command)-1] != '\n' {
+	if n := len(command); n > 0 && command[n-1] != '\n' {
 		command += "\n"
 	}
 	return command
@@ -357,27 +407,8 @@ func (s *session) execute(command string, timeout time.Duration) ([]byte, error)
 	return data, nil
 }
 
-type readCloser struct {
-	io.Reader
-	closed atomic.Bool
-}
-
-func (r *readCloser) Close() error {
-	r.closed.Store(true)
-	return nil
-}
-
-func (r *readCloser) Read(p []byte) (int, error) {
-	if r.closed.Load() {
-		return 0, io.EOF
-	}
-	return r.Reader.Read(p)
-}
-
 func (s *session) executeWithChannel(command string, timeout time.Duration, chunks chan<- []byte) error {
-	if command[len(command)-1] != '\n' {
-		command += "\n"
-	}
+	command = ensureEndsWithNewLine(command)
 
 	// TODO: s.output is shared here and in Read().
 	// Figure out a better solution.
@@ -486,7 +517,8 @@ func spawnPty(command string, timeout time.Duration, opts ...expect.Option) (
 		return nil, nil, nil, nil, err
 	}
 
-	running := atomic.NewBool(true)
+	running := new(atomic.Bool)
+	running.Store(true)
 	resCh := make(chan error)
 
 	expecter, cmdErr, err := expect.SpawnGeneric(&expect.GenOptions{
@@ -509,13 +541,6 @@ func spawnPty(command string, timeout time.Duration, opts ...expect.Option) (
 }
 
 var crlf = []byte{'\r', '\n'}
-
-// func dropCRPrefix(data []byte) []byte {
-// 	if len(data) > 0 && data[0] == '\r' {
-// 		return data[1:]
-// 	}
-// 	return data
-// }
 
 func compileLiteralRegexp(str string) (*regexp.Regexp, error) {
 	b := new(strings.Builder)
@@ -550,4 +575,21 @@ func scanLinesUntil(data []byte, atEOF bool, stop []byte) (advance int, token []
 	}
 	// Request more data.
 	return 0, nil, nil
+}
+
+type readCloser struct {
+	io.Reader
+	closed atomic.Bool
+}
+
+func (r *readCloser) Close() error {
+	r.closed.Store(true)
+	return nil
+}
+
+func (r *readCloser) Read(p []byte) (int, error) {
+	if r.closed.Load() {
+		return 0, io.EOF
+	}
+	return r.Reader.Read(p)
 }

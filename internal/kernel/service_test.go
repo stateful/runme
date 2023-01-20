@@ -227,6 +227,9 @@ func Test_kernelServiceServer_IO(t *testing.T) {
 
 	stream, err := client.IO(ctx)
 	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, stream.CloseSend())
+	}()
 
 	err = stream.Send(&kernelv1.IORequest{
 		SessionId: sessionID,
@@ -238,14 +241,12 @@ func Test_kernelServiceServer_IO(t *testing.T) {
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
-			require.Fail(t, "no match")
+			assert.Fail(t, "no match")
 			break
 		}
 		if re.Match(resp.Data) {
 			break
 		}
 	}
-
 	assert.NoError(t, conn.Close())
-	assert.NoError(t, stream.CloseSend())
 }

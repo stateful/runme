@@ -168,10 +168,10 @@ func Test_session_ExecuteWithWriter(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func Test_session_ChangePrompt(t *testing.T) {
+func Test_session_changePrompt(t *testing.T) {
 	sess, _ := testCreateSession(t, nil)
 
-	err := sess.ChangePrompt("RUNME")
+	err := sess.changePrompt("RUNME")
 	require.NoError(t, err)
 
 	data, exitCode, err := sess.Execute("echo Hello\n", time.Second)

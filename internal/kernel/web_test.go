@@ -51,8 +51,8 @@ func Test_kernelServiceHandler_IO(t *testing.T) {
 
 	stream := client.IO(ctx)
 	t.Cleanup(func() {
-		go stream.CloseRequest()
 		go stream.CloseResponse()
+		go stream.CloseRequest()
 	})
 
 	go func() {
@@ -64,14 +64,14 @@ func Test_kernelServiceHandler_IO(t *testing.T) {
 	}()
 
 	re := regexp.MustCompile(`(?m:^Hello\s$)`)
-	matched := false
 	for {
 		resp, err := stream.Receive()
-		require.NoError(t, err)
+		if err != nil {
+			assert.Fail(t, "no match")
+			break
+		}
 		if re.Match(resp.Data) {
-			matched = true
 			break
 		}
 	}
-	assert.True(t, matched)
 }

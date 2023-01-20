@@ -18,7 +18,6 @@ require (
 	github.com/rs/xid v1.4.0
 	github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef
 	github.com/yuin/goldmark v1.4.13
-	go.uber.org/atomic v1.7.0
 	golang.org/x/exp v0.0.0-20221208044002-44028be4359e
 	golang.org/x/net v0.1.0
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
@@ -46,6 +45,7 @@ require (
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.2 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/mod v0.6.0 // indirect
