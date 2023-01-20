@@ -22,11 +22,11 @@ import (
 )
 
 type limitedBuffer struct {
-	*bytes.Buffer // TODO: switch to a ring buffer
-	mu            sync.Mutex
-	state         *atomic.Uint32
-	more          chan struct{}
-	closed        chan struct{}
+	buf    *ringBuffer
+	mu     sync.Mutex
+	state  *atomic.Uint32
+	more   chan struct{}
+	closed chan struct{}
 }
 
 func (b *limitedBuffer) Close() error {
@@ -37,7 +37,7 @@ func (b *limitedBuffer) Close() error {
 
 func (b *limitedBuffer) Read(p []byte) (int, error) {
 	b.mu.Lock()
-	n, err := b.Buffer.Read(p)
+	n, err := b.buf.Read(p)
 	b.mu.Unlock()
 	if err != nil && errors.Is(err, io.EOF) && b.state.Load() == 0 {
 		select {
@@ -50,15 +50,19 @@ func (b *limitedBuffer) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (b *limitedBuffer) Write(p []byte) (int, error) {
+func (b *limitedBuffer) Write(p []byte) (n int, err error) {
 	b.mu.Lock()
-	n, _ := b.Buffer.Write(p)
+	n, err = b.buf.Write(p)
 	b.mu.Unlock()
 	select {
 	case b.more <- struct{}{}:
 	default:
 	}
-	return n, nil
+	return
+}
+
+func (b *limitedBuffer) Reset() {
+	b.buf.Reset()
 }
 
 type session struct {
@@ -82,7 +86,7 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 	}
 
 	buf := &limitedBuffer{
-		Buffer: bytes.NewBuffer(nil),
+		buf:    newRingBuffer(10 * 1024 * 1024), // 10MB
 		state:  new(atomic.Uint32),
 		more:   make(chan struct{}),
 		closed: make(chan struct{}),
@@ -147,11 +151,11 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 	}
 
 	// Reset buffer as we don't want to send the setting changes back.
-	_, _ = io.Copy(io.Discard, s.output)
+	s.output.Reset()
 
 	// Write the matched prompt back as invitation.
 	_, _ = s.output.Write(match)
-	_, _ = s.output.WriteRune(' ')
+	_, _ = s.output.Write([]byte{' '})
 
 	go func() {
 		s.setErr(<-cmdErr)
