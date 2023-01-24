@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -181,4 +183,35 @@ func Test_session_changePrompt(t *testing.T) {
 
 	err = sess.Close()
 	require.NoError(t, err)
+}
+
+func Test_session_parallel(t *testing.T) {
+	sess, _ := testCreateSession(t, nil)
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 10; i++ {
+		i := i
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			strVal := strconv.Itoa(i)
+
+			// Prepare environment variables.
+			_, exitCode, err := sess.Execute("export val"+strVal+"="+strVal, time.Second)
+			assert.Nil(t, err)
+			assert.Equal(t, 0, exitCode)
+
+			// Print them.
+			data, exitCode, err := sess.Execute("echo $val"+strVal, time.Second*5)
+			assert.Nil(t, err)
+			assert.Equal(t, strVal, string(data))
+			assert.Equal(t, 0, exitCode)
+		}()
+	}
+
+	wg.Wait()
+
+	assert.NoError(t, sess.Close())
 }
