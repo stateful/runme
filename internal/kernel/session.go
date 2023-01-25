@@ -18,52 +18,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
 	"github.com/stateful/runme/expect"
+	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/zap"
 )
-
-type limitedBuffer struct {
-	buf    *ringBuffer
-	mu     sync.Mutex
-	state  *atomic.Uint32
-	more   chan struct{}
-	closed chan struct{}
-}
-
-func (b *limitedBuffer) Close() error {
-	b.state.Store(1)
-	close(b.closed)
-	return nil
-}
-
-func (b *limitedBuffer) Read(p []byte) (int, error) {
-	b.mu.Lock()
-	n, err := b.buf.Read(p)
-	b.mu.Unlock()
-	if err != nil && errors.Is(err, io.EOF) && b.state.Load() == 0 {
-		select {
-		case <-b.more:
-		case <-b.closed:
-			return 0, io.EOF
-		}
-		return n, nil
-	}
-	return n, err
-}
-
-func (b *limitedBuffer) Write(p []byte) (n int, err error) {
-	b.mu.Lock()
-	n, err = b.buf.Write(p)
-	b.mu.Unlock()
-	select {
-	case b.more <- struct{}{}:
-	default:
-	}
-	return
-}
-
-func (b *limitedBuffer) Reset() {
-	b.buf.Reset()
-}
 
 type session struct {
 	id        string
@@ -71,7 +28,7 @@ type session struct {
 	promptRe  *regexp.Regexp
 	ptmx      *os.File
 	expctr    expect.Expecter
-	output    *limitedBuffer
+	output    *rbuffer.RingBuffer
 	execGuard chan struct{}
 	done      chan struct{}
 	mx        sync.RWMutex
@@ -85,12 +42,7 @@ func newSession(command, prompt string, logger *zap.Logger) (*session, []byte, e
 		return nil, nil, errors.WithStack(err)
 	}
 
-	buf := &limitedBuffer{
-		buf:    newRingBuffer(10 * 1024 * 1024), // 10MB
-		state:  new(atomic.Uint32),
-		more:   make(chan struct{}),
-		closed: make(chan struct{}),
-	}
+	buf := rbuffer.NewRingBuffer(10 * 1024 * 1024)
 
 	_, ptmx, expctr, cmdErr, err := spawnPty(
 		command,

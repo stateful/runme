@@ -14,7 +14,9 @@ import (
 	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
 	"github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1/kernelv1connect"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
+	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/kernel"
+	"github.com/stateful/runme/internal/runner"
 	"github.com/stateful/runme/internal/socket"
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
@@ -102,6 +104,7 @@ The kernel is used to run long running processes like shells and interacting wit
 			server := grpc.NewServer(opts...)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			kernelv1.RegisterKernelServiceServer(server, kernel.NewKernelServiceServer(logger))
+			runnerv1.RegisterRunnerServiceServer(server, runner.NewRunnerService(logger))
 			return server.Serve(lis)
 		},
 	}
