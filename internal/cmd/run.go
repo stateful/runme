@@ -17,11 +17,13 @@ import (
 	"github.com/stateful/runme/internal/runner"
 )
 
+type runCmdOpts struct {
+	dryRun         bool
+	replaceScripts []string
+}
+
 func runCmd() *cobra.Command {
-	var (
-		dryRun         bool
-		replaceScripts []string
-	)
+	opts := runCmdOpts{}
 
 	cmd := cobra.Command{
 		Use:               "run",
@@ -41,37 +43,45 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			if err := replace(replaceScripts, block.Lines()); err != nil {
-				return err
-			}
-
-			if id, ok := shellID(); ok && runner.IsShell(block) {
-				return executeInShell(id, block)
-			}
-
-			executable, err := newExecutable(cmd, block)
-			if err != nil {
-				return err
-			}
-
-			ctx, cancel := ctxWithSigCancel(cmd.Context())
-			defer cancel()
-
-			if dryRun {
-				executable.DryRun(ctx, cmd.ErrOrStderr())
-				return nil
-			}
-
-			return errors.WithStack(executable.Run(ctx))
+			return runBlock(cmd, block, &opts)
 		},
 	}
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
-	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
+	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "Print the final command without executing.")
+	cmd.Flags().StringArrayVarP(&opts.replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 
 	return &cmd
+}
+
+func runBlock(cmd *cobra.Command, block *document.CodeBlock, opts *runCmdOpts) error {
+	if opts == nil {
+		opts = &runCmdOpts{}
+	}
+
+	if err := replace(opts.replaceScripts, block.Lines()); err != nil {
+		return err
+	}
+
+	if id, ok := shellID(); ok && runner.IsShell(block) {
+		return executeInShell(id, block)
+	}
+
+	executable, err := newExecutable(cmd, block)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := ctxWithSigCancel(cmd.Context())
+	defer cancel()
+
+	if opts.dryRun {
+		executable.DryRun(ctx, cmd.ErrOrStderr())
+		return nil
+	}
+
+	return errors.WithStack(executable.Run(ctx))
 }
 
 func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Executable, error) {
