@@ -34,7 +34,7 @@ gha-creds-*.json
 # WebAssembly
 *.wasm
 wasm_exec.js
-node_modules
+**/node_modules
 
 # Dist directory
 dist/
