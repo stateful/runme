@@ -61,9 +61,8 @@ const (
 
 func (m tuiModel) View() string {
 	s := fmt.Sprintf(
-		"%s%s %s",
-		ansi.Color("run", "red+b"),
-		ansi.Color("me", "white+b"),
+		"%s %s",
+		ansi.Color("runme", "57+b"),
 		ansi.Color(m.version, "white+d"),
 	)
 
@@ -131,7 +130,7 @@ func (m tuiModel) View() string {
 				"Choose ↑↓←→",
 				"Run [Enter]",
 				"Expand [Space]",
-				"Quit [^C]",
+				"Quit [q]",
 				"  by Stateful",
 			},
 			tab,
