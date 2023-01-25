@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mgutz/ansi"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/math"
@@ -194,6 +195,10 @@ func tuiCmd() *cobra.Command {
 			blocks, err := getCodeBlocks()
 			if err != nil {
 				return err
+			}
+
+			if len(blocks) == 0 {
+				return errors.New("no scripts in README.md")
 			}
 
 			version := "???"
