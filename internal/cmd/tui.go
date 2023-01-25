@@ -198,7 +198,7 @@ func tuiCmd() *cobra.Command {
 			}
 
 			if len(blocks) == 0 {
-				return errors.New("no scripts in README.md")
+				return errors.Errorf("no scripts in %s", fFileName)
 			}
 
 			version := "???"
