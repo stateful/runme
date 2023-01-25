@@ -20,7 +20,7 @@ $ export PATH="$CWD:$PATH"
 Bring up the server. It's gRPC based:
 
 ```sh { background=true }
-$ runme server --address /tmp/runme.sock
+$ ../../runme server --address /tmp/runme.sock
 ```
 
 Issue a simple call to the deserialize API, first set markdown input data:
