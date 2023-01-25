@@ -1,4 +1,4 @@
-package kernel
+package rbuffer
 
 import (
 	"io"
@@ -8,33 +8,46 @@ import (
 	"github.com/pkg/errors"
 )
 
-type ringBuffer struct {
+var ErrClosed = errors.New("buffer closed")
+
+type RingBuffer struct {
 	mu     sync.Mutex
 	buf    []byte
 	size   int
 	r      int // next position to read
 	w      int // next position to write
 	isFull bool
-	state  atomic.Bool
+	closed *atomic.Bool
+	close  chan struct{}
 	more   chan struct{}
-	closed chan struct{}
 }
 
-func newRingBuffer(size int) *ringBuffer {
-	return &ringBuffer{
-		buf:  make([]byte, size),
-		size: size,
+func NewRingBuffer(size int) *RingBuffer {
+	return &RingBuffer{
+		buf:    make([]byte, size),
+		size:   size,
+		closed: &atomic.Bool{},
+		close:  make(chan struct{}),
+		more:   make(chan struct{}),
 	}
 }
 
-func (b *ringBuffer) Reset() {
+func (b *RingBuffer) Close() error {
+	if !b.closed.Load() {
+		b.closed.Store(true)
+		close(b.close)
+	}
+	return nil
+}
+
+func (b *RingBuffer) Reset() {
 	b.mu.Lock()
 	b.r = 0
 	b.w = 0
 	b.mu.Unlock()
 }
 
-func (b *ringBuffer) Read(p []byte) (n int, err error) {
+func (b *RingBuffer) Read(p []byte) (n int, err error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
@@ -43,10 +56,10 @@ func (b *ringBuffer) Read(p []byte) (n int, err error) {
 	n, err = b.read(p)
 	b.mu.Unlock()
 
-	if err != nil && errors.Is(err, io.EOF) && b.state.Load() {
+	if err != nil && errors.Is(err, io.EOF) && !b.closed.Load() {
 		select {
 		case <-b.more:
-		case <-b.closed:
+		case <-b.close:
 			return 0, io.EOF
 		}
 		return n, nil
@@ -55,7 +68,7 @@ func (b *ringBuffer) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-func (b *ringBuffer) read(p []byte) (n int, err error) {
+func (b *RingBuffer) read(p []byte) (n int, err error) {
 	if b.w == b.r && !b.isFull {
 		return 0, io.EOF
 	}
@@ -75,7 +88,7 @@ func (b *ringBuffer) read(p []byte) (n int, err error) {
 		n = len(p)
 	}
 
-	if b.r+n <= b.size || b.isFull {
+	if b.r+n <= b.size {
 		copy(p, b.buf[b.r:b.r+n])
 	} else {
 		copy(p, b.buf[b.r:b.size])
@@ -88,12 +101,12 @@ func (b *ringBuffer) read(p []byte) (n int, err error) {
 	return n, err
 }
 
-func (b *ringBuffer) Write(p []byte) (n int, err error) {
+func (b *RingBuffer) Write(p []byte) (n int, err error) {
+	if b.closed.Load() {
+		return 0, ErrClosed
+	}
 	if len(p) == 0 {
 		return 0, nil
-	}
-	if len(p) > b.size {
-		return 0, errors.New("buffer is too small")
 	}
 
 	b.mu.Lock()
@@ -108,7 +121,11 @@ func (b *ringBuffer) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
-func (b *ringBuffer) write(p []byte) (n int, err error) {
+func (b *RingBuffer) write(p []byte) (n int, err error) {
+	if len(p) > b.size {
+		p = p[len(p)-b.size:]
+	}
+
 	var avail int
 	if b.w >= b.r {
 		avail = b.size - b.w + b.r
@@ -118,11 +135,15 @@ func (b *ringBuffer) write(p []byte) (n int, err error) {
 
 	n = len(p)
 
-	if len(p) > avail {
-		b.isFull = false
+	if len(p) >= avail {
+		b.isFull = true
 		b.r = b.w
-		copy(b.buf[b.w:], p[:b.size-b.w])
-		b.w = copy(b.buf[0:], p[b.size-b.w:])
+		c := len(p)
+		if c >= b.size-b.w {
+			c = b.size - b.w
+		}
+		copy(b.buf[b.w:], p[:c])
+		b.w = copy(b.buf[0:], p[c:])
 		return n, nil
 	}
 

@@ -31,7 +31,7 @@ func (s *Shell) DryRun(ctx context.Context, w io.Writer) {
 
 	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", sh))
 	_, _ = b.WriteString(fmt.Sprintf("// run in %q\n\n", s.Dir))
-	_, _ = b.WriteString(prepareScript(s.Cmds))
+	_, _ = b.WriteString(prepareScriptFromCommands(s.Cmds))
 
 	_, err := w.Write([]byte(b.String()))
 	if err != nil {
@@ -45,14 +45,14 @@ func (s *Shell) Run(ctx context.Context) error {
 		sh = "/bin/sh"
 	}
 
-	return execSingle(ctx, sh, s.Dir, prepareScript(s.Cmds), s.Name, s.Stdin, s.Stdout, s.Stderr)
+	return execSingle(ctx, sh, s.Dir, prepareScriptFromCommands(s.Cmds), s.Name, s.Stdin, s.Stdout, s.Stderr)
 }
 
-func PrepareScript(cmds []string) string {
-	return prepareScript(cmds)
+func PrepareScriptFromCommands(cmds []string) string {
+	return prepareScriptFromCommands(cmds)
 }
 
-func prepareScript(cmds []string) string {
+func prepareScriptFromCommands(cmds []string) string {
 	var b strings.Builder
 
 	_, _ = b.WriteString("set -e -o pipefail;")
@@ -90,6 +90,16 @@ func prepareScript(cmds []string) string {
 		}
 	}
 
+	_, _ = b.WriteRune('\n')
+
+	return b.String()
+}
+
+func prepareScript(script string) string {
+	var b strings.Builder
+
+	_, _ = b.WriteString("set -e -o pipefail;")
+	_, _ = b.WriteString(script)
 	_, _ = b.WriteRune('\n')
 
 	return b.String()

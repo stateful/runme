@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package runme.runner.v1;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1;runnerv1";
+
+message Session {
+    string id = 1;
+
+    repeated string envs = 2;
+
+    map<string, string> metadata = 3;
+}
+
+message CreateSessionRequest {
+    map<string, string> metadata = 1;
+
+    repeated string envs = 2;
+}
+
+message CreateSessionResponse {
+    Session session = 1;
+}
+
+message GetSessionRequest {
+    string id = 1;
+}
+
+message GetSessionResponse {
+    Session session = 1;
+}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+    repeated Session sessions = 1;
+}
+
+message DeleteSessionRequest {
+    string id = 1;
+}
+
+message DeleteSessionResponse {}
+
+message ExecuteRequest {
+    // program_name is a name of the program to execute.
+    // If it's not a path (relative or absolute), the runner
+    // will try to resolve the name.
+    // For example: "sh", "/bin/bash".
+    string program_name = 1;
+
+    // arguments is a list of arguments passed to the program.
+    repeated string arguments = 2;
+
+    // directory to execute the program in.
+    string directory = 3;
+
+    // envs is a list of additional environment variables
+    // that will be injected to the executed program.
+    repeated string envs = 4;
+
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    // For example: "echo 'Hello, World'", "ls -l /etc".
+    // This is mutually exclusive with the script field.
+    repeated string commands = 5;
+
+    // script is code to be executed by the program.
+    // Individual lines are joined with the new line character.
+    // This is mutually exclusive with the commands field.
+    string script = 6;
+
+    // tty when true allocates a pseudo-TTY.
+    bool tty = 7;
+
+    // background, if true, will not accept any input.
+    bool background = 8;
+
+    // chunk_interval specifies how often partial output
+    // should be streamed to the client.
+    // For example: "0.5s".
+    google.protobuf.Duration chunk_interval = 9;
+
+    // input_data is a byte array that will be send as input
+    // to the program.
+    // It is allowed in the consecutive calls only.
+    bytes input_data = 10;
+
+    // session_id indicates in which Session the program should execute.
+    // Executing in a Session might provide additional context like
+    // environment variables.
+    string session_id = 20;
+}
+
+message ExecuteResponse {
+    // exit_code is sent only in the final message.
+    google.protobuf.UInt32Value exit_code = 1;
+
+    // stdout_data contains bytes from stdout since the last response.
+    bytes stdout_data = 2;
+
+    // stderr_data contains bytes from stderr since the last response.
+    bytes stderr_data = 3;
+}
+
+service RunnerService {
+    rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {};
+    rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {};
+    rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {};
+    rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {};
+    rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {};
+}
