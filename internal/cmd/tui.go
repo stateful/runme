@@ -197,7 +197,7 @@ func tuiCmd() *cobra.Command {
 			}
 
 			if len(blocks) == 0 {
-				return errors.Errorf("no scripts in %s", fFileName)
+				return errors.Errorf("no code blocks in %s", fFileName)
 			}
 
 			version := "???"
