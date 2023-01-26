@@ -50,6 +50,7 @@ func Root() *cobra.Command {
 	pflags.StringVar(&fFileName, "filename", "README.md", "A name of the README file.")
 
 	tuiCmd := tuiCmd()
+	// Make tuiCmd a default command.
 	cmd.RunE = tuiCmd.RunE
 
 	tuiCmd.Flags().VisitAll(func(f *pflag.Flag) {
