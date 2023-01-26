@@ -2,8 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	goMath "math"
-	"runtime/debug"
+	"math"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/math"
+	rmath "github.com/stateful/runme/internal/math"
 )
 
 type tuiModel struct {
@@ -25,12 +24,12 @@ type tuiModel struct {
 }
 
 type tuiResult struct {
-	run  *document.CodeBlock
-	exit bool
+	block *document.CodeBlock
+	exit  bool
 }
 
 func (m *tuiModel) numBlocksShown() int {
-	return math.Min(len(m.blocks), m.numEntries)
+	return rmath.Min(len(m.blocks), m.numEntries)
 }
 
 func (m *tuiModel) maxScroll() int {
@@ -38,14 +37,14 @@ func (m *tuiModel) maxScroll() int {
 }
 
 func (m *tuiModel) scrollBy(delta int) {
-	m.scroll = math.Clamp(
+	m.scroll = rmath.Clamp(
 		m.scroll+delta,
 		0, m.maxScroll(),
 	)
 }
 
 func (m *tuiModel) moveCursor(delta int) {
-	m.cursor = math.Clamp(
+	m.cursor = rmath.Clamp(
 		m.cursor+delta,
 		0, len(m.blocks)-1,
 	)
@@ -53,6 +52,10 @@ func (m *tuiModel) moveCursor(delta int) {
 	if m.cursor < m.scroll || m.cursor >= m.scroll+m.numBlocksShown() {
 		m.scrollBy(delta)
 	}
+}
+
+func (m tuiModel) Init() tea.Cmd {
+	return nil
 }
 
 const (
@@ -172,7 +175,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter", "l":
 			m.result = tuiResult{
-				run: m.blocks[m.cursor],
+				block: m.blocks[m.cursor],
 			}
 
 			return m, tea.Quit
@@ -183,13 +186,15 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func tuiCmd() *cobra.Command {
-	numEntries := 5
-	exitAfterRun := false
+	var (
+		numEntries   int
+		exitAfterRun bool
+	)
 
 	cmd := cobra.Command{
 		Use:   "tui",
-		Short: "Run the interactive TUI",
-		Long:  "Run a command from a descriptive list given by an interactive TUI",
+		Short: "Run the interactive TUI.",
+		Long:  "Run a command from a descriptive list given by an interactive TUI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			blocks, err := getCodeBlocks()
 			if err != nil {
@@ -200,15 +205,15 @@ func tuiCmd() *cobra.Command {
 				return errors.Errorf("no code blocks in %s", fFileName)
 			}
 
-			version := "???"
-
-			bi, ok := debug.ReadBuildInfo()
-			if ok {
-				version = bi.Main.Version
+			// Check main.go in the project root directory
+			// to learn how Version is formatted and set.
+			version := cmd.Root().Version
+			if parts := strings.SplitN(version, " ", 2); len(parts) == 2 {
+				version = parts[0]
 			}
 
 			if numEntries <= 0 {
-				numEntries = goMath.MaxInt32
+				numEntries = math.MaxInt32
 			}
 
 			model := tuiModel{
@@ -229,11 +234,11 @@ func tuiCmd() *cobra.Command {
 				model = newModel.(tuiModel)
 				result := model.result
 
-				if result.run == nil {
+				if result.block == nil {
 					break
 				}
 
-				if err = runBlock(cmd, result.run, nil); err != nil {
+				if err = runBlock(cmd, result.block, nil); err != nil {
 					if _, err := fmt.Printf(ansi.Color("%v", "red")+"\n", err); err != nil {
 						return err
 					}
@@ -256,12 +261,8 @@ func tuiCmd() *cobra.Command {
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().BoolVar(&exitAfterRun, "exit", false, "Exit runme TUI after running a command")
-	cmd.Flags().IntVar(&numEntries, "entries", defaultNumEntries, "Number of entries to show in TUI")
+	cmd.Flags().BoolVar(&exitAfterRun, "exit", false, "Exit runme TUI after running a command.")
+	cmd.Flags().IntVar(&numEntries, "entries", defaultNumEntries, "Number of entries to show in TUI.")
 
 	return &cmd
-}
-
-func (m tuiModel) Init() tea.Cmd {
-	return nil
 }

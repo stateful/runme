@@ -16,7 +16,7 @@ var (
 
 func root() int {
 	root := cmd.Root()
-	root.Version = fmt.Sprintf("stateful %s (%s) on %s", BuildVersion, Commit, BuildDate)
+	root.Version = fmt.Sprintf("%s (%s) on %s", BuildVersion, Commit, BuildDate)
 	if err := root.Execute(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
 		return 1
