@@ -19,10 +19,11 @@ func shellCmd() *cobra.Command {
 	)
 
 	cmd := cobra.Command{
-		Use:   "shell",
-		Short: "Activate runme shell.",
-		Long:  "Activate runme shell. This is an experimental feature.",
-		Args:  cobra.NoArgs,
+		Hidden: true,
+		Use:    "shell",
+		Short:  "Activate runme shell.",
+		Long:   "Activate runme shell. This is an experimental feature.",
+		Args:   cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if promptStr == "" {
 				prompt, err := kernel.DetectPrompt(commandName)

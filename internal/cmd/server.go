@@ -31,8 +31,9 @@ func serverCmd() *cobra.Command {
 	)
 
 	cmd := cobra.Command{
-		Use:   "server",
-		Short: "Start a server with various services and a gRPC interface.",
+		Hidden: true,
+		Use:    "server",
+		Short:  "Start a server with various services and a gRPC interface.",
 		Long: `The server provides two services: kernel and parser.
 
 The parser allows serializing and deserializing markdown content.
