@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/math"
+	rmath "github.com/stateful/runme/internal/math"
 )
 
 type tuiModel struct {
@@ -28,7 +29,7 @@ type tuiResult struct {
 }
 
 func (m *tuiModel) numBlocksShown() int {
-	return math.Min(len(m.blocks), m.numEntries)
+	return rmath.Min(len(m.blocks), m.numEntries)
 }
 
 func (m *tuiModel) maxScroll() int {
@@ -36,14 +37,14 @@ func (m *tuiModel) maxScroll() int {
 }
 
 func (m *tuiModel) scrollBy(delta int) {
-	m.scroll = math.Clamp(
+	m.scroll = rmath.Clamp(
 		m.scroll+delta,
 		0, m.maxScroll(),
 	)
 }
 
 func (m *tuiModel) moveCursor(delta int) {
-	m.cursor = math.Clamp(
+	m.cursor = rmath.Clamp(
 		m.cursor+delta,
 		0, len(m.blocks)-1,
 	)
@@ -210,7 +211,7 @@ func tuiCmd() *cobra.Command {
 			}
 
 			if numEntries <= 0 {
-				numEntries = defaultNumEntries
+				numEntries = math.MaxInt32
 			}
 
 			model := tuiModel{
