@@ -186,8 +186,10 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func tuiCmd() *cobra.Command {
-	numEntries := defaultNumEntries
-	exitAfterRun := false
+	var (
+		numEntries   int
+		exitAfterRun bool
+	)
 
 	cmd := cobra.Command{
 		Use:   "tui",
@@ -259,8 +261,8 @@ func tuiCmd() *cobra.Command {
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().BoolVar(&exitAfterRun, "exit", false, "Exit runme TUI after running a command")
-	cmd.Flags().IntVar(&numEntries, "entries", defaultNumEntries, "Number of entries to show in TUI")
+	cmd.Flags().BoolVar(&exitAfterRun, "exit", false, "Exit runme TUI after running a command.")
+	cmd.Flags().IntVar(&numEntries, "entries", defaultNumEntries, "Number of entries to show in TUI.")
 
 	return &cmd
 }
