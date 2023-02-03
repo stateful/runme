@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,6 +27,13 @@ func readMarkdownFile(args []string) ([]byte, error) {
 	if arg == "" {
 		f, err := os.DirFS(fChdir).Open(fFileName)
 		if err != nil {
+			if pathErr, ok := err.(*os.PathError); ok {
+				switch pathErr.Err {
+				case syscall.ENOENT, os.ErrNotExist:
+					return nil, errors.Errorf("readme file does not exist: %s", pathErr.Path)
+				}
+			}
+
 			return nil, errors.Wrapf(err, "failed to read %s", filepath.Join(fChdir, fFileName))
 		}
 		defer func() { _ = f.Close() }()
