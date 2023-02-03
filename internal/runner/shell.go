@@ -102,5 +102,5 @@ func execSingle(ctx context.Context, sh, dir, cmd string, stdin io.Reader, stdou
 	c.Stdout = stdout
 	c.Stdin = stdin
 
-	return errors.Wrapf(c.Run(), "failed to run command %q", cmd)
+	return errors.Wrapf(c.Run(), "failed to run command")
 }
