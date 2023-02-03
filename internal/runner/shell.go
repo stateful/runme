@@ -45,7 +45,7 @@ func (s *Shell) Run(ctx context.Context) error {
 		sh = "/bin/sh"
 	}
 
-	return execSingle(ctx, sh, s.Dir, prepareScript(s.Cmds), s.Stdin, s.Stdout, s.Stderr)
+	return execSingle(ctx, sh, s.Dir, prepareScript(s.Cmds), s.Name, s.Stdin, s.Stdout, s.Stderr)
 }
 
 func PrepareScript(cmds []string) string {
@@ -95,12 +95,18 @@ func prepareScript(cmds []string) string {
 	return b.String()
 }
 
-func execSingle(ctx context.Context, sh, dir, cmd string, stdin io.Reader, stdout, stderr io.Writer) error {
+func execSingle(ctx context.Context, sh, dir, cmd string, name string, stdin io.Reader, stdout, stderr io.Writer) error {
 	c := exec.CommandContext(ctx, sh, []string{"-c", cmd}...)
 	c.Dir = dir
 	c.Stderr = stderr
 	c.Stdout = stdout
 	c.Stdin = stdin
 
-	return errors.Wrapf(c.Run(), "failed to run command")
+	err := c.Run()
+
+	if len(name) == 0 {
+		return errors.Wrapf(err, "failed to run command")
+	}
+
+	return errors.Wrapf(err, "failed to run command %q", name)
 }
