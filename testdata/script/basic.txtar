@@ -6,6 +6,10 @@ exec runme ls --allow-unknown
 cmp stdout golden-list-allow-unknown.txt
 ! stderr .
 
+! exec runme ls --filename nonexistent.md
+stderr 'failed to open markdown file .*/nonexistent.md: no such file or directory'
+! stdout .
+
 env SHELL=/bin/bash
 exec runme run echo
 stdout 'Hello, runme!'
