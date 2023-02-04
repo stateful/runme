@@ -44,7 +44,7 @@ Sometimes, shell scripts fail:
 
 ```sh
 echo ok
-false
+exit 1
 ```
 
 ## Go
