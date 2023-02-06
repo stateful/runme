@@ -26,6 +26,11 @@ func readMarkdownFile(args []string) ([]byte, error) {
 	if arg == "" {
 		f, err := os.DirFS(fChdir).Open(fFileName)
 		if err != nil {
+			var pathError *os.PathError
+			if errors.As(err, &pathError) {
+				return nil, errors.Errorf("failed to %s markdown file %s: %s", pathError.Op, pathError.Path, pathError.Err.Error())
+			}
+
 			return nil, errors.Wrapf(err, "failed to read %s", filepath.Join(fChdir, fFileName))
 		}
 		defer func() { _ = f.Close() }()
