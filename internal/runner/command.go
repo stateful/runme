@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"sync"
-	"syscall"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
@@ -144,10 +143,7 @@ func (c *command) Start(ctx context.Context) error {
 	}
 
 	if c.cfg.Tty {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setsid:  true,
-			Setctty: true,
-		}
+		setCmdAttrs(cmd)
 	}
 
 	c.cmd = cmd
@@ -156,9 +152,13 @@ func (c *command) Start(ctx context.Context) error {
 		return errors.WithStack(err)
 	}
 
-	if c.tty != nil {
-		_ = c.tty.Close() // not needed to be open anymore
-	}
+	// TODO: in pty.StartWithAttrs() tty is closed in defer.
+	// Here, the same action might cause copying from pty
+	// to fail. The reason might be that reading from the
+	// pty should start before tty is closed.
+	// if c.tty != nil {
+	// 	_ = c.tty.Close() // not needed to be open anymore
+	// }
 
 	if c.pty != nil {
 		c.wg.Add(1)

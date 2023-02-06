@@ -16,6 +16,13 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
+func testCreateLogger(t *testing.T) *zap.Logger {
+	logger, err := zap.NewDevelopment()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = logger.Sync() })
+	return logger
+}
+
 func Test_executeCmd(t *testing.T) {
 	cmd, err := newCommand(
 		&commandConfig{
