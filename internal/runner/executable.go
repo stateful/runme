@@ -17,6 +17,7 @@ type Base struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
+	Name   string
 }
 
 var supportedExecutables = []string{

@@ -40,6 +40,13 @@ popd
 pwd
 ```
 
+Sometimes, shell scripts fail:
+
+```sh
+echo ok
+exit 1
+```
+
 ## Go
 
 It can also execute a snippet of Go code:

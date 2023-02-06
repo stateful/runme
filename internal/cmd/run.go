@@ -90,6 +90,7 @@ func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Execut
 		Stdin:  cmd.InOrStdin(),
 		Stdout: cmd.OutOrStdout(),
 		Stderr: cmd.ErrOrStderr(),
+		Name:   block.Name(),
 	}
 
 	switch block.Language() {
