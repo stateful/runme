@@ -7,10 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"syscall"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/rbuffer"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -107,6 +109,7 @@ func newCommand(
 		if len(cfg.Input) > 0 {
 			_, err := io.Copy(cmd.Stdin, bytes.NewReader(cfg.Input))
 			if err != nil {
+				cmd.cleanup()
 				return nil, errors.WithMessage(err, "failed to write initial input")
 			}
 		}
@@ -149,16 +152,17 @@ func (c *command) Start(ctx context.Context) error {
 	c.cmd = cmd
 
 	if err := cmd.Start(); err != nil {
+		c.cleanup()
 		return errors.WithStack(err)
 	}
 
-	// TODO: in pty.StartWithAttrs() tty is closed in defer.
-	// Here, the same action might cause copying from pty
-	// to fail. The reason might be that reading from the
-	// pty should start before tty is closed.
-	// if c.tty != nil {
-	// 	_ = c.tty.Close() // not needed to be open anymore
-	// }
+	if c.tty != nil {
+		if err := c.tty.Close(); err != nil {
+			c.logger.Info("failed to close tty after starting the command", zap.Error(err))
+		} else {
+			c.tty = nil
+		}
+	}
 
 	if c.pty != nil {
 		c.wg.Add(1)
@@ -166,7 +170,16 @@ func (c *command) Start(ctx context.Context) error {
 			defer c.wg.Done()
 			_, err := io.Copy(c.Stdout, c.pty)
 			if err != nil {
+				// Linux kernel returns EIO when attempting to read from
+				// a master pseudo-terminal which no longer has an open slave.
+				// See https://github.com/creack/pty/issues/21.
+				if errors.Is(err, syscall.EIO) {
+					c.logger.Debug("failed to copy from pty to stdout; handled EIO error")
+					return
+				}
+
 				c.logger.Info("failed to copy from pty to stdout", zap.Error(err))
+
 				c.mu.Lock()
 				if c.err == nil {
 					c.err = err
@@ -179,18 +192,45 @@ func (c *command) Start(ctx context.Context) error {
 	return nil
 }
 
+func (c *command) cleanup() {
+	var err error
+
+	if c.tty != nil {
+		if e := c.tty.Close(); e != nil {
+			c.logger.Info("failed to close tty", zap.Error(e))
+			err = multierr.Append(err, e)
+		}
+	}
+	if c.pty != nil {
+		if e := c.pty.Close(); err != nil {
+			c.logger.Info("failed to close pty", zap.Error(e))
+			err = multierr.Append(err, e)
+		}
+	}
+	if c.Stdout != nil {
+		if e := c.Stdout.Close(); e != nil {
+			c.logger.Info("failed to close stdout", zap.Error(e))
+			err = multierr.Append(err, e)
+		}
+	}
+	if c.Stderr != nil {
+		if e := c.Stderr.Close(); e != nil {
+			c.logger.Info("failed to close stderr", zap.Error(e))
+			err = multierr.Append(err, e)
+		}
+	}
+
+	c.mu.Lock()
+	if c.err == nil {
+		c.err = err
+	}
+	c.mu.Unlock()
+}
+
 func (c *command) Wait() error {
 	err := c.cmd.Wait()
 
-	if c.pty != nil {
-		_ = c.pty.Close()
-	}
-	if c.Stdout != nil {
-		_ = c.Stdout.Close()
-	}
-	if c.Stderr != nil {
-		_ = c.Stderr.Close()
-	}
+	c.cleanup()
 
 	c.wg.Wait()
 

@@ -118,7 +118,6 @@ done`,
 		cmd, err := newCommand(
 			&commandConfig{
 				ProgramName: "bash",
-				Tty:         false,
 				IsShell:     true,
 				Script:      "cat - 1>&2 2>/dev/null | tr a-z A-Z",
 				Input:       []byte("Hello"),
