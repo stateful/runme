@@ -1,3 +1,5 @@
+//go:build !windows
+
 package runner
 
 import (
@@ -8,15 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
-
-func testCreateLogger(t *testing.T) *zap.Logger {
-	logger, err := zap.NewDevelopment()
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = logger.Sync() })
-	return logger
-}
 
 func Test_command(t *testing.T) {
 	t.Parallel()
