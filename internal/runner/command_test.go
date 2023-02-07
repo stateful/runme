@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/slices"
 )
 
 func Test_command(t *testing.T) {
@@ -211,6 +212,46 @@ done`,
 		assert.NoError(t, err)
 		assert.Contains(t, string(data), "sleep 30")
 		assert.Contains(t, string(data), "exit")
+	})
+
+	t.Run("Envs", func(t *testing.T) {
+		t.Parallel()
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "bash",
+				IsShell:     true,
+				Envs: []string{
+					"TEST_OLD=value1",
+					"TEST_OLD_CHANGED=value1",
+					"TEST_OLD_UNSET=value1",
+				},
+				Commands: []string{
+					"export TEST_NEW=value2",
+					"export TEST_OLD_CHANGED=value2",
+					"unset TEST_OLD_UNSET",
+				},
+			},
+			testCreateLogger(t),
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+
+		sort := func(s []string) []string {
+			slices.Sort(s)
+			return s
+		}
+
+		assert.EqualValues(
+			t,
+			sort([]string{
+				"TEST_OLD=value1",
+				"TEST_OLD_CHANGED=value2",
+				"TEST_NEW=value2",
+			}),
+			sort(cmd.Envs),
+		)
 	})
 }
 
