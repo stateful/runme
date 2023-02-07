@@ -1,11 +1,15 @@
 package runner
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -31,6 +35,8 @@ type command struct {
 	// Might be nil if not allocating a pseudo-terminal.
 	pty *os.File
 	tty *os.File
+
+	envDir string
 
 	cmd *exec.Cmd
 
@@ -74,18 +80,31 @@ func newCommand(
 		}
 	}
 
-	var extraArgs []string
+	var (
+		extraArgs    []string
+		envStorePath string
+	)
 
-	if cfg.IsShell {
-		script := ""
+	if cfg.IsShell && (len(cfg.Commands) > 0 || cfg.Script != "") {
+		var err error
+		envStorePath, err = os.MkdirTemp("", "")
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		var script strings.Builder
+
+		_, _ = script.WriteString(fmt.Sprintf("env > %s\n", filepath.Join(envStorePath, ".env_start")))
+
 		if len(cfg.Commands) > 0 {
-			script = prepareScriptFromCommands(cfg.Commands)
+			_, _ = script.WriteString(prepareScriptFromCommands(cfg.Commands))
 		} else if cfg.Script != "" {
-			script = prepareScript(cfg.Script)
+			_, _ = script.WriteString(prepareScript(cfg.Script))
 		}
-		if script != "" {
-			extraArgs = []string{"-c", script}
-		}
+
+		_, _ = script.WriteString(fmt.Sprintf("env > %s\n", filepath.Join(envStorePath, ".env_end")))
+
+		extraArgs = []string{"-c", script.String()}
 	}
 
 	cmd := &command{
@@ -94,6 +113,7 @@ func newCommand(
 		Directory:   directory,
 		Envs:        cfg.Envs,
 		cfg:         cfg,
+		envDir:      envStorePath,
 		done:        make(chan struct{}),
 		logger:      logger,
 	}
@@ -195,6 +215,12 @@ func (c *command) Start(ctx context.Context) error {
 func (c *command) cleanup() {
 	var err error
 
+	if c.envDir != "" {
+		if e := os.RemoveAll(c.envDir); e != nil {
+			c.logger.Info("failed to delete envsDir", zap.Error(e))
+			err = multierr.Append(err, e)
+		}
+	}
 	if c.tty != nil {
 		if e := c.tty.Close(); e != nil {
 			c.logger.Info("failed to close tty", zap.Error(e))
@@ -227,22 +253,72 @@ func (c *command) cleanup() {
 	c.mu.Unlock()
 }
 
+func (c *command) readEnvFromFile(name string) (result []string, _ error) {
+	f, err := os.Open(filepath.Join(c.envDir, name))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer func() { _ = f.Close() }()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		result = append(result, scanner.Text())
+	}
+
+	return result, errors.WithStack(scanner.Err())
+}
+
+func (c *command) collectEnvs() error {
+	if c.envDir == "" {
+		return nil
+	}
+
+	startEnvs, err := c.readEnvFromFile(".env_start")
+	if err != nil {
+		return err
+	}
+
+	endEnvs, err := c.readEnvFromFile(".env_end")
+	if err != nil {
+		return err
+	}
+
+	newOrUpdated, _, deleted := diffEnvStores(
+		newEnvStore(startEnvs...),
+		newEnvStore(endEnvs...),
+	)
+
+	c.Envs = newEnvStore(c.Envs...).Add(newOrUpdated...).Delete(deleted...).Values()
+
+	return nil
+}
+
 func (c *command) Wait() error {
-	err := c.cmd.Wait()
+	werr := c.cmd.Wait()
+
+	eerr := c.collectEnvs()
 
 	c.cleanup()
 
 	c.wg.Wait()
 
-	if err == nil {
-		c.mu.Lock()
-		if c.err != nil {
-			err = c.err
-		}
-		c.mu.Unlock()
+	if werr != nil {
+		return werr
 	}
 
-	return errors.WithStack(err)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.err != nil {
+		return c.err
+	}
+
+	if eerr != nil {
+		return eerr
+	}
+
+	return nil
 }
 
 func exitCodeFromErr(err error) int {
