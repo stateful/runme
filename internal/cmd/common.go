@@ -22,28 +22,18 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
-// TODO(mxs): remove these commented config params
 const (
-	apiURLF  = "api-url"
-	authURLF = "auth-url"
-	// configF      = "config"
-	traceF    = "trace"
-	traceAllF = "trace-all"
-	// debugF       = "debug"
-	// noBrowserF   = "no-browser"
+	apiURLF      = "api-url"
+	authURLF     = "auth-url"
+	traceF       = "trace"
+	traceAllF    = "trace-all"
 	enableChaosF = "enable-chaos"
 )
 
-func getAPIURL() string { return viper.GetString(apiURLF) }
-
-func getAuthURL() string { return viper.GetString(authURLF) }
-
-// func getConfig() string    { return viper.GetString(configF) }
-func getTrace() bool    { return viper.GetBool(traceF) || viper.GetBool(traceAllF) }
-func getTraceAll() bool { return viper.GetBool(traceAllF) }
-
-// func getDebug() bool       { return viper.GetBool(debugF) }
-// func getNoBrowser() bool   { return viper.GetBool(noBrowserF) }
+func getAPIURL() string    { return viper.GetString(apiURLF) }
+func getAuthURL() string   { return viper.GetString(authURLF) }
+func getTrace() bool       { return viper.GetBool(traceF) || viper.GetBool(traceAllF) }
+func getTraceAll() bool    { return viper.GetBool(traceAllF) }
 func getEnableChaos() bool { return viper.GetBool(enableChaosF) }
 
 // TODO(adamb): temporarily we authorize using Github as IdP.
