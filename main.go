@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/stateful/runme/internal/cmd"
+	"github.com/stateful/runme/internal/version"
 )
 
 // These are variables so that they can be set during the build time.
@@ -15,6 +16,10 @@ var (
 )
 
 func root() int {
+	version.BuildDate = BuildDate
+	version.BuildVersion = BuildVersion
+	version.Commit = Commit
+
 	root := cmd.Root()
 	root.Version = fmt.Sprintf("%s (%s) on %s", BuildVersion, Commit, BuildDate)
 	if err := root.Execute(); err != nil {

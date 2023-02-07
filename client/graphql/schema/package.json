@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "graphql": "^16.0.0"
+  },
+  "scripts": {
+    "convert": "node convert_introspection_schema.js"
+  }
+}

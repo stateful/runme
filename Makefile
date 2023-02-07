@@ -74,3 +74,12 @@ release: install/goreleaser
 .PHONY: release/publish
 release/publish: install/goreleaser
 	@goreleaser release
+
+.PHONY: update-gql-schema
+update-gql-schema:
+	@go run ./cmd/gqltool/main.go > ./client/graphql/schema/introspection_query_result.json
+	@cd ./client/graphql/schema && npm run convert
+
+.PHONY: generate
+generate:
+	go generate ./...
