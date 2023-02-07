@@ -18,7 +18,8 @@ func (p *program) Start() error {
 	if f, ok := p.out.(*os.File); ok && !isatty.IsTerminal(f.Fd()) {
 		go p.Quit()
 	}
-	return p.Program.Start()
+	_, err := p.Program.Run()
+	return err
 }
 
 func newProgram(cmd *cobra.Command, model tea.Model) *program {

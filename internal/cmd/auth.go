@@ -48,7 +48,7 @@ func checkAuthenticated(ctx context.Context, cmd *cobra.Command) error {
 		renderer.MinimalKeyMap,
 		renderer.DefaultStyles,
 	)
-	finalModel, err := newProgram(cmd, model).StartReturningModel()
+	finalModel, err := newProgram(cmd, model).Run()
 	if err != nil {
 		return errors.Wrap(err, "failed to prompt")
 	}

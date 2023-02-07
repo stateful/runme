@@ -17,7 +17,7 @@ type InputModel struct {
 }
 
 func NewInputModel(text string) InputModel {
-	input := textinput.NewModel()
+	input := textinput.New()
 	input.Prompt = ""
 
 	return InputModel{

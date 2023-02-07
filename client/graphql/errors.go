@@ -57,17 +57,30 @@ func (e *APIError) Error() string {
 	}
 
 	if len(e.userErrors) > 0 {
-		var err error
+		var errs []error
 
 		var b bytes.Buffer
-		_, err = b.WriteString(userErrorString(e.userErrors[0]))
+		if _, err := b.WriteString(userErrorString(e.userErrors[0])); err != nil {
+			errs = append(errs, err)
+		}
 		for i := 1; i < len(e.userErrors); i++ {
-			err = b.WriteByte('\n')
-			_, err = b.WriteString(userErrorString(e.userErrors[i]))
+			if err := b.WriteByte('\n'); err != nil {
+				errs = append(errs, err)
+			}
+
+			if _, err := b.WriteString(userErrorString(e.userErrors[i])); err != nil {
+				errs = append(errs, err)
+			}
 		}
 
-		if err != nil {
-			log.Fatal(err)
+		if len(errs) > 0 {
+			var msgs []string
+
+			for _, err := range errs {
+				msgs = append(msgs, err.Error())
+			}
+
+			log.Fatalf("failed to write strings: %s", strings.Join(msgs, ", "))
 		}
 
 		return b.String()

@@ -5,7 +5,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/elliotchance/orderedmap"
@@ -54,7 +53,7 @@ func NewModel(
 		Child:  child,
 		KeyMap: keyMap,
 		Styles: styles,
-		help:   help.NewModel(),
+		help:   help.New(),
 		log:    log.Get().Named("renderer.Model"),
 	}
 
@@ -66,10 +65,7 @@ func NewModel(
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		spinner.Tick,
-		m.Child.Init(),
-	)
+	return m.Child.Init()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -113,6 +109,11 @@ func (m Model) View() string {
 		_, writeErr = b.WriteString(m.Styles.Child.Render(m.Child.View()))
 	}
 
+	if writeErr != nil {
+		m.err = writeErr
+		return "Fatal Error: " + m.err.Error()
+	}
+
 	kmap := m.KeyMap.Copy()
 	if p, ok := m.Child.(KeyMapProvider); ok {
 		kmap.Merge(p.KeyMap())
@@ -124,7 +125,10 @@ func (m Model) View() string {
 		_, writeErr = b.WriteString("\n")
 	}
 
-	m.err = writeErr
+	if writeErr != nil {
+		m.err = writeErr
+		return "Fatal Error: " + m.err.Error()
+	}
 
 	return b.String()
 }

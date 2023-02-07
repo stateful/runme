@@ -86,7 +86,7 @@ bad. Please use with discretion.
 
 func promptForDescription(cmd *cobra.Command) (string, error) {
 	model := renderer.NewStandaloneInputModel("Enter a description:", renderer.MinimalKeyMap, renderer.DefaultStyles)
-	finalModel, err := newProgram(cmd, model).StartReturningModel()
+	finalModel, err := newProgram(cmd, model).Run()
 	if err != nil {
 		return "", err
 	}

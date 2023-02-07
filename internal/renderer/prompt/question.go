@@ -17,7 +17,7 @@ type QuestionModel struct {
 }
 
 func NewQuestionModel(text string) QuestionModel {
-	input := textinput.NewModel()
+	input := textinput.New()
 	input.CharLimit = 1
 	input.Placeholder = "Y"
 	input.Prompt = ""

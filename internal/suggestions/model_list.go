@@ -50,12 +50,12 @@ type ListModel struct {
 }
 
 func NewListModel(ctx context.Context, description string, repoUser string, client *graphql.Client) ListModel {
-	s := spinner.NewModel()
+	s := spinner.New()
 	s.Spinner = spinner.Line
 
 	emptyItems := make([]list.Item, 0)
 	delegate := list.NewDefaultDelegate()
-	l := list.NewModel(emptyItems, delegate, 0, 0) // renderer.MaxWidth, renderer.MaxHeight)
+	l := list.New(emptyItems, delegate, 0, 0) // renderer.MaxWidth, renderer.MaxHeight)
 	l.SetFilteringEnabled(false)
 	l.SetShowStatusBar(false)
 	l.SetShowPagination(false)
@@ -126,7 +126,7 @@ func (m ListModel) KeyMap() *renderer.KeyMap {
 }
 
 func (m ListModel) Init() tea.Cmd {
-	return tea.Batch(m.startSearch, spinner.Tick)
+	return tea.Batch(m.startSearch, m.spinner.Tick)
 }
 
 type suggestionsMsg struct {
