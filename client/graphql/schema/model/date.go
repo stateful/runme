@@ -56,9 +56,11 @@ func (d DateTime) MarshalJSON() ([]byte, error) {
 	return d.marshal()
 }
 
-func (d DateTime) MarshalGQL(w io.Writer) {
+func (d DateTime) MarshalGQL(w io.Writer) error {
 	b, _ := d.marshal()
-	w.Write(b)
+	_, err := w.Write(b)
+
+	return err
 }
 
 func (d DateTime) String() string {

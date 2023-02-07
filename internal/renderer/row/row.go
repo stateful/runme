@@ -1,6 +1,7 @@
 package row
 
 import (
+	"log"
 	"math"
 	"strings"
 
@@ -130,6 +131,8 @@ func String(d Definition, data []string) string {
 
 	var b strings.Builder
 
+	var writeErr error
+
 	for rowIdx := 0; rowIdx < maxRows; rowIdx++ {
 		for colIdx := 0; colIdx < len(table); colIdx++ {
 			col := table[colIdx]
@@ -137,15 +140,19 @@ func String(d Definition, data []string) string {
 			// The second condition is due to padding.String()
 			// not handling empty strings as needed.
 			if rowIdx < len(col) && col[rowIdx] != "" {
-				b.WriteString(padding.String(d.Style(colIdx).Render(col[rowIdx]), uint(d.ColWidth(colIdx))))
+				_, writeErr = b.WriteString(padding.String(d.Style(colIdx).Render(col[rowIdx]), uint(d.ColWidth(colIdx))))
 			} else {
-				b.WriteString(strings.Repeat(" ", d.ColWidth(colIdx)))
+				_, writeErr = b.WriteString(strings.Repeat(" ", d.ColWidth(colIdx)))
 			}
 		}
 
 		if rowIdx < maxRows-1 {
-			b.WriteString("\n")
+			_, writeErr = b.WriteString("\n")
 		}
+	}
+
+	if writeErr != nil {
+		log.Fatal(writeErr)
 	}
 
 	return b.String()

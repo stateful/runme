@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -152,7 +153,9 @@ func TestAuthLogin_withTerminalEnv(t *testing.T) {
 
 	// Write any code which is expected by the TerminalEnv.
 	go func() {
-		fmt.Fprintf(inW, "test-code\n")
+		if _, err := fmt.Fprintf(inW, "test-code\n"); err != nil {
+			log.Fatal(err)
+		}
 	}()
 
 	err := auth.Login(context.Background())

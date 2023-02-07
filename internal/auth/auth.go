@@ -393,7 +393,11 @@ func (a *Auth) GetFreshToken(ctx context.Context) (string, error) {
 func (a *Auth) serveHTTP(ln net.Listener) (string, <-chan error) {
 	mux := http.NewServeMux()
 	mux.Handle("/", http.HandlerFunc(a.callbackHandler))
-	mux.Handle("/manual", http.HandlerFunc(a.manualCallbackHandler))
+	mux.Handle("/manual", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := a.manualCallbackHandler(w, r); err != nil {
+			a.log.Fatal(err.Error())
+		}
+	}))
 
 	server := &http.Server{Handler: mux}
 	errC := make(chan error, 1)
@@ -465,23 +469,24 @@ func (a *Auth) callbackHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, getCLILoginURL(url.Values{"success": []string{"true"}}), http.StatusTemporaryRedirect)
 }
 
-func (a *Auth) manualCallbackHandler(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) manualCallbackHandler(w http.ResponseWriter, r *http.Request) error {
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 
 	if state != a.loginSession.State {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`Invalid state received from the Identity Provider.`))
-		return
+		_, err := w.Write([]byte(`Invalid state received from the Identity Provider.`))
+		return err
 	}
 
 	if code == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`Missing "code" query string parameter.`))
-		return
+		_, err := w.Write([]byte(`Missing "code" query string parameter.`))
+		return err
 	}
 
-	w.Write([]byte(fmt.Sprintf("<p>State: <strong>%s</strong></p>\n<p>Code: <strong>%s</strong></p>", a.loginSession.State, code)))
+	_, err := w.Write([]byte(fmt.Sprintf("<p>State: <strong>%s</strong></p>\n<p>Code: <strong>%s</strong></p>", a.loginSession.State, code)))
+	return err
 }
 
 func (a *Auth) getHTTPClient() *http.Client {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
@@ -56,12 +57,19 @@ func (e *APIError) Error() string {
 	}
 
 	if len(e.userErrors) > 0 {
+		var err error
+
 		var b bytes.Buffer
-		b.WriteString(userErrorString(e.userErrors[0]))
+		_, err = b.WriteString(userErrorString(e.userErrors[0]))
 		for i := 1; i < len(e.userErrors); i++ {
-			b.WriteByte('\n')
-			b.WriteString(userErrorString(e.userErrors[i]))
+			err = b.WriteByte('\n')
+			_, err = b.WriteString(userErrorString(e.userErrors[i]))
 		}
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		return b.String()
 	}
 

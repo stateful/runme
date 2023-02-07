@@ -105,10 +105,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	var b strings.Builder
 
+	var writeErr error
+
 	if m.err != nil {
-		b.WriteString(m.Styles.Error.Render("Error: " + m.err.Error()))
+		_, writeErr = b.WriteString(m.Styles.Error.Render("Error: " + m.err.Error()))
 	} else {
-		b.WriteString(m.Styles.Child.Render(m.Child.View()))
+		_, writeErr = b.WriteString(m.Styles.Child.Render(m.Child.View()))
 	}
 
 	kmap := m.KeyMap.Copy()
@@ -117,10 +119,12 @@ func (m Model) View() string {
 	}
 
 	if !m.disableHelp {
-		b.WriteString(m.Styles.Help.Render(m.help.View(kmap)))
+		_, writeErr = b.WriteString(m.Styles.Help.Render(m.help.View(kmap)))
 	} else {
-		b.WriteString("\n")
+		_, writeErr = b.WriteString("\n")
 	}
+
+	m.err = writeErr
 
 	return b.String()
 }
