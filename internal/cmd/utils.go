@@ -11,7 +11,6 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/stateful/runme/client"
 	"github.com/stateful/runme/client/graphql/query"
 
@@ -62,7 +61,7 @@ type authorizerWithEnv struct {
 }
 
 func (a *authorizerWithEnv) GetToken(ctx context.Context) (string, error) {
-	if apiToken := viper.GetString("api-token"); apiToken != "" {
+	if apiToken := getAPIToken(); apiToken != "" {
 		return apiToken, nil
 	}
 	return a.Authorizer.GetToken(ctx)
@@ -110,7 +109,7 @@ func newAPIClient(ctx context.Context) *http.Client {
 }
 
 func graphqlEndpoint() string {
-	return viper.GetString(apiURLF) + "/graphql"
+	return getAPIURL() + "/graphql"
 }
 
 func isTerminal() bool {
