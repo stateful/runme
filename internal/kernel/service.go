@@ -291,12 +291,17 @@ func (s *kernelServiceServer) IO(srv kernelv1.KernelService_IOServer) error {
 		for {
 			msg, err := srv.Recv()
 			if err != nil {
-				return errors.WithStack(err)
+				if err == io.EOF {
+					s.logger.Info("client closed send direction")
+				} else {
+					s.logger.Info("failed to receive requests", zap.Error(err))
+				}
+				return nil
 			}
 			select {
 			case in <- msg:
 			case <-ctx.Done():
-				return ctx.Err()
+				return nil
 			}
 		}
 	})
