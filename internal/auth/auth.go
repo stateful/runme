@@ -399,7 +399,7 @@ func (a *Auth) serveHTTP(ln net.Listener) (string, <-chan error) {
 		}
 	}))
 
-	server := &http.Server{Handler: mux}
+	server := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	errC := make(chan error, 1)
 
 	go func() {
