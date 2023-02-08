@@ -1,11 +1,10 @@
 package rbuffer
 
 import (
+	"errors"
 	"io"
 	"sync"
 	"sync/atomic"
-
-	"github.com/pkg/errors"
 )
 
 var ErrClosed = errors.New("buffer closed")

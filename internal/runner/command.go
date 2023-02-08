@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -46,6 +45,18 @@ type command struct {
 	err  error
 
 	logger *zap.Logger
+}
+
+func (c *command) seterr(err error) {
+	if err == nil {
+		return
+	}
+
+	c.mu.Lock()
+	if c.err == nil {
+		c.err = err
+	}
+	c.mu.Unlock()
 }
 
 type commandConfig struct {
@@ -94,15 +105,19 @@ func newCommand(
 
 		var script strings.Builder
 
-		_, _ = script.WriteString(fmt.Sprintf("env > %s\n", filepath.Join(envStorePath, ".env_start")))
+		_, _ = script.WriteString("env > " + filepath.Join(envStorePath, envStartFileName) + "\n")
 
 		if len(cfg.Commands) > 0 {
-			_, _ = script.WriteString(prepareScriptFromCommands(cfg.Commands))
+			_, _ = script.WriteString(
+				prepareScriptFromCommands(cfg.Commands),
+			)
 		} else if cfg.Script != "" {
-			_, _ = script.WriteString(prepareScript(cfg.Script))
+			_, _ = script.WriteString(
+				prepareScript(cfg.Script),
+			)
 		}
 
-		_, _ = script.WriteString(fmt.Sprintf("env > %s\n", filepath.Join(envStorePath, ".env_end")))
+		_, _ = script.WriteString("env > " + filepath.Join(envStorePath, envEndFileName) + "\n")
 
 		extraArgs = []string{"-c", script.String()}
 	}
@@ -129,7 +144,7 @@ func newCommand(
 		if len(cfg.Input) > 0 {
 			_, err := io.Copy(cmd.Stdin, bytes.NewReader(cfg.Input))
 			if err != nil {
-				cmd.cleanup()
+				cmd.preWaitCleanup()
 				return nil, errors.WithMessage(err, "failed to write initial input")
 			}
 		}
@@ -172,7 +187,7 @@ func (c *command) Start(ctx context.Context) error {
 	c.cmd = cmd
 
 	if err := cmd.Start(); err != nil {
-		c.cleanup()
+		c.preWaitCleanup()
 		return errors.WithStack(err)
 	}
 
@@ -200,11 +215,7 @@ func (c *command) Start(ctx context.Context) error {
 
 				c.logger.Info("failed to copy from pty to stdout", zap.Error(err))
 
-				c.mu.Lock()
-				if c.err == nil {
-					c.err = err
-				}
-				c.mu.Unlock()
+				c.seterr(err)
 			}
 		}()
 	}
@@ -212,7 +223,7 @@ func (c *command) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *command) cleanup() {
+func (c *command) preWaitCleanup() {
 	var err error
 
 	if c.envDir != "" {
@@ -233,6 +244,13 @@ func (c *command) cleanup() {
 			err = multierr.Append(err, e)
 		}
 	}
+
+	c.seterr(err)
+}
+
+func (c *command) postWaitCleanup() {
+	var err error
+
 	if c.Stdout != nil {
 		if e := c.Stdout.Close(); e != nil {
 			c.logger.Info("failed to close stdout", zap.Error(e))
@@ -246,12 +264,13 @@ func (c *command) cleanup() {
 		}
 	}
 
-	c.mu.Lock()
-	if c.err == nil {
-		c.err = err
-	}
-	c.mu.Unlock()
+	c.seterr(err)
 }
+
+const (
+	envStartFileName = ".env_start"
+	envEndFileName   = ".env_end"
+)
 
 func (c *command) readEnvFromFile(name string) (result []string, _ error) {
 	f, err := os.Open(filepath.Join(c.envDir, name))
@@ -270,20 +289,16 @@ func (c *command) readEnvFromFile(name string) (result []string, _ error) {
 	return result, errors.WithStack(scanner.Err())
 }
 
-func (c *command) collectEnvs() error {
+func (c *command) collectEnvs() {
 	if c.envDir == "" {
-		return nil
+		return
 	}
 
-	startEnvs, err := c.readEnvFromFile(".env_start")
-	if err != nil {
-		return err
-	}
+	startEnvs, err := c.readEnvFromFile(envStartFileName)
+	c.seterr(err)
 
-	endEnvs, err := c.readEnvFromFile(".env_end")
-	if err != nil {
-		return err
-	}
+	endEnvs, err := c.readEnvFromFile(envEndFileName)
+	c.seterr(err)
 
 	newOrUpdated, _, deleted := diffEnvStores(
 		newEnvStore(startEnvs...),
@@ -291,34 +306,25 @@ func (c *command) collectEnvs() error {
 	)
 
 	c.Envs = newEnvStore(c.Envs...).Add(newOrUpdated...).Delete(deleted...).Values()
-
-	return nil
 }
 
 func (c *command) Wait() error {
 	werr := c.cmd.Wait()
 
-	eerr := c.collectEnvs()
+	c.collectEnvs()
 
-	c.cleanup()
-
+	c.preWaitCleanup()
 	c.wg.Wait()
+	c.postWaitCleanup()
 
 	if werr != nil {
 		return werr
 	}
 
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.err != nil {
-		return c.err
-	}
-
-	if eerr != nil {
-		return eerr
-	}
-
-	return nil
+	err := c.err
+	c.mu.Unlock()
+	return err
 }
 
 func exitCodeFromErr(err error) int {

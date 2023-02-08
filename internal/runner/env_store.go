@@ -1,6 +1,10 @@
 package runner
 
-import "strings"
+import (
+	"strings"
+
+	"golang.org/x/exp/slices"
+)
 
 type envStore struct {
 	values map[string]string
@@ -33,6 +37,7 @@ func (s *envStore) Values() []string {
 	for k, v := range s.values {
 		result = append(result, k+"="+v)
 	}
+	slices.Sort(result)
 	return result
 }
 

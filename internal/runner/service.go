@@ -129,16 +129,27 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return errors.WithStack(err)
 	}
 
+	var sess *session
+	if req.SessionId != "" {
+		sess = r.findSession(req.SessionId)
+	}
+
+	var envs []string
+	if sess != nil {
+		envs = append(sess.Envs(), req.Envs...)
+	}
+
 	cmd, err := newCommand(
 		&commandConfig{
 			ProgramName: req.ProgramName,
 			Args:        req.Arguments,
 			Directory:   req.Directory,
-			Envs:        req.Envs,
+			Envs:        envs,
 			Tty:         req.Tty,
 			IsShell:     true,
 			Commands:    req.Commands,
 			Script:      req.Script,
+			Input:       req.InputData,
 		},
 		r.logger,
 	)
@@ -151,19 +162,18 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			req, err := srv.Recv()
 			if err != nil {
 				if err == io.EOF {
-					r.logger.Info("client closed send direction", zap.Error(err))
+					r.logger.Info("client closed send direction")
 				} else {
 					r.logger.Info("failed to receive requests", zap.Error(err))
 				}
 				return
 			}
-			if len(req.InputData) == 0 {
-				continue
-			}
-			_, err = cmd.Stdin.Write(req.InputData)
-			if err != nil {
-				r.logger.Info("failed to write to cmd.Stdin", zap.Error(err))
-				return
+			if len(req.InputData) != 0 {
+				_, err = cmd.Stdin.Write(req.InputData)
+				if err != nil {
+					r.logger.Info("failed to write to cmd.Stdin", zap.Error(err))
+					return
+				}
 			}
 		}
 	}()
@@ -181,6 +191,11 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	)
 
 	r.logger.Info("finished command execution", zap.Error(err), zap.Int("exitCode", exitCode))
+
+	// If session was found, put back envs.
+	if sess != nil {
+		sess.envStore = newEnvStore(cmd.Envs...)
+	}
 
 	if exitCode > -1 {
 		return srv.Send(&runnerv1.ExecuteResponse{
