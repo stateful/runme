@@ -69,7 +69,6 @@ func Root() *cobra.Command {
 	cmd.AddCommand(fmtCmd())
 	cmd.AddCommand(serverCmd())
 	cmd.AddCommand(shellCmd())
-	cmd.AddCommand(authCmd())
 	cmd.AddCommand(suggestCmd())
 
 	return &cmd
