@@ -219,11 +219,11 @@ func executeCmd(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	g := new(errgroup.Group)
-	outs := make(chan output)
+	datac := make(chan output)
 
 	g.Go(func() error {
-		err := readLoop(ctx, time.Second, cmd.Stdout, cmd.Stderr, outs)
-		close(outs)
+		err := readLoop(ctx, time.Second, cmd.Stdout, cmd.Stderr, datac)
+		close(datac)
 		if errors.Is(err, io.EOF) {
 			err = nil
 		}
@@ -231,7 +231,7 @@ func executeCmd(
 	})
 
 	g.Go(func() error {
-		for data := range outs {
+		for data := range datac {
 			if err := processData(data); err != nil {
 				return err
 			}
@@ -271,6 +271,20 @@ func (o output) Clone() (result output) {
 	return
 }
 
+var bufPool = sync.Pool{
+	New: func() any {
+		return make([]byte, 4*1024) // 4KB
+	},
+}
+
+// readLoop uses two sets of buffers in order to avoid allocating
+// new memory over and over and putting more presure on GC.
+// When the first set is read, it is sent to a channel called `results`.
+// `results` should be an unbuffered channel. When a consumer consumes
+// from the channel, the loop is unblocked and it moves on to read
+// into the second set of buffers and blocks. During this time,
+// the consumer has a chance to do something with the data stored
+// in the first set of buffers.
 func readLoop(
 	ctx context.Context,
 	timeout time.Duration,
@@ -278,33 +292,40 @@ func readLoop(
 	stderr io.Reader,
 	results chan<- output,
 ) error {
-	out1, err1 := make([]byte, 1024), make([]byte, 1024)
-	out2, err2 := make([]byte, 1024), make([]byte, 1024)
-	idx := 0
+	if cap(results) > 0 {
+		panic("readLoop requires unbuffered channel")
+	}
+
+	const size = 4 * 1024
+
+	out1, err1 := make([]byte, size), make([]byte, size)
+	out2, err2 := make([]byte, size), make([]byte, size)
+
+	pairIdx := 0
 
 	read := func() error {
-		outb, errb := out1, err1
-		idx++
-		if idx%2 == 0 {
-			outb, errb = out2, err2
+		outBuf, errBuf := out1, err1
+		pairIdx = (pairIdx + 1) % 2
+		if pairIdx == 0 {
+			outBuf, errBuf = out2, err2
 		}
 
 		var result output
 
-		n, err := stdout.Read(outb)
+		n, err := stdout.Read(outBuf)
 		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 		if n > 0 {
-			result.Stdout = outb[:n]
+			result.Stdout = outBuf[:n]
 		}
 
-		n, err = stderr.Read(errb)
+		n, err = stderr.Read(errBuf)
 		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 		if n > 0 {
-			result.Stderr = errb[:n]
+			result.Stderr = errBuf[:n]
 		}
 
 		if len(result.Stdout) > 0 || len(result.Stderr) > 0 {

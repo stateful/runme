@@ -10,14 +10,21 @@ option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/runne
 message Session {
     string id = 1;
 
+    // envs keeps track of session environment variables.
+    // They can be modified by executing programs which
+    // alter them through "export" and "unset" commands.
     repeated string envs = 2;
 
+    // metadata is a map of client specific metadata.
     map<string, string> metadata = 3;
 }
 
 message CreateSessionRequest {
+    // metadata is a map of client specific metadata.
     map<string, string> metadata = 1;
 
+    // envs field provides an initial set of environment variables
+    // for a newly created session.
     repeated string envs = 2;
 }
 
@@ -76,18 +83,10 @@ message ExecuteRequest {
     // tty when true allocates a pseudo-TTY.
     bool tty = 7;
 
-    // background, if true, will not accept any input.
-    bool background = 8;
-
-    // chunk_interval specifies how often partial output
-    // should be streamed to the client.
-    // For example: "0.5s".
-    google.protobuf.Duration chunk_interval = 9;
-
     // input_data is a byte array that will be send as input
     // to the program.
     // It is allowed in the consecutive calls only.
-    bytes input_data = 10;
+    bytes input_data = 8;
 
     // session_id indicates in which Session the program should execute.
     // Executing in a Session might provide additional context like
@@ -111,5 +110,13 @@ service RunnerService {
     rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {};
     rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {};
     rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {};
+
+    // Execute executes a program. Examine "ExecuteRequest" to explore
+    // configuration options.
+    //
+    // It's a bidirectional stream RPC method. It expects the first
+    // "ExecuteRequest" to contain details of a program to execute.
+    // Subsequent "ExecuteRequest" should only contain "input_data" as
+    // other fields will be ignored.
     rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {};
 }
