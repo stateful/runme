@@ -71,9 +71,7 @@ func (m QuestionModel) Update(msg tea.Msg) (QuestionModel, tea.Cmd) {
 
 func (m QuestionModel) View() string {
 	var b strings.Builder
-	if _, err := b.WriteString(m.Text + " [Y/n] " + m.input.View()); err != nil {
-		m.log.Error(err.Error())
-	}
+	_, _ = b.WriteString(m.Text + " [Y/n] " + m.input.View())
 	return b.String()
 }
 

@@ -65,9 +65,7 @@ func (m InputModel) Update(msg tea.Msg) (InputModel, tea.Cmd) {
 
 func (m InputModel) View() string {
 	var b strings.Builder
-	if _, err := b.WriteString(m.Text + " " + m.input.View()); err != nil {
-		m.log.Error(err.Error())
-	}
+	_, _ = b.WriteString(m.Text + " " + m.input.View())
 	return b.String()
 }
 

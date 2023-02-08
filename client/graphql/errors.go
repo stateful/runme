@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 
@@ -57,30 +56,13 @@ func (e *APIError) Error() string {
 	}
 
 	if len(e.userErrors) > 0 {
-		var errs []error
-
 		var b bytes.Buffer
-		if _, err := b.WriteString(userErrorString(e.userErrors[0])); err != nil {
-			errs = append(errs, err)
-		}
+
+		_, _ = b.WriteString(userErrorString(e.userErrors[0]))
+
 		for i := 1; i < len(e.userErrors); i++ {
-			if err := b.WriteByte('\n'); err != nil {
-				errs = append(errs, err)
-			}
-
-			if _, err := b.WriteString(userErrorString(e.userErrors[i])); err != nil {
-				errs = append(errs, err)
-			}
-		}
-
-		if len(errs) > 0 {
-			var msgs []string
-
-			for _, err := range errs {
-				msgs = append(msgs, err.Error())
-			}
-
-			log.Fatalf("failed to write strings: %s", strings.Join(msgs, ", "))
+			_ = b.WriteByte('\n')
+			_, _ = b.WriteString(userErrorString(e.userErrors[i]))
 		}
 
 		return b.String()

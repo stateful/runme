@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -16,19 +15,15 @@ type apiServerHandlerMock struct {
 func newAPIServerHandlerMock() *apiServerHandlerMock {
 	mux := http.NewServeMux()
 	s := &apiServerHandlerMock{ServeMux: mux}
-	mux.HandleFunc(APIAuthEndpoint, func(w http.ResponseWriter, r *http.Request) {
-		if err := authHandler(w, r); err != nil {
-			log.Fatal(err)
-		}
-	})
+	mux.HandleFunc(APIAuthEndpoint, authHandler)
 	return s
 }
 
-func authHandler(w http.ResponseWriter, r *http.Request) error {
+func authHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write([]byte(`invalid method`))
-		return err
+		_, _ = w.Write([]byte(`invalid method`))
+		return
 	}
 
 	var payload struct {
@@ -39,8 +34,8 @@ func authHandler(w http.ResponseWriter, r *http.Request) error {
 	defer r.Body.Close()
 	if err := decoder.Decode(&payload); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write([]byte(`invalid payload`))
-		return err
+		_, _ = w.Write([]byte(`invalid payload`))
+		return
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -57,6 +52,4 @@ func authHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	encoder := json.NewEncoder(w)
 	_ = encoder.Encode(&result)
-
-	return nil
 }

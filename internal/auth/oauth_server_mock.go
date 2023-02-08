@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -27,18 +26,18 @@ func newOAuthServerHandlerMock() *oauthServerHandlerMock {
 	mux := http.NewServeMux()
 	s := &oauthServerHandlerMock{ServeMux: mux}
 
-	mux.HandleFunc("/login/oauth/authorize", wrapMuxHandlerErr(s.authorizeHandler))
+	mux.HandleFunc("/login/oauth/authorize", s.authorizeHandler)
 
-	mux.HandleFunc("/login/oauth/access_token", wrapMuxHandlerErr(s.accessTokenHandler))
+	mux.HandleFunc("/login/oauth/access_token", s.accessTokenHandler)
 
 	return s
 }
 
-func (s *oauthServerHandlerMock) authorizeHandler(w http.ResponseWriter, r *http.Request) error {
+func (s *oauthServerHandlerMock) authorizeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write([]byte(`invalid method`))
-		return err
+		_, _ = w.Write([]byte(`invalid method`))
+		return
 	}
 
 	state := r.URL.Query().Get("state")
@@ -48,8 +47,8 @@ func (s *oauthServerHandlerMock) authorizeHandler(w http.ResponseWriter, r *http
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 
-		_, err := w.Write([]byte(`invalid redirect_uri ` + err.Error()))
-		return err
+		_, _ = w.Write([]byte(`invalid redirect_uri ` + err.Error()))
+		return
 	}
 
 	s.state = state
@@ -62,15 +61,13 @@ func (s *oauthServerHandlerMock) authorizeHandler(w http.ResponseWriter, r *http
 	u.RawQuery = params.Encode()
 
 	http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
-
-	return nil
 }
 
-func (s *oauthServerHandlerMock) accessTokenHandler(w http.ResponseWriter, r *http.Request) error {
+func (s *oauthServerHandlerMock) accessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write([]byte(`invalid method`))
-		return err
+		_, _ = w.Write([]byte(`invalid method`))
+		return
 	}
 
 	// TODO: validate received code
@@ -91,20 +88,10 @@ func (s *oauthServerHandlerMock) accessTokenHandler(w http.ResponseWriter, r *ht
 	data, err := json.Marshal(payload)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, err := w.Write([]byte(err.Error()))
-		return err
+		_, _ = w.Write([]byte(err.Error()))
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	_, err = w.Write(data)
-
-	return err
-}
-
-func wrapMuxHandlerErr(handler func(http.ResponseWriter, *http.Request) error) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := handler(w, r); err != nil {
-			log.Fatal(err)
-		}
-	}
+	_, _ = w.Write(data)
 }

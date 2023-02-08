@@ -36,10 +36,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = fmt.Fprintf(os.Stdout, "%s", result)
-	if err != nil {
-		log.Fatal(err)
-	}
+	_, _ = fmt.Fprintf(os.Stdout, "%s", result)
 }
 
 func getDefaultConfigHome() string {
