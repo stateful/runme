@@ -203,7 +203,7 @@ func Test_runnerService_Execute(t *testing.T) {
 				},
 			})
 			require.NoError(t, err)
-			// assert.NoError(t, stream.CloseSend())
+			assert.NoError(t, stream.CloseSend())
 
 			result := <-execResult
 
@@ -229,7 +229,7 @@ func Test_runnerService_Execute(t *testing.T) {
 				},
 			})
 			require.NoError(t, err)
-			// assert.NoError(t, stream.CloseSend())
+			assert.NoError(t, stream.CloseSend())
 
 			result := <-execResult
 
