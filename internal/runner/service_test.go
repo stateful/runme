@@ -203,6 +203,7 @@ func Test_runnerService_Execute(t *testing.T) {
 				},
 			})
 			require.NoError(t, err)
+			// assert.NoError(t, stream.CloseSend())
 
 			result := <-execResult
 
@@ -228,6 +229,7 @@ func Test_runnerService_Execute(t *testing.T) {
 				},
 			})
 			require.NoError(t, err)
+			// assert.NoError(t, stream.CloseSend())
 
 			result := <-execResult
 
@@ -249,5 +251,39 @@ func Test_runnerService_Execute(t *testing.T) {
 			[]string{"EXEC_EXPORTED=execute2", "EXEC_PROVIDED=execute1", "SESSION=session1"},
 			sessResp.Session.Envs,
 		)
+	})
+
+	t.Run("Tty", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         true,
+		})
+		assert.NoError(t, err)
+
+		errc := make(chan error)
+		go func() {
+			time.Sleep(time.Second)
+			err := stream.Send(&runnerv1.ExecuteRequest{
+				InputData: []byte{4},
+			})
+			errc <- err
+		}()
+		require.NoError(t, <-errc)
+		assert.NoError(t, stream.CloseSend())
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		require.Len(t, result.Responses, 2)
+		// result.Responses[0] contains prompt and exit command
+		assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
 	})
 }

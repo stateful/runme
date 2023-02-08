@@ -3,10 +3,10 @@
 package kernel
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net"
-	"regexp"
 	"testing"
 	"time"
 
@@ -61,14 +61,14 @@ func testCreateSessionUsingKernelService(t *testing.T, client kernelv1.KernelSer
 
 func Test_kernelServiceServer_PostSession(t *testing.T) {
 	lis, stop := testStartKernelServiceServer(t)
-	defer stop()
+	t.Cleanup(stop)
 	_, client := testCreateKernelServiceClient(t, lis)
 	testCreateSessionUsingKernelService(t, client)
 }
 
 func Test_kernelServiceServer_DeleteSession(t *testing.T) {
 	lis, stop := testStartKernelServiceServer(t)
-	defer stop()
+	t.Cleanup(stop)
 	_, client := testCreateKernelServiceClient(t, lis)
 
 	_, err := client.DeleteSession(
@@ -88,7 +88,7 @@ func Test_kernelServiceServer_DeleteSession(t *testing.T) {
 
 func Test_kernelServiceServer_ListSessions(t *testing.T) {
 	lis, stop := testStartKernelServiceServer(t)
-	defer stop()
+	t.Cleanup(stop)
 	_, client := testCreateKernelServiceClient(t, lis)
 
 	resp, err := client.ListSessions(
@@ -111,7 +111,7 @@ func Test_kernelServiceServer_ListSessions(t *testing.T) {
 
 func Test_kernelServiceServer_Execute(t *testing.T) {
 	lis, stop := testStartKernelServiceServer(t)
-	defer stop()
+	t.Cleanup(stop)
 	_, client := testCreateKernelServiceClient(t, lis)
 
 	sessionID := testCreateSessionUsingKernelService(t, client)
@@ -130,7 +130,7 @@ func Test_kernelServiceServer_Execute(t *testing.T) {
 
 func Test_kernelServiceServer_ExecuteStream(t *testing.T) {
 	lis, stop := testStartKernelServiceServer(t)
-	defer stop()
+	t.Cleanup(stop)
 	_, client := testCreateKernelServiceClient(t, lis)
 
 	sessionID := testCreateSessionUsingKernelService(t, client)
@@ -145,27 +145,27 @@ func Test_kernelServiceServer_ExecuteStream(t *testing.T) {
 	require.NoError(t, err)
 
 	var resp []*kernelv1.ExecuteResponse
-	rErr := make(chan error, 1)
+	errc := make(chan error)
 	go func() {
-		defer close(rErr)
+		defer close(errc)
 		for {
 			item, err := stream.Recv()
 			if err != nil {
-				rErr <- err
+				errc <- err
 				return
 			}
 			resp = append(resp, item)
 		}
 	}()
-	err = <-rErr
+	err = <-errc
 	assert.ErrorContains(t, err, io.EOF.Error())
 	assert.NotEmpty(t, resp)
 	assert.EqualValues(t, 0, resp[len(resp)-1].ExitCode.Value)
 }
 
 func Test_kernelServiceServer_InputOutput(t *testing.T) {
-	lis, _ := testStartKernelServiceServer(t)
-	// defer stop()
+	lis, stop := testStartKernelServiceServer(t)
+	t.Cleanup(stop)
 	_, client := testCreateKernelServiceClient(t, lis)
 
 	sessionID := testCreateSessionUsingKernelService(t, client)
@@ -180,17 +180,17 @@ func Test_kernelServiceServer_InputOutput(t *testing.T) {
 	require.NoError(t, err)
 
 	var resp []*kernelv1.OutputResponse
-	rErr := make(chan error, 1)
+	errc := make(chan error)
 	go func() {
-		defer close(rErr)
 		for {
 			item, err := stream.Recv()
 			if err != nil {
-				t.Logf("received item with error %s", err)
-				rErr <- err
+				if err == io.EOF {
+					err = nil
+				}
+				errc <- err
 				return
 			}
-			t.Logf("received item %s", item.Data)
 			resp = append(resp, item)
 		}
 	}()
@@ -207,46 +207,45 @@ func Test_kernelServiceServer_InputOutput(t *testing.T) {
 		&kernelv1.InputRequest{SessionId: sessionID, Data: []byte("echo World\n")},
 	)
 	require.NoError(t, err)
-	time.Sleep(time.Second)
 
 	cancel()
-	err = <-rErr
-	require.ErrorIs(t, err, status.FromContextError(context.Canceled).Err())
+	require.ErrorIs(t, <-errc, status.FromContextError(context.Canceled).Err())
 }
 
 func Test_kernelServiceServer_IO(t *testing.T) {
 	lis, stop := testStartKernelServiceServer(t)
-	defer stop()
-
-	conn, client := testCreateKernelServiceClient(t, lis)
+	t.Cleanup(stop)
+	_, client := testCreateKernelServiceClient(t, lis)
 
 	sessionID := testCreateSessionUsingKernelService(t, client)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	stream, err := client.IO(ctx)
+	stream, err := client.IO(context.Background())
 	require.NoError(t, err)
-	defer func() {
-		assert.NoError(t, stream.CloseSend())
+
+	errc := make(chan error)
+	go func() {
+		for {
+			item, err := stream.Recv()
+			if err != nil {
+				if err == io.EOF {
+					err = nil
+				}
+				errc <- err
+				return
+			}
+
+			if bytes.Equal(item.Data, []byte("Hello\r\n")) {
+				close(errc)
+				return
+			}
+		}
 	}()
 
 	err = stream.Send(&kernelv1.IORequest{
 		SessionId: sessionID,
 		Data:      []byte("echo 'Hello'\n"),
 	})
-	require.NoError(t, err)
-
-	re := regexp.MustCompile(`(?m:^Hello\s$)`)
-	for {
-		resp, err := stream.Recv()
-		if err != nil {
-			assert.Fail(t, "no match")
-			break
-		}
-		if re.Match(resp.Data) {
-			break
-		}
-	}
-	assert.NoError(t, conn.Close())
+	assert.NoError(t, err)
+	assert.NoError(t, stream.CloseSend())
+	assert.NoError(t, <-errc)
 }

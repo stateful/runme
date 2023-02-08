@@ -152,6 +152,7 @@ func newCommand(
 		// stdout is read from pty. stderr is unused because
 		// it can't be distinguished from pty.
 		cmd.Stdout = rbuffer.NewRingBuffer(4096)
+		cmd.Stderr = rbuffer.NewRingBuffer(0)
 	} else {
 		cmd.Stdin = &safeBuffer{buf: bytes.NewBuffer(cfg.Input)}
 		cmd.Stdout = rbuffer.NewRingBuffer(4096)
