@@ -18,11 +18,6 @@ func suggestCmd() *cobra.Command {
 		Hidden: true,
 	}
 
-	branchCmd := branchCmd()
-
-	cmd.AddCommand(branchCmd)
-	cmd.RunE = branchCmd.RunE
-
 	return cmd
 }
 

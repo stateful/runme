@@ -61,6 +61,11 @@ func Root() *cobra.Command {
 		}
 	})
 
+	branchCmd := branchCmd()
+	suggestCmd := suggestCmd()
+
+	suggestCmd.AddCommand(branchCmd)
+
 	cmd.AddCommand(tuiCmd)
 	cmd.AddCommand(runCmd())
 	cmd.AddCommand(listCmd())
@@ -69,7 +74,8 @@ func Root() *cobra.Command {
 	cmd.AddCommand(fmtCmd())
 	cmd.AddCommand(serverCmd())
 	cmd.AddCommand(shellCmd())
-	cmd.AddCommand(suggestCmd())
+	cmd.AddCommand(suggestCmd)
+	cmd.AddCommand(branchCmd)
 
 	return &cmd
 }
