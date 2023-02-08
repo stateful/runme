@@ -14,37 +14,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stateful/runme/internal/runner"
 	"golang.org/x/oauth2/github"
 )
-
-const (
-	apiURLF      = "api-url"
-	authURLF     = "auth-url"
-	traceF       = "trace"
-	traceAllF    = "trace-all"
-	enableChaosF = "enable-chaos"
-	apiTokenF    = "api-token"
-)
-
-var (
-	apiBaseURL  string
-	authBaseURL string
-	trace       bool
-	traceAll    bool
-	enableChaos bool
-	apiToken    string
-)
-
-func getAPIURL() string    { return apiBaseURL }
-func getAuthURL() string   { return authBaseURL }
-func getTrace() bool       { return trace || traceAll }
-func getTraceAll() bool    { return traceAll }
-func getEnableChaos() bool { return enableChaos }
-func getAPIToken() string  { return apiToken }
 
 // TODO(adamb): temporarily we authorize using Github as IdP.
 // In the future, we will likely change this to Stateful being IdP.
@@ -56,15 +30,6 @@ var defaultAuthURL = func() string {
 	}
 	return (&url.URL{Scheme: ghURL.Scheme, Host: ghURL.Host}).String()
 }()
-
-func setConfigFlags(flagSet *pflag.FlagSet) {
-	flagSet.StringVar(&authBaseURL, authURLF, defaultAuthURL, "backend URL to authorize you")
-	flagSet.StringVar(&apiBaseURL, apiURLF, "https://api.stateful.com", "backend URL with API")
-	flagSet.StringVar(&apiToken, apiTokenF, "", "api token")
-	flagSet.BoolVar(&trace, traceF, false, "trace HTTP calls")
-	flagSet.BoolVar(&traceAll, traceAllF, false, "trace all HTTP calls including authentication (it might leak sensitive data to output)")
-	flagSet.BoolVar(&enableChaos, enableChaosF, false, "enable Chaos Monkey mode for GraphQL requests")
-}
 
 func readMarkdownFile(args []string) ([]byte, error) {
 	arg := ""
