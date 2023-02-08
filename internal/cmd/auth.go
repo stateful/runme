@@ -9,6 +9,7 @@ import (
 	"github.com/stateful/runme/internal/renderer"
 )
 
+//lint:file-ignore U1000 hiding this cmd for now
 func authCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
