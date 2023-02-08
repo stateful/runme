@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	MaxWidth  = 120
-	MaxHeight = 12
+	MaxWidth = 120
 )
 
 func Width(width int) int {
@@ -145,23 +144,6 @@ var DefaultStyles = &Styles{
 	Help:    lipgloss.NewStyle().Padding(1, 0, 1, 2),
 	Success: lipgloss.NewStyle().Inherit(ColorSuccess).Padding(1, 0),
 }
-
-var DefaultKeyMap = func() *KeyMap {
-	m := orderedmap.NewOrderedMap()
-	m.Set("quit", key.NewBinding(
-		key.WithKeys("q", "ctrl+c"),
-		key.WithHelp("q", "quit"),
-	))
-	m.Set("more", key.NewBinding(
-		key.WithKeys("?"),
-		key.WithHelp("?", "more"),
-	))
-	m.Set("less", key.NewBinding(
-		key.WithKeys("?"),
-		key.WithHelp("?", "close help"),
-	))
-	return &KeyMap{OrderedMap: m}
-}()
 
 var MinimalKeyMap = func() *KeyMap {
 	m := orderedmap.NewOrderedMap()
