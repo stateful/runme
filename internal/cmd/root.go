@@ -46,7 +46,7 @@ func Root() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 
 	pflags.BoolVar(&fAllowUnknown, "allow-unknown", false, "Display snippets without known executor.")
-	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before exeucing the command.")
+	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command.")
 	pflags.StringVar(&fFileName, "filename", "README.md", "A name of the README file.")
 
 	tuiCmd := tuiCmd()
