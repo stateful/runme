@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stateful/runme/internal/runner"
@@ -30,11 +29,19 @@ const (
 	enableChaosF = "enable-chaos"
 )
 
-func getAPIURL() string    { return viper.GetString(apiURLF) }
-func getAuthURL() string   { return viper.GetString(authURLF) }
-func getTrace() bool       { return viper.GetBool(traceF) || viper.GetBool(traceAllF) }
-func getTraceAll() bool    { return viper.GetBool(traceAllF) }
-func getEnableChaos() bool { return viper.GetBool(enableChaosF) }
+var (
+	apiBaseURL  string
+	authBaseURL string
+	trace       bool
+	traceAll    bool
+	enableChaos bool
+)
+
+func getAPIURL() string    { return apiBaseURL }
+func getAuthURL() string   { return authBaseURL }
+func getTrace() bool       { return trace || traceAll }
+func getTraceAll() bool    { return traceAll }
+func getEnableChaos() bool { return enableChaos }
 
 // TODO(adamb): temporarily we authorize using Github as IdP.
 // In the future, we will likely change this to Stateful being IdP.
@@ -48,40 +55,11 @@ var defaultAuthURL = func() string {
 }()
 
 func setConfigFlags(flagSet *pflag.FlagSet) {
-	var (
-		// configFile  string
-		apiBaseURL  string
-		authBaseURL string
-		trace       bool
-		traceAll    bool
-		// debug       bool
-		// noBrowser   bool
-		enableChaos bool
-	)
-
-	// flagSet.StringVarP(&configFile, configF, "c", filepath.Join(getDefaultConfigHome(), "config.yaml"), "location of an optional config file")
-	// viper.BindPFlag(configF, flagSet.Lookup(configF))
-
 	flagSet.StringVar(&authBaseURL, authURLF, defaultAuthURL, "backend URL to authorize you")
-	_ = viper.BindPFlag(authURLF, flagSet.Lookup(authURLF))
-
 	flagSet.StringVar(&apiBaseURL, apiURLF, "https://api.stateful.com", "backend URL with API")
-	_ = viper.BindPFlag(apiURLF, flagSet.Lookup(apiURLF))
-
 	flagSet.BoolVar(&trace, traceF, false, "trace HTTP calls")
-	_ = viper.BindPFlag(traceF, flagSet.Lookup(traceF))
-
 	flagSet.BoolVar(&traceAll, traceAllF, false, "trace all HTTP calls including authentication (it might leak sensitive data to output)")
-	_ = viper.BindPFlag(traceAllF, flagSet.Lookup(traceAllF))
-
 	flagSet.BoolVar(&enableChaos, enableChaosF, false, "enable Chaos Monkey mode for GraphQL requests")
-	_ = viper.BindPFlag(enableChaosF, flagSet.Lookup(enableChaosF))
-
-	// flagSet.BoolVar(&debug, debugF, false, "print debug logs")
-	// _ = viper.BindPFlag(debugF, flagSet.Lookup(debugF))
-
-	// flagSet.BoolVar(&noBrowser, noBrowserF, false, "follow authorization flow manually without opening a URL automatically")
-	// viper.BindPFlag(noBrowserF, flagSet.Lookup(noBrowserF))}
 }
 
 func readMarkdownFile(args []string) ([]byte, error) {
