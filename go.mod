@@ -18,7 +18,6 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/mattn/go-isatty v0.0.16
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
-	github.com/muesli/reflow v0.3.0
 	github.com/rogpeppe/go-internal v1.9.0
 	github.com/rs/cors v1.8.3
 	github.com/rs/xid v1.4.0
@@ -61,6 +60,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
+	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.13.0 // indirect
 	github.com/pjbgf/sha1cd v0.2.3 // indirect
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e // indirect
@@ -85,7 +85,6 @@ require (
 require (
 	github.com/Khan/genqlient v0.5.0
 	github.com/charmbracelet/bubbles v0.15.0
-	github.com/cli/cli v1.14.0
 	github.com/elliotchance/orderedmap v1.5.0
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/go-playground/validator/v10 v10.11.0
