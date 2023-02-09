@@ -5,7 +5,6 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +14,7 @@ type program struct {
 }
 
 func (p *program) Start() error {
-	if f, ok := p.out.(*os.File); ok && !isatty.IsTerminal(f.Fd()) {
+	if f, ok := p.out.(*os.File); ok && !isTerminal(f.Fd()) {
 		go p.Quit()
 	}
 	_, err := p.Program.Run()

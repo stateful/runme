@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,19 +16,7 @@ import (
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stateful/runme/internal/runner"
-	"golang.org/x/oauth2/github"
 )
-
-// TODO(adamb): temporarily we authorize using Github as IdP.
-// In the future, we will likely change this to Stateful being IdP.
-// TODO(mxs): ditto
-var defaultAuthURL = func() string {
-	ghURL, err := url.Parse(github.Endpoint.AuthURL)
-	if err != nil {
-		panic(err)
-	}
-	return (&url.URL{Scheme: ghURL.Scheme, Host: ghURL.Host}).String()
-}()
 
 func readMarkdownFile(args []string) ([]byte, error) {
 	arg := ""

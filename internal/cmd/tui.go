@@ -224,7 +224,7 @@ func tuiCmd() *cobra.Command {
 			}
 
 			for {
-				prog := tea.NewProgram(model)
+				prog := newProgram(cmd, model)
 
 				newModel, err := prog.Run()
 				if err != nil {
