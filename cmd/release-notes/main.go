@@ -58,7 +58,9 @@ var tpl = template.Must(template.New("").Funcs(template.FuncMap{"split": split})
 [Full changelog](https://github.com/stateful/runme/compare/v{{ or .PreviousVersion "main" }}...v{{ .Version }})
 
 {{ range $value := .Commits -}}
-* {{ $value.SHA }}: {{ (split "\n" $value.Commit.Message)._0 }} ([@{{ $value.Author.Login }}]({{ $value.Author.HTMLURL }}))
+* {{ $value.SHA }}: {{ (split "\n" $value.Commit.Message)._0 }}
+{{- if $value.Author }} ([@{{ $value.Author.Login }}]({{ $value.Author.HTMLURL }}))
+{{- else if $value.Commit.Author }} ({{ $value.Commit.Author.Name }}){{ end }}
 {{ end }}
 `))
 
