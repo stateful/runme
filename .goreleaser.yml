@@ -13,7 +13,6 @@ builds:
       - darwin
       - windows
     goarch:
-      - 386
       - amd64
       - arm64
     mod_timestamp: "{{ .CommitTimestamp }}"
@@ -58,7 +57,6 @@ archives:
       - wasm
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     replacements:
-      386: i386
       amd64: x86_64
     format_overrides:
       - goos: windows
@@ -106,7 +104,6 @@ nfpms:
     builds:
       - cli
     replacements:
-      386: i386
       amd64: x86_64
     vendor: Stateful Inc.
     homepage: https://stateful.com
