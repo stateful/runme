@@ -6,12 +6,13 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/shlex"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type Shell struct {
@@ -44,8 +45,7 @@ func (s *Shell) Run(ctx context.Context) error {
 	if !ok {
 		sh = "/bin/sh"
 	}
-
-	return execSingle(ctx, sh, s.Dir, prepareScriptFromCommands(s.Cmds), s.Name, s.Stdin, s.Stdout, s.Stderr)
+	return execSingle(ctx, sh, s.Dir, s.Cmds, "", s.Name, s.Stdin, s.Stdout, s.Stderr)
 }
 
 func PrepareScriptFromCommands(cmds []string) string {
@@ -105,18 +105,60 @@ func prepareScript(script string) string {
 	return b.String()
 }
 
-func execSingle(ctx context.Context, sh, dir, cmd string, name string, stdin io.Reader, stdout, stderr io.Writer) error {
-	c := exec.CommandContext(ctx, sh, []string{"-c", cmd}...)
-	c.Dir = dir
-	c.Stderr = stderr
-	c.Stdout = stdout
-	c.Stdin = stdin
-
-	err := c.Run()
-
-	if len(name) == 0 {
-		return errors.Wrapf(err, "failed to run command")
+func execSingle(
+	ctx context.Context,
+	sh string,
+	dir string,
+	commands []string,
+	script string,
+	name string,
+	stdin io.Reader,
+	stdout io.Writer,
+	stderr io.Writer,
+) error {
+	cmd, err := newCommand(
+		&commandConfig{
+			ProgramName: sh,
+			Directory:   dir,
+			IsShell:     true,
+			Commands:    commands,
+			Script:      script,
+		},
+		zap.NewNop(),
+	)
+	if err != nil {
+		return err
 	}
 
-	return errors.Wrapf(err, "failed to run command %q", name)
+	errc := make(chan error)
+	go func() {
+		_, err := io.Copy(cmd.Stdin, stdin)
+		errc <- err
+	}()
+
+	_, err = executeCmd(
+		ctx,
+		cmd,
+		func(o output) error {
+			if _, err := stdout.Write(o.Stdout); err != nil {
+				return errors.WithStack(err)
+			}
+			if _, err := stdout.Write(o.Stderr); err != nil {
+				return errors.WithStack(err)
+			}
+			return nil
+		},
+		time.Millisecond*100,
+	)
+	if err != nil {
+		msg := "failed to run command"
+		if len(name) == 0 {
+			msg += " " + strconv.Quote(name)
+		}
+		return errors.Wrap(err, msg)
+	}
+	if err := <-errc; err != nil {
+		return errors.Wrap(err, "failed to copy stdin")
+	}
+	return nil
 }
