@@ -7,6 +7,7 @@ type Query {
   notificationsSummary: NotificationsSummary!
   profile(id: String = null, usernameOrId: String = null): Profile
   profiles(pageSize: Int! = 20, pageToken: String = null, includeUser: Boolean! = false): ProfileList!
+  profilesAll(sharingFields: GetAllProfilesSharingFieldsInput = null, pageSize: Int! = 20, pageToken: String = null, includeUser: Boolean! = false): ProfileList!
   sessionSpans(startTime: DateTime = null, endTime: DateTime = null, pageSize: Int! = 20, pageToken: String = null, sort: [SessionSpanSort!] = null): SessionSpanList!
   standup(date: Date = null, includeUpcoming: Boolean! = false): Standup
   standups(pageSize: Int! = 10, includeUpcoming: Boolean! = false): StandupList!
@@ -231,11 +232,13 @@ type UserAnnotation {
   gitBranch: UserAnnotationProjectGitBranch
   gitCommit: String
   completeTime: DateTime
+  deleteTime: DateTime
   hideTime: DateTime
   createTime: DateTime!
   updateTime: DateTime!
   project: UserAnnotationProject
   completed: Boolean!
+  deleted: Boolean!
   hidden: Boolean!
 }
 
@@ -965,6 +968,24 @@ type ProfileList {
   data: [Profile!]!
 }
 
+input GetAllProfilesSharingFieldsInput {
+  activity: GetAllProfilesSharingLevel = null
+  dnd: GetAllProfilesSharingLevel = null
+  feed: GetAllProfilesSharingLevel = null
+  file: GetAllProfilesSharingLevel = null
+  gitBranch: GetAllProfilesSharingLevel = null
+  language: GetAllProfilesSharingLevel = null
+  profile: GetAllProfilesSharingLevel = null
+  project: GetAllProfilesSharingLevel = null
+  schedule: GetAllProfilesSharingLevel = null
+  status: GetAllProfilesSharingLevel = null
+}
+
+enum GetAllProfilesSharingLevel {
+  FOLLOWERS
+  EVERYONE
+}
+
 type SessionSpanList {
   nextPageToken: String
   data: [SessionSpan!]!
@@ -1078,7 +1099,7 @@ type User implements UserAbstract {
   timezone: String
   dndEnabled: Boolean
   dndUnpauseTime: DateTime
-  annotations(startDate: Date = null, endDate: Date = null, projectId: UUID = null, projectGitUrl: String = null, types: [AnnotationType!] = null, showHidden: Boolean = null, showCompleted: Boolean = null, query: String = null, sort: [UserAnnotationSort!] = null, pageSize: Int! = 20, pageToken: String = null): UserAnnotationList!
+  annotations(startDate: Date = null, endDate: Date = null, projectId: UUID = null, projectGitUrl: String = null, types: [AnnotationType!] = null, showDeleted: Boolean = null, showHidden: Boolean = null, showCompleted: Boolean = null, query: String = null, sort: [UserAnnotationSort!] = null, pageSize: Int! = 20, pageToken: String = null): UserAnnotationList!
   calendars(pageSize: Int! = 100, pageToken: String = null): UserCalendarList!
   connections(pageSize: Int! = 100, pageToken: String = null, types: [ConnectionType!] = null): ConnectionList!
   dataAliased: Boolean!
@@ -1089,10 +1110,13 @@ type User implements UserAbstract {
   milestones(statuses: [UserMilestoneStatus!] = null): [UserMilestone!]!
   presence: UserPresence!
   projects(pageSize: Int! = 100, pageToken: String = null): UserProjectList!
+  recentSpaces(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserRecentSpaceList!
   relationships(pageSize: Int! = 20, pageToken: String = null, showFollowers: Boolean = null, showFollowing: Boolean = null, activityWindowDays: Int = null, activityWindowMins: Int = null): ProfileList!
   settings: UserSettings!
   status: UserStatus
   today: Date!
+  sessions(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserSessionList!
+  vscodeSessions(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserVSCodeSessionList!
 }
 
 type UserGitHub implements GitHubUserAbstract {
@@ -1267,6 +1291,67 @@ type UserProject implements ProjectAbstract {
   url: String
 }
 
+type UserRecentSpaceList {
+  nextPageToken: String
+  data: [UserRecentSpace!]!
+}
+
+union UserRecentSpace = UserRecentProject | UserRecentWorkspace
+
+type UserRecentProject implements UserRecentSpaceAbstract & ProjectAbstract {
+  id: UUID!
+  lastOpenTime: DateTime!
+  lastEndTime: DateTime!
+  sessionCount: Int!
+  isActive: Boolean!
+  name: String!
+  displayName: String!
+  shortName: String!
+  gitUrl: String
+  url: String
+  instances(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserRecentInstanceList!
+}
+
+interface UserRecentSpaceAbstract {
+  id: UUID!
+  lastOpenTime: DateTime!
+  lastEndTime: DateTime!
+  sessionCount: Int!
+  isActive: Boolean!
+}
+
+type UserRecentInstanceList {
+  nextPageToken: String
+  data: [UserRecentInstance!]!
+}
+
+type UserRecentInstance implements DeviceAbstract {
+  id: UUID!
+  platform: String
+  platformVersion: String
+  appHost: String
+  remoteName: String
+  folderUri: String
+}
+
+interface DeviceAbstract {
+  id: UUID!
+  platform: String
+  platformVersion: String
+  appHost: String
+  remoteName: String
+}
+
+type UserRecentWorkspace implements UserRecentSpaceAbstract {
+  id: UUID!
+  lastOpenTime: DateTime!
+  lastEndTime: DateTime!
+  sessionCount: Int!
+  isActive: Boolean!
+  name: String!
+  instances(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserRecentInstanceList!
+}
+
 type UserSettings {
   sharing: UserSharingSettings!
   day(dayOfWeek: DayOfWeek = null): UserDaySettings!
@@ -1317,6 +1402,72 @@ type UserDaySettingsList {
   data: [UserDaySettings!]!
 }
 
+type UserSessionList {
+  nextPageToken: String
+  data: [UserSession!]!
+}
+
+type UserSession {
+  contentId: UUID!
+  startTime: DateTime!
+  endTime: DateTime!
+  sessionIds: [UUID!]!
+  device: UserVSCodeSessionDevice!
+  projects: UserVSCodeSessionProjectList!
+  workspaces: UserVSCodeSessionWorkspaceList!
+}
+
+type UserVSCodeSessionDevice implements DeviceAbstract {
+  id: UUID!
+  platform: String
+  platformVersion: String
+  appHost: String
+  remoteName: String
+}
+
+type UserVSCodeSessionProjectList {
+  data: [UserVSCodeSessionProject!]!
+}
+
+type UserVSCodeSessionProject implements ProjectAbstract {
+  id: UUID!
+  name: String!
+  displayName: String!
+  shortName: String!
+  gitUrl: String
+  url: String
+  baseProjectId: String
+  branches: [String!]
+  codingDuration: CodingDuration
+  folderUri: String
+  workspaceId: UUID
+}
+
+type UserVSCodeSessionWorkspaceList {
+  data: [UserVSCodeSessionWorkspace!]!
+}
+
+type UserVSCodeSessionWorkspace {
+  id: UUID!
+  name: String!
+  folderUri: String
+}
+
+type UserVSCodeSessionList {
+  nextPageToken: String
+  data: [UserVSCodeSession!]!
+}
+
+type UserVSCodeSession {
+  id: UUID!
+  contentId: UUID
+  startTime: DateTime!
+  endTime: DateTime!
+  device: UserVSCodeSessionDevice!
+  projects: UserVSCodeSessionProjectList!
+  workspaces: UserVSCodeSessionWorkspaceList!
+}
+
 type Mutation {
   completeUserMilestones(input: CompleteUserMilestonesInput!): CompleteUserMilestonesPayload
   consumeNotifications(input: ConsumeNotificationsInput!): ConsumeNotificationsPayload
@@ -1327,7 +1478,8 @@ type Mutation {
   createUserInvitation(input: CreateUserInvitationInput!): CreateUserInvitationPayload
   createWebHook(input: CreateWebHookInput!): CreateWebHookPayload
   deleteHook(input: DeleteHookInput!): DeleteHookPayload
-  deleteUserAnnotation(input: DeleteUserAnnotationInput!): DeleteUserAnnotationPayload
+  deleteUserAnnotation(input: DeleteUserAnnotationInput!): DeleteUserAnnotationPayload @deprecated(reason: "Use delete_user_annotations")
+  deleteUserAnnotations(input: DeleteUserAnnotationsInput!): DeleteUserAnnotationsPayload
   deleteUserCalendar(input: DeleteUserCalendarInput!): DeleteUserCalendarPayload
   followUser(input: FollowUserInput!): FollowUserPayload
   setFeedItemCategorySettings(input: SetFeedItemCategorySettingsInput!): SetFeedItemCategorySettingsPayload!
@@ -1350,6 +1502,7 @@ type Mutation {
   unsnoozeUserMilestones(input: UnsnoozeUserMilestonesInput!): UnsnoozeUserMilestonesPayload
   updateUser(input: UpdateUserInput!): UpdateUserPayload
   updateUserAnnotation(input: UpdateUserAnnotationInput!): UpdateUserAnnotationPayload
+  updateUserAnnotations(input: UpdateUserAnnotationsInput!): UpdateUserAnnotationsPayload
   updateUserCalendar(input: UpdateUserCalendarInput!): UpdateUserCalendarPayload
   updateUserDayNoteFeedItem(input: UpdateUserDayNoteFeedItemInput!): UpdateUserDayNoteFeedItemPayload!
   updateWebHook(input: UpdateWebHookInput!): UpdateWebHookPayload
@@ -1565,6 +1718,19 @@ input DeleteUserAnnotationInput {
   id: UUID!
 }
 
+type DeleteUserAnnotationsPayload {
+  errors: [DeleteUserAnnotationsError!]!
+}
+
+type DeleteUserAnnotationsError implements UserError {
+  message: String!
+  field: [String!]
+}
+
+input DeleteUserAnnotationsInput {
+  ids: [UUID!]!
+}
+
 type DeleteUserCalendarPayload {
   errors: [DeleteUserCalendarError!]!
 }
@@ -1731,9 +1897,9 @@ input SetUserDaySettingsInput {
   standupTime: Time
   standupTimezone: String
   ratingPromptTime: Time
-  targetCodingDuration: Int
+  targetCodingDurationSeconds: Int
   targetRestCount: Int
-  targetRestDuration: Int
+  targetRestDurationSeconds: Int
   penalizeGitBranchUsage: [String!]
 }
 
@@ -1907,6 +2073,22 @@ input UpdateUserAnnotationInput {
   gitCommit: String
   fileLine: Int
   filePath: String
+}
+
+type UpdateUserAnnotationsPayload {
+  errors: [UpdateUserAnnotationsError!]!
+  userAnnotations: [UserAnnotation!]!
+}
+
+type UpdateUserAnnotationsError implements UserError {
+  message: String!
+  field: [String!]
+}
+
+input UpdateUserAnnotationsInput {
+  ids: [UUID!]!
+  complete: Boolean
+  hide: Boolean
 }
 
 type UpdateUserCalendarPayload {

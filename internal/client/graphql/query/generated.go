@@ -1321,6 +1321,7 @@ func (v *UserAnnotationProject) GetName() string { return v.Name }
 // UserErrorCreateWebHookError
 // UserErrorDeleteHookError
 // UserErrorDeleteUserAnnotationError
+// UserErrorDeleteUserAnnotationsError
 // UserErrorDeleteUserCalendarError
 // UserErrorFollowUserError
 // UserErrorSetFeedItemCategorySettingsError
@@ -1342,6 +1343,7 @@ func (v *UserAnnotationProject) GetName() string { return v.Name }
 // UserErrorUnsnoozeUserMilestonesError
 // UserErrorUpdateUserError
 // UserErrorUpdateUserAnnotationError
+// UserErrorUpdateUserAnnotationsError
 // UserErrorUpdateUserCalendarError
 // UserErrorUpdateUserDayNoteFeedItemError
 // UserErrorUpdateWebHookError
@@ -1364,6 +1366,7 @@ func (v *UserErrorCreateUserInvitationError) implementsGraphQLInterfaceUserError
 func (v *UserErrorCreateWebHookError) implementsGraphQLInterfaceUserError()               {}
 func (v *UserErrorDeleteHookError) implementsGraphQLInterfaceUserError()                  {}
 func (v *UserErrorDeleteUserAnnotationError) implementsGraphQLInterfaceUserError()        {}
+func (v *UserErrorDeleteUserAnnotationsError) implementsGraphQLInterfaceUserError()       {}
 func (v *UserErrorDeleteUserCalendarError) implementsGraphQLInterfaceUserError()          {}
 func (v *UserErrorFollowUserError) implementsGraphQLInterfaceUserError()                  {}
 func (v *UserErrorSetFeedItemCategorySettingsError) implementsGraphQLInterfaceUserError() {}
@@ -1385,6 +1388,7 @@ func (v *UserErrorUnsetFeedItemReactionError) implementsGraphQLInterfaceUserErro
 func (v *UserErrorUnsnoozeUserMilestonesError) implementsGraphQLInterfaceUserError()      {}
 func (v *UserErrorUpdateUserError) implementsGraphQLInterfaceUserError()                  {}
 func (v *UserErrorUpdateUserAnnotationError) implementsGraphQLInterfaceUserError()        {}
+func (v *UserErrorUpdateUserAnnotationsError) implementsGraphQLInterfaceUserError()       {}
 func (v *UserErrorUpdateUserCalendarError) implementsGraphQLInterfaceUserError()          {}
 func (v *UserErrorUpdateUserDayNoteFeedItemError) implementsGraphQLInterfaceUserError()   {}
 func (v *UserErrorUpdateWebHookError) implementsGraphQLInterfaceUserError()               {}
@@ -1435,6 +1439,9 @@ func __unmarshalUserError(b []byte, v *UserError) error {
 		return json.Unmarshal(b, *v)
 	case "DeleteUserAnnotationError":
 		*v = new(UserErrorDeleteUserAnnotationError)
+		return json.Unmarshal(b, *v)
+	case "DeleteUserAnnotationsError":
+		*v = new(UserErrorDeleteUserAnnotationsError)
 		return json.Unmarshal(b, *v)
 	case "DeleteUserCalendarError":
 		*v = new(UserErrorDeleteUserCalendarError)
@@ -1498,6 +1505,9 @@ func __unmarshalUserError(b []byte, v *UserError) error {
 		return json.Unmarshal(b, *v)
 	case "UpdateUserAnnotationError":
 		*v = new(UserErrorUpdateUserAnnotationError)
+		return json.Unmarshal(b, *v)
+	case "UpdateUserAnnotationsError":
+		*v = new(UserErrorUpdateUserAnnotationsError)
 		return json.Unmarshal(b, *v)
 	case "UpdateUserCalendarError":
 		*v = new(UserErrorUpdateUserCalendarError)
@@ -1607,6 +1617,14 @@ func __marshalUserError(v *UserError) ([]byte, error) {
 		result := struct {
 			TypeName string `json:"__typename"`
 			*UserErrorDeleteUserAnnotationError
+		}{typename, v}
+		return json.Marshal(result)
+	case *UserErrorDeleteUserAnnotationsError:
+		typename = "DeleteUserAnnotationsError"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*UserErrorDeleteUserAnnotationsError
 		}{typename, v}
 		return json.Marshal(result)
 	case *UserErrorDeleteUserCalendarError:
@@ -1777,6 +1795,14 @@ func __marshalUserError(v *UserError) ([]byte, error) {
 			*UserErrorUpdateUserAnnotationError
 		}{typename, v}
 		return json.Marshal(result)
+	case *UserErrorUpdateUserAnnotationsError:
+		typename = "UpdateUserAnnotationsError"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*UserErrorUpdateUserAnnotationsError
+		}{typename, v}
+		return json.Marshal(result)
 	case *UserErrorUpdateUserCalendarError:
 		typename = "UpdateUserCalendarError"
 
@@ -1928,6 +1954,18 @@ func (v *UserErrorDeleteUserAnnotationError) GetField() []string { return v.Fiel
 
 // GetMessage returns UserErrorDeleteUserAnnotationError.Message, and is useful for accessing the field via an interface.
 func (v *UserErrorDeleteUserAnnotationError) GetMessage() string { return v.Message }
+
+// UserError includes the GraphQL fields of DeleteUserAnnotationsError requested by the fragment UserError.
+type UserErrorDeleteUserAnnotationsError struct {
+	Field   []string `json:"field"`
+	Message string   `json:"message"`
+}
+
+// GetField returns UserErrorDeleteUserAnnotationsError.Field, and is useful for accessing the field via an interface.
+func (v *UserErrorDeleteUserAnnotationsError) GetField() []string { return v.Field }
+
+// GetMessage returns UserErrorDeleteUserAnnotationsError.Message, and is useful for accessing the field via an interface.
+func (v *UserErrorDeleteUserAnnotationsError) GetMessage() string { return v.Message }
 
 // UserError includes the GraphQL fields of DeleteUserCalendarError requested by the fragment UserError.
 type UserErrorDeleteUserCalendarError struct {
@@ -2180,6 +2218,18 @@ func (v *UserErrorUpdateUserAnnotationError) GetField() []string { return v.Fiel
 
 // GetMessage returns UserErrorUpdateUserAnnotationError.Message, and is useful for accessing the field via an interface.
 func (v *UserErrorUpdateUserAnnotationError) GetMessage() string { return v.Message }
+
+// UserError includes the GraphQL fields of UpdateUserAnnotationsError requested by the fragment UserError.
+type UserErrorUpdateUserAnnotationsError struct {
+	Field   []string `json:"field"`
+	Message string   `json:"message"`
+}
+
+// GetField returns UserErrorUpdateUserAnnotationsError.Field, and is useful for accessing the field via an interface.
+func (v *UserErrorUpdateUserAnnotationsError) GetField() []string { return v.Field }
+
+// GetMessage returns UserErrorUpdateUserAnnotationsError.Message, and is useful for accessing the field via an interface.
+func (v *UserErrorUpdateUserAnnotationsError) GetMessage() string { return v.Message }
 
 // UserError includes the GraphQL fields of UpdateUserCalendarError requested by the fragment UserError.
 type UserErrorUpdateUserCalendarError struct {
