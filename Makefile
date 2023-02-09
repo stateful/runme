@@ -6,9 +6,9 @@ GIT_SHA_SHORT := $(shell git rev-parse --short HEAD)
 DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 VERSION := $(shell git describe --tags)-$(GIT_SHA_SHORT)
 LDFLAGS := -s -w \
-	-X 'main.BuildDate=$(DATE)' \
-	-X 'main.BuildVersion=$(subst v,,$(VERSION))' \
-	-X 'main.Commit=$(GIT_SHA)'
+	-X 'github.com/stateful/runme/internal/version.BuildDate=$(DATE)' \
+	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))' \
+	-X 'github.com/stateful/runme/internal/version.Commit=$(GIT_SHA)'
 
 .PHONY: build
 build:
