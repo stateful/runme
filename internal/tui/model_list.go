@@ -1,4 +1,4 @@
-package suggestions
+package tui
 
 import (
 	"context"
@@ -13,13 +13,10 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/stateful/runme/client/graphql"
-	"github.com/stateful/runme/client/graphql/query"
+	"github.com/stateful/runme/internal/client/graphql"
+	"github.com/stateful/runme/internal/client/graphql/query"
 	"github.com/stateful/runme/internal/log"
 	"github.com/stateful/runme/internal/project"
-	"github.com/stateful/runme/internal/renderer"
-
-	// "github.com/stateful/runme/internal/renderer"
 	"go.uber.org/zap"
 )
 
@@ -55,7 +52,7 @@ func NewListModel(ctx context.Context, description string, repoUser string, clie
 
 	emptyItems := make([]list.Item, 0)
 	delegate := list.NewDefaultDelegate()
-	l := list.New(emptyItems, delegate, 0, 0) // renderer.MaxWidth, renderer.MaxHeight)
+	l := list.New(emptyItems, delegate, 0, 0)
 	l.SetFilteringEnabled(false)
 	l.SetShowStatusBar(false)
 	l.SetShowPagination(false)
@@ -112,8 +109,8 @@ func (m ListModel) startSearch() tea.Msg {
 	return suggestionsMsg{suggestions}
 }
 
-func (m ListModel) KeyMap() *renderer.KeyMap {
-	kmap := renderer.NewKeyMap()
+func (m ListModel) KeyMap() *KeyMap {
+	kmap := NewKeyMap()
 
 	kmap.Set("enter", key.NewBinding(
 		key.WithKeys("enter"),
@@ -214,7 +211,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ListModel) View() string {
 	if m.err != nil {
-		s := fmt.Sprintf("%s\n", renderer.ColorError.Render("Error: "+m.err.Error()))
+		s := fmt.Sprintf("%s\n", ColorError.Render("Error: "+m.err.Error()))
 		return s
 	}
 

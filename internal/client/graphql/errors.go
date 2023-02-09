@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/stateful/runme/client/graphql/query"
+	"github.com/stateful/runme/internal/client/graphql/query"
 )
 
 var ErrNoData = errors.New("no data")

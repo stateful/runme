@@ -5,10 +5,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/client/graphql"
-
-	"github.com/stateful/runme/internal/renderer"
-	sugg "github.com/stateful/runme/internal/suggestions"
+	"github.com/stateful/runme/internal/client/graphql"
+	"github.com/stateful/runme/internal/tui"
 )
 
 func suggestCmd() *cobra.Command {
@@ -69,7 +67,7 @@ bad. Please use with discretion.
 				return errors.New("description cannot be empty")
 			}
 
-			model := sugg.NewListModel(ctx, description, repoUser, client)
+			model := tui.NewListModel(ctx, description, repoUser, client)
 			return newProgram(cmd, model).Start()
 		},
 	}
@@ -80,12 +78,12 @@ bad. Please use with discretion.
 }
 
 func promptForDescription(cmd *cobra.Command) (string, error) {
-	model := renderer.NewStandaloneInputModel("Enter a description:", renderer.MinimalKeyMap, renderer.DefaultStyles)
+	model := tui.NewStandaloneInputModel("Enter a description:", tui.MinimalKeyMap, tui.DefaultStyles)
 	finalModel, err := newProgram(cmd, model).Run()
 	if err != nil {
 		return "", err
 	}
-	val, ok := finalModel.(renderer.StandaloneInputModel).Value()
+	val, ok := finalModel.(tui.StandaloneInputModel).Value()
 	if !ok {
 		return "", errors.New("canceled")
 	}

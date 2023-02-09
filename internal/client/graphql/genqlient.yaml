@@ -1,0 +1,14 @@
+# Default genqlient config; for full documentation see:
+# https://github.com/Khan/genqlient/blob/main/docs/genqlient.yaml
+schema: ./schema/schema.graphql
+operations:
+  - ./query/genqlient.graphql
+generated: ./query/generated.go
+package: query
+bindings:
+  DateTime:
+    type: github.com/stateful/runme/internal/client/graphql/schema/model.DateTime
+  Date:
+    type: string
+  UUID:
+    type: string

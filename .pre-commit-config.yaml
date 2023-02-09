@@ -9,13 +9,13 @@ repos:
     rev: v1.0.0-rc.1
     hooks:
       - id: go-fumpt
-        exclude: (^internal/gen/.*$|^client/graphql/query/generated.go$)
+        exclude: (^internal/gen/.*$|^internal/client/graphql/query/generated.go$)
       - id: go-build-mod
       - id: go-mod-tidy
       - id: go-test-mod
         args: ["-timeout=30s"]
       - id: go-revive-repo-mod
       - id: go-staticcheck-mod
-        exclude: (^expect/.*$|^client/graphql/query/generated.go$)
+        exclude: (^expect/.*$|^internal/client/graphql/query/generated.go$)
       - id: go-sec-repo-mod
         args: ["-exclude=G204,G304,G404", "-exclude-generated"]

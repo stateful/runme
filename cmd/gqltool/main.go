@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/stateful/runme/client"
-	"github.com/stateful/runme/client/graphql"
 	"github.com/stateful/runme/internal/auth"
+	"github.com/stateful/runme/internal/client"
+	"github.com/stateful/runme/internal/client/graphql"
 	"golang.org/x/oauth2"
 )
 

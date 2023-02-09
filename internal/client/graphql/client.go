@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/Khan/genqlient/graphql"
-	"github.com/stateful/runme/client/graphql/query"
+	"github.com/stateful/runme/internal/client/graphql/query"
 )
+
+//go:generate genqlient
 
 type Client struct {
 	graphql.Client

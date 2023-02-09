@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stateful/runme/client/graphql/query"
+	"github.com/stateful/runme/internal/client/graphql/query"
 	"github.com/stretchr/testify/require"
 )
 
