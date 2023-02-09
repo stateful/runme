@@ -39,6 +39,5 @@ func (s *ShellRaw) Run(ctx context.Context) error {
 	if !ok {
 		sh = "/bin/sh"
 	}
-
-	return execSingle(ctx, sh, s.Dir, strings.Join(s.Cmds, "\n"), s.Name, s.Stdin, s.Stdout, s.Stderr)
+	return execSingle(ctx, sh, s.Dir, nil, strings.Join(s.Cmds, "\n"), s.Name, s.Stdin, s.Stdout, s.Stderr)
 }

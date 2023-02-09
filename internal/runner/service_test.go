@@ -14,7 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 )
@@ -148,7 +150,7 @@ func Test_runnerService_Execute(t *testing.T) {
 		assert.EqualValues(t, 0, result.Responses[2].ExitCode.Value)
 	})
 
-	t.Run("Session", func(t *testing.T) {
+	t.Run("Sessions", func(t *testing.T) {
 		t.Parallel()
 
 		envs := []string{"TEST_OLD=value1"}
@@ -171,7 +173,13 @@ func Test_runnerService_Execute(t *testing.T) {
 			context.Background(),
 			&runnerv1.DeleteSessionRequest{Id: getSessResp.Session.Id},
 		)
-		require.NoError(t, err)
+		assert.NoError(t, err)
+
+		_, err = client.DeleteSession(
+			context.Background(),
+			&runnerv1.DeleteSessionRequest{Id: "non-existent"},
+		)
+		assert.Equal(t, status.Convert(err).Code(), codes.NotFound)
 	})
 
 	t.Run("EnvsPersistence", func(t *testing.T) {
@@ -285,5 +293,36 @@ func Test_runnerService_Execute(t *testing.T) {
 		require.Len(t, result.Responses, 2)
 		// result.Responses[0] contains prompt and exit command
 		assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
+	})
+
+	// ClientCancel is similar to "Tty" but the client cancels
+	// the connection. This is not typical way of doing things.
+	// Better solution is to do it as in the "Tty" test.
+	t.Run("ClientCancel", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		stream, err := client.Execute(ctx)
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         true,
+		})
+		assert.NoError(t, err)
+
+		// Cancel instead of cleanly exiting the command on the server.
+		go func() {
+			time.Sleep(time.Second)
+			cancel()
+		}()
+
+		result := <-execResult
+
+		assert.Equal(t, status.Convert(result.Err).Code(), codes.Canceled)
 	})
 }

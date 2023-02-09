@@ -11,6 +11,7 @@ import (
 type session struct {
 	ID       string
 	Metadata map[string]string
+
 	envStore *envStore
 	logger   *zap.Logger
 }

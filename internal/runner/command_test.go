@@ -5,6 +5,9 @@ package runner
 import (
 	"context"
 	"io"
+	"os"
+	"os/exec"
+	"syscall"
 	"testing"
 	"time"
 
@@ -253,6 +256,32 @@ done`,
 			sort(cmd.Envs),
 		)
 	})
+}
+
+func Test_command_Stop(t *testing.T) {
+	t.Parallel()
+
+	cmd, err := newCommand(
+		&commandConfig{
+			ProgramName: "bash",
+			IsShell:     true,
+			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+		},
+		testCreateLogger(t),
+	)
+	require.NoError(t, err)
+	require.NoError(t, cmd.Start(context.Background()))
+
+	errc := make(chan error)
+	go func() {
+		time.Sleep(time.Second / 2)
+		errc <- cmd.Stop()
+	}()
+	assert.NoError(t, <-errc)
+
+	var exiterr *exec.ExitError
+	require.ErrorAs(t, cmd.Wait(), &exiterr)
+	assert.Equal(t, os.Kill, exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal())
 }
 
 func Test_exitCodeFromErr(t *testing.T) {

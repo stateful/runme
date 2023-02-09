@@ -137,6 +137,7 @@ func newCommand(
 		var err error
 		cmd.pty, cmd.tty, err = pty.Open()
 		if err != nil {
+			cmd.preWaitCleanup()
 			return nil, errors.WithStack(err)
 		}
 
@@ -145,7 +146,7 @@ func newCommand(
 			_, err := io.Copy(cmd.Stdin, bytes.NewReader(cfg.Input))
 			if err != nil {
 				cmd.preWaitCleanup()
-				return nil, errors.WithMessage(err, "failed to write initial input")
+				return nil, errors.Wrap(err, "failed to write initial input")
 			}
 		}
 
@@ -307,6 +308,13 @@ func (c *command) collectEnvs() {
 	)
 
 	c.Envs = newEnvStore(c.Envs...).Add(newOrUpdated...).Delete(deleted...).Values()
+}
+
+func (c *command) Stop() error {
+	if c.cmd == nil {
+		return errors.New("command not started")
+	}
+	return errors.WithStack(c.cmd.Process.Kill())
 }
 
 func (c *command) Wait() error {

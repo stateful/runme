@@ -125,6 +125,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	// Get the initial request.
 	req, err := srv.Recv()
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			r.logger.Info("client closed the connection")
+			return nil
+		}
 		r.logger.Info("failed to receive a request", zap.Error(err))
 		return errors.WithStack(err)
 	}
@@ -161,17 +165,25 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		for {
 			req, err := srv.Recv()
 			if err != nil {
+				// If the error is io.EOF, then we assume that the client
+				// closed the connection with an intention to stop execution.
+				// If it is a different error, we try to stop the command.
 				if err == io.EOF {
-					r.logger.Info("client closed send direction")
+					r.logger.Info("client closed the connection")
 				} else {
-					r.logger.Info("failed to receive requests", zap.Error(err))
+					r.logger.Info("failed to receive requests; stopping the command", zap.Error(err))
+					if err := cmd.Stop(); err != nil {
+						r.logger.Info("failed to stop the command", zap.Error(err))
+					}
 				}
 				return
 			}
 			if len(req.InputData) != 0 {
 				_, err = cmd.Stdin.Write(req.InputData)
 				if err != nil {
-					r.logger.Info("failed to write to cmd.Stdin", zap.Error(err))
+					r.logger.Info("failed to write to stdin", zap.Error(err))
+					// TODO(adamb): we likely should communicate it to the client.
+					// Then, the client could decide what to do.
 					return
 				}
 			}
@@ -192,7 +204,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	r.logger.Info("finished command execution", zap.Error(err), zap.Int("exitCode", exitCode))
 
-	// If session was found, put back envs.
+	// Put back envs if the session exists.
 	if sess != nil {
 		sess.envStore = newEnvStore(cmd.Envs...)
 	}
@@ -269,12 +281,6 @@ func (o output) Clone() (result output) {
 		copy(result.Stderr, o.Stderr)
 	}
 	return
-}
-
-var bufPool = sync.Pool{
-	New: func() any {
-		return make([]byte, 4*1024) // 4KB
-	},
 }
 
 // readLoop uses two sets of buffers in order to avoid allocating

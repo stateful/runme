@@ -107,6 +107,6 @@ func (s *ShellSession) setErrorf(err error, msg string, args ...interface{}) {
 		return
 	}
 	s.mu.Lock()
-	s.err = errors.WithMessagef(err, msg, args...)
+	s.err = errors.Wrapf(err, msg, args...)
 	s.mu.Unlock()
 }
