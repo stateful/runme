@@ -1,0 +1,370 @@
+query GetDay(
+  # @genqlient(pointer: true)
+  $date: Date = null,
+  $track: TrackInput!,
+) {
+  day(date: $date) {
+    ...Day
+  }
+
+  track(input: $track) {
+    # @genqlient(flatten: true)
+    errors {
+      ...TrackError
+    }
+  }
+}
+
+query GetDays(
+  # @genqlient(pointer: true)
+  $startDate: Date = null,
+  # @genqlient(pointer: true)
+  $endDate: Date = null,
+  $pageSize: Int! = 7,
+  $pageToken: String,
+  $track: TrackInput!,
+) {
+  days(startDate: $startDate, endDate: $endDate, pageSize: $pageSize, pageToken: $pageToken) {
+    # @genqlient(flatten: true)
+    data {
+	    ...Day
+	  }
+	  nextPageToken
+  }
+
+  track(input: $track) {
+    # @genqlient(flatten: true)
+    errors {
+      ...TrackError
+    }
+  }
+}
+
+query GetStandup(
+  # @genqlient(pointer: true)
+  $date: Date = null,
+  $upcoming: Boolean! = false,
+  $track: TrackInput!,
+) {
+  standup(date: $date, includeUpcoming: $upcoming) {
+    ...Standup
+  }
+
+  track(input: $track) {
+    errors {
+      ...TrackError
+    }
+  }
+}
+
+query GetStandups(
+  $upcoming: Boolean! = false,
+  $pageSize: Int! = 10,
+  $track: TrackInput!,
+) {
+  standups(includeUpcoming: $upcoming, pageSize: $pageSize) {
+    # @genqlient(flatten: true)
+    data {
+      ...ListStandup
+    }
+  }
+
+  track(input: $track) {
+    # @genqlient(flatten: true)
+    errors {
+      ...TrackError
+    }
+  }
+}
+
+query GetUser(
+  $withAnnotation: Boolean! = false,
+  $track: TrackInput!,
+) {
+  user {
+    id
+    displayName
+    github {
+      id
+      username
+    }
+    annotations @include(if: $withAnnotation) {
+      # @genqlient(flatten: true)
+      data {
+        ...UserAnnotation
+      }
+    }
+    timezone
+  }
+
+  track(input: $track) {
+    # @genqlient(flatten: true)
+    errors {
+      ...TrackError
+    }
+  }
+}
+
+query GetSuggestedBranch(
+  $q: SuggestedBranchInput!,
+  $track: TrackInput!,
+) {
+  suggestedBranchnames(query: $q) {
+    data {
+      name
+    }
+  }
+  track(input: $track) {
+    # @genqlient(flatten: true)
+    errors {
+      ...TrackError
+    }
+  }
+}
+
+# @genqlient(for: "CreateUserAnnotationInput.date", omitempty: true)
+# @genqlient(for: "CreateUserAnnotationInput.projectId", omitempty: true)
+mutation AddNote(
+  $input: CreateUserAnnotationInput!,
+  $track: TrackInput!,
+) {
+  createUserAnnotation(input: $input) {
+    # @genqlient(flatten: true)
+    userAnnotation {
+      ...UserAnnotation
+    }
+
+    # @genqlient(flatten: true)
+    errors {
+      ...UserError
+    }
+  }
+
+  track(input: $track) {
+    # @genqlient(flatten: true)
+    errors {
+      ...TrackError
+    }
+  }
+}
+
+mutation UpdateNote(
+  $input: UpdateUserAnnotationInput!
+) {
+  updateUserAnnotation(input: $input) {
+    # @genqlient(flatten: true)
+    userAnnotation {
+      ...UserAnnotation
+    }
+
+    # @genqlient(flatten: true)
+    errors {
+      ...UserError
+    }
+  }
+}
+
+mutation HideAnnotation (
+  $input: DeleteUserAnnotationInput!
+) {
+  deleteUserAnnotation(input: $input) {
+    errors {
+      ...UserError
+    }
+  }
+}
+
+fragment UserError on UserError {
+  field
+  message
+}
+
+fragment TrackError on TrackError {
+  message
+  field
+}
+
+fragment ListStandup on Standup {
+  date
+  timezone
+  # @genqlient(pointer: true)
+  rating {
+    mean
+  }
+  score {
+    min
+    max
+    mean
+  }
+  # @genqlient(flatten: true)
+  codingDuration {
+    ...CodingDuration
+  }
+  days {
+    data {
+      date
+      timezone
+    }
+  }
+}
+
+fragment Standup on Standup {
+  date
+  timezone
+  dayCount
+  # @genqlient(pointer: true)
+  rating {
+    mean
+  }
+  score {
+    min
+    max
+    mean
+  }
+  # @genqlient(flatten: true)
+  codingDuration {
+    ...CodingDuration
+  }
+  days {
+    # @genqlient(flatten: true)
+    data {
+      ...Day
+    }
+  }
+  projects {
+    # @genqlient(flatten: true)
+    data {
+      ...DayProject
+    }
+  }
+  languages {
+    # @genqlient(flatten: true)
+    data {
+      ...DayLanguage
+    }
+  }
+  userAnnotations(sort: [{ field: DATE, order: DESC }, { field: CREATE_TIME, order: DESC }]) {
+    # @genqlient(flatten: true)
+    data {
+      ...UserAnnotation
+    }
+  }
+}
+
+fragment Day on Day {
+  date
+  startTime
+  timezone
+  endTime
+  score
+  # @genqlient(pointer: true)
+  rating
+  hours {
+    # @genqlient(flatten: true)
+    data {
+      ...DayHour
+    }
+  }
+  languages {
+    # @genqlient(flatten: true)
+    data {
+      ...DayLanguage
+    }
+  }
+  projects {
+    # @genqlient(flatten: true)
+    data {
+      ...DayProject
+    }
+  }
+  # @genqlient(flatten: true)
+  codingDuration {
+    ...CodingDuration
+  }
+}
+
+fragment DayHour on DayHour {
+  time
+  # @genqlient(flatten: true)
+  codingDuration {
+    ...CodingDuration
+  }
+}
+
+fragment DayLanguage on DayLanguage {
+  id
+  displayName
+  # @genqlient(flatten: true)
+  codingDuration {
+    ...CodingDuration
+  }
+}
+
+fragment DayProject on DayProject {
+  gitBranches {
+    data {
+      name
+      files {
+        # @genqlient(flatten: true)
+        data {
+          ...DayProjectFile
+        }
+      }
+      # @genqlient(flatten: true)
+      codingDuration {
+        ...CodingDuration
+      }
+    }
+  }
+  files {
+    # @genqlient(flatten: true)
+    data {
+      ...DayProjectFile
+    }
+  }
+  id
+  displayName
+  shortName
+  name
+  # @genqlient(flatten: true)
+  codingDuration {
+    ...CodingDuration
+  }
+}
+
+fragment DayProjectFile on DayProjectFile {
+  name
+  path
+  # @genqlient(flatten: true)
+  codingDuration {
+    ...CodingDuration
+  }
+}
+
+fragment CodingDuration on CodingDuration {
+  totalMs
+}
+
+fragment UserAnnotation on UserAnnotation {
+  # @genqlient(pointer: true)
+  completeTime
+  completed
+  content
+  file {
+    name
+    path
+  }
+  gitBranch {
+    name
+  }
+  hidden
+  id
+  project {
+    id
+    displayName
+    name
+  }
+  date
+  type
+  updateTime
+}

@@ -49,6 +49,8 @@ func Root() *cobra.Command {
 	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command.")
 	pflags.StringVar(&fFileName, "filename", "README.md", "A name of the README file.")
 
+	setAPIFlags(pflags)
+
 	tuiCmd := tuiCmd()
 	// Make tuiCmd a default command.
 	cmd.RunE = tuiCmd.RunE
@@ -59,6 +61,11 @@ func Root() *cobra.Command {
 		}
 	})
 
+	branchCmd := branchCmd()
+	suggestCmd := suggestCmd()
+
+	suggestCmd.AddCommand(branchCmd)
+
 	cmd.AddCommand(tuiCmd)
 	cmd.AddCommand(runCmd())
 	cmd.AddCommand(listCmd())
@@ -67,6 +74,8 @@ func Root() *cobra.Command {
 	cmd.AddCommand(fmtCmd())
 	cmd.AddCommand(serverCmd())
 	cmd.AddCommand(shellCmd())
+	cmd.AddCommand(suggestCmd)
+	cmd.AddCommand(branchCmd)
 
 	return &cmd
 }

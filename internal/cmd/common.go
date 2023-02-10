@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -181,3 +182,15 @@ func printfInfo(msg string, args ...any) {
 	_, _ = buf.WriteString("\r\n")
 	_, _ = os.Stderr.Write(buf.Bytes())
 }
+
+func getDefaultConfigHome() string {
+	// TODO(adamb): switch to os.UserConfigDir()
+	// TODO(mxs): ditto
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+	return filepath.Join(dir, ".config", "stateful")
+}
+
+type runFunc func(context.Context) error

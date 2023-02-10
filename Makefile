@@ -6,9 +6,9 @@ GIT_SHA_SHORT := $(shell git rev-parse --short HEAD)
 DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 VERSION := $(shell git describe --tags)-$(GIT_SHA_SHORT)
 LDFLAGS := -s -w \
-	-X 'main.BuildDate=$(DATE)' \
-	-X 'main.BuildVersion=$(subst v,,$(VERSION))' \
-	-X 'main.Commit=$(GIT_SHA)'
+	-X 'github.com/stateful/runme/internal/version.BuildDate=$(DATE)' \
+	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))' \
+	-X 'github.com/stateful/runme/internal/version.Commit=$(GIT_SHA)'
 
 .PHONY: build
 build:
@@ -74,3 +74,12 @@ release: install/goreleaser
 .PHONY: release/publish
 release/publish: install/goreleaser
 	@goreleaser release
+
+.PHONY: update-gql-schema
+update-gql-schema:
+	@go run ./cmd/gqltool/main.go > ./client/graphql/schema/introspection_query_result.json
+	@cd ./client/graphql/schema && npm run convert
+
+.PHONY: generate
+generate:
+	go generate ./...
