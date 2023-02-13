@@ -14,7 +14,7 @@ func listCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List available commands.",
+		Short:   "List available commands",
 		Long:    "Displays list of parsed command blocks, their name, number of commands in a block, and description from a given markdown file, such as README.md.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			blocks, err := getCodeBlocks()

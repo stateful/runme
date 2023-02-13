@@ -9,11 +9,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/stateful/runme/internal/document"
-
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
+	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/runner"
 )
 
@@ -28,7 +27,7 @@ func runCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:               "run",
 		Aliases:           []string{"exec"},
-		Short:             "Run a selected command.",
+		Short:             "Run a selected command",
 		Long:              "Run a selected command identified based on its unique parsed name.",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: validCmdNames,

@@ -193,7 +193,7 @@ func tuiCmd() *cobra.Command {
 
 	cmd := cobra.Command{
 		Use:   "tui",
-		Short: "Run the interactive TUI.",
+		Short: "Run the interactive TUI",
 		Long:  "Run a command from a descriptive list given by an interactive TUI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			blocks, err := getCodeBlocks()
@@ -261,8 +261,8 @@ func tuiCmd() *cobra.Command {
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().BoolVar(&exitAfterRun, "exit", false, "Exit runme TUI after running a command.")
-	cmd.Flags().IntVar(&numEntries, "entries", defaultNumEntries, "Number of entries to show in TUI.")
+	cmd.Flags().BoolVar(&exitAfterRun, "exit", false, "Exit TUI after running a command")
+	cmd.Flags().IntVar(&numEntries, "entries", defaultNumEntries, "Number of entries to show in TUI")
 
 	return &cmd
 }

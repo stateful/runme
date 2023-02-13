@@ -5,15 +5,14 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-
 	"github.com/stateful/runme/internal/tui"
 )
 
-//lint:file-ignore U1000 hiding this cmd for now
 func authCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "auth",
-		Short: "Log in and out of your Stateful",
+		Hidden: true,
+		Use:    "auth",
+		Short:  "Log in and out of your Stateful",
 	}
 
 	cmd.AddCommand(loginCmd())
