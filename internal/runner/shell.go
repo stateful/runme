@@ -157,7 +157,7 @@ func execSingle(
 	)
 	if err != nil {
 		var exiterr *exec.ExitError
-		// Ignore errors due to INT signal.
+		// Ignore errors caused by SIGINT.
 		if errors.As(err, &exiterr) && exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
 			msg := "failed to run command"
 			if len(name) > 0 {
