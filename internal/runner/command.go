@@ -14,11 +14,9 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"github.com/pkg/term/termios"
 	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
-	"golang.org/x/sys/unix"
 )
 
 type command struct {
@@ -216,13 +214,8 @@ func (c *command) startWithOpts(ctx context.Context, opts *startOpts) error {
 			// This is one of the solutions, but there are other methods:
 			//   - removing echoed input from the output
 			//   - removing the entered line using escape codes
-			var attr unix.Termios
-			if err := termios.Tcgetattr(uintptr(c.tty.Fd()), &attr); err != nil {
-				return errors.Wrap(err, "failed to get tty attr")
-			}
-			attr.Lflag &^= unix.ECHO
-			if err := termios.Tcsetattr(c.tty.Fd(), termios.TCSANOW, &attr); err != nil {
-				return errors.Wrap(err, "failed to set tty attr")
+			if err := disableEcho(c.tty.Fd()); err != nil {
+				return err
 			}
 		}
 
