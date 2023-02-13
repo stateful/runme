@@ -14,13 +14,13 @@
             "host": "127.0.0.1"
         },
         {
-            "name": "Launch runme json",
+            "name": "Launch",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
             "args": [
-                "json"
+                "ls"
             ]
         }
     ]

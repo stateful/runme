@@ -14,9 +14,11 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
+	"github.com/pkg/term/termios"
 	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
+	"golang.org/x/sys/unix"
 )
 
 type command struct {
@@ -163,7 +165,22 @@ func newCommand(
 	return cmd, nil
 }
 
+type startOpts struct {
+	DisableEcho bool
+}
+
 func (c *command) Start(ctx context.Context) error {
+	return c.StartWithOpts(ctx, nil)
+}
+
+func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
+	if opts == nil {
+		opts = &startOpts{}
+	}
+	return c.startWithOpts(ctx, opts)
+}
+
+func (c *command) startWithOpts(ctx context.Context, opts *startOpts) error {
 	cmd := exec.CommandContext(
 		ctx,
 		c.ProgramPath,
@@ -194,6 +211,22 @@ func (c *command) Start(ctx context.Context) error {
 	}
 
 	if c.tty != nil {
+		if opts.DisableEcho {
+			// Disable echoing. This solves the problem of duplicating entered line in the output.
+			// This is one of the solutions, but there are other methods:
+			//   - removing echoed input from the output
+			//   - removing the entered line using escape codes
+			var attr unix.Termios
+			if err := termios.Tcgetattr(uintptr(c.tty.Fd()), &attr); err != nil {
+				return errors.Wrap(err, "failed to get tty attr")
+			}
+			attr.Lflag &= ^uint64(unix.ECHO)
+			if err := termios.Tcsetattr(c.tty.Fd(), termios.TCSANOW, &attr); err != nil {
+				return errors.Wrap(err, "failed to set tty attr")
+			}
+		}
+
+		// Close tty as not needed anymore.
 		if err := c.tty.Close(); err != nil {
 			c.logger.Info("failed to close tty after starting the command", zap.Error(err))
 		} else {

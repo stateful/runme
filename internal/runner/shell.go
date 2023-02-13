@@ -6,9 +6,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
-	"time"
+	"syscall"
 
 	"github.com/google/shlex"
 	"github.com/pkg/errors"
@@ -120,6 +121,7 @@ func execSingle(
 		&commandConfig{
 			ProgramName: sh,
 			Directory:   dir,
+			Tty:         true,
 			IsShell:     true,
 			Commands:    commands,
 			Script:      script,
@@ -133,12 +135,16 @@ func execSingle(
 	errc := make(chan error)
 	go func() {
 		_, err := io.Copy(cmd.Stdin, stdin)
+		if errors.Is(err, os.ErrClosed) {
+			err = nil
+		}
 		errc <- err
 	}()
 
 	_, err = executeCmd(
 		ctx,
 		cmd,
+		&startOpts{DisableEcho: true},
 		func(o output) error {
 			if _, err := stdout.Write(o.Stdout); err != nil {
 				return errors.WithStack(err)
@@ -148,17 +154,22 @@ func execSingle(
 			}
 			return nil
 		},
-		time.Millisecond*100,
 	)
 	if err != nil {
-		msg := "failed to run command"
-		if len(name) == 0 {
-			msg += " " + strconv.Quote(name)
+		var exiterr *exec.ExitError
+		// Ignore errors due to INT signal.
+		if errors.As(err, &exiterr) && exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
+			msg := "failed to run command"
+			if len(name) > 0 {
+				msg += " " + strconv.Quote(name)
+			}
+			return errors.Wrap(err, msg)
 		}
-		return errors.Wrap(err, msg)
 	}
-	if err := <-errc; err != nil {
+	select {
+	case err := <-errc:
 		return errors.Wrap(err, "failed to copy stdin")
+	default:
+		return nil
 	}
-	return nil
 }

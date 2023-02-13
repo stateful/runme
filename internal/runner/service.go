@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"sync"
-	"time"
 
 	"github.com/pkg/errors"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
@@ -193,13 +192,13 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	exitCode, err := executeCmd(
 		srv.Context(),
 		cmd,
+		nil,
 		func(data output) error {
 			return srv.Send(&runnerv1.ExecuteResponse{
 				StdoutData: data.Stdout,
 				StderrData: data.Stderr,
 			})
 		},
-		time.Millisecond*250,
 	)
 
 	r.logger.Info("finished command execution", zap.Error(err), zap.Int("exitCode", exitCode))
@@ -221,10 +220,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 func executeCmd(
 	ctx context.Context,
 	cmd *command,
+	cmdStartOpts *startOpts,
 	processData func(output) error,
-	processDataInterval time.Duration,
 ) (int, error) {
-	if err := cmd.Start(ctx); err != nil {
+	if err := cmd.StartWithOpts(ctx, cmdStartOpts); err != nil {
 		return -1, err
 	}
 
@@ -234,7 +233,7 @@ func executeCmd(
 	datac := make(chan output)
 
 	g.Go(func() error {
-		err := readLoop(ctx, time.Second, cmd.Stdout, cmd.Stderr, datac)
+		err := readLoop(ctx, cmd.Stdout, cmd.Stderr, datac)
 		close(datac)
 		if errors.Is(err, io.EOF) {
 			err = nil
@@ -293,7 +292,6 @@ func (o output) Clone() (result output) {
 // in the first set of buffers.
 func readLoop(
 	ctx context.Context,
-	timeout time.Duration,
 	stdout io.Reader,
 	stderr io.Reader,
 	results chan<- output,
@@ -304,54 +302,36 @@ func readLoop(
 
 	const size = 4 * 1024
 
-	out1, err1 := make([]byte, size), make([]byte, size)
-	out2, err2 := make([]byte, size), make([]byte, size)
+	read := func(reader io.Reader) error {
+		buf1, buf2 := make([]byte, size), make([]byte, size)
+		idx := 0
 
-	pairIdx := 0
-
-	read := func() error {
-		outBuf, errBuf := out1, err1
-		pairIdx = (pairIdx + 1) % 2
-		if pairIdx == 0 {
-			outBuf, errBuf = out2, err2
-		}
-
-		var result output
-
-		n, err := stdout.Read(outBuf)
-		if err != nil && !errors.Is(err, io.EOF) {
-			return err
-		}
-		if n > 0 {
-			result.Stdout = outBuf[:n]
-		}
-
-		n, err = stderr.Read(errBuf)
-		if err != nil && !errors.Is(err, io.EOF) {
-			return err
-		}
-		if n > 0 {
-			result.Stderr = errBuf[:n]
-		}
-
-		if len(result.Stdout) > 0 || len(result.Stderr) > 0 {
-			results <- result
-		}
-
-		return nil
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			if err := read(); err != nil {
-				return err
+		for {
+			buf := buf1
+			if idx = (idx + 1) % 2; idx == 0 {
+				buf = buf2
 			}
-			return nil
-		case <-time.After(timeout):
-			if err := read(); err != nil {
-				return err
+			n, err := reader.Read(buf)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return nil
+				}
+				return errors.WithStack(err)
+			} else if n > 0 {
+				results <- output{Stdout: buf[:n]}
 			}
 		}
 	}
+
+	g, _ := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return read(stdout)
+	})
+
+	g.Go(func() error {
+		return read(stderr)
+	})
+
+	return g.Wait()
 }
