@@ -220,7 +220,7 @@ func (c *command) startWithOpts(ctx context.Context, opts *startOpts) error {
 			if err := termios.Tcgetattr(uintptr(c.tty.Fd()), &attr); err != nil {
 				return errors.Wrap(err, "failed to get tty attr")
 			}
-			attr.Lflag &= ^uint64(unix.ECHO)
+			attr.Lflag &^= unix.ECHO
 			if err := termios.Tcsetattr(c.tty.Fd(), termios.TCSANOW, &attr); err != nil {
 				return errors.Wrap(err, "failed to set tty attr")
 			}
