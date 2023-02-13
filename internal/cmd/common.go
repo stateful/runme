@@ -158,7 +158,6 @@ func setDefaultFlags(cmd *cobra.Command) {
 	} else {
 		usage += "this command"
 	}
-	usage += "."
 	cmd.Flags().BoolP("help", "h", false, usage)
 
 	// For the root command, set up the --version flag.
@@ -169,7 +168,6 @@ func setDefaultFlags(cmd *cobra.Command) {
 		} else {
 			usage += "this command"
 		}
-		usage += "."
 		cmd.Flags().BoolP("version", "v", false, usage)
 	}
 }
@@ -185,7 +183,6 @@ func printfInfo(msg string, args ...any) {
 
 func getDefaultConfigHome() string {
 	// TODO(adamb): switch to os.UserConfigDir()
-	// TODO(mxs): ditto
 	dir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)

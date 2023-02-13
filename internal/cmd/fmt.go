@@ -20,7 +20,7 @@ func fmtCmd() *cobra.Command {
 
 	cmd := cobra.Command{
 		Use:   "fmt",
-		Short: "Format a Markdown file into canonical format.",
+		Short: "Format a Markdown file into canonical format",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if formatJSON {

@@ -41,7 +41,6 @@ func main() {
 
 func getDefaultConfigHome() string {
 	// TODO(adamb): switch to os.UserConfigDir()
-	// TODO(mxs): ditto
 	dir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)

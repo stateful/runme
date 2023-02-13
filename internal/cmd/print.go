@@ -10,7 +10,7 @@ import (
 func printCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:               "print",
-		Short:             "Print a selected snippet.",
+		Short:             "Print a selected snippet",
 		Long:              "Print will display the details of the corresponding command block based on its name.",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: validCmdNames,

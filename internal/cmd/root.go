@@ -45,9 +45,9 @@ func Root() *cobra.Command {
 
 	pflags := cmd.PersistentFlags()
 
-	pflags.BoolVar(&fAllowUnknown, "allow-unknown", false, "Display snippets without known executor.")
-	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command.")
-	pflags.StringVar(&fFileName, "filename", "README.md", "A name of the README file.")
+	pflags.BoolVar(&fAllowUnknown, "allow-unknown", false, "Display snippets without known executor")
+	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command")
+	pflags.StringVar(&fFileName, "filename", "README.md", "Name of the README file")
 
 	setAPIFlags(pflags)
 
@@ -63,7 +63,6 @@ func Root() *cobra.Command {
 
 	branchCmd := branchCmd()
 	suggestCmd := suggestCmd()
-
 	suggestCmd.AddCommand(branchCmd)
 
 	cmd.AddCommand(tuiCmd)
@@ -74,6 +73,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(fmtCmd())
 	cmd.AddCommand(serverCmd())
 	cmd.AddCommand(shellCmd())
+	cmd.AddCommand(authCmd())
 	cmd.AddCommand(suggestCmd)
 	cmd.AddCommand(branchCmd)
 
