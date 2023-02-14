@@ -43,11 +43,11 @@ func Test_executeCmd(t *testing.T) {
 	exitCode, err := executeCmd(
 		context.Background(),
 		cmd,
+		nil,
 		func(data output) error {
 			results = append(results, data.Clone())
 			return nil
 		},
-		time.Millisecond*250,
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, exitCode)
@@ -290,9 +290,8 @@ func Test_runnerService_Execute(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		require.Len(t, result.Responses, 2)
-		// result.Responses[0] contains prompt and exit command
-		assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
+		require.NotEmpty(t, result.Responses)
+		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
 	})
 
 	// ClientCancel is similar to "Tty" but the client cancels
