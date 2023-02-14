@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Duration, Message, proto3, UInt32Value } from "@bufbuild/protobuf";
+import { Message, proto3, UInt32Value } from "@bufbuild/protobuf";
 
 /**
  * @generated from message runme.runner.v1.Session
@@ -16,11 +16,17 @@ export class Session extends Message<Session> {
   id = "";
 
   /**
+   * envs keeps track of session environment variables.
+   * They can be modified by executing programs which
+   * alter them through "export" and "unset" commands.
+   *
    * @generated from field: repeated string envs = 2;
    */
   envs: string[] = [];
 
   /**
+   * metadata is a map of client specific metadata.
+   *
    * @generated from field: map<string, string> metadata = 3;
    */
   metadata: { [key: string]: string } = {};
@@ -60,11 +66,16 @@ export class Session extends Message<Session> {
  */
 export class CreateSessionRequest extends Message<CreateSessionRequest> {
   /**
+   * metadata is a map of client specific metadata.
+   *
    * @generated from field: map<string, string> metadata = 1;
    */
   metadata: { [key: string]: string } = {};
 
   /**
+   * envs field provides an initial set of environment variables
+   * for a newly created session.
+   *
    * @generated from field: repeated string envs = 2;
    */
   envs: string[] = [];
@@ -408,27 +419,11 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
   tty = false;
 
   /**
-   * background, if true, will not accept any input.
-   *
-   * @generated from field: bool background = 8;
-   */
-  background = false;
-
-  /**
-   * chunk_interval specifies how often partial output
-   * should be streamed to the client.
-   * For example: "0.5s".
-   *
-   * @generated from field: google.protobuf.Duration chunk_interval = 9;
-   */
-  chunkInterval?: Duration;
-
-  /**
    * input_data is a byte array that will be send as input
    * to the program.
    * It is allowed in the consecutive calls only.
    *
-   * @generated from field: bytes input_data = 10;
+   * @generated from field: bytes input_data = 8;
    */
   inputData = new Uint8Array(0);
 
@@ -456,9 +451,7 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
     { no: 5, name: "commands", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 6, name: "script", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "tty", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 8, name: "background", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 9, name: "chunk_interval", kind: "message", T: Duration },
-    { no: 10, name: "input_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 8, name: "input_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
     { no: 20, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 

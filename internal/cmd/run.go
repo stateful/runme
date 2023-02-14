@@ -17,8 +17,8 @@ import (
 )
 
 type runCmdOpts struct {
-	dryRun         bool
-	replaceScripts []string
+	DryRun         bool
+	ReplaceScripts []string
 }
 
 func runCmd() *cobra.Command {
@@ -42,24 +42,29 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			return runBlock(cmd, block, &opts)
+			return runBlock(cmd, block, nil, &opts)
 		},
 	}
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "Print the final command without executing.")
-	cmd.Flags().StringArrayVarP(&opts.replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
+	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "Print the final command without executing.")
+	cmd.Flags().StringArrayVarP(&opts.ReplaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 
 	return &cmd
 }
 
-func runBlock(cmd *cobra.Command, block *document.CodeBlock, opts *runCmdOpts) error {
+func runBlock(
+	cmd *cobra.Command,
+	block *document.CodeBlock,
+	sess *runner.Session,
+	opts *runCmdOpts,
+) error {
 	if opts == nil {
 		opts = &runCmdOpts{}
 	}
 
-	if err := replace(opts.replaceScripts, block.Lines()); err != nil {
+	if err := replace(opts.ReplaceScripts, block.Lines()); err != nil {
 		return err
 	}
 
@@ -67,7 +72,7 @@ func runBlock(cmd *cobra.Command, block *document.CodeBlock, opts *runCmdOpts) e
 		return executeInShell(id, block)
 	}
 
-	executable, err := newExecutable(cmd, block)
+	executable, err := newExecutable(cmd, block, sess)
 	if err != nil {
 		return err
 	}
@@ -75,7 +80,7 @@ func runBlock(cmd *cobra.Command, block *document.CodeBlock, opts *runCmdOpts) e
 	ctx, cancel := ctxWithSigCancel(cmd.Context())
 	defer cancel()
 
-	if opts.dryRun {
+	if opts.DryRun {
 		executable.DryRun(ctx, cmd.ErrOrStderr())
 		return nil
 	}
@@ -83,13 +88,14 @@ func runBlock(cmd *cobra.Command, block *document.CodeBlock, opts *runCmdOpts) e
 	return errors.WithStack(executable.Run(ctx))
 }
 
-func newExecutable(cmd *cobra.Command, block *document.CodeBlock) (runner.Executable, error) {
+func newExecutable(cmd *cobra.Command, block *document.CodeBlock, sess *runner.Session) (runner.Executable, error) {
 	base := &runner.Base{
-		Dir:    fChdir,
-		Stdin:  cmd.InOrStdin(),
-		Stdout: cmd.OutOrStdout(),
-		Stderr: cmd.ErrOrStderr(),
-		Name:   block.Name(),
+		Name:    block.Name(),
+		Dir:     fChdir,
+		Session: sess,
+		Stdin:   cmd.InOrStdin(),
+		Stdout:  cmd.OutOrStdout(),
+		Stderr:  cmd.ErrOrStderr(),
 	}
 
 	switch block.Language() {

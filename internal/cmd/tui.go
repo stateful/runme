@@ -11,16 +11,19 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	rmath "github.com/stateful/runme/internal/math"
+	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/internal/version"
+	"go.uber.org/zap"
 )
 
 type tuiModel struct {
-	blocks     document.CodeBlocks
-	expanded   map[int]struct{}
-	version    string
-	numEntries int
-	cursor     int
-	scroll     int
-	result     tuiResult
+	blocks         document.CodeBlocks
+	header         string
+	visibleEntries int
+	expanded       map[int]struct{}
+	cursor         int
+	scroll         int
+	result         tuiResult
 }
 
 type tuiResult struct {
@@ -29,7 +32,7 @@ type tuiResult struct {
 }
 
 func (m *tuiModel) numBlocksShown() int {
-	return rmath.Min(len(m.blocks), m.numEntries)
+	return rmath.Min(len(m.blocks), m.visibleEntries)
 }
 
 func (m *tuiModel) maxScroll() int {
@@ -59,18 +62,14 @@ func (m tuiModel) Init() tea.Cmd {
 }
 
 const (
-	tab               = "  "
-	defaultNumEntries = 5
+	tab                   = "  "
+	defaultVisibleEntries = 5
 )
 
 func (m tuiModel) View() string {
-	s := fmt.Sprintf(
-		"%s %s",
-		ansi.Color("runme", "57+b"),
-		ansi.Color(m.version, "white+d"),
-	)
+	var s strings.Builder
 
-	s += "\n\n"
+	_, _ = s.WriteString(m.header)
 
 	for i := m.scroll; i < m.scroll+m.numBlocksShown(); i++ {
 		block := m.blocks[i]
@@ -122,15 +121,15 @@ func (m tuiModel) View() string {
 			line += content + "\n"
 		}
 
-		s += line
+		_, _ = s.WriteString(line)
 	}
 
-	s += "\n"
+	_, _ = s.WriteRune('\n')
 
 	{
 		help := strings.Join(
 			[]string{
-				fmt.Sprintf("%v/%v", m.cursor+1, len(m.blocks)),
+				fmt.Sprintf("%d/%d", m.cursor+1, len(m.blocks)),
 				"Choose ↑↓←→",
 				"Run [Enter]",
 				"Expand [Space]",
@@ -142,10 +141,10 @@ func (m tuiModel) View() string {
 
 		help = ansi.Color(help, "white+d")
 
-		s += help
+		_, _ = s.WriteString(help)
 	}
 
-	return s
+	return s.String()
 }
 
 func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -187,8 +186,8 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func tuiCmd() *cobra.Command {
 	var (
-		numEntries   int
-		exitAfterRun bool
+		visibleEntries int
+		runOnce        bool
 	)
 
 	cmd := cobra.Command{
@@ -205,22 +204,21 @@ func tuiCmd() *cobra.Command {
 				return errors.Errorf("no code blocks in %s", fFileName)
 			}
 
-			// Check main.go in the project root directory
-			// to learn how Version is formatted and set.
-			version := cmd.Root().Version
-			if parts := strings.SplitN(version, " ", 2); len(parts) == 2 {
-				version = parts[0]
+			if visibleEntries <= 0 {
+				visibleEntries = math.MaxInt32
 			}
 
-			if numEntries <= 0 {
-				numEntries = math.MaxInt32
-			}
+			sess := runner.NewSession(nil, zap.NewNop())
 
 			model := tuiModel{
-				blocks:     blocks,
-				version:    version,
-				expanded:   make(map[int]struct{}),
-				numEntries: numEntries,
+				blocks: blocks,
+				header: fmt.Sprintf(
+					"%s %s\n\n",
+					ansi.Color("runme", "57+b"),
+					ansi.Color(version.BuildVersion, "white+d"),
+				),
+				visibleEntries: visibleEntries,
+				expanded:       make(map[int]struct{}),
 			}
 
 			for {
@@ -238,13 +236,13 @@ func tuiCmd() *cobra.Command {
 					break
 				}
 
-				if err = runBlock(cmd, result.block, nil); err != nil {
+				if err := runBlock(cmd, result.block, sess, nil); err != nil {
 					if _, err := fmt.Printf(ansi.Color("%v", "red")+"\n", err); err != nil {
 						return err
 					}
 				}
 
-				if exitAfterRun || result.exit {
+				if runOnce || result.exit {
 					break
 				}
 
@@ -261,8 +259,8 @@ func tuiCmd() *cobra.Command {
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().BoolVar(&exitAfterRun, "exit", false, "Exit TUI after running a command")
-	cmd.Flags().IntVar(&numEntries, "entries", defaultNumEntries, "Number of entries to show in TUI")
+	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
+	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
 
 	return &cmd
 }

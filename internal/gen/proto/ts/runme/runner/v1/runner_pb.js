@@ -11,7 +11,6 @@
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
-import { Duration } from "../../../google/protobuf/duration_pb";
 // @generated message type with reflection information, may provide speed optimized methods
 class Session$Type extends MessageType {
     constructor() {
@@ -130,9 +129,7 @@ class ExecuteRequest$Type extends MessageType {
             { no: 5, name: "commands", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "script", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "tty", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 8, name: "background", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 9, name: "chunk_interval", kind: "message", T: () => Duration },
-            { no: 10, name: "input_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 8, name: "input_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }

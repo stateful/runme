@@ -46,7 +46,7 @@ func (s *Shell) Run(ctx context.Context) error {
 	if !ok {
 		sh = "/bin/sh"
 	}
-	return execSingle(ctx, sh, s.Dir, s.Cmds, "", s.Name, s.Stdin, s.Stdout, s.Stderr)
+	return execSingle(ctx, sh, s.Dir, s.Session, s.Cmds, "", s.Name, s.Stdin, s.Stdout, s.Stderr)
 }
 
 func PrepareScriptFromCommands(cmds []string) string {
@@ -110,6 +110,7 @@ func execSingle(
 	ctx context.Context,
 	sh string,
 	dir string,
+	session *Session,
 	commands []string,
 	script string,
 	name string,
@@ -121,41 +122,25 @@ func execSingle(
 		&commandConfig{
 			ProgramName: sh,
 			Directory:   dir,
-			Tty:         true,
+			Session:     session,
+			Stdin:       stdin,
+			Stdout:      stdout,
+			Stderr:      stderr,
 			IsShell:     true,
 			Commands:    commands,
 			Script:      script,
+			Logger:      zap.NewNop(),
 		},
-		zap.NewNop(),
 	)
 	if err != nil {
 		return err
 	}
 
-	errc := make(chan error)
-	go func() {
-		_, err := io.Copy(cmd.Stdin, stdin)
-		if errors.Is(err, os.ErrClosed) {
-			err = nil
-		}
-		errc <- err
-	}()
+	if err := cmd.Start(ctx); err != nil {
+		return err
+	}
 
-	_, err = executeCmd(
-		ctx,
-		cmd,
-		&startOpts{DisableEcho: true},
-		func(o output) error {
-			if _, err := stdout.Write(o.Stdout); err != nil {
-				return errors.WithStack(err)
-			}
-			if _, err := stdout.Write(o.Stderr); err != nil {
-				return errors.WithStack(err)
-			}
-			return nil
-		},
-	)
-	if err != nil {
+	if err := cmd.Wait(); err != nil {
 		var exiterr *exec.ExitError
 		// Ignore errors caused by SIGINT.
 		if errors.As(err, &exiterr) && exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
@@ -166,10 +151,5 @@ func execSingle(
 			return errors.Wrap(err, msg)
 		}
 	}
-	select {
-	case err := <-errc:
-		return errors.Wrap(err, "failed to copy stdin")
-	default:
-		return nil
-	}
+	return err
 }

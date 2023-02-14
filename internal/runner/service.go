@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -18,7 +19,7 @@ type runnerService struct {
 	runnerv1.UnimplementedRunnerServiceServer
 
 	mu       sync.RWMutex
-	sessions []*session
+	sessions []*Session
 
 	logger *zap.Logger
 }
@@ -33,7 +34,7 @@ func newRunnerService(logger *zap.Logger) *runnerService {
 	}
 }
 
-func toRunnerv1Session(sess *session) *runnerv1.Session {
+func toRunnerv1Session(sess *Session) *runnerv1.Session {
 	return &runnerv1.Session{
 		Id:       sess.ID,
 		Envs:     sess.Envs(),
@@ -45,7 +46,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 	r.logger.Info("running CreateSession in runnerService")
 
 	r.mu.Lock()
-	sess := newSession(req.Envs, r.logger)
+	sess := NewSession(req.Envs, r.logger)
 	r.sessions = append(r.sessions, sess)
 	r.mu.Unlock()
 
@@ -108,8 +109,8 @@ func (r *runnerService) DeleteSession(_ context.Context, req *runnerv1.DeleteSes
 	return &runnerv1.DeleteSessionResponse{}, nil
 }
 
-func (r *runnerService) findSession(id string) *session {
-	var sess *session
+func (r *runnerService) findSession(id string) *Session {
+	var sess *Session
 	for _, s := range r.sessions {
 		if s.ID == id {
 			sess = s
@@ -125,42 +126,70 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	req, err := srv.Recv()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			r.logger.Info("client closed the connection")
+			r.logger.Info("client closed the connection while getting initial request")
 			return nil
 		}
 		r.logger.Info("failed to receive a request", zap.Error(err))
 		return errors.WithStack(err)
 	}
 
-	var sess *session
+	var sess *Session
 	if req.SessionId != "" {
 		sess = r.findSession(req.SessionId)
+	} else {
+		sess = NewSession(nil, r.logger)
 	}
 
-	var envs []string
-	if sess != nil {
-		envs = append(sess.Envs(), req.Envs...)
+	if len(req.Envs) > 0 {
+		sess.AddEnvs(req.Envs)
 	}
+
+	stdin, stdinWriter := io.Pipe()
+	stdout := rbuffer.NewRingBuffer(10 * 1024)
+	stderr := rbuffer.NewRingBuffer(10 * 1024)
+	// Close buffers so that the readers will be notified about EOF.
+	// It's ok to close the buffers multiple times.
+	defer func() { _ = stdout.Close() }()
+	defer func() { _ = stderr.Close() }()
 
 	cmd, err := newCommand(
 		&commandConfig{
 			ProgramName: req.ProgramName,
 			Args:        req.Arguments,
 			Directory:   req.Directory,
-			Envs:        envs,
+			Session:     sess,
 			Tty:         req.Tty,
+			Stdin:       stdin,
+			Stdout:      stdout,
+			Stderr:      stderr,
 			IsShell:     true,
 			Commands:    req.Commands,
 			Script:      req.Script,
-			Input:       req.InputData,
+			Logger:      r.logger,
 		},
-		r.logger,
 	)
 	if err != nil {
 		return err
 	}
 
+	if err := cmd.Start(srv.Context()); err != nil {
+		return err
+	}
+
 	go func() {
+		defer func() {
+			_ = stdinWriter.Close()
+		}()
+
+		if len(req.InputData) > 0 {
+			if _, err := stdinWriter.Write(req.InputData); err != nil {
+				r.logger.Info("failed to write initial input to stdin", zap.Error(err))
+				// TODO(adamb): we likely should communicate it to the client.
+				// Then, the client could decide what to do.
+				return
+			}
+		}
+
 		for {
 			req, err := srv.Recv()
 			if err != nil {
@@ -170,15 +199,15 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				if err == io.EOF {
 					r.logger.Info("client closed the connection")
 				} else {
-					r.logger.Info("failed to receive requests; stopping the command", zap.Error(err))
+					r.logger.Info("failed to receive requests; stop program", zap.Error(err))
 					if err := cmd.Stop(); err != nil {
-						r.logger.Info("failed to stop the command", zap.Error(err))
+						r.logger.Info("failed to stop program", zap.Error(err))
 					}
 				}
 				return
 			}
 			if len(req.InputData) != 0 {
-				_, err = cmd.Stdin.Write(req.InputData)
+				_, err = stdinWriter.Write(req.InputData)
 				if err != nil {
 					r.logger.Info("failed to write to stdin", zap.Error(err))
 					// TODO(adamb): we likely should communicate it to the client.
@@ -189,51 +218,24 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		}
 	}()
 
-	exitCode, err := executeCmd(
-		srv.Context(),
-		cmd,
-		nil,
-		func(data output) error {
-			return srv.Send(&runnerv1.ExecuteResponse{
-				StdoutData: data.Stdout,
-				StderrData: data.Stderr,
-			})
-		},
-	)
-
-	r.logger.Info("finished command execution", zap.Error(err), zap.Int("exitCode", exitCode))
-
-	// Put back envs if the session exists.
-	if sess != nil {
-		sess.envStore = newEnvStore(cmd.Envs...)
-	}
-
-	if exitCode > -1 {
-		return srv.Send(&runnerv1.ExecuteResponse{
-			ExitCode: wrapperspb.UInt32(uint32(exitCode)),
-		})
-	}
-
-	return err
-}
-
-func executeCmd(
-	ctx context.Context,
-	cmd *command,
-	cmdStartOpts *startOpts,
-	processData func(output) error,
-) (int, error) {
-	if err := cmd.StartWithOpts(ctx, cmdStartOpts); err != nil {
-		return -1, err
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	g := new(errgroup.Group)
 	datac := make(chan output)
 
 	g.Go(func() error {
-		err := readLoop(ctx, cmd.Stdout, cmd.Stderr, datac)
+		for data := range datac {
+			err := srv.Send(&runnerv1.ExecuteResponse{
+				StdoutData: data.Stdout,
+				StderrData: data.Stderr,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		err := readLoop(stdout, stderr, datac)
 		close(datac)
 		if errors.Is(err, io.EOF) {
 			err = nil
@@ -241,24 +243,32 @@ func executeCmd(
 		return err
 	})
 
-	g.Go(func() error {
-		for data := range datac {
-			if err := processData(data); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-
-	werr := cmd.Wait()
+	exitCode, werr := 0, cmd.Wait()
 	if werr != nil {
-		return exitCodeFromErr(werr), werr
+		exitCode = exitCodeFromErr(werr)
 	}
-	cancel() // cancel ctx so that readLoop exits
+	if exitCode == -1 {
+		r.logger.Info("finished command execution with error", zap.Error(werr))
+		return werr
+	}
+
+	// Close buffers so that the readLoop() can exit.
+	_ = stdout.Close()
+	_ = stderr.Close()
+
 	if err := g.Wait(); err != nil {
-		return -1, err
+		r.logger.Info("failed to wait for goroutines to finish", zap.Error(err))
 	}
-	return 0, nil
+
+	r.logger.Info("finished command execution", zap.Error(err), zap.Int("exitCode", exitCode))
+
+	if exitCode > -1 {
+		return srv.Send(&runnerv1.ExecuteResponse{
+			ExitCode: wrapperspb.UInt32(uint32(exitCode)),
+		})
+	}
+
+	return nil
 }
 
 type output struct {
@@ -291,7 +301,6 @@ func (o output) Clone() (result output) {
 // the consumer has a chance to do something with the data stored
 // in the first set of buffers.
 func readLoop(
-	ctx context.Context,
 	stdout io.Reader,
 	stderr io.Reader,
 	results chan<- output,
@@ -300,7 +309,7 @@ func readLoop(
 		panic("readLoop requires unbuffered channel")
 	}
 
-	const size = 4 * 1024
+	const size = 10 * 1024
 
 	read := func(reader io.Reader) error {
 		buf1, buf2 := make([]byte, size), make([]byte, size)
@@ -323,7 +332,7 @@ func readLoop(
 		}
 	}
 
-	g, _ := errgroup.WithContext(ctx)
+	g := new(errgroup.Group)
 
 	g.Go(func() error {
 		return read(stdout)

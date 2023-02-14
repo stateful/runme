@@ -2,7 +2,6 @@ package runner
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"io"
 	"os"
@@ -14,35 +13,36 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
+)
+
+const (
+	envStartFileName = ".env_start"
+	envEndFileName   = ".env_end"
 )
 
 type command struct {
 	ProgramPath string
 	Args        []string
 	Directory   string
-	Envs        []string
-	Stdin       io.ReadWriter
-	Stdout      io.ReadWriteCloser
-	Stderr      io.ReadWriteCloser
+	Session     *Session
+	Stdin       io.Reader
+	Stdout      io.Writer
+	Stderr      io.Writer
 
-	cfg *commandConfig
+	cmd *exec.Cmd
 
 	// pty and tty as pseud-terminal primary and secondary.
 	// Might be nil if not allocating a pseudo-terminal.
 	pty *os.File
 	tty *os.File
 
-	envDir string
+	tmpEnvDir string
 
-	cmd *exec.Cmd
-
-	done chan struct{}
-	wg   sync.WaitGroup
-	mu   sync.Mutex
-	err  error
+	wg  sync.WaitGroup
+	mu  sync.Mutex
+	err error
 
 	logger *zap.Logger
 }
@@ -51,7 +51,6 @@ func (c *command) seterr(err error) {
 	if err == nil {
 		return
 	}
-
 	c.mu.Lock()
 	if c.err == nil {
 		c.err = err
@@ -63,20 +62,21 @@ type commandConfig struct {
 	ProgramName string   // a path to shell or a name, for example: "/usr/local/bin/bash", "bash"
 	Args        []string // args passed to the program
 	Directory   string
-	Envs        []string
-	Tty         bool // if true, a pseudo-terminal is allocated
+	Session     *Session
+
+	Tty    bool // if true, a pseudo-terminal is allocated
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
 
 	IsShell  bool // if true then Commands or Scripts is passed to shell as "-c" argument's value
 	Commands []string
 	Script   string
 
-	Input []byte // initial input data passed immediately to the command.
+	Logger *zap.Logger
 }
 
-func newCommand(
-	cfg *commandConfig,
-	logger *zap.Logger,
-) (*command, error) {
+func newCommand(cfg *commandConfig) (*command, error) {
 	programPath, err := exec.LookPath(cfg.ProgramName)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -122,141 +122,41 @@ func newCommand(
 		extraArgs = []string{"-c", script.String()}
 	}
 
+	session := cfg.Session
+	if session == nil {
+		session = NewSession(nil, cfg.Logger)
+	}
+
 	cmd := &command{
 		ProgramPath: programPath,
 		Args:        append(cfg.Args, extraArgs...),
 		Directory:   directory,
-		Envs:        cfg.Envs,
-		cfg:         cfg,
-		envDir:      envStorePath,
-		done:        make(chan struct{}),
-		logger:      logger,
+		Session:     session,
+		Stdin:       cfg.Stdin,
+		Stdout:      cfg.Stdout,
+		Stderr:      cfg.Stderr,
+		tmpEnvDir:   envStorePath,
+		logger:      cfg.Logger,
 	}
 
 	if cfg.Tty {
 		var err error
 		cmd.pty, cmd.tty, err = pty.Open()
 		if err != nil {
-			cmd.preWaitCleanup()
+			cmd.cleanup()
 			return nil, errors.WithStack(err)
 		}
-
-		cmd.Stdin = cmd.pty
-		if len(cfg.Input) > 0 {
-			_, err := io.Copy(cmd.Stdin, bytes.NewReader(cfg.Input))
-			if err != nil {
-				cmd.preWaitCleanup()
-				return nil, errors.Wrap(err, "failed to write initial input")
-			}
-		}
-
-		// stdout is read from pty. stderr is unused because
-		// it can't be distinguished from pty.
-		cmd.Stdout = rbuffer.NewRingBuffer(4096)
-		cmd.Stderr = rbuffer.NewRingBuffer(0)
-	} else {
-		cmd.Stdin = &safeBuffer{buf: bytes.NewBuffer(cfg.Input)}
-		cmd.Stdout = rbuffer.NewRingBuffer(4096)
-		cmd.Stderr = rbuffer.NewRingBuffer(4096)
 	}
 
 	return cmd, nil
 }
 
-type startOpts struct {
-	DisableEcho bool
-}
-
-func (c *command) Start(ctx context.Context) error {
-	return c.StartWithOpts(ctx, nil)
-}
-
-func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
-	if opts == nil {
-		opts = &startOpts{}
-	}
-	return c.startWithOpts(ctx, opts)
-}
-
-func (c *command) startWithOpts(ctx context.Context, opts *startOpts) error {
-	cmd := exec.CommandContext(
-		ctx,
-		c.ProgramPath,
-		c.Args...,
-	)
-	cmd.Dir = c.Directory
-	cmd.Env = append(cmd.Env, c.Envs...)
-
-	if c.tty != nil {
-		cmd.Stdin = c.tty
-		cmd.Stdout = c.tty
-		cmd.Stderr = c.tty
-	} else {
-		cmd.Stdin = c.Stdin
-		cmd.Stdout = c.Stdout
-		cmd.Stderr = c.Stderr
-	}
-
-	if c.cfg.Tty {
-		setCmdAttrs(cmd)
-	}
-
-	c.cmd = cmd
-
-	if err := cmd.Start(); err != nil {
-		c.preWaitCleanup()
-		return errors.WithStack(err)
-	}
-
-	if c.tty != nil {
-		if opts.DisableEcho {
-			// Disable echoing. This solves the problem of duplicating entered line in the output.
-			// This is one of the solutions, but there are other methods:
-			//   - removing echoed input from the output
-			//   - removing the entered line using escape codes
-			if err := disableEcho(c.tty.Fd()); err != nil {
-				return err
-			}
-		}
-
-		// Close tty as not needed anymore.
-		if err := c.tty.Close(); err != nil {
-			c.logger.Info("failed to close tty after starting the command", zap.Error(err))
-		} else {
-			c.tty = nil
-		}
-	}
-
-	if c.pty != nil {
-		c.wg.Add(1)
-		go func() {
-			defer c.wg.Done()
-			_, err := io.Copy(c.Stdout, c.pty)
-			if err != nil {
-				// Linux kernel returns EIO when attempting to read from
-				// a master pseudo-terminal which no longer has an open slave.
-				// See https://github.com/creack/pty/issues/21.
-				if errors.Is(err, syscall.EIO) {
-					c.logger.Debug("failed to copy from pty to stdout; handled EIO error")
-					return
-				}
-
-				c.logger.Info("failed to copy from pty to stdout", zap.Error(err))
-
-				c.seterr(err)
-			}
-		}()
-	}
-
-	return nil
-}
-
-func (c *command) preWaitCleanup() {
+func (c *command) cleanup() {
 	var err error
 
-	if c.envDir != "" {
-		if e := os.RemoveAll(c.envDir); e != nil {
-			c.logger.Info("failed to delete envsDir", zap.Error(e))
+	if c.tmpEnvDir != "" {
+		if e := os.RemoveAll(c.tmpEnvDir); e != nil {
+			c.logger.Info("failed to delete tmpEnvDir", zap.Error(e))
 			err = multierr.Append(err, e)
 		}
 	}
@@ -276,32 +176,129 @@ func (c *command) preWaitCleanup() {
 	c.seterr(err)
 }
 
-func (c *command) postWaitCleanup() {
-	var err error
-
-	if c.Stdout != nil {
-		if e := c.Stdout.Close(); e != nil {
-			c.logger.Info("failed to close stdout", zap.Error(e))
-			err = multierr.Append(err, e)
-		}
-	}
-	if c.Stderr != nil {
-		if e := c.Stderr.Close(); e != nil {
-			c.logger.Info("failed to close stderr", zap.Error(e))
-			err = multierr.Append(err, e)
-		}
-	}
-
-	c.seterr(err)
+type startOpts struct {
+	DisableEcho bool
 }
 
-const (
-	envStartFileName = ".env_start"
-	envEndFileName   = ".env_end"
-)
+func (c *command) Start(ctx context.Context) error {
+	return c.StartWithOpts(ctx, &startOpts{})
+}
+
+func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
+	c.cmd = exec.CommandContext(
+		ctx,
+		c.ProgramPath,
+		c.Args...,
+	)
+	c.cmd.Dir = c.Directory
+	c.cmd.Env = append(c.cmd.Env, c.Session.Envs()...)
+
+	if c.tty != nil {
+		c.cmd.Stdin = c.tty
+		c.cmd.Stdout = c.tty
+		c.cmd.Stderr = c.tty
+
+		setSysProcAttrCtty(c.cmd)
+	} else {
+		c.cmd.Stdin = c.Stdin
+		c.cmd.Stdout = c.Stdout
+		c.cmd.Stderr = c.Stderr
+
+		// Set the process group ID of the program.
+		// It is helpful to stop the program and its
+		// children. See command.Stop().
+		// Note that Setsid set in setSysProcAttrCtty()
+		// already starts a new process group, hence,
+		// this call is inside this branch.
+		setSysProcAttrPgid(c.cmd)
+	}
+
+	if err := c.cmd.Start(); err != nil {
+		c.cleanup()
+		return errors.WithStack(err)
+	}
+
+	if c.tty != nil {
+		if opts.DisableEcho {
+			// Disable echoing. This solves the problem of duplicating entered line in the output.
+			// This is one of the solutions, but there are other methods:
+			//   - removing echoed input from the output
+			//   - removing the entered line using escape codes
+			if err := disableEcho(c.tty.Fd()); err != nil {
+				return err
+			}
+		}
+
+		// Close tty as not needed anymore.
+		if err := c.tty.Close(); err != nil {
+			c.logger.Info("failed to close tty after starting the command", zap.Error(err))
+		}
+
+		c.tty = nil
+	}
+
+	if c.pty != nil {
+		c.wg.Add(1)
+		go func() {
+			defer c.wg.Done()
+			_, err := io.Copy(c.Stdout, c.pty)
+			if err != nil {
+				// Linux kernel returns EIO when attempting to read from
+				// a master pseudo-terminal which no longer has an open slave.
+				// See https://github.com/creack/pty/issues/21.
+				if errors.Is(err, syscall.EIO) {
+					c.logger.Debug("failed to copy from pty to stdout; handled EIO")
+					return
+				}
+				if errors.Is(err, os.ErrClosed) {
+					c.logger.Debug("failed to copy from pty to stdout; handled ErrClosed")
+					return
+				}
+
+				c.logger.Info("failed to copy from pty to stdout", zap.Error(err))
+
+				c.seterr(err)
+			}
+		}()
+
+		c.wg.Add(1)
+		go func() {
+			defer c.wg.Done()
+			_, err := io.Copy(c.pty, c.Stdin)
+			if err != nil {
+				c.logger.Info("failed to copy from stdin to pty", zap.Error(err))
+				c.seterr(err)
+			} else {
+				c.logger.Info("read all from stdin")
+			}
+		}()
+	}
+
+	return nil
+}
+
+func (c *command) Stop() error {
+	if c.cmd == nil {
+		return errors.New("command not started")
+	}
+
+	if c.pty != nil {
+		if err := c.pty.Close(); err != nil {
+			return errors.Wrap(err, "failed to close pty")
+		}
+	}
+
+	// Try to kill the whole process group. If it fails,
+	// fall back to exec.Cmd.Process.Kill().
+	if err := killPgid(c.cmd.Process.Pid); err != nil {
+		c.logger.Info("failed to kill process group; trying regular process kill", zap.Error(err))
+		return errors.WithStack(c.cmd.Process.Kill())
+	}
+	return nil
+}
 
 func (c *command) readEnvFromFile(name string) (result []string, _ error) {
-	f, err := os.Open(filepath.Join(c.envDir, name))
+	f, err := os.Open(filepath.Join(c.tmpEnvDir, name))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -318,7 +315,7 @@ func (c *command) readEnvFromFile(name string) (result []string, _ error) {
 }
 
 func (c *command) collectEnvs() {
-	if c.envDir == "" {
+	if c.tmpEnvDir == "" {
 		return
 	}
 
@@ -333,14 +330,7 @@ func (c *command) collectEnvs() {
 		newEnvStore(endEnvs...),
 	)
 
-	c.Envs = newEnvStore(c.Envs...).Add(newOrUpdated...).Delete(deleted...).Values()
-}
-
-func (c *command) Stop() error {
-	if c.cmd == nil {
-		return errors.New("command not started")
-	}
-	return errors.WithStack(c.cmd.Process.Kill())
+	c.Session.envStore = newEnvStore(c.cmd.Env...).Add(newOrUpdated...).Delete(deleted...)
 }
 
 func (c *command) Wait() error {
@@ -348,18 +338,17 @@ func (c *command) Wait() error {
 
 	c.collectEnvs()
 
-	c.preWaitCleanup()
+	c.cleanup()
+
 	c.wg.Wait()
-	c.postWaitCleanup()
 
 	if werr != nil {
-		return werr
+		return errors.WithStack(werr)
 	}
 
 	c.mu.Lock()
-	err := c.err
-	c.mu.Unlock()
-	return err
+	defer c.mu.Unlock()
+	return c.err
 }
 
 func exitCodeFromErr(err error) int {
@@ -368,6 +357,15 @@ func exitCodeFromErr(err error) int {
 	}
 	var exiterr *exec.ExitError
 	if errors.As(err, &exiterr) {
+		status, ok := exiterr.ProcessState.Sys().(syscall.WaitStatus)
+		if ok && status.Signaled() {
+			// TODO(adamb): will like need to be improved.
+			if status.Signal() == os.Interrupt {
+				return 130
+			} else if status.Signal() == os.Kill {
+				return 137
+			}
+		}
 		return exiterr.ExitCode()
 	}
 	return -1
