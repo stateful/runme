@@ -13,11 +13,12 @@ type Executable interface {
 }
 
 type Base struct {
-	Dir    string
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
-	Name   string
+	Name    string
+	Dir     string
+	Session *Session
+	Stdin   io.Reader
+	Stdout  io.Writer
+	Stderr  io.Writer
 }
 
 var supportedExecutables = []string{

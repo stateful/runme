@@ -31,6 +31,13 @@ type RunnerServiceClient interface {
 	GetSession(context.Context, *connect_go.Request[v1.GetSessionRequest]) (*connect_go.Response[v1.GetSessionResponse], error)
 	ListSessions(context.Context, *connect_go.Request[v1.ListSessionsRequest]) (*connect_go.Response[v1.ListSessionsResponse], error)
 	DeleteSession(context.Context, *connect_go.Request[v1.DeleteSessionRequest]) (*connect_go.Response[v1.DeleteSessionResponse], error)
+	// Execute executes a program. Examine "ExecuteRequest" to explore
+	// configuration options.
+	//
+	// It's a bidirectional stream RPC method. It expects the first
+	// "ExecuteRequest" to contain details of a program to execute.
+	// Subsequent "ExecuteRequest" should only contain "input_data" as
+	// other fields will be ignored.
 	Execute(context.Context) *connect_go.BidiStreamForClient[v1.ExecuteRequest, v1.ExecuteResponse]
 }
 
@@ -112,6 +119,13 @@ type RunnerServiceHandler interface {
 	GetSession(context.Context, *connect_go.Request[v1.GetSessionRequest]) (*connect_go.Response[v1.GetSessionResponse], error)
 	ListSessions(context.Context, *connect_go.Request[v1.ListSessionsRequest]) (*connect_go.Response[v1.ListSessionsResponse], error)
 	DeleteSession(context.Context, *connect_go.Request[v1.DeleteSessionRequest]) (*connect_go.Response[v1.DeleteSessionResponse], error)
+	// Execute executes a program. Examine "ExecuteRequest" to explore
+	// configuration options.
+	//
+	// It's a bidirectional stream RPC method. It expects the first
+	// "ExecuteRequest" to contain details of a program to execute.
+	// Subsequent "ExecuteRequest" should only contain "input_data" as
+	// other fields will be ignored.
 	Execute(context.Context, *connect_go.BidiStream[v1.ExecuteRequest, v1.ExecuteResponse]) error
 }
 

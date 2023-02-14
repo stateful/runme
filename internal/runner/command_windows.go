@@ -8,8 +8,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func setCmdAttrs(cmd *exec.Cmd) {}
+func setSysProcAttrCtty(cmd *exec.Cmd) {}
+
+func setSysProcAttrPgid(cmd *exec.Cmd) {}
 
 func disableEcho(fd uintptr) error {
 	return errors.New("unsupported")
 }
+
+func killPgid(pid int) error { return errors.New("unsupported") }

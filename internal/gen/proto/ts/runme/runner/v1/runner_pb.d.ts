@@ -5,7 +5,6 @@
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
-import { Duration } from "../../../google/protobuf/duration_pb";
 /**
  * @generated from protobuf message runme.runner.v1.Session
  */
@@ -15,10 +14,16 @@ export interface Session {
      */
     id: string;
     /**
+     * envs keeps track of session environment variables.
+     * They can be modified by executing programs which
+     * alter them through "export" and "unset" commands.
+     *
      * @generated from protobuf field: repeated string envs = 2;
      */
     envs: string[];
     /**
+     * metadata is a map of client specific metadata.
+     *
      * @generated from protobuf field: map<string, string> metadata = 3;
      */
     metadata: {
@@ -30,12 +35,17 @@ export interface Session {
  */
 export interface CreateSessionRequest {
     /**
+     * metadata is a map of client specific metadata.
+     *
      * @generated from protobuf field: map<string, string> metadata = 1;
      */
     metadata: {
         [key: string]: string;
     };
     /**
+     * envs field provides an initial set of environment variables
+     * for a newly created session.
+     *
      * @generated from protobuf field: repeated string envs = 2;
      */
     envs: string[];
@@ -151,25 +161,11 @@ export interface ExecuteRequest {
      */
     tty: boolean;
     /**
-     * background, if true, will not accept any input.
-     *
-     * @generated from protobuf field: bool background = 8;
-     */
-    background: boolean;
-    /**
-     * chunk_interval specifies how often partial output
-     * should be streamed to the client.
-     * For example: "0.5s".
-     *
-     * @generated from protobuf field: google.protobuf.Duration chunk_interval = 9;
-     */
-    chunkInterval?: Duration;
-    /**
      * input_data is a byte array that will be send as input
      * to the program.
      * It is allowed in the consecutive calls only.
      *
-     * @generated from protobuf field: bytes input_data = 10;
+     * @generated from protobuf field: bytes input_data = 8;
      */
     inputData: Uint8Array;
     /**

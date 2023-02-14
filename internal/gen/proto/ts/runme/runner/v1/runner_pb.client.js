@@ -44,6 +44,14 @@ export class RunnerServiceClient {
         return stackIntercept("unary", this._transport, method, opt, input);
     }
     /**
+     * Execute executes a program. Examine "ExecuteRequest" to explore
+     * configuration options.
+     *
+     * It's a bidirectional stream RPC method. It expects the first
+     * "ExecuteRequest" to contain details of a program to execute.
+     * Subsequent "ExecuteRequest" should only contain "input_data" as
+     * other fields will be ignored.
+     *
      * @generated from protobuf rpc: Execute(stream runme.runner.v1.ExecuteRequest) returns (stream runme.runner.v1.ExecuteResponse);
      */
     execute(options) {

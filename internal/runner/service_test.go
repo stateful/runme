@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -26,39 +27,6 @@ func testCreateLogger(t *testing.T) *zap.Logger {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = logger.Sync() })
 	return logger
-}
-
-func Test_executeCmd(t *testing.T) {
-	cmd, err := newCommand(
-		&commandConfig{
-			ProgramName: "bash",
-			IsShell:     true,
-			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
-		},
-		testCreateLogger(t),
-	)
-	require.NoError(t, err)
-
-	var results []output
-	exitCode, err := executeCmd(
-		context.Background(),
-		cmd,
-		nil,
-		func(data output) error {
-			results = append(results, data.Clone())
-			return nil
-		},
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, 0, exitCode)
-	assert.EqualValues(
-		t,
-		[]output{
-			{Stdout: []byte("1\n")},
-			{Stdout: []byte("2\n")},
-		},
-		results,
-	)
 }
 
 func testStartRunnerServiceServer(t *testing.T) (
@@ -261,7 +229,7 @@ func Test_runnerService_Execute(t *testing.T) {
 		)
 	})
 
-	t.Run("Tty", func(t *testing.T) {
+	t.Run("CloseSend", func(t *testing.T) {
 		t.Parallel()
 
 		stream, err := client.Execute(context.Background())
@@ -272,31 +240,99 @@ func Test_runnerService_Execute(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
-			Tty:         true,
+			// Commands:    []string{"sleep 30"}, // check out ClientCancel subtest
+		})
+		assert.NoError(t, err)
+		assert.NoError(t, stream.CloseSend())
+
+		result := <-execResult
+
+		require.NoError(t, result.Err)
+		require.NotEmpty(t, result.Responses)
+		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
+	})
+
+	t.Run("CloseSendTty", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         true, // without TTY it won't work
+			Commands:    []string{"sleep 30"},
 		})
 		assert.NoError(t, err)
 
 		errc := make(chan error)
 		go func() {
+			defer close(errc)
 			time.Sleep(time.Second)
 			err := stream.Send(&runnerv1.ExecuteRequest{
+				InputData: []byte{3},
+			})
+			errc <- err
+			errc <- stream.CloseSend()
+		}()
+		for err := range errc {
+			assert.NoError(t, err)
+		}
+
+		result := <-execResult
+
+		require.NoError(t, result.Err)
+		require.NotEmpty(t, result.Responses)
+		assert.EqualValues(t, 130, result.Responses[len(result.Responses)-1].ExitCode.Value)
+	})
+
+	t.Run("EndOfTransmissionTty", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         true, // without TTY it won't work
+			Commands:    []string{"sleep 30"},
+		})
+		assert.NoError(t, err)
+
+		errc := make(chan error)
+		go func() {
+			defer close(errc)
+			time.Sleep(time.Second)
+			err := stream.Send(&runnerv1.ExecuteRequest{
+				InputData: []byte{3},
+			})
+			errc <- err
+			time.Sleep(time.Second)
+			err = stream.Send(&runnerv1.ExecuteRequest{
 				InputData: []byte{4},
 			})
 			errc <- err
 		}()
-		require.NoError(t, <-errc)
-		assert.NoError(t, stream.CloseSend())
+		for err := range errc {
+			assert.NoError(t, err)
+		}
 
 		result := <-execResult
 
-		assert.NoError(t, result.Err)
+		require.NoError(t, result.Err)
 		require.NotEmpty(t, result.Responses)
-		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
+		assert.EqualValues(t, 130, result.Responses[len(result.Responses)-1].ExitCode.Value)
 	})
 
-	// ClientCancel is similar to "Tty" but the client cancels
-	// the connection. This is not typical way of doing things.
-	// Better solution is to do it as in the "Tty" test.
+	// ClientCancel is similar to "CloseSend" but the client cancels
+	// the connection. When running wihout TTY, this is the only way
+	// to interrupt a program.
 	t.Run("ClientCancel", func(t *testing.T) {
 		t.Parallel()
 
@@ -310,7 +346,7 @@ func Test_runnerService_Execute(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
-			Tty:         true,
+			Commands:    []string{"sleep 30"},
 		})
 		assert.NoError(t, err)
 
@@ -324,4 +360,45 @@ func Test_runnerService_Execute(t *testing.T) {
 
 		assert.Equal(t, status.Convert(result.Err).Code(), codes.Canceled)
 	})
+
+	if _, err := exec.LookPath("python3"); err == nil {
+		t.Run("PythonServer", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			stream, err := client.Execute(ctx)
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+
+			err = stream.Send(&runnerv1.ExecuteRequest{
+				ProgramName: "bash",
+				Tty:         true,
+				Commands:    []string{"python3 -m http.server 0"},
+			})
+			assert.NoError(t, err)
+
+			errc := make(chan error)
+			go func() {
+				defer close(errc)
+				time.Sleep(time.Second)
+				err := stream.Send(&runnerv1.ExecuteRequest{
+					InputData: []byte{3},
+				})
+				errc <- err
+				errc <- stream.CloseSend()
+			}()
+			for err := range errc {
+				assert.NoError(t, err)
+			}
+
+			result := <-execResult
+
+			require.NoError(t, result.Err)
+			require.NotEmpty(t, result.Responses)
+			assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
+		})
+	}
 }

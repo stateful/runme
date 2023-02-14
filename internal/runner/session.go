@@ -5,10 +5,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// session is an abstract entity separate from
+// Session is an abstract entity separate from
 // an execution. Currently, its main role is to
 // keep track of environment variables.
-type session struct {
+type Session struct {
 	ID       string
 	Metadata map[string]string
 
@@ -16,8 +16,8 @@ type session struct {
 	logger   *zap.Logger
 }
 
-func newSession(envs []string, logger *zap.Logger) *session {
-	s := &session{
+func NewSession(envs []string, logger *zap.Logger) *Session {
+	s := &Session{
 		ID:       xid.New().String(),
 		envStore: newEnvStore(envs...),
 		logger:   logger,
@@ -25,6 +25,10 @@ func newSession(envs []string, logger *zap.Logger) *session {
 	return s
 }
 
-func (s *session) Envs() []string {
+func (s *Session) AddEnvs(envs []string) {
+	s.envStore.Add(envs...)
+}
+
+func (s *Session) Envs() []string {
 	return s.envStore.Values()
 }

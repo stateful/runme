@@ -26,6 +26,13 @@ type RunnerServiceClient interface {
 	GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
+	// Execute executes a program. Examine "ExecuteRequest" to explore
+	// configuration options.
+	//
+	// It's a bidirectional stream RPC method. It expects the first
+	// "ExecuteRequest" to contain details of a program to execute.
+	// Subsequent "ExecuteRequest" should only contain "input_data" as
+	// other fields will be ignored.
 	Execute(ctx context.Context, opts ...grpc.CallOption) (RunnerService_ExecuteClient, error)
 }
 
@@ -112,6 +119,13 @@ type RunnerServiceServer interface {
 	GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
+	// Execute executes a program. Examine "ExecuteRequest" to explore
+	// configuration options.
+	//
+	// It's a bidirectional stream RPC method. It expects the first
+	// "ExecuteRequest" to contain details of a program to execute.
+	// Subsequent "ExecuteRequest" should only contain "input_data" as
+	// other fields will be ignored.
 	Execute(RunnerService_ExecuteServer) error
 	mustEmbedUnimplementedRunnerServiceServer()
 }

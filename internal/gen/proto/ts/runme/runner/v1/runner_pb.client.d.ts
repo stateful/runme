@@ -39,6 +39,14 @@ export interface IRunnerServiceClient {
      */
     deleteSession(input: DeleteSessionRequest, options?: RpcOptions): UnaryCall<DeleteSessionRequest, DeleteSessionResponse>;
     /**
+     * Execute executes a program. Examine "ExecuteRequest" to explore
+     * configuration options.
+     *
+     * It's a bidirectional stream RPC method. It expects the first
+     * "ExecuteRequest" to contain details of a program to execute.
+     * Subsequent "ExecuteRequest" should only contain "input_data" as
+     * other fields will be ignored.
+     *
      * @generated from protobuf rpc: Execute(stream runme.runner.v1.ExecuteRequest) returns (stream runme.runner.v1.ExecuteResponse);
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
@@ -69,6 +77,14 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      */
     deleteSession(input: DeleteSessionRequest, options?: RpcOptions): UnaryCall<DeleteSessionRequest, DeleteSessionResponse>;
     /**
+     * Execute executes a program. Examine "ExecuteRequest" to explore
+     * configuration options.
+     *
+     * It's a bidirectional stream RPC method. It expects the first
+     * "ExecuteRequest" to contain details of a program to execute.
+     * Subsequent "ExecuteRequest" should only contain "input_data" as
+     * other fields will be ignored.
+     *
      * @generated from protobuf rpc: Execute(stream runme.runner.v1.ExecuteRequest) returns (stream runme.runner.v1.ExecuteResponse);
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;

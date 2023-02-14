@@ -3,6 +3,7 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -22,21 +23,26 @@ func Test_command(t *testing.T) {
 	t.Run("Basic", func(t *testing.T) {
 		t.Parallel()
 
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
 		cmd, err := newCommand(
 			&commandConfig{
 				ProgramName: "bash",
+				Stdout:      stdout,
+				Stderr:      stderr,
 				IsShell:     true,
 				Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+				Logger:      testCreateLogger(t),
 			},
-			testCreateLogger(t),
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
-		data, err := io.ReadAll(cmd.Stdout)
+		data, err := io.ReadAll(stdout)
 		assert.NoError(t, err)
 		assert.Equal(t, "1\n2\n", string(data))
-		data, err = io.ReadAll(cmd.Stderr)
+		data, err = io.ReadAll(stderr)
 		assert.NoError(t, err)
 		assert.Equal(t, "", string(data))
 	})
@@ -44,89 +50,157 @@ func Test_command(t *testing.T) {
 	t.Run("Tty", func(t *testing.T) {
 		t.Parallel()
 
+		stdin, stdinWriter := io.Pipe()
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
 		cmd, err := newCommand(
 			&commandConfig{
 				ProgramName: "bash",
 				Tty:         true,
+				Stdin:       stdin,
+				Stdout:      stdout,
+				Stderr:      stderr,
 				IsShell:     true,
 				Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+				Logger:      testCreateLogger(t),
 			},
-			testCreateLogger(t),
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
+		go func() { _ = stdinWriter.Close() }()
 		require.NoError(t, cmd.Wait())
-		data, err := io.ReadAll(cmd.Stdout)
+		data, err := io.ReadAll(stdout)
 		assert.NoError(t, err)
 		assert.Equal(t, "1\r\n2\r\n", string(data))
-	})
-
-	t.Run("InitialInput", func(t *testing.T) {
-		t.Parallel()
-
-		cmd, err := newCommand(
-			&commandConfig{
-				ProgramName: "bash",
-				IsShell:     true,
-				Script:      "cat - | tr a-z A-Z",
-				Input:       []byte("Hello"),
-			},
-			testCreateLogger(t),
-		)
-		require.NoError(t, err)
-		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.Wait())
-		data, err := io.ReadAll(cmd.Stdout)
+		data, err = io.ReadAll(stderr)
 		assert.NoError(t, err)
-		assert.Equal(t, "HELLO", string(data))
+		assert.Equal(t, "", string(data))
 	})
 
-	t.Run("InputAsync", func(t *testing.T) {
+	t.Run("TtyNoScriptEOT", func(t *testing.T) {
 		t.Parallel()
+
+		stdin, stdinWriter := io.Pipe()
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
 			&commandConfig{
 				ProgramName: "bash",
 				Tty:         true,
+				Stdin:       stdin,
+				Stdout:      stdout,
+				Stderr:      stderr,
 				IsShell:     true,
-				Script: `for ((i=0; i<3; i++)); do
-  read -rp "input: " line
-  echo "echo: $line"
-done`,
+				Logger:      testCreateLogger(t),
 			},
-			testCreateLogger(t),
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
 
 		go func() {
-			// Simulate users input after each prompt
-			// using sleep as a delay.
 			time.Sleep(time.Second)
-			_, _ = cmd.Stdin.Write([]byte("1\n"))
-			time.Sleep(time.Second)
-			_, _ = cmd.Stdin.Write([]byte("2\n"))
-			time.Sleep(time.Second)
-			_, _ = cmd.Stdin.Write([]byte("3\n"))
+			_, _ = stdinWriter.Write([]byte{4})
+			_ = stdinWriter.Close()
 		}()
 
 		require.NoError(t, cmd.Wait())
-		data, err := io.ReadAll(cmd.Stdout)
+		data, err := io.ReadAll(stdout)
 		assert.NoError(t, err)
-		assert.Equal(t, "input: 1\r\necho: 1\r\ninput: 2\r\necho: 2\r\ninput: 3\r\necho: 3\r\n", string(data))
+		assert.Contains(t, string(data), "exit")
+	})
+
+	t.Run("Input", func(t *testing.T) {
+		t.Parallel()
+
+		stdin := new(bytes.Buffer)
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		_, _ = stdin.WriteString("hello")
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "bash",
+				Stdin:       stdin,
+				Stdout:      stdout,
+				Stderr:      stderr,
+				IsShell:     true,
+				Script:      "cat - | tr a-z A-Z",
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Equal(t, "HELLO", string(data))
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
+	})
+
+	t.Run("InputTty", func(t *testing.T) {
+		t.Parallel()
+
+		stdin, stdinWriter := io.Pipe()
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "bash",
+				Tty:         true,
+				Stdin:       stdin,
+				Stdout:      stdout,
+				Stderr:      stderr,
+				IsShell:     true,
+				Script:      "cat - | tr a-z A-Z",
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+
+		go func() {
+			_, _ = stdinWriter.Write([]byte("hello\n"))
+			time.Sleep(time.Second)
+			_, _ = stdinWriter.Write([]byte("world\n"))
+			time.Sleep(time.Second)
+			_, _ = stdinWriter.Write([]byte{4})
+			_ = stdinWriter.Close()
+		}()
+
+		assert.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Contains(t, string(data), "hello\r\nHELLO\r\nworld\r\nWORLD\r\n")
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
 	})
 
 	t.Run("Stderr", func(t *testing.T) {
 		t.Parallel()
 
+		stdin := new(bytes.Buffer)
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		_, _ = stdin.WriteString("hello")
+
 		cmd, err := newCommand(
 			&commandConfig{
 				ProgramName: "bash",
+				Stdin:       stdin,
+				Stdout:      stdout,
+				Stderr:      stderr,
 				IsShell:     true,
 				Script:      "cat - 1>&2 2>/dev/null | tr a-z A-Z",
-				Input:       []byte("Hello"),
+				Logger:      testCreateLogger(t),
 			},
-			testCreateLogger(t),
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
@@ -134,108 +208,96 @@ done`,
 		// 1>&2 makes the FD 1 (aka stdout) refer to the same open FD
 		// as FD 2 (aka stderr). The pipe is what originally the FD 1
 		// pointed at. As nothing is written to the FD 1, the stdout is empty.
-		data, err := io.ReadAll(cmd.Stdout)
+		data, err := io.ReadAll(stdout)
 		assert.NoError(t, err)
 		assert.Equal(t, "", string(data))
 		// The input was not piped to "tr" due to streams redirection, hence,
 		// it's available as-it-is in the stderr.
-		data, err = io.ReadAll(cmd.Stderr)
+		data, err = io.ReadAll(stderr)
 		assert.NoError(t, err)
-		assert.Equal(t, "Hello", string(data))
+		assert.Equal(t, "hello", string(data))
 	})
 
-	t.Run("TtyNoScriptEOT", func(t *testing.T) {
+	t.Run("InterruptTTY", func(t *testing.T) {
 		t.Parallel()
+
+		stdin, stdinWriter := io.Pipe()
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
 			&commandConfig{
 				ProgramName: "bash",
 				Tty:         true,
+				Stdin:       stdin,
+				Stdout:      stdout,
+				Stderr:      stderr,
 				IsShell:     true,
+				Logger:      testCreateLogger(t),
 			},
-			testCreateLogger(t),
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
 
 		errc := make(chan error)
 		go func() {
-			time.Sleep(time.Second)
-			_, err := cmd.Stdin.Write([]byte{4})
-			errc <- err
-		}()
-		require.NoError(t, <-errc)
-
-		require.NoError(t, cmd.Wait())
-		data, err := io.ReadAll(cmd.Stdout)
-		assert.NoError(t, err)
-		assert.Contains(t, string(data), "exit")
-	})
-
-	t.Run("Interrupt", func(t *testing.T) {
-		t.Parallel()
-
-		cmd, err := newCommand(
-			&commandConfig{
-				ProgramName: "bash",
-				Tty:         true,
-				IsShell:     true,
-				// This is only to simplify the output
-				// in newer bash versions.
-				Input: []byte("bind 'set enable-bracketed-paste off'\n"),
-			},
-			testCreateLogger(t),
-		)
-		require.NoError(t, err)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		require.NoError(t, cmd.Start(ctx))
-
-		errc := make(chan error)
-		go func() {
 			defer close(errc)
-			time.Sleep(time.Second)
-			_, err := cmd.Stdin.Write([]byte("sleep 30\n"))
+			time.Sleep(time.Millisecond * 500)
+			// This is only to simplify the output in newer bash versions.
+			_, err := stdinWriter.Write([]byte("bind 'set enable-bracketed-paste off'\n"))
+			errc <- err
+			time.Sleep(time.Millisecond * 500)
+			_, err = stdinWriter.Write([]byte("sleep 30\n"))
 			errc <- err
 			// cancel sleep
 			time.Sleep(time.Millisecond * 500)
-			_, err = cmd.Stdin.Write([]byte{3})
+			_, err = stdinWriter.Write([]byte{3})
 			errc <- err
 			// terminate shell
 			time.Sleep(time.Millisecond * 500)
-			_, err = cmd.Stdin.Write([]byte{4})
+			_, err = stdinWriter.Write([]byte{4})
 			errc <- err
+			errc <- stdinWriter.Close()
 		}()
 		for err := range errc {
 			assert.NoError(t, err)
 		}
 
 		assert.ErrorContains(t, cmd.Wait(), "exit status 130")
-		data, err := io.ReadAll(cmd.Stdout)
+		data, err := io.ReadAll(stdout)
 		assert.NoError(t, err)
 		assert.Contains(t, string(data), "sleep 30")
 		assert.Contains(t, string(data), "exit")
 	})
 
-	t.Run("Envs", func(t *testing.T) {
+	t.Run("Env", func(t *testing.T) {
 		t.Parallel()
+
+		logger := testCreateLogger(t)
+		session := NewSession(
+			[]string{
+				"TEST_OLD=value1",
+				"TEST_OLD_CHANGED=value1",
+				"TEST_OLD_UNSET=value1",
+			},
+			logger,
+		)
 
 		cmd, err := newCommand(
 			&commandConfig{
 				ProgramName: "bash",
+				Session:     session,
+				Stdin:       bytes.NewBuffer(nil),
+				Stdout:      io.Discard,
+				Stderr:      io.Discard,
 				IsShell:     true,
-				Envs: []string{
-					"TEST_OLD=value1",
-					"TEST_OLD_CHANGED=value1",
-					"TEST_OLD_UNSET=value1",
-				},
 				Commands: []string{
 					"export TEST_NEW=value2",
 					"export TEST_OLD_CHANGED=value2",
 					"unset TEST_OLD_UNSET",
 				},
+				Logger: testCreateLogger(t),
 			},
-			testCreateLogger(t),
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
@@ -253,7 +315,7 @@ done`,
 				"TEST_OLD_CHANGED=value2",
 				"TEST_NEW=value2",
 			}),
-			sort(cmd.Envs),
+			sort(cmd.Session.Envs()),
 		)
 	})
 }
@@ -264,17 +326,20 @@ func Test_command_Stop(t *testing.T) {
 	cmd, err := newCommand(
 		&commandConfig{
 			ProgramName: "bash",
+			Stdin:       bytes.NewBuffer(nil),
+			Stdout:      io.Discard,
+			Stderr:      io.Discard,
 			IsShell:     true,
-			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+			Commands:    []string{"sleep 30"},
+			Logger:      testCreateLogger(t),
 		},
-		testCreateLogger(t),
 	)
 	require.NoError(t, err)
 	require.NoError(t, cmd.Start(context.Background()))
 
 	errc := make(chan error)
 	go func() {
-		time.Sleep(time.Second / 2)
+		time.Sleep(time.Second)
 		errc <- cmd.Stop()
 	}()
 	assert.NoError(t, <-errc)
@@ -289,10 +354,13 @@ func Test_exitCodeFromErr(t *testing.T) {
 		&commandConfig{
 			ProgramName: "bash",
 			Tty:         true,
+			Stdin:       bytes.NewBuffer(nil),
+			Stdout:      io.Discard,
+			Stderr:      io.Discard,
 			IsShell:     true,
 			Commands:    []string{"exit 99"},
+			Logger:      testCreateLogger(t),
 		},
-		testCreateLogger(t),
 	)
 	require.NoError(t, err)
 	require.NoError(t, cmd.Start(context.Background()))
