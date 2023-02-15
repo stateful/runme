@@ -3,7 +3,7 @@
 Discover and run code snippets directly from your `README.md` or other markdowns (defaults to local `README.md`).
 
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/16108792/219193634-9d784e77-71f6-4c87-8c89-244d7290db1c.gif" />
+  <img src="https://user-images.githubusercontent.com/16108792/219203990-ffb860e7-5314-4a22-bf05-9d983e3876d0.gif" />
 </p>
 
 runme makes a best effort approach to extracts all code snippets defined in code blocks and allowing to explore and execute them. runme is currently in early alpha.
