@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bufbuild/connect-go"
@@ -17,7 +19,6 @@ import (
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/kernel"
 	"github.com/stateful/runme/internal/runner"
-	"github.com/stateful/runme/internal/socket"
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -25,11 +26,14 @@ import (
 )
 
 func serverCmd() *cobra.Command {
-	const defaultSocketAddr = "/var/run/runme.sock"
+	const (
+		defaultSocketAddr = "unix:///var/run/runme.sock"
+		defaultLocalAddr  = "localhost:7890"
+	)
 
 	var (
-		addr string
-		web  bool
+		addr               string
+		useConnectProtocol bool
 	)
 
 	cmd := cobra.Command{
@@ -51,9 +55,9 @@ The kernel is used to run long running processes like shells and interacting wit
 
 			// When web is true, the server command exposes a gRPC-compatible HTTP API.
 			// Read more on https://connect.build/docs/introduction.
-			if web {
+			if useConnectProtocol {
 				if addr == defaultSocketAddr {
-					addr = "localhost:8080"
+					addr = defaultLocalAddr
 				}
 
 				mux := http.NewServeMux()
@@ -89,14 +93,25 @@ The kernel is used to run long running processes like shells and interacting wit
 				return srv.ListenAndServe()
 			}
 
-			// TODO: consolidate removing address into a single place
-			_ = os.Remove(addr)
+			var lis net.Listener
 
-			lis, err := socket.ListenPipe(addr)
-			if err != nil {
-				return err
+			if strings.HasPrefix(addr, "unix://") {
+				addr := strings.TrimPrefix(addr, "unix://")
+
+				// TODO: consolidate removing address into a single place
+				_ = os.Remove(addr)
+
+				lis, err = net.Listen("unix", addr)
+				if err != nil {
+					return err
+				}
+				defer func() { _ = os.Remove(addr) }()
+			} else {
+				lis, err = net.Listen("tcp", addr)
+				if err != nil {
+					return err
+				}
 			}
-			defer func() { _ = os.Remove(addr) }()
 
 			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
 
@@ -111,8 +126,8 @@ The kernel is used to run long running processes like shells and interacting wit
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().StringVarP(&addr, "address", "a", defaultSocketAddr, "A path to create a socket.")
-	cmd.Flags().BoolVar(&web, "web", false, "Use Connect Protocol (https://connect.build/).")
+	cmd.Flags().StringVarP(&addr, "address", "a", defaultSocketAddr, "Address to create unix (unix:///path/to/socket) or IP socket (localhost:7890)")
+	cmd.Flags().BoolVar(&useConnectProtocol, "connect-protocol", false, "Use Connect Protocol (https://connect.build/)")
 
 	return &cmd
 }
