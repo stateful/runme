@@ -3,6 +3,7 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net"
@@ -401,4 +402,29 @@ func Test_runnerService_Execute(t *testing.T) {
 			assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
 		})
 	}
+}
+
+func Test_readLoop(t *testing.T) {
+	const dataSize = 10 * 1024 * 1024
+
+	stdout := make([]byte, dataSize)
+	stderr := make([]byte, dataSize)
+	results := make(chan output)
+	stdoutN, stderrN := 0, 0
+
+	done := make(chan struct{})
+	go func() {
+		for data := range results {
+			stdoutN += len(data.Stdout)
+			stderrN += len(data.Stderr)
+		}
+		close(done)
+	}()
+
+	err := readLoop(bytes.NewReader(stdout), bytes.NewReader(stderr), results)
+	assert.NoError(t, err)
+	close(results)
+	<-done
+	assert.Equal(t, dataSize, stdoutN)
+	assert.Equal(t, dataSize, stderrN)
 }

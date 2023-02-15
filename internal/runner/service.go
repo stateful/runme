@@ -15,6 +15,8 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+const bufferSize = 10 * 1024
+
 type runnerService struct {
 	runnerv1.UnimplementedRunnerServiceServer
 
@@ -145,8 +147,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	stdin, stdinWriter := io.Pipe()
-	stdout := rbuffer.NewRingBuffer(10 * 1024)
-	stderr := rbuffer.NewRingBuffer(10 * 1024)
+	stdout := rbuffer.NewRingBuffer(bufferSize)
+	stderr := rbuffer.NewRingBuffer(bufferSize)
 	// Close buffers so that the readers will be notified about EOF.
 	// It's ok to close the buffers multiple times.
 	defer func() { _ = stdout.Close() }()
@@ -309,10 +311,8 @@ func readLoop(
 		panic("readLoop requires unbuffered channel")
 	}
 
-	const size = 10 * 1024
-
-	read := func(reader io.Reader) error {
-		buf1, buf2 := make([]byte, size), make([]byte, size)
+	read := func(reader io.Reader, fn func(p []byte) output) error {
+		buf1, buf2 := make([]byte, bufferSize), make([]byte, bufferSize)
 		idx := 0
 
 		for {
@@ -327,7 +327,7 @@ func readLoop(
 				}
 				return errors.WithStack(err)
 			} else if n > 0 {
-				results <- output{Stdout: buf[:n]}
+				results <- fn(buf[:n])
 			}
 		}
 	}
@@ -335,11 +335,15 @@ func readLoop(
 	g := new(errgroup.Group)
 
 	g.Go(func() error {
-		return read(stdout)
+		return read(stdout, func(p []byte) output {
+			return output{Stdout: p}
+		})
 	})
 
 	g.Go(func() error {
-		return read(stderr)
+		return read(stderr, func(p []byte) output {
+			return output{Stderr: p}
+		})
 	})
 
 	return g.Wait()
