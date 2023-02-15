@@ -178,6 +178,7 @@ func (c *command) cleanup() {
 
 type startOpts struct {
 	DisableEcho bool
+	RawMode     bool
 }
 
 func (c *command) Start(ctx context.Context) error {

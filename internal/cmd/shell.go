@@ -9,14 +9,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/kernel"
+	"github.com/stateful/runme/internal/runner"
 )
 
 func shellCmd() *cobra.Command {
-	var (
-		commandName string
-		promptStr   string
-	)
+	var commandName string
 
 	cmd := cobra.Command{
 		Hidden: true,
@@ -25,15 +22,7 @@ func shellCmd() *cobra.Command {
 		Long:   "Activate runme shell. This is an experimental feature.",
 		Args:   cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if promptStr == "" {
-				prompt, err := kernel.DetectPrompt(commandName)
-				if err != nil {
-					return errors.Wrap(err, "failed to detect prompt")
-				}
-				promptStr = string(prompt)
-			}
-
-			session, err := kernel.NewShellSession(commandName, promptStr)
+			session, err := runner.NewShellSession(commandName)
 			if err != nil {
 				return errors.Wrap(err, "failed to create shell session")
 			}
@@ -101,8 +90,7 @@ func shellCmd() *cobra.Command {
 		defaultShell = "/bin/sh"
 	}
 
-	cmd.Flags().StringVar(&commandName, "command", defaultShell, "Command to execute and watch.")
-	cmd.Flags().StringVar(&promptStr, "prompt", "", "Prompt to use instead of auto detecting it.")
+	cmd.Flags().StringVar(&commandName, "command", defaultShell, "Command to execute and watch")
 
 	return &cmd
 }
