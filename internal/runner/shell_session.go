@@ -1,4 +1,4 @@
-package kernel
+package runner
 
 import (
 	"io"
@@ -24,7 +24,7 @@ type ShellSession struct {
 	err           error
 }
 
-func NewShellSession(command, prompt string) (*ShellSession, error) {
+func NewShellSession(command string) (*ShellSession, error) {
 	id := xid.New().String()
 
 	cmd := exec.Command(command)

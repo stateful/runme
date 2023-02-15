@@ -13,11 +13,9 @@ import (
 	"github.com/rs/cors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document/editor/editorservice"
-	kernelv1 "github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1"
-	"github.com/stateful/runme/internal/gen/proto/go/runme/kernel/v1/kernelv1connect"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/kernel"
+	"github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1/runnerv1connect"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
@@ -62,7 +60,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 				mux := http.NewServeMux()
 				compress1KB := connect.WithCompressMinBytes(1024)
-				mux.Handle(kernelv1connect.NewKernelServiceHandler(kernel.NewKernelServiceHandler(logger)))
+				mux.Handle(runnerv1connect.NewRunnerServiceHandler(runner.NewRunnerServiceHandler(logger)))
 				mux.Handle(grpchealth.NewHandler(
 					grpchealth.NewStaticChecker(),
 					compress1KB,
@@ -118,7 +116,6 @@ The kernel is used to run long running processes like shells and interacting wit
 			var opts []grpc.ServerOption
 			server := grpc.NewServer(opts...)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
-			kernelv1.RegisterKernelServiceServer(server, kernel.NewKernelServiceServer(logger))
 			runnerv1.RegisterRunnerServiceServer(server, runner.NewRunnerService(logger))
 			return server.Serve(lis)
 		},
