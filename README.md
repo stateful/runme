@@ -1,6 +1,8 @@
-# runme
+# runme - run your README.md (markdown docs)
 
 Discover and run code snippets directly from your `README.md` or other markdowns (defaults to local `README.md`).
+
+![Runme Demo](public/demo.gif)
 
 runme makes a best effort approach to extracts all code snippets defined in code blocks and allowing to explore and execute them. runme is currently in early alpha.
 
