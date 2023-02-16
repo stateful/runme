@@ -32,6 +32,7 @@ func serverCmd() *cobra.Command {
 	var (
 		addr               string
 		useConnectProtocol bool
+		devMode            bool
 	)
 
 	cmd := cobra.Command{
@@ -45,7 +46,15 @@ The parser allows serializing and deserializing markdown content.
 The kernel is used to run long running processes like shells and interacting with them.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logger, err := zap.NewDevelopment()
+			var (
+				logger *zap.Logger
+				err    error
+			)
+			if devMode {
+				logger, err = zap.NewDevelopment()
+			} else {
+				logger, err = zap.NewProduction()
+			}
 			if err != nil {
 				return err
 			}
@@ -125,6 +134,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 	cmd.Flags().StringVarP(&addr, "address", "a", defaultSocketAddr, "Address to create unix (unix:///path/to/socket) or IP socket (localhost:7890)")
 	cmd.Flags().BoolVar(&useConnectProtocol, "connect-protocol", false, "Use Connect Protocol (https://connect.build/)")
+	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
 
 	return &cmd
 }
