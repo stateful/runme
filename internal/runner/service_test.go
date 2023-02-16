@@ -87,37 +87,12 @@ func getExecuteResult(
 	result <- executeResult{Responses: resps, Err: err}
 }
 
-func Test_runnerService_Execute(t *testing.T) {
+func Test_runnerService(t *testing.T) {
 	t.Parallel()
 
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
-
-	t.Run("Basic", func(t *testing.T) {
-		t.Parallel()
-
-		stream, err := client.Execute(context.Background())
-		require.NoError(t, err)
-
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
-
-		err = stream.Send(&runnerv1.ExecuteRequest{
-			ProgramName: "bash",
-			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
-		})
-		assert.NoError(t, err)
-		assert.NoError(t, stream.CloseSend())
-
-		result := <-execResult
-
-		assert.NoError(t, result.Err)
-		require.Len(t, result.Responses, 3)
-		assert.Equal(t, "1\n", string(result.Responses[0].StdoutData))
-		assert.Equal(t, "2\n", string(result.Responses[1].StdoutData))
-		assert.EqualValues(t, 0, result.Responses[2].ExitCode.Value)
-	})
 
 	t.Run("Sessions", func(t *testing.T) {
 		t.Parallel()
@@ -149,6 +124,31 @@ func Test_runnerService_Execute(t *testing.T) {
 			&runnerv1.DeleteSessionRequest{Id: "non-existent"},
 		)
 		assert.Equal(t, status.Convert(err).Code(), codes.NotFound)
+	})
+
+	t.Run("ExecuteBasic", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+		})
+		assert.NoError(t, err)
+		assert.NoError(t, stream.CloseSend())
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		require.Len(t, result.Responses, 3)
+		assert.Equal(t, "1\n", string(result.Responses[0].StdoutData))
+		assert.Equal(t, "2\n", string(result.Responses[1].StdoutData))
+		assert.EqualValues(t, 0, result.Responses[2].ExitCode.Value)
 	})
 
 	t.Run("EnvsPersistence", func(t *testing.T) {
@@ -230,7 +230,7 @@ func Test_runnerService_Execute(t *testing.T) {
 		)
 	})
 
-	t.Run("CloseSend", func(t *testing.T) {
+	t.Run("ExecuteCloseSendDirection", func(t *testing.T) {
 		t.Parallel()
 
 		stream, err := client.Execute(context.Background())
@@ -253,7 +253,7 @@ func Test_runnerService_Execute(t *testing.T) {
 		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
 	})
 
-	t.Run("EndOfTransmissionTty", func(t *testing.T) {
+	t.Run("ExecuteWithTTYSendEOT", func(t *testing.T) {
 		t.Parallel()
 
 		stream, err := client.Execute(context.Background())
@@ -289,10 +289,10 @@ func Test_runnerService_Execute(t *testing.T) {
 		assert.EqualValues(t, 130, result.Responses[len(result.Responses)-1].ExitCode.Value)
 	})
 
-	// ClientCancel is similar to "CloseSend" but the client cancels
-	// the connection. When running wihout TTY, this is the only way
-	// to interrupt a program.
-	t.Run("ClientCancel", func(t *testing.T) {
+	// ExecuteClientCancel is similar to "ExecuteCloseSendDirection" but the client cancels
+	// the connection. When running wihout TTY, this and sending ExecuteRequest.stop are
+	// the only ways to interrupt a program.
+	t.Run("ExecuteClientCancel", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -323,7 +323,7 @@ func Test_runnerService_Execute(t *testing.T) {
 	// This test simulates a situation when a client starts a program
 	// with TTY and does not know when it exists. The program should
 	// return on its own after the command is done.
-	t.Run("TTYWithProcessExit", func(t *testing.T) {
+	t.Run("ExecuteWithTTYExitSuccess", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -349,7 +349,7 @@ func Test_runnerService_Execute(t *testing.T) {
 	})
 
 	if _, err := exec.LookPath("python3"); err == nil {
-		t.Run("PythonServer", func(t *testing.T) {
+		t.Run("ExecutePythonServer", func(t *testing.T) {
 			t.Parallel()
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -388,6 +388,42 @@ func Test_runnerService_Execute(t *testing.T) {
 			assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
 		})
 	}
+
+	t.Run("ExecuteSendRequestStop", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         false, // no TTY; only way to interrupt it is to send ExecuteRequest.stop or cancel the stream
+			Commands:    []string{"sleep 30"},
+		})
+		assert.NoError(t, err)
+
+		errc := make(chan error)
+		go func() {
+			defer close(errc)
+			time.Sleep(time.Second)
+			err := stream.Send(&runnerv1.ExecuteRequest{
+				Stop: runnerv1.ExecuteStop_EXECUTE_STOP_INTERRUPT,
+			})
+			errc <- err
+		}()
+		for err := range errc {
+			assert.NoError(t, err)
+		}
+
+		result := <-execResult
+
+		require.NoError(t, result.Err)
+		require.NotEmpty(t, result.Responses)
+		assert.EqualValues(t, 130, result.Responses[len(result.Responses)-1].ExitCode.Value)
+	})
 }
 
 func Test_readLoop(t *testing.T) {

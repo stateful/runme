@@ -54,6 +54,8 @@ install/goreleaser:
 
 .PHONY: proto/generate
 proto/generate:
+	buf lint
+	buf format -w
 	buf generate
 
 .PHONY: proto/clean

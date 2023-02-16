@@ -163,11 +163,17 @@ export interface ExecuteRequest {
     /**
      * input_data is a byte array that will be send as input
      * to the program.
-     * It is allowed in the consecutive calls only.
      *
      * @generated from protobuf field: bytes input_data = 8;
      */
     inputData: Uint8Array;
+    /**
+     * stop requests the running process to be stopped.
+     * It is allowed only in the consecutive calls.
+     *
+     * @generated from protobuf field: runme.runner.v1.ExecuteStop stop = 9;
+     */
+    stop: ExecuteStop;
     /**
      * session_id indicates in which Session the program should execute.
      * Executing in a Session might provide additional context like
@@ -199,6 +205,23 @@ export interface ExecuteResponse {
      * @generated from protobuf field: bytes stderr_data = 3;
      */
     stderrData: Uint8Array;
+}
+/**
+ * @generated from protobuf enum runme.runner.v1.ExecuteStop
+ */
+export declare enum ExecuteStop {
+    /**
+     * @generated from protobuf enum value: EXECUTE_STOP_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: EXECUTE_STOP_INTERRUPT = 1;
+     */
+    INTERRUPT = 1,
+    /**
+     * @generated from protobuf enum value: EXECUTE_STOP_KILL = 2;
+     */
+    KILL = 2
 }
 declare class Session$Type extends MessageType<Session> {
     constructor();

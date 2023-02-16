@@ -340,7 +340,7 @@ func Test_command_Stop(t *testing.T) {
 	errc := make(chan error)
 	go func() {
 		time.Sleep(time.Second)
-		errc <- cmd.Stop()
+		errc <- cmd.Kill()
 	}()
 	assert.NoError(t, <-errc)
 

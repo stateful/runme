@@ -37,12 +37,13 @@ func disableEcho(fd uintptr) error {
 	return errors.Wrap(err, "failed to set tty attr")
 }
 
-func killPgid(pid int) error {
+func signalPgid(pid int, sig os.Signal) error {
 	pgid, err := syscall.Getpgid(pid)
 	if err != nil {
 		return err
 	}
-	s, ok := os.Kill.(syscall.Signal)
+
+	s, ok := sig.(syscall.Signal)
 	if !ok {
 		return errors.New("os: unsupported signal type")
 	}

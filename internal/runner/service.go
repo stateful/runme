@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"io"
+	"os"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -204,15 +205,32 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				if err == io.EOF {
 					r.logger.Info("client closed the connection")
 				} else {
-					r.logger.Info("failed to receive requests; stop program", zap.Error(err))
-					if err := cmd.Stop(); err != nil {
+					r.logger.Info("failed to receive requests; stopping program", zap.Error(err))
+					if err := cmd.Kill(); err != nil {
 						r.logger.Info("failed to stop program", zap.Error(err))
 					}
 				}
 				return
 			}
 
-			// TODO(adamb): introduce a new field to forcefully stop the command.
+			if req.Stop != runnerv1.ExecuteStop_EXECUTE_STOP_UNSPECIFIED {
+				r.logger.Info("requested the program to stop")
+
+				var err error
+
+				switch req.Stop {
+				case runnerv1.ExecuteStop_EXECUTE_STOP_INTERRUPT:
+					err = cmd.StopWithSignal(os.Interrupt)
+				case runnerv1.ExecuteStop_EXECUTE_STOP_KILL:
+					err = cmd.Kill()
+				}
+
+				if err != nil {
+					r.logger.Info("failed to stop program on request", zap.Error(err), zap.Any("signal", req.Stop))
+				}
+
+				return
+			}
 
 			if len(req.InputData) != 0 {
 				_, err = stdinWriter.Write(req.InputData)
@@ -254,9 +272,6 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	// Wait for the process to finish.
 	werr := cmd.ProcessWait()
 	exitCode := exitCodeFromErr(werr)
-	if exitCode == -1 {
-		r.logger.Info("process failed; continue with finalizer", zap.Error(err))
-	}
 
 	// Close the stdinWriter so that the loops in cmd will finish.
 	// The problem occurs only with TTY.
@@ -270,6 +285,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if exitCode == -1 {
+		r.logger.Info("command failed", zap.Error(werr))
 		return werr
 	}
 
