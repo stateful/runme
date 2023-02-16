@@ -138,6 +138,9 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	var sess *Session
 	if req.SessionId != "" {
 		sess = r.findSession(req.SessionId)
+		if sess == nil {
+			return errors.New("session not found")
+		}
 	} else {
 		sess = NewSession(nil, r.logger)
 	}
@@ -208,6 +211,9 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				}
 				return
 			}
+
+			// TODO(adamb): introduce a new field to forcefully stop the command.
+
 			if len(req.InputData) != 0 {
 				_, err = stdinWriter.Write(req.InputData)
 				if err != nil {
@@ -245,12 +251,25 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return err
 	})
 
-	exitCode, werr := 0, cmd.Wait()
-	if werr != nil {
-		exitCode = exitCodeFromErr(werr)
-	}
+	// Wait for the process to finish.
+	werr := cmd.ProcessWait()
+	exitCode := exitCodeFromErr(werr)
 	if exitCode == -1 {
-		r.logger.Info("finished command execution with error", zap.Error(werr))
+		r.logger.Info("process failed; continue with finalizer", zap.Error(err))
+	}
+
+	// Close the stdinWriter so that the loops in cmd will finish.
+	// The problem occurs only with TTY.
+	_ = stdinWriter.Close()
+
+	if err := cmd.Finalize(); err != nil {
+		r.logger.Info("command finalizer failed", zap.Error(err))
+		if werr == nil {
+			return err
+		}
+	}
+
+	if exitCode == -1 {
 		return werr
 	}
 
@@ -262,15 +281,11 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		r.logger.Info("failed to wait for goroutines to finish", zap.Error(err))
 	}
 
-	r.logger.Info("finished command execution", zap.Error(err), zap.Int("exitCode", exitCode))
+	r.logger.Info("finished command execution", zap.Int("exitCode", exitCode))
 
-	if exitCode > -1 {
-		return srv.Send(&runnerv1.ExecuteResponse{
-			ExitCode: wrapperspb.UInt32(uint32(exitCode)),
-		})
-	}
-
-	return nil
+	return srv.Send(&runnerv1.ExecuteResponse{
+		ExitCode: wrapperspb.UInt32(uint32(exitCode)),
+	})
 }
 
 type output struct {
