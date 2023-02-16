@@ -1,9 +1,19 @@
 package cmd
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -26,6 +36,8 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+const tlsFileMode = os.FileMode(int(0o700))
+
 func serverCmd() *cobra.Command {
 	const (
 		defaultSocketAddr = "unix:///var/run/runme.sock"
@@ -37,6 +49,7 @@ func serverCmd() *cobra.Command {
 		useConnectProtocol bool
 		devMode            bool
 		enableRunner       bool
+		tlsDir             string
 	)
 
 	cmd := cobra.Command{
@@ -63,6 +76,104 @@ The kernel is used to run long running processes like shells and interacting wit
 				return err
 			}
 			defer logger.Sync()
+
+			var (
+				tlsConfig *tls.Config
+			)
+
+			if tlsDir != "" {
+				if info, err := os.Stat(tlsDir); err != nil {
+					if err := os.MkdirAll(tlsDir, tlsFileMode); err != nil {
+						return err
+					}
+				} else {
+					if !info.IsDir() {
+						return fmt.Errorf("provided tls path is not a directory: %s", tlsDir)
+					}
+
+					if err := os.Chmod(tlsDir, tlsFileMode); err != nil {
+						return err
+					}
+				}
+
+				var (
+					certPath = path.Join(tlsDir, "cert.pem")
+					pkPath   = path.Join(tlsDir, "key.pem")
+				)
+
+				// TODO: rotation strategy here
+
+				privKey, err := rsa.GenerateKey(rand.Reader, 4096)
+
+				if err != nil {
+					return err
+				}
+
+				ca := &x509.Certificate{
+					SerialNumber: big.NewInt(1),
+					Subject: pkix.Name{
+						CommonName:   "stateful",
+						Organization: []string{"Stateful, INC."},
+						Country:      []string{"US"},
+						Province:     []string{""},
+						Locality:     []string{"Berkeley"},
+					},
+					NotBefore:             time.Now(),
+					NotAfter:              time.Now().AddDate(0, 0, 30),
+					IsCA:                  true,
+					ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+					KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+					BasicConstraintsValid: true,
+					SignatureAlgorithm:    x509.SHA256WithRSA,
+				}
+
+				certificateBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &privKey.PublicKey, privKey)
+
+				if err != nil {
+					return err
+				}
+
+				caPEM := new(bytes.Buffer)
+				pem.Encode(caPEM, &pem.Block{
+					Type:  "CERTIFICATE",
+					Bytes: certificateBytes,
+				})
+
+				privKeyPEM := new(bytes.Buffer)
+				pem.Encode(privKeyPEM, &pem.Block{
+					Type:  "RSA PRIVATE KEY",
+					Bytes: x509.MarshalPKCS1PrivateKey(privKey),
+				})
+
+				// TODO: probably a more efficient way to create a `tls.Certificate`
+				// rather than unencrypting the PEM again...
+				tlsCa, err := tls.X509KeyPair(caPEM.Bytes(), privKeyPEM.Bytes())
+
+				if err != nil {
+					return err
+				}
+
+				certPool := x509.NewCertPool()
+
+				// TODO: can probably use `AddCert` here
+				if !certPool.AppendCertsFromPEM(caPEM.Bytes()) {
+					return fmt.Errorf("failed to add certificate to certificate pool")
+				}
+
+				tlsConfig = &tls.Config{
+					Certificates: []tls.Certificate{tlsCa},
+					ClientAuth:   tls.RequireAndVerifyClientCert,
+					ClientCAs:    certPool,
+				}
+
+				if err := os.WriteFile(certPath, caPEM.Bytes(), tlsFileMode); err != nil {
+					return err
+				}
+
+				if err := os.WriteFile(pkPath, privKeyPEM.Bytes(), tlsFileMode); err != nil {
+					return err
+				}
+			}
 
 			// When web is true, the server command exposes a gRPC-compatible HTTP API.
 			// Read more on https://connect.build/docs/introduction.
@@ -105,6 +216,8 @@ The kernel is used to run long running processes like shells and interacting wit
 					MaxHeaderBytes:    8 * 1024, // 8KiB
 				}
 
+				srv.TLSConfig = tlsConfig
+
 				logger.Info("started listening", zap.String("addr", srv.Addr))
 
 				return srv.ListenAndServe()
@@ -118,13 +231,23 @@ The kernel is used to run long running processes like shells and interacting wit
 				// TODO: consolidate removing address into a single place
 				_ = os.Remove(addr)
 
-				lis, err = net.Listen("unix", addr)
+				if tlsConfig == nil {
+					lis, err = net.Listen("unix", addr)
+				} else {
+					lis, err = tls.Listen("unix", addr, tlsConfig)
+				}
+
 				if err != nil {
 					return err
 				}
 				defer func() { _ = os.Remove(addr) }()
 			} else {
-				lis, err = net.Listen("tcp", addr)
+				if tlsConfig == nil {
+					lis, err = net.Listen("tcp", addr)
+				} else {
+					lis, err = tls.Listen("tcp", addr, tlsConfig)
+				}
+
 				if err != nil {
 					return err
 				}
@@ -161,6 +284,7 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().BoolVar(&useConnectProtocol, "connect-protocol", false, "Use Connect Protocol (https://connect.build/)")
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
 	cmd.Flags().BoolVar(&enableRunner, "runner", false, "Enable runner service")
+	cmd.Flags().StringVar(&tlsDir, "tls", "", "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
 
 	return &cmd
 }
