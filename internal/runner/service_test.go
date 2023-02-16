@@ -140,7 +140,6 @@ func Test_runnerService(t *testing.T) {
 			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
 		})
 		assert.NoError(t, err)
-		assert.NoError(t, stream.CloseSend())
 
 		result := <-execResult
 
@@ -180,7 +179,6 @@ func Test_runnerService(t *testing.T) {
 				},
 			})
 			require.NoError(t, err)
-			assert.NoError(t, stream.CloseSend())
 
 			result := <-execResult
 
@@ -206,7 +204,6 @@ func Test_runnerService(t *testing.T) {
 				},
 			})
 			require.NoError(t, err)
-			assert.NoError(t, stream.CloseSend())
 
 			result := <-execResult
 
@@ -230,7 +227,7 @@ func Test_runnerService(t *testing.T) {
 		)
 	})
 
-	t.Run("ExecuteCloseSendDirection", func(t *testing.T) {
+	t.Run("ExecuteWithTTYCloseSendDirection", func(t *testing.T) {
 		t.Parallel()
 
 		stream, err := client.Execute(context.Background())
@@ -241,7 +238,8 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
-			// Commands:    []string{"sleep 30"}, // check out ClientCancel subtest
+			Tty:         true,
+			Commands:    []string{"sleep 1"},
 		})
 		assert.NoError(t, err)
 		assert.NoError(t, stream.CloseSend())
@@ -348,6 +346,31 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
 	})
 
+	t.Run("ExecuteExitSuccess", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		stream, err := client.Execute(ctx)
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         false,
+			Commands:    []string{"sleep 1"},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		require.NoError(t, result.Err)
+		require.NotEmpty(t, result.Responses)
+		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
+	})
+
 	if _, err := exec.LookPath("python3"); err == nil {
 		t.Run("ExecutePythonServer", func(t *testing.T) {
 			t.Parallel()
@@ -375,7 +398,6 @@ func Test_runnerService(t *testing.T) {
 					InputData: []byte{3},
 				})
 				errc <- err
-				errc <- stream.CloseSend()
 			}()
 			for err := range errc {
 				assert.NoError(t, err)

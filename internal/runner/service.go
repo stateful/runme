@@ -158,22 +158,22 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	defer func() { _ = stdout.Close() }()
 	defer func() { _ = stderr.Close() }()
 
-	cmd, err := newCommand(
-		&commandConfig{
-			ProgramName: req.ProgramName,
-			Args:        req.Arguments,
-			Directory:   req.Directory,
-			Session:     sess,
-			Tty:         req.Tty,
-			Stdin:       stdin,
-			Stdout:      stdout,
-			Stderr:      stderr,
-			IsShell:     true,
-			Commands:    req.Commands,
-			Script:      req.Script,
-			Logger:      r.logger,
-		},
-	)
+	cfg := &commandConfig{
+		ProgramName: req.ProgramName,
+		Args:        req.Arguments,
+		Directory:   req.Directory,
+		Session:     sess,
+		Tty:         req.Tty,
+		Stdin:       stdin,
+		Stdout:      stdout,
+		Stderr:      stderr,
+		IsShell:     true,
+		Commands:    req.Commands,
+		Script:      req.Script,
+		Logger:      r.logger,
+	}
+	r.logger.Debug("command config", zap.Any("cfg", cfg))
+	cmd, err := newCommand(cfg)
 	if err != nil {
 		return err
 	}
@@ -182,10 +182,9 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return err
 	}
 
+	// This goroutine will be closed when the handler exits or earlier.
 	go func() {
-		defer func() {
-			_ = stdinWriter.Close()
-		}()
+		defer func() { _ = stdinWriter.Close() }()
 
 		if len(req.InputData) > 0 {
 			if _, err := stdinWriter.Write(req.InputData); err != nil {
@@ -196,19 +195,31 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			}
 		}
 
+		// When TTY is false, it means that the command is run in non-interactive mode and
+		// there will be no more input data.
+		if !req.Tty {
+			_ = stdinWriter.Close() // it's ok to close it multiple times
+		}
+
 		for {
 			req, err := srv.Recv()
-			if err != nil {
-				// If the error is io.EOF, then we assume that the client
-				// closed the connection with an intention to stop execution.
-				// If it is a different error, we try to stop the command.
-				if err == io.EOF {
-					r.logger.Info("client closed the connection")
+			if err == io.EOF {
+				r.logger.Info("client closed the send direction; ignoring")
+				return
+			}
+			if err != nil && status.Convert(err).Code() == codes.Canceled {
+				if cmd.cmd.ProcessState != nil {
+					r.logger.Info("stream canceled after the process finished; ignoring")
 				} else {
-					r.logger.Info("failed to receive requests; stopping program", zap.Error(err))
-					if err := cmd.Kill(); err != nil {
-						r.logger.Info("failed to stop program", zap.Error(err))
-					}
+					r.logger.Info("stream canceled while the process is still running; stopping the program")
+				}
+				return
+			}
+			if err != nil {
+				r.logger.Info("error while receiving a request; stopping the program", zap.Error(err))
+				err := cmd.Kill()
+				if err != nil {
+					r.logger.Info("failed to stop program", zap.Error(err))
 				}
 				return
 			}
@@ -248,6 +259,15 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	datac := make(chan output)
 
 	g.Go(func() error {
+		err := readLoop(stdout, stderr, datac)
+		close(datac)
+		if errors.Is(err, io.EOF) {
+			err = nil
+		}
+		return err
+	})
+
+	g.Go(func() error {
 		for data := range datac {
 			err := srv.Send(&runnerv1.ExecuteResponse{
 				StdoutData: data.Stdout,
@@ -260,20 +280,13 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return nil
 	})
 
-	g.Go(func() error {
-		err := readLoop(stdout, stderr, datac)
-		close(datac)
-		if errors.Is(err, io.EOF) {
-			err = nil
-		}
-		return err
-	})
-
 	// Wait for the process to finish.
 	werr := cmd.ProcessWait()
 	exitCode := exitCodeFromErr(werr)
 
-	// Close the stdinWriter so that the loops in cmd will finish.
+	r.logger.Info("command finished", zap.Int("exitCode", exitCode))
+
+	// Close the stdinWriter so that the loops in the `cmd` will finish.
 	// The problem occurs only with TTY.
 	_ = stdinWriter.Close()
 
@@ -284,6 +297,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		}
 	}
 
+	r.logger.Info("command was finalized successfully")
+
 	if exitCode == -1 {
 		r.logger.Info("command failed", zap.Error(werr))
 		return werr
@@ -293,15 +308,23 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	_ = stdout.Close()
 	_ = stderr.Close()
 
-	if err := g.Wait(); err != nil {
+	werr = g.Wait()
+	if werr != nil {
 		r.logger.Info("failed to wait for goroutines to finish", zap.Error(err))
 	}
 
-	r.logger.Info("finished command execution", zap.Int("exitCode", exitCode))
+	r.logger.Info("sending the final response with exit code")
 
-	return srv.Send(&runnerv1.ExecuteResponse{
+	if err := srv.Send(&runnerv1.ExecuteResponse{
 		ExitCode: wrapperspb.UInt32(uint32(exitCode)),
-	})
+	}); err != nil {
+		r.logger.Info("failed to send exit code", zap.Error(err))
+		if werr == nil {
+			werr = err
+		}
+	}
+
+	return werr
 }
 
 type output struct {
