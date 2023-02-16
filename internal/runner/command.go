@@ -278,22 +278,32 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 	return nil
 }
 
-func (c *command) Stop() error {
+func (c *command) Kill() error {
+	return c.stop(os.Kill)
+}
+
+func (c *command) StopWithSignal(sig os.Signal) error {
+	return c.stop(sig)
+}
+
+func (c *command) stop(sig os.Signal) error {
 	if c.cmd == nil {
 		return errors.New("command not started")
 	}
 
 	if c.pty != nil {
 		if err := c.pty.Close(); err != nil {
-			return errors.Wrap(err, "failed to close pty")
+			c.logger.Info("failed to close pty; continuing")
 		}
 	}
 
-	// Try to kill the whole process group. If it fails,
-	// fall back to exec.Cmd.Process.Kill().
-	if err := killPgid(c.cmd.Process.Pid); err != nil {
-		c.logger.Info("failed to kill process group; trying regular process kill", zap.Error(err))
-		return errors.WithStack(c.cmd.Process.Kill())
+	// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
+	if err := signalPgid(c.cmd.Process.Pid, sig); err != nil {
+		c.logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
+		if err := c.cmd.Process.Signal(sig); err != nil {
+			c.logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
+			return errors.WithStack(c.cmd.Process.Kill())
+		}
 	}
 	return nil
 }
@@ -334,21 +344,31 @@ func (c *command) collectEnvs() {
 	c.Session.envStore = newEnvStore(c.cmd.Env...).Add(newOrUpdated...).Delete(deleted...)
 }
 
+// ProcessWait waits only for the process to exit.
+// You rather want to use Wait().
 func (c *command) ProcessWait() error {
 	return errors.WithStack(c.cmd.Wait())
 }
 
-func (c *command) Finalize() error {
+// Finalize performs necassary actions and cleanups after the process exits.
+func (c *command) Finalize() (err error) {
+	if c.cmd.ProcessState == nil {
+		return errors.New("process not finished")
+	}
+
 	c.collectEnvs()
+
 	c.cleanup()
 
 	c.wg.Wait()
 
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.err
+	err = c.err
+	c.mu.Unlock()
+	return
 }
 
+// Wait waits for the process to exit as well as all its goroutines.
 func (c *command) Wait() error {
 	if err := c.ProcessWait(); err != nil {
 		return err

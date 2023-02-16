@@ -3,6 +3,7 @@
 package runner
 
 import (
+	"os"
 	"os/exec"
 
 	"github.com/pkg/errors"
@@ -16,4 +17,4 @@ func disableEcho(fd uintptr) error {
 	return errors.New("unsupported")
 }
 
-func killPgid(pid int) error { return errors.New("unsupported") }
+func signalPgid(pid int, sig os.Signal) error { return errors.New("unsupported") }

@@ -11,6 +11,24 @@
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
+/**
+ * @generated from protobuf enum runme.runner.v1.ExecuteStop
+ */
+export var ExecuteStop;
+(function (ExecuteStop) {
+    /**
+     * @generated from protobuf enum value: EXECUTE_STOP_UNSPECIFIED = 0;
+     */
+    ExecuteStop[ExecuteStop["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: EXECUTE_STOP_INTERRUPT = 1;
+     */
+    ExecuteStop[ExecuteStop["INTERRUPT"] = 1] = "INTERRUPT";
+    /**
+     * @generated from protobuf enum value: EXECUTE_STOP_KILL = 2;
+     */
+    ExecuteStop[ExecuteStop["KILL"] = 2] = "KILL";
+})(ExecuteStop || (ExecuteStop = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class Session$Type extends MessageType {
     constructor() {
@@ -130,6 +148,7 @@ class ExecuteRequest$Type extends MessageType {
             { no: 6, name: "script", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "tty", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 8, name: "input_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 9, name: "stop", kind: "enum", T: () => ["runme.runner.v1.ExecuteStop", ExecuteStop, "EXECUTE_STOP_"] },
             { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }

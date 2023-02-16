@@ -7,6 +7,32 @@ import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialM
 import { Message, proto3, UInt32Value } from "@bufbuild/protobuf";
 
 /**
+ * @generated from enum runme.runner.v1.ExecuteStop
+ */
+export enum ExecuteStop {
+  /**
+   * @generated from enum value: EXECUTE_STOP_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: EXECUTE_STOP_INTERRUPT = 1;
+   */
+  INTERRUPT = 1,
+
+  /**
+   * @generated from enum value: EXECUTE_STOP_KILL = 2;
+   */
+  KILL = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ExecuteStop)
+proto3.util.setEnumType(ExecuteStop, "runme.runner.v1.ExecuteStop", [
+  { no: 0, name: "EXECUTE_STOP_UNSPECIFIED" },
+  { no: 1, name: "EXECUTE_STOP_INTERRUPT" },
+  { no: 2, name: "EXECUTE_STOP_KILL" },
+]);
+
+/**
  * @generated from message runme.runner.v1.Session
  */
 export class Session extends Message<Session> {
@@ -421,11 +447,18 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
   /**
    * input_data is a byte array that will be send as input
    * to the program.
-   * It is allowed in the consecutive calls only.
    *
    * @generated from field: bytes input_data = 8;
    */
   inputData = new Uint8Array(0);
+
+  /**
+   * stop requests the running process to be stopped.
+   * It is allowed only in the consecutive calls.
+   *
+   * @generated from field: runme.runner.v1.ExecuteStop stop = 9;
+   */
+  stop = ExecuteStop.UNSPECIFIED;
 
   /**
    * session_id indicates in which Session the program should execute.
@@ -452,6 +485,7 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
     { no: 6, name: "script", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "tty", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 8, name: "input_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 9, name: "stop", kind: "enum", T: proto3.getEnumType(ExecuteStop) },
     { no: 20, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
