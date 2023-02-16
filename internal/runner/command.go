@@ -334,22 +334,26 @@ func (c *command) collectEnvs() {
 	c.Session.envStore = newEnvStore(c.cmd.Env...).Add(newOrUpdated...).Delete(deleted...)
 }
 
-func (c *command) Wait() error {
-	werr := c.cmd.Wait()
+func (c *command) ProcessWait() error {
+	return errors.WithStack(c.cmd.Wait())
+}
 
+func (c *command) Finalize() error {
 	c.collectEnvs()
-
 	c.cleanup()
 
 	c.wg.Wait()
 
-	if werr != nil {
-		return errors.WithStack(werr)
-	}
-
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.err
+}
+
+func (c *command) Wait() error {
+	if err := c.ProcessWait(); err != nil {
+		return err
+	}
+	return c.Finalize()
 }
 
 func exitCodeFromErr(err error) int {

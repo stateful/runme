@@ -253,43 +253,6 @@ func Test_runnerService_Execute(t *testing.T) {
 		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
 	})
 
-	t.Run("CloseSendTty", func(t *testing.T) {
-		t.Parallel()
-
-		stream, err := client.Execute(context.Background())
-		require.NoError(t, err)
-
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
-
-		err = stream.Send(&runnerv1.ExecuteRequest{
-			ProgramName: "bash",
-			Tty:         true, // without TTY it won't work
-			Commands:    []string{"sleep 30"},
-		})
-		assert.NoError(t, err)
-
-		errc := make(chan error)
-		go func() {
-			defer close(errc)
-			time.Sleep(time.Second)
-			err := stream.Send(&runnerv1.ExecuteRequest{
-				InputData: []byte{3},
-			})
-			errc <- err
-			errc <- stream.CloseSend()
-		}()
-		for err := range errc {
-			assert.NoError(t, err)
-		}
-
-		result := <-execResult
-
-		require.NoError(t, result.Err)
-		require.NotEmpty(t, result.Responses)
-		assert.EqualValues(t, 130, result.Responses[len(result.Responses)-1].ExitCode.Value)
-	})
-
 	t.Run("EndOfTransmissionTty", func(t *testing.T) {
 		t.Parallel()
 
@@ -312,11 +275,6 @@ func Test_runnerService_Execute(t *testing.T) {
 			time.Sleep(time.Second)
 			err := stream.Send(&runnerv1.ExecuteRequest{
 				InputData: []byte{3},
-			})
-			errc <- err
-			time.Sleep(time.Second)
-			err = stream.Send(&runnerv1.ExecuteRequest{
-				InputData: []byte{4},
 			})
 			errc <- err
 		}()
@@ -360,6 +318,34 @@ func Test_runnerService_Execute(t *testing.T) {
 		result := <-execResult
 
 		assert.Equal(t, status.Convert(result.Err).Code(), codes.Canceled)
+	})
+
+	// This test simulates a situation when a client starts a program
+	// with TTY and does not know when it exists. The program should
+	// return on its own after the command is done.
+	t.Run("TTYWithProcessExit", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		stream, err := client.Execute(ctx)
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         true,
+			Commands:    []string{"sleep 1"},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		require.NoError(t, result.Err)
+		require.NotEmpty(t, result.Responses)
+		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
 	})
 
 	if _, err := exec.LookPath("python3"); err == nil {
