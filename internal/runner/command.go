@@ -269,8 +269,6 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 			if err != nil {
 				c.logger.Info("failed to copy from stdin to pty", zap.Error(err))
 				c.seterr(err)
-			} else {
-				c.logger.Info("read all from stdin")
 			}
 		}()
 	}
@@ -356,7 +354,11 @@ func (c *command) Finalize() (err error) {
 		return errors.New("process not finished")
 	}
 
-	c.collectEnvs()
+	// TODO(adamb): when collecting envs is improved,
+	// this condition might be not needed anymore.
+	if c.cmd.ProcessState.Success() {
+		c.collectEnvs()
+	}
 
 	c.cleanup()
 

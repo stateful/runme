@@ -21,6 +21,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func serverCmd() *cobra.Command {
@@ -126,6 +127,7 @@ The kernel is used to run long running processes like shells and interacting wit
 			server := grpc.NewServer(opts...)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			runnerv1.RegisterRunnerServiceServer(server, runner.NewRunnerService(logger))
+			reflection.Register(server)
 			return server.Serve(lis)
 		},
 	}
