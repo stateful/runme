@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/runner"
+	"go.uber.org/zap"
 )
 
 type runCmdOpts struct {
@@ -68,8 +69,12 @@ func runBlock(
 		return err
 	}
 
-	if id, ok := shellID(); ok && runner.IsShell(block) {
+	if id, ok := shellID(); ok && runner.IsShell(block.Language()) {
 		return executeInShell(id, block)
+	}
+
+	if sess == nil {
+		sess = runner.NewSession(nil, zap.NewNop())
 	}
 
 	executable, err := newExecutable(cmd, block, sess)
@@ -89,30 +94,36 @@ func runBlock(
 }
 
 func newExecutable(cmd *cobra.Command, block *document.CodeBlock, sess *runner.Session) (runner.Executable, error) {
-	base := &runner.Base{
+	tty, _ := strconv.ParseBool(block.Attributes()["interactive"])
+
+	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),
 		Dir:     fChdir,
-		Session: sess,
+		Tty:     tty,
 		Stdin:   cmd.InOrStdin(),
 		Stdout:  cmd.OutOrStdout(),
 		Stderr:  cmd.ErrOrStderr(),
+		Session: sess,
+		Logger:  zap.NewNop(),
 	}
 
 	switch block.Language() {
 	case "bash", "bat", "sh", "shell", "zsh":
 		return &runner.Shell{
-			Cmds: block.Lines(),
-			Base: base,
+			ExecutableConfig: cfg,
+			Cmds:             block.Lines(),
 		}, nil
 	case "sh-raw":
 		return &runner.ShellRaw{
-			Cmds: block.Lines(),
-			Base: base,
+			Shell: &runner.Shell{
+				ExecutableConfig: cfg,
+				Cmds:             block.Lines(),
+			},
 		}, nil
 	case "go":
 		return &runner.Go{
-			Source: string(block.Content()),
-			Base:   base,
+			ExecutableConfig: cfg,
+			Source:           string(block.Content()),
 		}, nil
 	default:
 		return nil, errors.Errorf("unknown executable: %q", block.Language())
