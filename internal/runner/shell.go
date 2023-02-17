@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -13,40 +14,84 @@ import (
 
 	"github.com/google/shlex"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 type Shell struct {
-	*Base
+	*ExecutableConfig
 	Cmds []string
 }
 
 var _ Executable = (*Shell)(nil)
 
-func (s *Shell) DryRun(ctx context.Context, w io.Writer) {
-	sh, ok := os.LookupEnv("SHELL")
+func (s Shell) ProgramPath() string {
+	shell, ok := os.LookupEnv("SHELL")
 	if !ok {
-		sh = "/bin/sh"
+		shell = "sh"
 	}
+	if path, err := exec.LookPath(shell); err == nil {
+		return path
+	}
+	return "/bin/sh"
+}
 
-	var b strings.Builder
+func (s Shell) DryRun(ctx context.Context, w io.Writer) {
+	var b bytes.Buffer
 
-	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", sh))
+	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", s.ProgramPath()))
 	_, _ = b.WriteString(fmt.Sprintf("// run in %q\n\n", s.Dir))
 	_, _ = b.WriteString(prepareScriptFromCommands(s.Cmds))
 
-	_, err := w.Write([]byte(b.String()))
+	_, err := w.Write(b.Bytes())
 	if err != nil {
 		log.Fatalf("failed to write: %s", err)
 	}
 }
 
-func (s *Shell) Run(ctx context.Context) error {
-	sh, ok := os.LookupEnv("SHELL")
-	if !ok {
-		sh = "/bin/sh"
+func (s Shell) Run(ctx context.Context) error {
+	cmd, err := newCommand(
+		&commandConfig{
+			ProgramName: s.ProgramPath(),
+			Directory:   s.Dir,
+			Session:     s.Session,
+			Tty:         s.Tty,
+			Stdin:       s.Stdin,
+			Stdout:      s.Stdout,
+			Stderr:      s.Stderr,
+			IsShell:     true,
+			Commands:    s.Cmds,
+			Script:      "",
+			Logger:      s.Logger,
+		},
+	)
+	if err != nil {
+		return err
 	}
-	return execSingle(ctx, sh, s.Dir, s.Session, s.Cmds, "", s.Name, s.Stdin, s.Stdout, s.Stderr)
+	return s.run(ctx, cmd)
+}
+
+func (s Shell) run(ctx context.Context, cmd *command) error {
+	opts := &startOpts{}
+	if s.Tty {
+		opts.DisableEcho = true
+	}
+
+	if err := cmd.StartWithOpts(ctx, opts); err != nil {
+		return err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		var exiterr *exec.ExitError
+		// Ignore errors caused by SIGINT.
+		if errors.As(err, &exiterr) && exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
+			msg := "failed to run command"
+			if len(s.Name) > 0 {
+				msg += " " + strconv.Quote(s.Name)
+			}
+			return errors.Wrap(err, msg)
+		}
+	}
+
+	return nil
 }
 
 func PrepareScriptFromCommands(cmds []string) string {
@@ -104,52 +149,4 @@ func prepareScript(script string) string {
 	_, _ = b.WriteRune('\n')
 
 	return b.String()
-}
-
-func execSingle(
-	ctx context.Context,
-	sh string,
-	dir string,
-	session *Session,
-	commands []string,
-	script string,
-	name string,
-	stdin io.Reader,
-	stdout io.Writer,
-	stderr io.Writer,
-) error {
-	cmd, err := newCommand(
-		&commandConfig{
-			ProgramName: sh,
-			Directory:   dir,
-			Session:     session,
-			Stdin:       stdin,
-			Stdout:      stdout,
-			Stderr:      stderr,
-			IsShell:     true,
-			Commands:    commands,
-			Script:      script,
-			Logger:      zap.NewNop(),
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	if err := cmd.Start(ctx); err != nil {
-		return err
-	}
-
-	if err := cmd.Wait(); err != nil {
-		var exiterr *exec.ExitError
-		// Ignore errors caused by SIGINT.
-		if errors.As(err, &exiterr) && exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
-			msg := "failed to run command"
-			if len(name) > 0 {
-				msg += " " + strconv.Quote(name)
-			}
-			return errors.Wrap(err, msg)
-		}
-	}
-	return err
 }

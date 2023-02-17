@@ -178,7 +178,6 @@ func (c *command) cleanup() {
 
 type startOpts struct {
 	DisableEcho bool
-	RawMode     bool
 }
 
 func (c *command) Start(ctx context.Context) error {
@@ -242,7 +241,19 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 		c.wg.Add(1)
 		go func() {
 			defer c.wg.Done()
-			_, err := io.Copy(c.Stdout, c.pty)
+			n, err := io.Copy(c.pty, c.Stdin)
+			if err != nil {
+				c.logger.Info("failed to copy from stdin to pty", zap.Error(err))
+				c.seterr(err)
+			} else {
+				c.logger.Debug("finished copying from stdin to pty", zap.Int64("count", n))
+			}
+		}()
+
+		c.wg.Add(1)
+		go func() {
+			defer c.wg.Done()
+			n, err := io.Copy(c.Stdout, c.pty)
 			if err != nil {
 				// Linux kernel returns EIO when attempting to read from
 				// a master pseudo-terminal which no longer has an open slave.
@@ -259,16 +270,8 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 				c.logger.Info("failed to copy from pty to stdout", zap.Error(err))
 
 				c.seterr(err)
-			}
-		}()
-
-		c.wg.Add(1)
-		go func() {
-			defer c.wg.Done()
-			_, err := io.Copy(c.pty, c.Stdin)
-			if err != nil {
-				c.logger.Info("failed to copy from stdin to pty", zap.Error(err))
-				c.seterr(err)
+			} else {
+				c.logger.Debug("finished copying from pty to stdout", zap.Int64("count", n))
 			}
 		}()
 	}

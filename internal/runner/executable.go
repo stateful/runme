@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/stateful/runme/internal/document"
+	"go.uber.org/zap"
 )
 
 type Executable interface {
@@ -12,13 +12,15 @@ type Executable interface {
 	Run(context.Context) error
 }
 
-type Base struct {
+type ExecutableConfig struct {
 	Name    string
 	Dir     string
-	Session *Session
+	Tty     bool
 	Stdin   io.Reader
 	Stdout  io.Writer
 	Stderr  io.Writer
+	Session *Session
+	Logger  *zap.Logger
 }
 
 var supportedExecutables = []string{
@@ -40,7 +42,6 @@ func IsSupported(lang string) bool {
 	return false
 }
 
-func IsShell(block *document.CodeBlock) bool {
-	lang := block.Language()
+func IsShell(lang string) bool {
 	return lang == "sh" || lang == "shell" || lang == "sh-raw"
 }

@@ -1,43 +1,51 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
 )
 
 type ShellRaw struct {
-	*Base
-	Cmds []string
+	*Shell
 }
 
-var _ Executable = (*Shell)(nil)
+var _ Executable = (*ShellRaw)(nil)
 
-func (s *ShellRaw) DryRun(ctx context.Context, w io.Writer) {
-	sh, ok := os.LookupEnv("SHELL")
-	if !ok {
-		sh = "/bin/sh"
-	}
+func (s ShellRaw) DryRun(ctx context.Context, w io.Writer) {
+	var b bytes.Buffer
 
-	var b strings.Builder
-
-	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", sh))
+	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", s.ProgramPath()))
 	_, _ = b.WriteString(fmt.Sprintf("// run in %q\n\n", s.Dir))
-	_, _ = b.WriteString(strings.Join(s.Cmds, "\n"))
+	_, _ = b.WriteString(prepareScript(strings.Join(s.Cmds, "\n")))
 
-	_, err := w.Write([]byte(b.String()))
+	_, err := w.Write(b.Bytes())
 	if err != nil {
 		log.Fatalf("failed to write: %s", err)
 	}
 }
 
-func (s *ShellRaw) Run(ctx context.Context) error {
-	sh, ok := os.LookupEnv("SHELL")
-	if !ok {
-		sh = "/bin/sh"
+func (s ShellRaw) Run(ctx context.Context) error {
+	cmd, err := newCommand(
+		&commandConfig{
+			ProgramName: s.ProgramPath(),
+			Directory:   s.Dir,
+			Session:     s.Session,
+			Tty:         s.Tty,
+			Stdin:       s.Stdin,
+			Stdout:      s.Stdout,
+			Stderr:      s.Stderr,
+			IsShell:     true,
+			Commands:    nil,
+			Script:      strings.Join(s.Cmds, "\n"),
+			Logger:      s.Logger,
+		},
+	)
+	if err != nil {
+		return err
 	}
-	return execSingle(ctx, sh, s.Dir, s.Session, nil, strings.Join(s.Cmds, "\n"), s.Name, s.Stdin, s.Stdout, s.Stderr)
+	return s.run(ctx, cmd)
 }

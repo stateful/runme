@@ -150,6 +150,74 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 0, result.Responses[2].ExitCode.Value)
 	})
 
+	t.Run("ExecuteWithTTYBasic", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         true,
+			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		require.Len(t, result.Responses, 3)
+		assert.Equal(t, "1\r\n", string(result.Responses[0].StdoutData))
+		assert.Equal(t, "2\r\n", string(result.Responses[1].StdoutData))
+		assert.EqualValues(t, 0, result.Responses[2].ExitCode.Value)
+	})
+
+	t.Run("Input", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Tty:         true,
+			Commands:    []string{"tr a-z x"},
+		})
+		require.NoError(t, err)
+
+		errc := make(chan error)
+		go func() {
+			defer close(errc)
+			time.Sleep(time.Second)
+			err := stream.Send(&runnerv1.ExecuteRequest{
+				InputData: []byte("abc\n"),
+			})
+			errc <- err
+			time.Sleep(time.Second)
+			err = stream.Send(&runnerv1.ExecuteRequest{
+				InputData: []byte{4},
+			})
+			errc <- err
+		}()
+		for err := range errc {
+			assert.NoError(t, err)
+		}
+		assert.NoError(t, stream.CloseSend())
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		require.Len(t, result.Responses, 2)
+		assert.Equal(t, "xxx\r\n", string(result.Responses[0].StdoutData))
+		assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
+	})
+
 	t.Run("EnvsPersistence", func(t *testing.T) {
 		t.Parallel()
 

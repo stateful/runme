@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/rs/xid"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/zap"
@@ -123,18 +124,22 @@ func (r *runnerService) findSession(id string) *Session {
 }
 
 func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error {
-	r.logger.Info("running Execute in runnerService")
+	logger := r.logger.With(zap.String("_id", xid.New().String()))
+
+	logger.Info("running Execute in runnerService")
 
 	// Get the initial request.
 	req, err := srv.Recv()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			r.logger.Info("client closed the connection while getting initial request")
+			logger.Info("client closed the connection while getting initial request")
 			return nil
 		}
-		r.logger.Info("failed to receive a request", zap.Error(err))
+		logger.Info("failed to receive a request", zap.Error(err))
 		return errors.WithStack(err)
 	}
+
+	logger.Debug("received initial request", zap.Any("req", req))
 
 	var sess *Session
 	if req.SessionId != "" {
@@ -172,13 +177,13 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		Script:      req.Script,
 		Logger:      r.logger,
 	}
-	r.logger.Debug("command config", zap.Any("cfg", cfg))
+	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
 	if err != nil {
 		return err
 	}
 
-	if err := cmd.Start(srv.Context()); err != nil {
+	if err := cmd.StartWithOpts(srv.Context(), &startOpts{DisableEcho: req.Tty}); err != nil {
 		return err
 	}
 
@@ -188,7 +193,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 		if len(req.InputData) > 0 {
 			if _, err := stdinWriter.Write(req.InputData); err != nil {
-				r.logger.Info("failed to write initial input to stdin", zap.Error(err))
+				logger.Info("failed to write initial input to stdin", zap.Error(err))
 				// TODO(adamb): we likely should communicate it to the client.
 				// Then, the client could decide what to do.
 				return
@@ -204,28 +209,28 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		for {
 			req, err := srv.Recv()
 			if err == io.EOF {
-				r.logger.Info("client closed the send direction; ignoring")
+				logger.Info("client closed the send direction; ignoring")
 				return
 			}
 			if err != nil && status.Convert(err).Code() == codes.Canceled {
 				if cmd.cmd.ProcessState != nil {
-					r.logger.Info("stream canceled after the process finished; ignoring")
+					logger.Info("stream canceled after the process finished; ignoring")
 				} else {
-					r.logger.Info("stream canceled while the process is still running; stopping the program")
+					logger.Info("stream canceled while the process is still running; stopping the program")
 				}
 				return
 			}
 			if err != nil {
-				r.logger.Info("error while receiving a request; stopping the program", zap.Error(err))
+				logger.Info("error while receiving a request; stopping the program", zap.Error(err))
 				err := cmd.Kill()
 				if err != nil {
-					r.logger.Info("failed to stop program", zap.Error(err))
+					logger.Info("failed to stop program", zap.Error(err))
 				}
 				return
 			}
 
 			if req.Stop != runnerv1.ExecuteStop_EXECUTE_STOP_UNSPECIFIED {
-				r.logger.Info("requested the program to stop")
+				logger.Info("requested the program to stop")
 
 				var err error
 
@@ -237,16 +242,17 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				}
 
 				if err != nil {
-					r.logger.Info("failed to stop program on request", zap.Error(err), zap.Any("signal", req.Stop))
+					logger.Info("failed to stop program on request", zap.Error(err), zap.Any("signal", req.Stop))
 				}
 
 				return
 			}
 
 			if len(req.InputData) != 0 {
+				logger.Debug("received input data", zap.ByteString("data", req.InputData))
 				_, err = stdinWriter.Write(req.InputData)
 				if err != nil {
-					r.logger.Info("failed to write to stdin", zap.Error(err))
+					logger.Info("failed to write to stdin", zap.Error(err))
 					// TODO(adamb): we likely should communicate it to the client.
 					// Then, the client could decide what to do.
 					return
@@ -284,23 +290,23 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	werr := cmd.ProcessWait()
 	exitCode := exitCodeFromErr(werr)
 
-	r.logger.Info("command finished", zap.Int("exitCode", exitCode))
+	logger.Info("command finished", zap.Int("exitCode", exitCode))
 
 	// Close the stdinWriter so that the loops in the `cmd` will finish.
 	// The problem occurs only with TTY.
 	_ = stdinWriter.Close()
 
 	if err := cmd.Finalize(); err != nil {
-		r.logger.Info("command finalizer failed", zap.Error(err))
+		logger.Info("command finalizer failed", zap.Error(err))
 		if werr == nil {
 			return err
 		}
 	}
 
-	r.logger.Info("command was finalized successfully")
+	logger.Info("command was finalized successfully")
 
 	if exitCode == -1 {
-		r.logger.Info("command failed", zap.Error(werr))
+		logger.Info("command failed", zap.Error(werr))
 		return werr
 	}
 
@@ -310,15 +316,15 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	werr = g.Wait()
 	if werr != nil {
-		r.logger.Info("failed to wait for goroutines to finish", zap.Error(err))
+		logger.Info("failed to wait for goroutines to finish", zap.Error(err))
 	}
 
-	r.logger.Info("sending the final response with exit code")
+	logger.Info("sending the final response with exit code")
 
 	if err := srv.Send(&runnerv1.ExecuteResponse{
 		ExitCode: wrapperspb.UInt32(uint32(exitCode)),
 	}); err != nil {
-		r.logger.Info("failed to send exit code", zap.Error(err))
+		logger.Info("failed to send exit code", zap.Error(err))
 		if werr == nil {
 			werr = err
 		}
