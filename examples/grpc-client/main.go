@@ -37,7 +37,9 @@ func run() error {
 
 	client := runnerv1.NewRunnerServiceClient(conn)
 
-	stream, err := client.Execute(context.Background())
+	g, ctx := errgroup.WithContext(context.Background())
+
+	stream, err := client.Execute(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to call Execute()")
 	}
