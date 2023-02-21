@@ -12,9 +12,129 @@ import (
 	"github.com/stateful/runme/internal/document"
 	rmath "github.com/stateful/runme/internal/math"
 	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/internal/runner/local"
+	"github.com/stateful/runme/internal/runner/remote"
 	"github.com/stateful/runme/internal/version"
-	"go.uber.org/zap"
 )
+
+func tuiCmd() *cobra.Command {
+	var (
+		visibleEntries int
+		runOnce        bool
+		serverAddr     string
+	)
+
+	cmd := cobra.Command{
+		Use:   "tui",
+		Short: "Run the interactive TUI",
+		Long:  "Run a command from a descriptive list given by an interactive TUI.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			blocks, err := getCodeBlocks()
+			if err != nil {
+				return err
+			}
+
+			if len(blocks) == 0 {
+				return errors.Errorf("no code blocks in %s", fFileName)
+			}
+
+			if visibleEntries <= 0 {
+				visibleEntries = math.MaxInt32
+			}
+
+			ctx, cancel := ctxWithSigCancel(cmd.Context())
+			defer cancel()
+
+			var (
+				remoteRunner *remote.Runner
+				localRunner  *local.Runner
+			)
+
+			if serverAddr != "" {
+				remoteRunner, err = remote.New(
+					ctx,
+					serverAddr,
+					remote.WithDir(fChdir),
+					remote.WithStdin(cmd.InOrStdin()),
+					remote.WithStdout(cmd.OutOrStdout()),
+					remote.WithStderr(cmd.ErrOrStderr()),
+				)
+				if err != nil {
+					return errors.Wrap(err, "failed to create remote runner")
+				}
+			} else {
+				localRunner, err = local.New(
+					local.WithSession(runner.NewSession(nil, nil)),
+					local.WithDir(fChdir),
+					local.WithStdin(cmd.InOrStdin()),
+					local.WithStdout(cmd.OutOrStdout()),
+					local.WithStderr(cmd.ErrOrStderr()),
+				)
+				if err != nil {
+					return errors.Wrap(err, "failed to create local runner")
+				}
+			}
+
+			model := tuiModel{
+				blocks: blocks,
+				header: fmt.Sprintf(
+					"%s %s\n\n",
+					ansi.Color("runme", "57+b"),
+					ansi.Color(version.BuildVersion, "white+d"),
+				),
+				visibleEntries: visibleEntries,
+				expanded:       make(map[int]struct{}),
+			}
+
+			for {
+				prog := newProgram(cmd, model)
+
+				newModel, err := prog.Run()
+				if err != nil {
+					return errors.WithStack(err)
+				}
+
+				model = newModel.(tuiModel)
+				result := model.result
+
+				if result.block == nil {
+					break
+				}
+
+				if remoteRunner != nil {
+					err = remoteRunner.RunBlock(ctx, result.block)
+				} else {
+					err = localRunner.RunBlock(ctx, result.block)
+				}
+				if err != nil {
+					var eerror *remote.ExitError
+					if !errors.As(err, &eerror) {
+						return err
+					}
+					cmd.Printf(ansi.Color("%s", "red")+"\n", eerror)
+				}
+
+				if runOnce || result.exit {
+					break
+				}
+
+				cmd.Print("\n")
+
+				model.moveCursor(1)
+			}
+
+			return nil
+		},
+	}
+
+	setDefaultFlags(&cmd)
+
+	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
+	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
+	cmd.Flags().StringVar(&serverAddr, "server", "", "Server address to conenct TUI to")
+
+	return &cmd
+}
 
 type tuiModel struct {
 	blocks         document.CodeBlocks
@@ -182,85 +302,4 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
-}
-
-func tuiCmd() *cobra.Command {
-	var (
-		visibleEntries int
-		runOnce        bool
-	)
-
-	cmd := cobra.Command{
-		Use:   "tui",
-		Short: "Run the interactive TUI",
-		Long:  "Run a command from a descriptive list given by an interactive TUI.",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			blocks, err := getCodeBlocks()
-			if err != nil {
-				return err
-			}
-
-			if len(blocks) == 0 {
-				return errors.Errorf("no code blocks in %s", fFileName)
-			}
-
-			if visibleEntries <= 0 {
-				visibleEntries = math.MaxInt32
-			}
-
-			sess := runner.NewSession(nil, zap.NewNop())
-
-			model := tuiModel{
-				blocks: blocks,
-				header: fmt.Sprintf(
-					"%s %s\n\n",
-					ansi.Color("runme", "57+b"),
-					ansi.Color(version.BuildVersion, "white+d"),
-				),
-				visibleEntries: visibleEntries,
-				expanded:       make(map[int]struct{}),
-			}
-
-			for {
-				prog := newProgram(cmd, model)
-
-				newModel, err := prog.Run()
-				if err != nil {
-					return err
-				}
-
-				model = newModel.(tuiModel)
-				result := model.result
-
-				if result.block == nil {
-					break
-				}
-
-				if err := runBlock(cmd, result.block, sess, nil); err != nil {
-					if _, err := fmt.Printf(ansi.Color("%v", "red")+"\n", err); err != nil {
-						return err
-					}
-				}
-
-				if runOnce || result.exit {
-					break
-				}
-
-				if _, err := fmt.Print("\n"); err != nil {
-					return err
-				}
-
-				model.moveCursor(1)
-			}
-
-			return nil
-		},
-	}
-
-	setDefaultFlags(&cmd)
-
-	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
-	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
-
-	return &cmd
 }

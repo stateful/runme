@@ -2,19 +2,15 @@ package cmd
 
 import (
 	"context"
-	"net"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/runner"
-	"go.uber.org/zap"
+	"github.com/stateful/runme/internal/runner/local"
 )
 
 type runCmdOpts struct {
@@ -43,7 +39,28 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			return runBlock(cmd, block, nil, &opts)
+			if err := replace(opts.ReplaceScripts, block.Lines()); err != nil {
+				return err
+			}
+
+			ctx, cancel := ctxWithSigCancel(cmd.Context())
+			defer cancel()
+
+			runner, err := local.New(
+				local.WithinShellMaybe(),
+				local.WithDir(fChdir),
+				local.WithStdin(cmd.InOrStdin()),
+				local.WithStdout(cmd.OutOrStdout()),
+				local.WithStderr(cmd.ErrOrStderr()),
+			)
+			if err != nil {
+				return err
+			}
+
+			if opts.DryRun {
+				return runner.DryRunBlock(ctx, block, cmd.ErrOrStderr())
+			}
+			return runner.RunBlock(ctx, block)
 		},
 	}
 
@@ -53,81 +70,6 @@ func runCmd() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&opts.ReplaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 
 	return &cmd
-}
-
-func runBlock(
-	cmd *cobra.Command,
-	block *document.CodeBlock,
-	sess *runner.Session,
-	opts *runCmdOpts,
-) error {
-	if opts == nil {
-		opts = &runCmdOpts{}
-	}
-
-	if err := replace(opts.ReplaceScripts, block.Lines()); err != nil {
-		return err
-	}
-
-	if id, ok := shellID(); ok && runner.IsShell(block.Language()) {
-		return executeInShell(id, block)
-	}
-
-	if sess == nil {
-		sess = runner.NewSession(nil, zap.NewNop())
-	}
-
-	executable, err := newExecutable(cmd, block, sess)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := ctxWithSigCancel(cmd.Context())
-	defer cancel()
-
-	if opts.DryRun {
-		executable.DryRun(ctx, cmd.ErrOrStderr())
-		return nil
-	}
-
-	return errors.WithStack(executable.Run(ctx))
-}
-
-func newExecutable(cmd *cobra.Command, block *document.CodeBlock, sess *runner.Session) (runner.Executable, error) {
-	tty, _ := strconv.ParseBool(block.Attributes()["interactive"])
-
-	cfg := &runner.ExecutableConfig{
-		Name:    block.Name(),
-		Dir:     fChdir,
-		Tty:     tty,
-		Stdin:   cmd.InOrStdin(),
-		Stdout:  cmd.OutOrStdout(),
-		Stderr:  cmd.ErrOrStderr(),
-		Session: sess,
-		Logger:  zap.NewNop(),
-	}
-
-	switch block.Language() {
-	case "bash", "bat", "sh", "shell", "zsh":
-		return &runner.Shell{
-			ExecutableConfig: cfg,
-			Cmds:             block.Lines(),
-		}, nil
-	case "sh-raw":
-		return &runner.ShellRaw{
-			Shell: &runner.Shell{
-				ExecutableConfig: cfg,
-				Cmds:             block.Lines(),
-			},
-		}, nil
-	case "go":
-		return &runner.Go{
-			ExecutableConfig: cfg,
-			Source:           string(block.Content()),
-		}, nil
-	default:
-		return nil, errors.Errorf("unknown executable: %q", block.Language())
-	}
 }
 
 func ctxWithSigCancel(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -164,35 +106,5 @@ func replace(scripts []string, lines []string) error {
 		}
 	}
 
-	return nil
-}
-
-func shellID() (int, bool) {
-	id := os.Getenv("RUNMESHELL")
-	if id == "" {
-		return 0, false
-	}
-	i, err := strconv.Atoi(id)
-	if err != nil {
-		return -1, false
-	}
-	return i, true
-}
-
-func executeInShell(id int, block *document.CodeBlock) error {
-	conn, err := net.Dial("unix", "/tmp/runme-"+strconv.Itoa(id)+".sock")
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	for _, line := range block.Lines() {
-		line = strings.TrimSpace(line)
-
-		if _, err := conn.Write([]byte(line)); err != nil {
-			return errors.WithStack(err)
-		}
-		if _, err := conn.Write([]byte("\n")); err != nil {
-			return errors.WithStack(err)
-		}
-	}
 	return nil
 }
