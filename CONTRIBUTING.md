@@ -30,12 +30,12 @@ This is an outline of what the workflow for code contributions looks like
 It is always best to discuss your plans beforehand, to ensure that your contribution is in line with our goals.
 
 - Fork the repository on GitHub
-- Create a topic branch from where you want to base your work. This is usually master.
+- Create a topic branch from where you want to base your work. This is usually `main`
 - Open a new pull request, label it `work in progress` and outline what you will be contributing
-- Make commits of logical units.
+- Make commits of logical units
 - Make sure you sign-off on your commits `git commit -s -m "adding X to change Y"`
-- Write good commit messages (see below).
-- Push your changes to a topic branch in your fork of the repository.
+- Write good commit messages (see below)
+- Push your changes to a topic branch in your fork of the repository
 - As you push your changes, update the pull request with new infomation and tasks as you complete them
 - Project maintainers might comment on your work as you progress
 - When you are done, remove the `work in progess` label and ping the maintainers for a review
