@@ -44,8 +44,6 @@ func run() error {
 		return errors.Wrap(err, "failed to call Execute()")
 	}
 
-	var g errgroup.Group
-
 	g.Go(func() error {
 		source, err := os.Open(*file)
 		if err != nil {
