@@ -123,8 +123,10 @@ The kernel is used to run long running processes like shells and interacting wit
 
 			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
 
-			var opts []grpc.ServerOption
-			server := grpc.NewServer(opts...)
+			server := grpc.NewServer(
+				grpc.MaxRecvMsgSize(runner.MaxMsgSize),
+				grpc.MaxSendMsgSize(runner.MaxMsgSize),
+			)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			runnerv1.RegisterRunnerServiceServer(server, runner.NewRunnerService(logger))
 			reflection.Register(server)

@@ -17,7 +17,10 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-const bufferSize = 10 * 1024
+const (
+	MaxMsgSize  = 4 * 1024 * 1024
+	rbufferSize = 1024 * 1024
+)
 
 type runnerService struct {
 	runnerv1.UnimplementedRunnerServiceServer
@@ -156,8 +159,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	stdin, stdinWriter := io.Pipe()
-	stdout := rbuffer.NewRingBuffer(bufferSize)
-	stderr := rbuffer.NewRingBuffer(bufferSize)
+	stdout := rbuffer.NewRingBuffer(rbufferSize)
+	stderr := rbuffer.NewRingBuffer(rbufferSize)
 	// Close buffers so that the readers will be notified about EOF.
 	// It's ok to close the buffers multiple times.
 	defer func() { _ = stdout.Close() }()
@@ -249,7 +252,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			}
 
 			if len(req.InputData) != 0 {
-				logger.Debug("received input data", zap.ByteString("data", req.InputData))
+				logger.Debug("received input data", zap.Int("len", len(req.InputData)))
 				_, err = stdinWriter.Write(req.InputData)
 				if err != nil {
 					logger.Info("failed to write to stdin", zap.Error(err))
@@ -275,6 +278,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	g.Go(func() error {
 		for data := range datac {
+			logger.Debug("sending data", zap.Int("lenStdout", len(data.Stdout)), zap.Int("lenStderr", len(data.Stderr)))
 			err := srv.Send(&runnerv1.ExecuteResponse{
 				StdoutData: data.Stdout,
 				StderrData: data.Stderr,
@@ -319,7 +323,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		logger.Info("failed to wait for goroutines to finish", zap.Error(err))
 	}
 
-	logger.Info("sending the final response with exit code")
+	logger.Info("sending the final response with exit code", zap.Int("exitCode", exitCode))
 
 	if err := srv.Send(&runnerv1.ExecuteResponse{
 		ExitCode: wrapperspb.UInt32(uint32(exitCode)),
@@ -372,7 +376,7 @@ func readLoop(
 	}
 
 	read := func(reader io.Reader, fn func(p []byte) output) error {
-		buf1, buf2 := make([]byte, bufferSize), make([]byte, bufferSize)
+		buf1, buf2 := make([]byte, rbufferSize), make([]byte, rbufferSize)
 		idx := 0
 
 		for {

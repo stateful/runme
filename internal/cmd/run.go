@@ -134,7 +134,7 @@ func ctxWithSigCancel(ctx context.Context) (context.Context, context.CancelFunc)
 	ctx, cancel := context.WithCancel(ctx)
 
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	go func() {
 		<-sigs

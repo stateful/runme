@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
 
@@ -217,6 +218,65 @@ func Test_runnerService(t *testing.T) {
 		assert.Equal(t, "xxx\r\n", string(result.Responses[0].StdoutData))
 		assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
 	})
+
+	// The longest accepted line must not have more than 1024 bytes on macOS,
+	// including the new line character at the end. Any line longer results in ^G (BELL).
+	// It is possible to send more data, but it must be divided in 1024-byte chunks
+	// separated by the new line character (\n).
+	// More: https://man.freebsd.org/cgi/man.cgi?query=termios&sektion=4
+	// On Linux, the limit is 4096 which is described on the termios man page.
+	// More: https://man7.org/linux/man-pages/man3/termios.3.html
+	if runtime.GOOS == "linux" {
+		t.Run("LargeInput", func(t *testing.T) {
+			t.Parallel()
+
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+
+			err = stream.Send(&runnerv1.ExecuteRequest{
+				ProgramName: "bash",
+				Tty:         true,
+				Commands:    []string{"tr a-z x"},
+			})
+			require.NoError(t, err)
+
+			errc := make(chan error)
+			go func() {
+				defer close(errc)
+
+				data := make([]byte, 4096)
+				for i := 0; i < len(data); i++ {
+					data[i] = 'a'
+				}
+				data[len(data)-1] = '\n'
+
+				time.Sleep(time.Second)
+				err := stream.Send(&runnerv1.ExecuteRequest{
+					InputData: data,
+				})
+				errc <- err
+				time.Sleep(time.Second)
+				err = stream.Send(&runnerv1.ExecuteRequest{
+					InputData: []byte{4},
+				})
+				errc <- err
+			}()
+			for err := range errc {
+				assert.NoError(t, err)
+			}
+			assert.NoError(t, stream.CloseSend())
+
+			result := <-execResult
+
+			assert.NoError(t, result.Err)
+			require.Len(t, result.Responses, 2)
+			assert.Len(t, string(result.Responses[0].StdoutData), 4097) // \n => \r\n
+			assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
+		})
+	}
 
 	t.Run("EnvsPersistence", func(t *testing.T) {
 		t.Parallel()
