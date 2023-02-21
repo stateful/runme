@@ -223,9 +223,9 @@ func Test_runnerService(t *testing.T) {
 	// including the new line character at the end. Any line longer results in ^G (BELL).
 	// It is possible to send more data, but it must be divided in 1024-byte chunks
 	// separated by the new line character (\n).
+	// More: https://man.freebsd.org/cgi/man.cgi?query=termios&sektion=4
 	// On Linux, the limit is 4096 which is described on the termios man page.
 	// More: https://man7.org/linux/man-pages/man3/termios.3.html
-	// TODO(adamb): sort out the root cause of this limitation.
 	if runtime.GOOS == "linux" {
 		t.Run("LargeInput", func(t *testing.T) {
 			t.Parallel()
