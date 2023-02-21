@@ -46,7 +46,21 @@ This project uses a `Makefile` to manage build scripts. You will need `make` ins
 
 You will need to have a `go` installation - ideally compatible with the project's current go version (see [go.mod](/go.mod)).
 
+## Development
+
 To install required CLI tools for development, use the `make install/dev` command.
+
+Like many complex go projects, this project uses a variety of linting tools to ensure code quality and prevent regressions!
+
+### Linting
+
+The main linter (revive) can be run with `make lint`.
+
+The rest of the project's linting suite can be run with `pre-commit run --files */**`.
+
+### Testing
+
+Tests are run with go's default test runner. So, for example, you can run all tests with `go test ./...`.
 
 ## Build Overview
 
