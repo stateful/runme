@@ -33,7 +33,6 @@ It is always best to discuss your plans beforehand, to ensure that your contribu
 - Create a topic branch from where you want to base your work. This is usually `main`
 - Open a new draft pull request and outline what you will be contributing
 - Make commits of logical units
-- Make sure you [sign-off on your commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits) `git commit -s -m "adding X to change Y"`
 - Write [good commit messages](https://cbea.ms/git-commit/)
 - Push your changes to a topic branch in your fork of the repository
 - As you push your changes, update the pull request with new infomation and tasks as you complete them
