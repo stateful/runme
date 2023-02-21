@@ -82,7 +82,7 @@ Note that for protocol buffers to work with `npm` projects, you'll need to add t
 
 GraphQL schema are generated as part of `make generate` (`go generate`).
 
-This project uses [genqlient](https://github.com/Khan/genqlient) to generate a graphql client for interacting with the stateful API. You will need to install `genqlient` in order for `go generate` to work properly.
+This project uses [genqlient](https://github.com/Khan/genqlient) to generate a GraphQL client for interacting with the Stateful API. You will need to install `genqlient` in order for `go generate` to work properly.
 
 See also [the readme](/internal/client/graphql/schema/README.md) for generating graphql schema from the remote endpoint, which is a pre-requisite for running `go generate`.
 
