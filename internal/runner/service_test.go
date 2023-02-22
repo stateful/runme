@@ -565,27 +565,6 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 130, result.ExitCode)
 	})
 
-	t.Run("ExecuteCurl", func(t *testing.T) {
-		t.Parallel()
-
-		stream, err := client.Execute(context.Background())
-		require.NoError(t, err)
-
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
-
-		err = stream.Send(&runnerv1.ExecuteRequest{
-			ProgramName: "bash",
-			Script:      "curl -s https://lever-client-logos.s3.us-west-2.amazonaws.com/a8ff9b1f-f313-4632-b90f-1f7ae7ee807f-1638388150933.png >/dev/null",
-		})
-		assert.NoError(t, err)
-
-		result := <-execResult
-
-		assert.NoError(t, result.Err)
-		assert.EqualValues(t, 0, result.ExitCode)
-	})
-
 	t.Run("ExecuteLicenseCat", func(t *testing.T) {
 		t.Parallel()
 
