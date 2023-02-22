@@ -45,6 +45,16 @@ This project uses a `Makefile` to manage build scripts. You will need `make` ins
 
 You will need to have a `go` installation - ideally compatible with the project's current go version (see [go.mod](/go.mod)).
 
+### OSX
+
+If you are using [`homebrew`](https://brew.sh/), you can install the required system modules with the following command:
+
+```sh { interactive=false }
+brew bundle --no-lock
+```
+
+In order to use `make`, install [apple developer tools](https://developer.apple.com/xcode/resources/).
+
 ## Development
 
 To install required CLI tools for development:
