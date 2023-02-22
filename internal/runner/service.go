@@ -18,8 +18,19 @@ import (
 )
 
 const (
-	MaxMsgSize  = 4 * 1024 * 1024
-	rbufferSize = 1024 * 1024
+	MaxMsgSize = 4096 << 10 // 4 MiB
+
+	// ringBufferSize limits the size of the ring buffers
+	// that sit between a command and the handler.
+	ringBufferSize = 8192 << 10 // 8 MiB
+
+	// msgBufferSize limits the size of data chunks
+	// sent by the handler to clients. It's smaller
+	// intentionally as typically the messages are
+	// small.
+	// In the future, it might be worth to implement
+	// variable-sized buffers.
+	msgBufferSize = 32 << 10 // 32 KiB
 )
 
 type runnerService struct {
@@ -159,8 +170,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	stdin, stdinWriter := io.Pipe()
-	stdout := rbuffer.NewRingBuffer(rbufferSize)
-	stderr := rbuffer.NewRingBuffer(rbufferSize)
+	stdout := rbuffer.NewRingBuffer(ringBufferSize)
+	stderr := rbuffer.NewRingBuffer(ringBufferSize)
 	// Close buffers so that the readers will be notified about EOF.
 	// It's ok to close the buffers multiple times.
 	defer func() { _ = stdout.Close() }()
@@ -376,14 +387,8 @@ func readLoop(
 	}
 
 	read := func(reader io.Reader, fn func(p []byte) output) error {
-		buf1, buf2 := make([]byte, rbufferSize), make([]byte, rbufferSize)
-		idx := 0
-
 		for {
-			buf := buf1
-			if idx = (idx + 1) % 2; idx == 0 {
-				buf = buf2
-			}
+			buf := make([]byte, msgBufferSize)
 			n, err := reader.Read(buf)
 			if err != nil {
 				if errors.Is(err, io.EOF) {

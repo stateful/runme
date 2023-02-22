@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"os"
 	"os/exec"
 	"runtime"
 	"testing"
@@ -37,7 +38,7 @@ func testStartRunnerServiceServer(t *testing.T) (
 ) {
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
-	lis := bufconn.Listen(2048)
+	lis := bufconn.Listen(1024 << 10)
 	server := grpc.NewServer()
 	runnerv1.RegisterRunnerServiceServer(server, newRunnerService(logger))
 	go server.Serve(lis)
@@ -60,18 +61,17 @@ func testCreateRunnerServiceClient(
 }
 
 type executeResult struct {
-	Responses []*runnerv1.ExecuteResponse
-	Err       error
+	Stdout   []byte
+	Stderr   []byte
+	ExitCode int
+	Err      error
 }
 
 func getExecuteResult(
 	stream runnerv1.RunnerService_ExecuteClient,
-	result chan<- executeResult,
+	resultc chan<- executeResult,
 ) {
-	var (
-		resps []*runnerv1.ExecuteResponse
-		err   error
-	)
+	var result executeResult
 
 	for {
 		r, rerr := stream.Recv()
@@ -79,13 +79,17 @@ func getExecuteResult(
 			if rerr == io.EOF {
 				rerr = nil
 			}
-			err = rerr
+			result.Err = rerr
 			break
 		}
-		resps = append(resps, r)
+		result.Stdout = append(result.Stdout, r.StdoutData...)
+		result.Stderr = append(result.Stderr, r.StderrData...)
+		if r.ExitCode != nil {
+			result.ExitCode = int(r.ExitCode.Value)
+		}
 	}
 
-	result <- executeResult{Responses: resps, Err: err}
+	resultc <- result
 }
 
 func Test_runnerService(t *testing.T) {
@@ -145,10 +149,8 @@ func Test_runnerService(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		require.Len(t, result.Responses, 3)
-		assert.Equal(t, "1\n", string(result.Responses[0].StdoutData))
-		assert.Equal(t, "2\n", string(result.Responses[1].StdoutData))
-		assert.EqualValues(t, 0, result.Responses[2].ExitCode.Value)
+		assert.Equal(t, "1\n2\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
 	t.Run("ExecuteWithTTYBasic", func(t *testing.T) {
@@ -170,10 +172,8 @@ func Test_runnerService(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		require.Len(t, result.Responses, 3)
-		assert.Equal(t, "1\r\n", string(result.Responses[0].StdoutData))
-		assert.Equal(t, "2\r\n", string(result.Responses[1].StdoutData))
-		assert.EqualValues(t, 0, result.Responses[2].ExitCode.Value)
+		assert.Equal(t, "1\r\n2\r\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
 	t.Run("Input", func(t *testing.T) {
@@ -214,9 +214,8 @@ func Test_runnerService(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		require.Len(t, result.Responses, 2)
-		assert.Equal(t, "xxx\r\n", string(result.Responses[0].StdoutData))
-		assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
+		assert.Equal(t, "xxx\r\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
 	// The longest accepted line must not have more than 1024 bytes on macOS,
@@ -272,9 +271,8 @@ func Test_runnerService(t *testing.T) {
 			result := <-execResult
 
 			assert.NoError(t, result.Err)
-			require.Len(t, result.Responses, 2)
-			assert.Len(t, string(result.Responses[0].StdoutData), 4097) // \n => \r\n
-			assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
+			assert.Len(t, result.Stdout, 4097) // \n => \r\n
+			assert.EqualValues(t, 0, result.ExitCode)
 		})
 	}
 
@@ -311,9 +309,8 @@ func Test_runnerService(t *testing.T) {
 			result := <-execResult
 
 			assert.NoError(t, result.Err)
-			require.Len(t, result.Responses, 2)
-			assert.Equal(t, "session1 execute1\n", string(result.Responses[0].StdoutData))
-			assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
+			assert.Equal(t, "session1 execute1\n", string(result.Stdout))
+			assert.EqualValues(t, 0, result.ExitCode)
 		}
 
 		// Execute again using the newly exported env EXEC_EXPORTED.
@@ -336,9 +333,8 @@ func Test_runnerService(t *testing.T) {
 			result := <-execResult
 
 			assert.NoError(t, result.Err)
-			require.Len(t, result.Responses, 2)
-			assert.Equal(t, "execute2\n", string(result.Responses[0].StdoutData))
-			assert.EqualValues(t, 0, result.Responses[1].ExitCode.Value)
+			assert.Equal(t, "execute2\n", string(result.Stdout))
+			assert.EqualValues(t, 0, result.ExitCode)
 		}
 
 		// Validate that the envs got persistent in the session.
@@ -374,9 +370,8 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 
-		require.NoError(t, result.Err)
-		require.NotEmpty(t, result.Responses)
-		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
+		assert.NoError(t, result.Err)
+		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
 	t.Run("ExecuteWithTTYSendEOT", func(t *testing.T) {
@@ -410,9 +405,8 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 
-		require.NoError(t, result.Err)
-		require.NotEmpty(t, result.Responses)
-		assert.EqualValues(t, 130, result.Responses[len(result.Responses)-1].ExitCode.Value)
+		assert.NoError(t, result.Err)
+		assert.EqualValues(t, 130, result.ExitCode)
 	})
 
 	// ExecuteClientCancel is similar to "ExecuteCloseSendDirection" but the client cancels
@@ -469,9 +463,8 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 
-		require.NoError(t, result.Err)
-		require.NotEmpty(t, result.Responses)
-		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
+		assert.NoError(t, result.Err)
+		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
 	t.Run("ExecuteExitSuccess", func(t *testing.T) {
@@ -494,9 +487,8 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 
-		require.NoError(t, result.Err)
-		require.NotEmpty(t, result.Responses)
-		assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
+		assert.NoError(t, result.Err)
+		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
 	if _, err := exec.LookPath("python3"); err == nil {
@@ -533,9 +525,8 @@ func Test_runnerService(t *testing.T) {
 
 			result := <-execResult
 
-			require.NoError(t, result.Err)
-			require.NotEmpty(t, result.Responses)
-			assert.EqualValues(t, 0, result.Responses[len(result.Responses)-1].ExitCode.Value)
+			assert.NoError(t, result.Err)
+			assert.EqualValues(t, 0, result.ExitCode)
 		})
 	}
 
@@ -570,9 +561,57 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 
-		require.NoError(t, result.Err)
-		require.NotEmpty(t, result.Responses)
-		assert.EqualValues(t, 130, result.Responses[len(result.Responses)-1].ExitCode.Value)
+		assert.NoError(t, result.Err)
+		assert.EqualValues(t, 130, result.ExitCode)
+	})
+
+	t.Run("ExecuteCurl", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Script:      "curl -s https://lever-client-logos.s3.us-west-2.amazonaws.com/a8ff9b1f-f313-4632-b90f-1f7ae7ee807f-1638388150933.png >/dev/null",
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		assert.EqualValues(t, 0, result.ExitCode)
+	})
+
+	t.Run("ExecuteLicenseCat", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Directory:   "../..",
+			Commands: []string{
+				"export LICENSE=$(cat LICENSE)",
+				"echo \"LICENSE: $LICENSE\"",
+			},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		expected, err := os.ReadFile("../../LICENSE")
+		require.NoError(t, err)
+		assert.Equal(t, "LICENSE: "+string(expected), string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
 	})
 }
 

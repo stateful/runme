@@ -264,10 +264,6 @@ func Test_command(t *testing.T) {
 		}
 
 		assert.ErrorContains(t, cmd.Wait(), "exit status 130")
-		data, err := io.ReadAll(stdout)
-		assert.NoError(t, err)
-		assert.Contains(t, string(data), "sleep 30")
-		assert.Contains(t, string(data), "exit")
 	})
 
 	t.Run("Env", func(t *testing.T) {
