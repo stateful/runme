@@ -79,6 +79,7 @@ func (b *RingBuffer) read(p []byte) (n int, err error) {
 		}
 		copy(p, b.buf[b.r:b.r+n])
 		b.r = (b.r + n) % b.size
+		b.isFull = false
 		return
 	}
 
@@ -96,6 +97,7 @@ func (b *RingBuffer) read(p []byte) (n int, err error) {
 		copy(p[c1:], b.buf[0:c2])
 	}
 	b.r = (b.r + n) % b.size
+	b.isFull = false
 
 	return n, err
 }
@@ -137,11 +139,7 @@ func (b *RingBuffer) write(p []byte) (n int, err error) {
 	if len(p) >= avail {
 		b.isFull = true
 		b.r = b.w
-		c := len(p)
-		if c >= b.size-b.w {
-			c = b.size - b.w
-		}
-		copy(b.buf[b.w:], p[:c])
+		c := copy(b.buf[b.w:], p)
 		b.w = copy(b.buf[0:], p[c:])
 		return n, nil
 	}
