@@ -30,6 +30,7 @@ type command struct {
 	Stdin       io.Reader
 	Stdout      io.Writer
 	Stderr      io.Writer
+	StdinWriter *io.WriteCloser
 
 	cmd *exec.Cmd
 
@@ -200,9 +201,18 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 
 		setSysProcAttrCtty(c.cmd)
 	} else {
-		c.cmd.Stdin = c.Stdin
 		c.cmd.Stdout = c.Stdout
 		c.cmd.Stderr = c.Stderr
+
+		if c.Stdin != nil {
+			c.cmd.Stdin = c.Stdin
+		} else {
+			if writer, err := c.cmd.StdinPipe(); err != nil {
+				return err
+			} else {
+				c.StdinWriter = &writer
+			}
+		}
 
 		// Set the process group ID of the program.
 		// It is helpful to stop the program and its

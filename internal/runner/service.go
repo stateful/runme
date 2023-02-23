@@ -169,13 +169,22 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		sess.AddEnvs(req.Envs)
 	}
 
-	stdin, stdinWriter := io.Pipe()
+	var (
+		stdin       io.ReadCloser
+		stdinWriter io.WriteCloser
+	)
+
+	stdin, stdinWriter = io.Pipe()
 	stdout := rbuffer.NewRingBuffer(ringBufferSize)
 	stderr := rbuffer.NewRingBuffer(ringBufferSize)
 	// Close buffers so that the readers will be notified about EOF.
 	// It's ok to close the buffers multiple times.
 	defer func() { _ = stdout.Close() }()
 	defer func() { _ = stderr.Close() }()
+
+	if !req.Tty {
+		stdin = nil
+	}
 
 	cfg := &commandConfig{
 		ProgramName: req.ProgramName,
@@ -193,6 +202,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
+	if cmd.StdinWriter != nil {
+		stdinWriter.Close()
+		stdinWriter = *cmd.StdinWriter
+	}
 	if err != nil {
 		return err
 	}
@@ -212,12 +225,6 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				// Then, the client could decide what to do.
 				return
 			}
-		}
-
-		// When TTY is false, it means that the command is run in non-interactive mode and
-		// there will be no more input data.
-		if !req.Tty {
-			_ = stdinWriter.Close() // it's ok to close it multiple times
 		}
 
 		for {
