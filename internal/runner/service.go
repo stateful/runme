@@ -203,7 +203,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
 	if cmd.StdinWriter != nil {
-		stdinWriter.Close()
+		_ = stdinWriter.Close()
 		stdinWriter = *cmd.StdinWriter
 	}
 	if err != nil {

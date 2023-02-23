@@ -207,11 +207,12 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 		if c.Stdin != nil {
 			c.cmd.Stdin = c.Stdin
 		} else {
-			if writer, err := c.cmd.StdinPipe(); err != nil {
+			writer, err := c.cmd.StdinPipe()
+			if err != nil {
 				return err
-			} else {
-				c.StdinWriter = &writer
 			}
+
+			c.StdinWriter = &writer
 		}
 
 		// Set the process group ID of the program.
