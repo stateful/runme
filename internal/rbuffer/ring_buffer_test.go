@@ -55,6 +55,41 @@ func TestRingBuffer(t *testing.T) {
 		assert.Equal(t, buf.size, n)
 		assertRead(t, buf, data[1024-buf.size:])
 	})
+
+	t.Run("ExceedingInputTerminates", func(t *testing.T) {
+		data := append(
+			bytes.Repeat([]byte{'1'}, 1024),
+			bytes.Repeat([]byte{'2'}, 25*1024)...,
+		)
+
+		buf := NewRingBuffer(10 * 1024)
+		n, err := buf.Write(data)
+		assert.Nil(t, err)
+		assert.Equal(t, buf.size, n)
+
+		expected := bytes.Repeat([]byte{'2'}, buf.size)
+		iterationCount := 0
+
+		for {
+			got := make([]byte, len(expected))
+
+			n, err = buf.read(got)
+
+			if n == 0 || err != nil {
+				break
+			}
+
+			assert.Equal(t, expected, got)
+
+			iterationCount++
+
+			if iterationCount > 1 {
+				break
+			}
+		}
+
+		assert.Equal(t, 1, iterationCount)
+	})
 }
 
 func TestRingBuffer_Close(t *testing.T) {

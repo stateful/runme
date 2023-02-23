@@ -96,6 +96,7 @@ func (b *RingBuffer) read(p []byte) (n int, err error) {
 		copy(p[c1:], b.buf[0:c2])
 	}
 	b.r = (b.r + n) % b.size
+	b.isFull = false
 
 	return n, err
 }
