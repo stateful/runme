@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -105,7 +106,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 
 		var script strings.Builder
 
-		_, _ = script.WriteString("env > " + filepath.Join(envStorePath, envStartFileName) + "\n")
+		_, _ = script.WriteString("env -0 > " + filepath.Join(envStorePath, envStartFileName) + "\n")
 
 		if len(cfg.Commands) > 0 {
 			_, _ = script.WriteString(
@@ -117,7 +118,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 			)
 		}
 
-		_, _ = script.WriteString("env > " + filepath.Join(envStorePath, envEndFileName) + "\n")
+		_, _ = script.WriteString("env -0 > " + filepath.Join(envStorePath, envEndFileName) + "\n")
 
 		extraArgs = []string{"-c", script.String()}
 	}
@@ -317,13 +318,29 @@ func (c *command) readEnvFromFile(name string) (result []string, _ error) {
 	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
+	scanner.Split(splitNull)
 
 	for scanner.Scan() {
 		result = append(result, scanner.Text())
 	}
 
 	return result, errors.WithStack(scanner.Err())
+}
+
+func splitNull(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexByte(data, 0); i >= 0 {
+		// We have a full null-terminated line.
+		return i + 1, data[0:i], nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+	// Request more data.
+	return 0, nil, nil
 }
 
 func (c *command) collectEnvs() {
