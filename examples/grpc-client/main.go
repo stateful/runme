@@ -2,16 +2,20 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"path"
 
 	"github.com/pkg/errors"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 )
@@ -22,6 +26,7 @@ var (
 	resultFile    = flag.String("write-result", "-", "path to a result file (default: stdout)")
 	createSession = flag.Bool("create-session", false, "create a new session")
 	deleteSession = flag.String("delete-session", "", "delete the given session")
+	tlsDir        = flag.String("tls", "", "path to tls files")
 )
 
 func main() {
@@ -33,7 +38,12 @@ func main() {
 }
 
 func run() error {
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	credentials, err := loadCredentials()
+	if err != nil {
+		return err
+	}
+
+	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(credentials))
 	if err != nil {
 		return errors.Wrap(err, "failed to connect")
 	}
@@ -85,6 +95,21 @@ func run() error {
 	stream, err := client.Execute(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to call Execute()")
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return errors.Wrap(err, "failed to get cwd")
+	}
+
+	err = stream.Send(&runnerv1.ExecuteRequest{
+		ProgramName: "bash",
+		Directory:   cwd,
+		Tty:         true,
+		Commands:    []string{"tr a-z A-Z"},
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to send initial request")
 	}
 
 	g.Go(func() error {
@@ -157,20 +182,45 @@ func run() error {
 		}
 	})
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return errors.Wrap(err, "failed to get cwd")
-	}
-
-	err = stream.Send(&runnerv1.ExecuteRequest{
-		ProgramName: "bash",
-		Directory:   cwd,
-		Tty:         true,
-		Commands:    []string{"tr a-z A-Z"},
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to send initial request")
-	}
-
 	return g.Wait()
+}
+
+func loadCredentials() (credentials.TransportCredentials, error) {
+	if *tlsDir == "" {
+		return insecure.NewCredentials(), nil
+	}
+
+	var (
+		certPath = path.Join(*tlsDir, "cert.pem")
+		pkPath   = path.Join(*tlsDir, "key.pem")
+	)
+
+	certPEM, err := os.ReadFile(certPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pkPEM, err := os.ReadFile(pkPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(certPEM) {
+		return nil, fmt.Errorf("failed to add root certificate to pool")
+	}
+
+	cert, err := tls.X509KeyPair(certPEM, pkPEM)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      certPool,
+	}
+
+	return credentials.NewTLS(tlsConfig), nil
 }
