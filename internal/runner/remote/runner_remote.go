@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"strconv"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
@@ -85,11 +86,57 @@ func New(ctx context.Context, addr string, opts ...Option) (*Runner, error) {
 	return r, nil
 }
 
-func (r *Runner) sendLoop(stream runnerv1.RunnerService_ExecuteClient) error {
+func (r *Runner) setupSession(ctx context.Context) error {
+	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create session")
+	}
+
+	r.sessionID = resp.Session.Id
+
+	return nil
+}
+
+func (r *Runner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
+	stream, err := r.client.Execute(ctx)
+	if err != nil {
+		return err
+	}
+
+	tty := block.Interactive()
+
+	err = stream.Send(&runnerv1.ExecuteRequest{
+		ProgramName: runner.ShellPath(),
+		Directory:   r.dir,
+		Commands:    block.Lines(),
+		Tty:         tty,
+		SessionId:   r.sessionID,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to send initial request")
+	}
+
+	stdin := &onceReadCloser{r: r.stdin, done: make(chan struct{})}
+
+	g := new(errgroup.Group)
+
+	if tty {
+		g.Go(func() error { return r.sendLoop(stream, stdin) })
+	}
+
+	g.Go(func() error {
+		defer func() { _ = stdin.Close() }()
+		return r.recvLoop(stream)
+	})
+
+	return g.Wait()
+}
+
+func (r *Runner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, stdin io.Reader) error {
 	buf := make([]byte, 32*1024)
 
 	for {
-		n, err := r.stdin.Read(buf)
+		n, err := stdin.Read(buf)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				err = nil
@@ -136,45 +183,61 @@ func (r *Runner) recvLoop(stream runnerv1.RunnerService_ExecuteClient) error {
 	}
 }
 
-func (r *Runner) setupSession(ctx context.Context) error {
-	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{})
-	if err != nil {
-		return errors.Wrap(err, "failed to create session")
-	}
-	r.sessionID = resp.Session.Id
-	return nil
+type onceReadCloser struct {
+	r    io.Reader
+	once sync.Once
+	done chan struct{}
+	mu   sync.Mutex
+	err  error
 }
 
-func (r *Runner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
-	stream, err := r.client.Execute(ctx)
-	if err != nil {
-		return err
+func (c *onceReadCloser) error() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.err
+}
+
+func (c *onceReadCloser) setError(err error) {
+	c.mu.Lock()
+	if c.err == nil {
+		c.err = err
+	}
+	c.mu.Unlock()
+}
+
+func (c *onceReadCloser) Read(p []byte) (int, error) {
+	if err := c.error(); err != nil {
+		return 0, err
 	}
 
-	tty := block.Interactive()
+	dataCh := make(chan int)
 
-	err = stream.Send(&runnerv1.ExecuteRequest{
-		ProgramName: (runner.Shell{}).ProgramPath(),
-		Directory:   r.dir,
-		Commands:    block.Lines(),
-		Tty:         tty,
-		SessionId:   r.sessionID,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to send initial request")
+	// This goroutine may leak because there is no reliable way to interrupt io.Reader.Read().
+	// More: https://github.com/golang/go/issues/20110
+	// and https://benjamincongdon.me/blog/2020/04/23/Cancelable-Reads-in-Go/.
+	go func() {
+		n, err := c.r.Read(p)
+		if err != nil {
+			c.setError(err)
+		}
+		dataCh <- n
+		close(dataCh)
+	}()
+
+	select {
+	case <-c.done:
+		return 0, c.error()
+	case n := <-dataCh:
+		return n, c.error()
 	}
+}
 
-	g := new(errgroup.Group)
+func (c *onceReadCloser) Close() error {
+	c.once.Do(c.close)
+	return c.err
+}
 
-	if tty {
-		g.Go(func() error {
-			return r.sendLoop(stream)
-		})
-	}
-
-	g.Go(func() error {
-		return r.recvLoop(stream)
-	})
-
-	return g.Wait()
+func (c *onceReadCloser) close() {
+	c.setError(io.EOF)
+	close(c.done)
 }

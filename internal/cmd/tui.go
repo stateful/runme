@@ -62,17 +62,7 @@ func tuiCmd() *cobra.Command {
 				if err != nil {
 					return errors.Wrap(err, "failed to create remote runner")
 				}
-			} else {
-				localRunner, err = local.New(
-					local.WithSession(runner.NewSession(nil, nil)),
-					local.WithDir(fChdir),
-					local.WithStdin(cmd.InOrStdin()),
-					local.WithStdout(cmd.OutOrStdout()),
-					local.WithStderr(cmd.ErrOrStderr()),
-				)
-				if err != nil {
-					return errors.Wrap(err, "failed to create local runner")
-				}
+				// defer func() { _ = remoteRunner.Cleanup(ctx) }()
 			}
 
 			model := tuiModel{
@@ -104,6 +94,16 @@ func tuiCmd() *cobra.Command {
 				if remoteRunner != nil {
 					err = remoteRunner.RunBlock(ctx, result.block)
 				} else {
+					localRunner, err = local.New(
+						local.WithSession(runner.NewSession(nil, nil)),
+						local.WithDir(fChdir),
+						local.WithStdin(cmd.InOrStdin()),
+						local.WithStdout(cmd.OutOrStdout()),
+						local.WithStderr(cmd.ErrOrStderr()),
+					)
+					if err != nil {
+						return errors.Wrap(err, "failed to create local runner")
+					}
 					err = localRunner.RunBlock(ctx, result.block)
 				}
 				if err != nil {

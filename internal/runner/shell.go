@@ -24,14 +24,7 @@ type Shell struct {
 var _ Executable = (*Shell)(nil)
 
 func (s Shell) ProgramPath() string {
-	shell, ok := os.LookupEnv("SHELL")
-	if !ok {
-		shell = "sh"
-	}
-	if path, err := exec.LookPath(shell); err == nil {
-		return path
-	}
-	return "/bin/sh"
+	return ShellPath()
 }
 
 func (s Shell) DryRun(ctx context.Context, w io.Writer) {
@@ -92,6 +85,17 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 	}
 
 	return nil
+}
+
+func ShellPath() string {
+	shell, ok := os.LookupEnv("SHELL")
+	if !ok {
+		shell = "sh"
+	}
+	if path, err := exec.LookPath(shell); err == nil {
+		return path
+	}
+	return "/bin/sh"
 }
 
 func PrepareScriptFromCommands(cmds []string) string {
