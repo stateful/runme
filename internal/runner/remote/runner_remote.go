@@ -12,7 +12,9 @@ import (
 	"github.com/stateful/runme/internal/runner"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 type ExitError struct {
@@ -169,7 +171,7 @@ func (r *Runner) recvLoop(stream runnerv1.RunnerService_ExecuteClient) error {
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if errors.Is(err, io.EOF) || status.Convert(err).Code() == codes.Canceled {
 				err = nil
 			}
 			return errors.Wrap(err, "stream closed")
