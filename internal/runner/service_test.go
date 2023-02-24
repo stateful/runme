@@ -565,10 +565,39 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 130, result.ExitCode)
 	})
 
-	t.Run("ExecuteLicenseCat", func(t *testing.T) {
+	t.Run("ExecuteMultilineEnvExport", func(t *testing.T) {
 		t.Parallel()
 
+		session, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{})
+		require.NoError(t, err)
+
+		sessionID := session.Session.Id
+
 		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Directory:   "../..",
+			Commands: []string{
+				"export LICENSE=$(cat LICENSE)",
+			},
+			SessionId: sessionID,
+		})
+		require.NoError(t, err)
+
+		{
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+			result := <-execResult
+			require.EqualValues(t, 0, result.ExitCode)
+		}
+
+		_, _ = client.GetSession(context.Background(), &runnerv1.GetSessionRequest{
+			Id: sessionID,
+		})
+
+		stream, err = client.Execute(context.Background())
 		require.NoError(t, err)
 
 		execResult := make(chan executeResult)
@@ -578,9 +607,9 @@ func Test_runnerService(t *testing.T) {
 			ProgramName: "bash",
 			Directory:   "../..",
 			Commands: []string{
-				"export LICENSE=$(cat LICENSE)",
 				"echo \"LICENSE: $LICENSE\"",
 			},
+			SessionId: sessionID,
 		})
 		assert.NoError(t, err)
 
