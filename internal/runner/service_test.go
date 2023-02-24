@@ -565,7 +565,7 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 130, result.ExitCode)
 	})
 
-	t.Run("ExecuteLicenseCat", func(t *testing.T) {
+	t.Run("ExecuteMultilineEnvExport", func(t *testing.T) {
 		t.Parallel()
 
 		session, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{})
