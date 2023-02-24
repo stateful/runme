@@ -125,6 +125,9 @@ The kernel is used to run long running processes like shells and interacting wit
 					KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 					BasicConstraintsValid: true,
 					SignatureAlgorithm:    x509.SHA256WithRSA,
+					IPAddresses: []net.IP{
+						net.IPv4(127, 0, 0, 1),
+					},
 				}
 
 				certificateBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &privKey.PublicKey, privKey)
@@ -214,9 +217,8 @@ The kernel is used to run long running processes like shells and interacting wit
 					ReadTimeout:       5 * time.Minute,
 					WriteTimeout:      5 * time.Minute,
 					MaxHeaderBytes:    8 * 1024, // 8KiB
+					TLSConfig:         tlsConfig,
 				}
-
-				srv.TLSConfig = tlsConfig
 
 				logger.Info("started listening", zap.String("addr", srv.Addr))
 
@@ -224,33 +226,26 @@ The kernel is used to run long running processes like shells and interacting wit
 			}
 
 			var lis net.Listener
+			protocol := "tcp"
 
 			if strings.HasPrefix(addr, "unix://") {
-				addr := strings.TrimPrefix(addr, "unix://")
+				addr = strings.TrimPrefix(addr, "unix://")
 
 				// TODO: consolidate removing address into a single place
 				_ = os.Remove(addr)
+				protocol = "unix"
 
-				if tlsConfig == nil {
-					lis, err = net.Listen("unix", addr)
-				} else {
-					lis, err = tls.Listen("unix", addr, tlsConfig)
-				}
-
-				if err != nil {
-					return err
-				}
 				defer func() { _ = os.Remove(addr) }()
-			} else {
-				if tlsConfig == nil {
-					lis, err = net.Listen("tcp", addr)
-				} else {
-					lis, err = tls.Listen("tcp", addr, tlsConfig)
-				}
+			}
 
-				if err != nil {
-					return err
-				}
+			if tlsConfig == nil {
+				lis, err = net.Listen(protocol, addr)
+			} else {
+				lis, err = tls.Listen(protocol, addr, tlsConfig)
+			}
+
+			if err != nil {
+				return err
 			}
 
 			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
