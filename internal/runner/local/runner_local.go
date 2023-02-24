@@ -62,6 +62,13 @@ func WithStderr(stderr io.Writer) Option {
 	}
 }
 
+func WithLogger(logger *zap.Logger) Option {
+	return func(r *Runner) error {
+		r.logger = logger
+		return nil
+	}
+}
+
 type Runner struct {
 	dir    string
 	stdin  io.Reader

@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -46,10 +48,22 @@ func runCmd() *cobra.Command {
 			ctx, cancel := ctxWithSigCancel(cmd.Context())
 			defer cancel()
 
+			var stdin io.Reader
+
+			if block.Interactive() {
+				// Use pipe here so that it can be closed and the command can exit.
+				// Without this approach, the command would hang on reading from stdin.
+				r, w := io.Pipe()
+				stdin = r
+				go func() { _, _ = io.Copy(w, cmd.InOrStdin()) }()
+			} else {
+				stdin = bytes.NewReader(nil)
+			}
+
 			runner, err := local.New(
 				local.WithinShellMaybe(),
 				local.WithDir(fChdir),
-				local.WithStdin(cmd.InOrStdin()),
+				local.WithStdin(stdin),
 				local.WithStdout(cmd.OutOrStdout()),
 				local.WithStderr(cmd.ErrOrStderr()),
 			)
@@ -60,7 +74,14 @@ func runCmd() *cobra.Command {
 			if opts.DryRun {
 				return runner.DryRunBlock(ctx, block, cmd.ErrOrStderr())
 			}
-			return runner.RunBlock(ctx, block)
+
+			err = runner.RunBlock(ctx, block)
+			if err != nil {
+				if err != nil && errors.Is(err, io.ErrClosedPipe) {
+					err = nil
+				}
+			}
+			return err
 		},
 	}
 
