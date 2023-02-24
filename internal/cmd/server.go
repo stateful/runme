@@ -115,7 +115,7 @@ The kernel is used to run long running processes like shells and interacting wit
 						CommonName:   "stateful",
 						Organization: []string{"Stateful, INC."},
 						Country:      []string{"US"},
-						Province:     []string{""},
+						Province:     []string{"California"},
 						Locality:     []string{"Berkeley"},
 					},
 					NotBefore:             time.Now(),
