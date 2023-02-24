@@ -568,7 +568,9 @@ func Test_runnerService(t *testing.T) {
 	t.Run("ExecuteLicenseCat", func(t *testing.T) {
 		t.Parallel()
 
-		session, _ := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{})
+		session, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{})
+		require.NoError(t, err)
+
 		sessionID := session.Session.Id
 
 		stream, err := client.Execute(context.Background())
@@ -582,12 +584,13 @@ func Test_runnerService(t *testing.T) {
 			},
 			SessionId: sessionID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		{
 			execResult := make(chan executeResult)
 			go getExecuteResult(stream, execResult)
-			<-execResult
+			result := <-execResult
+			require.EqualValues(t, 0, result.ExitCode)
 		}
 
 		_, _ = client.GetSession(context.Background(), &runnerv1.GetSessionRequest{
