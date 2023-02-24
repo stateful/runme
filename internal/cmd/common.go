@@ -224,7 +224,6 @@ func generateTLS(tlsDir string) (*tls.Config, error) {
 	// TODO: rotation strategy here
 
 	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
-
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +250,6 @@ func generateTLS(tlsDir string) (*tls.Config, error) {
 	}
 
 	certificateBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &privKey.PublicKey, privKey)
-
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +273,6 @@ func generateTLS(tlsDir string) (*tls.Config, error) {
 	// TODO: probably a more efficient way to create a `tls.Certificate`
 	// rather than unencrypting the PEM again...
 	tlsCa, err := tls.X509KeyPair(caPEM.Bytes(), privKeyPEM.Bytes())
-
 	if err != nil {
 		return nil, err
 	}

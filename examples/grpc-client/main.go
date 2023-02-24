@@ -196,13 +196,11 @@ func loadCredentials() (credentials.TransportCredentials, error) {
 	)
 
 	certPEM, err := os.ReadFile(certPath)
-
 	if err != nil {
 		return nil, err
 	}
 
 	pkPEM, err := os.ReadFile(pkPath)
-
 	if err != nil {
 		return nil, err
 	}
