@@ -42,9 +42,6 @@ func tuiCmd() *cobra.Command {
 				visibleEntries = math.MaxInt32
 			}
 
-			ctx, cancel := ctxWithSigCancel(cmd.Context())
-			defer cancel()
-
 			var (
 				remoteRunner *remote.Runner
 				localRunner  *local.Runner
@@ -52,7 +49,7 @@ func tuiCmd() *cobra.Command {
 
 			if serverAddr != "" {
 				remoteRunner, err = remote.New(
-					ctx,
+					cmd.Context(),
 					serverAddr,
 					remote.WithDir(fChdir),
 					remote.WithStdin(cmd.InOrStdin()),
@@ -62,7 +59,7 @@ func tuiCmd() *cobra.Command {
 				if err != nil {
 					return errors.Wrap(err, "failed to create remote runner")
 				}
-				defer func() { _ = remoteRunner.Cleanup(ctx) }()
+				defer func() { _ = remoteRunner.Cleanup(cmd.Context()) }()
 			}
 
 			model := tuiModel{
@@ -91,6 +88,8 @@ func tuiCmd() *cobra.Command {
 					break
 				}
 
+				ctx, cancel := ctxWithSigCancel(cmd.Context())
+
 				if remoteRunner != nil {
 					err = remoteRunner.RunBlock(ctx, result.block)
 				} else {
@@ -104,8 +103,12 @@ func tuiCmd() *cobra.Command {
 					if err != nil {
 						return errors.Wrap(err, "failed to create local runner")
 					}
+
 					err = localRunner.RunBlock(ctx, result.block)
 				}
+
+				cancel()
+
 				if err != nil {
 					var eerror *remote.ExitError
 					if !errors.As(err, &eerror) {

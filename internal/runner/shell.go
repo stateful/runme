@@ -10,8 +10,10 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/google/shlex"
+	"github.com/pkg/errors"
 )
 
 type Shell struct {
@@ -70,19 +72,19 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 		return err
 	}
 
-	werr := cmd.ProcessWait()
-
-	if f, ok := s.Stdin.(io.Closer); ok {
-		_ = f.Close()
-	}
-
-	if err := cmd.Finalize(); err != nil {
-		if werr == nil {
-			return err
+	if err := cmd.Wait(); err != nil {
+		var exiterr *exec.ExitError
+		// Ignore errors caused by SIGINT.
+		if errors.As(err, &exiterr) && exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
+			msg := "failed to run command"
+			if len(s.Name) > 0 {
+				msg += " " + strconv.Quote(s.Name)
+			}
+			return errors.Wrap(err, msg)
 		}
 	}
 
-	return werr
+	return nil
 }
 
 func ShellPath() string {
