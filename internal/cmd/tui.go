@@ -62,7 +62,7 @@ func tuiCmd() *cobra.Command {
 				if err != nil {
 					return errors.Wrap(err, "failed to create remote runner")
 				}
-				// defer func() { _ = remoteRunner.Cleanup(ctx) }()
+				defer func() { _ = remoteRunner.Cleanup(ctx) }()
 			}
 
 			model := tuiModel{

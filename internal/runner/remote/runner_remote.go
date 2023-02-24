@@ -97,6 +97,15 @@ func (r *Runner) setupSession(ctx context.Context) error {
 	return nil
 }
 
+func (r *Runner) deleteSession(ctx context.Context) error {
+	if r.sessionID == "" {
+		return nil
+	}
+
+	_, err := r.client.DeleteSession(ctx, &runnerv1.DeleteSessionRequest{Id: r.sessionID})
+	return errors.Wrap(err, "failed to delete session")
+}
+
 func (r *Runner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
 	stream, err := r.client.Execute(ctx)
 	if err != nil {
@@ -130,6 +139,10 @@ func (r *Runner) RunBlock(ctx context.Context, block *document.CodeBlock) error 
 	})
 
 	return g.Wait()
+}
+
+func (r *Runner) Cleanup(ctx context.Context) error {
+	return r.deleteSession(ctx)
 }
 
 func (r *Runner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, stdin io.Reader) error {
