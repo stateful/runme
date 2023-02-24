@@ -247,6 +247,9 @@ func generateTLS(tlsDir string) (*tls.Config, error) {
 		IPAddresses: []net.IP{
 			net.IPv4(127, 0, 0, 1),
 		},
+		DNSNames: []string{
+			"localhost",
+		},
 	}
 
 	certificateBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &privKey.PublicKey, privKey)
