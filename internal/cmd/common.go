@@ -257,16 +257,20 @@ func generateTLS(tlsDir string) (*tls.Config, error) {
 	}
 
 	caPEM := new(bytes.Buffer)
-	pem.Encode(caPEM, &pem.Block{
+	if err := pem.Encode(caPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certificateBytes,
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	privKeyPEM := new(bytes.Buffer)
-	pem.Encode(privKeyPEM, &pem.Block{
+	if err := pem.Encode(privKeyPEM, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privKey),
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	// TODO: probably a more efficient way to create a `tls.Certificate`
 	// rather than unencrypting the PEM again...
@@ -287,6 +291,7 @@ func generateTLS(tlsDir string) (*tls.Config, error) {
 		Certificates: []tls.Certificate{tlsCa},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
+		MinVersion:   tls.VersionTLS12,
 	}
 
 	if err := os.WriteFile(certPath, caPEM.Bytes(), tlsFileMode); err != nil {

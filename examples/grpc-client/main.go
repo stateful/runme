@@ -220,6 +220,7 @@ func loadCredentials() (credentials.TransportCredentials, error) {
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      certPool,
+		MinVersion:   tls.VersionTLS12,
 	}
 
 	return credentials.NewTLS(tlsConfig), nil
