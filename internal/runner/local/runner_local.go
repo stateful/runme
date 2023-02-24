@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/runner"
+	"go.uber.org/zap"
 )
 
 type Option func(*Runner) error
@@ -69,6 +70,8 @@ type Runner struct {
 
 	shellID int
 	session *runner.Session
+
+	logger *zap.Logger
 }
 
 func New(opts ...Option) (*Runner, error) {
@@ -78,6 +81,10 @@ func New(opts ...Option) (*Runner, error) {
 		if err := o(r); err != nil {
 			return nil, err
 		}
+	}
+
+	if r.logger == nil {
+		r.logger = zap.NewNop()
 	}
 
 	return r, nil
@@ -92,6 +99,7 @@ func (r *Runner) newExecutable(block *document.CodeBlock) runner.Executable {
 		Stdout:  r.stdout,
 		Stderr:  r.stderr,
 		Session: r.session,
+		Logger:  r.logger,
 	}
 
 	switch block.Language() {
