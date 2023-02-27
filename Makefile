@@ -50,7 +50,7 @@ install/dev:
 
 .PHONY: install/goreleaser
 install/goreleaser:
-	go install github.com/goreleaser/goreleaser@v1.10.2
+	go install github.com/goreleaser/goreleaser@v1.15.2
 
 .PHONY: proto/generate
 proto/generate:
@@ -71,7 +71,7 @@ proto/publish:
 .PHONY: release
 release: install/goreleaser
 	@goreleaser check
-	@goreleaser release --snapshot --rm-dist
+	@goreleaser release --snapshot --clean
 
 .PHONY: release/publish
 release/publish: install/goreleaser

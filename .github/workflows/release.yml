@@ -50,8 +50,8 @@ jobs:
         uses: goreleaser/goreleaser-action@v2
         with:
           distribution: goreleaser
-          version: latest
-          args: release --rm-dist --release-notes=${{ runner.temp }}/releasenotes
+          version: v1.15.2
+          args: release --clean --release-notes=${{ runner.temp }}/releasenotes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
