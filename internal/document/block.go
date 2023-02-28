@@ -83,7 +83,11 @@ func newCodeBlock(
 func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
 
 func (b *CodeBlock) Interactive() bool {
-	val, _ := strconv.ParseBool(b.Attributes()["interactive"])
+	val, err := strconv.ParseBool(b.Attributes()["interactive"])
+	if err != nil {
+		return true
+	}
+
 	return val
 }
 
