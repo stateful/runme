@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	rmath "github.com/stateful/runme/internal/math"
+	"github.com/stateful/runme/internal/runner"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/version"
 )
@@ -40,9 +41,9 @@ func tuiCmd() *cobra.Command {
 				visibleEntries = math.MaxInt32
 			}
 
-			var runner client.Runner
+			var runnerClient client.Runner
 
-			defer func() { _ = runner.Cleanup(cmd.Context()) }()
+			defer func() { _ = runnerClient.Cleanup(cmd.Context()) }()
 
 			opts := []client.RunnerOption{
 				client.WithDir(fChdir),
@@ -62,7 +63,7 @@ func tuiCmd() *cobra.Command {
 					return errors.Wrap(err, "failed to create remote runner")
 				}
 
-				runner = remoteRunner
+				runnerClient = remoteRunner
 			} else {
 				localRunner, err := client.NewLocalRunner(
 					opts...,
@@ -72,7 +73,7 @@ func tuiCmd() *cobra.Command {
 					return errors.Wrap(err, "failed to create local runner")
 				}
 
-				runner = localRunner
+				runnerClient = localRunner
 			}
 
 			model := tuiModel{
@@ -103,12 +104,12 @@ func tuiCmd() *cobra.Command {
 
 				ctx, cancel := ctxWithSigCancel(cmd.Context())
 
-				err = runner.RunBlock(ctx, result.block)
+				err = runnerClient.RunBlock(ctx, result.block)
 
 				cancel()
 
 				if err != nil {
-					var eerror *client.ExitError
+					var eerror *runner.ExitError
 					if !errors.As(err, &eerror) {
 						return err
 					}

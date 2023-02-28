@@ -4,33 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os/exec"
-	"strconv"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 )
-
-type ExitError struct {
-	Code    uint
-	Wrapped error
-}
-
-func (e *ExitError) Error() string {
-	return "exit code: " + strconv.Itoa(int(e.Code))
-}
-
-func (e *ExitError) Unwrap() error {
-	return e.Wrapped
-}
-
-func ExitErrorFromExec(e *exec.ExitError) ExitError {
-	return ExitError{
-		Code:    uint(e.ExitCode()),
-		Wrapped: e,
-	}
-}
 
 type RunnerOption func(Runner) error
 

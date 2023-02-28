@@ -75,12 +75,18 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 	if err := cmd.Wait(); err != nil {
 		var exiterr *exec.ExitError
 		// Ignore errors caused by SIGINT.
-		if errors.As(err, &exiterr) && exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
-			msg := "failed to run command"
-			if len(s.Name) > 0 {
-				msg += " " + strconv.Quote(s.Name)
+		if errors.As(err, &exiterr) {
+			var rerr error = ExitErrorFromExec(exiterr)
+
+			if exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
+				msg := "failed to run command"
+				if len(s.Name) > 0 {
+					msg += " " + strconv.Quote(s.Name)
+				}
+				return errors.Wrap(rerr, msg)
 			}
-			return errors.Wrap(err, msg)
+
+			return rerr
 		}
 	}
 

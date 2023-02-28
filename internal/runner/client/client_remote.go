@@ -187,7 +187,7 @@ func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient) err
 		}
 		if msg.ExitCode != nil {
 			if msg.ExitCode.Value > 0 {
-				return &ExitError{Code: uint(msg.ExitCode.Value)}
+				return &runner.ExitError{Code: uint(msg.ExitCode.Value)}
 			}
 			return nil
 		}
