@@ -34,6 +34,7 @@ func serverCmd() *cobra.Command {
 		addr               string
 		useConnectProtocol bool
 		devMode            bool
+		enableRunner       bool
 	)
 
 	cmd := cobra.Command{
@@ -70,7 +71,9 @@ The kernel is used to run long running processes like shells and interacting wit
 
 				mux := http.NewServeMux()
 				compress1KB := connect.WithCompressMinBytes(1024)
-				mux.Handle(runnerv1connect.NewRunnerServiceHandler(runner.NewRunnerServiceHandler(logger)))
+				if enableRunner {
+					mux.Handle(runnerv1connect.NewRunnerServiceHandler(runner.NewRunnerServiceHandler(logger)))
+				}
 				mux.Handle(grpchealth.NewHandler(
 					grpchealth.NewStaticChecker(),
 					compress1KB,
@@ -128,7 +131,9 @@ The kernel is used to run long running processes like shells and interacting wit
 				grpc.MaxSendMsgSize(runner.MaxMsgSize),
 			)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
-			runnerv1.RegisterRunnerServiceServer(server, runner.NewRunnerService(logger))
+			if enableRunner {
+				runnerv1.RegisterRunnerServiceServer(server, runner.NewRunnerService(logger))
+			}
 			reflection.Register(server)
 			return server.Serve(lis)
 		},
@@ -139,6 +144,7 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().StringVarP(&addr, "address", "a", defaultSocketAddr, "Address to create unix (unix:///path/to/socket) or IP socket (localhost:7890)")
 	cmd.Flags().BoolVar(&useConnectProtocol, "connect-protocol", false, "Use Connect Protocol (https://connect.build/)")
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
+	cmd.Flags().BoolVar(&enableRunner, "runner", false, "Enable runner service")
 
 	return &cmd
 }
