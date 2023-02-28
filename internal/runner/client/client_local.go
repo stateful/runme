@@ -75,6 +75,8 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		r.logger = zap.NewNop()
 	}
 
+	r.session = runner.NewSession(os.Environ(), r.logger)
+
 	return r, nil
 }
 

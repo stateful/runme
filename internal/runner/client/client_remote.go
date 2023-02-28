@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"io"
+	"os"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -81,7 +82,9 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 }
 
 func (r *RemoteRunner) setupSession(ctx context.Context) error {
-	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{})
+	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{
+		Envs: os.Environ(),
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed to create session")
 	}
