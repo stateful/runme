@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/runner/local"
+	"github.com/stateful/runme/internal/runner/client"
 )
 
 type runCmdOpts struct {
@@ -60,12 +60,12 @@ func runCmd() *cobra.Command {
 				stdin = bytes.NewReader(nil)
 			}
 
-			runner, err := local.New(
-				local.WithinShellMaybe(),
-				local.WithDir(fChdir),
-				local.WithStdin(stdin),
-				local.WithStdout(cmd.OutOrStdout()),
-				local.WithStderr(cmd.ErrOrStderr()),
+			runner, err := client.NewLocalRunner(
+				client.WithinShellMaybe(),
+				client.WithDir(fChdir),
+				client.WithStdin(stdin),
+				client.WithStdout(cmd.OutOrStdout()),
+				client.WithStderr(cmd.ErrOrStderr()),
 			)
 			if err != nil {
 				return err

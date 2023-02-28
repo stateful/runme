@@ -1,15 +1,15 @@
-package remote
+package client
 
 import (
 	"context"
 	"io"
-	"strconv"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/runner"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -17,45 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type ExitError struct {
-	Code uint
-}
-
-func (e *ExitError) Error() string {
-	return "exit code: " + strconv.Itoa(int(e.Code))
-}
-
-type Option func(*Runner) error
-
-func WithDir(dir string) Option {
-	return func(r *Runner) error {
-		r.dir = dir
-		return nil
-	}
-}
-
-func WithStdin(stdin io.Reader) Option {
-	return func(r *Runner) error {
-		r.stdin = stdin
-		return nil
-	}
-}
-
-func WithStdout(stdout io.Writer) Option {
-	return func(r *Runner) error {
-		r.stdout = stdout
-		return nil
-	}
-}
-
-func WithStderr(stderr io.Writer) Option {
-	return func(r *Runner) error {
-		r.stderr = stderr
-		return nil
-	}
-}
-
-type Runner struct {
+type RemoteRunner struct {
 	dir    string
 	stdin  io.Reader
 	stdout io.Writer
@@ -65,8 +27,44 @@ type Runner struct {
 	sessionID string
 }
 
-func New(ctx context.Context, addr string, opts ...Option) (*Runner, error) {
-	r := &Runner{}
+func (r *RemoteRunner) setDir(dir string) error {
+	r.dir = dir
+	return nil
+}
+
+func (r *RemoteRunner) setStdin(stdin io.Reader) error {
+	r.stdin = stdin
+	return nil
+}
+
+func (r *RemoteRunner) setStdout(stdout io.Writer) error {
+	r.stdout = stdout
+	return nil
+}
+
+func (r *RemoteRunner) setStderr(stderr io.Writer) error {
+	r.stderr = stderr
+	return nil
+}
+
+func (r *RemoteRunner) setLogger(logger *zap.Logger) error {
+	return nil
+}
+
+func (r *RemoteRunner) setSession(session *runner.Session) error {
+	r.sessionID = session.ID
+	return nil
+}
+
+func (r *RemoteRunner) setWithinShell() error {
+	return nil
+}
+
+func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
+	r := &RemoteRunner{}
+	if err := ApplyOptions(r, opts...); err != nil {
+		return nil, err
+	}
 
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -79,16 +77,10 @@ func New(ctx context.Context, addr string, opts ...Option) (*Runner, error) {
 		return nil, err
 	}
 
-	for _, o := range opts {
-		if err := o(r); err != nil {
-			return nil, err
-		}
-	}
-
 	return r, nil
 }
 
-func (r *Runner) setupSession(ctx context.Context) error {
+func (r *RemoteRunner) setupSession(ctx context.Context) error {
 	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{})
 	if err != nil {
 		return errors.Wrap(err, "failed to create session")
@@ -99,7 +91,7 @@ func (r *Runner) setupSession(ctx context.Context) error {
 	return nil
 }
 
-func (r *Runner) deleteSession(ctx context.Context) error {
+func (r *RemoteRunner) deleteSession(ctx context.Context) error {
 	if r.sessionID == "" {
 		return nil
 	}
@@ -108,7 +100,7 @@ func (r *Runner) deleteSession(ctx context.Context) error {
 	return errors.Wrap(err, "failed to delete session")
 }
 
-func (r *Runner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
+func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
 	stream, err := r.client.Execute(ctx)
 	if err != nil {
 		return err
@@ -143,11 +135,15 @@ func (r *Runner) RunBlock(ctx context.Context, block *document.CodeBlock) error 
 	return g.Wait()
 }
 
-func (r *Runner) Cleanup(ctx context.Context) error {
+func (r *RemoteRunner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error {
+	return RunnerClientErrorUnimplemented
+}
+
+func (r *RemoteRunner) Cleanup(ctx context.Context) error {
 	return r.deleteSession(ctx)
 }
 
-func (r *Runner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, stdin io.Reader) error {
+func (r *RemoteRunner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, stdin io.Reader) error {
 	buf := make([]byte, 32*1024)
 
 	for {
@@ -167,7 +163,7 @@ func (r *Runner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, stdin io.
 	}
 }
 
-func (r *Runner) recvLoop(stream runnerv1.RunnerService_ExecuteClient) error {
+func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient) error {
 	for {
 		msg, err := stream.Recv()
 		if err != nil {

@@ -11,9 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	rmath "github.com/stateful/runme/internal/math"
-	"github.com/stateful/runme/internal/runner"
-	"github.com/stateful/runme/internal/runner/local"
-	"github.com/stateful/runme/internal/runner/remote"
+	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/version"
 )
 
@@ -42,24 +40,39 @@ func tuiCmd() *cobra.Command {
 				visibleEntries = math.MaxInt32
 			}
 
-			var (
-				remoteRunner *remote.Runner
-				localRunner  *local.Runner
-			)
+			var runner client.Runner
+
+			defer func() { _ = runner.Cleanup(cmd.Context()) }()
+
+			opts := []client.RunnerOption{
+				client.WithDir(fChdir),
+				client.WithStdin(cmd.InOrStdin()),
+				client.WithStdout(cmd.OutOrStdout()),
+				client.WithStderr(cmd.ErrOrStderr()),
+			}
 
 			if serverAddr != "" {
-				remoteRunner, err = remote.New(
+				remoteRunner, err := client.NewRemoteRunner(
 					cmd.Context(),
 					serverAddr,
-					remote.WithDir(fChdir),
-					remote.WithStdin(cmd.InOrStdin()),
-					remote.WithStdout(cmd.OutOrStdout()),
-					remote.WithStderr(cmd.ErrOrStderr()),
+					opts...,
 				)
+
 				if err != nil {
 					return errors.Wrap(err, "failed to create remote runner")
 				}
-				defer func() { _ = remoteRunner.Cleanup(cmd.Context()) }()
+
+				runner = remoteRunner
+			} else {
+				localRunner, err := client.NewLocalRunner(
+					opts...,
+				)
+
+				if err != nil {
+					return errors.Wrap(err, "failed to create local runner")
+				}
+
+				runner = localRunner
 			}
 
 			model := tuiModel{
@@ -90,27 +103,12 @@ func tuiCmd() *cobra.Command {
 
 				ctx, cancel := ctxWithSigCancel(cmd.Context())
 
-				if remoteRunner != nil {
-					err = remoteRunner.RunBlock(ctx, result.block)
-				} else {
-					localRunner, err = local.New(
-						local.WithSession(runner.NewSession(nil, nil)),
-						local.WithDir(fChdir),
-						local.WithStdin(cmd.InOrStdin()),
-						local.WithStdout(cmd.OutOrStdout()),
-						local.WithStderr(cmd.ErrOrStderr()),
-					)
-					if err != nil {
-						return errors.Wrap(err, "failed to create local runner")
-					}
-
-					err = localRunner.RunBlock(ctx, result.block)
-				}
+				err = runner.RunBlock(ctx, result.block)
 
 				cancel()
 
 				if err != nil {
-					var eerror *remote.ExitError
+					var eerror *client.ExitError
 					if !errors.As(err, &eerror) {
 						return err
 					}

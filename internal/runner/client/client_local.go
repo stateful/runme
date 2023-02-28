@@ -1,4 +1,4 @@
-package local
+package client
 
 import (
 	"context"
@@ -14,62 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type Option func(*Runner) error
-
-func WithSession(s *runner.Session) Option {
-	return func(r *Runner) error {
-		r.session = s
-		return nil
-	}
-}
-
-func WithinShellMaybe() Option {
-	return func(r *Runner) error {
-		id, ok := shellID()
-		if !ok {
-			return nil
-		}
-		r.shellID = id
-		return nil
-	}
-}
-
-func WithDir(dir string) Option {
-	return func(r *Runner) error {
-		r.dir = dir
-		return nil
-	}
-}
-
-func WithStdin(stdin io.Reader) Option {
-	return func(r *Runner) error {
-		r.stdin = stdin
-		return nil
-	}
-}
-
-func WithStdout(stdout io.Writer) Option {
-	return func(r *Runner) error {
-		r.stdout = stdout
-		return nil
-	}
-}
-
-func WithStderr(stderr io.Writer) Option {
-	return func(r *Runner) error {
-		r.stderr = stderr
-		return nil
-	}
-}
-
-func WithLogger(logger *zap.Logger) Option {
-	return func(r *Runner) error {
-		r.logger = logger
-		return nil
-	}
-}
-
-type Runner struct {
+type LocalRunner struct {
 	dir    string
 	stdin  io.Reader
 	stdout io.Writer
@@ -81,13 +26,49 @@ type Runner struct {
 	logger *zap.Logger
 }
 
-func New(opts ...Option) (*Runner, error) {
-	r := &Runner{}
+func (r *LocalRunner) setSession(s *runner.Session) error {
+	r.session = s
+	return nil
+}
 
-	for _, o := range opts {
-		if err := o(r); err != nil {
-			return nil, err
-		}
+func (r *LocalRunner) setWithinShell() error {
+	id, ok := shellID()
+	if !ok {
+		return nil
+	}
+	r.shellID = id
+	return nil
+}
+
+func (r *LocalRunner) setDir(dir string) error {
+	r.dir = dir
+	return nil
+}
+
+func (r *LocalRunner) setStdin(stdin io.Reader) error {
+	r.stdin = stdin
+	return nil
+}
+
+func (r *LocalRunner) setStdout(stdout io.Writer) error {
+	r.stdout = stdout
+	return nil
+}
+
+func (r *LocalRunner) setStderr(stderr io.Writer) error {
+	r.stderr = stderr
+	return nil
+}
+
+func (r *LocalRunner) setLogger(logger *zap.Logger) error {
+	r.logger = logger
+	return nil
+}
+
+func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
+	r := &LocalRunner{}
+	if err := ApplyOptions(r, opts...); err != nil {
+		return nil, err
 	}
 
 	if r.logger == nil {
@@ -97,7 +78,7 @@ func New(opts ...Option) (*Runner, error) {
 	return r, nil
 }
 
-func (r *Runner) newExecutable(block *document.CodeBlock) runner.Executable {
+func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable {
 	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),
 		Dir:     r.dir,
@@ -132,7 +113,7 @@ func (r *Runner) newExecutable(block *document.CodeBlock) runner.Executable {
 	}
 }
 
-func (r *Runner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
+func (r *LocalRunner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
 	if r.shellID > 0 {
 		return r.runBlockInShell(ctx, block)
 	}
@@ -145,7 +126,7 @@ func (r *Runner) RunBlock(ctx context.Context, block *document.CodeBlock) error 
 	return errors.WithStack(executable.Run(ctx))
 }
 
-func (r *Runner) runBlockInShell(ctx context.Context, block *document.CodeBlock) error {
+func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeBlock) error {
 	var d net.Dialer
 	conn, err := d.DialContext(ctx, "unix", "/tmp/runme-"+strconv.Itoa(r.shellID)+".sock")
 	if err != nil {
@@ -164,7 +145,7 @@ func (r *Runner) runBlockInShell(ctx context.Context, block *document.CodeBlock)
 	return nil
 }
 
-func (r *Runner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...Option) error {
+func (r *LocalRunner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error {
 	executable := r.newExecutable(block)
 	if executable == nil {
 		return errors.Errorf("unknown executable: %q", block.Language())
@@ -172,6 +153,10 @@ func (r *Runner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w i
 
 	executable.DryRun(ctx, w)
 
+	return nil
+}
+
+func (r *LocalRunner) Cleanup(ctx context.Context) error {
 	return nil
 }
 
