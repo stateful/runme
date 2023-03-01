@@ -122,16 +122,18 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 		return errors.Wrap(err, "failed to send initial request")
 	}
 
-	stdin := &onceReadCloser{r: r.stdin, done: make(chan struct{})}
-
 	g := new(errgroup.Group)
 
 	if tty {
-		g.Go(func() error { return r.sendLoop(stream, stdin) })
+		g.Go(func() error { return r.sendLoop(stream, r.stdin) })
 	}
 
 	g.Go(func() error {
-		defer func() { _ = stdin.Close() }()
+		defer func() {
+			if closer, ok := r.stdin.(io.ReadCloser); ok {
+				closer.Close()
+			}
+		}()
 		return r.recvLoop(stream)
 	})
 
@@ -155,7 +157,8 @@ func (r *RemoteRunner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, std
 			if errors.Is(err, io.EOF) {
 				err = nil
 			}
-			return errors.Wrap(err, "failed to read from stdin")
+			return nil
+			// return errors.Wrap(err, "failed to read from stdin")
 		}
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			InputData: buf[:n],

@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/containerd/console"
 	"github.com/mgutz/ansi"
+	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
@@ -108,6 +109,13 @@ func tuiCmd() *cobra.Command {
 				{
 					current := console.Current()
 					current.SetRaw()
+
+					stdin, _ := cancelreader.NewReader(cmd.InOrStdin())
+
+					client.ApplyOptions(
+						runnerClient,
+						client.WithStdin(stdin),
+					)
 
 					err = runnerClient.RunBlock(ctx, result.block)
 
