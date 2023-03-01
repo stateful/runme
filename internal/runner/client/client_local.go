@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
@@ -85,11 +86,14 @@ func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable
 		Name:    block.Name(),
 		Dir:     r.dir,
 		Tty:     block.Interactive(),
-		Stdin:   r.stdin,
 		Stdout:  r.stdout,
 		Stderr:  r.stderr,
 		Session: r.session,
 		Logger:  r.logger,
+	}
+
+	if block.Interactive() {
+		cfg.Stdin = r.stdin
 	}
 
 	switch block.Language() {
@@ -123,6 +127,24 @@ func (r *LocalRunner) RunBlock(ctx context.Context, block *document.CodeBlock) e
 	executable := r.newExecutable(block)
 	if executable == nil {
 		return errors.Errorf("unknown executable: %q", block.Language())
+	}
+
+	// poll for exit
+	// TODO(mxs): we probably want to use `StdinPipe` eventually
+	if block.Interactive() {
+		go func() {
+			for {
+				if executable.ExitCode() > -1 {
+					if closer, ok := r.stdin.(io.ReadCloser); ok {
+						closer.Close()
+					}
+
+					return
+				}
+
+				time.Sleep(100 * time.Millisecond)
+			}
+		}()
 	}
 
 	return errors.WithStack(executable.Run(ctx))

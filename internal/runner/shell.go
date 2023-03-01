@@ -18,7 +18,8 @@ import (
 
 type Shell struct {
 	*ExecutableConfig
-	Cmds []string
+	command *command
+	Cmds    []string
 }
 
 var _ Executable = (*Shell)(nil)
@@ -40,7 +41,7 @@ func (s Shell) DryRun(ctx context.Context, w io.Writer) {
 	}
 }
 
-func (s Shell) Run(ctx context.Context) error {
+func (s *Shell) Run(ctx context.Context) error {
 	cmd, err := newCommand(
 		&commandConfig{
 			ProgramName: s.ProgramPath(),
@@ -59,7 +60,16 @@ func (s Shell) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	s.command = cmd
 	return s.run(ctx, cmd)
+}
+
+func (s Shell) ExitCode() int {
+	if s.command == nil || s.command.cmd == nil {
+		return -1
+	}
+
+	return s.command.cmd.ProcessState.ExitCode()
 }
 
 func (s Shell) run(ctx context.Context, cmd *command) error {
