@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/containerd/console"
 	"github.com/mgutz/ansi"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -88,7 +89,7 @@ func tuiCmd() *cobra.Command {
 			}
 
 			for {
-				prog := newProgram(cmd, model)
+				prog := newProgramWithOutputs(nil, cmd.InOrStdin(), model)
 
 				newModel, err := prog.Run()
 				if err != nil {
@@ -104,7 +105,14 @@ func tuiCmd() *cobra.Command {
 
 				ctx, cancel := ctxWithSigCancel(cmd.Context())
 
-				err = runnerClient.RunBlock(ctx, result.block)
+				{
+					current := console.Current()
+					current.SetRaw()
+
+					err = runnerClient.RunBlock(ctx, result.block)
+
+					current.Reset()
+				}
 
 				cancel()
 

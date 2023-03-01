@@ -21,14 +21,26 @@ func (p *program) Start() error {
 	return err
 }
 
-func newProgram(cmd *cobra.Command, model tea.Model) *program {
-	out := cmd.OutOrStdout()
+func newProgramWithOutputs(output io.Writer, input io.Reader, model tea.Model) *program {
+	opts := make([]tea.ProgramOption, 0)
+
+	if output != nil {
+		opts = append(opts, tea.WithOutput(output))
+	}
+
+	if input != nil {
+		opts = append(opts, tea.WithInput(input))
+	}
+
 	return &program{
 		Program: tea.NewProgram(
 			model,
-			tea.WithOutput(out),
-			tea.WithInput(cmd.InOrStdin()),
+			opts...,
 		),
-		out: out,
+		out: output,
 	}
+}
+
+func newProgram(cmd *cobra.Command, model tea.Model) *program {
+	return newProgramWithOutputs(cmd.OutOrStdout(), cmd.InOrStdin(), model)
 }
