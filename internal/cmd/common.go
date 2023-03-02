@@ -29,7 +29,13 @@ func readMarkdownFile(args []string) ([]byte, error) {
 		if err != nil {
 			var pathError *os.PathError
 			if errors.As(err, &pathError) {
-				return nil, errors.Errorf("failed to %s markdown file %s: %s", pathError.Op, pathError.Path, pathError.Err.Error())
+				mdPath := pathError.Path
+
+				if absolutePath, err := filepath.Abs(mdPath); err == nil {
+					mdPath = absolutePath
+				}
+
+				return nil, errors.Errorf("failed to %s markdown file %s: %s", pathError.Op, mdPath, pathError.Err.Error())
 			}
 
 			return nil, errors.Wrapf(err, "failed to read %s", filepath.Join(fChdir, fFileName))
