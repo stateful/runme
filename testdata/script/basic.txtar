@@ -53,7 +53,7 @@ $ echo "Hello, runme!"
 
 It can contain multiple lines too:
 
-```sh
+```sh { interactive=false }
 $ echo "1"
 $ echo "2"
 $ echo "3"
