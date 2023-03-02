@@ -12,7 +12,7 @@ import (
 
 type RunnerOption func(Runner) error
 
-var RunnerClientErrorUnimplemented = fmt.Errorf("Method unimplemented!")
+var ErrRunnerClientUnimplemented = fmt.Errorf("method unimplemented")
 
 type Runner interface {
 	setSession(s *runner.Session) error

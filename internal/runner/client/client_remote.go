@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
@@ -131,7 +130,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 	g.Go(func() error {
 		defer func() {
 			if closer, ok := r.stdin.(io.ReadCloser); ok {
-				closer.Close()
+				_ = closer.Close()
 			}
 		}()
 		return r.recvLoop(stream)
@@ -141,7 +140,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 }
 
 func (r *RemoteRunner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error {
-	return RunnerClientErrorUnimplemented
+	return ErrRunnerClientUnimplemented
 }
 
 func (r *RemoteRunner) Cleanup(ctx context.Context) error {
@@ -198,63 +197,4 @@ func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient) err
 			return nil
 		}
 	}
-}
-
-type onceReadCloser struct {
-	r    io.Reader
-	once sync.Once
-	done chan struct{}
-	mu   sync.Mutex
-	err  error
-}
-
-func (c *onceReadCloser) error() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.err
-}
-
-func (c *onceReadCloser) setError(err error) {
-	c.mu.Lock()
-	if c.err == nil {
-		c.err = err
-	}
-	c.mu.Unlock()
-}
-
-func (c *onceReadCloser) Read(p []byte) (int, error) {
-	if err := c.error(); err != nil {
-		return 0, err
-	}
-
-	dataCh := make(chan int)
-
-	// This goroutine may leak because there is no reliable way to interrupt io.Reader.Read().
-	// More: https://github.com/golang/go/issues/20110
-	// and https://benjamincongdon.me/blog/2020/04/23/Cancelable-Reads-in-Go/.
-	go func() {
-		n, err := c.r.Read(p)
-		if err != nil {
-			c.setError(err)
-		}
-		dataCh <- n
-		close(dataCh)
-	}()
-
-	select {
-	case <-c.done:
-		return 0, c.error()
-	case n := <-dataCh:
-		return n, c.error()
-	}
-}
-
-func (c *onceReadCloser) Close() error {
-	c.once.Do(c.close)
-	return c.err
-}
-
-func (c *onceReadCloser) close() {
-	c.setError(io.EOF)
-	close(c.done)
 }

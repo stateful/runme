@@ -136,7 +136,7 @@ func (r *LocalRunner) RunBlock(ctx context.Context, block *document.CodeBlock) e
 			for {
 				if executable.ExitCode() > -1 {
 					if closer, ok := r.stdin.(io.ReadCloser); ok {
-						closer.Close()
+						_ = closer.Close()
 					}
 
 					return

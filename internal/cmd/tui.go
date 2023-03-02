@@ -108,18 +108,20 @@ func tuiCmd() *cobra.Command {
 
 				{
 					current := console.Current()
-					current.SetRaw()
+					_ = current.SetRaw()
 
 					stdin, _ := cancelreader.NewReader(cmd.InOrStdin())
 
-					client.ApplyOptions(
+					if err := client.ApplyOptions(
 						runnerClient,
 						client.WithStdin(stdin),
-					)
+					); err != nil {
+						return err
+					}
 
 					err = runnerClient.RunBlock(ctx, result.block)
 
-					current.Reset()
+					_ = current.Reset()
 				}
 
 				cancel()
