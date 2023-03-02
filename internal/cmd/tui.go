@@ -60,7 +60,6 @@ func tuiCmd() *cobra.Command {
 					serverAddr,
 					opts...,
 				)
-
 				if err != nil {
 					return errors.Wrap(err, "failed to create remote runner")
 				}
@@ -70,7 +69,6 @@ func tuiCmd() *cobra.Command {
 				localRunner, err := client.NewLocalRunner(
 					opts...,
 				)
-
 				if err != nil {
 					return errors.Wrap(err, "failed to create local runner")
 				}
