@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	_ "google.golang.org/grpc/health"
+	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var (
@@ -20,13 +20,6 @@ var (
 	file       = flag.String("file", "", "file with content to upper case")
 	resultFile = flag.String("write-result", "-", "path to a result file (default: stdout)")
 )
-
-var serviceConfig = `{
-	"loadBalancingPolicy": "round_robin",
-	"healthCheckConfig": {
-		"serviceName": ""
-	}
-}`
 
 func main() {
 	flag.Parse()
@@ -37,16 +30,24 @@ func main() {
 }
 
 func run() error {
-	options := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultServiceConfig(serviceConfig),
-	}
-
-	conn, err := grpc.Dial(*addr, options...)
+	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return errors.Wrap(err, "failed to connect")
 	}
 	defer conn.Close()
+
+	healthClient := healthgrpc.NewHealthClient(conn)
+
+	resp, err := healthClient.Check(context.Background(), &healthgrpc.HealthCheckRequest{})
+	if err != nil {
+		return errors.Wrap(err, "failed to check health")
+	}
+
+	if resp.Status != healthgrpc.HealthCheckResponse_SERVING {
+		return errors.Errorf("service status: %v", resp.Status)
+	}
+
+	log.Printf("service is SERVING")
 
 	client := runnerv1.NewRunnerServiceClient(conn)
 
