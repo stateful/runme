@@ -30,6 +30,8 @@ func serverCmd() *cobra.Command {
 	const (
 		defaultSocketAddr = "unix:///var/run/runme.sock"
 		defaultLocalAddr  = "localhost:7890"
+		// Empty string represents the health of the system.
+		system = ""
 	)
 
 	var (
@@ -37,13 +39,6 @@ func serverCmd() *cobra.Command {
 		useConnectProtocol bool
 		devMode            bool
 		enableRunner       bool
-	)
-
-	var (
-		// Duration between changes in health.
-		sleep = 5 * time.Second
-		// Empty string represents the health of the system.
-		system = ""
 	)
 
 	cmd := cobra.Command{
@@ -146,26 +141,8 @@ The kernel is used to run long running processes like shells and interacting wit
 
 			healthcheck := health.NewServer()
 			healthgrpc.RegisterHealthServer(server, healthcheck)
-
-			go func() {
-				// Asynchronously inspect dependencies and toggle serving status as needed.
-				next := healthgrpc.HealthCheckResponse_SERVING
-		
-				for {
-					healthcheck.SetServingStatus(system, next)
-
-					parser := false
-					runner := false
-		
-					if parser && runner {
-						next = healthgrpc.HealthCheckResponse_NOT_SERVING
-					} else {
-						next = healthgrpc.HealthCheckResponse_SERVING
-					}
-		
-					time.Sleep(sleep)
-				}
-			}()
+			// Setting SERVING for the whole system.
+			healthcheck.SetServingStatus(system, healthgrpc.HealthCheckResponse_SERVING)
 
 			reflection.Register(server)
 			return server.Serve(lis)
