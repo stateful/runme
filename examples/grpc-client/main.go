@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	_ "google.golang.org/grpc/health"
 )
 
 var (
@@ -19,6 +20,13 @@ var (
 	file       = flag.String("file", "", "file with content to upper case")
 	resultFile = flag.String("write-result", "-", "path to a result file (default: stdout)")
 )
+
+var serviceConfig = `{
+	"loadBalancingPolicy": "round_robin",
+	"healthCheckConfig": {
+		"serviceName": ""
+	}
+}`
 
 func main() {
 	flag.Parse()
@@ -29,7 +37,12 @@ func main() {
 }
 
 func run() error {
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultServiceConfig(serviceConfig),
+	}
+
+	conn, err := grpc.Dial(*addr, options...)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect")
 	}
