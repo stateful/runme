@@ -47,8 +47,6 @@ func run() error {
 		return errors.Errorf("service status: %v", resp.Status)
 	}
 
-	log.Printf("service is SERVING")
-
 	client := runnerv1.NewRunnerServiceClient(conn)
 
 	g, ctx := errgroup.WithContext(context.Background())

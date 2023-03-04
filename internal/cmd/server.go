@@ -30,8 +30,6 @@ func serverCmd() *cobra.Command {
 	const (
 		defaultSocketAddr = "unix:///var/run/runme.sock"
 		defaultLocalAddr  = "localhost:7890"
-		// Empty string represents the health of the system.
-		system = ""
 	)
 
 	var (
@@ -142,7 +140,7 @@ The kernel is used to run long running processes like shells and interacting wit
 			healthcheck := health.NewServer()
 			healthgrpc.RegisterHealthServer(server, healthcheck)
 			// Setting SERVING for the whole system.
-			healthcheck.SetServingStatus(system, healthgrpc.HealthCheckResponse_SERVING)
+			healthcheck.SetServingStatus("", healthgrpc.HealthCheckResponse_SERVING)
 
 			reflection.Register(server)
 			return server.Serve(lis)
