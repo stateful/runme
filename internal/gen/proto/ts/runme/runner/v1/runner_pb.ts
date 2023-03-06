@@ -387,21 +387,29 @@ export class DeleteSessionResponse extends Message<DeleteSessionResponse> {
  */
 export class Winsize extends Message<Winsize> {
   /**
+   * number of rows (in cells)
+   *
    * @generated from field: uint32 rows = 1;
    */
   rows = 0;
 
   /**
+   * number of columns (in cells)
+   *
    * @generated from field: uint32 cols = 2;
    */
   cols = 0;
 
   /**
+   * width in pixels
+   *
    * @generated from field: uint32 x = 3;
    */
   x = 0;
 
   /**
+   * height in pixels
+   *
    * @generated from field: uint32 y = 4;
    */
   y = 0;
@@ -516,6 +524,9 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
   stop = ExecuteStop.UNSPECIFIED;
 
   /**
+   * sets pty winsize
+   * has no effect in non-interactive mode
+   *
    * @generated from field: optional runme.runner.v1.Winsize winsize = 10;
    */
   winsize?: Winsize;
@@ -621,3 +632,4 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
     return proto3.util.equals(ExecuteResponse, a, b);
   }
 }
+

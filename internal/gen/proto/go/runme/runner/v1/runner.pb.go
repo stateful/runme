@@ -511,10 +511,14 @@ type Winsize struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// number of rows (in cells)
 	Rows uint32 `protobuf:"varint,1,opt,name=rows,proto3" json:"rows,omitempty"`
+	// number of columns (in cells)
 	Cols uint32 `protobuf:"varint,2,opt,name=cols,proto3" json:"cols,omitempty"`
-	X    uint32 `protobuf:"varint,3,opt,name=x,proto3" json:"x,omitempty"`
-	Y    uint32 `protobuf:"varint,4,opt,name=y,proto3" json:"y,omitempty"`
+	// width in pixels
+	X uint32 `protobuf:"varint,3,opt,name=x,proto3" json:"x,omitempty"`
+	// height in pixels
+	Y uint32 `protobuf:"varint,4,opt,name=y,proto3" json:"y,omitempty"`
 }
 
 func (x *Winsize) Reset() {
@@ -610,8 +614,10 @@ type ExecuteRequest struct {
 	InputData []byte `protobuf:"bytes,8,opt,name=input_data,json=inputData,proto3" json:"input_data,omitempty"`
 	// stop requests the running process to be stopped.
 	// It is allowed only in the consecutive calls.
-	Stop    ExecuteStop `protobuf:"varint,9,opt,name=stop,proto3,enum=runme.runner.v1.ExecuteStop" json:"stop,omitempty"`
-	Winsize *Winsize    `protobuf:"bytes,10,opt,name=winsize,proto3,oneof" json:"winsize,omitempty"`
+	Stop ExecuteStop `protobuf:"varint,9,opt,name=stop,proto3,enum=runme.runner.v1.ExecuteStop" json:"stop,omitempty"`
+	// sets pty winsize
+	// has no effect in non-interactive mode
+	Winsize *Winsize `protobuf:"bytes,10,opt,name=winsize,proto3,oneof" json:"winsize,omitempty"`
 	// session_id indicates in which Session the program should execute.
 	// Executing in a Session might provide additional context like
 	// environment variables.

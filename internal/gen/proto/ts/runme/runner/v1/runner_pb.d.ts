@@ -110,18 +110,26 @@ export interface DeleteSessionResponse {
  */
 export interface Winsize {
     /**
+     * number of rows (in cells)
+     *
      * @generated from protobuf field: uint32 rows = 1;
      */
     rows: number;
     /**
+     * number of columns (in cells)
+     *
      * @generated from protobuf field: uint32 cols = 2;
      */
     cols: number;
     /**
+     * width in pixels
+     *
      * @generated from protobuf field: uint32 x = 3;
      */
     x: number;
     /**
+     * height in pixels
+     *
      * @generated from protobuf field: uint32 y = 4;
      */
     y: number;
@@ -196,6 +204,9 @@ export interface ExecuteRequest {
      */
     stop: ExecuteStop;
     /**
+     * sets pty winsize
+     * has no effect in non-interactive mode
+     *
      * @generated from protobuf field: optional runme.runner.v1.Winsize winsize = 10;
      */
     winsize?: Winsize;

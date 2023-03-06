@@ -58,9 +58,13 @@ enum ExecuteStop {
 }
 
 message Winsize {
+  // number of rows (in cells)
   uint32 rows = 1;
+  // number of columns (in cells)
   uint32 cols = 2;
+  // width in pixels
   uint32 x = 3;
+  // height in pixels
   uint32 y = 4;
 }
 
