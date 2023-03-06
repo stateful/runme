@@ -57,6 +57,13 @@ enum ExecuteStop {
   EXECUTE_STOP_KILL = 2;
 }
 
+message Winsize {
+  uint32 rows = 1;
+  uint32 cols = 2;
+  uint32 x = 3;
+  uint32 y = 4;
+}
+
 message ExecuteRequest {
   // program_name is a name of the program to execute.
   // If it's not a path (relative or absolute), the runner
@@ -95,6 +102,10 @@ message ExecuteRequest {
   // stop requests the running process to be stopped.
   // It is allowed only in the consecutive calls.
   ExecuteStop stop = 9;
+
+  // sets pty winsize
+  // has no effect in non-interactive mode
+  optional Winsize winsize = 10;
 
   // session_id indicates in which Session the program should execute.
   // Executing in a Session might provide additional context like
