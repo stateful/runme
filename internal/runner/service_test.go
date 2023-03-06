@@ -622,7 +622,7 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
-	if _, ok := os.LookupEnv("GITHUB_ENV"); !ok {
+	if _, ok := os.LookupEnv("GITHUB_ACTIONS"); !ok {
 		t.Run("ExecuteWinsizeDefault", func(t *testing.T) {
 			t.Parallel()
 
