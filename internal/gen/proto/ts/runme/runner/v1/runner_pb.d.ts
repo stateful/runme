@@ -106,6 +106,35 @@ export interface DeleteSessionRequest {
 export interface DeleteSessionResponse {
 }
 /**
+ * @generated from protobuf message runme.runner.v1.Winsize
+ */
+export interface Winsize {
+    /**
+     * number of rows (in cells)
+     *
+     * @generated from protobuf field: uint32 rows = 1;
+     */
+    rows: number;
+    /**
+     * number of columns (in cells)
+     *
+     * @generated from protobuf field: uint32 cols = 2;
+     */
+    cols: number;
+    /**
+     * width in pixels
+     *
+     * @generated from protobuf field: uint32 x = 3;
+     */
+    x: number;
+    /**
+     * height in pixels
+     *
+     * @generated from protobuf field: uint32 y = 4;
+     */
+    y: number;
+}
+/**
  * @generated from protobuf message runme.runner.v1.ExecuteRequest
  */
 export interface ExecuteRequest {
@@ -174,6 +203,13 @@ export interface ExecuteRequest {
      * @generated from protobuf field: runme.runner.v1.ExecuteStop stop = 9;
      */
     stop: ExecuteStop;
+    /**
+     * sets pty winsize
+     * has no effect in non-interactive mode
+     *
+     * @generated from protobuf field: optional runme.runner.v1.Winsize winsize = 10;
+     */
+    winsize?: Winsize;
     /**
      * session_id indicates in which Session the program should execute.
      * Executing in a Session might provide additional context like
@@ -286,6 +322,13 @@ declare class DeleteSessionResponse$Type extends MessageType<DeleteSessionRespon
  * @generated MessageType for protobuf message runme.runner.v1.DeleteSessionResponse
  */
 export declare const DeleteSessionResponse: DeleteSessionResponse$Type;
+declare class Winsize$Type extends MessageType<Winsize> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.Winsize
+ */
+export declare const Winsize: Winsize$Type;
 declare class ExecuteRequest$Type extends MessageType<ExecuteRequest> {
     constructor();
 }

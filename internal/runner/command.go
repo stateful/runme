@@ -75,6 +75,8 @@ type commandConfig struct {
 	Script   string
 
 	Logger *zap.Logger
+
+	Winsize *pty.Winsize
 }
 
 func newCommand(cfg *commandConfig) (*command, error) {
@@ -146,6 +148,9 @@ func newCommand(cfg *commandConfig) (*command, error) {
 		if err != nil {
 			cmd.cleanup()
 			return nil, errors.WithStack(err)
+		}
+		if cfg.Winsize != nil {
+			cmd.setWinsize(cfg.Winsize)
 		}
 	}
 
@@ -416,4 +421,12 @@ func exitCodeFromErr(err error) int {
 		return exiterr.ExitCode()
 	}
 	return -1
+}
+
+func (c *command) setWinsize(winsize *pty.Winsize) {
+	if c.pty == nil {
+		return
+	}
+
+	_ = pty.Setsize(c.pty, winsize)
 }

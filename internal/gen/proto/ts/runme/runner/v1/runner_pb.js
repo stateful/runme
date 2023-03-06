@@ -137,6 +137,21 @@ class DeleteSessionResponse$Type extends MessageType {
  */
 export const DeleteSessionResponse = new DeleteSessionResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class Winsize$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.Winsize", [
+            { no: 1, name: "rows", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "cols", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "x", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "y", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.Winsize
+ */
+export const Winsize = new Winsize$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ExecuteRequest$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ExecuteRequest", [
@@ -149,6 +164,7 @@ class ExecuteRequest$Type extends MessageType {
             { no: 7, name: "tty", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 8, name: "input_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 9, name: "stop", kind: "enum", T: () => ["runme.runner.v1.ExecuteStop", ExecuteStop, "EXECUTE_STOP_"] },
+            { no: 10, name: "winsize", kind: "message", T: () => Winsize },
             { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }

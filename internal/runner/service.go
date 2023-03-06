@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/creack/pty"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
@@ -190,6 +191,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		Commands:    req.Commands,
 		Script:      req.Script,
 		Logger:      r.logger,
+		Winsize:     runnerWinsizeToPty(req.Winsize),
 	}
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
@@ -271,6 +273,13 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 					// Then, the client could decide what to do.
 					return
 				}
+			}
+
+			// only update winsize when field is explicitly set
+			if req.ProtoReflect().Has(
+				req.ProtoReflect().Descriptor().Fields().ByName("winsize"),
+			) {
+				cmd.setWinsize(runnerWinsizeToPty(req.Winsize))
 			}
 		}
 	}()
@@ -416,4 +425,18 @@ func readLoop(
 	})
 
 	return g.Wait()
+}
+
+func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
+	if winsize == nil {
+		// sane default
+		return &pty.Winsize{Cols: 80}
+	}
+
+	return &pty.Winsize{
+		Rows: uint16(winsize.Rows),
+		Cols: uint16(winsize.Cols),
+		X:    uint16(winsize.X),
+		Y:    uint16(winsize.Y),
+	}
 }
