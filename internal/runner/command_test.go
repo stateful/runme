@@ -344,7 +344,7 @@ func Test_command(t *testing.T) {
 		require.NoError(t, cmd.Wait())
 
 		data, err := io.ReadAll(stdout)
-
+		assert.NoError(t, err)
 		assert.Equal(t, "200\r\n100\r\n", string(data))
 	})
 }
