@@ -45,7 +45,11 @@ func tuiCmd() *cobra.Command {
 
 			var runnerClient client.Runner
 
-			defer func() { _ = runnerClient.Cleanup(cmd.Context()) }()
+			defer func() {
+				if runnerClient != nil {
+					_ = runnerClient.Cleanup(cmd.Context())
+				}
+			}()
 
 			opts := []client.RunnerOption{
 				client.WithDir(fChdir),
