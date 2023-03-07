@@ -634,8 +634,8 @@ func Test_runnerService(t *testing.T) {
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
 			Commands: []string{
-				"tput lines",
-				"tput cols",
+				"tput lines -T linux",
+				"tput cols -T linux",
 			},
 			Tty: true,
 		})
@@ -658,8 +658,8 @@ func Test_runnerService(t *testing.T) {
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
 			Commands: []string{
-				"tput lines",
-				"tput cols",
+				"tput lines -T linux",
+				"tput cols -T linux",
 			},
 			Winsize: &runnerv1.Winsize{
 				Cols: 200,
@@ -687,8 +687,8 @@ func Test_runnerService(t *testing.T) {
 			ProgramName: "bash",
 			Commands: []string{
 				"read",
-				"tput lines",
-				"tput cols",
+				"tput lines -T linux",
+				"tput cols -T linux",
 			},
 			Tty: true,
 		})
