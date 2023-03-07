@@ -314,6 +314,34 @@ func Test_command(t *testing.T) {
 			sort(cmd.Session.Envs()),
 		)
 	})
+
+	t.Run("WinsizeDefault", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		stdin := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "bash",
+				Stdout:      stdout,
+				Stderr:      stderr,
+				Stdin:       stdin,
+				IsShell:     true,
+				Script:      "tput lines -T linux; tput cols -T linux",
+				Logger:      testCreateLogger(t),
+				Tty:         true,
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+
+		data, err := io.ReadAll(stdout)
+
+		assert.Equal(t, "24\r\n80\r\n", string(data))
+	})
 }
 
 func Test_command_Stop(t *testing.T) {
