@@ -13,7 +13,8 @@ import (
 
 type Go struct {
 	*ExecutableConfig
-	Source string
+	Source  string
+	command *exec.Cmd
 }
 
 var _ Executable = (*Go)(nil)
@@ -28,7 +29,7 @@ func (g Go) DryRun(ctx context.Context, w io.Writer) {
 	_, _ = fmt.Fprintf(w, "%s\n", g.Source)
 }
 
-func (g Go) Run(ctx context.Context) error {
+func (g *Go) Run(ctx context.Context) error {
 	executable, err := exec.LookPath("go")
 	if err != nil {
 		return errors.Wrapf(err, "failed to find %q executable", "go")
@@ -53,5 +54,15 @@ func (g Go) Run(ctx context.Context) error {
 	c.Stdout = g.Stdout
 	c.Stdin = g.Stdin
 
+	g.command = c
+
 	return errors.Wrapf(c.Run(), "failed to run command %q", "go run main.go")
+}
+
+func (g Go) ExitCode() int {
+	if g.command == nil {
+		return -1
+	}
+
+	return g.command.ProcessState.ExitCode()
 }

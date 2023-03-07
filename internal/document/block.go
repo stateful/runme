@@ -3,6 +3,7 @@ package document
 import (
 	"bytes"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
@@ -80,6 +81,15 @@ func newCodeBlock(
 }
 
 func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
+
+func (b *CodeBlock) Interactive() bool {
+	val, err := strconv.ParseBool(b.Attributes()["interactive"])
+	if err != nil {
+		return true
+	}
+
+	return val
+}
 
 func (CodeBlock) Kind() BlockKind { return CodeBlockKind }
 

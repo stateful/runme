@@ -10,6 +10,7 @@ import (
 type Executable interface {
 	DryRun(context.Context, io.Writer)
 	Run(context.Context) error
+	ExitCode() int
 }
 
 type ExecutableConfig struct {

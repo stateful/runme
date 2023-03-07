@@ -18,20 +18,14 @@ import (
 
 type Shell struct {
 	*ExecutableConfig
-	Cmds []string
+	command *command
+	Cmds    []string
 }
 
 var _ Executable = (*Shell)(nil)
 
 func (s Shell) ProgramPath() string {
-	shell, ok := os.LookupEnv("SHELL")
-	if !ok {
-		shell = "sh"
-	}
-	if path, err := exec.LookPath(shell); err == nil {
-		return path
-	}
-	return "/bin/sh"
+	return ShellPath()
 }
 
 func (s Shell) DryRun(ctx context.Context, w io.Writer) {
@@ -47,7 +41,7 @@ func (s Shell) DryRun(ctx context.Context, w io.Writer) {
 	}
 }
 
-func (s Shell) Run(ctx context.Context) error {
+func (s *Shell) Run(ctx context.Context) error {
 	cmd, err := newCommand(
 		&commandConfig{
 			ProgramName: s.ProgramPath(),
@@ -66,7 +60,16 @@ func (s Shell) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	s.command = cmd
 	return s.run(ctx, cmd)
+}
+
+func (s Shell) ExitCode() int {
+	if s.command == nil || s.command.cmd == nil {
+		return -1
+	}
+
+	return s.command.cmd.ProcessState.ExitCode()
 }
 
 func (s Shell) run(ctx context.Context, cmd *command) error {
@@ -82,16 +85,33 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 	if err := cmd.Wait(); err != nil {
 		var exiterr *exec.ExitError
 		// Ignore errors caused by SIGINT.
-		if errors.As(err, &exiterr) && exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
-			msg := "failed to run command"
-			if len(s.Name) > 0 {
-				msg += " " + strconv.Quote(s.Name)
+		if errors.As(err, &exiterr) {
+			var rerr error = ExitErrorFromExec(exiterr)
+
+			if exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
+				msg := "failed to run command"
+				if len(s.Name) > 0 {
+					msg += " " + strconv.Quote(s.Name)
+				}
+				return errors.Wrap(rerr, msg)
 			}
-			return errors.Wrap(err, msg)
+
+			return rerr
 		}
 	}
 
 	return nil
+}
+
+func ShellPath() string {
+	shell, ok := os.LookupEnv("SHELL")
+	if !ok {
+		shell = "sh"
+	}
+	if path, err := exec.LookPath(shell); err == nil {
+		return path
+	}
+	return "/bin/sh"
 }
 
 func PrepareScriptFromCommands(cmds []string) string {
