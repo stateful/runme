@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -28,12 +29,16 @@ func (s Shell) ProgramPath() string {
 	return ShellPath()
 }
 
+func (s Shell) ShellType() string {
+	return ShellFromShellPath(s.ProgramPath())
+}
+
 func (s Shell) DryRun(ctx context.Context, w io.Writer) {
 	var b bytes.Buffer
 
 	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", s.ProgramPath()))
 	_, _ = b.WriteString(fmt.Sprintf("// run in %q\n\n", s.Dir))
-	_, _ = b.WriteString(prepareScriptFromCommands(s.Cmds))
+	_, _ = b.WriteString(prepareScriptFromCommands(s.Cmds, s.ShellType()))
 
 	_, err := w.Write(b.Bytes())
 	if err != nil {
@@ -114,14 +119,27 @@ func ShellPath() string {
 	return "/bin/sh"
 }
 
-func PrepareScriptFromCommands(cmds []string) string {
-	return prepareScriptFromCommands(cmds)
+// TODO(mxs): this method for determining shell is not strong, since shells can
+// be aliased. we should probably run the shell to get this information
+func ShellFromShellPath(programPath string) string {
+	programFile := filepath.Base(programPath)
+	return programFile[:len(programFile)-len(filepath.Ext(programFile))]
 }
 
-func prepareScriptFromCommands(cmds []string) string {
+func PrepareScriptFromCommands(cmds []string, shell string) string {
+	return prepareScriptFromCommands(cmds, shell)
+}
+
+func prepareScriptFromCommands(cmds []string, shell string) string {
 	var b strings.Builder
 
-	_, _ = b.WriteString("set -e -o pipefail;")
+	// TODO(mxs): powershell
+	switch shell {
+	case "zsh", "ksh", "bash":
+		_, _ = b.WriteString("set -e -o pipefail;")
+	case "sh":
+		_, _ = b.WriteString("set -e;")
+	}
 
 	for _, cmd := range cmds {
 		detectedWord := false
