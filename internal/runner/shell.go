@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -122,8 +122,8 @@ func ShellPath() string {
 // TODO(mxs): this method for determining shell is not strong, since shells can
 // be aliased. we should probably run the shell to get this information
 func ShellFromShellPath(programPath string) string {
-	programFile := path.Base(programPath)
-	return programFile[:len(programFile)-len(path.Ext(programFile))]
+	programFile := filepath.Base(programPath)
+	return programFile[:len(programFile)-len(filepath.Ext(programFile))]
 }
 
 func PrepareScriptFromCommands(cmds []string, shell string) string {

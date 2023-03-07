@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,4 +40,28 @@ func TestPrepareScript(t *testing.T) {
 		`brew upgrade`,
 	}, "pwsh")
 	assert.Equal(t, "brew bundle --no-lock;brew upgrade;\n", script)
+}
+
+func TestShellFromShellPath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		assert.Equal(t,
+			"pwsh",
+			ShellFromShellPath("c:\\System32\\pwsh.exe"),
+		)
+	} else {
+		assert.Equal(t,
+			"sh",
+			ShellFromShellPath("/bin/sh"),
+		)
+
+		assert.Equal(t,
+			"bash",
+			ShellFromShellPath("/bin/bash"),
+		)
+
+		assert.Equal(t,
+			"zsh",
+			ShellFromShellPath("/bin/zsh"),
+		)
+	}
 }
