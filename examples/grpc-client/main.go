@@ -48,7 +48,7 @@ func run() error {
 			return err
 		}
 
-		fmt.Println(resp.Session.Id)
+		_, _ = fmt.Println(resp.Session.Id)
 
 		return nil
 	}
@@ -63,7 +63,7 @@ func run() error {
 			return err
 		}
 
-		fmt.Printf("Successfully deleted session \"%s\"", id)
+		_, _ = fmt.Printf("Successfully deleted session \"%s\"", id)
 
 		return nil
 	}
