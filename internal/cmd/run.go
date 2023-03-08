@@ -93,6 +93,8 @@ func runCmd() *cobra.Command {
 				runner = remoteRunner
 			}
 
+			defer runner.Cleanup(cmd.Context())
+
 			if opts.DryRun {
 				return runner.DryRunBlock(ctx, block, cmd.ErrOrStderr())
 			}
