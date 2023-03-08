@@ -36,6 +36,10 @@ func (r *LocalRunner) setSessionID(sessionID string) error {
 	return nil
 }
 
+func (r *LocalRunner) setCleanupSession(cleanup bool) error {
+	return nil
+}
+
 func (r *LocalRunner) setWithinShell() error {
 	id, ok := shellID()
 	if !ok {

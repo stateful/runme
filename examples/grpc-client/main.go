@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -15,9 +16,11 @@ import (
 )
 
 var (
-	addr       = flag.String("addr", "127.0.0.1:7890", "the address to connect to")
-	file       = flag.String("file", "", "file with content to upper case")
-	resultFile = flag.String("write-result", "-", "path to a result file (default: stdout)")
+	addr          = flag.String("addr", "127.0.0.1:7890", "the address to connect to")
+	file          = flag.String("file", "", "file with content to upper case")
+	resultFile    = flag.String("write-result", "-", "path to a result file (default: stdout)")
+	createSession = flag.Bool("create-session", false, "create a new session")
+	deleteSession = flag.String("delete-session", "", "delete the given session")
 )
 
 func main() {
@@ -36,6 +39,34 @@ func run() error {
 	defer conn.Close()
 
 	client := runnerv1.NewRunnerServiceClient(conn)
+
+	if *createSession {
+		resp, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{
+			Envs: os.Environ(),
+		})
+		if err != nil || resp.Session == nil {
+			return err
+		}
+
+		fmt.Println(resp.Session.Id)
+
+		return nil
+	}
+
+	if *deleteSession != "" {
+		id := *deleteSession
+
+		_, err := client.DeleteSession(context.Background(), &runnerv1.DeleteSessionRequest{
+			Id: id,
+		})
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Successfully deleted session \"%s\"", id)
+
+		return nil
+	}
 
 	g, ctx := errgroup.WithContext(context.Background())
 
