@@ -16,6 +16,7 @@ var ErrRunnerClientUnimplemented = fmt.Errorf("method unimplemented")
 
 type Runner interface {
 	setSession(s *runner.Session) error
+	setSessionID(id string) error
 	setWithinShell() error
 	setDir(dir string) error
 	setStdin(stdin io.Reader) error
@@ -31,6 +32,12 @@ type Runner interface {
 func WithSession(s *runner.Session) RunnerOption {
 	return func(rc Runner) error {
 		return rc.setSession(s)
+	}
+}
+
+func WithSessionID(id string) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setSessionID(id)
 	}
 }
 

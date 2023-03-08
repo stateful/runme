@@ -56,6 +56,11 @@ func (r *RemoteRunner) setSession(session *runner.Session) error {
 	return nil
 }
 
+func (r *RemoteRunner) setSessionID(sessionID string) error {
+	r.sessionID = sessionID
+	return nil
+}
+
 func (r *RemoteRunner) setWithinShell() error {
 	return nil
 }
