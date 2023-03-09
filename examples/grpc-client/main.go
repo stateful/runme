@@ -44,7 +44,7 @@ func run() error {
 		resp, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{
 			Envs: os.Environ(),
 		})
-		if err != nil || resp.Session == nil {
+		if err != nil {
 			return err
 		}
 
