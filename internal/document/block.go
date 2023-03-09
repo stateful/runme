@@ -173,6 +173,7 @@ func getAttributes(node *ast.FencedCodeBlock, source []byte) map[string]string {
 	return attributes
 }
 
+// TODO(mxs): use guesslang model
 func getLanguage(node *ast.FencedCodeBlock, source []byte) string {
 	if lang := string(node.Language(source)); lang != "" {
 		return lang

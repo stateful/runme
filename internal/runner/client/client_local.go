@@ -97,7 +97,8 @@ func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable
 	}
 
 	switch block.Language() {
-	case "bash", "bat", "sh", "shell", "zsh":
+	// TODO(mxs): empty string should return nil when guesslang model is implemented
+	case "bash", "bat", "sh", "shell", "zsh", "":
 		return &runner.Shell{
 			ExecutableConfig: cfg,
 			Cmds:             block.Lines(),
@@ -171,9 +172,6 @@ func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeB
 
 func (r *LocalRunner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error {
 	executable := r.newExecutable(block)
-	if executable == nil {
-		return errors.Errorf("unknown executable: %q", block.Language())
-	}
 
 	executable.DryRun(ctx, w)
 
