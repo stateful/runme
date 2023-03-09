@@ -63,7 +63,7 @@ func run() error {
 			return err
 		}
 
-		_, _ = fmt.Printf("Successfully deleted session \"%s\"", id)
+		_, _ = fmt.Printf("Successfully deleted session %q", id)
 
 		return nil
 	}
