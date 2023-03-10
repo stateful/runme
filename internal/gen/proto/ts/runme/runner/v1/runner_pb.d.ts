@@ -218,6 +218,12 @@ export interface ExecuteRequest {
      * @generated from protobuf field: string session_id = 20;
      */
     sessionId: string;
+    /**
+     * strategy for selecting session
+     *
+     * @generated from protobuf field: runme.runner.v1.SessionStrategy session_strategy = 21;
+     */
+    sessionStrategy: SessionStrategy;
 }
 /**
  * @generated from protobuf message runme.runner.v1.ExecuteResponse
@@ -258,6 +264,27 @@ export declare enum ExecuteStop {
      * @generated from protobuf enum value: EXECUTE_STOP_KILL = 2;
      */
     KILL = 2
+}
+/**
+ * strategy for selecting a session in an initial execute request
+ *
+ * @generated from protobuf enum runme.runner.v1.SessionStrategy
+ */
+export declare enum SessionStrategy {
+    /**
+     * uses session_id field to determine session
+     * if none is present, a new session is created
+     *
+     * @generated from protobuf enum value: SESSION_STRATEGY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * uses most recently used session on the grpc server
+     * if there is none, a new one is created
+     *
+     * @generated from protobuf enum value: SESSION_STRATEGY_MOST_RECENT = 1;
+     */
+    MOST_RECENT = 1
 }
 declare class Session$Type extends MessageType<Session> {
     constructor();

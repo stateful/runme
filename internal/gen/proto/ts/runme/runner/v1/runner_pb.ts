@@ -33,6 +33,34 @@ proto3.util.setEnumType(ExecuteStop, "runme.runner.v1.ExecuteStop", [
 ]);
 
 /**
+ * strategy for selecting a session in an initial execute request
+ *
+ * @generated from enum runme.runner.v1.SessionStrategy
+ */
+export enum SessionStrategy {
+  /**
+   * uses session_id field to determine session
+   * if none is present, a new session is created
+   *
+   * @generated from enum value: SESSION_STRATEGY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * uses most recently used session on the grpc server
+   * if there is none, a new one is created
+   *
+   * @generated from enum value: SESSION_STRATEGY_MOST_RECENT = 1;
+   */
+  MOST_RECENT = 1,
+}
+// Retrieve enum metadata with: proto3.getEnumType(SessionStrategy)
+proto3.util.setEnumType(SessionStrategy, "runme.runner.v1.SessionStrategy", [
+  { no: 0, name: "SESSION_STRATEGY_UNSPECIFIED" },
+  { no: 1, name: "SESSION_STRATEGY_MOST_RECENT" },
+]);
+
+/**
  * @generated from message runme.runner.v1.Session
  */
 export class Session extends Message<Session> {
@@ -540,6 +568,13 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
    */
   sessionId = "";
 
+  /**
+   * strategy for selecting session
+   *
+   * @generated from field: runme.runner.v1.SessionStrategy session_strategy = 21;
+   */
+  sessionStrategy = SessionStrategy.UNSPECIFIED;
+
   constructor(data?: PartialMessage<ExecuteRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -559,6 +594,7 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
     { no: 9, name: "stop", kind: "enum", T: proto3.getEnumType(ExecuteStop) },
     { no: 10, name: "winsize", kind: "message", T: Winsize, opt: true },
     { no: 20, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 21, name: "session_strategy", kind: "enum", T: proto3.getEnumType(SessionStrategy) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteRequest {
@@ -632,3 +668,4 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
     return proto3.util.equals(ExecuteResponse, a, b);
   }
 }
+
