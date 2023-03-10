@@ -711,6 +711,70 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 0, result.ExitCode)
 		assert.EqualValues(t, "56\r\n150\r\n", string(result.Stdout))
 	})
+
+	t.Run("ExecuteSessionsMostRecent", func(t *testing.T) {
+		ctx := context.Background()
+
+		createSession := func(id string) string {
+			resp, err := client.CreateSession(ctx, &runnerv1.CreateSessionRequest{
+				Envs: []string{
+					// fmt.Sprint("SESSION_NUM=%s", id),
+					"SESSION_NUM=" + id,
+				},
+			})
+			require.NoError(t, err)
+			return resp.Session.Id
+		}
+
+		getSessionNum := func(sessionId string) string {
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+
+			strategy := runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT
+
+			if sessionId != "" {
+				strategy = runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED
+			}
+
+			err = stream.Send(&runnerv1.ExecuteRequest{
+				ProgramName:     "bash",
+				SessionId:       sessionId,
+				SessionStrategy: strategy,
+				Commands: []string{
+					"echo $SESSION_NUM",
+				},
+			})
+
+			require.NoError(t, err)
+
+			result := <-execResult
+			return string(result.Stdout)
+		}
+
+		session1 := createSession("1")
+		session2 := createSession("2")
+		session3 := createSession("3")
+
+		// create pushes priority
+		assert.Equal(t, "3\n", getSessionNum(""))
+
+		// executing pushes priority
+		assert.Equal(t, getSessionNum(session2), "2\n")
+		assert.Equal(t, getSessionNum(""), "2\n")
+
+		// deleting removes from stack
+		client.DeleteSession(ctx, &runnerv1.DeleteSessionRequest{Id: session2})
+		assert.Equal(t, getSessionNum(""), "3\n")
+		client.DeleteSession(ctx, &runnerv1.DeleteSessionRequest{Id: session3})
+		assert.Equal(t, getSessionNum(""), "1\n")
+
+		// creates new session if empty
+		client.DeleteSession(ctx, &runnerv1.DeleteSessionRequest{Id: session1})
+		assert.Equal(t, getSessionNum(""), "\n")
+	})
 }
 
 func Test_readLoop(t *testing.T) {
