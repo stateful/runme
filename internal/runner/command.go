@@ -65,7 +65,9 @@ type commandConfig struct {
 	Directory   string
 	Session     *Session
 
-	Tty    bool // if true, a pseudo-terminal is allocated
+	Tty     bool // if true, a pseudo-terminal is allocated
+	Winsize *pty.Winsize
+
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
@@ -75,8 +77,6 @@ type commandConfig struct {
 	Script   string
 
 	Logger *zap.Logger
-
-	Winsize *pty.Winsize
 }
 
 func newCommand(cfg *commandConfig) (*command, error) {

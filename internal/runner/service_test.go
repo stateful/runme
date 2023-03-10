@@ -622,95 +622,93 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
-	if _, ok := os.LookupEnv("GITHUB_ACTIONS"); !ok {
-		t.Run("ExecuteWinsizeDefault", func(t *testing.T) {
-			t.Parallel()
+	t.Run("ExecuteWinsizeDefault", func(t *testing.T) {
+		t.Parallel()
 
-			stream, err := client.Execute(context.Background())
-			require.NoError(t, err)
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
 
-			execResult := make(chan executeResult)
-			go getExecuteResult(stream, execResult)
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
 
-			err = stream.Send(&runnerv1.ExecuteRequest{
-				ProgramName: "bash",
-				Commands: []string{
-					"tput lines",
-					"tput cols",
-				},
-				Tty: true,
-			})
-			require.NoError(t, err)
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Commands: []string{
+				"tput lines -T linux",
+				"tput cols -T linux",
+			},
+			Tty: true,
+		})
+		require.NoError(t, err)
 
-			result := <-execResult
-			require.EqualValues(t, 0, result.ExitCode)
-			require.EqualValues(t, "24\r\n80\r\n", string(result.Stdout))
+		result := <-execResult
+		assert.EqualValues(t, 0, result.ExitCode)
+		assert.EqualValues(t, "24\r\n80\r\n", string(result.Stdout))
+	})
+
+	t.Run("ExecuteWinsizeSet", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Commands: []string{
+				"tput lines -T linux",
+				"tput cols -T linux",
+			},
+			Winsize: &runnerv1.Winsize{
+				Cols: 200,
+				Rows: 64,
+			},
+			Tty: true,
+		})
+		require.NoError(t, err)
+
+		result := <-execResult
+		assert.EqualValues(t, 0, result.ExitCode)
+		assert.EqualValues(t, "64\r\n200\r\n", string(result.Stdout))
+	})
+
+	t.Run("ExecuteWinsizeChange", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Commands: []string{
+				"read",
+				"tput lines -T linux",
+				"tput cols -T linux",
+			},
+			Tty: true,
+		})
+		require.NoError(t, err)
+
+		stream.Send(&runnerv1.ExecuteRequest{
+			Winsize: &runnerv1.Winsize{
+				Cols: 150,
+				Rows: 56,
+			},
 		})
 
-		t.Run("ExecuteWinsizeSet", func(t *testing.T) {
-			t.Parallel()
-
-			stream, err := client.Execute(context.Background())
-			require.NoError(t, err)
-
-			execResult := make(chan executeResult)
-			go getExecuteResult(stream, execResult)
-
-			err = stream.Send(&runnerv1.ExecuteRequest{
-				ProgramName: "bash",
-				Commands: []string{
-					"tput lines",
-					"tput cols",
-				},
-				Winsize: &runnerv1.Winsize{
-					Cols: 200,
-					Rows: 64,
-				},
-				Tty: true,
-			})
-			require.NoError(t, err)
-
-			result := <-execResult
-			require.EqualValues(t, 0, result.ExitCode)
-			require.EqualValues(t, "64\r\n200\r\n", string(result.Stdout))
+		stream.Send(&runnerv1.ExecuteRequest{
+			InputData: []byte("\n"),
 		})
 
-		t.Run("ExecuteWinsizeChange", func(t *testing.T) {
-			t.Parallel()
-
-			stream, err := client.Execute(context.Background())
-			require.NoError(t, err)
-
-			execResult := make(chan executeResult)
-			go getExecuteResult(stream, execResult)
-
-			err = stream.Send(&runnerv1.ExecuteRequest{
-				ProgramName: "bash",
-				Commands: []string{
-					"read",
-					"tput lines",
-					"tput cols",
-				},
-				Tty: true,
-			})
-			require.NoError(t, err)
-
-			stream.Send(&runnerv1.ExecuteRequest{
-				Winsize: &runnerv1.Winsize{
-					Cols: 150,
-					Rows: 56,
-				},
-			})
-
-			stream.Send(&runnerv1.ExecuteRequest{
-				InputData: []byte("\n"),
-			})
-
-			result := <-execResult
-			require.EqualValues(t, 0, result.ExitCode)
-			require.EqualValues(t, "56\r\n150\r\n", string(result.Stdout))
-		})
-	}
+		result := <-execResult
+		assert.EqualValues(t, 0, result.ExitCode)
+		assert.EqualValues(t, "56\r\n150\r\n", string(result.Stdout))
+	})
 }
 
 func Test_readLoop(t *testing.T) {

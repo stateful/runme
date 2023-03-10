@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/creack/pty"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
@@ -313,6 +314,38 @@ func Test_command(t *testing.T) {
 			}),
 			sort(cmd.Session.Envs()),
 		)
+	})
+
+	t.Run("Winsize", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		stdin := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "bash",
+				Stdout:      stdout,
+				Stderr:      stderr,
+				Stdin:       stdin,
+				IsShell:     true,
+				Script:      "tput lines -T linux; tput cols -T linux",
+				Logger:      testCreateLogger(t),
+				Tty:         true,
+				Winsize: &pty.Winsize{
+					Cols: 100,
+					Rows: 200,
+				},
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Equal(t, "200\r\n100\r\n", string(data))
 	})
 }
 
