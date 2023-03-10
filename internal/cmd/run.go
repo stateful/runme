@@ -18,6 +18,8 @@ import (
 type runCmdOpts struct {
 	DryRun         bool
 	ReplaceScripts []string
+	ServerAddr     string
+	SessionID      string
 }
 
 func runCmd() *cobra.Command {
@@ -60,16 +62,39 @@ func runCmd() *cobra.Command {
 				stdin = bytes.NewReader(nil)
 			}
 
-			runner, err := client.NewLocalRunner(
+			runOpts := []client.RunnerOption{
 				client.WithinShellMaybe(),
 				client.WithDir(fChdir),
 				client.WithStdin(stdin),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
-			)
-			if err != nil {
-				return err
+				client.WithSessionID(opts.SessionID),
+				client.WithCleanupSession(opts.SessionID == ""),
 			}
+
+			var runner client.Runner
+
+			if opts.ServerAddr == "" {
+				localRunner, err := client.NewLocalRunner(runOpts...)
+				if err != nil {
+					return err
+				}
+
+				runner = localRunner
+			} else {
+				remoteRunner, err := client.NewRemoteRunner(
+					cmd.Context(),
+					opts.ServerAddr,
+					runOpts...,
+				)
+				if err != nil {
+					return err
+				}
+
+				runner = remoteRunner
+			}
+
+			defer runner.Cleanup(cmd.Context())
 
 			if opts.DryRun {
 				return runner.DryRunBlock(ctx, block, cmd.ErrOrStderr())
@@ -89,6 +114,9 @@ func runCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&opts.ReplaceScripts, "replace", "r", nil, "Replace instructions using sed.")
+	cmd.Flags().StringVarP(&opts.ServerAddr, "server", "s", "", "Server address to connect runner to")
+	cmd.Flags().StringVar(&opts.SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
+	_ = cmd.Flags().MarkHidden("session")
 
 	return &cmd
 }

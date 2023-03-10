@@ -23,8 +23,9 @@ type RemoteRunner struct {
 	stdout io.Writer
 	stderr io.Writer
 
-	client    runnerv1.RunnerServiceClient
-	sessionID string
+	client         runnerv1.RunnerServiceClient
+	sessionID      string
+	cleanupSession bool
 }
 
 func (r *RemoteRunner) setDir(dir string) error {
@@ -56,6 +57,16 @@ func (r *RemoteRunner) setSession(session *runner.Session) error {
 	return nil
 }
 
+func (r *RemoteRunner) setSessionID(sessionID string) error {
+	r.sessionID = sessionID
+	return nil
+}
+
+func (r *RemoteRunner) setCleanupSession(cleanup bool) error {
+	r.cleanupSession = cleanup
+	return nil
+}
+
 func (r *RemoteRunner) setWithinShell() error {
 	return nil
 }
@@ -81,6 +92,10 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 }
 
 func (r *RemoteRunner) setupSession(ctx context.Context) error {
+	if r.sessionID != "" {
+		return nil
+	}
+
 	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{
 		Envs: os.Environ(),
 	})
@@ -144,7 +159,13 @@ func (r *RemoteRunner) DryRunBlock(ctx context.Context, block *document.CodeBloc
 }
 
 func (r *RemoteRunner) Cleanup(ctx context.Context) error {
-	return r.deleteSession(ctx)
+	if r.cleanupSession {
+		if err := r.deleteSession(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *RemoteRunner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, stdin io.Reader) error {
