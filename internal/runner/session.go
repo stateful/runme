@@ -43,9 +43,9 @@ type SessionList struct {
 	// operations, like finding the most recent element of store, which are not
 	// supported by golang-lru
 	//
-	// this is not really ideal since deadlocks can occur here. please make sure
-	// that this mutex is never locked within the critical section of the inner
-	// lock (belonging to store)
+	// this is not really ideal since this introduces a chance of deadlocks.
+	// please make sure that this mutex is never locked within the critical
+	// section of the inner lock (belonging to store)
 	mu    sync.RWMutex
 	store *lru.Cache[string, *Session]
 }
