@@ -86,6 +86,10 @@ func (sl *SessionList) MostRecent() (*Session, bool) {
 	sl.mu.RLock()
 	defer sl.mu.RUnlock()
 
+	return sl.mostRecentUnsafe()
+}
+
+func (sl *SessionList) mostRecentUnsafe() (*Session, bool) {
 	keys := sl.store.Keys()
 
 	sl.store.GetOldest()
@@ -101,7 +105,7 @@ func (sl *SessionList) MostRecentOrCreate(generate func() *Session) *Session {
 	sl.mu.Lock()
 	defer sl.mu.Unlock()
 
-	if existing, ok := sl.MostRecent(); ok {
+	if existing, ok := sl.mostRecentUnsafe(); ok {
 		return existing
 	}
 
