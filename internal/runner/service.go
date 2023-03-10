@@ -143,14 +143,23 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	logger.Debug("received initial request", zap.Any("req", req))
 
+	createSession := func() *Session {
+		return NewSession(nil, r.logger)
+	}
+
 	var sess *Session
-	if req.SessionId != "" {
-		sess = r.findSession(req.SessionId)
-		if sess == nil {
-			return errors.New("session not found")
+	switch req.SessionStrategy {
+	case runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
+		if req.SessionId != "" {
+			sess = r.findSession(req.SessionId)
+			if sess == nil {
+				return errors.New("session not found")
+			}
+		} else {
+			sess = createSession()
 		}
-	} else {
-		sess = NewSession(nil, r.logger)
+	case runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
+		sess = r.sessions.MostRecentOrCreate(createSession)
 	}
 
 	if len(req.Envs) > 0 {
