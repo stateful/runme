@@ -1,6 +1,7 @@
 package runner
 
 import (
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/rs/xid"
 	"go.uber.org/zap"
 )
@@ -31,4 +32,22 @@ func (s *Session) AddEnvs(envs []string) {
 
 func (s *Session) Envs() []string {
 	return s.envStore.Values()
+}
+
+type SessionList struct {
+	store *lru.Cache[string, *Session]
+}
+
+func NewSessionList() (*SessionList, error) {
+	// max integer
+	capacity := int(^uint(0) >> 1)
+
+	store, err := lru.New[string, *Session](capacity)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SessionList{
+		store,
+	}, nil
 }

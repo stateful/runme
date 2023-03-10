@@ -90,6 +90,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/google/uuid v1.3.0
+	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/henvic/httpretty v0.1.0
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
