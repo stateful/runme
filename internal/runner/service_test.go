@@ -40,7 +40,9 @@ func testStartRunnerServiceServer(t *testing.T) (
 	require.NoError(t, err)
 	lis := bufconn.Listen(1024 << 10)
 	server := grpc.NewServer()
-	runnerv1.RegisterRunnerServiceServer(server, newRunnerService(logger))
+	runnerService, err := newRunnerService(logger)
+	require.NoError(t, err)
+	runnerv1.RegisterRunnerServiceServer(server, runnerService)
 	go server.Serve(lis)
 	return lis, server.Stop
 }

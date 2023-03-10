@@ -72,7 +72,11 @@ The kernel is used to run long running processes like shells and interacting wit
 				mux := http.NewServeMux()
 				compress1KB := connect.WithCompressMinBytes(1024)
 				if enableRunner {
-					mux.Handle(runnerv1connect.NewRunnerServiceHandler(runner.NewRunnerServiceHandler(logger)))
+					runnerService, err := runner.NewRunnerServiceHandler(logger)
+					if err != nil {
+						return err
+					}
+					mux.Handle(runnerv1connect.NewRunnerServiceHandler(runnerService))
 				}
 				mux.Handle(grpchealth.NewHandler(
 					grpchealth.NewStaticChecker(),
@@ -132,7 +136,11 @@ The kernel is used to run long running processes like shells and interacting wit
 			)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			if enableRunner {
-				runnerv1.RegisterRunnerServiceServer(server, runner.NewRunnerService(logger))
+				runnerService, err := runner.NewRunnerService(logger)
+				if err != nil {
+					return err
+				}
+				runnerv1.RegisterRunnerServiceServer(server, runnerService)
 			}
 			reflection.Register(server)
 			return server.Serve(lis)

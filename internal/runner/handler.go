@@ -15,10 +15,15 @@ type runnerServiceHandler struct {
 	service *runnerService
 }
 
-func NewRunnerServiceHandler(logger *zap.Logger) runnerv1connect.RunnerServiceHandler {
-	return &runnerServiceHandler{
-		service: newRunnerService(logger),
+func NewRunnerServiceHandler(logger *zap.Logger) (runnerv1connect.RunnerServiceHandler, error) {
+	service, err := newRunnerService(logger)
+	if err != nil {
+		return nil, err
 	}
+
+	return &runnerServiceHandler{
+		service: service,
+	}, nil
 }
 
 func (h *runnerServiceHandler) CreateSession(ctx context.Context, req *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error) {
