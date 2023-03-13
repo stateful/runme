@@ -21,6 +21,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -134,6 +136,12 @@ The kernel is used to run long running processes like shells and interacting wit
 			if enableRunner {
 				runnerv1.RegisterRunnerServiceServer(server, runner.NewRunnerService(logger))
 			}
+
+			healthcheck := health.NewServer()
+			healthgrpc.RegisterHealthServer(server, healthcheck)
+			// Setting SERVING for the whole system.
+			healthcheck.SetServingStatus("", healthgrpc.HealthCheckResponse_SERVING)
+
 			reflection.Register(server)
 			return server.Serve(lis)
 		},

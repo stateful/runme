@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var (
@@ -37,6 +38,17 @@ func run() error {
 		return errors.Wrap(err, "failed to connect")
 	}
 	defer conn.Close()
+
+	healthClient := healthgrpc.NewHealthClient(conn)
+
+	resp, err := healthClient.Check(context.Background(), &healthgrpc.HealthCheckRequest{})
+	if err != nil {
+		return errors.Wrap(err, "failed to check health")
+	}
+
+	if resp.Status != healthgrpc.HealthCheckResponse_SERVING {
+		return errors.Errorf("service status: %v", resp.Status)
+	}
 
 	client := runnerv1.NewRunnerServiceClient(conn)
 
