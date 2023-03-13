@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"sync"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
@@ -37,20 +36,25 @@ const (
 type runnerService struct {
 	runnerv1.UnimplementedRunnerServiceServer
 
-	mu       sync.RWMutex
-	sessions []*Session
+	sessions *SessionList
 
 	logger *zap.Logger
 }
 
-func NewRunnerService(logger *zap.Logger) runnerv1.RunnerServiceServer {
+func NewRunnerService(logger *zap.Logger) (runnerv1.RunnerServiceServer, error) {
 	return newRunnerService(logger)
 }
 
-func newRunnerService(logger *zap.Logger) *runnerService {
-	return &runnerService{
-		logger: logger,
+func newRunnerService(logger *zap.Logger) (*runnerService, error) {
+	sessions, err := NewSessionList()
+	if err != nil {
+		return nil, err
 	}
+
+	return &runnerService{
+		logger:   logger,
+		sessions: sessions,
+	}, nil
 }
 
 func toRunnerv1Session(sess *Session) *runnerv1.Session {
@@ -64,10 +68,8 @@ func toRunnerv1Session(sess *Session) *runnerv1.Session {
 func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateSessionRequest) (*runnerv1.CreateSessionResponse, error) {
 	r.logger.Info("running CreateSession in runnerService")
 
-	r.mu.Lock()
 	sess := NewSession(req.Envs, r.logger)
-	r.sessions = append(r.sessions, sess)
-	r.mu.Unlock()
+	r.sessions.AddSession(sess)
 
 	return &runnerv1.CreateSessionResponse{
 		Session: toRunnerv1Session(sess),
@@ -77,11 +79,9 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 func (r *runnerService) GetSession(_ context.Context, req *runnerv1.GetSessionRequest) (*runnerv1.GetSessionResponse, error) {
 	r.logger.Info("running GetSession in runnerService")
 
-	r.mu.RLock()
-	sess := r.findSession(req.Id)
-	r.mu.RUnlock()
+	sess, ok := r.sessions.GetSession(req.Id)
 
-	if sess == nil {
+	if !ok {
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
 
@@ -93,34 +93,23 @@ func (r *runnerService) GetSession(_ context.Context, req *runnerv1.GetSessionRe
 func (r *runnerService) ListSessions(_ context.Context, req *runnerv1.ListSessionsRequest) (*runnerv1.ListSessionsResponse, error) {
 	r.logger.Info("running ListSessions in runnerService")
 
-	r.mu.RLock()
-	sessions := make([]*runnerv1.Session, 0, len(r.sessions))
-	for _, s := range r.sessions {
-		sessions = append(sessions, toRunnerv1Session(s))
+	sessions, err := r.sessions.ListSessions()
+	if err != nil {
+		return nil, err
 	}
-	r.mu.RUnlock()
 
-	return &runnerv1.ListSessionsResponse{Sessions: sessions}, nil
+	runnerSessions := make([]*runnerv1.Session, 0, len(sessions))
+	for _, s := range sessions {
+		runnerSessions = append(runnerSessions, toRunnerv1Session(s))
+	}
+
+	return &runnerv1.ListSessionsResponse{Sessions: runnerSessions}, nil
 }
 
 func (r *runnerService) DeleteSession(_ context.Context, req *runnerv1.DeleteSessionRequest) (*runnerv1.DeleteSessionResponse, error) {
 	r.logger.Info("running DeleteSession in runnerService")
 
-	deleted := false
-
-	r.mu.Lock()
-	for id, s := range r.sessions {
-		if s.ID == req.Id {
-			deleted = true
-			if id == len(r.sessions)-1 {
-				r.sessions = r.sessions[:id]
-			} else {
-				r.sessions = append(r.sessions[:id], r.sessions[id+1:]...)
-			}
-			break
-		}
-	}
-	r.mu.Unlock()
+	deleted := r.sessions.DeleteSession(req.Id)
 
 	if !deleted {
 		return nil, status.Error(codes.NotFound, "session not found")
@@ -129,13 +118,11 @@ func (r *runnerService) DeleteSession(_ context.Context, req *runnerv1.DeleteSes
 }
 
 func (r *runnerService) findSession(id string) *Session {
-	var sess *Session
-	for _, s := range r.sessions {
-		if s.ID == id {
-			sess = s
-		}
+	if sess, ok := r.sessions.GetSession(id); ok {
+		return sess
 	}
-	return sess
+
+	return nil
 }
 
 func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error {
@@ -156,14 +143,23 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	logger.Debug("received initial request", zap.Any("req", req))
 
+	createSession := func() *Session {
+		return NewSession(nil, r.logger)
+	}
+
 	var sess *Session
-	if req.SessionId != "" {
-		sess = r.findSession(req.SessionId)
-		if sess == nil {
-			return errors.New("session not found")
+	switch req.SessionStrategy {
+	case runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
+		if req.SessionId != "" {
+			sess = r.findSession(req.SessionId)
+			if sess == nil {
+				return errors.New("session not found")
+			}
+		} else {
+			sess = createSession()
 		}
-	} else {
-		sess = NewSession(nil, r.logger)
+	case runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
+		sess = r.sessions.MostRecentOrCreate(createSession)
 	}
 
 	if len(req.Envs) > 0 {

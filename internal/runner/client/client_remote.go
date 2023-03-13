@@ -23,9 +23,10 @@ type RemoteRunner struct {
 	stdout io.Writer
 	stderr io.Writer
 
-	client         runnerv1.RunnerServiceClient
-	sessionID      string
-	cleanupSession bool
+	client          runnerv1.RunnerServiceClient
+	sessionID       string
+	sessionStrategy runnerv1.SessionStrategy
+	cleanupSession  bool
 }
 
 func (r *RemoteRunner) setDir(dir string) error {
@@ -67,6 +68,11 @@ func (r *RemoteRunner) setCleanupSession(cleanup bool) error {
 	return nil
 }
 
+func (r *RemoteRunner) setSessionStrategy(strategy runnerv1.SessionStrategy) error {
+	r.sessionStrategy = strategy
+	return nil
+}
+
 func (r *RemoteRunner) setWithinShell() error {
 	return nil
 }
@@ -92,7 +98,7 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 }
 
 func (r *RemoteRunner) setupSession(ctx context.Context) error {
-	if r.sessionID != "" {
+	if r.sessionID != "" || r.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {
 		return nil
 	}
 
@@ -126,11 +132,12 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 	tty := block.Interactive()
 
 	err = stream.Send(&runnerv1.ExecuteRequest{
-		ProgramName: runner.ShellPath(),
-		Directory:   r.dir,
-		Commands:    block.Lines(),
-		Tty:         tty,
-		SessionId:   r.sessionID,
+		ProgramName:     runner.ShellPath(),
+		Directory:       r.dir,
+		Commands:        block.Lines(),
+		Tty:             tty,
+		SessionId:       r.sessionID,
+		SessionStrategy: r.sessionStrategy,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to send initial request")

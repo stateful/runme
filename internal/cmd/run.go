@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/signal"
@@ -12,14 +13,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
+	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/runner/client"
 )
 
 type runCmdOpts struct {
-	DryRun         bool
-	ReplaceScripts []string
-	ServerAddr     string
-	SessionID      string
+	DryRun          bool
+	ReplaceScripts  []string
+	ServerAddr      string
+	SessionID       string
+	SessionStrategy string
 }
 
 func runCmd() *cobra.Command {
@@ -72,6 +75,15 @@ func runCmd() *cobra.Command {
 				client.WithCleanupSession(opts.SessionID == ""),
 			}
 
+			switch strings.ToLower(opts.SessionStrategy) {
+			case "manual":
+				runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED))
+			case "recent":
+				runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT))
+			default:
+				return fmt.Errorf("unknown session strategy %q", opts.SessionStrategy)
+			}
+
 			var runner client.Runner
 
 			if opts.ServerAddr == "" {
@@ -115,8 +127,18 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&opts.ReplaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 	cmd.Flags().StringVarP(&opts.ServerAddr, "server", "s", "", "Server address to connect runner to")
+
 	cmd.Flags().StringVar(&opts.SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
+	cmd.Flags().StringVar(&opts.SessionStrategy, "session-strategy", func() string {
+		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
+			return val
+		}
+
+		return "manual"
+	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
+
 	_ = cmd.Flags().MarkHidden("session")
+	_ = cmd.Flags().MarkHidden("session-strategy")
 
 	return &cmd
 }

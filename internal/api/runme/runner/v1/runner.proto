@@ -57,6 +57,16 @@ enum ExecuteStop {
   EXECUTE_STOP_KILL = 2;
 }
 
+// strategy for selecting a session in an initial execute request
+enum SessionStrategy {
+  // uses session_id field to determine session
+  // if none is present, a new session is created
+  SESSION_STRATEGY_UNSPECIFIED = 0;
+  // uses most recently used session on the grpc server
+  // if there is none, a new one is created
+  SESSION_STRATEGY_MOST_RECENT = 1;
+}
+
 message Winsize {
   // number of rows (in cells)
   uint32 rows = 1;
@@ -115,6 +125,9 @@ message ExecuteRequest {
   // Executing in a Session might provide additional context like
   // environment variables.
   string session_id = 20;
+
+  // strategy for selecting session
+  SessionStrategy session_strategy = 21;
 }
 
 message ExecuteResponse {

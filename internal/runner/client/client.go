@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/stateful/runme/internal/document"
+	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 )
@@ -18,6 +19,8 @@ type Runner interface {
 	setSession(s *runner.Session) error
 	setSessionID(id string) error
 	setCleanupSession(cleanup bool) error
+	setSessionStrategy(runnerv1.SessionStrategy) error
+
 	setWithinShell() error
 	setDir(dir string) error
 	setStdin(stdin io.Reader) error
@@ -45,6 +48,12 @@ func WithSessionID(id string) RunnerOption {
 func WithCleanupSession(cleanup bool) RunnerOption {
 	return func(rc Runner) error {
 		return rc.setCleanupSession(cleanup)
+	}
+}
+
+func WithSessionStrategy(strategy runnerv1.SessionStrategy) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setSessionStrategy(strategy)
 	}
 }
 

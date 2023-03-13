@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
+	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 )
@@ -37,6 +38,10 @@ func (r *LocalRunner) setSessionID(sessionID string) error {
 }
 
 func (r *LocalRunner) setCleanupSession(cleanup bool) error {
+	return nil
+}
+
+func (r *LocalRunner) setSessionStrategy(runnerv1.SessionStrategy) error {
 	return nil
 }
 

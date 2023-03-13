@@ -29,6 +29,28 @@ export var ExecuteStop;
      */
     ExecuteStop[ExecuteStop["KILL"] = 2] = "KILL";
 })(ExecuteStop || (ExecuteStop = {}));
+/**
+ * strategy for selecting a session in an initial execute request
+ *
+ * @generated from protobuf enum runme.runner.v1.SessionStrategy
+ */
+export var SessionStrategy;
+(function (SessionStrategy) {
+    /**
+     * uses session_id field to determine session
+     * if none is present, a new session is created
+     *
+     * @generated from protobuf enum value: SESSION_STRATEGY_UNSPECIFIED = 0;
+     */
+    SessionStrategy[SessionStrategy["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * uses most recently used session on the grpc server
+     * if there is none, a new one is created
+     *
+     * @generated from protobuf enum value: SESSION_STRATEGY_MOST_RECENT = 1;
+     */
+    SessionStrategy[SessionStrategy["MOST_RECENT"] = 1] = "MOST_RECENT";
+})(SessionStrategy || (SessionStrategy = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class Session$Type extends MessageType {
     constructor() {
@@ -165,7 +187,8 @@ class ExecuteRequest$Type extends MessageType {
             { no: 8, name: "input_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 9, name: "stop", kind: "enum", T: () => ["runme.runner.v1.ExecuteStop", ExecuteStop, "EXECUTE_STOP_"] },
             { no: 10, name: "winsize", kind: "message", T: () => Winsize },
-            { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] }
         ]);
     }
 }
