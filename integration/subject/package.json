@@ -53,7 +53,7 @@
     "vscode-notebook-error-overlay": "^1.0.1",
     "vue-tsc": "^1.0.8",
     "webpack-cli": "^4.10.0",
-    "webpack": "^5.74.0"
+    "webpack": "^5.76.0"
   },
   "dependencies": {
     "@preact/preset-vite": "^2.4.0",
