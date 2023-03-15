@@ -2,27 +2,27 @@ package shell
 
 import "strings"
 
-func TryGetNonCommentLine(lines []string) string {
-	var line string
-
+func StripComments(lines []string) (ret []string) {
 	for _, l := range lines {
-		if l == "" {
-			continue
-		}
-
 		l = strings.TrimSpace(l)
 
-		if strings.HasPrefix(l, "#") {
-			continue
+		if !strings.HasPrefix(l, "#") {
+			ret = append(ret, l)
 		}
+	}
+	return
+}
 
-		line = l
-		break
+func TryGetNonCommentLine(lines []string) string {
+	stripped := StripComments(lines)
+
+	if len(stripped) > 0 {
+		return stripped[0]
 	}
 
-	if line == "" && len(lines) > 0 {
-		line = lines[0]
+	if len(lines) > 0 {
+		return lines[0]
 	}
 
-	return line
+	return ""
 }
