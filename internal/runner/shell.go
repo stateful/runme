@@ -13,7 +13,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/google/shlex"
 	"github.com/pkg/errors"
 )
 
@@ -133,45 +132,11 @@ func PrepareScriptFromCommands(cmds []string, shell string) string {
 func prepareScriptFromCommands(cmds []string, shell string) string {
 	var b strings.Builder
 
-	// TODO(mxs): powershell
-	switch shell {
-	case "zsh", "ksh", "bash":
-		_, _ = b.WriteString("set -e -o pipefail;")
-	case "sh":
-		_, _ = b.WriteString("set -e;")
-	}
+	writeShellPrefix(shell, &b)
 
 	for _, cmd := range cmds {
-		detectedWord := false
-		lex := shlex.NewLexer(strings.NewReader(cmd))
-
-		for {
-			word, err := lex.Next()
-			if err != nil {
-				if err.Error() == "EOF found after escape character" {
-					// Handle the case when a line ends with "\"
-					// which should continue a single command.
-					_, _ = b.WriteString(" ")
-				} else if detectedWord {
-					_, _ = b.WriteString(";")
-				}
-				break
-			}
-
-			if detectedWord {
-				// Separate words with a space. It's done in this way
-				// to avoid trailing spaces.
-				_, _ = b.WriteString(" ")
-			} else {
-				detectedWord = true
-			}
-
-			if strings.Contains(word, " ") {
-				_, _ = b.WriteString(strconv.Quote(word))
-			} else {
-				_, _ = b.WriteString(word)
-			}
-		}
+		b.WriteString(cmd)
+		b.WriteRune('\n')
 	}
 
 	_, _ = b.WriteRune('\n')
@@ -179,12 +144,24 @@ func prepareScriptFromCommands(cmds []string, shell string) string {
 	return b.String()
 }
 
-func prepareScript(script string) string {
+func prepareScript(script string, shell string) string {
 	var b strings.Builder
 
-	_, _ = b.WriteString("set -e -o pipefail;")
+	writeShellPrefix(shell, &b)
 	_, _ = b.WriteString(script)
 	_, _ = b.WriteRune('\n')
 
 	return b.String()
+}
+
+func writeShellPrefix(shell string, b *strings.Builder) {
+	// TODO(mxs): powershell, DOS
+	switch shell {
+	case "zsh", "ksh", "bash":
+		_, _ = b.WriteString("set -e -o pipefail")
+	case "sh":
+		_, _ = b.WriteString("set -e")
+	}
+
+	_, _ = b.WriteRune('\n')
 }
