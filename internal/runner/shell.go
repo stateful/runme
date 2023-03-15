@@ -135,8 +135,8 @@ func prepareScriptFromCommands(cmds []string, shell string) string {
 	writeShellPrefix(shell, &b)
 
 	for _, cmd := range cmds {
-		b.WriteString(cmd)
-		b.WriteRune('\n')
+		_, _ = b.WriteString(cmd)
+		_, _ = b.WriteRune('\n')
 	}
 
 	_, _ = b.WriteRune('\n')
