@@ -22,6 +22,7 @@ wasm:
 
 .PHONY: test
 test:
+	@TZ=UTC go build
 	@TZ=UTC go test ./...
 
 .PHONY: test/update-snapshots

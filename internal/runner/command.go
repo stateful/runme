@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
+	"github.com/stateful/runme/internal/executable"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
@@ -108,7 +110,9 @@ func newCommand(cfg *commandConfig) (*command, error) {
 
 		var script strings.Builder
 
-		_, _ = script.WriteString("env -0 > " + filepath.Join(envStorePath, envStartFileName) + "\n")
+		dumpCmd := strings.Join([]string{executable.GetRunmeExecutablePath(), "env", "dump"}, " ")
+
+		script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envStartFileName)))
 
 		if len(cfg.Commands) > 0 {
 			_, _ = script.WriteString(
@@ -120,7 +124,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 			)
 		}
 
-		_, _ = script.WriteString("env -0 > " + filepath.Join(envStorePath, envEndFileName) + "\n")
+		script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
 
 		extraArgs = []string{"-c", script.String()}
 	}
