@@ -112,7 +112,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 
 		dumpCmd := strings.Join([]string{executable.GetRunmeExecutablePath(), "env", "dump"}, " ")
 
-		script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envStartFileName)))
+		_, _ = script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envStartFileName)))
 
 		if len(cfg.Commands) > 0 {
 			_, _ = script.WriteString(
@@ -124,7 +124,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 			)
 		}
 
-		script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
+		_, _ = script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
 
 		extraArgs = []string{"-c", script.String()}
 	}

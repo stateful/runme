@@ -5,9 +5,7 @@ import (
 	"path/filepath"
 )
 
-var (
-	runmePath string
-)
+var runmePath string
 
 func InitExecutablePath() {
 	execPath, _ := os.Executable()
