@@ -132,7 +132,7 @@ func PrepareScriptFromCommands(cmds []string, shell string) string {
 func prepareScriptFromCommands(cmds []string, shell string) string {
 	var b strings.Builder
 
-	writeShellPrefix(shell, &b)
+	_, _ = b.WriteString(getShellOptions(shell))
 
 	for _, cmd := range cmds {
 		_, _ = b.WriteString(cmd)
@@ -147,21 +147,23 @@ func prepareScriptFromCommands(cmds []string, shell string) string {
 func prepareScript(script string, shell string) string {
 	var b strings.Builder
 
-	writeShellPrefix(shell, &b)
+	_, _ = b.WriteString(getShellOptions(shell))
+
 	_, _ = b.WriteString(script)
 	_, _ = b.WriteRune('\n')
 
 	return b.String()
 }
 
-func writeShellPrefix(shell string, b *strings.Builder) {
+func getShellOptions(shell string) (res string) {
 	// TODO(mxs): powershell, DOS
 	switch shell {
 	case "zsh", "ksh", "bash":
-		_, _ = b.WriteString("set -e -o pipefail")
+		res += "set -e -o pipefail"
 	case "sh":
-		_, _ = b.WriteString("set -e")
+		res += "set -e"
 	}
 
-	_, _ = b.WriteRune('\n')
+	res += "\n"
+	return
 }
