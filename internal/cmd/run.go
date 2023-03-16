@@ -126,9 +126,10 @@ func runCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&opts.ReplaceScripts, "replace", "r", nil, "Replace instructions using sed.")
-	cmd.Flags().StringVarP(&opts.ServerAddr, "server", "s", "", "Server address to connect runner to")
 
+	cmd.Flags().StringVarP(&opts.ServerAddr, "server", "s", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
 	cmd.Flags().StringVar(&opts.SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
+
 	cmd.Flags().StringVar(&opts.SessionStrategy, "session-strategy", func() string {
 		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
 			return val
