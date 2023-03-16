@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -52,8 +53,10 @@ func tuiCmd() *cobra.Command {
 				}
 			}()
 
+			dir, _ := filepath.Abs(fChdir)
+
 			opts := []client.RunnerOption{
-				client.WithDir(fChdir),
+				client.WithDir(dir),
 				client.WithStdin(cmd.InOrStdin()),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -65,9 +66,11 @@ func runCmd() *cobra.Command {
 				stdin = bytes.NewReader(nil)
 			}
 
+			dir, _ := filepath.Abs(fChdir)
+
 			runOpts := []client.RunnerOption{
 				client.WithinShellMaybe(),
-				client.WithDir(fChdir),
+				client.WithDir(dir),
 				client.WithStdin(stdin),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
