@@ -250,6 +250,7 @@ func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolve
 	} else {
 		lines := getLines(node, source)
 		if len(lines) > 0 {
+			// TODO(mxs): only do this in sh-like commands
 			name = sanitizeName(shell.TryGetNonCommentLine(lines))
 		}
 	}
