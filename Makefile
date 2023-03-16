@@ -21,8 +21,7 @@ wasm:
 	GOOS=js GOARCH=wasm go build -o $(WASM_OUTPUT)/runme.wasm -ldflags="$(LDFLAGS)" ./web
 
 .PHONY: test
-test:
-	@TZ=UTC go build
+test: build
 	@TZ=UTC go test ./...
 
 .PHONY: test/update-snapshots
