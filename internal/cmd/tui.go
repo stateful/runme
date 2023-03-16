@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"math"
+	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -153,7 +154,7 @@ func tuiCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
 	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
-	cmd.Flags().StringVar(&serverAddr, "server", "", "Server address to connect TUI to")
+	cmd.Flags().StringVar(&serverAddr, "server", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect TUI to")
 
 	return &cmd
 }
