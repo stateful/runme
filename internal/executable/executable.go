@@ -3,7 +3,6 @@ package executable
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
 var runmePath string
@@ -31,13 +30,8 @@ func GetRunmeExecutablePath() string {
 		cwd = filepath.Dir(cwd)
 	}
 
-	execFile := "runme"
-	if runtime.GOOS == "windows" {
-		execFile = "runme.exe"
-	}
-
 	if res != "" {
-		runmePath = filepath.Join(res, execFile)
+		runmePath = filepath.Join(res, "runme")
 		return runmePath
 	}
 
