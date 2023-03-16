@@ -1,15 +1,23 @@
 package shell
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 func StripComments(lines []string) (ret []string) {
 	for _, l := range lines {
 		l = strings.TrimSpace(l)
 
-		if !strings.HasPrefix(l, "#") {
-			ret = append(ret, l)
+		split := strings.SplitN(l, "#", 2)
+
+		if len(split) == 0 || split[0] == "" {
+			continue
 		}
+
+		ret = append(ret, strings.TrimRightFunc(split[0], unicode.IsSpace))
 	}
+
 	return
 }
 
