@@ -15,7 +15,6 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/executable"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
@@ -24,6 +23,8 @@ const (
 	envStartFileName = ".env_start"
 	envEndFileName   = ".env_end"
 )
+
+var dumpCmd = getDumpCmd()
 
 type command struct {
 	ProgramPath string
@@ -109,8 +110,6 @@ func newCommand(cfg *commandConfig) (*command, error) {
 		}
 
 		var script strings.Builder
-
-		dumpCmd := strings.Join([]string{executable.GetRunmeExecutablePath(), "env", "dump"}, " ")
 
 		_, _ = script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envStartFileName)))
 
@@ -433,4 +432,9 @@ func (c *command) setWinsize(winsize *pty.Winsize) {
 	}
 
 	_ = pty.Setsize(c.pty, winsize)
+}
+
+func getDumpCmd() string {
+	path, _ := os.Executable()
+	return strings.Join([]string{path, "env", "dump"}, " ")
 }

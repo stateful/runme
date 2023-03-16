@@ -5,13 +5,10 @@ import (
 	"os"
 
 	"github.com/stateful/runme/internal/cmd"
-	"github.com/stateful/runme/internal/executable"
 	"github.com/stateful/runme/internal/version"
 )
 
 func root() int {
-	executable.InitExecutablePath()
-
 	root := cmd.Root()
 	root.Version = fmt.Sprintf("%s (%s) on %s", version.BuildVersion, version.Commit, version.BuildDate)
 	if err := root.Execute(); err != nil {

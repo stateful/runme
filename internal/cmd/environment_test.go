@@ -3,25 +3,20 @@ package cmd
 import (
 	"bytes"
 	"os/exec"
-	"strings"
 	"testing"
 
-	"github.com/stateful/runme/internal/executable"
 	"github.com/stretchr/testify/assert"
 )
 
 func runEnvCommand(arg ...string) *exec.Cmd {
-	args := []string{"env"}
-	args = append(args, arg...)
-
-	return exec.Command(executable.GetRunmeExecutablePath(), args...)
+	return exec.Command("env", "-0")
 }
 
 func Test_cmdEnvironment(t *testing.T) {
 	t.Run("Dump", func(t *testing.T) {
 		t.Parallel()
 
-		cmd := runEnvCommand("dump")
+		cmd := runEnvCommand()
 
 		stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 
@@ -38,8 +33,16 @@ func Test_cmdEnvironment(t *testing.T) {
 
 		err := cmd.Run()
 
+		old := osEnviron
+		defer func() { osEnviron = old }()
+
+		osEnviron = func() []string {
+			return env
+		}
+
 		assert.NoError(t, err)
 		assert.Equal(t, "", stderr.String())
-		assert.Equal(t, strings.Join(env, "\000"), stdout.String())
+		assert.Equal(t, "A=1\x00B=2\x00C=3\x00", stdout.String())
+		assert.Equal(t, "A=1\x00B=2\x00C=3", getDumpedEnvironment())
 	})
 }

@@ -18,6 +18,10 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+func init() {
+	dumpCmd = "env -0"
+}
+
 func Test_command(t *testing.T) {
 	t.Parallel()
 

@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var osEnviron = os.Environ
+
 func environmentCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:     "env",
@@ -29,7 +31,7 @@ func environmentDumpCmd() *cobra.Command {
 		Short: "Dump environment variables to stdout",
 		Long:  "Dumps all environment variables to stdout as a list of K=V separated by null terminators",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dumped := strings.Join(os.Environ(), "\000")
+			dumped := getDumpedEnvironment()
 
 			_, _ = cmd.OutOrStdout().Write([]byte(dumped))
 
@@ -40,4 +42,8 @@ func environmentDumpCmd() *cobra.Command {
 	setDefaultFlags(&cmd)
 
 	return &cmd
+}
+
+func getDumpedEnvironment() string {
+	return strings.Join(osEnviron(), "\x00")
 }
