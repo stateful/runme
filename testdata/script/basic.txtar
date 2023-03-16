@@ -51,6 +51,13 @@ You can omit the language, and `runme` will assume you are in shell:
 $ echo "Hello, runme!"
 ```
 
+Names will automatically be inferred from a script's contents:
+
+```sh
+# This is a pesky comment
+echo Inferred
+```
+
 With `{name=hello}` you can annotate it and give it a nice name:
 
 ```sh {name=echo}
@@ -103,16 +110,18 @@ func main() {
 NAME	FIRST COMMAND	# OF COMMANDS	DESCRIPTION
 echo-hello	echo "Hello, runme!"	1	This is a basic snippet with shell command.
 echo-hello-2	echo "Hello, runme!"	1	You can omit the language, and runme will assume you are in shell.
+echo-inferred	echo Inferred	1	Names will automatically be inferred from a script's contents.
 echo	echo "Hello, runme!"	1	With {name=hello} you can annotate it and give it a nice name.
 echo-1	echo "1"	3	It can contain multiple lines too.
 echo-hello-3	echo "Hello, runme! Again!"	1	Also, the dollar sign is not needed.
 tempdir	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	7	It works with cd, pushd, and similar because all lines are executed as a single script.
-package-main	package main	9	It can also execute a snippet of Go code.
+package-main	package main	7	It can also execute a snippet of Go code.
 -- golden-list-disallow-unknown.txt --
 NAME	FIRST COMMAND	# OF COMMANDS	DESCRIPTION
 echo-hello	echo "Hello, runme!"	1	This is a basic snippet with shell command.
+echo-inferred	echo Inferred	1	Names will automatically be inferred from a script's contents.
 echo	echo "Hello, runme!"	1	With {name=hello} you can annotate it and give it a nice name.
 echo-1	echo "1"	3	It can contain multiple lines too.
 echo-hello-3	echo "Hello, runme! Again!"	1	Also, the dollar sign is not needed.
 tempdir	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	7	It works with cd, pushd, and similar because all lines are executed as a single script.
-package-main	package main	9	It can also execute a snippet of Go code.
+package-main	package main	7	It can also execute a snippet of Go code.

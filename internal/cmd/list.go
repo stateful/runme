@@ -8,6 +8,7 @@ import (
 	"github.com/cli/cli/v2/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/runme/internal/shell"
 )
 
 func listCmd() *cobra.Command {
@@ -38,8 +39,8 @@ func listCmd() *cobra.Command {
 				lines := block.Lines()
 
 				table.AddField(block.Name(), nil, nil)
-				table.AddField(lines[0], nil, nil)
-				table.AddField(fmt.Sprintf("%d", len(lines)), nil, nil)
+				table.AddField(shell.TryGetNonCommentLine(lines), nil, nil)
+				table.AddField(fmt.Sprintf("%d", len(shell.StripComments(lines))), nil, nil)
 				table.AddField(block.Intro(), nil, nil)
 				table.EndRow()
 			}

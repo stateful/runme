@@ -116,7 +116,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 			)
 		} else if cfg.Script != "" {
 			_, _ = script.WriteString(
-				prepareScript(cfg.Script),
+				prepareScript(cfg.Script, ShellFromShellPath(programPath)),
 			)
 		}
 

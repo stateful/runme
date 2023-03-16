@@ -20,7 +20,7 @@ func (s ShellRaw) DryRun(ctx context.Context, w io.Writer) {
 
 	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", s.ProgramPath()))
 	_, _ = b.WriteString(fmt.Sprintf("// run in %q\n\n", s.Dir))
-	_, _ = b.WriteString(prepareScript(strings.Join(s.Cmds, "\n")))
+	_, _ = b.WriteString(prepareScript(strings.Join(s.Cmds, "\n"), s.ShellType()))
 
 	_, err := w.Write(b.Bytes())
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/stateful/runme/internal/shell"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -249,7 +250,8 @@ func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolve
 	} else {
 		lines := getLines(node, source)
 		if len(lines) > 0 {
-			name = sanitizeName(lines[0])
+			// TODO(mxs): only do this in sh-like commands
+			name = sanitizeName(shell.TryGetNonCommentLine(lines))
 		}
 	}
 	return nameResolver.Get(node, name)
