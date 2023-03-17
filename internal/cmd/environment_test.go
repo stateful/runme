@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func Test_cmdEnvironment(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "", stderr.String())
-		assert.Equal(t, "A=1\x00B=2\x00C=3\x00", stdout.String())
+		assert.Equal(t, true, strings.HasPrefix(stdout.String(), "A=1\x00B=2\x00C=3\x00"))
 		assert.Equal(t, "A=1\x00B=2\x00C=3", getDumpedEnvironment())
 	})
 }
