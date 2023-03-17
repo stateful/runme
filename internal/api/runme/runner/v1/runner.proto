@@ -121,6 +121,10 @@ message ExecuteRequest {
   // has no effect in non-interactive mode
   optional Winsize winsize = 10;
 
+  // background indiciates a background process
+  // this will send the process' PID as a first response
+  bool background = 11;
+
   // session_id indicates in which Session the program should execute.
   // Executing in a Session might provide additional context like
   // environment variables.
@@ -128,6 +132,10 @@ message ExecuteRequest {
 
   // strategy for selecting session
   SessionStrategy session_strategy = 21;
+}
+
+message ProcessPID {
+  int64 pid = 1;
 }
 
 message ExecuteResponse {
@@ -139,6 +147,10 @@ message ExecuteResponse {
 
   // stderr_data contains bytes from stderr since the last response.
   bytes stderr_data = 3;
+
+  // pid contains the process' PID
+  // this is only sent once in an initial response for background processes.
+  ProcessPID pid = 4;
 }
 
 service RunnerService {

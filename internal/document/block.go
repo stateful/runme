@@ -92,6 +92,11 @@ func (b *CodeBlock) Interactive() bool {
 	return val
 }
 
+func (b *CodeBlock) Background() bool {
+	val, _ := strconv.ParseBool(b.Attributes()["background"])
+	return val
+}
+
 func (CodeBlock) Kind() BlockKind { return CodeBlockKind }
 
 func (b *CodeBlock) Content() []byte {

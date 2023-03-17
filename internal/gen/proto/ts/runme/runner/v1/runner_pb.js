@@ -187,6 +187,7 @@ class ExecuteRequest$Type extends MessageType {
             { no: 8, name: "input_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 9, name: "stop", kind: "enum", T: () => ["runme.runner.v1.ExecuteStop", ExecuteStop, "EXECUTE_STOP_"] },
             { no: 10, name: "winsize", kind: "message", T: () => Winsize },
+            { no: 11, name: "background", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] }
         ]);
@@ -197,12 +198,25 @@ class ExecuteRequest$Type extends MessageType {
  */
 export const ExecuteRequest = new ExecuteRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ProcessPID$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ProcessPID", [
+            { no: 1, name: "pid", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ProcessPID
+ */
+export const ProcessPID = new ProcessPID$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ExecuteResponse$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ExecuteResponse", [
             { no: 1, name: "exit_code", kind: "message", T: () => UInt32Value },
             { no: 2, name: "stdout_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
-            { no: 3, name: "stderr_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+            { no: 3, name: "stderr_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 4, name: "pid", kind: "message", T: () => ProcessPID }
         ]);
     }
 }

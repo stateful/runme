@@ -195,8 +195,22 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return err
 	}
 
-	if err := cmd.StartWithOpts(srv.Context(), &startOpts{DisableEcho: req.Tty}); err != nil {
+	cmdCtx := srv.Context()
+
+	if req.Background {
+		cmdCtx = context.Background()
+	}
+
+	if err := cmd.StartWithOpts(cmdCtx, &startOpts{DisableEcho: req.Tty}); err != nil {
 		return err
+	}
+
+	if req.Background {
+		srv.Send(&runnerv1.ExecuteResponse{
+			Pid: &runnerv1.ProcessPID{
+				Pid: int64(cmd.cmd.Process.Pid),
+			},
+		})
 	}
 
 	// This goroutine will be closed when the handler exits or earlier.
@@ -228,7 +242,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				if cmd.cmd.ProcessState != nil {
 					logger.Info("stream canceled after the process finished; ignoring")
 				} else {
-					logger.Info("stream canceled while the process is still running; stopping the program")
+					logger.Info("stream canceled while the process is still running; program will be stopped if non-background")
 				}
 				return
 			}
@@ -327,7 +341,6 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	if exitCode == -1 {
 		logger.Info("command failed", zap.Error(werr))
-		return werr
 	}
 
 	// Close buffers so that the readLoop() can exit.

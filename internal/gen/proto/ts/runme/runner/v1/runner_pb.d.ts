@@ -211,6 +211,13 @@ export interface ExecuteRequest {
      */
     winsize?: Winsize;
     /**
+     * background indiciates a background process
+     * this will send the process' PID as a first response
+     *
+     * @generated from protobuf field: bool background = 11;
+     */
+    background: boolean;
+    /**
      * session_id indicates in which Session the program should execute.
      * Executing in a Session might provide additional context like
      * environment variables.
@@ -224,6 +231,15 @@ export interface ExecuteRequest {
      * @generated from protobuf field: runme.runner.v1.SessionStrategy session_strategy = 21;
      */
     sessionStrategy: SessionStrategy;
+}
+/**
+ * @generated from protobuf message runme.runner.v1.ProcessPID
+ */
+export interface ProcessPID {
+    /**
+     * @generated from protobuf field: int64 pid = 1;
+     */
+    pid: string;
 }
 /**
  * @generated from protobuf message runme.runner.v1.ExecuteResponse
@@ -247,6 +263,13 @@ export interface ExecuteResponse {
      * @generated from protobuf field: bytes stderr_data = 3;
      */
     stderrData: Uint8Array;
+    /**
+     * pid contains the process' PID
+     * this is only sent once in an initial response for background processes.
+     *
+     * @generated from protobuf field: runme.runner.v1.ProcessPID pid = 4;
+     */
+    pid?: ProcessPID;
 }
 /**
  * @generated from protobuf enum runme.runner.v1.ExecuteStop
@@ -363,6 +386,13 @@ declare class ExecuteRequest$Type extends MessageType<ExecuteRequest> {
  * @generated MessageType for protobuf message runme.runner.v1.ExecuteRequest
  */
 export declare const ExecuteRequest: ExecuteRequest$Type;
+declare class ProcessPID$Type extends MessageType<ProcessPID> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ProcessPID
+ */
+export declare const ProcessPID: ProcessPID$Type;
 declare class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
     constructor();
 }
