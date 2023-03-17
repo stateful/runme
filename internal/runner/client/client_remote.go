@@ -34,6 +34,8 @@ type RemoteRunner struct {
 
 	insecure bool
 	tlsDir   string
+
+	disableBackground bool
 }
 
 func (r *RemoteRunner) setDir(dir string) error {
@@ -91,6 +93,11 @@ func (r *RemoteRunner) setInsecure(insecure bool) error {
 
 func (r *RemoteRunner) setTLSDir(tlsDir string) error {
 	r.tlsDir = tlsDir
+	return nil
+}
+
+func (r *RemoteRunner) setDisableBackgroundProcesses(disableBackground bool) error {
+	r.disableBackground = disableBackground
 	return nil
 }
 
@@ -180,6 +187,11 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 		return errors.Wrap(err, "failed to send initial request")
 	}
 
+	background := block.Background()
+	if r.disableBackground {
+		background = false
+	}
+
 	g := new(errgroup.Group)
 
 	if tty {
@@ -192,7 +204,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 				_ = closer.Close()
 			}
 		}()
-		return r.recvLoop(stream, block.Background())
+		return r.recvLoop(stream, background)
 	})
 
 	return g.Wait()
