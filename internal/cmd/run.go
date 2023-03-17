@@ -122,7 +122,7 @@ func runCmd() *cobra.Command {
 
 				err = runner.RunBlock(ctx, block)
 
-				current.Reset()
+				_ = current.Reset()
 			}
 
 			if err != nil {
