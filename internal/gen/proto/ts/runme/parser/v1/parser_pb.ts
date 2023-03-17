@@ -277,4 +277,3 @@ export class SerializeResponse extends Message<SerializeResponse> {
     return proto3.util.equals(SerializeResponse, a, b);
   }
 }
-

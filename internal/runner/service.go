@@ -206,11 +206,13 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if req.Background {
-		srv.Send(&runnerv1.ExecuteResponse{
+		if err := srv.Send(&runnerv1.ExecuteResponse{
 			Pid: &runnerv1.ProcessPID{
 				Pid: int64(cmd.cmd.Process.Pid),
 			},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	// This goroutine will be closed when the handler exits or earlier.
