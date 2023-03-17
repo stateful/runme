@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -22,6 +23,8 @@ const (
 	envStartFileName = ".env_start"
 	envEndFileName   = ".env_end"
 )
+
+var dumpCmd = getDumpCmd()
 
 type command struct {
 	ProgramPath string
@@ -108,7 +111,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 
 		var script strings.Builder
 
-		_, _ = script.WriteString("env -0 > " + filepath.Join(envStorePath, envStartFileName) + "\n")
+		_, _ = script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envStartFileName)))
 
 		if len(cfg.Commands) > 0 {
 			_, _ = script.WriteString(
@@ -120,7 +123,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 			)
 		}
 
-		_, _ = script.WriteString("env -0 > " + filepath.Join(envStorePath, envEndFileName) + "\n")
+		_, _ = script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
 
 		extraArgs = []string{"-c", script.String()}
 	}
@@ -429,4 +432,9 @@ func (c *command) setWinsize(winsize *pty.Winsize) {
 	}
 
 	_ = pty.Setsize(c.pty, winsize)
+}
+
+func getDumpCmd() string {
+	path, _ := os.Executable()
+	return strings.Join([]string{path, "env", "dump"}, " ")
 }

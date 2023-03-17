@@ -185,7 +185,7 @@ func getDefaultConfigHome() string {
 	// TODO(adamb): switch to os.UserConfigDir()
 	dir, err := os.UserHomeDir()
 	if err != nil {
-		panic(err)
+		dir = os.TempDir()
 	}
 	return filepath.Join(dir, ".config", "stateful")
 }

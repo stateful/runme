@@ -76,6 +76,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(authCmd())
 	cmd.AddCommand(suggestCmd)
 	cmd.AddCommand(branchCmd)
+	cmd.AddCommand(environmentCmd())
 
 	return &cmd
 }
