@@ -11,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containerd/console"
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
@@ -115,7 +116,10 @@ func runCmd() *cobra.Command {
 				return runner.DryRunBlock(ctx, block, cmd.ErrOrStderr())
 			}
 
-			err = runner.RunBlock(ctx, block)
+			err = inRawMode(func() error {
+				return runner.RunBlock(ctx, block)
+			})
+
 			if err != nil {
 				if err != nil && errors.Is(err, io.ErrClosedPipe) {
 					err = nil
@@ -182,4 +186,19 @@ func replace(scripts []string, lines []string) error {
 	}
 
 	return nil
+}
+
+func inRawMode(cb func() error) error {
+	if !isTerminal(os.Stdout.Fd()) {
+		return cb()
+	}
+
+	current := console.Current()
+	_ = current.SetRaw()
+
+	err := cb()
+
+	_ = current.Reset()
+
+	return err
 }
