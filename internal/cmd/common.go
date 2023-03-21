@@ -25,6 +25,7 @@ import (
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stateful/runme/internal/runner"
+	"go.uber.org/zap"
 )
 
 func readMarkdownFile(args []string) ([]byte, error) {
@@ -201,7 +202,7 @@ func getDefaultConfigHome() string {
 
 type runFunc func(context.Context) error
 
-func generateTLS(tlsDir string) (*tls.Config, error) {
+func generateTLS(tlsDir string, logger *zap.Logger) (*tls.Config, error) {
 	if info, err := os.Stat(tlsDir); err != nil {
 		if err := os.MkdirAll(tlsDir, tlsFileMode); err != nil {
 			return nil, err
@@ -222,6 +223,8 @@ func generateTLS(tlsDir string) (*tls.Config, error) {
 	)
 
 	// TODO: rotation strategy here
+
+	logger.Info("generating new TLS certificate...")
 
 	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
@@ -301,6 +304,7 @@ func generateTLS(tlsDir string) (*tls.Config, error) {
 	if err := os.WriteFile(pkPath, privKeyPEM.Bytes(), tlsFileMode); err != nil {
 		return nil, err
 	}
+	logger.Info("successfully generated new TLS certificate!")
 
 	return tlsConfig, nil
 }
