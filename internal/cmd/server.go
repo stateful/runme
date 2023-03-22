@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"net"
 	"net/http"
 	"os"
@@ -26,6 +27,8 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+const tlsFileMode = os.FileMode(int(0o700))
+
 func serverCmd() *cobra.Command {
 	const (
 		defaultSocketAddr = "unix:///var/run/runme.sock"
@@ -37,6 +40,7 @@ func serverCmd() *cobra.Command {
 		useConnectProtocol bool
 		devMode            bool
 		enableRunner       bool
+		tlsDir             string
 	)
 
 	cmd := cobra.Command{
@@ -63,6 +67,16 @@ The kernel is used to run long running processes like shells and interacting wit
 				return err
 			}
 			defer logger.Sync()
+
+			var tlsConfig *tls.Config
+
+			if tlsDir != "" {
+				tlsConfig, err = generateTLS(tlsDir, logger)
+
+				if err != nil {
+					return err
+				}
+			}
 
 			// When web is true, the server command exposes a gRPC-compatible HTTP API.
 			// Read more on https://connect.build/docs/introduction.
@@ -103,6 +117,7 @@ The kernel is used to run long running processes like shells and interacting wit
 					ReadTimeout:       5 * time.Minute,
 					WriteTimeout:      5 * time.Minute,
 					MaxHeaderBytes:    8 * 1024, // 8KiB
+					TLSConfig:         tlsConfig,
 				}
 
 				logger.Info("started listening", zap.String("addr", srv.Addr))
@@ -111,23 +126,26 @@ The kernel is used to run long running processes like shells and interacting wit
 			}
 
 			var lis net.Listener
+			protocol := "tcp"
 
 			if strings.HasPrefix(addr, "unix://") {
-				addr := strings.TrimPrefix(addr, "unix://")
+				addr = strings.TrimPrefix(addr, "unix://")
 
 				// TODO: consolidate removing address into a single place
 				_ = os.Remove(addr)
+				protocol = "unix"
 
-				lis, err = net.Listen("unix", addr)
-				if err != nil {
-					return err
-				}
 				defer func() { _ = os.Remove(addr) }()
+			}
+
+			if tlsConfig == nil {
+				lis, err = net.Listen(protocol, addr)
 			} else {
-				lis, err = net.Listen("tcp", addr)
-				if err != nil {
-					return err
-				}
+				lis, err = tls.Listen(protocol, addr, tlsConfig)
+			}
+
+			if err != nil {
+				return err
 			}
 
 			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
@@ -161,6 +179,7 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().BoolVar(&useConnectProtocol, "connect-protocol", false, "Use Connect Protocol (https://connect.build/)")
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
 	cmd.Flags().BoolVar(&enableRunner, "runner", false, "Enable runner service")
+	cmd.Flags().StringVar(&tlsDir, "tls", "", "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
 
 	return &cmd
 }
