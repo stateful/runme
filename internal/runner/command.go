@@ -436,5 +436,5 @@ func (c *command) setWinsize(winsize *pty.Winsize) {
 
 func getDumpCmd() string {
 	path, _ := os.Executable()
-	return strings.Join([]string{path, "env", "dump"}, " ")
+	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
 }

@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,8 +27,6 @@ import (
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
-
-const tlsFileMode = os.FileMode(int(0o700))
 
 func serverCmd() *cobra.Command {
 	const (
@@ -70,7 +69,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 			var tlsConfig *tls.Config
 
-			if tlsDir != "" {
+			if !fInsecure {
 				tlsConfig, err = generateTLS(tlsDir, logger)
 
 				if err != nil {
@@ -179,7 +178,7 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().BoolVar(&useConnectProtocol, "connect-protocol", false, "Use Connect Protocol (https://connect.build/)")
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
 	cmd.Flags().BoolVar(&enableRunner, "runner", false, "Enable runner service")
-	cmd.Flags().StringVar(&tlsDir, "tls", "", "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
+	cmd.Flags().StringVar(&tlsDir, "tls", filepath.Join(os.TempDir(), "runme", "tls"), "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
 
 	return &cmd
 }
