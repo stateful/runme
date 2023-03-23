@@ -143,8 +143,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	logger.Debug("received initial request", zap.Any("req", req))
 
-	createSession := func() *Session {
-		return NewSession(nil, r.logger)
+	createSession := func(envs []string) *Session {
+		return NewSession(envs, r.logger)
 	}
 
 	var sess *Session
@@ -156,14 +156,14 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				return errors.New("session not found")
 			}
 		} else {
-			sess = createSession()
+			sess = createSession(nil)
+		}
+
+		if len(req.Envs) > 0 {
+			sess.AddEnvs(req.Envs)
 		}
 	case runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
-		sess = r.sessions.MostRecentOrCreate(createSession)
-	}
-
-	if len(req.Envs) > 0 {
-		sess.AddEnvs(req.Envs)
+		sess = r.sessions.MostRecentOrCreate(func() *Session { return createSession(req.Envs) })
 	}
 
 	stdin, stdinWriter := io.Pipe()
