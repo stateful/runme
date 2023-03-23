@@ -202,6 +202,8 @@ func getDefaultConfigHome() string {
 
 type runFunc func(context.Context) error
 
+const tlsFileMode = os.FileMode(int(0o700))
+
 func generateTLS(tlsDir string, logger *zap.Logger) (*tls.Config, error) {
 	if info, err := os.Stat(tlsDir); err != nil {
 		if err := os.MkdirAll(tlsDir, tlsFileMode); err != nil {
