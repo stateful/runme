@@ -131,14 +131,20 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 
 	tty := block.Interactive()
 
-	err = stream.Send(&runnerv1.ExecuteRequest{
+	req := &runnerv1.ExecuteRequest{
 		ProgramName:     runner.ShellPath(),
 		Directory:       r.dir,
 		Commands:        block.Lines(),
 		Tty:             tty,
 		SessionId:       r.sessionID,
 		SessionStrategy: r.sessionStrategy,
-	})
+	}
+
+	if r.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {
+		req.Envs = os.Environ()
+	}
+
+	err = stream.Send(req)
 	if err != nil {
 		return errors.Wrap(err, "failed to send initial request")
 	}
