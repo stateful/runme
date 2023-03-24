@@ -223,7 +223,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 	_ = cmd.Flags().MarkHidden("session")
 	_ = cmd.Flags().MarkHidden("session-strategy")
 
-	var getRunOpts = func() ([]client.RunnerOption, error) {
+	getRunOpts := func() ([]client.RunnerOption, error) {
 		runOpts := []client.RunnerOption{
 			client.WithDir(dir),
 			client.WithSessionID(SessionID),
