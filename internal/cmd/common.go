@@ -212,7 +212,13 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 		return "manual"
 	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
 
-	cmd.Flags().StringVar(&TLSDir, "tls", defaultTLSDir, "Directory for TLS authentication")
+	cmd.Flags().StringVar(&TLSDir, "tls", func() string {
+		if val, ok := os.LookupEnv("RUNME_TLS_DIR"); ok {
+			return val
+		}
+
+		return defaultTLSDir
+	}(), "Directory for TLS authentication")
 
 	_ = cmd.Flags().MarkHidden("session")
 	_ = cmd.Flags().MarkHidden("session-strategy")
