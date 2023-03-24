@@ -23,8 +23,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
+	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/internal/runner/client"
 	"go.uber.org/zap"
 )
 
@@ -198,6 +200,46 @@ func getDefaultConfigHome() string {
 		dir = os.TempDir()
 	}
 	return filepath.Join(dir, ".config", "stateful")
+}
+
+func setRunnerFlags(cmd *cobra.Command, serverAddr *string) ([]client.RunnerOption, error) {
+	dir, _ := filepath.Abs(fChdir)
+
+	var (
+		SessionID       string
+		SessionStrategy string
+	)
+
+	cmd.Flags().StringVarP(serverAddr, "server", "s", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
+	cmd.Flags().StringVar(&SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
+
+	cmd.Flags().StringVar(&SessionStrategy, "session-strategy", func() string {
+		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
+			return val
+		}
+
+		return "manual"
+	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
+
+	_ = cmd.Flags().MarkHidden("session")
+	_ = cmd.Flags().MarkHidden("session-strategy")
+
+	runOpts := []client.RunnerOption{
+		client.WithDir(dir),
+		client.WithSessionID(SessionID),
+		client.WithCleanupSession(SessionID == ""),
+	}
+
+	switch strings.ToLower(SessionStrategy) {
+	case "manual":
+		runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED))
+	case "recent":
+		runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT))
+	default:
+		return nil, fmt.Errorf("unknown session strategy %q", SessionStrategy)
+	}
+
+	return runOpts, nil
 }
 
 type runFunc func(context.Context) error
