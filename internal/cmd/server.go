@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1/runnerv1connect"
 	"github.com/stateful/runme/internal/runner"
+	runmetls "github.com/stateful/runme/internal/tls"
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -70,7 +70,7 @@ The kernel is used to run long running processes like shells and interacting wit
 			var tlsConfig *tls.Config
 
 			if !fInsecure {
-				tlsConfig, err = generateTLS(tlsDir, logger)
+				tlsConfig, err = runmetls.GenerateTLS(tlsDir, tlsFileMode, logger)
 
 				if err != nil {
 					return err
@@ -178,7 +178,7 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().BoolVar(&useConnectProtocol, "connect-protocol", false, "Use Connect Protocol (https://connect.build/)")
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
 	cmd.Flags().BoolVar(&enableRunner, "runner", false, "Enable runner service")
-	cmd.Flags().StringVar(&tlsDir, "tls", filepath.Join(os.TempDir(), "runme", "tls"), "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
+	cmd.Flags().StringVar(&tlsDir, "tls", defaultTLSDir, "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
 
 	return &cmd
 }

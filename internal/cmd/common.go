@@ -3,19 +3,10 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
 	"io"
-	"math/big"
-	"net"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -27,7 +18,6 @@ import (
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stateful/runme/internal/runner"
 	"github.com/stateful/runme/internal/runner/client"
-	"go.uber.org/zap"
 )
 
 func readMarkdownFile(args []string) ([]byte, error) {
@@ -208,6 +198,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) ([]client.RunnerOpti
 	var (
 		SessionID       string
 		SessionStrategy string
+		TLSDir          string
 	)
 
 	cmd.Flags().StringVarP(serverAddr, "server", "s", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
@@ -221,6 +212,8 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) ([]client.RunnerOpti
 		return "manual"
 	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
 
+	cmd.Flags().StringVar(&TLSDir, "tls", defaultTLSDir, "Directory for TLS authentication")
+
 	_ = cmd.Flags().MarkHidden("session")
 	_ = cmd.Flags().MarkHidden("session-strategy")
 
@@ -228,6 +221,11 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) ([]client.RunnerOpti
 		client.WithDir(dir),
 		client.WithSessionID(SessionID),
 		client.WithCleanupSession(SessionID == ""),
+		client.WithTLSDir(TLSDir),
+		func(r client.Runner) error {
+			r.SetInsecure(fInsecure)
+			return nil
+		},
 	}
 
 	switch strings.ToLower(SessionStrategy) {
@@ -246,109 +244,4 @@ type runFunc func(context.Context) error
 
 const tlsFileMode = os.FileMode(int(0o700))
 
-func generateTLS(tlsDir string, logger *zap.Logger) (*tls.Config, error) {
-	if info, err := os.Stat(tlsDir); err != nil {
-		if err := os.MkdirAll(tlsDir, tlsFileMode); err != nil {
-			return nil, err
-		}
-	} else {
-		if !info.IsDir() {
-			return nil, fmt.Errorf("provided tls path is not a directory: %s", tlsDir)
-		}
-
-		if err := os.Chmod(tlsDir, tlsFileMode); err != nil {
-			return nil, err
-		}
-	}
-
-	var (
-		certPath = path.Join(tlsDir, "cert.pem")
-		pkPath   = path.Join(tlsDir, "key.pem")
-	)
-
-	// TODO: rotation strategy here
-
-	logger.Info("generating new TLS certificate...")
-
-	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return nil, err
-	}
-
-	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{
-			CommonName:   "stateful",
-			Organization: []string{"Stateful, INC."},
-			Country:      []string{"US"},
-			Province:     []string{"California"},
-			Locality:     []string{"Berkeley"},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(0, 0, 30),
-		IsCA:                  true,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		BasicConstraintsValid: true,
-		SignatureAlgorithm:    x509.SHA256WithRSA,
-		IPAddresses: []net.IP{
-			net.IPv4(127, 0, 0, 1),
-		},
-		DNSNames: []string{
-			"localhost",
-		},
-	}
-
-	certificateBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &privKey.PublicKey, privKey)
-	if err != nil {
-		return nil, err
-	}
-
-	caPEM := new(bytes.Buffer)
-	if err := pem.Encode(caPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: certificateBytes,
-	}); err != nil {
-		return nil, err
-	}
-
-	privKeyPEM := new(bytes.Buffer)
-	if err := pem.Encode(privKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privKey),
-	}); err != nil {
-		return nil, err
-	}
-
-	// TODO: probably a more efficient way to create a `tls.Certificate`
-	// rather than unencrypting the PEM again...
-	tlsCa, err := tls.X509KeyPair(caPEM.Bytes(), privKeyPEM.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	certPool := x509.NewCertPool()
-
-	// TODO: can probably use `AddCert` here
-	if !certPool.AppendCertsFromPEM(caPEM.Bytes()) {
-		return nil, fmt.Errorf("failed to add certificate to certificate pool")
-	}
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{tlsCa},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    certPool,
-		MinVersion:   tls.VersionTLS12,
-	}
-
-	if err := os.WriteFile(certPath, caPEM.Bytes(), tlsFileMode); err != nil {
-		return nil, err
-	}
-
-	if err := os.WriteFile(pkPath, privKeyPEM.Bytes(), tlsFileMode); err != nil {
-		return nil, err
-	}
-	logger.Info("successfully generated new TLS certificate!")
-
-	return tlsConfig, nil
-}
+var defaultTLSDir = filepath.Join(getDefaultConfigHome(), "tls")

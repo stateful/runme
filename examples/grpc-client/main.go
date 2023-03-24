@@ -2,21 +2,18 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"path"
 
 	"github.com/pkg/errors"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	runmetls "github.com/stateful/runme/internal/tls"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 )
 
@@ -38,10 +35,12 @@ func main() {
 }
 
 func run() error {
-	credentials, err := loadCredentials()
+	tlsConfig, err := runmetls.LoadTLSConfig(*tlsDir)
 	if err != nil {
 		return err
 	}
+
+	credentials := credentials.NewTLS(tlsConfig)
 
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(credentials))
 	if err != nil {
@@ -183,43 +182,4 @@ func run() error {
 	})
 
 	return g.Wait()
-}
-
-func loadCredentials() (credentials.TransportCredentials, error) {
-	if *tlsDir == "" {
-		return insecure.NewCredentials(), nil
-	}
-
-	var (
-		certPath = path.Join(*tlsDir, "cert.pem")
-		pkPath   = path.Join(*tlsDir, "key.pem")
-	)
-
-	certPEM, err := os.ReadFile(certPath)
-	if err != nil {
-		return nil, err
-	}
-
-	pkPEM, err := os.ReadFile(pkPath)
-	if err != nil {
-		return nil, err
-	}
-
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(certPEM) {
-		return nil, fmt.Errorf("failed to add root certificate to pool")
-	}
-
-	cert, err := tls.X509KeyPair(certPEM, pkPEM)
-	if err != nil {
-		return nil, err
-	}
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      certPool,
-		MinVersion:   tls.VersionTLS12,
-	}
-
-	return credentials.NewTLS(tlsConfig), nil
 }

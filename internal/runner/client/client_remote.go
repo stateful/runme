@@ -16,6 +16,8 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+
+	runmetls "github.com/stateful/runme/internal/tls"
 )
 
 type RemoteRunner struct {
@@ -81,7 +83,7 @@ func (r *RemoteRunner) setWithinShell() error {
 	return nil
 }
 
-func (r *RemoteRunner) setInsecure(insecure bool) error {
+func (r *RemoteRunner) SetInsecure(insecure bool) error {
 	r.insecure = insecure
 	return nil
 }
@@ -102,7 +104,12 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 	if r.insecure {
 		creds = insecure.NewCredentials()
 	} else {
-		creds = insecure.NewCredentials()
+		tlsConfig, err := runmetls.LoadTLSConfig(r.tlsDir)
+		if err != nil {
+			return nil, err
+		}
+
+		creds = credentials.NewTLS(tlsConfig)
 	}
 
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
