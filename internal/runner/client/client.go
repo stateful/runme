@@ -28,7 +28,7 @@ type Runner interface {
 	setStderr(stdout io.Writer) error
 	setLogger(logger *zap.Logger) error
 
-	SetInsecure(insecure bool) error
+	setInsecure(insecure bool) error
 	setTLSDir(tlsDir string) error
 
 	RunBlock(ctx context.Context, block *document.CodeBlock) error
@@ -98,7 +98,7 @@ func WithLogger(logger *zap.Logger) RunnerOption {
 
 func WithInsecure(insecure bool) RunnerOption {
 	return func(rc Runner) error {
-		return rc.SetInsecure(insecure)
+		return rc.setInsecure(insecure)
 	}
 }
 

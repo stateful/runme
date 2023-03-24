@@ -83,7 +83,7 @@ func (r *RemoteRunner) setWithinShell() error {
 	return nil
 }
 
-func (r *RemoteRunner) SetInsecure(insecure bool) error {
+func (r *RemoteRunner) setInsecure(insecure bool) error {
 	r.insecure = insecure
 	return nil
 }

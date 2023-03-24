@@ -79,7 +79,7 @@ func (r *LocalRunner) setLogger(logger *zap.Logger) error {
 	return nil
 }
 
-func (r *LocalRunner) SetInsecure(bool) error {
+func (r *LocalRunner) setInsecure(bool) error {
 	return nil
 }
 
