@@ -21,7 +21,7 @@ func runCmd() *cobra.Command {
 		dryRun         bool
 		replaceScripts []string
 		serverAddr     string
-		runnerOpts     []client.RunnerOption
+		getRunnerOpts  func() ([]client.RunnerOption, error)
 	)
 
 	cmd := cobra.Command{
@@ -59,6 +59,11 @@ func runCmd() *cobra.Command {
 				go func() { _, _ = io.Copy(w, cmd.InOrStdin()) }()
 			} else {
 				stdin = bytes.NewReader(nil)
+			}
+
+			runnerOpts, err := getRunnerOpts()
+			if err != nil {
+				return err
 			}
 
 			runnerOpts = append(
@@ -115,10 +120,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 
-	runnerOpts, err := setRunnerFlags(&cmd, &serverAddr)
-	if err != nil {
-		panic(err)
-	}
+	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
 	return &cmd
 }

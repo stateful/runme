@@ -192,7 +192,7 @@ func getDefaultConfigHome() string {
 	return filepath.Join(dir, ".config", "stateful")
 }
 
-func setRunnerFlags(cmd *cobra.Command, serverAddr *string) ([]client.RunnerOption, error) {
+func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.RunnerOption, error) {
 	dir, _ := filepath.Abs(fChdir)
 
 	var (
@@ -217,26 +217,28 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) ([]client.RunnerOpti
 	_ = cmd.Flags().MarkHidden("session")
 	_ = cmd.Flags().MarkHidden("session-strategy")
 
-	runOpts := []client.RunnerOption{
-		client.WithDir(dir),
-		client.WithSessionID(SessionID),
-		client.WithCleanupSession(SessionID == ""),
-		client.WithTLSDir(TLSDir),
-		func(r client.Runner) error {
-			return r.SetInsecure(fInsecure)
-		},
+	var getRunOpts = func() ([]client.RunnerOption, error) {
+		runOpts := []client.RunnerOption{
+			client.WithDir(dir),
+			client.WithSessionID(SessionID),
+			client.WithCleanupSession(SessionID == ""),
+			client.WithTLSDir(TLSDir),
+			client.WithInsecure(fInsecure),
+		}
+
+		switch strings.ToLower(SessionStrategy) {
+		case "manual":
+			runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED))
+		case "recent":
+			runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT))
+		default:
+			return nil, fmt.Errorf("unknown session strategy %q", SessionStrategy)
+		}
+
+		return runOpts, nil
 	}
 
-	switch strings.ToLower(SessionStrategy) {
-	case "manual":
-		runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED))
-	case "recent":
-		runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT))
-	default:
-		return nil, fmt.Errorf("unknown session strategy %q", SessionStrategy)
-	}
-
-	return runOpts, nil
+	return getRunOpts
 }
 
 type runFunc func(context.Context) error

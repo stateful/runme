@@ -22,7 +22,7 @@ func tuiCmd() *cobra.Command {
 		visibleEntries int
 		runOnce        bool
 		serverAddr     string
-		runnerOpts     []client.RunnerOption
+		getRunnerOpts  func() ([]client.RunnerOption, error)
 	)
 
 	cmd := cobra.Command{
@@ -50,6 +50,11 @@ func tuiCmd() *cobra.Command {
 					_ = runnerClient.Cleanup(cmd.Context())
 				}
 			}()
+
+			runnerOpts, err := getRunnerOpts()
+			if err != nil {
+				return err
+			}
 
 			runnerOpts = append(
 				runnerOpts,
@@ -151,10 +156,7 @@ func tuiCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
 	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
 
-	runnerOpts, err := setRunnerFlags(&cmd, &serverAddr)
-	if err != nil {
-		panic(err)
-	}
+	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
 	return &cmd
 }
