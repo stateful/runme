@@ -28,6 +28,9 @@ type Runner interface {
 	setStderr(stdout io.Writer) error
 	setLogger(logger *zap.Logger) error
 
+	setInsecure(insecure bool) error
+	setTLSDir(tlsDir string) error
+
 	RunBlock(ctx context.Context, block *document.CodeBlock) error
 	DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error
 	Cleanup(ctx context.Context) error
@@ -90,6 +93,18 @@ func WithStderr(stderr io.Writer) RunnerOption {
 func WithLogger(logger *zap.Logger) RunnerOption {
 	return func(rc Runner) error {
 		return rc.setLogger(logger)
+	}
+}
+
+func WithInsecure(insecure bool) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setInsecure(insecure)
+	}
+}
+
+func WithTLSDir(tlsDir string) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setTLSDir(tlsDir)
 	}
 }
 

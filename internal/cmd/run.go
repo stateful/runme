@@ -3,11 +3,9 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -15,20 +13,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/runner/client"
 )
 
-type runCmdOpts struct {
-	DryRun          bool
-	ReplaceScripts  []string
-	ServerAddr      string
-	SessionID       string
-	SessionStrategy string
-}
-
 func runCmd() *cobra.Command {
-	opts := runCmdOpts{}
+	var (
+		dryRun         bool
+		replaceScripts []string
+		serverAddr     string
+		getRunnerOpts  func() ([]client.RunnerOption, error)
+	)
 
 	cmd := cobra.Command{
 		Use:               "run",
@@ -48,7 +42,7 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			if err := replace(opts.ReplaceScripts, block.Lines()); err != nil {
+			if err := replace(replaceScripts, block.Lines()); err != nil {
 				return err
 			}
 
@@ -67,31 +61,23 @@ func runCmd() *cobra.Command {
 				stdin = bytes.NewReader(nil)
 			}
 
-			dir, _ := filepath.Abs(fChdir)
+			runnerOpts, err := getRunnerOpts()
+			if err != nil {
+				return err
+			}
 
-			runOpts := []client.RunnerOption{
+			runnerOpts = append(
+				runnerOpts,
 				client.WithinShellMaybe(),
-				client.WithDir(dir),
 				client.WithStdin(stdin),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
-				client.WithSessionID(opts.SessionID),
-				client.WithCleanupSession(opts.SessionID == ""),
-			}
-
-			switch strings.ToLower(opts.SessionStrategy) {
-			case "manual":
-				runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED))
-			case "recent":
-				runOpts = append(runOpts, client.WithSessionStrategy(runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT))
-			default:
-				return fmt.Errorf("unknown session strategy %q", opts.SessionStrategy)
-			}
+			)
 
 			var runner client.Runner
 
-			if opts.ServerAddr == "" {
-				localRunner, err := client.NewLocalRunner(runOpts...)
+			if serverAddr == "" {
+				localRunner, err := client.NewLocalRunner(runnerOpts...)
 				if err != nil {
 					return err
 				}
@@ -100,8 +86,8 @@ func runCmd() *cobra.Command {
 			} else {
 				remoteRunner, err := client.NewRemoteRunner(
 					cmd.Context(),
-					opts.ServerAddr,
-					runOpts...,
+					serverAddr,
+					runnerOpts...,
 				)
 				if err != nil {
 					return err
@@ -112,7 +98,7 @@ func runCmd() *cobra.Command {
 
 			defer runner.Cleanup(cmd.Context())
 
-			if opts.DryRun {
+			if dryRun {
 				return runner.DryRunBlock(ctx, block, cmd.ErrOrStderr())
 			}
 
@@ -131,22 +117,10 @@ func runCmd() *cobra.Command {
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "Print the final command without executing.")
-	cmd.Flags().StringArrayVarP(&opts.ReplaceScripts, "replace", "r", nil, "Replace instructions using sed.")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
+	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 
-	cmd.Flags().StringVarP(&opts.ServerAddr, "server", "s", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
-	cmd.Flags().StringVar(&opts.SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
-
-	cmd.Flags().StringVar(&opts.SessionStrategy, "session-strategy", func() string {
-		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
-			return val
-		}
-
-		return "manual"
-	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
-
-	_ = cmd.Flags().MarkHidden("session")
-	_ = cmd.Flags().MarkHidden("session-strategy")
+	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
 	return &cmd
 }

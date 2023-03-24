@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -24,6 +22,7 @@ func tuiCmd() *cobra.Command {
 		visibleEntries int
 		runOnce        bool
 		serverAddr     string
+		getRunnerOpts  func() ([]client.RunnerOption, error)
 	)
 
 	cmd := cobra.Command{
@@ -52,20 +51,23 @@ func tuiCmd() *cobra.Command {
 				}
 			}()
 
-			dir, _ := filepath.Abs(fChdir)
+			runnerOpts, err := getRunnerOpts()
+			if err != nil {
+				return err
+			}
 
-			opts := []client.RunnerOption{
-				client.WithDir(dir),
+			runnerOpts = append(
+				runnerOpts,
 				client.WithStdin(cmd.InOrStdin()),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
-			}
+			)
 
 			if serverAddr != "" {
 				remoteRunner, err := client.NewRemoteRunner(
 					cmd.Context(),
 					serverAddr,
-					opts...,
+					runnerOpts...,
 				)
 				if err != nil {
 					return errors.Wrap(err, "failed to create remote runner")
@@ -74,7 +76,7 @@ func tuiCmd() *cobra.Command {
 				runnerClient = remoteRunner
 			} else {
 				localRunner, err := client.NewLocalRunner(
-					opts...,
+					runnerOpts...,
 				)
 				if err != nil {
 					return errors.Wrap(err, "failed to create local runner")
@@ -153,7 +155,8 @@ func tuiCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
 	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
-	cmd.Flags().StringVar(&serverAddr, "server", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect TUI to")
+
+	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
 	return &cmd
 }

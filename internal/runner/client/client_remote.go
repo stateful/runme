@@ -13,8 +13,11 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+
+	runmetls "github.com/stateful/runme/internal/tls"
 )
 
 type RemoteRunner struct {
@@ -27,6 +30,9 @@ type RemoteRunner struct {
 	sessionID       string
 	sessionStrategy runnerv1.SessionStrategy
 	cleanupSession  bool
+
+	insecure bool
+	tlsDir   string
 }
 
 func (r *RemoteRunner) setDir(dir string) error {
@@ -77,13 +83,36 @@ func (r *RemoteRunner) setWithinShell() error {
 	return nil
 }
 
+func (r *RemoteRunner) setInsecure(insecure bool) error {
+	r.insecure = insecure
+	return nil
+}
+
+func (r *RemoteRunner) setTLSDir(tlsDir string) error {
+	r.tlsDir = tlsDir
+	return nil
+}
+
 func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
 	r := &RemoteRunner{}
 	if err := ApplyOptions(r, opts...); err != nil {
 		return nil, err
 	}
 
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	var creds credentials.TransportCredentials
+
+	if r.insecure {
+		creds = insecure.NewCredentials()
+	} else {
+		tlsConfig, err := runmetls.LoadTLSConfig(r.tlsDir)
+		if err != nil {
+			return nil, err
+		}
+
+		creds = credentials.NewTLS(tlsConfig)
+	}
+
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to gRPC server")
 	}

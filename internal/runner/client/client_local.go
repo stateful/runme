@@ -79,6 +79,14 @@ func (r *LocalRunner) setLogger(logger *zap.Logger) error {
 	return nil
 }
 
+func (r *LocalRunner) setInsecure(bool) error {
+	return nil
+}
+
+func (r *LocalRunner) setTLSDir(string) error {
+	return nil
+}
+
 func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	r := &LocalRunner{}
 	if err := ApplyOptions(r, opts...); err != nil {
