@@ -223,8 +223,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) ([]client.RunnerOpti
 		client.WithCleanupSession(SessionID == ""),
 		client.WithTLSDir(TLSDir),
 		func(r client.Runner) error {
-			r.SetInsecure(fInsecure)
-			return nil
+			return r.SetInsecure(fInsecure)
 		},
 	}
 
