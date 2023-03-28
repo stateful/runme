@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mgutz/ansi"
 	"github.com/muesli/cancelreader"
@@ -316,6 +317,10 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.expanded[m.cursor] = struct{}{}
 			}
+
+		case "y", "c":
+			command := strings.Join(m.blocks[m.cursor].Lines(), "\n")
+			_ = clipboard.WriteAll(command)
 
 		case "enter", "l":
 			m.result = tuiResult{
