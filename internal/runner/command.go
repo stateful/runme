@@ -125,7 +125,13 @@ func newCommand(cfg *commandConfig) (*command, error) {
 
 		_, _ = script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
 
-		extraArgs = []string{"-c", script.String()}
+		extraArgs = []string{}
+
+		if cfg.Tty {
+			extraArgs = append(extraArgs, "-i")
+		}
+
+		extraArgs = append(extraArgs, "-c", script.String())
 	}
 
 	session := cfg.Session
