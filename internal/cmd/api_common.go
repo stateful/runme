@@ -140,6 +140,12 @@ func newAPIClient(ctx context.Context) *http.Client {
 }
 
 func oauthConfig(authBaseURL string) oauth2.Config {
+	// Intentionally store the client id and secret in the source code.
+	// The reason behind it is the Open Source nature of Runme and the limited risks
+	// associated with exposing the client id.
+	// Don't generalize this practice and evaluate if that's the case for your application.
+	// If you have any security concerns/disclosure, please don't share it publicly, reach out to us.
+	// (See our Contributing & Feedback section)
 	return oauth2.Config{
 		ClientID:     "bf568e40cfbd1c1261a9",
 		ClientSecret: "0de10314c28b754d0cedbf34d081c990865e1363",
