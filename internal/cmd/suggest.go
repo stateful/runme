@@ -106,8 +106,7 @@ func runSuggestAndRetry(ctx context.Context, cmd *cobra.Command, runF runFunc) e
 	case errors.Is(err, graphql.ErrNoData):
 		return err
 	case !recoverableWithLogin(err):
-
-		return errors.New("The Runme API is currently unavailable. Please try again later or report the issue at https://discord.com/channels/878764303052865537.")
+		return errors.New("the Runme API is currently unavailable. Please try again later or report the issue at https://discord.com/channels/878764303052865537")
 	default:
 		// continue as it likely was an auth problem
 	}
