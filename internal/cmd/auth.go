@@ -42,9 +42,13 @@ func logoutCmd() *cobra.Command {
 	return cmd
 }
 
-func checkAuthenticated(ctx context.Context, cmd *cobra.Command) error {
+func checkAuthenticated(ctx context.Context, cmd *cobra.Command, refresh bool) error {
+	text := "It looks like you're not logged in. Do you want to log in now?"
+	if refresh {
+		text = "It seems that your authentication has expired. Would you like to re-authenticate now?"
+	}
 	model := tui.NewStandaloneQuestionModel(
-		"It looks like you're not logged in. Do you want to log in now?",
+		text,
 		tui.MinimalKeyMap,
 		tui.DefaultStyles,
 	)

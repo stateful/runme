@@ -38,7 +38,13 @@ bad. Please use with discretion.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := graphql.ContextWithTrackInput(cmd.Context(), trackInputFromCmd(cmd, args))
 
-			client, err := graphql.New(graphqlEndpoint(), newAPIClient(cmd.Context()))
+			token, err := newAuth().GetToken(cmd.Context())
+			if err != nil {
+				if err := checkAuthenticated(ctx, cmd, !recoverableWithLogin(err)); err != nil {
+					return err
+				}
+			}
+			client, err := graphql.New(graphqlEndpoint(), newAPIClient(cmd.Context(), token))
 			if err != nil {
 				return err
 			}
@@ -48,6 +54,7 @@ bad. Please use with discretion.
 				_, err := client.GetUser(ctx, false)
 				return err
 			})
+
 			if err != nil {
 				return err
 			}
@@ -99,13 +106,10 @@ func runSuggestAndRetry(ctx context.Context, cmd *cobra.Command, runF runFunc) e
 	case errors.Is(err, graphql.ErrNoData):
 		return err
 	case !recoverableWithLogin(err):
-		return errors.Wrap(err, "failed to run command")
+
+		return errors.New("The Runme API is currently unavailable. Please try again later or report the issue at https://discord.com/channels/878764303052865537.")
 	default:
 		// continue as it likely was an auth problem
-	}
-
-	if err := checkAuthenticated(ctx, cmd); err != nil {
-		return err
 	}
 
 	return runF(ctx)
