@@ -119,10 +119,10 @@ func newAuth() auth.Authorizer {
 	}
 }
 
-func newAPIClient(ctx context.Context, token string) *http.Client {
+func newAPIClient(ctx context.Context, auth auth.Authorizer) *http.Client {
 	opts := []client.Option{
 		client.WithTokenGetter(func() (string, error) {
-			return token, nil
+			return auth.GetToken(ctx)
 		}),
 		client.WithUserAgent(version.BuildVersion),
 	}
