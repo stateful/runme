@@ -184,7 +184,6 @@ func printfInfo(msg string, args ...any) {
 }
 
 func getDefaultConfigHome() string {
-	// TODO(adamb): switch to os.UserConfigDir()
 	dir, err := os.UserHomeDir()
 	if err != nil {
 		dir = os.TempDir()
