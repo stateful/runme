@@ -196,13 +196,16 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 	dir, _ := filepath.Abs(fChdir)
 
 	var (
-		SessionID       string
-		SessionStrategy string
-		TLSDir          string
+		SessionID                 string
+		SessionStrategy           string
+		TLSDir                    string
+		EnableBackgroundProcesses bool
 	)
 
 	cmd.Flags().StringVarP(serverAddr, "server", "s", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
 	cmd.Flags().StringVar(&SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
+
+	cmd.Flags().BoolVar(&EnableBackgroundProcesses, "background", false, "Enable running background blocks as background processes")
 
 	cmd.Flags().StringVar(&SessionStrategy, "session-strategy", func() string {
 		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
@@ -230,6 +233,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 			client.WithCleanupSession(SessionID == ""),
 			client.WithTLSDir(TLSDir),
 			client.WithInsecure(fInsecure),
+			client.WithEnableBackgroundProcesses(EnableBackgroundProcesses),
 		}
 
 		switch strings.ToLower(SessionStrategy) {

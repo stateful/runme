@@ -87,6 +87,10 @@ func (r *LocalRunner) setTLSDir(string) error {
 	return nil
 }
 
+func (r *LocalRunner) setEnableBackgroundProcesses(bool) error {
+	return nil
+}
+
 func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	r := &LocalRunner{}
 	if err := ApplyOptions(r, opts...); err != nil {

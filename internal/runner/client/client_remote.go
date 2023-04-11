@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -33,6 +34,8 @@ type RemoteRunner struct {
 
 	insecure bool
 	tlsDir   string
+
+	enableBackground bool
 }
 
 func (r *RemoteRunner) setDir(dir string) error {
@@ -93,8 +96,14 @@ func (r *RemoteRunner) setTLSDir(tlsDir string) error {
 	return nil
 }
 
+func (r *RemoteRunner) setEnableBackgroundProcesses(enableBackground bool) error {
+	r.enableBackground = enableBackground
+	return nil
+}
+
 func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
 	r := &RemoteRunner{}
+
 	if err := ApplyOptions(r, opts...); err != nil {
 		return nil, err
 	}
@@ -167,6 +176,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 		Tty:             tty,
 		SessionId:       r.sessionID,
 		SessionStrategy: r.sessionStrategy,
+		Background:      block.Background(),
 	}
 
 	if r.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {
@@ -176,6 +186,11 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 	err = stream.Send(req)
 	if err != nil {
 		return errors.Wrap(err, "failed to send initial request")
+	}
+
+	background := block.Background()
+	if !r.enableBackground {
+		background = false
 	}
 
 	g := new(errgroup.Group)
@@ -190,7 +205,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 				_ = closer.Close()
 			}
 		}()
-		return r.recvLoop(stream)
+		return r.recvLoop(stream, background)
 	})
 
 	return g.Wait()
@@ -231,7 +246,7 @@ func (r *RemoteRunner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, std
 	}
 }
 
-func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient) error {
+func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient, background bool) error {
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
@@ -257,6 +272,10 @@ func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient) err
 			if msg.ExitCode.Value > 0 {
 				return &runner.ExitError{Code: uint(msg.ExitCode.Value)}
 			}
+			return nil
+		}
+		if msg.Pid != nil && background {
+			_, _ = r.stdout.Write([]byte(fmt.Sprintf("Process started on PID %d\n", msg.Pid.Pid)))
 			return nil
 		}
 	}

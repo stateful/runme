@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"syscall"
 	"testing"
 	"time"
 
@@ -774,6 +775,35 @@ func Test_runnerService(t *testing.T) {
 		// creates new session if empty
 		client.DeleteSession(ctx, &runnerv1.DeleteSessionRequest{Id: session1})
 		assert.Equal(t, getSessionNum(""), "\n")
+	})
+
+	t.Run("ExecuteBackgroundPID", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(context.Background())
+
+		stream, err := client.Execute(ctx)
+		require.NoError(t, err)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Commands: []string{
+				"sleep 10",
+			},
+			Background: true,
+			Tty:        true,
+		})
+		require.NoError(t, err)
+
+		msg, err := stream.Recv()
+		require.NoError(t, err)
+
+		require.NotNil(t, msg.Pid)
+		cancel()
+
+		pid := msg.Pid.Pid
+
+		err = syscall.Kill(int(pid), syscall.SIGTERM)
+		assert.NoError(t, err)
 	})
 }
 
