@@ -35,7 +35,7 @@ type RemoteRunner struct {
 	insecure bool
 	tlsDir   string
 
-	disableBackground bool
+	enableBackground bool
 }
 
 func (r *RemoteRunner) setDir(dir string) error {
@@ -96,13 +96,14 @@ func (r *RemoteRunner) setTLSDir(tlsDir string) error {
 	return nil
 }
 
-func (r *RemoteRunner) setDisableBackgroundProcesses(disableBackground bool) error {
-	r.disableBackground = disableBackground
+func (r *RemoteRunner) setEnableBackgroundProcesses(enableBackground bool) error {
+	r.enableBackground = enableBackground
 	return nil
 }
 
 func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
 	r := &RemoteRunner{}
+
 	if err := ApplyOptions(r, opts...); err != nil {
 		return nil, err
 	}
@@ -188,7 +189,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 	}
 
 	background := block.Background()
-	if r.disableBackground {
+	if !r.enableBackground {
 		background = false
 	}
 

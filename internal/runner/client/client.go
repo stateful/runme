@@ -27,7 +27,7 @@ type Runner interface {
 	setStdout(stdout io.Writer) error
 	setStderr(stdout io.Writer) error
 	setLogger(logger *zap.Logger) error
-	setDisableBackgroundProcesses(disableBackground bool) error
+	setEnableBackgroundProcesses(disableBackground bool) error
 
 	setInsecure(insecure bool) error
 	setTLSDir(tlsDir string) error
@@ -109,9 +109,9 @@ func WithTLSDir(tlsDir string) RunnerOption {
 	}
 }
 
-func WithDisableBackgroundProcesses(disableBackground bool) RunnerOption {
+func WithEnableBackgroundProcesses(disableBackground bool) RunnerOption {
 	return func(rc Runner) error {
-		return rc.setDisableBackgroundProcesses(disableBackground)
+		return rc.setEnableBackgroundProcesses(disableBackground)
 	}
 }
 

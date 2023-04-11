@@ -87,7 +87,7 @@ func (r *LocalRunner) setTLSDir(string) error {
 	return nil
 }
 
-func (r *LocalRunner) setDisableBackgroundProcesses(disableBackground bool) error {
+func (r *LocalRunner) setEnableBackgroundProcesses(bool) error {
 	return nil
 }
 
