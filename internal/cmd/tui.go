@@ -20,11 +20,10 @@ import (
 
 func tuiCmd() *cobra.Command {
 	var (
-		visibleEntries             int
-		runOnce                    bool
-		serverAddr                 string
-		disableBackgroundProcesses bool
-		getRunnerOpts              func() ([]client.RunnerOption, error)
+		visibleEntries int
+		runOnce        bool
+		serverAddr     string
+		getRunnerOpts  func() ([]client.RunnerOption, error)
 	)
 
 	cmd := cobra.Command{
@@ -63,7 +62,6 @@ func tuiCmd() *cobra.Command {
 				client.WithStdin(cmd.InOrStdin()),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
-				client.WithDisableBackgroundProcesses(disableBackgroundProcesses),
 			)
 
 			if serverAddr != "" {
@@ -160,8 +158,6 @@ func tuiCmd() *cobra.Command {
 	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
-
-	cmd.Flags().BoolVar(&disableBackgroundProcesses, "disable-background", false, "Disable running background blocks as background processes")
 
 	return &cmd
 }
