@@ -42,7 +42,7 @@ bad. Please use with discretion.
 			auth := newAuth()
 			_, err := auth.GetToken(cmd.Context())
 			if err != nil {
-				if err := checkAuthenticated(ctx, cmd, !recoverableWithLogin(err)); err != nil {
+				if err := checkAuthenticated(ctx, cmd, auth, !recoverableWithLogin(err)); err != nil {
 					return err
 				}
 			}

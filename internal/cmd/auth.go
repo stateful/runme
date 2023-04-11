@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/runme/internal/auth"
 	"github.com/stateful/runme/internal/tui"
 )
 
@@ -42,7 +43,7 @@ func logoutCmd() *cobra.Command {
 	return cmd
 }
 
-func checkAuthenticated(ctx context.Context, cmd *cobra.Command, refresh bool) error {
+func checkAuthenticated(ctx context.Context, cmd *cobra.Command, auth auth.Authorizer, refresh bool) error {
 	text := "It looks like you're not logged in. Do you want to log in now?"
 	if refresh {
 		text = "It seems that your authentication has expired. Would you like to re-authenticate now?"
@@ -59,7 +60,7 @@ func checkAuthenticated(ctx context.Context, cmd *cobra.Command, refresh bool) e
 	shouldLogIn := finalModel.(tui.StandaloneQuestionModel).Confirmed()
 
 	if shouldLogIn {
-		if loginErr := newAuth().Login(ctx); loginErr != nil {
+		if loginErr := auth.Login(ctx); loginErr != nil {
 			return errors.Wrap(loginErr, "failed to login")
 		}
 	}
