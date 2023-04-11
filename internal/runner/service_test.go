@@ -794,6 +794,8 @@ func Test_runnerService(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		time.Sleep(100 * time.Millisecond)
+
 		msg, err := stream.Recv()
 		require.NoError(t, err)
 
@@ -804,6 +806,39 @@ func Test_runnerService(t *testing.T) {
 
 		err = syscall.Kill(int(pid), syscall.SIGTERM)
 		assert.NoError(t, err)
+	})
+
+	t.Run("ExecuteBackgroundStop", func(t *testing.T) {
+		t.Parallel()
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			Commands: []string{
+				"sleep 1000",
+			},
+			Background: true,
+			Tty:        true,
+		})
+		require.NoError(t, err)
+
+		time.Sleep(100 * time.Millisecond)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		stream.Send(&runnerv1.ExecuteRequest{
+			Stop: runnerv1.ExecuteStop_EXECUTE_STOP_INTERRUPT,
+		})
+
+		result := <-execResult
+
+		require.Equal(
+			t,
+			1,
+			result.ExitCode,
+		)
 	})
 }
 

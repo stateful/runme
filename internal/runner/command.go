@@ -308,6 +308,10 @@ func (c *command) stop(sig os.Signal) error {
 	}
 
 	if c.pty != nil {
+		if sig == os.Interrupt {
+			_, _ = c.pty.Write([]byte{0x3})
+		}
+
 		if err := c.pty.Close(); err != nil {
 			c.logger.Info("failed to close pty; continuing")
 		}
