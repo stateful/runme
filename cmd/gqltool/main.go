@@ -40,9 +40,16 @@ func main() {
 }
 
 func getDefaultConfigHome() string {
-	dir, err := os.UserHomeDir()
+	dir, err := os.UserConfigDir()
 	if err != nil {
 		panic(err)
 	}
-	return filepath.Join(dir, ".config", "stateful")
+	_, fErr := os.Stat(dir)
+	if os.IsNotExist(fErr) {
+		mkdErr := os.MkdirAll(dir, os.ModePerm)
+		if mkdErr != nil {
+			dir = os.TempDir()
+		}
+	}
+	return filepath.Join(dir, "stateful")
 }
