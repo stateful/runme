@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"log"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -38,7 +39,14 @@ bad. Please use with discretion.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := graphql.ContextWithTrackInput(cmd.Context(), trackInputFromCmd(cmd, args))
 
-			client, err := graphql.New(graphqlEndpoint(), newAPIClient(cmd.Context()))
+			auth := newAuth()
+			_, err := auth.GetToken(cmd.Context())
+			if err != nil {
+				if err := checkAuthenticated(ctx, cmd, auth, !recoverableWithLogin(err)); err != nil {
+					return err
+				}
+			}
+			client, err := graphql.New(graphqlEndpoint(), newAPIClient(cmd.Context(), auth))
 			if err != nil {
 				return err
 			}
@@ -48,6 +56,7 @@ bad. Please use with discretion.
 				_, err := client.GetUser(ctx, false)
 				return err
 			})
+
 			if err != nil {
 				return err
 			}
@@ -99,13 +108,10 @@ func runSuggestAndRetry(ctx context.Context, cmd *cobra.Command, runF runFunc) e
 	case errors.Is(err, graphql.ErrNoData):
 		return err
 	case !recoverableWithLogin(err):
+		log.Print("Unexpected error occurred. Please try again later or report the issue at https://github.com/stateful/runme or our Discord at https://discord.gg/stateful")
 		return errors.Wrap(err, "failed to run command")
 	default:
 		// continue as it likely was an auth problem
-	}
-
-	if err := checkAuthenticated(ctx, cmd); err != nil {
-		return err
 	}
 
 	return runF(ctx)
