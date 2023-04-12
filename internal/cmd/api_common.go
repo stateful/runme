@@ -29,6 +29,7 @@ const (
 	traceAllF    = "trace-all"
 	enableChaosF = "enable-chaos"
 	apiTokenF    = "api-token"
+	configDirF   = "config-dir"
 )
 
 var (
@@ -38,6 +39,7 @@ var (
 	traceAll    bool
 	enableChaos bool
 	apiToken    string
+	configDir   string
 )
 
 // TODO(adamb): temporarily we authorize using Github as IdP.
@@ -56,11 +58,13 @@ func getTrace() bool       { return trace || traceAll }
 func getTraceAll() bool    { return traceAll }
 func getEnableChaos() bool { return enableChaos }
 func getAPIToken() string  { return apiToken }
+func getConfigDir() string { return configDir }
 
 func setAPIFlags(flagSet *pflag.FlagSet) {
 	flagSet.StringVar(&authBaseURL, authURLF, defaultAuthURL, "Backend URL to authorize you")
 	flagSet.StringVar(&apiBaseURL, apiURLF, "https://api.stateful.com", "Backend URL with API")
 	flagSet.StringVar(&apiToken, apiTokenF, "", "API token")
+	flagSet.StringVar(&configDir, configDirF, GetDefaultConfigHome(), "Location where token will be saved")
 	flagSet.BoolVar(&trace, traceF, false, "Trace HTTP calls")
 	flagSet.BoolVar(&traceAll, traceAllF, false, "Trace all HTTP calls including authentication (it might leak sensitive data to output)")
 	flagSet.BoolVar(&enableChaos, enableChaosF, false, "Enable Chaos Monkey mode for GraphQL requests")
@@ -77,12 +81,13 @@ func setAPIFlags(flagSet *pflag.FlagSet) {
 	mustMarkHidden(traceF)
 	mustMarkHidden(traceAllF)
 	mustMarkHidden(enableChaosF)
+	mustMarkHidden(configDirF)
 }
 
 var (
 	authEnv        auth.Env        // overwritten only in unit tests; when nil a default env will be used
 	authAuthorizer auth.Authorizer // overwritten only in unit tests
-	tokenStorage   = &auth.DiskStorage{Location: getDefaultConfigHome()}
+	tokenStorage   = &auth.DiskStorage{}
 )
 
 // authorizerWithEnv is a decorator that can return a token
@@ -99,6 +104,7 @@ func (a *authorizerWithEnv) GetToken(ctx context.Context) (string, error) {
 }
 
 func newAuth() auth.Authorizer {
+	tokenStorage.Location = getConfigDir()
 	if authAuthorizer != nil {
 		return authAuthorizer
 	}

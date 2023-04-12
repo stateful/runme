@@ -183,13 +183,19 @@ func printfInfo(msg string, args ...any) {
 	_, _ = os.Stderr.Write(buf.Bytes())
 }
 
-func getDefaultConfigHome() string {
-	// TODO(adamb): switch to os.UserConfigDir()
-	dir, err := os.UserHomeDir()
+func GetDefaultConfigHome() string {
+	dir, err := os.UserConfigDir()
 	if err != nil {
 		dir = os.TempDir()
 	}
-	return filepath.Join(dir, ".config", "stateful")
+	_, fErr := os.Stat(dir)
+	if os.IsNotExist(fErr) {
+		mkdErr := os.MkdirAll(dir, 0o700)
+		if mkdErr != nil {
+			dir = os.TempDir()
+		}
+	}
+	return filepath.Join(dir, "stateful")
 }
 
 func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.RunnerOption, error) {
@@ -255,4 +261,4 @@ type runFunc func(context.Context) error
 
 const tlsFileMode = os.FileMode(int(0o700))
 
-var defaultTLSDir = filepath.Join(getDefaultConfigHome(), "tls")
+var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")
