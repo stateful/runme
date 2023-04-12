@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"log" // revive:disable-line
 	"os"
-	"path/filepath"
 
 	"github.com/stateful/runme/internal/auth"
 	"github.com/stateful/runme/internal/client"
 	"github.com/stateful/runme/internal/client/graphql"
+	"github.com/stateful/runme/internal/cmd"
 	"golang.org/x/oauth2"
 )
 
 var (
 	apiURL   = flag.String("api-url", "https://api.stateful.com", "The API base address")
-	tokenDir = flag.String("token-dir", getDefaultConfigHome(), "The directory with tokens")
+	tokenDir = flag.String("token-dir", cmd.GetDefaultConfigHome(), "The directory with tokens")
 )
 
 func init() {
@@ -37,19 +37,4 @@ func main() {
 		log.Fatal(err)
 	}
 	_, _ = fmt.Fprintf(os.Stdout, "%s", result)
-}
-
-func getDefaultConfigHome() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		panic(err)
-	}
-	_, fErr := os.Stat(dir)
-	if os.IsNotExist(fErr) {
-		mkdErr := os.MkdirAll(dir, os.ModePerm)
-		if mkdErr != nil {
-			dir = os.TempDir()
-		}
-	}
-	return filepath.Join(dir, "stateful")
 }

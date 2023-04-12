@@ -183,14 +183,14 @@ func printfInfo(msg string, args ...any) {
 	_, _ = os.Stderr.Write(buf.Bytes())
 }
 
-func getDefaultConfigHome() string {
+func GetDefaultConfigHome() string {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		dir = os.TempDir()
 	}
 	_, fErr := os.Stat(dir)
 	if os.IsNotExist(fErr) {
-		mkdErr := os.MkdirAll(dir, os.ModePerm)
+		mkdErr := os.MkdirAll(dir, 0o700)
 		if mkdErr != nil {
 			dir = os.TempDir()
 		}
@@ -257,4 +257,4 @@ type runFunc func(context.Context) error
 
 const tlsFileMode = os.FileMode(int(0o700))
 
-var defaultTLSDir = filepath.Join(getDefaultConfigHome(), "tls")
+var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")

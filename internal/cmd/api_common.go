@@ -29,7 +29,7 @@ const (
 	traceAllF    = "trace-all"
 	enableChaosF = "enable-chaos"
 	apiTokenF    = "api-token"
-	tokenDirF    = "token-dir"
+	configDirF   = "config-dir"
 )
 
 var (
@@ -39,7 +39,7 @@ var (
 	traceAll    bool
 	enableChaos bool
 	apiToken    string
-	tokenDir    string
+	configDir   string
 )
 
 // TODO(adamb): temporarily we authorize using Github as IdP.
@@ -58,13 +58,13 @@ func getTrace() bool       { return trace || traceAll }
 func getTraceAll() bool    { return traceAll }
 func getEnableChaos() bool { return enableChaos }
 func getAPIToken() string  { return apiToken }
-func getTokenDir() string  { return tokenDir }
+func getConfigDir() string { return configDir }
 
 func setAPIFlags(flagSet *pflag.FlagSet) {
 	flagSet.StringVar(&authBaseURL, authURLF, defaultAuthURL, "Backend URL to authorize you")
 	flagSet.StringVar(&apiBaseURL, apiURLF, "https://api.stateful.com", "Backend URL with API")
 	flagSet.StringVar(&apiToken, apiTokenF, "", "API token")
-	flagSet.StringVar(&tokenDir, tokenDirF, getDefaultConfigHome(), "Location dir where token will be save")
+	flagSet.StringVar(&configDir, configDirF, GetDefaultConfigHome(), "Location where token will be saved")
 	flagSet.BoolVar(&trace, traceF, false, "Trace HTTP calls")
 	flagSet.BoolVar(&traceAll, traceAllF, false, "Trace all HTTP calls including authentication (it might leak sensitive data to output)")
 	flagSet.BoolVar(&enableChaos, enableChaosF, false, "Enable Chaos Monkey mode for GraphQL requests")
@@ -81,7 +81,7 @@ func setAPIFlags(flagSet *pflag.FlagSet) {
 	mustMarkHidden(traceF)
 	mustMarkHidden(traceAllF)
 	mustMarkHidden(enableChaosF)
-	mustMarkHidden(tokenDirF)
+	mustMarkHidden(configDirF)
 }
 
 var (
@@ -104,7 +104,7 @@ func (a *authorizerWithEnv) GetToken(ctx context.Context) (string, error) {
 }
 
 func newAuth() auth.Authorizer {
-	tokenStorage.Location = getTokenDir()
+	tokenStorage.Location = getConfigDir()
 	if authAuthorizer != nil {
 		return authAuthorizer
 	}
