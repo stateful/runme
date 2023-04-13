@@ -11,19 +11,6 @@ import (
 	"github.com/stateful/runme/internal/tui"
 )
 
-func authCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Hidden: true,
-		Use:    "auth",
-		Short:  "Log in and out of your Stateful",
-	}
-
-	cmd.AddCommand(loginCmd())
-	cmd.AddCommand(logoutCmd())
-
-	return cmd
-}
-
 func loginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
