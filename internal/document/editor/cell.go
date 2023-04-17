@@ -24,6 +24,11 @@ const (
 	CodeKind
 )
 
+type TextRange struct {
+	Start int `json:"start"`
+	End   int `json:"end"`
+}
+
 // Cell resembles NotebookCellData from VS Code.
 // https://github.com/microsoft/vscode/blob/085c409898bbc89c83409f6a394e73130b932add/src/vscode-dts/vscode.d.ts#L13715
 type Cell struct {
@@ -31,6 +36,7 @@ type Cell struct {
 	Value      string            `json:"value"`
 	LanguageID string            `json:"languageId"`
 	Metadata   map[string]string `json:"metadata,omitempty"`
+	TextRange  *TextRange        `json:"textRange,omitempty"`
 }
 
 // Notebook resembles NotebookData form VS Code.
@@ -98,6 +104,8 @@ func toCellsRec(
 			}
 
 		case *document.CodeBlock:
+			segment := block.TextSegment()
+
 			// If the lang is unknown (empty) or supported then return a code cell.
 			// Otherwise, return a markup cell (#85).
 			// In the future, we will include language detection (#77).
@@ -109,6 +117,10 @@ func toCellsRec(
 					Value:      string(block.Content()),
 					LanguageID: block.Language(),
 					Metadata:   metadata,
+					TextRange: &TextRange{
+						Start: segment.Start,
+						End:   segment.Stop,
+					},
 				})
 			} else {
 				*cells = append(*cells, &Cell{

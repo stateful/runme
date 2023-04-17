@@ -8,6 +8,7 @@ import (
 
 	"github.com/stateful/runme/internal/shell"
 	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
 )
 
 type BlockKind int
@@ -130,6 +131,10 @@ func (b *CodeBlock) Unwrap() ast.Node {
 
 func (b *CodeBlock) Value() []byte {
 	return b.value
+}
+
+func (b *CodeBlock) TextSegment() text.Segment {
+	return b.inner.Info.Segment
 }
 
 func rawAttributes(source []byte) []byte {
