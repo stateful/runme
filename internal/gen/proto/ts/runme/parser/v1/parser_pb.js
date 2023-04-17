@@ -42,31 +42,18 @@ class Notebook$Type extends MessageType {
  */
 export const Notebook = new Notebook$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class Position$Type extends MessageType {
+class TextRange$Type extends MessageType {
     constructor() {
-        super("runme.parser.v1.Position", [
-            { no: 1, name: "line", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 2, name: "column", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        super("runme.parser.v1.TextRange", [
+            { no: 1, name: "start", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "end", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.parser.v1.Position
+ * @generated MessageType for protobuf message runme.parser.v1.TextRange
  */
-export const Position = new Position$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class Range$Type extends MessageType {
-    constructor() {
-        super("runme.parser.v1.Range", [
-            { no: 1, name: "start", kind: "message", T: () => Position },
-            { no: 2, name: "end", kind: "message", T: () => Position }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.parser.v1.Range
- */
-export const Range = new Range$Type();
+export const TextRange = new TextRange$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Cell$Type extends MessageType {
     constructor() {
@@ -75,7 +62,7 @@ class Cell$Type extends MessageType {
             { no: 2, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
-            { no: 5, name: "code_range", kind: "message", T: () => Range }
+            { no: 5, name: "text_range", kind: "message", T: () => TextRange }
         ]);
     }
 }

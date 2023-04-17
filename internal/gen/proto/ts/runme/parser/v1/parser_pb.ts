@@ -76,88 +76,45 @@ export class Notebook extends Message<Notebook> {
 }
 
 /**
- * @generated from message runme.parser.v1.Position
+ * @generated from message runme.parser.v1.TextRange
  */
-export class Position extends Message<Position> {
+export class TextRange extends Message<TextRange> {
   /**
-   * @generated from field: uint32 line = 1;
+   * @generated from field: uint32 start = 1;
    */
-  line = 0;
+  start = 0;
 
   /**
-   * @generated from field: uint32 column = 2;
+   * @generated from field: uint32 end = 2;
    */
-  column = 0;
+  end = 0;
 
-  constructor(data?: PartialMessage<Position>) {
+  constructor(data?: PartialMessage<TextRange>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "runme.parser.v1.Position";
+  static readonly typeName = "runme.parser.v1.TextRange";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "line", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    { no: 2, name: "column", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: "start", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 2, name: "end", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Position {
-    return new Position().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TextRange {
+    return new TextRange().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Position {
-    return new Position().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TextRange {
+    return new TextRange().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Position {
-    return new Position().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TextRange {
+    return new TextRange().fromJsonString(jsonString, options);
   }
 
-  static equals(a: Position | PlainMessage<Position> | undefined, b: Position | PlainMessage<Position> | undefined): boolean {
-    return proto3.util.equals(Position, a, b);
-  }
-}
-
-/**
- * @generated from message runme.parser.v1.Range
- */
-export class Range extends Message<Range> {
-  /**
-   * @generated from field: runme.parser.v1.Position start = 1;
-   */
-  start?: Position;
-
-  /**
-   * @generated from field: runme.parser.v1.Position end = 2;
-   */
-  end?: Position;
-
-  constructor(data?: PartialMessage<Range>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "runme.parser.v1.Range";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "start", kind: "message", T: Position },
-    { no: 2, name: "end", kind: "message", T: Position },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Range {
-    return new Range().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Range {
-    return new Range().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Range {
-    return new Range().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: Range | PlainMessage<Range> | undefined, b: Range | PlainMessage<Range> | undefined): boolean {
-    return proto3.util.equals(Range, a, b);
+  static equals(a: TextRange | PlainMessage<TextRange> | undefined, b: TextRange | PlainMessage<TextRange> | undefined): boolean {
+    return proto3.util.equals(TextRange, a, b);
   }
 }
 
@@ -186,9 +143,9 @@ export class Cell extends Message<Cell> {
   metadata: { [key: string]: string } = {};
 
   /**
-   * @generated from field: runme.parser.v1.Range code_range = 5;
+   * @generated from field: runme.parser.v1.TextRange text_range = 5;
    */
-  codeRange?: Range;
+  textRange?: TextRange;
 
   constructor(data?: PartialMessage<Cell>) {
     super();
@@ -202,7 +159,7 @@ export class Cell extends Message<Cell> {
     { no: 2, name: "value", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "language_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "metadata", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
-    { no: 5, name: "code_range", kind: "message", T: Range },
+    { no: 5, name: "text_range", kind: "message", T: TextRange },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Cell {

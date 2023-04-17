@@ -20,30 +20,17 @@ export interface Notebook {
     };
 }
 /**
- * @generated from protobuf message runme.parser.v1.Position
+ * @generated from protobuf message runme.parser.v1.TextRange
  */
-export interface Position {
+export interface TextRange {
     /**
-     * @generated from protobuf field: uint32 line = 1;
+     * @generated from protobuf field: uint32 start = 1;
      */
-    line: number;
+    start: number;
     /**
-     * @generated from protobuf field: uint32 column = 2;
+     * @generated from protobuf field: uint32 end = 2;
      */
-    column: number;
-}
-/**
- * @generated from protobuf message runme.parser.v1.Range
- */
-export interface Range {
-    /**
-     * @generated from protobuf field: runme.parser.v1.Position start = 1;
-     */
-    start?: Position;
-    /**
-     * @generated from protobuf field: runme.parser.v1.Position end = 2;
-     */
-    end?: Position;
+    end: number;
 }
 /**
  * @generated from protobuf message runme.parser.v1.Cell
@@ -68,9 +55,9 @@ export interface Cell {
         [key: string]: string;
     };
     /**
-     * @generated from protobuf field: runme.parser.v1.Range code_range = 5;
+     * @generated from protobuf field: runme.parser.v1.TextRange text_range = 5;
      */
-    codeRange?: Range;
+    textRange?: TextRange;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequest
@@ -132,20 +119,13 @@ declare class Notebook$Type extends MessageType<Notebook> {
  * @generated MessageType for protobuf message runme.parser.v1.Notebook
  */
 export declare const Notebook: Notebook$Type;
-declare class Position$Type extends MessageType<Position> {
+declare class TextRange$Type extends MessageType<TextRange> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.parser.v1.Position
+ * @generated MessageType for protobuf message runme.parser.v1.TextRange
  */
-export declare const Position: Position$Type;
-declare class Range$Type extends MessageType<Range> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.parser.v1.Range
- */
-export declare const Range: Range$Type;
+export declare const TextRange: TextRange$Type;
 declare class Cell$Type extends MessageType<Cell> {
     constructor();
 }

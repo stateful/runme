@@ -9,14 +9,9 @@ message Notebook {
   map<string, string> metadata = 2;
 }
 
-message Position {
-  uint32 line = 1;
-  uint32 column = 2;
-}
-
-message Range {
-  Position start = 1;
-  Position end = 2;
+message TextRange {
+  uint32 start = 1;
+  uint32 end = 2;
 }
 
 enum CellKind {
@@ -30,7 +25,7 @@ message Cell {
   string value = 2;
   string language_id = 3;
   map<string, string> metadata = 4;
-  Range code_range = 5;
+  TextRange text_range = 5;
 }
 
 message DeserializeRequest {
