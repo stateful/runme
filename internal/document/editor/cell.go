@@ -104,7 +104,7 @@ func toCellsRec(
 			}
 
 		case *document.CodeBlock:
-			segment := block.TextSegment()
+			textRange := block.TextRange()
 
 			// If the lang is unknown (empty) or supported then return a code cell.
 			// Otherwise, return a markup cell (#85).
@@ -118,8 +118,8 @@ func toCellsRec(
 					LanguageID: block.Language(),
 					Metadata:   metadata,
 					TextRange: &TextRange{
-						Start: segment.Start,
-						End:   segment.Stop,
+						Start: textRange.Start,
+						End:   textRange.End,
 					},
 				})
 			} else {
