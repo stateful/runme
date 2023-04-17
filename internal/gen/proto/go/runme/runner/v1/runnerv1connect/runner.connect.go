@@ -25,6 +25,30 @@ const (
 	RunnerServiceName = "runme.runner.v1.RunnerService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// RunnerServiceCreateSessionProcedure is the fully-qualified name of the RunnerService's
+	// CreateSession RPC.
+	RunnerServiceCreateSessionProcedure = "/runme.runner.v1.RunnerService/CreateSession"
+	// RunnerServiceGetSessionProcedure is the fully-qualified name of the RunnerService's GetSession
+	// RPC.
+	RunnerServiceGetSessionProcedure = "/runme.runner.v1.RunnerService/GetSession"
+	// RunnerServiceListSessionsProcedure is the fully-qualified name of the RunnerService's
+	// ListSessions RPC.
+	RunnerServiceListSessionsProcedure = "/runme.runner.v1.RunnerService/ListSessions"
+	// RunnerServiceDeleteSessionProcedure is the fully-qualified name of the RunnerService's
+	// DeleteSession RPC.
+	RunnerServiceDeleteSessionProcedure = "/runme.runner.v1.RunnerService/DeleteSession"
+	// RunnerServiceExecuteProcedure is the fully-qualified name of the RunnerService's Execute RPC.
+	RunnerServiceExecuteProcedure = "/runme.runner.v1.RunnerService/Execute"
+)
+
 // RunnerServiceClient is a client for the runme.runner.v1.RunnerService service.
 type RunnerServiceClient interface {
 	CreateSession(context.Context, *connect_go.Request[v1.CreateSessionRequest]) (*connect_go.Response[v1.CreateSessionResponse], error)
@@ -53,27 +77,27 @@ func NewRunnerServiceClient(httpClient connect_go.HTTPClient, baseURL string, op
 	return &runnerServiceClient{
 		createSession: connect_go.NewClient[v1.CreateSessionRequest, v1.CreateSessionResponse](
 			httpClient,
-			baseURL+"/runme.runner.v1.RunnerService/CreateSession",
+			baseURL+RunnerServiceCreateSessionProcedure,
 			opts...,
 		),
 		getSession: connect_go.NewClient[v1.GetSessionRequest, v1.GetSessionResponse](
 			httpClient,
-			baseURL+"/runme.runner.v1.RunnerService/GetSession",
+			baseURL+RunnerServiceGetSessionProcedure,
 			opts...,
 		),
 		listSessions: connect_go.NewClient[v1.ListSessionsRequest, v1.ListSessionsResponse](
 			httpClient,
-			baseURL+"/runme.runner.v1.RunnerService/ListSessions",
+			baseURL+RunnerServiceListSessionsProcedure,
 			opts...,
 		),
 		deleteSession: connect_go.NewClient[v1.DeleteSessionRequest, v1.DeleteSessionResponse](
 			httpClient,
-			baseURL+"/runme.runner.v1.RunnerService/DeleteSession",
+			baseURL+RunnerServiceDeleteSessionProcedure,
 			opts...,
 		),
 		execute: connect_go.NewClient[v1.ExecuteRequest, v1.ExecuteResponse](
 			httpClient,
-			baseURL+"/runme.runner.v1.RunnerService/Execute",
+			baseURL+RunnerServiceExecuteProcedure,
 			opts...,
 		),
 	}
@@ -136,28 +160,28 @@ type RunnerServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
-	mux.Handle("/runme.runner.v1.RunnerService/CreateSession", connect_go.NewUnaryHandler(
-		"/runme.runner.v1.RunnerService/CreateSession",
+	mux.Handle(RunnerServiceCreateSessionProcedure, connect_go.NewUnaryHandler(
+		RunnerServiceCreateSessionProcedure,
 		svc.CreateSession,
 		opts...,
 	))
-	mux.Handle("/runme.runner.v1.RunnerService/GetSession", connect_go.NewUnaryHandler(
-		"/runme.runner.v1.RunnerService/GetSession",
+	mux.Handle(RunnerServiceGetSessionProcedure, connect_go.NewUnaryHandler(
+		RunnerServiceGetSessionProcedure,
 		svc.GetSession,
 		opts...,
 	))
-	mux.Handle("/runme.runner.v1.RunnerService/ListSessions", connect_go.NewUnaryHandler(
-		"/runme.runner.v1.RunnerService/ListSessions",
+	mux.Handle(RunnerServiceListSessionsProcedure, connect_go.NewUnaryHandler(
+		RunnerServiceListSessionsProcedure,
 		svc.ListSessions,
 		opts...,
 	))
-	mux.Handle("/runme.runner.v1.RunnerService/DeleteSession", connect_go.NewUnaryHandler(
-		"/runme.runner.v1.RunnerService/DeleteSession",
+	mux.Handle(RunnerServiceDeleteSessionProcedure, connect_go.NewUnaryHandler(
+		RunnerServiceDeleteSessionProcedure,
 		svc.DeleteSession,
 		opts...,
 	))
-	mux.Handle("/runme.runner.v1.RunnerService/Execute", connect_go.NewBidiStreamHandler(
-		"/runme.runner.v1.RunnerService/Execute",
+	mux.Handle(RunnerServiceExecuteProcedure, connect_go.NewBidiStreamHandler(
+		RunnerServiceExecuteProcedure,
 		svc.Execute,
 		opts...,
 	))

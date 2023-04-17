@@ -25,6 +25,21 @@ const (
 	ParserServiceName = "runme.parser.v1.ParserService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// ParserServiceDeserializeProcedure is the fully-qualified name of the ParserService's Deserialize
+	// RPC.
+	ParserServiceDeserializeProcedure = "/runme.parser.v1.ParserService/Deserialize"
+	// ParserServiceSerializeProcedure is the fully-qualified name of the ParserService's Serialize RPC.
+	ParserServiceSerializeProcedure = "/runme.parser.v1.ParserService/Serialize"
+)
+
 // ParserServiceClient is a client for the runme.parser.v1.ParserService service.
 type ParserServiceClient interface {
 	Deserialize(context.Context, *connect_go.Request[v1.DeserializeRequest]) (*connect_go.Response[v1.DeserializeResponse], error)
@@ -43,12 +58,12 @@ func NewParserServiceClient(httpClient connect_go.HTTPClient, baseURL string, op
 	return &parserServiceClient{
 		deserialize: connect_go.NewClient[v1.DeserializeRequest, v1.DeserializeResponse](
 			httpClient,
-			baseURL+"/runme.parser.v1.ParserService/Deserialize",
+			baseURL+ParserServiceDeserializeProcedure,
 			opts...,
 		),
 		serialize: connect_go.NewClient[v1.SerializeRequest, v1.SerializeResponse](
 			httpClient,
-			baseURL+"/runme.parser.v1.ParserService/Serialize",
+			baseURL+ParserServiceSerializeProcedure,
 			opts...,
 		),
 	}
@@ -83,13 +98,13 @@ type ParserServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewParserServiceHandler(svc ParserServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
-	mux.Handle("/runme.parser.v1.ParserService/Deserialize", connect_go.NewUnaryHandler(
-		"/runme.parser.v1.ParserService/Deserialize",
+	mux.Handle(ParserServiceDeserializeProcedure, connect_go.NewUnaryHandler(
+		ParserServiceDeserializeProcedure,
 		svc.Deserialize,
 		opts...,
 	))
-	mux.Handle("/runme.parser.v1.ParserService/Serialize", connect_go.NewUnaryHandler(
-		"/runme.parser.v1.ParserService/Serialize",
+	mux.Handle(ParserServiceSerializeProcedure, connect_go.NewUnaryHandler(
+		ParserServiceSerializeProcedure,
 		svc.Serialize,
 		opts...,
 	))
