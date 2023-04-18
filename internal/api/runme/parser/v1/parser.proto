@@ -9,6 +9,11 @@ message Notebook {
   map<string, string> metadata = 2;
 }
 
+message TextRange {
+  uint32 start = 1;
+  uint32 end = 2;
+}
+
 enum CellKind {
   CELL_KIND_UNSPECIFIED = 0;
   CELL_KIND_MARKUP = 1;
@@ -20,6 +25,7 @@ message Cell {
   string value = 2;
   string language_id = 3;
   map<string, string> metadata = 4;
+  TextRange text_range = 5;
 }
 
 message DeserializeRequest {
