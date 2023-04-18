@@ -62,7 +62,6 @@ type ListModel struct {
 	spinner   spinner.Model
 	selected  item
 	usePrefix bool
-	editing   bool
 
 	err error
 }
