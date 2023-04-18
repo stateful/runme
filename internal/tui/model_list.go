@@ -352,7 +352,6 @@ func (m ListModel) TogglePrefixes() ListModel {
 }
 
 func createListItem(suggestion string, showPrefix bool) item {
-
 	item := item{suggestion: suggestion, title: suggestion}
 	if !showPrefix {
 		parts := strings.Split(suggestion, "/")
@@ -382,6 +381,7 @@ func newGetSuggestedBranch(description string, userBranches []project.Branch, re
 		RepoBranches: rb,
 	}, nil
 }
+
 func removeSpecialChars(unsanitized string) string {
 	pattern := regexp.MustCompile(`[^A-Za-z\-_\/]+`)
 	sanitized := pattern.ReplaceAllString(unsanitized, "")
