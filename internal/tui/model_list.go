@@ -183,7 +183,7 @@ func (k keyMap) ShortHelp() []key.Binding {
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Save, k.Enter, k.Quit}, // second column
+		{k.Save, k.Enter, k.Quit},
 	}
 }
 
@@ -278,8 +278,6 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.input.Focus()
 			return m, nil
 		}
-
-		// Cool, what was the actual key pressed?
 
 	case suggestionsMsg:
 		m.suggestions = msg.suggestions
