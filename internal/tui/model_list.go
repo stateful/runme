@@ -226,59 +226,58 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.input, cmd = m.input.Update(msg)
 			return m, cmd
-		} else {
-			switch msg.String() {
+		}
+		switch msg.String() {
 
-			case "up":
-				m.list.CursorUp()
+		case "up":
+			m.list.CursorUp()
 
-				return m, nil
-			case "down":
-				m.list.CursorDown()
+			return m, nil
+		case "down":
+			m.list.CursorDown()
 
-				return m, nil
-			case "enter":
+			return m, nil
+		case "enter":
 
-				if m.loading {
-					return m, nil
-				}
-
-				selected, ok := m.list.SelectedItem().(item)
-
-				return m, func() tea.Msg {
-					if !ok {
-						return errorMsg{errors.New("unable to select an item")}
-					}
-
-					m.selected = selected
-
-					cwd, err := os.Getwd()
-					if err != nil {
-						return errorMsg{err}
-					}
-
-					cmdSlice := []string{"git", "checkout", "-b", m.selected.title}
-					fmt.Printf("Output: %s", cmdSlice)
-
-					cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
-					cmd.Dir = cwd
-
-					out, err := cmd.CombinedOutput()
-					if err != nil {
-						return errorMsg{err}
-					}
-
-					return confirmMsg{string(out)}
-				}
-			case "t":
-				m := m.TogglePrefixes()
-				return m, nil
-			case "e":
-				selected := m.list.SelectedItem().(item)
-				m.input.SetValue(selected.title)
-				m.input.Focus()
+			if m.loading {
 				return m, nil
 			}
+
+			selected, ok := m.list.SelectedItem().(item)
+
+			return m, func() tea.Msg {
+				if !ok {
+					return errorMsg{errors.New("unable to select an item")}
+				}
+
+				m.selected = selected
+
+				cwd, err := os.Getwd()
+				if err != nil {
+					return errorMsg{err}
+				}
+
+				cmdSlice := []string{"git", "checkout", "-b", m.selected.title}
+				fmt.Printf("Output: %s", cmdSlice)
+
+				cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
+				cmd.Dir = cwd
+
+				out, err := cmd.CombinedOutput()
+				if err != nil {
+					return errorMsg{err}
+				}
+
+				return confirmMsg{string(out)}
+			}
+		case "t":
+			m := m.TogglePrefixes()
+			return m, nil
+		case "e":
+			selected := m.list.SelectedItem().(item)
+			m.input.SetValue(selected.title)
+			m.input.Focus()
+			return m, nil
 		}
 
 		// Cool, what was the actual key pressed?
@@ -330,9 +329,8 @@ func (m ListModel) View() string {
 		s += inputStyle.Render(m.input.View()) + "\n"
 		s += helpStyle.Render(m.help.View(m.keys))
 		return appStyle.Render(s)
-	} else {
-		s += appStyle.Render(m.list.View())
 	}
+	s += appStyle.Render(m.list.View())
 
 	return s
 }
