@@ -94,13 +94,16 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/henvic/httpretty v0.1.0
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
+	github.com/sashabaranov/go-openai v1.8.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.24.0
 	golang.org/x/sync v0.1.0
+	gonum.org/v1/gonum v0.12.0
 	google.golang.org/grpc v1.53.0
 )
