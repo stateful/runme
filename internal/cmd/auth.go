@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -35,8 +34,6 @@ func logoutCmd() *cobra.Command {
 }
 
 func tokenCmd() *cobra.Command {
-	var insecureF bool
-
 	cmd := &cobra.Command{
 		Use:    "token",
 		Hidden: true,
@@ -44,7 +41,7 @@ func tokenCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var token string
 			var err error
-			if insecureF {
+			if fInsecure {
 				auth := newAuth()
 				token, err = auth.GetToken(cmd.Context())
 				if err != nil {
@@ -58,15 +55,12 @@ func tokenCmd() *cobra.Command {
 						return err
 					}
 				}
-				_, err = fmt.Fprint(os.Stdout, token, "\n")
-				return err
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), token)
+				return nil
 			}
-			_, err = fmt.Fprint(os.Stdout, "To use this command, please add the --insecure parameter")
-			return err
+			return errors.New("To use this command, please add the --insecure parameter")
 		},
 	}
-
-	cmd.Flags().BoolVar(&insecureF, "insecure", false, "Using insecure helper to get the runme token.")
 
 	return cmd
 }
