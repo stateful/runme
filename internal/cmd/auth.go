@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -9,22 +10,10 @@ import (
 	"github.com/stateful/runme/internal/tui"
 )
 
-func authCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Hidden: true,
-		Use:    "auth",
-		Short:  "Log in and out of your Stateful",
-	}
-
-	cmd.AddCommand(loginCmd())
-	cmd.AddCommand(logoutCmd())
-
-	return cmd
-}
-
 func loginCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "login",
+		Use:   "login",
+		Short: "Log in to Runme",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return newAuth().Login(cmd.Context())
 		},
@@ -35,11 +24,44 @@ func loginCmd() *cobra.Command {
 
 func logoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "logout",
+		Use:   "logout",
+		Short: "Log out from Runme",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return newAuth().Logout()
 		},
 	}
+	return cmd
+}
+
+func tokenCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:    "token",
+		Hidden: true,
+		Short:  "Print runme API token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var token string
+			var err error
+			if fInsecure {
+				auth := newAuth()
+				token, err = auth.GetToken(cmd.Context())
+				if err != nil {
+
+					if err := checkAuthenticated(cmd.Context(), cmd, auth, !recoverableWithLogin(err)); err != nil {
+						return err
+					}
+
+					token, err = auth.GetToken(cmd.Context())
+					if err != nil {
+						return err
+					}
+				}
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), token)
+				return nil
+			}
+			return errors.New("To use this command, please add the --insecure parameter")
+		},
+	}
+
 	return cmd
 }
 
