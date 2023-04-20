@@ -69,7 +69,7 @@ type ListModel struct {
 var listKeys = []key.Binding{
 	key.NewBinding(
 		key.WithKeys("t"),
-		key.WithHelp("t", "toggle suffix"),
+		key.WithHelp("t", "toggle prefix"),
 	),
 	key.NewBinding(
 		key.WithKeys("e"),
@@ -383,7 +383,7 @@ func newGetSuggestedBranch(description string, userBranches []project.Branch, re
 }
 
 func removeSpecialChars(unsanitized string) string {
-	pattern := regexp.MustCompile(`[^A-Za-z\-_\/]+`)
+	pattern := regexp.MustCompile(`[^A-Za-z0-9\-_\/]+`)
 	sanitized := pattern.ReplaceAllString(unsanitized, "")
 	return sanitized
 }
@@ -394,7 +394,7 @@ func sanitizeBranchName(unsanitized []string) []string {
 	// then we omit the suggestion.
 
 	// Edge case is of course that we are left with an empty list.
-	isInWhitelist := regexp.MustCompile(`^[A-Za-z-_\/]+$`).MatchString
+	isInWhitelist := regexp.MustCompile(`^[A-Za-z0-9-_\/]+$`).MatchString
 
 	sanitized := make([]string, 0)
 	for _, s := range unsanitized {
