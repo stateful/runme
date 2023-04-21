@@ -195,7 +195,7 @@ func GetDefaultConfigHome() string {
 			dir = os.TempDir()
 		}
 	}
-	return filepath.Join(dir, "stateful")
+	return filepath.Join(dir, "runme")
 }
 
 func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.RunnerOption, error) {
