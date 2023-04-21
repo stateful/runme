@@ -408,7 +408,7 @@ func (a *Auth) serveHTTP(ln net.Listener) (string, <-chan error) {
 }
 
 var cliAuthStatusPage = func() url.URL {
-	u, err := url.Parse("https://www.stateful.com/cli/login")
+	u, err := url.Parse("https://www.stateful.com/cli/runme")
 	if err != nil {
 		panic(err)
 	}
