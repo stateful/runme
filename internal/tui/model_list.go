@@ -24,17 +24,18 @@ import (
 )
 
 var (
-	appStyle  = lipgloss.NewStyle().Margin(1, 2)
-	helpStyle = lipgloss.NewStyle().
+	appStyle      = lipgloss.NewStyle().Margin(1, 2)
+	listItemStyle = lipgloss.NewStyle().PaddingLeft(0).Bold(true)
+	editHelpStyle = lipgloss.NewStyle().
 			PaddingLeft(2).
 			Foreground(lipgloss.Color("241"))
-	inputStyle = lipgloss.NewStyle().
+	editInputStyle = lipgloss.NewStyle().
 			MarginLeft(1).
 			MarginBottom(2).
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderForeground(lipgloss.Color("63")).
 			Foreground(lipgloss.Color("#87448b"))
-	titleStyle = lipgloss.NewStyle().
+	editTitleStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FAFAFA")).
 			Background(lipgloss.Color("#5d5dd2")).
 			MarginLeft(2).
@@ -52,9 +53,10 @@ type ListModel struct {
 	description string
 	suggestions []string
 	list        list.Model
-	input       textinput.Model
-	keys        keyMap
-	help        help.Model
+
+	editInput textinput.Model
+	editKeys  KeyMap
+	editHelp  help.Model
 
 	confirmed bool
 	loading   bool
@@ -73,7 +75,7 @@ var listKeys = []key.Binding{
 	),
 	key.NewBinding(
 		key.WithKeys("e"),
-		key.WithHelp("e", "edit suggestion"),
+		key.WithHelp("e", "edit branch name"),
 	),
 }
 
@@ -106,9 +108,9 @@ func NewListModel(ctx context.Context, description string, repoUser string, clie
 		repoUser:    repoUser,
 		description: description,
 		list:        l,
-		input:       ti,
-		keys:        inputKeys,
-		help:        help.New(),
+		editInput:   ti,
+		editKeys:    *editInputKeys(),
+		editHelp:    help.New(),
 		spinner:     s,
 		loading:     true,
 		usePrefix:   true,
@@ -171,31 +173,38 @@ type errorMsg struct {
 	Err error
 }
 
-type keyMap struct {
-	Save  key.Binding
-	Enter key.Binding
-	Quit  key.Binding
+func (m ListModel) KeyMap() *KeyMap {
+	kmap := NewKeyMap()
+
+	kmap.Set("enter", key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "select"),
+	))
+	kmap.Set("up", m.list.KeyMap.CursorUp)
+	kmap.Set("down", m.list.KeyMap.CursorDown)
+	kmap.Set("t", key.NewBinding(
+		key.WithKeys("t"),
+	))
+	kmap.Set("e", key.NewBinding(
+		key.WithKeys("e"),
+	))
+
+	return kmap
 }
 
-func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Save, k.Enter, k.Quit}
-}
+func editInputKeys() *KeyMap {
+	editInputKeys := NewKeyMap()
 
-func (k keyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Save, k.Enter, k.Quit},
-	}
-}
-
-var inputKeys = keyMap{
-	Save: key.NewBinding(
-		key.WithKeys("s", "enter"),
-		key.WithHelp("enter/ctrl+s", "save suggest"),
-	),
-	Quit: key.NewBinding(
+	editInputKeys.Set("enter", key.NewBinding(
+		key.WithKeys("enter", "ctrl+s"),
+		key.WithHelp("enter/ctrl+s", "save changes"),
+	))
+	editInputKeys.Set("esc", key.NewBinding(
 		key.WithKeys("esc", "esc", "ctrl+c"),
 		key.WithHelp("esc/ctrl+c", "quit"),
-	),
+	))
+
+	return editInputKeys
 }
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -204,7 +213,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		h, v := appStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
-		m.help.Width = msg.Width - h
+		m.editHelp.Width = msg.Width - h
 
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -212,31 +221,36 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tea.KeyMsg:
-		if m.input.Focused() {
-			switch msg.Type {
-			case tea.KeyEnter, tea.KeyCtrlS:
-				m.list.SetItem(m.list.Cursor(), createListItem(removeSpecialChars(m.input.Value()), m.usePrefix))
-				m.input.Blur()
+		kmap := m.KeyMap()
+		if m.editInput.Focused() {
+
+			editKmap := m.editKeys
+			switch {
+			case editKmap.Matches(msg, "enter"):
+				selected := m.list.SelectedItem().(item)
+				selected.branchName = removeSpecialChars(m.editInput.Value())
+				m.list.SetItem(m.list.Cursor(), selected)
+				m.editInput.Blur()
 				return m, nil
-			case tea.KeyCtrlC, tea.KeyEsc:
-				m.input.Blur()
+			case editKmap.Matches(msg, "esc"):
+				m.editInput.Blur()
 				return m, nil
 			}
 
-			m.input, cmd = m.input.Update(msg)
+			m.editInput, cmd = m.editInput.Update(msg)
 			return m, cmd
 		}
-		switch msg.String() {
+		switch {
 
-		case "up":
+		case kmap.Matches(msg, "up"):
 			m.list.CursorUp()
 
 			return m, nil
-		case "down":
+		case kmap.Matches(msg, "down"):
 			m.list.CursorDown()
 
 			return m, nil
-		case "enter":
+		case kmap.Matches(msg, "enter"):
 
 			if m.loading {
 				return m, nil
@@ -256,7 +270,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return errorMsg{err}
 				}
 
-				cmdSlice := []string{"git", "checkout", "-b", m.selected.title}
+				cmdSlice := []string{"git", "checkout", "-b", m.selected.branchName}
 				fmt.Printf("Output: %s", cmdSlice)
 
 				cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
@@ -269,20 +283,20 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return confirmMsg{string(out)}
 			}
-		case "t":
+		case kmap.Matches(msg, "t"):
 			m := m.TogglePrefixes()
 			return m, nil
-		case "e":
+		case kmap.Matches(msg, "e"):
 			selected := m.list.SelectedItem().(item)
-			m.input.SetValue(selected.title)
-			m.input.Focus()
+			m.editInput.SetValue(selected.branchName)
+			m.editInput.Focus()
 			return m, nil
 		}
 
 	case suggestionsMsg:
 		m.suggestions = msg.suggestions
-		for i, s := range m.suggestions {
-			m.list.InsertItem(i, createListItem(s, true))
+		for _, s := range m.suggestions {
+			m.list.InsertItem(0, createListItem(s, true))
 		}
 		m.loading = false
 		return m, nil
@@ -310,7 +324,7 @@ func (m ListModel) View() string {
 	}
 
 	if m.confirmed {
-		s := fmt.Sprintf("Confirmed: %s", m.selected.title)
+		s := fmt.Sprintf("Confirmed: %s", m.selected.branchName)
 		return s
 	}
 
@@ -319,49 +333,54 @@ func (m ListModel) View() string {
 		return s
 	}
 
-	m.list.Title = "How about one of these:"
-
-	if m.input.Focused() {
-		s += titleStyle.Render("Edit suggestion:") + "\n"
-		s += inputStyle.Render(m.input.View()) + "\n"
-		s += helpStyle.Render(m.help.View(m.keys))
+	if m.editInput.Focused() {
+		s += editTitleStyle.Render("Edit branch name:") + "\n"
+		s += editInputStyle.Render(m.editInput.View()) + "\n"
+		s += editHelpStyle.Render(m.editHelp.View(m.editKeys))
 		return appStyle.Render(s)
 	}
+	m.list.Title = "How about one of these:"
 	s += appStyle.Render(m.list.View())
 
 	return s
 }
 
 type item struct {
-	suggestion string
-	title      string
+	branchName string
+	usePrefix  bool
 }
 
-func (i item) Title() string { return i.title }
+func (i item) Title() string { return listItemStyle.Render(i.Suggestion()) }
 func (i item) Description() string {
-	return "git checkout -b '" + i.title
+	return fmt.Sprintf("git checkout -b '%v'", i.Suggestion())
 }
-func (i item) FilterValue() string { return i.suggestion }
+func (i item) FilterValue() string { return i.branchName }
+func (i item) Suggestion() string {
+	if i.usePrefix {
+		return i.branchName
+	}
+
+	parts := strings.SplitN(i.branchName, "/", 2)
+
+	if len(parts) == 2 {
+		return parts[1]
+	}
+
+	return i.branchName
+}
 
 func (m ListModel) TogglePrefixes() ListModel {
 	m.usePrefix = !m.usePrefix
-	for i, item := range m.list.Items() {
-		m.list.SetItem(i, createListItem(item.FilterValue(), m.usePrefix))
+	for idx, i := range m.list.Items() {
+		item := i.(item)
+		item.usePrefix = !item.usePrefix
+		m.list.SetItem(idx, item)
 	}
 	return m
 }
 
-func createListItem(suggestion string, showPrefix bool) item {
-	item := item{suggestion: suggestion, title: suggestion}
-	if !showPrefix {
-		parts := strings.Split(suggestion, "/")
-		if len(parts) > 0 {
-			item.title = strings.Replace(suggestion, parts[0]+"/", "", 1)
-		}
-		item.title = strings.Replace(suggestion, parts[0]+"/", "", 1)
-	}
-
-	return item
+func createListItem(branchName string, showPrefix bool) item {
+	return item{branchName: branchName, usePrefix: showPrefix}
 }
 
 func newGetSuggestedBranch(description string, userBranches []project.Branch, repoBranches []project.Branch) (input query.SuggestedBranchInput, _ error) {
