@@ -55,7 +55,6 @@ type ListModel struct {
 	list        list.Model
 
 	editInput textinput.Model
-	editKeys  KeyMap
 	editHelp  help.Model
 
 	confirmed bool
@@ -68,17 +67,6 @@ type ListModel struct {
 	err error
 }
 
-var listKeys = []key.Binding{
-	key.NewBinding(
-		key.WithKeys("t"),
-		key.WithHelp("t", "toggle prefix"),
-	),
-	key.NewBinding(
-		key.WithKeys("e"),
-		key.WithHelp("e", "edit branch name"),
-	),
-}
-
 func NewListModel(ctx context.Context, description string, repoUser string, client *graphql.Client) ListModel {
 	s := spinner.New()
 	s.Spinner = spinner.Line
@@ -89,19 +77,13 @@ func NewListModel(ctx context.Context, description string, repoUser string, clie
 	l.SetFilteringEnabled(false)
 	l.SetShowStatusBar(false)
 	l.SetShowPagination(false)
-	l.AdditionalShortHelpKeys = func() []key.Binding {
-		return listKeys
-	}
-	l.AdditionalFullHelpKeys = func() []key.Binding {
-		return listKeys
-	}
 
 	ti := textinput.New()
 	ti.Prompt = ""
 	ti.CharLimit = 250
 	ti.Width = 50
 
-	return ListModel{
+	m := ListModel{
 		ctx:         ctx,
 		client:      client,
 		log:         log.Get().Named("SuggestionsListModel"),
@@ -109,12 +91,20 @@ func NewListModel(ctx context.Context, description string, repoUser string, clie
 		description: description,
 		list:        l,
 		editInput:   ti,
-		editKeys:    *editInputKeys(),
 		editHelp:    help.New(),
 		spinner:     s,
 		loading:     true,
 		usePrefix:   true,
 	}
+
+	m.list.AdditionalShortHelpKeys = func() []key.Binding {
+		return m.KeyMap().ShortHelp()
+	}
+	m.list.AdditionalFullHelpKeys = func() []key.Binding {
+		return m.KeyMap().ShortHelp()
+	}
+
+	return m
 }
 
 func (m ListModel) startSearch() tea.Msg {
@@ -184,15 +174,17 @@ func (m ListModel) KeyMap() *KeyMap {
 	kmap.Set("down", m.list.KeyMap.CursorDown)
 	kmap.Set("t", key.NewBinding(
 		key.WithKeys("t"),
+		key.WithHelp("t", "toggle prefix"),
 	))
 	kmap.Set("e", key.NewBinding(
 		key.WithKeys("e"),
+		key.WithHelp("e", "edit branch name"),
 	))
 
 	return kmap
 }
 
-func editInputKeys() *KeyMap {
+func (m ListModel) EditKeyMap() *KeyMap {
 	editInputKeys := NewKeyMap()
 
 	editInputKeys.Set("enter", key.NewBinding(
@@ -221,10 +213,9 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tea.KeyMsg:
-		kmap := m.KeyMap()
 		if m.editInput.Focused() {
 
-			editKmap := m.editKeys
+			editKmap := m.EditKeyMap()
 			switch {
 			case editKmap.Matches(msg, "enter"):
 				selected := m.list.SelectedItem().(item)
@@ -240,6 +231,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.editInput, cmd = m.editInput.Update(msg)
 			return m, cmd
 		}
+		kmap := m.KeyMap()
 		switch {
 
 		case kmap.Matches(msg, "up"):
@@ -270,7 +262,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return errorMsg{err}
 				}
 
-				cmdSlice := []string{"git", "checkout", "-b", m.selected.branchName}
+				cmdSlice := []string{"git", "checkout", "-b", m.selected.Suggestion()}
 				fmt.Printf("Output: %s", cmdSlice)
 
 				cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
@@ -336,7 +328,7 @@ func (m ListModel) View() string {
 	if m.editInput.Focused() {
 		s += editTitleStyle.Render("Edit branch name:") + "\n"
 		s += editInputStyle.Render(m.editInput.View()) + "\n"
-		s += editHelpStyle.Render(m.editHelp.View(m.editKeys))
+		s += editHelpStyle.Render(m.editHelp.View(m.EditKeyMap()))
 		return appStyle.Render(s)
 	}
 	m.list.Title = "How about one of these:"
