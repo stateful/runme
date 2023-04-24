@@ -511,7 +511,7 @@ func (a *Auth) getAndSaveOAuthToken(ctx context.Context, code string) (Token, er
 	return token, a.Storage.Save(oauthTokenKey, token)
 }
 
-const APIAuthEndpoint = "/auth/cli"
+const APIAuthEndpoint = "/auth/cli/runme"
 
 // TODO(adamb): this is a hack, it temporarily uses an endpoint
 // that is dedicated for the VS Code to exchange the GH access token
