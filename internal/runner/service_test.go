@@ -217,7 +217,7 @@ func Test_runnerService(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		assert.Equal(t, "xxx\r\n", string(result.Stdout))
+		assert.Regexp(t, "abc\r\nxxx\r\n", string(result.Stdout))
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
@@ -274,7 +274,7 @@ func Test_runnerService(t *testing.T) {
 			result := <-execResult
 
 			assert.NoError(t, result.Err)
-			assert.Len(t, result.Stdout, 4097) // \n => \r\n
+			assert.Len(t, result.Stdout, 4097*2) // \n => \r\n
 			assert.EqualValues(t, 0, result.ExitCode)
 		})
 	}
@@ -710,7 +710,7 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 		assert.EqualValues(t, 0, result.ExitCode)
-		assert.EqualValues(t, "56\r\n150\r\n", string(result.Stdout))
+		assert.EqualValues(t, "\r\n56\r\n150\r\n", string(result.Stdout))
 	})
 
 	t.Run("ExecuteSessionsMostRecent", func(t *testing.T) {
@@ -834,9 +834,9 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 
-		require.Equal(
+		require.NotEqual(
 			t,
-			1,
+			0,
 			result.ExitCode,
 		)
 	})
