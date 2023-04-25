@@ -201,7 +201,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		cmdCtx = context.Background()
 	}
 
-	if err := cmd.StartWithOpts(cmdCtx, &startOpts{DisableEcho: req.Tty}); err != nil {
+	if err := cmd.StartWithOpts(cmdCtx, &startOpts{}); err != nil {
 		return err
 	}
 
