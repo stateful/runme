@@ -199,8 +199,6 @@ func GetDefaultConfigHome() string {
 }
 
 func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.RunnerOption, error) {
-	dir, _ := filepath.Abs(fChdir)
-
 	var (
 		SessionID                 string
 		SessionStrategy           string
@@ -233,6 +231,8 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 	_ = cmd.Flags().MarkHidden("session-strategy")
 
 	getRunOpts := func() ([]client.RunnerOption, error) {
+		dir, _ := filepath.Abs(fChdir)
+
 		runOpts := []client.RunnerOption{
 			client.WithDir(dir),
 			client.WithSessionID(SessionID),
