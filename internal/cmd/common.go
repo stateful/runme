@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,6 +20,26 @@ import (
 	"github.com/stateful/runme/internal/runner"
 	"github.com/stateful/runme/internal/runner/client"
 )
+
+func findAllMarkdownFiles() (error, []string) {
+	root, err := os.Getwd()
+	if err != nil {
+		return err, nil
+	}
+
+	var files []string
+	filepath.WalkDir(root, func(s string, d fs.DirEntry, e error) error {
+		if e != nil {
+			return e
+		}
+		if filepath.Ext(d.Name()) == ".md" {
+			files = append(files, s)
+		}
+		return nil
+	})
+
+	return nil, files
+}
 
 func readMarkdownFile(args []string) ([]byte, error) {
 	arg := ""
