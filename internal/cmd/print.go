@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/runme/internal/project"
 )
 
 func printCmd() *cobra.Command {
@@ -15,7 +16,12 @@ func printCmd() *cobra.Command {
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			blocks, err := getCodeBlocks()
+			p, err := project.New(fChdir)
+			if err != nil {
+				return err
+			}
+
+			blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
 			if err != nil {
 				return err
 			}

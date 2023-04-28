@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
@@ -32,7 +33,12 @@ func fmtCmd() *cobra.Command {
 				}
 			}
 
-			data, err := readMarkdownFile(args)
+			p, err := project.New(fChdir)
+			if err != nil {
+				return err
+			}
+
+			data, err := p.ReadMarkdownFile(fFileName, args)
 			if err != nil {
 				return err
 			}

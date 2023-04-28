@@ -4,104 +4,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"io/fs"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/renderer/cmark"
-	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 )
-
-func findAllMarkdownFiles() (error, []string) {
-	root, err := os.Getwd()
-	if err != nil {
-		return err, nil
-	}
-
-	var files []string
-	filepath.WalkDir(root, func(s string, d fs.DirEntry, e error) error {
-		if e != nil {
-			return e
-		}
-		if filepath.Ext(d.Name()) == ".md" {
-			files = append(files, s)
-		}
-		return nil
-	})
-
-	return nil, files
-}
-
-func readMarkdownFile(args []string) ([]byte, error) {
-	arg := ""
-	if len(args) == 1 {
-		arg = args[0]
-	}
-
-	if arg == "" {
-		f, err := os.DirFS(fChdir).Open(fFileName)
-		if err != nil {
-			var pathError *os.PathError
-			if errors.As(err, &pathError) {
-				return nil, errors.Errorf("failed to %s markdown file %s: %s", pathError.Op, pathError.Path, pathError.Err.Error())
-			}
-
-			return nil, errors.Wrapf(err, "failed to read %s", filepath.Join(fChdir, fFileName))
-		}
-		defer func() { _ = f.Close() }()
-		data, err := io.ReadAll(f)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read data")
-		}
-		return data, nil
-	}
-
-	var (
-		data []byte
-		err  error
-	)
-
-	if arg == "-" {
-		data, err = io.ReadAll(os.Stdin)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to read from stdin")
-		}
-	} else if strings.HasPrefix(arg, "https://") {
-		client := http.Client{
-			Timeout: time.Second * 5,
-		}
-		resp, err := client.Get(arg)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get a file %q", arg)
-		}
-		defer func() { _ = resp.Body.Close() }()
-		data, err = io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to read body")
-		}
-	} else {
-		f, err := os.Open(arg)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open file %q", arg)
-		}
-		defer func() { _ = f.Close() }()
-		data, err = io.ReadAll(f)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read from file %q", arg)
-		}
-	}
-
-	return data, nil
-}
 
 func writeMarkdownFile(args []string, data []byte) error {
 	arg := ""
@@ -125,29 +38,6 @@ func writeMarkdownFile(args []string, data []byte) error {
 	return errors.Wrapf(err, "failed to write to %s", fullFilename)
 }
 
-func getCodeBlocks() (document.CodeBlocks, error) {
-	data, err := readMarkdownFile(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	if err != nil {
-		return nil, err
-	}
-
-	blocks := document.CollectCodeBlocks(node)
-
-	filtered := make(document.CodeBlocks, 0, len(blocks))
-	for _, b := range blocks {
-		if fAllowUnknown || (b.Language() != "" && runner.IsSupported(b.Language())) {
-			filtered = append(filtered, b)
-		}
-	}
-	return filtered, nil
-}
-
 func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlock, error) {
 	block := blocks.Lookup(name)
 	if block == nil {
@@ -157,7 +47,8 @@ func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlo
 }
 
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	blocks, err := getCodeBlocks()
+	p, err := project.New(fChdir)
+	blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
 	if err != nil {
 		cmd.PrintErrf("failed to get parser: %s", err)
 		return nil, cobra.ShellCompDirectiveError
@@ -276,6 +167,11 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 	}
 
 	return getRunOpts
+}
+
+func isInExperimentalMode() bool {
+	_, present := os.LookupEnv("EXPERIMENTAL_CLI")
+	return present
 }
 
 type runFunc func(context.Context) error

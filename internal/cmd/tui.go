@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	rmath "github.com/stateful/runme/internal/math"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/version"
@@ -31,7 +32,12 @@ func tuiCmd() *cobra.Command {
 		Short: "Run the interactive TUI",
 		Long:  "Run a command from a descriptive list given by an interactive TUI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			blocks, err := getCodeBlocks()
+			p, err := project.New(fChdir)
+			if err != nil {
+				return err
+			}
+
+			blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
 			if err != nil {
 				return err
 			}
