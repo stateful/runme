@@ -164,3 +164,25 @@ func (p *Project) GetAllCodeBlocks(allowUnknown bool) (CodeBlocks, error) {
 
 	return blocks, nil
 }
+
+func (p *Project) LookUpCodeBlockById(id string) (*string, *document.CodeBlock, error) {
+	files, err := p.getAllMarkdownFiles()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, file := range files {
+		codeBlock, err := p.GetCodeBlocks(file[len(p.RootDir):], false)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, block := range codeBlock {
+			if block.Name() == id {
+				relativeFilePath := file[len(p.RootDir):]
+				return &relativeFilePath, block, nil
+			}
+		}
+	}
+
+	return nil, nil, errors.Errorf("No code block found with id %s", id)
+}
