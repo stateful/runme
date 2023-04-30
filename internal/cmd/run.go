@@ -8,9 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/containerd/console"
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
@@ -23,6 +25,7 @@ var (
 	dryRun         bool
 	runInParallel  bool
 	runSequential  bool
+	onlyCommandIO  bool
 	replaceScripts []string
 	serverAddr     string
 	getRunnerOpts  func() ([]client.RunnerOption, error)
@@ -30,7 +33,7 @@ var (
 
 func runCmd() *cobra.Command {
 	cmd := cobra.Command{
-		Use:               "run",
+		Use:               "run [...bock]",
 		Aliases:           []string{"exec"},
 		Short:             "Run a selected command",
 		Long:              "Run a selected command identified based on its unique parsed name.",
@@ -42,26 +45,61 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			for _, blockId := range os.Args[2:] {
-				if blockId == "-q" || blockId == "--sequential" {
+			inParallelMode := false
+			runMap := make(map[string][]string)
+			var parallelBlocks []*document.CodeBlock
+			for i, blockId := range os.Args[2:] {
+				file, block, err := p.LookUpCodeBlockById(blockId)
+
+				// switch to parallel mode
+				if isParallelParam(blockId) {
+					inParallelMode = true
 					continue
 				}
-				if blockId == "-p" || blockId == "--parallel" {
-					return errors.New("Parallel execution not yet supported")
+
+				// run all parallel blocks if
+				// - we are in parallel mode and look at the last item of the list
+				// - we encounter a sequential parameter
+				if len(parallelBlocks) > 0 && (isSequentialParam(blockId) || (inParallelMode && i == len(os.Args)-1)) {
+					if !isSequentialParam(blockId) {
+						runMap[*file] = append(runMap[*file], blockId)
+						parallelBlocks = append(parallelBlocks, block)
+					}
+
+					printUpdate(runMap)
+					err := runBlocks(*cmd, parallelBlocks)
+					if err != nil {
+						return err
+					}
+					parallelBlocks = nil
+					runMap = make(map[string][]string)
 				}
 
-				file, block, err := p.LookUpCodeBlockById(blockId)
-				fmt.Printf(">>> Run \"%s\" from %s", blockId, *file)
-				if err != nil {
-					return err
+				// switch to sequential mode
+				if isSequentialParam(blockId) {
+					inParallelMode = false
+					continue
 				}
 
+				// collect parallel task and move on
+				if inParallelMode {
+					runMap[*file] = append(runMap[*file], blockId)
+					parallelBlocks = append(parallelBlocks, block)
+					continue
+				}
+
+				// run sequential block
+				runMap[*file] = append(runMap[*file], blockId)
+				printUpdate(runMap)
+				runMap = make(map[string][]string)
 				err = runBlock(*cmd, *block)
 				if err != nil {
 					return err
 				}
 			}
 
+			parallelBlocks = nil
+			runMap = make(map[string][]string)
 			return nil
 		},
 	}
@@ -71,11 +109,49 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 	cmd.Flags().BoolVarP(&runInParallel, "parallel", "p", false, "Run commands in parallel.")
-	cmd.Flags().BoolVarP(&runSequential, "sequential", "q", true, "Run commands sequentially.")
+	cmd.Flags().BoolVarP(&runSequential, "sequential", "s", true, "Run commands sequentially.")
+	cmd.Flags().BoolVarP(&onlyCommandIO, "onlyCommandOutput", "", false, "If set, Runme will only output command output")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
 	return &cmd
+}
+
+func isSequentialParam(blockId string) bool {
+	return blockId == "-s" || blockId == "--sequential"
+}
+
+func isParallelParam(blockId string) bool {
+	return blockId == "-p" || blockId == "--parallel"
+}
+
+func printUpdate(runMap map[string][]string) {
+	runme := color.New(color.BgHiBlue, color.Bold, color.FgWhite)
+	runme.Print(" ► ")
+	fmt.Print(" Run ")
+	blockIdStr := color.New(color.Bold, color.FgYellow)
+
+	cnt := 0
+	for file, blockIds := range runMap {
+		cnt++
+
+		for i, blockId := range blockIds {
+			blockIdStr.Printf("\"%s\"", blockId)
+			if (i + 1) != len(blockIds) {
+				fmt.Print(", ")
+			}
+		}
+
+		fmt.Print(" from ")
+		filePath := color.New(color.Bold, color.FgGreen)
+		filePath.Print(file)
+
+		if cnt < len(runMap) {
+			fmt.Print(", ")
+		}
+	}
+
+	fmt.Println("")
 }
 
 func runBlock(cmd cobra.Command, block document.CodeBlock) error {
@@ -149,6 +225,29 @@ func runBlock(cmd cobra.Command, block document.CodeBlock) error {
 		}
 	}
 	return err
+}
+
+func runBlocks(cmd cobra.Command, blocks []*document.CodeBlock) error {
+	var wg sync.WaitGroup
+
+	for _, block := range blocks {
+		if block.Interactive() {
+			return errors.Errorf(
+				"Failed to run \"%s\": running interactive code blocks "+
+					"in parallel is not yet supported",
+				block.Name(),
+			)
+		}
+
+		wg.Add(1)
+		go func(b *document.CodeBlock) {
+			defer wg.Done()
+			runBlock(cmd, *b)
+		}(block)
+	}
+
+	wg.Wait()
+	return nil
 }
 
 func ctxWithSigCancel(ctx context.Context) (context.Context, context.CancelFunc) {

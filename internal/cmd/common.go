@@ -118,7 +118,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 		EnableBackgroundProcesses bool
 	)
 
-	cmd.Flags().StringVarP(serverAddr, "server", "s", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
+	cmd.Flags().StringVarP(serverAddr, "server", "", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
 	cmd.Flags().StringVar(&SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
 
 	cmd.Flags().BoolVar(&EnableBackgroundProcesses, "background", false, "Enable running background blocks as background processes")
