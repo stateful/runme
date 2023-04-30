@@ -46,7 +46,9 @@ func listCmd() *cobra.Command {
 					continue
 				}
 
-				fmt.Println(">>> Commands for", block.FileName)
+				if isInExperimentalMode() {
+					fmt.Println(">>> Commands for", block.FileName)
+				}
 
 				// TODO: this should be taken from cmd.
 				io := iostreams.System()

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"sync"
 	"syscall"
@@ -43,6 +44,25 @@ func runCmd() *cobra.Command {
 			p, err := project.New(fChdir)
 			if err != nil {
 				return err
+			}
+
+			if !isInExperimentalMode() {
+				filePath := path.Join(fChdir, fFileName)
+				blocks, err := p.GetCodeBlocks(filePath[len(p.RootDir):], fAllowUnknown)
+				if err != nil {
+					return err
+				}
+
+				block, err := lookupCodeBlock(blocks, args[0])
+				if err != nil {
+					return err
+				}
+
+				err = runBlock(*cmd, *block)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
 
 			inParallelMode := false

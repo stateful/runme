@@ -12,7 +12,7 @@ This markdown file contains some custom examples to test the execution within a 
 echo "Hello World"
 ```
 
-```sh {interactive=false}
+```sh
 echo "Foo 👀"
 sleep 2
 echo "Bar 🕺"
