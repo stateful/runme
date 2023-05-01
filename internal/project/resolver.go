@@ -41,8 +41,6 @@ func (r *Resolver) Get() (p Project, err error) {
 	p.BranchName = repo.BranchName()
 	p.Commit = repo.Commit()
 	p.URL = repo.URL()
-	p.RootDir = r.RootDir()
-
 	return p, repo.Err()
 }
 

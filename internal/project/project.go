@@ -23,8 +23,16 @@ type Project struct {
 	URL        string
 }
 
-func New(cwd string) (p Project, err error) {
+func New(cwd string) (p Project) {
 	r := &Resolver{cwd: cwd}
+	p.RootDir = r.RootDir()
+	return p
+}
+
+func NetGit(cwd string) (Project, error) {
+	p := New(cwd)
+	r := &Resolver{cwd: cwd}
+	p.RootDir = r.RootDir()
 	return r.Get()
 }
 

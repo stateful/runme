@@ -32,11 +32,7 @@ func tuiCmd() *cobra.Command {
 		Short: "Run the interactive TUI",
 		Long:  "Run a command from a descriptive list given by an interactive TUI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := project.New(fChdir)
-			if err != nil {
-				return err
-			}
-
+			p := project.New(fChdir)
 			blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
 			if err != nil {
 				return err

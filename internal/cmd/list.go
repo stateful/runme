@@ -19,11 +19,7 @@ func listCmd() *cobra.Command {
 		Short:   "List available commands",
 		Long:    "Displays list of parsed command blocks, their name, number of commands in a block, and description from a given markdown file, such as README.md.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := project.New(fChdir)
-			if err != nil {
-				return err
-			}
-
+			p := project.New(fChdir)
 			blocks := project.CodeBlocks{}
 			var blockError error
 			if isInExperimentalMode() {

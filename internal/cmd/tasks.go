@@ -16,11 +16,7 @@ func tasksCmd() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := project.New(fChdir)
-			if err != nil {
-				return err
-			}
-
+			p := project.New(fChdir)
 			blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
 			if err != nil {
 				return err

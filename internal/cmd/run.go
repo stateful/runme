@@ -41,11 +41,7 @@ func runCmd() *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := project.New(fChdir)
-			if err != nil {
-				return err
-			}
-
+			p := project.New(fChdir)
 			if !isInExperimentalMode() {
 				filePath := path.Join(fChdir, fFileName)
 				blocks, err := p.GetCodeBlocks(filePath[len(p.RootDir):], fAllowUnknown)

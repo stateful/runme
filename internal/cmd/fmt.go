@@ -33,11 +33,7 @@ func fmtCmd() *cobra.Command {
 				}
 			}
 
-			p, err := project.New(fChdir)
-			if err != nil {
-				return err
-			}
-
+			p := project.New(fChdir)
 			data, err := p.ReadMarkdownFile(fFileName, args)
 			if err != nil {
 				return err
