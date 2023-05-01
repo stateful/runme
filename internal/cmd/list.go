@@ -47,7 +47,10 @@ func listCmd() *cobra.Command {
 				}
 
 				if isInExperimentalMode() {
-					fmt.Println(">>> Commands for", block.FileName)
+					_, err := fmt.Println(">>> Commands for", block.FileName)
+					if err != nil {
+						return err
+					}
 				}
 
 				// TODO: this should be taken from cmd.
@@ -72,7 +75,11 @@ func listCmd() *cobra.Command {
 				if err != nil {
 					return errors.Wrap(err, "failed to render")
 				}
-				fmt.Print("\n")
+
+				_, err = fmt.Print("\n")
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil

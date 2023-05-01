@@ -68,11 +68,11 @@ func runCmd() *cobra.Command {
 			inParallelMode := false
 			runMap := make(map[string][]string)
 			var parallelBlocks []*document.CodeBlock
-			for i, blockId := range os.Args[2:] {
-				file, block, err := p.LookUpCodeBlockById(blockId)
+			for i, blockID := range os.Args[2:] {
+				file, block, err := p.LookUpCodeBlockByID(blockID)
 
 				// switch to parallel mode
-				if isParallelParam(blockId) {
+				if isParallelParam(blockID) {
 					inParallelMode = true
 					continue
 				}
@@ -80,14 +80,18 @@ func runCmd() *cobra.Command {
 				// run all parallel blocks if
 				// - we are in parallel mode and look at the last item of the list
 				// - we encounter a sequential parameter
-				if len(parallelBlocks) > 0 && (isSequentialParam(blockId) || (inParallelMode && i == len(os.Args)-1)) {
-					if !isSequentialParam(blockId) {
-						runMap[*file] = append(runMap[*file], blockId)
+				if len(parallelBlocks) > 0 && (isSequentialParam(blockID) || (inParallelMode && i == len(os.Args)-1)) {
+					if !isSequentialParam(blockID) {
+						runMap[*file] = append(runMap[*file], blockID)
 						parallelBlocks = append(parallelBlocks, block)
 					}
 
-					printUpdate(runMap)
-					err := runBlocks(*cmd, parallelBlocks)
+					err := printUpdate(runMap)
+					if err != nil {
+						return err
+					}
+
+					err = runBlocks(*cmd, parallelBlocks)
 					if err != nil {
 						return err
 					}
@@ -96,21 +100,25 @@ func runCmd() *cobra.Command {
 				}
 
 				// switch to sequential mode
-				if isSequentialParam(blockId) {
+				if isSequentialParam(blockID) {
 					inParallelMode = false
 					continue
 				}
 
 				// collect parallel task and move on
 				if inParallelMode {
-					runMap[*file] = append(runMap[*file], blockId)
+					runMap[*file] = append(runMap[*file], blockID)
 					parallelBlocks = append(parallelBlocks, block)
 					continue
 				}
 
 				// run sequential block
-				runMap[*file] = append(runMap[*file], blockId)
-				printUpdate(runMap)
+				runMap[*file] = append(runMap[*file], blockID)
+				err = printUpdate(runMap)
+				if err != nil {
+					return err
+				}
+
 				runMap = make(map[string][]string)
 				err = runBlock(*cmd, *block)
 				if err != nil {
@@ -137,41 +145,59 @@ func runCmd() *cobra.Command {
 	return &cmd
 }
 
-func isSequentialParam(blockId string) bool {
-	return blockId == "-s" || blockId == "--sequential"
+func isSequentialParam(blockID string) bool {
+	return blockID == "-s" || blockID == "--sequential"
 }
 
-func isParallelParam(blockId string) bool {
-	return blockId == "-p" || blockId == "--parallel"
+func isParallelParam(blockID string) bool {
+	return blockID == "-p" || blockID == "--parallel"
 }
 
-func printUpdate(runMap map[string][]string) {
+func printUpdate(runMap map[string][]string) error {
 	runme := color.New(color.BgHiBlue, color.Bold, color.FgWhite)
 	runme.Print(" ► ")
-	fmt.Print(" Run ")
-	blockIdStr := color.New(color.Bold, color.FgYellow)
+	_, err := fmt.Print(" Run ")
+	if err != nil {
+		return err
+	}
+
+	blockIDStr := color.New(color.Bold, color.FgYellow)
 
 	cnt := 0
-	for file, blockIds := range runMap {
+	for file, blockIDs := range runMap {
 		cnt++
 
-		for i, blockId := range blockIds {
-			blockIdStr.Printf("\"%s\"", blockId)
-			if (i + 1) != len(blockIds) {
-				fmt.Print(", ")
+		for i, blockID := range blockIDs {
+			blockIDStr.Printf("\"%s\"", blockID)
+			if (i + 1) != len(blockIDs) {
+				_, err := fmt.Print(", ")
+				if err != nil {
+					return err
+				}
 			}
 		}
 
-		fmt.Print(" from ")
+		_, err := fmt.Print(" from ")
+		if err != nil {
+			return err
+		}
 		filePath := color.New(color.Bold, color.FgGreen)
 		filePath.Print(file)
 
 		if cnt < len(runMap) {
-			fmt.Print(", ")
+			_, err := fmt.Print(", ")
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	fmt.Println("")
+	_, err = fmt.Println("")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func runBlock(cmd cobra.Command, block document.CodeBlock) error {
@@ -260,9 +286,9 @@ func runBlocks(cmd cobra.Command, blocks []*document.CodeBlock) error {
 		}
 
 		wg.Add(1)
-		go func(b *document.CodeBlock) {
+		go func(b *document.CodeBlock) error {
 			defer wg.Done()
-			runBlock(cmd, *b)
+			return runBlock(cmd, *b)
 		}(block)
 	}
 

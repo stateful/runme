@@ -7,6 +7,13 @@
             "--proto_path=/usr/local/include/protoc"
         ]
     },
+    "go.lintTool": "revive",
+    "go.lintFlags": ["-config", "revive.toml", "-formatter", "stylish"],
+    "go.lintOnSave": "workspace",
+    "go.liveErrors": {
+      "enabled": true,
+      "delay": 500
+    }
     // Uncomment if you want to work on files in ./web.
     // "go.buildTags": "js,wasm",
     // Uncomment if you want to check compilation errors on Windows.

@@ -35,7 +35,7 @@ func (p *Project) getAllMarkdownFiles() ([]string, error) {
 	}
 
 	var files []string
-	filepath.WalkDir(root, func(s string, d fs.DirEntry, e error) error {
+	err = filepath.WalkDir(root, func(s string, d fs.DirEntry, e error) error {
 		if e != nil {
 			return e
 		}
@@ -44,6 +44,10 @@ func (p *Project) getAllMarkdownFiles() ([]string, error) {
 		}
 		return nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
 
 	return files, nil
 }
@@ -165,7 +169,7 @@ func (p *Project) GetAllCodeBlocks(allowUnknown bool) (CodeBlocks, error) {
 	return blocks, nil
 }
 
-func (p *Project) LookUpCodeBlockById(id string) (*string, *document.CodeBlock, error) {
+func (p *Project) LookUpCodeBlockByID(id string) (*string, *document.CodeBlock, error) {
 	files, err := p.getAllMarkdownFiles()
 	if err != nil {
 		return nil, nil, err
