@@ -139,8 +139,6 @@ func runCmd() *cobra.Command {
 				}
 			}
 
-			parallelBlocks = nil
-			runMap = make(map[string][]string)
 			return nil
 		},
 	}
