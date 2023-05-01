@@ -69,8 +69,6 @@ func runCmd() *cobra.Command {
 			runMap := make(map[string][]string)
 			var parallelBlocks []*document.CodeBlock
 			for i, blockID := range os.Args[2:] {
-				file, block, err := p.LookUpCodeBlockByID(blockID)
-
 				// switch to parallel mode
 				if isParallelParam(blockID) {
 					inParallelMode = true
@@ -81,12 +79,17 @@ func runCmd() *cobra.Command {
 				// - we are in parallel mode and look at the last item of the list
 				// - we encounter a sequential parameter
 				if len(parallelBlocks) > 0 && (isSequentialParam(blockID) || (inParallelMode && i == len(os.Args)-1)) {
+					file, block, err := p.LookUpCodeBlockByID(blockID)
+					if err != nil {
+						return err
+					}
+
 					if !isSequentialParam(blockID) {
 						runMap[*file] = append(runMap[*file], blockID)
 						parallelBlocks = append(parallelBlocks, block)
 					}
 
-					err := printUpdate(runMap)
+					err = printUpdate(runMap)
 					if err != nil {
 						return err
 					}
@@ -107,12 +110,22 @@ func runCmd() *cobra.Command {
 
 				// collect parallel task and move on
 				if inParallelMode {
+					file, block, err := p.LookUpCodeBlockByID(blockID)
+					if err != nil {
+						return err
+					}
+
 					runMap[*file] = append(runMap[*file], blockID)
 					parallelBlocks = append(parallelBlocks, block)
 					continue
 				}
 
 				// run sequential block
+				file, block, err := p.LookUpCodeBlockByID(blockID)
+				if err != nil {
+					return err
+				}
+
 				runMap[*file] = append(runMap[*file], blockID)
 				err = printUpdate(runMap)
 				if err != nil {
@@ -155,8 +168,12 @@ func isParallelParam(blockID string) bool {
 
 func printUpdate(runMap map[string][]string) error {
 	runme := color.New(color.BgHiBlue, color.Bold, color.FgWhite)
-	runme.Print(" ► ")
-	_, err := fmt.Print(" Run ")
+	_, err := runme.Print(" ► ")
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Print(" Run ")
 	if err != nil {
 		return err
 	}
@@ -168,7 +185,11 @@ func printUpdate(runMap map[string][]string) error {
 		cnt++
 
 		for i, blockID := range blockIDs {
-			blockIDStr.Printf("\"%s\"", blockID)
+			_, err := blockIDStr.Printf("\"%s\"", blockID)
+			if err != nil {
+				return err
+			}
+
 			if (i + 1) != len(blockIDs) {
 				_, err := fmt.Print(", ")
 				if err != nil {
@@ -182,7 +203,10 @@ func printUpdate(runMap map[string][]string) error {
 			return err
 		}
 		filePath := color.New(color.Bold, color.FgGreen)
-		filePath.Print(file)
+		_, err = filePath.Print(file)
+		if err != nil {
+			return err
+		}
 
 		if cnt < len(runMap) {
 			_, err := fmt.Print(", ")

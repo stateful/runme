@@ -48,6 +48,11 @@ func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlo
 
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	p, err := project.New(fChdir)
+	if err != nil {
+		cmd.PrintErrf("failed to load project at %s: %s", fChdir, err)
+		return nil, cobra.ShellCompDirectiveError
+	}
+
 	blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
 	if err != nil {
 		cmd.PrintErrf("failed to get parser: %s", err)
