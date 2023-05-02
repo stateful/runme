@@ -34,7 +34,7 @@ var (
 
 func runCmd() *cobra.Command {
 	cmd := cobra.Command{
-		Use:               "run [...bock]",
+		Use:               "run [...blocks]",
 		Aliases:           []string{"exec"},
 		Short:             "Run a selected command",
 		Long:              "Run a selected command identified based on its unique parsed name.",
@@ -62,9 +62,10 @@ func runCmd() *cobra.Command {
 			}
 
 			inParallelMode := false
+			blocks := os.Args[2:]
 			runMap := make(map[string][]string)
 			var parallelBlocks []*document.CodeBlock
-			for i, blockID := range os.Args[2:] {
+			for i, blockID := range blocks {
 				// switch to parallel mode
 				if isParallelParam(blockID) {
 					inParallelMode = true
@@ -74,7 +75,7 @@ func runCmd() *cobra.Command {
 				// run all parallel blocks if
 				// - we are in parallel mode and look at the last item of the list
 				// - we encounter a sequential parameter
-				if len(parallelBlocks) > 0 && (isSequentialParam(blockID) || (inParallelMode && i == len(os.Args)-1)) {
+				if isSequentialParam(blockID) || (inParallelMode && i == len(blocks)-1) {
 					file, block, err := p.LookUpCodeBlockByID(blockID)
 					if err != nil {
 						return err
@@ -143,9 +144,9 @@ func runCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
-	cmd.Flags().BoolVarP(&runInParallel, "parallel", "p", false, "Run commands in parallel.")
-	cmd.Flags().BoolVarP(&runSequential, "sequential", "s", true, "Run commands sequentially.")
-	cmd.Flags().BoolVarP(&onlyCommandIO, "onlyCommandOutput", "", false, "If set, Runme will only output command output")
+	cmd.Flags().BoolVarP(&runInParallel, "parallel", "p", false, "Run commands in parallel. (experimental)")
+	cmd.Flags().BoolVarP(&runSequential, "sequential", "s", true, "Run commands sequentially. (experimental)")
+	cmd.Flags().BoolVarP(&onlyCommandIO, "onlyCommandOutput", "", false, "If set, Runme will only output command output. (experimental)")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
@@ -228,7 +229,16 @@ func runBlock(cmd cobra.Command, block document.CodeBlock) error {
 
 	var stdin io.Reader
 
-	if block.Interactive() {
+	if isInExperimentalMode() && block.Interactive() {
+		warn := color.New(color.Bold, color.FgYellow)
+		_, err := warn.Print("Warning: ")
+		if err != nil {
+			return err
+		}
+		fmt.Println("Interactive mode was disabled as it is not supported with the experimental CLI")
+	}
+
+	if block.Interactive() && !isInExperimentalMode() {
 		// Use pipe here so that it can be closed and the command can exit.
 		// Without this approach, the command would hang on reading from stdin.
 		r, w := io.Pipe()
@@ -294,23 +304,35 @@ func runBlock(cmd cobra.Command, block document.CodeBlock) error {
 func runBlocks(cmd cobra.Command, blocks []*document.CodeBlock) error {
 	var wg sync.WaitGroup
 
-	for _, block := range blocks {
-		if block.Interactive() {
-			return errors.Errorf(
-				"Failed to run \"%s\": running interactive code blocks "+
-					"in parallel is not yet supported",
-				block.Name(),
-			)
-		}
+	wgDone := make(chan bool)
+	chErr := make(chan error)
 
+	for _, block := range blocks {
 		wg.Add(1)
-		go func(b *document.CodeBlock) error {
+		go func(b *document.CodeBlock) {
 			defer wg.Done()
-			return runBlock(cmd, *b)
+			err := runBlock(cmd, *b)
+			if err != nil {
+				chErr <- err
+				return
+			}
 		}(block)
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(wgDone)
+	}()
+
+	select {
+	case <-wgDone:
+		// carry on
+		break
+	case err := <-chErr:
+		close(chErr)
+		return err
+	}
+
 	return nil
 }
 
