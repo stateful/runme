@@ -242,7 +242,7 @@ func runBlock(cmd cobra.Command, block document.CodeBlock) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("Interactive mode was disabled as it is not supported with the experimental CLI")
+		fmt.Println("Interactivity was disabled as it is not supported with the experimental CLI")
 	}
 
 	if block.Interactive() && !isInExperimentalMode() {
