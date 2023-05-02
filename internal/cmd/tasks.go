@@ -17,7 +17,7 @@ func tasksCmd() *cobra.Command {
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p := project.New(fChdir)
-			blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
+			blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown, fIgnoreNameless)
 			if err != nil {
 				return err
 			}

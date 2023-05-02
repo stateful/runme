@@ -44,7 +44,7 @@ func runCmd() *cobra.Command {
 			p := project.New(fChdir)
 			if !isInExperimentalMode() {
 				filePath := path.Join(fChdir, fFileName)
-				blocks, err := p.GetCodeBlocks(filePath[len(p.RootDir):], fAllowUnknown)
+				blocks, err := p.GetCodeBlocks(filePath[len(p.RootDir):], fAllowUnknown, fIgnoreNameless)
 				if err != nil {
 					return err
 				}

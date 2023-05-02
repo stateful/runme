@@ -33,7 +33,7 @@ func tuiCmd() *cobra.Command {
 		Long:  "Run a command from a descriptive list given by an interactive TUI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p := project.New(fChdir)
-			blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
+			blocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown, fIgnoreNameless)
 			if err != nil {
 				return err
 			}

@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	fAllowUnknown bool
-	fChdir        string
-	fFileName     string
-	fInsecure     bool
+	fAllowUnknown   bool
+	fIgnoreNameless bool
+	fChdir          string
+	fFileName       string
+	fInsecure       bool
 )
 
 func Root() *cobra.Command {
@@ -47,6 +48,7 @@ func Root() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 
 	pflags.BoolVar(&fAllowUnknown, "allow-unknown", true, "Display snippets without known executor")
+	pflags.BoolVar(&fIgnoreNameless, "ignore-nameless", true, "Ignore code blocks without name defined")
 	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command")
 	pflags.StringVar(&fFileName, "filename", "README.md", "Name of the README file")
 	pflags.BoolVar(&fInsecure, "insecure", false, "Run command in insecure-mode")

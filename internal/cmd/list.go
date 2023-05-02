@@ -23,9 +23,9 @@ func listCmd() *cobra.Command {
 			blocks := project.CodeBlocks{}
 			var blockError error
 			if isInExperimentalMode() {
-				blocks, blockError = p.GetAllCodeBlocks(fAllowUnknown)
+				blocks, blockError = p.GetAllCodeBlocks(fAllowUnknown, fIgnoreNameless)
 			} else {
-				codeBlocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown)
+				codeBlocks, err := p.GetCodeBlocks(fFileName, fAllowUnknown, fIgnoreNameless)
 				blocks = append(blocks, &project.FileCodeBlocks{
 					FileName:   fFileName,
 					CodeBlocks: codeBlocks,

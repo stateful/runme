@@ -1,7 +1,6 @@
 package project
 
 import (
-	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -70,7 +69,6 @@ func (p *Project) getAllMarkdownFiles() ([]string, error) {
 	}
 
 	files := []string{}
-	fmt.Println(matches)
 	for _, m := range matches {
 		if !p.isExcluded(m, false) {
 			files = append(files, path.Join(p.RootDir, m))
@@ -150,7 +148,7 @@ func (p *Project) ReadMarkdownFile(relativePath string, args []string) ([]byte, 
 	return data, nil
 }
 
-func (p *Project) GetCodeBlocks(relativePath string, allowUnknown bool) (document.CodeBlocks, error) {
+func (p *Project) GetCodeBlocks(relativePath string, allowUnknown bool, ignoreNameless bool) (document.CodeBlocks, error) {
 	data, err := p.ReadMarkdownFile(relativePath, nil)
 	if err != nil {
 		return nil, err
@@ -166,6 +164,11 @@ func (p *Project) GetCodeBlocks(relativePath string, allowUnknown bool) (documen
 
 	filtered := make(document.CodeBlocks, 0, len(blocks))
 	for _, b := range blocks {
+		// ignore blocks without name if ignoreNameless param is set
+		if ignoreNameless && b.Attributes()["name"] == "" {
+			continue
+		}
+
 		if allowUnknown || (b.Language() != "" && runner.IsSupported(b.Language())) {
 			filtered = append(filtered, b)
 		}
@@ -180,7 +183,7 @@ type FileCodeBlocks struct {
 }
 type CodeBlocks []*FileCodeBlocks
 
-func (p *Project) GetAllCodeBlocks(allowUnknown bool) (CodeBlocks, error) {
+func (p *Project) GetAllCodeBlocks(allowUnknown bool, ignoreNameless bool) (CodeBlocks, error) {
 	files, err := p.getAllMarkdownFiles()
 	if err != nil {
 		return nil, err
@@ -188,10 +191,15 @@ func (p *Project) GetAllCodeBlocks(allowUnknown bool) (CodeBlocks, error) {
 
 	blocks := CodeBlocks{}
 	for _, file := range files {
-		codeBlock, err := p.GetCodeBlocks(file[len(p.RootDir):], allowUnknown)
+		codeBlock, err := p.GetCodeBlocks(file[len(p.RootDir):], allowUnknown, ignoreNameless)
 		if err != nil {
 			return nil, err
 		}
+
+		if len(codeBlock) == 0 {
+			continue
+		}
+
 		blocks = append(blocks, &FileCodeBlocks{
 			FileName:   file[len(p.RootDir):],
 			CodeBlocks: codeBlock,
@@ -208,7 +216,7 @@ func (p *Project) LookUpCodeBlockByID(id string) (*string, *document.CodeBlock, 
 	}
 
 	for _, file := range files {
-		codeBlock, err := p.GetCodeBlocks(file[len(p.RootDir):], false)
+		codeBlock, err := p.GetCodeBlocks(file[len(p.RootDir):], false, true)
 		if err != nil {
 			return nil, nil, err
 		}
