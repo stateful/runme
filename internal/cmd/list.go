@@ -57,12 +57,15 @@ func listCmd() *cobra.Command {
 				// table header
 				table.AddField(strings.ToUpper("Name"), nil, nil)
 				table.AddField(strings.ToUpper("First Command"), nil, nil)
+				table.AddField(strings.ToUpper("# of Commands"), nil, nil)
 				table.AddField(strings.ToUpper("Description"), nil, nil)
 				table.EndRow()
 				for _, code := range block.CodeBlocks {
 					lines := code.Lines()
+
 					table.AddField(code.Name(), nil, nil)
 					table.AddField(shell.TryGetNonCommentLine(lines), nil, nil)
+					table.AddField(fmt.Sprintf("%d", len(shell.StripComments(lines))), nil, nil)
 					table.AddField(code.Intro(), nil, nil)
 					table.EndRow()
 				}
@@ -72,9 +75,11 @@ func listCmd() *cobra.Command {
 					return errors.Wrap(err, "failed to render")
 				}
 
-				_, err = fmt.Print("\n")
-				if err != nil {
-					return err
+				if isInExperimentalMode() {
+					_, err = fmt.Print("\n")
+					if err != nil {
+						return err
+					}
 				}
 			}
 
