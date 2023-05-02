@@ -1,8 +1,10 @@
 package project
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -22,7 +24,7 @@ type Project struct {
 	BranchName string
 	Commit     string
 	URL        string
-	resolver   *Resolver
+	matcher    gitignore.Matcher
 }
 
 func New(cwd string) (p Project) {
@@ -34,27 +36,25 @@ func New(cwd string) (p Project) {
 		return p
 	}
 
-	p.resolver = r
-	return p
-}
-
-func (p *Project) isExcluded(file string) bool {
-	if p.resolver == nil {
-		return true
-	}
-
-	w, err := p.resolver.repo.Worktree()
+	w, err := r.repo.Worktree()
 	if err != nil {
-		return false
+		return p
 	}
 
 	patterns, err := gitignore.ReadPatterns(w.Filesystem, nil)
 	if err != nil {
-		return false
+		return p
 	}
 
-	m := gitignore.NewMatcher(patterns)
-	return !m.Match(strings.Split(file, "/"), false)
+	p.matcher = gitignore.NewMatcher(patterns)
+	return p
+}
+
+func (p *Project) isExcluded(file string, isDir bool) bool {
+	if p.matcher == nil {
+		return false
+	}
+	return p.matcher.Match(strings.Split(file, "/"), isDir)
 }
 
 func (p *Project) getAllMarkdownFiles() ([]string, error) {
@@ -63,16 +63,19 @@ func (p *Project) getAllMarkdownFiles() ([]string, error) {
 		return nil, err
 	}
 
-	var files []string
-	err = filepath.WalkDir(root, func(s string, d fs.DirEntry, e error) error {
-		if e != nil {
-			return e
+	fsys := os.DirFS(root)
+	matches, err := fs.Glob(fsys, "**/*.md")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	files := []string{}
+	fmt.Println(matches)
+	for _, m := range matches {
+		if !p.isExcluded(m, false) {
+			files = append(files, path.Join(p.RootDir, m))
 		}
-		if filepath.Ext(d.Name()) == ".md" {
-			files = append(files, s)
-		}
-		return nil
-	})
+	}
 
 	if err != nil {
 		return nil, err
@@ -185,10 +188,6 @@ func (p *Project) GetAllCodeBlocks(allowUnknown bool) (CodeBlocks, error) {
 
 	blocks := CodeBlocks{}
 	for _, file := range files {
-		if !p.isExcluded(file) {
-			continue
-		}
-
 		codeBlock, err := p.GetCodeBlocks(file[len(p.RootDir):], allowUnknown)
 		if err != nil {
 			return nil, err
