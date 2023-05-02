@@ -144,9 +144,12 @@ func runCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
-	cmd.Flags().BoolVarP(&runInParallel, "parallel", "p", false, "Run commands in parallel. (experimental)")
-	cmd.Flags().BoolVarP(&runSequential, "sequential", "s", true, "Run commands sequentially. (experimental)")
-	cmd.Flags().BoolVarP(&onlyCommandIO, "onlyCommandOutput", "", false, "If set, Runme will only output command output. (experimental)")
+
+	if isInExperimentalMode() {
+		cmd.Flags().BoolVarP(&runInParallel, "parallel", "p", false, "Run commands in parallel. (experimental)")
+		cmd.Flags().BoolVarP(&runSequential, "sequential", "s", true, "Run commands sequentially. (experimental)")
+		cmd.Flags().BoolVarP(&onlyCommandIO, "onlyCommandOutput", "", false, "If set, Runme will only output command output. (experimental)")
+	}
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 

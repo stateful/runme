@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
@@ -21,19 +22,39 @@ type Project struct {
 	BranchName string
 	Commit     string
 	URL        string
+	resolver   *Resolver
 }
 
 func New(cwd string) (p Project) {
 	r := &Resolver{cwd: cwd}
 	p.RootDir = r.RootDir()
+
+	_, err := r.Get()
+	if err != nil {
+		return p
+	}
+
+	p.resolver = r
 	return p
 }
 
-func NetGit(cwd string) (Project, error) {
-	p := New(cwd)
-	r := &Resolver{cwd: cwd}
-	p.RootDir = r.RootDir()
-	return r.Get()
+func (p *Project) isExcluded(file string) bool {
+	if p.resolver == nil {
+		return true
+	}
+
+	w, err := p.resolver.repo.Worktree()
+	if err != nil {
+		return false
+	}
+
+	patterns, err := gitignore.ReadPatterns(w.Filesystem, nil)
+	if err != nil {
+		return false
+	}
+
+	m := gitignore.NewMatcher(patterns)
+	return !m.Match(strings.Split(file, "/"), false)
 }
 
 func (p *Project) getAllMarkdownFiles() ([]string, error) {
@@ -164,6 +185,10 @@ func (p *Project) GetAllCodeBlocks(allowUnknown bool) (CodeBlocks, error) {
 
 	blocks := CodeBlocks{}
 	for _, file := range files {
+		if !p.isExcluded(file) {
+			continue
+		}
+
 		codeBlock, err := p.GetCodeBlocks(file[len(p.RootDir):], allowUnknown)
 		if err != nil {
 			return nil, err
