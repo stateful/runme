@@ -171,7 +171,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 
 func isInExperimentalMode() bool {
 	_, present := os.LookupEnv("RUNME_EXPERIMENTAL_CLI")
-	return present
+	return fExperimental || present
 }
 
 type runFunc func(context.Context) error

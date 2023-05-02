@@ -16,6 +16,7 @@ var (
 	fChdir          string
 	fFileName       string
 	fInsecure       bool
+	fExperimental   bool
 )
 
 func Root() *cobra.Command {
@@ -52,6 +53,7 @@ func Root() *cobra.Command {
 	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command")
 	pflags.StringVar(&fFileName, "filename", "README.md", "Name of the README file")
 	pflags.BoolVar(&fInsecure, "insecure", false, "Run command in insecure-mode")
+	pflags.BoolVar(&fExperimental, "experimental", false, "Enable experimental features")
 
 	setAPIFlags(pflags)
 

@@ -66,6 +66,10 @@ func runCmd() *cobra.Command {
 			runMap := make(map[string][]string)
 			var parallelBlocks []*document.CodeBlock
 			for i, blockID := range blocks {
+				if blockID == "--experimental" {
+					continue
+				}
+
 				// switch to parallel mode
 				if isParallelParam(blockID) {
 					inParallelMode = true
