@@ -12,9 +12,8 @@ import (
 
 func suggestCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Hidden: true,
-		Use:    "suggest",
-		Short:  "Use our suggestion engine to give contextual advice",
+		Use:   "suggest",
+		Short: "Use our suggestion engine to give contextual advice",
 	}
 
 	return cmd
@@ -24,9 +23,8 @@ func branchCmd() *cobra.Command {
 	var repoUser string
 
 	cmd := &cobra.Command{
-		Hidden: true,
-		Use:    "branch DESCRIPTION",
-		Short:  "Suggest a branchname",
+		Use:   "branch DESCRIPTION",
+		Short: "Suggest a branch name",
 		Long: `Suggest a branch name for a description.
 
 Remember to wrap the DESCRIPTION in double quotes as otherwise
