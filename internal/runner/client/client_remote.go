@@ -38,6 +38,26 @@ type RemoteRunner struct {
 	enableBackground bool
 }
 
+func (r *RemoteRunner) Clone() Runner {
+	return &RemoteRunner{
+		dir: r.dir,
+
+		stdin:  r.stdin,
+		stdout: r.stdout,
+		stderr: r.stderr,
+
+		client:          nil,
+		sessionID:       r.sessionID,
+		sessionStrategy: r.sessionStrategy,
+		cleanupSession:  r.cleanupSession,
+
+		insecure: r.insecure,
+		tlsDir:   r.tlsDir,
+
+		enableBackground: r.enableBackground,
+	}
+}
+
 func (r *RemoteRunner) setDir(dir string) error {
 	r.dir = dir
 	return nil
@@ -56,6 +76,18 @@ func (r *RemoteRunner) setStdout(stdout io.Writer) error {
 func (r *RemoteRunner) setStderr(stderr io.Writer) error {
 	r.stderr = stderr
 	return nil
+}
+
+func (r *RemoteRunner) getStdin() io.Reader {
+	return r.stdin
+}
+
+func (r *RemoteRunner) getStdout() io.Writer {
+	return r.stdout
+}
+
+func (r *RemoteRunner) getStderr() io.Writer {
+	return r.stderr
 }
 
 func (r *RemoteRunner) setLogger(logger *zap.Logger) error {

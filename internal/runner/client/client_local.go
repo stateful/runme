@@ -28,6 +28,21 @@ type LocalRunner struct {
 	logger *zap.Logger
 }
 
+func (r *LocalRunner) Clone() Runner {
+	return &LocalRunner{
+		dir: r.dir,
+
+		stdin:  r.stdin,
+		stdout: r.stdout,
+		stderr: r.stderr,
+
+		shellID: r.shellID,
+		session: r.session,
+
+		logger: r.logger,
+	}
+}
+
 func (r *LocalRunner) setSession(s *runner.Session) error {
 	r.session = s
 	return nil
@@ -72,6 +87,18 @@ func (r *LocalRunner) setStdout(stdout io.Writer) error {
 func (r *LocalRunner) setStderr(stderr io.Writer) error {
 	r.stderr = stderr
 	return nil
+}
+
+func (r *LocalRunner) getStdin() io.Reader {
+	return r.stdin
+}
+
+func (r *LocalRunner) getStdout() io.Writer {
+	return r.stdout
+}
+
+func (r *LocalRunner) getStderr() io.Writer {
+	return r.stderr
 }
 
 func (r *LocalRunner) setLogger(logger *zap.Logger) error {
