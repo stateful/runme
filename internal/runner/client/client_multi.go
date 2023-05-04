@@ -110,11 +110,8 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock
 
 			code := uint(0)
 
-			{
-				exitErr := (*runner.ExitError)(nil)
-				if errors.As(err, &exitErr) {
-					code = exitErr.Code
-				}
+			if exitErr := (*runner.ExitError)(nil); errors.As(err, &exitErr) {
+				code = exitErr.Code
 			}
 
 			if m.PostRunMsg != nil {
