@@ -144,7 +144,7 @@ func runCmd() *cobra.Command {
 			}
 
 			if parallel {
-				multiRunner.StdoutPrefix = "[%[1]s] "
+				multiRunner.StdoutPrefix = fmt.Sprintf("[%s] ", blockColor.Sprint("%s"))
 			}
 
 			defer multiRunner.Cleanup(cmd.Context())

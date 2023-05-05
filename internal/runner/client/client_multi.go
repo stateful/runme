@@ -6,11 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"sync"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/runner"
 )
+
+const stripAnsi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+
+var stripAnsiRegexp = regexp.MustCompile(stripAnsi)
 
 type MultiRunner struct {
 	Runner Runner
@@ -23,43 +28,44 @@ type MultiRunner struct {
 
 type prefixWriter struct {
 	w      io.Writer
-	prefix string
+	prefix []byte
 
-	haveWritten bool
+	hasWritten bool
 }
 
 func NewPrefixWriter(w io.Writer, prefix string) io.Writer {
-	return prefixWriter{
-		w:      w,
-		prefix: prefix,
+	return &prefixWriter{
+		w:          w,
+		prefix:     []byte(prefix),
+		hasWritten: false,
 	}
 }
 
-func (w prefixWriter) Write(p []byte) (n int, err error) {
-	return w.w.Write(p)
+func (w *prefixWriter) Write(p []byte) (int, error) {
+	data := make([]byte, 0)
+	extraBytes := 0
 
-	// lines := make([][]byte, 0)
-	// fmt.Println(p)
+	isFirst := true
 
-	// data := make([]byte, 0)
+	for _, line := range bytes.SplitAfter(p, []byte{'\n'}) {
+		if len(line) == 0 {
+			continue
+		}
 
-	// for _, line := range bytes.SplitAfter(p, []byte{'\n'}) {
-	// 	newLine := make([]byte, 0)
+		if len(stripAnsiRegexp.ReplaceAll(line, []byte{})) > 0 && (!isFirst || !w.hasWritten) {
+			data = append(data, w.prefix...)
+			extraBytes += len(w.prefix)
+		}
 
-	// 	// if !w.haveWritten || i != 0 {
-	// 	// 	newLine = append(newLine, []byte(w.prefix)...)
-	// 	// }
+		isFirst = false
 
-	// 	newLine = append(newLine, []byte("[pre] ")...)
-	// 	newLine = append(newLine, line...)
+		data = append(data, line...)
+	}
 
-	// 	// lines = append(lines, newLine)
-	// 	data = append(data, newLine...)
-	// }
+	w.hasWritten = true
 
-	// w.haveWritten = true
-
-	// return w.w.Write(data)
+	n, err := w.w.Write(data)
+	return n - extraBytes, err
 }
 
 func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock, parallel bool) error {
@@ -76,7 +82,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock
 		runnerClient := m.Runner.Clone()
 
 		if m.PreRunMsg != nil && !parallel {
-			runnerClient.getStdout().Write([]byte(
+			m.Runner.getStdout().Write([]byte(
 				m.PreRunMsg([]*document.CodeBlock{block}, parallel),
 			))
 		}
@@ -115,7 +121,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock
 			}
 
 			if m.PostRunMsg != nil {
-				runnerClient.getStdout().Write([]byte(
+				m.Runner.getStdout().Write([]byte(
 					m.PostRunMsg(block, code),
 				))
 			}
@@ -146,7 +152,9 @@ outer:
 	for {
 		select {
 		case err := <-errChan:
-			errors = append(errors, err)
+			if err != nil {
+				errors = append(errors, err)
+			}
 		default:
 			break outer
 		}
