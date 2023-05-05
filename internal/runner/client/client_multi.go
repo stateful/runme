@@ -70,7 +70,7 @@ func (w *prefixWriter) Write(p []byte) (int, error) {
 
 func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock, parallel bool) error {
 	if m.PreRunMsg != nil && parallel {
-		m.Runner.getStdout().Write([]byte(
+		_, _ = m.Runner.getStdout().Write([]byte(
 			m.PreRunMsg(blocks, parallel),
 		))
 	}
@@ -82,12 +82,12 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock
 		runnerClient := m.Runner.Clone()
 
 		if m.PreRunMsg != nil && !parallel {
-			m.Runner.getStdout().Write([]byte(
+			_, _ = m.Runner.getStdout().Write([]byte(
 				m.PreRunMsg([]*document.CodeBlock{block}, parallel),
 			))
 		}
 
-		ApplyOptions(
+		if err := ApplyOptions(
 			runnerClient,
 			WithStdinTransform(func(r io.Reader) io.Reader {
 				if parallel {
@@ -109,7 +109,9 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock
 
 				return NewPrefixWriter(w, prefix)
 			}),
-		)
+		); err != nil {
+			return err
+		}
 
 		run := func(block *document.CodeBlock) error {
 			err := runnerClient.RunBlock(ctx, block)
@@ -121,7 +123,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock
 			}
 
 			if m.PostRunMsg != nil {
-				m.Runner.getStdout().Write([]byte(
+				_, _ = m.Runner.getStdout().Write([]byte(
 					m.PostRunMsg(block, code),
 				))
 			}
