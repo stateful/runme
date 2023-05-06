@@ -124,11 +124,18 @@ func runCmd() *cobra.Command {
 						scriptRunText += "s"
 					}
 
+					extraText := ""
+
+					if parallel {
+						extraText = " in parallel"
+					}
+
 					return fmt.Sprintf(
-						"%s %s %s...\n",
+						"%s %s %s%s...\n",
 						infoMsgPrefix,
 						textColor.Sprint(scriptRunText),
 						strings.Join(blockNames, ", "),
+						textColor.Sprint(extraText),
 					)
 				},
 				PostRunMsg: func(block *document.CodeBlock, exitCode uint) string {
