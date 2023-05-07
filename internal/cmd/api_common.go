@@ -153,8 +153,8 @@ func oauthConfig(authBaseURL string) oauth2.Config {
 	// If you have any security concerns/disclosure, please don't share it publicly, reach out to us.
 	// (See our Contributing & Feedback section)
 	return oauth2.Config{
-		ClientID:     "bf568e40cfbd1c1261a9",
-		ClientSecret: "0de10314c28b754d0cedbf34d081c990865e1363",
+		ClientID:     "9c6f8339c8beff4cb9f5",
+		ClientSecret: "224fd061fed31e08bdf6e8f14c7a573d22664c67",
 		Scopes:       []string{"read:user", "user:email"},
 		Endpoint: oauth2.Endpoint{
 			// These URLs are modeleted after Github API.
