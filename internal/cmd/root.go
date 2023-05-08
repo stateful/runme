@@ -82,13 +82,16 @@ func Root() *cobra.Command {
 	cmd.AddCommand(tokenCmd())
 	cmd.AddCommand(tuiCmd)
 
-	usageTmpl := cmd.UsageTemplate() + `
+	cmd.SetUsageTemplate(getUsageTemplate(cmd))
+
+	return &cmd
+}
+
+func getUsageTemplate(cmd cobra.Command) string {
+	return cmd.UsageTemplate() + `
 Feedback:
   For issues and questions join the Runme community at https://discord.gg/runme
 `
-	cmd.SetUsageTemplate(usageTmpl)
-
-	return &cmd
 }
 
 func getCwd() string {
