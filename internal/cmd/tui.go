@@ -280,7 +280,6 @@ func (m tuiModel) View() string {
 				"Run [Enter]",
 				"Expand [Space]",
 				"Quit [q]",
-				"  by Stateful",
 			},
 			tab,
 		)
