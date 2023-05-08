@@ -23,14 +23,15 @@ func branchCmd() *cobra.Command {
 	var repoUser string
 
 	cmd := &cobra.Command{
-		Use:   "branch DESCRIPTION",
-		Short: "Suggest a branch name",
+		Use:     "branch DESCRIPTION",
+		Aliases: []string{"branchGPT", "branchgpt"},
+		Short:   "Suggest a branch name",
 		Long: `Suggest a branch name for a description.
 
 Remember to wrap the DESCRIPTION in double quotes as otherwise
 it will be interpreted as multiple arguments.
 
-NB: This uses machine learning, so the suggestions may be biased, wrong, or just
+NB: This uses AI, so the suggestions may be biased, wrong, or just
 bad. Please use with discretion.
 `,
 		Args: cobra.MaximumNArgs(1),
