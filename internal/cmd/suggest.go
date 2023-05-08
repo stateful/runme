@@ -25,7 +25,7 @@ func branchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "branch DESCRIPTION",
 		Aliases: []string{"branchGPT", "branchgpt"},
-		Short:   "Suggest a branch name",
+		Short:   "Suggest a branch name (aka branchGPT)",
 		Long: `Suggest a branch name for a description.
 
 Remember to wrap the DESCRIPTION in double quotes as otherwise
