@@ -21,7 +21,7 @@ func Root() *cobra.Command {
 	cmd := cobra.Command{
 		Use:           "runme",
 		Short:         "Execute commands directly from a README",
-		Long:          "Parses commands directly from a README (best-effort) to make them executable under a unique name.",
+		Long:          "Parses commands directly from a markdown (e.g. README) to make them executable.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -81,6 +81,12 @@ func Root() *cobra.Command {
 	cmd.AddCommand(tasksCmd())
 	cmd.AddCommand(tokenCmd())
 	cmd.AddCommand(tuiCmd)
+
+	usageTmpl := cmd.UsageTemplate() + `
+Feedback:
+  For issues and questions join the Runme community at https://discord.gg/runme
+`
+	cmd.SetUsageTemplate(usageTmpl)
 
 	return &cmd
 }
