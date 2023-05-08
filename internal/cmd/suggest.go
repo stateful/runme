@@ -31,8 +31,8 @@ func branchCmd() *cobra.Command {
 Remember to wrap the DESCRIPTION in double quotes as otherwise
 it will be interpreted as multiple arguments.
 
-NB: This uses AI, so the suggestions may be biased, wrong, or just
-bad. Please use with discretion.
+Disclaimer: This uses AI, so the suggestions may be biased, wrong,
+or just bad. Please use with discretion.
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
