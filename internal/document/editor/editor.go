@@ -23,7 +23,8 @@ func Deserialize(data []byte) (*Notebook, error) {
 	}
 
 	notebook := &Notebook{
-		Cells: toCells(node, data),
+		Cells:         toCells(node, data),
+		contentOffset: sections.ContentOffset,
 	}
 
 	// If Front Matter exists, store it in Notebook's metadata.

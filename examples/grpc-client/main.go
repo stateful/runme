@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	runmetls "github.com/stateful/runme/internal/tls"
 	"golang.org/x/sync/errgroup"
@@ -22,6 +23,7 @@ var (
 	file          = flag.String("file", "", "file with content to upper case")
 	resultFile    = flag.String("write-result", "-", "path to a result file (default: stdout)")
 	createSession = flag.Bool("create-session", false, "create a new session")
+	parseDocument = flag.Bool("parse-document", false, "parse a dummy document")
 	deleteSession = flag.String("delete-session", "", "delete the given session")
 	tlsDir        = flag.String("tls", "", "path to tls files")
 )
@@ -57,6 +59,21 @@ func run() error {
 
 	if resp.Status != healthgrpc.HealthCheckResponse_SERVING {
 		return errors.Errorf("service status: %v", resp.Status)
+	}
+
+	if *parseDocument {
+		client := parserv1.NewParserServiceClient(conn)
+
+		resp, err := client.Deserialize(context.Background(), &parserv1.DeserializeRequest{
+			Source: []byte(""),
+		})
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(resp.Notebook)
+
+		return nil
 	}
 
 	client := runnerv1.NewRunnerServiceClient(conn)

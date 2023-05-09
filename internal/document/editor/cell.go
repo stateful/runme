@@ -44,6 +44,12 @@ type Cell struct {
 type Notebook struct {
 	Cells    []*Cell           `json:"cells"`
 	Metadata map[string]string `json:"metadata,omitempty"`
+
+	contentOffset int
+}
+
+func (n *Notebook) GetContentOffset() int {
+	return n.contentOffset
 }
 
 func toCells(node *document.Node, source []byte) (result []*Cell) {

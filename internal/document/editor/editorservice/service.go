@@ -35,8 +35,8 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 
 		if cellTextRange != nil {
 			TextRange = &parserv1.TextRange{
-				Start: uint32(cellTextRange.Start),
-				End:   uint32(cellTextRange.End),
+				Start: uint32(cellTextRange.Start + notebook.GetContentOffset()),
+				End:   uint32(cellTextRange.End + notebook.GetContentOffset()),
 			}
 		}
 
