@@ -71,7 +71,7 @@ func run() error {
 			return err
 		}
 
-		fmt.Println(resp.Notebook)
+		_, _ = fmt.Println(resp.Notebook)
 
 		return nil
 	}
