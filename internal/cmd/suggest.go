@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/pkg/errors"
@@ -77,7 +78,13 @@ or just bad. Please use with discretion.
 			}
 
 			model := tui.NewListModel(ctx, description, repoUser, client)
-			return newProgram(cmd, model).Start()
+			err = newProgram(cmd, model).Start()
+
+			if err == nil {
+				_, err = fmt.Fprintln(cmd.OutOrStdout(), "Great choice! Learn how to run your dev workflows with https://runme.dev/")
+			}
+
+			return err
 		},
 	}
 
