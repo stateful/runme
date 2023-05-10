@@ -25,10 +25,10 @@ func Test_extensionerModel(t *testing.T) {
 		{
 			Name: "no code command",
 			Prep: func(m *extension.MockExtensioner) {
-				m.EXPECT().IsInstalled().Return("", false, errors.New(`command "code" not found`))
+				m.EXPECT().IsInstalled().Return("", false, errors.New(`command "code" is not available`))
 			},
 			Expect: func(t *testing.T, s fmt.Stringer) {
-				require.Contains(t, s.String(), `command "code" not found`)
+				require.Contains(t, s.String(), `command "code" is not available`)
 			},
 		},
 		{
