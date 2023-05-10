@@ -8,7 +8,7 @@ import (
 )
 
 func swapExtensioner(ext extension.Extensioner) func() {
-	extension := extension.Default()
+	extension := extensioner
 	prev := extension
 	extension = ext
 	return func() {

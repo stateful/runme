@@ -78,7 +78,7 @@ func (m extensionerModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.prompt.Init(),
 		func() tea.Msg {
-			fullName, installed, err := extension.IsInstalled()
+			fullName, installed, err := extensioner.IsInstalled()
 			return extCheckMsg{
 				Installed: installed,
 				Name:      fullName,
@@ -124,11 +124,11 @@ func (m extensionerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loading = true
 			m.loadingMsg = "updating the extension..."
 			return m, func() tea.Msg {
-				if err := extension.Update(); err != nil {
+				if err := extensioner.Update(); err != nil {
 					return extUpdateMsg{Err: err}
 				}
 
-				updatedFullName, _, err := extension.IsInstalled()
+				updatedFullName, _, err := extensioner.IsInstalled()
 				if err != nil {
 					return extUpdateMsg{
 						Err: err,
@@ -175,10 +175,10 @@ func (m extensionerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m extensionerModel) installExtension() tea.Msg {
-	if err := extension.Install(); err != nil {
+	if err := extensioner.Install(); err != nil {
 		return extUpdateMsg{Err: err}
 	}
-	installedFullName, _, err := extension.IsInstalled()
+	installedFullName, _, err := extensioner.IsInstalled()
 	if err != nil {
 		return extUpdateMsg{Err: err}
 	}
