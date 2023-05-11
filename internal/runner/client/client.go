@@ -23,9 +23,15 @@ type Runner interface {
 
 	setWithinShell() error
 	setDir(dir string) error
+
 	setStdin(stdin io.Reader) error
 	setStdout(stdout io.Writer) error
 	setStderr(stdout io.Writer) error
+
+	getStdin() io.Reader
+	getStdout() io.Writer
+	getStderr() io.Writer
+
 	setLogger(logger *zap.Logger) error
 	setEnableBackgroundProcesses(disableBackground bool) error
 
@@ -35,6 +41,8 @@ type Runner interface {
 	RunBlock(ctx context.Context, block *document.CodeBlock) error
 	DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error
 	Cleanup(ctx context.Context) error
+
+	Clone() Runner
 }
 
 func WithSession(s *runner.Session) RunnerOption {
@@ -88,6 +96,24 @@ func WithStdout(stdout io.Writer) RunnerOption {
 func WithStderr(stderr io.Writer) RunnerOption {
 	return func(rc Runner) error {
 		return rc.setStderr(stderr)
+	}
+}
+
+func WithStdinTransform(op func(io.Reader) io.Reader) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setStdin(op(rc.getStdin()))
+	}
+}
+
+func WithStdoutTransform(op func(io.Writer) io.Writer) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setStdout(op(rc.getStdout()))
+	}
+}
+
+func WithStderrTransform(op func(io.Writer) io.Writer) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setStderr(op(rc.getStderr()))
 	}
 }
 
