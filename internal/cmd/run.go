@@ -35,6 +35,10 @@ func runCmd() *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return errors.New("must provide at least one command to run")
+			}
+
 			runBlocks := make([]*document.CodeBlock, 0)
 
 			{
