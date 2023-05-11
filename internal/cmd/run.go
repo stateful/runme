@@ -124,7 +124,7 @@ func runCmd() *cobra.Command {
 						blockNames[i] = blockColor.Sprint(blockNames[i])
 					}
 
-					scriptRunText := "Running script"
+					scriptRunText := "Running task"
 
 					if len(blocks) > 1 {
 						scriptRunText += "s"
@@ -157,7 +157,7 @@ func runCmd() *cobra.Command {
 						"%s %s %s %s %s %v\n",
 						infoMsgPrefix,
 						statusIcon,
-						textColor.Sprint("Script"),
+						textColor.Sprint("Task"),
 						blockColor.Sprint(block.Name()),
 						textColor.Sprint("exited with code"),
 						exitCode,
