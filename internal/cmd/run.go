@@ -48,7 +48,7 @@ func runCmd() *cobra.Command {
 				}
 
 				for _, arg := range args {
-					block, err := lookupCodeBlock(blocks, arg)
+					block, err := lookupCodeBlock[document.CodeBlock](blocks, arg)
 					if err != nil {
 						return err
 					}

@@ -96,7 +96,12 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 	)
 }
 
-func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlock, error) {
+type lookupable[T any] interface {
+	Lookup(name string) *T
+	Names() []string
+}
+
+func lookupCodeBlock[T any](blocks lookupable[T], name string) (*T, error) {
 	block := blocks.Lookup(name)
 	if block == nil {
 		return nil, errors.Errorf("command %q not found; known command names: %s", name, blocks.Names())
