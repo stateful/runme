@@ -16,6 +16,7 @@ import (
 	"github.com/stateful/runme/internal/auth"
 	"github.com/stateful/runme/internal/client"
 	"github.com/stateful/runme/internal/client/graphql/query"
+	"github.com/stateful/runme/internal/extension"
 	"github.com/stateful/runme/internal/log"
 	"github.com/stateful/runme/internal/version"
 	"golang.org/x/oauth2"
@@ -88,6 +89,7 @@ var (
 	authEnv        auth.Env        // overwritten only in unit tests; when nil a default env will be used
 	authAuthorizer auth.Authorizer // overwritten only in unit tests
 	tokenStorage   = &auth.DiskStorage{}
+	extensioner    = extension.Default()
 )
 
 // authorizerWithEnv is a decorator that can return a token
