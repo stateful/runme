@@ -185,7 +185,7 @@ func runCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
-	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run scripts in parallel.")
+	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
