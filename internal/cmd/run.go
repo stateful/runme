@@ -110,6 +110,8 @@ func runCmd() *cobra.Command {
 			blockColor := color.New(color.Bold, color.FgYellow)
 			playColor := color.New(color.BgHiBlue, color.Bold, color.FgWhite)
 			textColor := color.New()
+			successColor := color.New(color.FgGreen)
+			failureColor := color.New(color.FgRed)
 
 			infoMsgPrefix := playColor.Sprint(" ► ")
 
@@ -143,9 +145,18 @@ func runCmd() *cobra.Command {
 					)
 				},
 				PostRunMsg: func(block *document.CodeBlock, exitCode uint) string {
+					var statusIcon string
+
+					if exitCode == 0 {
+						statusIcon = successColor.Sprint("✓")
+					} else {
+						statusIcon = failureColor.Sprint("𐄂")
+					}
+
 					return textColor.Sprintf(
-						"%s %s %s %s %v\n",
+						"%s %s %s %s %s %v\n",
 						infoMsgPrefix,
+						statusIcon,
 						textColor.Sprint("Script"),
 						blockColor.Sprint(block.Name()),
 						textColor.Sprint("exited with code"),
