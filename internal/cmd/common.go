@@ -15,8 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/renderer/cmark"
-	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 )
 
@@ -27,21 +26,7 @@ func readMarkdownFile(args []string) ([]byte, error) {
 	}
 
 	if arg == "" {
-		f, err := os.DirFS(fChdir).Open(fFileName)
-		if err != nil {
-			var pathError *os.PathError
-			if errors.As(err, &pathError) {
-				return nil, errors.Errorf("failed to %s markdown file %s: %s", pathError.Op, pathError.Path, pathError.Err.Error())
-			}
-
-			return nil, errors.Wrapf(err, "failed to read %s", filepath.Join(fChdir, fFileName))
-		}
-		defer func() { _ = f.Close() }()
-		data, err := io.ReadAll(f)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read data")
-		}
-		return data, nil
+		return project.ReadMarkdownFile(filepath.Join(fChdir, fFileName))
 	}
 
 	var (
@@ -105,26 +90,10 @@ func writeMarkdownFile(args []string, data []byte) error {
 }
 
 func getCodeBlocks() (document.CodeBlocks, error) {
-	data, err := readMarkdownFile(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	if err != nil {
-		return nil, err
-	}
-
-	blocks := document.CollectCodeBlocks(node)
-
-	filtered := make(document.CodeBlocks, 0, len(blocks))
-	for _, b := range blocks {
-		if fAllowUnknown || (b.Language() != "" && runner.IsSupported(b.Language())) {
-			filtered = append(filtered, b)
-		}
-	}
-	return filtered, nil
+	return project.GetCodeBlocks(
+		filepath.Join(fChdir, fFileName),
+		fAllowUnknown,
+	)
 }
 
 func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlock, error) {
