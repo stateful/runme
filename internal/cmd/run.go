@@ -28,7 +28,7 @@ func runCmd() *cobra.Command {
 	)
 
 	cmd := cobra.Command{
-		Use:               "run",
+		Use:               "run <commands>",
 		Aliases:           []string{"exec"},
 		Short:             "Run a selected command",
 		Long:              "Run a selected command identified based on its unique parsed name.",
