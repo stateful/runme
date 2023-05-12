@@ -39,25 +39,38 @@ func runCmd() *cobra.Command {
 				return errors.New("must provide at least one command to run")
 			}
 
+			proj, err := getProject()
+			if err != nil {
+				return err
+			}
+
 			runBlocks := make([]*document.CodeBlock, 0)
 
 			{
-				blocks, err := getCodeBlocks()
+				blocks, err := proj.LoadTasks()
 				if err != nil {
 					return err
 				}
 
 				for _, arg := range args {
-					block, err := lookupCodeBlock[document.CodeBlock](blocks, arg)
+					queryFile, queryName, err := splitRunArgument(arg)
 					if err != nil {
 						return err
 					}
 
-					if err := replace(replaceScripts, block.Lines()); err != nil {
+					blocks, err := blocks.LookupWithFile(queryFile, queryName)
+					if err != nil {
 						return err
 					}
 
-					runBlocks = append(runBlocks, block)
+					// TODO(mxs): prompt user here
+					block := blocks[0]
+
+					if err := replace(replaceScripts, block.Block.Lines()); err != nil {
+						return err
+					}
+
+					runBlocks = append(runBlocks, block.Block)
 				}
 			}
 
@@ -253,4 +266,19 @@ func inRawMode(cb func() error) error {
 	_ = current.Reset()
 
 	return err
+}
+
+const fileNameSeparator = ":"
+
+func splitRunArgument(name string) (queryFile string, queryName string, err error) {
+	parts := strings.SplitN(name, fileNameSeparator, 2)
+
+	if len(parts) > 1 {
+		queryFile = parts[0]
+		queryName = parts[1]
+	} else {
+		queryName = name
+	}
+
+	return
 }

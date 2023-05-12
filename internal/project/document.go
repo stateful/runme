@@ -4,14 +4,20 @@ import (
 	"io"
 	"os"
 
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stateful/runme/internal/runner"
 )
 
-func ReadMarkdownFile(filepath string) ([]byte, error) {
-	f, err := os.Open(filepath)
+func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
+	if fs == nil {
+		fs = osfs.Default
+	}
+
+	f, err := fs.Open(filepath)
 
 	if err != nil {
 		var pathError *os.PathError
@@ -29,8 +35,8 @@ func ReadMarkdownFile(filepath string) ([]byte, error) {
 	return data, nil
 }
 
-func GetCodeBlocks(filepath string, allowUnknown bool) (document.CodeBlocks, error) {
-	data, err := ReadMarkdownFile(filepath)
+func GetCodeBlocks(filepath string, allowUnknown bool, fs billy.Basic) (document.CodeBlocks, error) {
+	data, err := ReadMarkdownFile(filepath, fs)
 	if err != nil {
 		return nil, err
 	}

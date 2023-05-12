@@ -26,7 +26,7 @@ func readMarkdownFile(args []string) ([]byte, error) {
 	}
 
 	if arg == "" {
-		return project.ReadMarkdownFile(filepath.Join(fChdir, fFileName))
+		return project.ReadMarkdownFile(filepath.Join(fChdir, fFileName), nil)
 	}
 
 	var (
@@ -89,19 +89,28 @@ func writeMarkdownFile(args []string, data []byte) error {
 	return errors.Wrapf(err, "failed to write to %s", fullFilename)
 }
 
+func getProject() (proj project.Project, err error) {
+	if fFileMode {
+		proj = project.NewSingleFileProject(filepath.Join(fChdir, fFileName), fAllowUnknown)
+	} else {
+		proj, err = project.NewDirectoryProject(fProject, true, fAllowUnknown)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 func getCodeBlocks() (document.CodeBlocks, error) {
 	return project.GetCodeBlocks(
 		filepath.Join(fChdir, fFileName),
 		fAllowUnknown,
+		nil,
 	)
 }
 
-type lookupable[T any] interface {
-	Lookup(name string) *T
-	Names() []string
-}
-
-func lookupCodeBlock[T any](blocks lookupable[T], name string) (*T, error) {
+func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlock, error) {
 	block := blocks.Lookup(name)
 	if block == nil {
 		return nil, errors.Errorf("command %q not found; known command names: %s", name, blocks.Names())

@@ -1,15 +1,21 @@
 package project
 
 import (
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5"
-	"github.com/gobwas/glob"
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
+	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 )
-
-const fileNameSeparator = ":"
 
 type CodeBlock struct {
 	Block *document.CodeBlock
@@ -33,31 +39,28 @@ func (blocks CodeBlocks) Lookup(queryName string) []CodeBlock {
 }
 
 func (blocks CodeBlocks) LookupWithFile(queryFile string, queryName string) ([]CodeBlock, error) {
-	// parts := strings.SplitN(name, fileNameSeparator, 2)
-
-	// var queryFile string
-	// var queryName string
-
-	// if len(parts) > 1 {
-	// 	queryFile := parts[0]
-	// 	queryName = parts[1]
-	// } else {
-	// 	queryName = name
+	// var queryMatcher glob.Glob
+	// if queryFile != "" {
+	// 	glob, err := glob.Compile(queryFile, '/', '\\')
+	// 	if err != nil {
+	// 		return nil, errors.Wrapf(err, "invalid glob sequence %s", queryFile)
+	// 	}
+	// 	queryMatcher = glob
 	// }
 
-	var queryMatcher glob.Glob
+	var queryMatcher *regexp.Regexp
 	if queryFile != "" {
-		glob, err := glob.Compile(queryFile, '/', '\\')
+		reg, err := regexp.Compile(queryFile)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid glob sequence %s", queryFile)
+			return nil, errors.Wrapf(err, "invalid regexp %s", queryFile)
 		}
-		queryMatcher = glob
+		queryMatcher = reg
 	}
 
 	results := make([]CodeBlock, 0)
 
 	for _, block := range blocks {
-		if queryMatcher != nil && !queryMatcher.Match(block.File) {
+		if queryMatcher != nil && !queryMatcher.MatchString(block.File) {
 			continue
 		}
 
@@ -76,8 +79,8 @@ func (blocks CodeBlocks) Names() []string {
 }
 
 type Project interface {
-	LoadTasks() CodeBlocks
-	LoadEnvs() []string
+	LoadTasks() (CodeBlocks, error)
+	LoadEnvs() (map[string]string, error)
 }
 
 type DirectoryProject struct {
@@ -85,14 +88,33 @@ type DirectoryProject struct {
 	fs   billy.Filesystem
 
 	allowUnknown bool
+	envLoadOrder []string
+}
+
+// TODO(mxs): support `.runmeignore` file
+type DirectoryProjectMatcher struct {
+	gitMatcher gitignore.Matcher
+}
+
+func (m *DirectoryProjectMatcher) Match(path []string, isDir bool) bool {
+	if m.gitMatcher != nil && m.gitMatcher.Match(path, isDir) {
+		return true
+	}
+
+	return false
+}
+
+func (p *DirectoryProject) SetEnvLoadOrder(envLoadOrder []string) {
+	p.envLoadOrder = envLoadOrder
 }
 
 func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*DirectoryProject, error) {
-	// TODO: find closest git repo
-	// util.Walk()
-
 	project := &DirectoryProject{
 		allowUnknown: allowUnknown,
+		envLoadOrder: []string{
+			".env.local",
+			".env",
+		},
 	}
 
 	// try to find nearest git repo
@@ -108,6 +130,8 @@ func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*
 			if wt, err := repo.Worktree(); err != nil {
 				project.fs = wt.Filesystem
 			}
+
+			project.repo = repo
 		}
 	}
 
@@ -118,8 +142,108 @@ func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*
 	return project, nil
 }
 
-func (p *DirectoryProject) LoadTasks() ([]CodeBlock, error) {
+func (p *DirectoryProject) LoadTasks() (CodeBlocks, error) {
+	matcher := &DirectoryProjectMatcher{}
 
+	if p.repo != nil {
+		ps, _ := gitignore.ReadPatterns(p.fs, []string{})
+		dotGitPs := gitignore.ParsePattern("/.git", []string{})
+
+		matcher.gitMatcher = gitignore.NewMatcher(append([]gitignore.Pattern{dotGitPs}, ps...))
+	}
+
+	type RepoWalkNode struct {
+		path string
+		info fs.FileInfo
+	}
+
+	rootInfo, err := p.fs.Stat(".")
+	if err != nil {
+		return nil, err
+	}
+
+	stk := []RepoWalkNode{{
+		path: ".",
+		info: rootInfo,
+	}}
+
+	markdownFiles := make([]string, 0)
+
+	for len(stk) > 0 {
+		var node RepoWalkNode
+		stk, node = stk[:len(stk)-1], stk[len(stk)-1]
+
+		if node.info.IsDir() {
+			info, err := p.fs.ReadDir(node.path)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, subfile := range info {
+				subfilePath := p.fs.Join(node.path, subfile.Name())
+
+				if matcher.Match(
+					strings.Split(subfilePath, string(filepath.Separator)),
+					subfile.IsDir(),
+				) {
+					continue
+				}
+
+				stk = append(stk, RepoWalkNode{
+					path: filepath.Join(node.path, subfile.Name()),
+					info: subfile,
+				})
+			}
+		} else {
+			ext := strings.ToLower(filepath.Ext(node.path))
+
+			if ext == ".md" || ext == ".mdx" || ext == ".mdi" {
+				markdownFiles = append(markdownFiles, node.path)
+			}
+		}
+	}
+
+	result := make(CodeBlocks, 0)
+
+	for _, mdFile := range markdownFiles {
+		blocks, err := getFileCodeBlocks(mdFile, p.allowUnknown, p.fs)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, blocks...)
+	}
+
+	return result, nil
+}
+
+func (p *DirectoryProject) LoadEnvs() (map[string]string, error) {
+	envs := make(map[string]string)
+
+	for _, envFile := range p.envLoadOrder {
+		bytes, err := util.ReadFile(p.fs, envFile)
+		var pathError *os.PathError
+		if err != nil {
+			if !errors.As(err, &pathError) {
+				return nil, err
+			}
+
+			continue
+		}
+
+		parsed, err := godotenv.UnmarshalBytes(bytes)
+		if err != nil {
+			// silently fail for now
+			// TODO(mxs): come up with better solution
+			continue
+		}
+
+		for k, v := range parsed {
+			envs[k] = v
+		}
+	}
+
+	return envs, nil
 }
 
 type SingleFileProject struct {
@@ -134,28 +258,34 @@ func NewSingleFileProject(file string, allowUnknown bool) *SingleFileProject {
 	}
 }
 
-func (p *SingleFileProject) LoadTasks() ([]CodeBlock, error) {
-	blocks, err := GetCodeBlocks(p.file, p.allowUnknown)
+func (p *SingleFileProject) LoadTasks() (CodeBlocks, error) {
+	fs := osfs.New(filepath.Dir(p.file))
+	relFile, err := filepath.Rel(fs.Root(), p.file)
+	if err != nil {
+		return nil, err
+	}
+
+	return getFileCodeBlocks(relFile, p.allowUnknown, fs)
+}
+
+func (p *SingleFileProject) LoadEnvs() (map[string]string, error) {
+	return nil, nil
+}
+
+func getFileCodeBlocks(file string, allowUnknown bool, fs billy.Basic) ([]CodeBlock, error) {
+	blocks, err := GetCodeBlocks(file, allowUnknown, fs)
 	if err != nil {
 		return nil, err
 	}
 
 	fileBlocks := make(CodeBlocks, len(blocks))
 
-	for _, block := range blocks {
-		fileBlocks = append(fileBlocks, CodeBlock{
-			File:  p.file,
+	for i, block := range blocks {
+		fileBlocks[i] = CodeBlock{
+			File:  file,
 			Block: block,
-		})
+		}
 	}
 
 	return fileBlocks, nil
-}
-
-func (p *SingleFileProject) LoadEnvs() []string {
-	return nil
-}
-
-func getFileCodeBlocks() {
-
 }

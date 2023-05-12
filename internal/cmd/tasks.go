@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/tasks"
 )
 
@@ -21,7 +20,7 @@ func tasksCmd() *cobra.Command {
 				return err
 			}
 
-			block, err := lookupCodeBlock[document.CodeBlock](blocks, args[0])
+			block, err := lookupCodeBlock(blocks, args[0])
 			if err != nil {
 				return err
 			}
