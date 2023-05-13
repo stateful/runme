@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 )
 
@@ -22,7 +23,7 @@ type MultiRunner struct {
 
 	StdoutPrefix string
 
-	PreRunMsg  func(blocks []*document.CodeBlock, parallel bool) string
+	PreRunMsg  func(blocks []project.FileCodeBlock, parallel bool) string
 	PostRunMsg func(block *document.CodeBlock, exitCode uint) string
 }
 
@@ -68,7 +69,7 @@ func (w *prefixWriter) Write(p []byte) (int, error) {
 	return n - extraBytes, err
 }
 
-func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock, parallel bool) error {
+func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlock, parallel bool) error {
 	if m.PreRunMsg != nil && parallel {
 		_, _ = m.Runner.getStdout().Write([]byte(
 			m.PreRunMsg(blocks, parallel),
@@ -78,12 +79,14 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []*document.CodeBlock
 	errChan := make(chan error, len(blocks))
 	var wg sync.WaitGroup
 
-	for _, block := range blocks {
+	for _, fileBlock := range blocks {
+		block := fileBlock.GetBlock()
+
 		runnerClient := m.Runner.Clone()
 
 		if m.PreRunMsg != nil && !parallel {
 			_, _ = m.Runner.getStdout().Write([]byte(
-				m.PreRunMsg([]*document.CodeBlock{block}, parallel),
+				m.PreRunMsg([]project.FileCodeBlock{block}, parallel),
 			))
 		}
 

@@ -15,6 +15,7 @@ import (
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 )
 
@@ -44,7 +45,7 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			runBlocks := make([]*document.CodeBlock, 0)
+			runBlocks := make([]project.FileCodeBlock, 0)
 
 			{
 				blocks, err := proj.LoadTasks()
@@ -70,7 +71,7 @@ func runCmd() *cobra.Command {
 						return err
 					}
 
-					runBlocks = append(runBlocks, block.Block)
+					runBlocks = append(runBlocks, block)
 				}
 			}
 
@@ -130,10 +131,10 @@ func runCmd() *cobra.Command {
 
 			multiRunner := client.MultiRunner{
 				Runner: runner,
-				PreRunMsg: func(blocks []*document.CodeBlock, parallel bool) string {
+				PreRunMsg: func(blocks []project.FileCodeBlock, parallel bool) string {
 					blockNames := make([]string, len(blocks))
 					for i, block := range blocks {
-						blockNames[i] = block.Name()
+						blockNames[i] = block.GetBlock().Name()
 						blockNames[i] = blockColor.Sprint(blockNames[i])
 					}
 

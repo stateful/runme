@@ -39,7 +39,7 @@ func Root() *cobra.Command {
 				}
 			}
 
-			fFileMode = cmd.PersistentFlags().Changed("filename") || cmd.PersistentFlags().Changed("chdir")
+			fFileMode = cmd.Flags().Changed("filename") || cmd.Flags().Changed("chdir")
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveNoFileComp

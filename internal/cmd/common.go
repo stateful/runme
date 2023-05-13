@@ -216,6 +216,10 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 	getRunOpts := func() ([]client.RunnerOption, error) {
 		dir, _ := filepath.Abs(fChdir)
 
+		if !fFileMode {
+			dir, _ = filepath.Abs(fProject)
+		}
+
 		runOpts := []client.RunnerOption{
 			client.WithDir(dir),
 			client.WithSessionID(SessionID),

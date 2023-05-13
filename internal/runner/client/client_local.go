@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 )
@@ -133,7 +135,9 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	return r, nil
 }
 
-func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable {
+func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) runner.Executable {
+	block := fileBlock.GetBlock()
+
 	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),
 		Dir:     r.dir,
@@ -142,6 +146,11 @@ func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable
 		Stderr:  r.stderr,
 		Session: r.session,
 		Logger:  r.logger,
+	}
+
+	mdFile := fileBlock.GetFile()
+	if mdFile != "" {
+		cfg.Dir = filepath.Join(r.dir, filepath.Dir(mdFile))
 	}
 
 	if block.Interactive() {
@@ -172,12 +181,14 @@ func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable
 	}
 }
 
-func (r *LocalRunner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
+func (r *LocalRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
+	block := fileBlock.GetBlock()
+
 	if r.shellID > 0 {
 		return r.runBlockInShell(ctx, block)
 	}
 
-	executable := r.newExecutable(block)
+	executable := r.newExecutable(fileBlock)
 	if executable == nil {
 		return errors.Errorf("unknown executable: %q", block.Language())
 	}
@@ -222,7 +233,9 @@ func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeB
 	return nil
 }
 
-func (r *LocalRunner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error {
+func (r *LocalRunner) DryRunBlock(ctx context.Context, fileBlock project.FileCodeBlock, w io.Writer, opts ...RunnerOption) error {
+	block := fileBlock.GetBlock()
+
 	executable := r.newExecutable(block)
 
 	executable.DryRun(ctx, w)

@@ -347,3 +347,11 @@ func (b *InnerBlock) Unwrap() ast.Node {
 func (b *InnerBlock) Value() []byte {
 	return b.value
 }
+
+func (b *CodeBlock) GetBlock() *CodeBlock {
+	return b
+}
+
+func (b *CodeBlock) GetFile() string {
+	return ""
+}

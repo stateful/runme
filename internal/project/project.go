@@ -22,6 +22,19 @@ type CodeBlock struct {
 	File  string
 }
 
+func (b CodeBlock) GetBlock() *document.CodeBlock {
+	return b.Block
+}
+
+func (b CodeBlock) GetFile() string {
+	return b.File
+}
+
+type FileCodeBlock interface {
+	GetBlock() *document.CodeBlock
+	GetFile() string
+}
+
 type CodeBlocks []CodeBlock
 
 func (blocks CodeBlocks) Lookup(queryName string) []CodeBlock {
