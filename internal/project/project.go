@@ -31,6 +31,10 @@ func (b CodeBlock) GetFile() string {
 	return b.File
 }
 
+func (b CodeBlock) GetId() string {
+	return fmt.Sprintf("%s:%s", b.File, b.Block.Name())
+}
+
 type FileCodeBlock interface {
 	GetBlock() *document.CodeBlock
 	GetFile() string
@@ -76,14 +80,60 @@ func (e ErrCodeBlockNameNotFound) FailedNameQuery() string {
 	return e.queryName
 }
 
-func (blocks CodeBlocks) LookupWithFile(queryFile string, queryName string) ([]CodeBlock, error) {
-	var queryMatcher *regexp.Regexp
-	if queryFile != "" {
-		reg, err := regexp.Compile(queryFile)
+func (blocks CodeBlocks) getFileRegexp(query string) (*regexp.Regexp, error) {
+	if query != "" {
+		reg, err := regexp.Compile(query)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid regexp %s", queryFile)
+			return nil, errors.Wrapf(err, "invalid regexp %s", query)
 		}
-		queryMatcher = reg
+		return reg, nil
+	}
+
+	return nil, nil
+}
+
+func (blocks CodeBlocks) LookupById(query string) ([]CodeBlock, error) {
+	queryMatcher, err := blocks.getFileRegexp(query)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]CodeBlock, 0)
+
+	for _, block := range blocks {
+		if queryMatcher != nil && !queryMatcher.MatchString(block.GetId()) {
+			continue
+		}
+
+		results = append(results, block)
+	}
+
+	return results, nil
+}
+
+func (blocks CodeBlocks) LookupByFile(queryFile string) ([]CodeBlock, error) {
+	queryMatcher, err := blocks.getFileRegexp(queryFile)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]CodeBlock, 0)
+
+	for _, block := range blocks {
+		if queryMatcher != nil && !queryMatcher.MatchString(block.File) {
+			continue
+		}
+
+		results = append(results, block)
+	}
+
+	return results, nil
+}
+
+func (blocks CodeBlocks) LookupWithFile(queryFile string, queryName string) ([]CodeBlock, error) {
+	queryMatcher, err := blocks.getFileRegexp(queryFile)
+	if err != nil {
+		return nil, err
 	}
 
 	results := make([]CodeBlock, 0)
@@ -107,9 +157,9 @@ func (blocks CodeBlocks) LookupWithFile(queryFile string, queryName string) ([]C
 	if len(results) == 0 {
 		if !foundFile {
 			return nil, ErrCodeBlockFileNotFound{queryFile: queryFile}
-		} else {
-			return nil, ErrCodeBlockNameNotFound{queryName: queryName}
 		}
+
+		return nil, ErrCodeBlockNameNotFound{queryName: queryName}
 	}
 
 	return results, nil
