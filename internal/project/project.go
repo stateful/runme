@@ -168,7 +168,7 @@ func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*
 		}
 
 		if repo != nil {
-			if wt, err := repo.Worktree(); err != nil {
+			if wt, err := repo.Worktree(); err == nil {
 				project.fs = wt.Filesystem
 			}
 
