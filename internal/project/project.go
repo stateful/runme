@@ -1,6 +1,7 @@
 package project
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -51,16 +52,31 @@ func (blocks CodeBlocks) Lookup(queryName string) []CodeBlock {
 	return results
 }
 
-func (blocks CodeBlocks) LookupWithFile(queryFile string, queryName string) ([]CodeBlock, error) {
-	// var queryMatcher glob.Glob
-	// if queryFile != "" {
-	// 	glob, err := glob.Compile(queryFile, '/', '\\')
-	// 	if err != nil {
-	// 		return nil, errors.Wrapf(err, "invalid glob sequence %s", queryFile)
-	// 	}
-	// 	queryMatcher = glob
-	// }
+type ErrCodeBlockFileNotFound struct {
+	queryFile string
+}
 
+func (e ErrCodeBlockFileNotFound) Error() string {
+	return fmt.Sprintf("unable to find file in project matching regex %q", e.FailedFileQuery())
+}
+
+func (e ErrCodeBlockFileNotFound) FailedFileQuery() string {
+	return e.queryFile
+}
+
+type ErrCodeBlockNameNotFound struct {
+	queryName string
+}
+
+func (e ErrCodeBlockNameNotFound) Error() string {
+	return fmt.Sprintf("unable to find any script named %q", e.queryName)
+}
+
+func (e ErrCodeBlockNameNotFound) FailedNameQuery() string {
+	return e.queryName
+}
+
+func (blocks CodeBlocks) LookupWithFile(queryFile string, queryName string) ([]CodeBlock, error) {
 	var queryMatcher *regexp.Regexp
 	if queryFile != "" {
 		reg, err := regexp.Compile(queryFile)
@@ -72,16 +88,28 @@ func (blocks CodeBlocks) LookupWithFile(queryFile string, queryName string) ([]C
 
 	results := make([]CodeBlock, 0)
 
+	foundFile := false
+
 	for _, block := range blocks {
 		if queryMatcher != nil && !queryMatcher.MatchString(block.File) {
 			continue
 		}
+
+		foundFile = true
 
 		if queryName != block.Block.Name() {
 			continue
 		}
 
 		results = append(results, block)
+	}
+
+	if len(results) == 0 {
+		if !foundFile {
+			return nil, ErrCodeBlockFileNotFound{queryFile: queryFile}
+		} else {
+			return nil, ErrCodeBlockNameNotFound{queryName: queryName}
+		}
 	}
 
 	return results, nil
