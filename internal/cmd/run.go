@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -16,11 +17,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/runner/client"
+	"github.com/stateful/runme/internal/tui"
 )
 
 func runCmd() *cobra.Command {
 	var (
 		dryRun         bool
+		runAll         bool
 		parallel       bool
 		replaceScripts []string
 		serverAddr     string
@@ -35,7 +38,7 @@ func runCmd() *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
+			if !runAll && len(args) == 0 {
 				return errors.New("must provide at least one command to run")
 			}
 
@@ -47,17 +50,28 @@ func runCmd() *cobra.Command {
 					return err
 				}
 
-				for _, arg := range args {
-					block, err := lookupCodeBlock(blocks, arg)
-					if err != nil {
-						return err
-					}
+				if runAll {
+					runBlocks = blocks
+				} else {
+					for _, arg := range args {
+						block, err := lookupCodeBlock(blocks, arg)
+						if err != nil {
+							return err
+						}
 
-					if err := replace(replaceScripts, block.Lines()); err != nil {
-						return err
-					}
+						if err := replace(replaceScripts, block.Lines()); err != nil {
+							return err
+						}
 
-					runBlocks = append(runBlocks, block)
+						runBlocks = append(runBlocks, block)
+					}
+				}
+			}
+
+			if runAll {
+				err := confirmExecution(cmd, strconv.Itoa(len(runBlocks)), parallel)
+				if err != nil {
+					return err
 				}
 			}
 
@@ -123,10 +137,16 @@ func runCmd() *cobra.Command {
 						blockNames[i] = block.Name()
 						blockNames[i] = blockColor.Sprint(blockNames[i])
 					}
+					if runAll && parallel {
+						blockNames = []string{blockColor.Sprint("all tasks")}
+					}
 
 					scriptRunText := "Running task"
+					if runAll && parallel {
+						scriptRunText = "Running"
+					}
 
-					if len(blocks) > 1 {
+					if len(blocks) > 1 && !runAll {
 						scriptRunText += "s"
 					}
 
@@ -197,6 +217,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
+	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
@@ -253,4 +274,30 @@ func inRawMode(cb func() error) error {
 	_ = current.Reset()
 
 	return err
+}
+
+func confirmExecution(cmd *cobra.Command, numberTask string, parallel bool) error {
+	text := "Run all " + numberTask + " tasks"
+	if parallel {
+		text += " (in parallel)"
+	}
+
+	text += "?"
+
+	model := tui.NewStandaloneQuestionModel(
+		text,
+		tui.MinimalKeyMap,
+		tui.DefaultStyles,
+	)
+	finalModel, err := newProgram(cmd, model).Run()
+	if err != nil {
+		return errors.Wrap(err, "failed to prompt")
+	}
+	confirm := finalModel.(tui.StandaloneQuestionModel).Confirmed()
+
+	if !confirm {
+		return errors.New("operation cancelled")
+	}
+
+	return nil
 }
