@@ -20,6 +20,8 @@ type ExecutableConfig struct {
 	Stdin   io.Reader
 	Stdout  io.Writer
 	Stderr  io.Writer
+	PreEnv  []string
+	PostEnv []string
 	Session *Session
 	Logger  *zap.Logger
 }

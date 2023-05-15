@@ -18,6 +18,7 @@ var ErrRunnerClientUnimplemented = fmt.Errorf("method unimplemented")
 type Runner interface {
 	setSession(s *runner.Session) error
 	setSessionID(id string) error
+	setProject(p project.Project) error
 	setCleanupSession(cleanup bool) error
 	setSessionStrategy(runnerv1.SessionStrategy) error
 
@@ -54,6 +55,12 @@ func WithSession(s *runner.Session) RunnerOption {
 func WithSessionID(id string) RunnerOption {
 	return func(rc Runner) error {
 		return rc.setSessionID(id)
+	}
+}
+
+func WithProject(proj project.Project) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setProject(proj)
 	}
 }
 

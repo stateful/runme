@@ -116,6 +116,7 @@ func runCmd() *cobra.Command {
 				client.WithStdin(stdin),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
+				client.WithProject(proj),
 			)
 
 			var runner client.Runner

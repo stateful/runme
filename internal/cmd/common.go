@@ -93,9 +93,15 @@ func getProject() (proj project.Project, err error) {
 	if fFileMode {
 		proj = project.NewSingleFileProject(filepath.Join(fChdir, fFileName), fAllowUnknown)
 	} else {
-		proj, err = project.NewDirectoryProject(fProject, true, fAllowUnknown)
+		dirProj, err := project.NewDirectoryProject(fProject, true, fAllowUnknown)
 		if err != nil {
-			return
+			return nil, err
+		}
+
+		proj = dirProj
+
+		if fLoadEnv && fEnvOrder != nil {
+			dirProj.SetEnvLoadOrder(fEnvOrder)
 		}
 	}
 
@@ -181,6 +187,11 @@ func GetDefaultConfigHome() string {
 	return filepath.Join(dir, "runme")
 }
 
+var (
+	fLoadEnv  bool
+	fEnvOrder []string
+)
+
 func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.RunnerOption, error) {
 	var (
 		SessionID                 string
@@ -191,6 +202,9 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 
 	cmd.Flags().StringVarP(serverAddr, "server", "s", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
 	cmd.Flags().StringVar(&SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
+
+	cmd.Flags().BoolVar(&fLoadEnv, "load-env", true, "Load env files from local project. Control which files to load with --env-order")
+	cmd.Flags().StringArrayVar(&fEnvOrder, "env-order", []string{".env.local", ".env"}, "List of environment files to load in order.")
 
 	cmd.Flags().BoolVar(&EnableBackgroundProcesses, "background", false, "Enable running background blocks as background processes")
 

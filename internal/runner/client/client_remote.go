@@ -31,6 +31,7 @@ type RemoteRunner struct {
 	client          runnerv1.RunnerServiceClient
 	sessionID       string
 	sessionStrategy runnerv1.SessionStrategy
+	project         project.Project
 	cleanupSession  bool
 
 	insecure bool
@@ -102,6 +103,11 @@ func (r *RemoteRunner) setSession(session *runner.Session) error {
 
 func (r *RemoteRunner) setSessionID(sessionID string) error {
 	r.sessionID = sessionID
+	return nil
+}
+
+func (r *RemoteRunner) setProject(p project.Project) error {
+	r.project = p
 	return nil
 }
 

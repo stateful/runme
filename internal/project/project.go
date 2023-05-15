@@ -172,6 +172,7 @@ func (blocks CodeBlocks) Names() []string {
 type Project interface {
 	LoadTasks() (CodeBlocks, error)
 	LoadEnvs() (map[string]string, error)
+	Dir() string
 }
 
 type DirectoryProject struct {
@@ -202,10 +203,6 @@ func (p *DirectoryProject) SetEnvLoadOrder(envLoadOrder []string) {
 func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*DirectoryProject, error) {
 	project := &DirectoryProject{
 		allowUnknown: allowUnknown,
-		envLoadOrder: []string{
-			".env.local",
-			".env",
-		},
 	}
 
 	// try to find nearest git repo
@@ -337,6 +334,10 @@ func (p *DirectoryProject) LoadEnvs() (map[string]string, error) {
 	return envs, nil
 }
 
+func (p *DirectoryProject) Dir() string {
+	return p.fs.Root()
+}
+
 type SingleFileProject struct {
 	file         string
 	allowUnknown bool
@@ -350,7 +351,7 @@ func NewSingleFileProject(file string, allowUnknown bool) *SingleFileProject {
 }
 
 func (p *SingleFileProject) LoadTasks() (CodeBlocks, error) {
-	fs := osfs.New(filepath.Dir(p.file))
+	fs := osfs.New(p.Dir())
 	relFile, err := filepath.Rel(fs.Root(), p.file)
 	if err != nil {
 		return nil, err
@@ -361,6 +362,10 @@ func (p *SingleFileProject) LoadTasks() (CodeBlocks, error) {
 
 func (p *SingleFileProject) LoadEnvs() (map[string]string, error) {
 	return nil, nil
+}
+
+func (p *SingleFileProject) Dir() string {
+	return filepath.Dir(p.file)
 }
 
 func getFileCodeBlocks(file string, allowUnknown bool, fs billy.Basic) ([]CodeBlock, error) {

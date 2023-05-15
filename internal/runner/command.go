@@ -35,6 +35,9 @@ type command struct {
 	Stdout      io.Writer
 	Stderr      io.Writer
 
+	PreEnv  []string
+	PostEnv []string
+
 	cmd *exec.Cmd
 
 	// pty and tty as pseud-terminal primary and secondary.
@@ -74,6 +77,9 @@ type commandConfig struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
+
+	PreEnv  []string
+	PostEnv []string
 
 	IsShell  bool // if true then Commands or Scripts is passed to shell as "-c" argument's value
 	Commands []string
@@ -147,6 +153,8 @@ func newCommand(cfg *commandConfig) (*command, error) {
 		Stdin:       cfg.Stdin,
 		Stdout:      cfg.Stdout,
 		Stderr:      cfg.Stderr,
+		PreEnv:      cfg.PreEnv,
+		PostEnv:     cfg.PostEnv,
 		tmpEnvDir:   envStorePath,
 		logger:      cfg.Logger,
 	}
@@ -206,7 +214,10 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 		c.Args...,
 	)
 	c.cmd.Dir = c.Directory
+
+	c.cmd.Env = append(c.cmd.Env, c.PreEnv...)
 	c.cmd.Env = append(c.cmd.Env, c.Session.Envs()...)
+	c.cmd.Env = append(c.cmd.Env, c.PostEnv...)
 
 	if c.tty != nil {
 		c.cmd.Stdin = c.tty
