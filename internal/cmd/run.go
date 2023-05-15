@@ -17,6 +17,12 @@ import (
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
+	"github.com/stateful/runme/internal/tui"
+
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func runCmd() *cobra.Command {
@@ -64,8 +70,21 @@ func runCmd() *cobra.Command {
 						return err
 					}
 
-					// TODO(mxs): prompt user here
-					block := blocks[0]
+					var block project.CodeBlock
+
+					if len(blocks) > 1 {
+						if !isTerminal(os.Stdout.Fd()) {
+							return errors.New("multiple matches found for code block; please use a file specifier in the form \"{file}:{task-name}\"")
+						}
+
+						pBlock, err := promptForRun(cmd, blocks)
+						if err != nil {
+							return err
+						}
+						block = *pBlock
+					} else {
+						block = blocks[0]
+					}
 
 					if err := replace(replaceScripts, block.Block.Lines()); err != nil {
 						return err
@@ -282,4 +301,120 @@ func splitRunArgument(name string) (queryFile string, queryName string, err erro
 	}
 
 	return
+}
+
+var (
+	blockPromptListItemStyle = lipgloss.NewStyle().PaddingLeft(0).Bold(true)
+	blockPromptAppStyle      = lipgloss.NewStyle().Margin(1, 2)
+)
+
+type blockPromptItem struct {
+	block *project.CodeBlock
+}
+
+func (i blockPromptItem) FilterValue() string {
+	return i.block.Block.Name()
+}
+
+func (i blockPromptItem) Title() string {
+	return blockPromptListItemStyle.Render(i.block.Block.Name())
+}
+
+func (i blockPromptItem) Description() string {
+	return i.block.File
+}
+
+type RunBlockPrompt struct {
+	list.Model
+	selectedBlock list.Item
+	heading       string
+}
+
+func (p RunBlockPrompt) Init() tea.Cmd {
+	return nil
+}
+
+func (p RunBlockPrompt) KeyMap() *tui.KeyMap {
+	kmap := tui.NewKeyMap()
+
+	kmap.Set("enter", key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "select"),
+	))
+
+	return kmap
+}
+
+func (p RunBlockPrompt) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		h, v := blockPromptAppStyle.GetFrameSize()
+		p.SetSize(msg.Width-h, msg.Height-v-len(strings.Split(p.heading, "\n")))
+	case tea.KeyMsg:
+		kmap := p.KeyMap()
+
+		if kmap.Matches(msg, "enter") {
+			p.selectedBlock = p.SelectedItem()
+			return p, tea.Quit
+		}
+	}
+
+	model, cmd := p.Model.Update(msg)
+	p.Model = model
+
+	return p, cmd
+}
+
+func (p RunBlockPrompt) View() string {
+	content := ""
+
+	content += p.heading
+	content += p.Model.View()
+
+	return blockPromptAppStyle.Render(content)
+}
+
+func promptForRun(cmd *cobra.Command, blocks project.CodeBlocks) (*project.CodeBlock, error) {
+	items := make([]list.Item, len(blocks))
+
+	for i := range blocks {
+		items[i] = blockPromptItem{
+			block: &blocks[i],
+		}
+	}
+
+	l := list.New(
+		items,
+		list.NewDefaultDelegate(),
+		0,
+		0,
+	)
+
+	l.SetFilteringEnabled(false)
+	l.SetShowStatusBar(false)
+	l.SetShowPagination(false)
+	l.SetShowTitle(false)
+
+	l.Title = "Select Task"
+
+	heading := "Found multiple matching tasks. Select from the following.\n\nNote that you can avoid this screen by providing a filename specifier, such as \"{filename}:{task}\"\n\n\n"
+
+	model := RunBlockPrompt{
+		Model:   l,
+		heading: heading,
+	}
+
+	prog := newProgramWithOutputs(cmd.OutOrStdout(), cmd.InOrStdin(), model, tea.WithAltScreen())
+	m, err := prog.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	result := m.(RunBlockPrompt).selectedBlock
+
+	if result == nil {
+		return nil, errors.New("no block selected")
+	}
+
+	return result.(blockPromptItem).block, nil
 }

@@ -21,9 +21,7 @@ func (p *program) Start() error {
 	return err
 }
 
-func newProgramWithOutputs(output io.Writer, input io.Reader, model tea.Model) *program {
-	opts := make([]tea.ProgramOption, 0)
-
+func newProgramWithOutputs(output io.Writer, input io.Reader, model tea.Model, opts ...tea.ProgramOption) *program {
 	if output != nil {
 		opts = append(opts, tea.WithOutput(output))
 	}
