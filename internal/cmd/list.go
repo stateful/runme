@@ -34,7 +34,7 @@ func listCmd() *cobra.Command {
 				return err
 			}
 
-			blocks, err := allBlocks.LookupById(search)
+			blocks, err := allBlocks.LookupByID(search)
 			if err != nil {
 				return err
 			}

@@ -31,7 +31,7 @@ func (b CodeBlock) GetFile() string {
 	return b.File
 }
 
-func (b CodeBlock) GetId() string {
+func (b CodeBlock) GetID() string {
 	return fmt.Sprintf("%s:%s", b.File, b.Block.Name())
 }
 
@@ -92,7 +92,7 @@ func (blocks CodeBlocks) getFileRegexp(query string) (*regexp.Regexp, error) {
 	return nil, nil
 }
 
-func (blocks CodeBlocks) LookupById(query string) ([]CodeBlock, error) {
+func (blocks CodeBlocks) LookupByID(query string) ([]CodeBlock, error) {
 	queryMatcher, err := blocks.getFileRegexp(query)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (blocks CodeBlocks) LookupById(query string) ([]CodeBlock, error) {
 	results := make([]CodeBlock, 0)
 
 	for _, block := range blocks {
-		if queryMatcher != nil && !queryMatcher.MatchString(block.GetId()) {
+		if queryMatcher != nil && !queryMatcher.MatchString(block.GetID()) {
 			continue
 		}
 
