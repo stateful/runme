@@ -107,6 +107,8 @@ func runCmd() *cobra.Command {
 						if err := replace(replaceScripts, block.Block.Lines()); err != nil {
 							return err
 						}
+
+						runBlocks = append(runBlocks, block)
 					}
 				}
 			}
