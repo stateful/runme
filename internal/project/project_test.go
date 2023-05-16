@@ -86,6 +86,8 @@ func Test_directoryGitProject(t *testing.T) {
 	defer pfs.Remove(".gitignore")
 
 	t.Run("LoadEnvs", func(t *testing.T) {
+		proj.SetEnvLoadOrder([]string{".env.local", ".env"})
+
 		envs, err := proj.LoadEnvs()
 		require.NoError(t, err)
 
@@ -139,6 +141,8 @@ func Test_directoryBareProject(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("LoadEnvs", func(t *testing.T) {
+		proj.SetEnvLoadOrder([]string{".env.local", ".env"})
+
 		envs, err := proj.LoadEnvs()
 		require.NoError(t, err)
 
