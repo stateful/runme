@@ -135,6 +135,19 @@ func (b *CodeBlock) Value() []byte {
 	return b.value
 }
 
+func (b *CodeBlock) Category() string {
+	return b.Attributes()["category"]
+}
+
+func (b *CodeBlock) ExcludeFromRunAll() bool {
+	val, err := strconv.ParseBool(b.Attributes()["excludeFromRunAll"])
+	if err != nil {
+		return false
+	}
+
+	return val
+}
+
 type TextRange struct {
 	Start int
 	End   int
