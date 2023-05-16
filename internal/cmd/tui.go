@@ -241,18 +241,16 @@ func (m tuiModel) View() string {
 
 		{
 			name := block.Name()
-			lang := ansi.Color(block.Language(), "white+d")
+			filename := ansi.Color(fileBlock.File, "white+d")
 
 			if active {
 				name = ansi.Color(name, "white+b")
-			} else {
-				lang = ""
 			}
 
 			identifier := fmt.Sprintf(
 				"%s %s",
 				name,
-				lang,
+				filename,
 			)
 
 			line += identifier + "\n"
@@ -273,7 +271,7 @@ func (m tuiModel) View() string {
 				break
 			}
 
-			line += content + "\n"
+			line += content + "\n\n"
 		}
 
 		_, _ = s.WriteString(line)
