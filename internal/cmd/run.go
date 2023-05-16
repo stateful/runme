@@ -38,7 +38,8 @@ func runCmd() *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !(runAll || category != "") && len(args) == 0 {
+			runMany := runAll || (category != "" && len(args) == 0)
+			if !runMany && len(args) == 0 {
 				return errors.New("must provide at least one command to run")
 			}
 
@@ -50,7 +51,7 @@ func runCmd() *cobra.Command {
 					return err
 				}
 
-				if runAll || category != "" {
+				if runMany {
 					for _, block := range blocks {
 						if !block.ExcludeFromRunAll() {
 							if category != "" && category != block.Category() {
@@ -78,8 +79,8 @@ func runCmd() *cobra.Command {
 				}
 			}
 
-			if runAll || category != "" {
-				err := confirmExecution(cmd, len(runBlocks), parallel)
+			if runMany {
+				err := confirmExecution(cmd, len(runBlocks), parallel, category)
 				if err != nil {
 					return err
 				}
@@ -149,12 +150,15 @@ func runCmd() *cobra.Command {
 					}
 
 					scriptRunText := "Running task"
-					if (runAll || category != "") && parallel {
+					if runMany && parallel {
 						scriptRunText = "Running"
 						blockNames = []string{blockColor.Sprint("all tasks")}
+						if category != "" {
+							blockNames = []string{blockColor.Sprintf("for category %s", category)}
+						}
 					}
 
-					if len(blocks) > 1 && !(runAll || category != "") {
+					if len(blocks) > 1 && !runMany {
 						scriptRunText += "s"
 					}
 
@@ -285,8 +289,11 @@ func inRawMode(cb func() error) error {
 	return err
 }
 
-func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool) error {
+func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool, category string) error {
 	text := fmt.Sprintf("Run all %d tasks", numTasks)
+	if category != "" {
+		text = fmt.Sprintf("Run %d tasks for category %s", numTasks, category)
+	}
 	if parallel {
 		text += " (in parallel)"
 	}
