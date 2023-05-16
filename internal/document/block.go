@@ -139,7 +139,7 @@ func (b *CodeBlock) Category() string {
 	return b.Attributes()["category"]
 }
 
-func (b *CodeBlock) IsExcludedFromRunAll() bool {
+func (b *CodeBlock) ExcludeFromRunAll() bool {
 	val, err := strconv.ParseBool(b.Attributes()["excludeFromRunAll"])
 	if err != nil {
 		return false

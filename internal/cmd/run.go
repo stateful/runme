@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -39,7 +38,7 @@ func runCmd() *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !runAll && len(args) == 0 {
+			if !(runAll || category != "") && len(args) == 0 {
 				return errors.New("must provide at least one command to run")
 			}
 
@@ -51,9 +50,9 @@ func runCmd() *cobra.Command {
 					return err
 				}
 
-				if runAll {
+				if runAll || category != "" {
 					for _, block := range blocks {
-						if !block.IsExcludedFromRunAll() {
+						if !block.ExcludeFromRunAll() {
 							if category != "" && category != block.Category() {
 								continue
 							}
@@ -79,8 +78,8 @@ func runCmd() *cobra.Command {
 				}
 			}
 
-			if runAll {
-				err := confirmExecution(cmd, strconv.Itoa(len(runBlocks)), parallel)
+			if runAll || category != "" {
+				err := confirmExecution(cmd, len(runBlocks), parallel)
 				if err != nil {
 					return err
 				}
@@ -148,16 +147,14 @@ func runCmd() *cobra.Command {
 						blockNames[i] = block.Name()
 						blockNames[i] = blockColor.Sprint(blockNames[i])
 					}
-					if runAll && parallel {
+
+					scriptRunText := "Running task"
+					if (runAll || category != "") && parallel {
+						scriptRunText = "Running"
 						blockNames = []string{blockColor.Sprint("all tasks")}
 					}
 
-					scriptRunText := "Running task"
-					if runAll && parallel {
-						scriptRunText = "Running"
-					}
-
-					if len(blocks) > 1 && !runAll {
+					if len(blocks) > 1 && !(runAll || category != "") {
 						scriptRunText += "s"
 					}
 
@@ -288,8 +285,8 @@ func inRawMode(cb func() error) error {
 	return err
 }
 
-func confirmExecution(cmd *cobra.Command, numberTask string, parallel bool) error {
-	text := "Run all " + numberTask + " tasks"
+func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool) error {
+	text := fmt.Sprintf("Run all %d tasks", numTasks)
 	if parallel {
 		text += " (in parallel)"
 	}
@@ -303,7 +300,7 @@ func confirmExecution(cmd *cobra.Command, numberTask string, parallel bool) erro
 	)
 	finalModel, err := newProgram(cmd, model).Run()
 	if err != nil {
-		return errors.Wrap(err, "failed to prompt")
+		return errors.Wrap(err, "cli program failed")
 	}
 	confirm := finalModel.(tui.StandaloneQuestionModel).Confirmed()
 
