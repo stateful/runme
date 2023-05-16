@@ -452,6 +452,7 @@ func promptForRun(cmd *cobra.Command, blocks project.CodeBlocks) (*project.CodeB
 
 	return result.(blockPromptItem).block, nil
 }
+
 func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool, category string) error {
 	text := fmt.Sprintf("Run all %d tasks", numTasks)
 	if category != "" {

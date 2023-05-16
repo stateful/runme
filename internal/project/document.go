@@ -18,7 +18,6 @@ func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
 	}
 
 	f, err := fs.Open(filepath)
-
 	if err != nil {
 		var pathError *os.PathError
 		if errors.As(err, &pathError) {
