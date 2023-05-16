@@ -68,6 +68,7 @@ func tuiCmd() *cobra.Command {
 				client.WithStdin(cmd.InOrStdin()),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
+				client.WithProject(proj),
 			)
 
 			if serverAddr != "" {
