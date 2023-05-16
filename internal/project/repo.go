@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/pkg/errors"
@@ -16,81 +15,81 @@ import (
 type Resolver struct {
 	cwd string
 
-	once sync.Once
-	repo *repo
+	// once sync.Once
+	// repo *repo
 }
 
 func NewResolver(dir string) *Resolver {
 	return &Resolver{cwd: dir}
 }
 
-func (r *Resolver) openRepo() *repo {
-	r.once.Do(func() {
-		gitRepo, err := git.PlainOpen(r.cwd)
-		r.repo = &repo{Repository: gitRepo, err: err}
-	})
-	return r.repo
-}
+// func (r *Resolver) openRepo() *repo {
+// 	r.once.Do(func() {
+// 		gitRepo, err := git.PlainOpen(r.cwd)
+// 		r.repo = &repo{Repository: gitRepo, err: err}
+// 	})
+// 	return r.repo
+// }
 
-type repo struct {
-	*git.Repository
-	err error
-}
+// type repo struct {
+// 	*git.Repository
+// 	err error
+// }
 
-func (r *repo) Clone() (*repo, error) {
-	if err := r.Err(); err != nil {
-		return nil, err
-	}
-	return &repo{Repository: r.Repository}, nil
-}
+// func (r *repo) Clone() (*repo, error) {
+// 	if err := r.Err(); err != nil {
+// 		return nil, err
+// 	}
+// 	return &repo{Repository: r.Repository}, nil
+// }
 
-func (r *repo) Err() error { return r.err }
+// func (r *repo) Err() error { return r.err }
 
-func (r *repo) BranchName() string {
-	if r.Err() != nil {
-		return ""
-	}
+// func (r *repo) BranchName() string {
+// 	if r.Err() != nil {
+// 		return ""
+// 	}
 
-	ref, err := r.Head()
-	if err != nil {
-		r.err = err
-		return ""
-	}
+// 	ref, err := r.Head()
+// 	if err != nil {
+// 		r.err = err
+// 		return ""
+// 	}
 
-	if ref.Name().IsBranch() {
-		return ref.Name().Short()
-	}
-	return ""
-}
+// 	if ref.Name().IsBranch() {
+// 		return ref.Name().Short()
+// 	}
+// 	return ""
+// }
 
-func (r *repo) Commit() string {
-	if r.Err() != nil {
-		return ""
-	}
+// func (r *repo) Commit() string {
+// 	if r.Err() != nil {
+// 		return ""
+// 	}
 
-	ref, err := r.Head()
-	if err != nil {
-		r.err = err
-		return ""
-	}
-	return ref.Hash().String()
-}
+// 	ref, err := r.Head()
+// 	if err != nil {
+// 		r.err = err
+// 		return ""
+// 	}
+// 	return ref.Hash().String()
+// }
 
-func (r *repo) URL() string {
-	if r.Err() != nil {
-		return ""
-	}
+// func (r *repo) URL() string {
+// 	if r.Err() != nil {
+// 		return ""
+// 	}
 
-	remotes, err := r.Remotes()
-	if err != nil {
-		r.err = err
-		return ""
-	}
-	if len(remotes) == 0 {
-		return ""
-	}
-	return selectRemoteURL(remotes)
-}
+// 	remotes, err := r.Remotes()
+// 	if err != nil {
+// 		r.err = err
+// 		return ""
+// 	}
+// 	if len(remotes) == 0 {
+// 		return ""
+// 	}
+// 	return selectRemoteURL(remotes)
+// }
 
 func selectRemoteURL(remotes []*git.Remote) string {
 	sort.Slice(remotes, func(i, j int) bool {

@@ -80,6 +80,7 @@ func Test_directoryGitProject(t *testing.T) {
 	require.NotNil(t, proj.repo)
 
 	wt, err := proj.repo.Worktree()
+	require.NoError(t, err)
 	t.Log(wt.Filesystem.Root())
 
 	util.WriteFile(pfs, ".gitignore", []byte("IGNORED.md\nignored"), os.FileMode(int(0o700)))
