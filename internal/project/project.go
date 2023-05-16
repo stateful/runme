@@ -180,8 +180,9 @@ type DirectoryProject struct {
 	repo *git.Repository
 	fs   billy.Filesystem
 
-	allowUnknown bool
-	envLoadOrder []string
+	allowUnknown     bool
+	respectGitignore bool
+	envLoadOrder     []string
 }
 
 // TODO(mxs): support `.runmeignore` file
@@ -201,9 +202,14 @@ func (p *DirectoryProject) SetEnvLoadOrder(envLoadOrder []string) {
 	p.envLoadOrder = envLoadOrder
 }
 
+func (p *DirectoryProject) SetRespectGitignore(respectGitignore bool) {
+	p.respectGitignore = respectGitignore
+}
+
 func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*DirectoryProject, error) {
 	project := &DirectoryProject{
-		allowUnknown: allowUnknown,
+		allowUnknown:     allowUnknown,
+		respectGitignore: true,
 	}
 
 	// try to find git repo
@@ -244,7 +250,7 @@ func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*
 func (p *DirectoryProject) LoadTasks() (CodeBlocks, error) {
 	matcher := &DirectoryProjectMatcher{}
 
-	if p.repo != nil {
+	if p.repo != nil && p.respectGitignore {
 		ps, _ := gitignore.ReadPatterns(p.fs, []string{})
 		dotGitPs := gitignore.ParsePattern("/.git", []string{})
 

@@ -113,6 +113,8 @@ func getProject() (proj project.Project, err error) {
 		if fLoadEnv && fEnvOrder != nil {
 			dirProj.SetEnvLoadOrder(fEnvOrder)
 		}
+
+		dirProj.SetRespectGitignore(fRespectGitignore)
 	}
 
 	return

@@ -11,12 +11,13 @@ import (
 )
 
 var (
-	fAllowUnknown bool
-	fChdir        string
-	fFileName     string
-	fFileMode     bool
-	fProject      string
-	fInsecure     bool
+	fAllowUnknown     bool
+	fChdir            string
+	fFileName         string
+	fFileMode         bool
+	fProject          string
+	fRespectGitignore bool
+	fInsecure         bool
 )
 
 func Root() *cobra.Command {
@@ -54,7 +55,9 @@ func Root() *cobra.Command {
 	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command")
 	pflags.StringVar(&fFileName, "filename", "README.md", "Name of the README file")
 	pflags.BoolVar(&fInsecure, "insecure", false, "Run command in insecure-mode")
+
 	pflags.StringVar(&fProject, "project", "", "Root project to find runnable tasks")
+	pflags.BoolVar(&fRespectGitignore, "git-ignore", true, "Whether to respect .gitignore file(s) in project")
 
 	setAPIFlags(pflags)
 
