@@ -154,7 +154,7 @@ func runCmd() *cobra.Command {
 						scriptRunText = "Running"
 						blockNames = []string{blockColor.Sprint("all tasks")}
 						if category != "" {
-							blockNames = []string{blockColor.Sprintf("for category %s", category)}
+							blockNames = []string{blockColor.Sprintf("tasks for category %s", category)}
 						}
 					}
 
