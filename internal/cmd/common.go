@@ -93,7 +93,17 @@ func getProject() (proj project.Project, err error) {
 	if fFileMode {
 		proj = project.NewSingleFileProject(filepath.Join(fChdir, fFileName), fAllowUnknown)
 	} else {
-		dirProj, err := project.NewDirectoryProject(fProject, true, fAllowUnknown)
+		projDir, findNearestRepo := fProject, false
+		if projDir == "" {
+			projDir, err = os.Getwd()
+			if err != nil {
+				return nil, err
+			}
+
+			findNearestRepo = true
+		}
+
+		dirProj, err := project.NewDirectoryProject(projDir, findNearestRepo, fAllowUnknown)
 		if err != nil {
 			return nil, err
 		}

@@ -39,7 +39,7 @@ func Root() *cobra.Command {
 				}
 			}
 
-			fFileMode = cmd.Flags().Changed("filename") || cmd.Flags().Changed("chdir")
+			fFileMode = !cmd.Flags().Changed("project")
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveNoFileComp
@@ -54,7 +54,7 @@ func Root() *cobra.Command {
 	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command")
 	pflags.StringVar(&fFileName, "filename", "README.md", "Name of the README file")
 	pflags.BoolVar(&fInsecure, "insecure", false, "Run command in insecure-mode")
-	pflags.StringVar(&fProject, "project", getCwd(), "Root project to find runnable tasks")
+	pflags.StringVar(&fProject, "project", "", "Root project to find runnable tasks")
 
 	setAPIFlags(pflags)
 
