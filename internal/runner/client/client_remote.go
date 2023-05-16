@@ -220,6 +220,13 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		Background:      block.Background(),
 	}
 
+	if r.project != nil {
+		req.Project = &runnerv1.Project{
+			Root:         r.project.Dir(),
+			EnvLoadOrder: r.project.EnvLoadOrder(),
+		}
+	}
+
 	mdFile := fileBlock.GetFile()
 	if mdFile != "" {
 		req.Directory = filepath.Join(r.dir, filepath.Dir(mdFile))

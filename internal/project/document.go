@@ -8,8 +8,8 @@ import (
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/executable"
 	"github.com/stateful/runme/internal/renderer/cmark"
-	"github.com/stateful/runme/internal/runner"
 )
 
 func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
@@ -51,7 +51,7 @@ func GetCodeBlocks(filepath string, allowUnknown bool, fs billy.Basic) (document
 
 	filtered := make(document.CodeBlocks, 0, len(blocks))
 	for _, b := range blocks {
-		if allowUnknown || (b.Language() != "" && runner.IsSupported(b.Language())) {
+		if allowUnknown || (b.Language() != "" && executable.IsSupported(b.Language())) {
 			filtered = append(filtered, b)
 		}
 	}

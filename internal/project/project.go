@@ -172,6 +172,7 @@ func (blocks CodeBlocks) Names() []string {
 type Project interface {
 	LoadTasks() (CodeBlocks, error)
 	LoadEnvs() (map[string]string, error)
+	EnvLoadOrder() []string
 	Dir() string
 }
 
@@ -334,6 +335,10 @@ func (p *DirectoryProject) LoadEnvs() (map[string]string, error) {
 	return envs, nil
 }
 
+func (p *DirectoryProject) EnvLoadOrder() []string {
+	return p.envLoadOrder
+}
+
 func (p *DirectoryProject) Dir() string {
 	return p.fs.Root()
 }
@@ -362,6 +367,10 @@ func (p *SingleFileProject) LoadTasks() (CodeBlocks, error) {
 
 func (p *SingleFileProject) LoadEnvs() (map[string]string, error) {
 	return nil, nil
+}
+
+func (p *SingleFileProject) EnvLoadOrder() []string {
+	return nil
 }
 
 func (p *SingleFileProject) Dir() string {

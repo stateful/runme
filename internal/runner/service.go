@@ -8,7 +8,9 @@ import (
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
+	"github.com/stateful/runme/internal/env"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -189,6 +191,23 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		Logger:      r.logger,
 		Winsize:     runnerWinsizeToPty(req.Winsize),
 	}
+
+	if req.Project != nil {
+		proj, err := project.NewDirectoryProject(req.Project.Root, false, true)
+		if err != nil {
+			return err
+		}
+
+		proj.SetEnvLoadOrder(req.Project.EnvLoadOrder)
+
+		mapEnv, err := proj.LoadEnvs()
+		if err != nil {
+			return err
+		}
+
+		cfg.PreEnv = env.ConvertMapEnv(mapEnv)
+	}
+
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
 	if err != nil {

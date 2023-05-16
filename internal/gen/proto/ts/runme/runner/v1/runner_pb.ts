@@ -411,6 +411,54 @@ export class DeleteSessionResponse extends Message<DeleteSessionResponse> {
 }
 
 /**
+ * @generated from message runme.runner.v1.Project
+ */
+export class Project extends Message<Project> {
+  /**
+   * project root folder
+   *
+   * @generated from field: string root = 1;
+   */
+  root = "";
+
+  /**
+   * list of environment files to try and load
+   * start with
+   *
+   * @generated from field: repeated string env_load_order = 2;
+   */
+  envLoadOrder: string[] = [];
+
+  constructor(data?: PartialMessage<Project>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "runme.runner.v1.Project";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "root", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "env_load_order", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Project {
+    return new Project().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Project {
+    return new Project().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Project {
+    return new Project().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Project | PlainMessage<Project> | undefined, b: Project | PlainMessage<Project> | undefined): boolean {
+    return proto3.util.equals(Project, a, b);
+  }
+}
+
+/**
  * @generated from message runme.runner.v1.Winsize
  */
 export class Winsize extends Message<Winsize> {
@@ -583,6 +631,14 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
    */
   sessionStrategy = SessionStrategy.UNSPECIFIED;
 
+  /**
+   * project for this runner
+   * used to load environment variables from .env files
+   *
+   * @generated from field: optional runme.runner.v1.Project project = 22;
+   */
+  project?: Project;
+
   constructor(data?: PartialMessage<ExecuteRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -604,6 +660,7 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
     { no: 11, name: "background", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 20, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 21, name: "session_strategy", kind: "enum", T: proto3.getEnumType(SessionStrategy) },
+    { no: 22, name: "project", kind: "message", T: Project, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteRequest {
@@ -723,3 +780,4 @@ export class ExecuteResponse extends Message<ExecuteResponse> {
     return proto3.util.equals(ExecuteResponse, a, b);
   }
 }
+
