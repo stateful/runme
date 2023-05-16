@@ -206,11 +206,21 @@ func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*
 		allowUnknown: allowUnknown,
 	}
 
-	// try to find nearest git repo
-	if findNearestRepo {
-		repo, err := git.PlainOpenWithOptions(dir, &git.PlainOpenOptions{
-			DetectDotGit: true,
-		})
+	// try to find git repo
+	{
+		var (
+			repo *git.Repository
+			err  error
+		)
+
+		if findNearestRepo {
+			repo, err = git.PlainOpenWithOptions(dir, &git.PlainOpenOptions{
+				DetectDotGit: true,
+			})
+		} else {
+			repo, err = git.PlainOpen(dir)
+		}
+
 		if err != nil && !errors.Is(err, git.ErrRepositoryNotExists) {
 			return nil, err
 		}
