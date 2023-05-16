@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/go-git/go-billy/v5"
@@ -113,13 +114,13 @@ func Test_directoryGitProject(t *testing.T) {
 
 		assert.Equal(
 			t,
-			"echo hello",
+			convertLine("echo hello"),
 			string(blocks["echo-hello"].Block.Content()),
 		)
 
 		assert.Equal(
 			t,
-			"echo chao",
+			convertLine("echo chao"),
 			string(blocks["echo-chao"].Block.Content()),
 		)
 
@@ -131,7 +132,7 @@ func Test_directoryGitProject(t *testing.T) {
 
 		assert.Equal(
 			t,
-			"src/DOCS.md",
+			convertFilePath("src/DOCS.md"),
 			string(blocks["echo-chao"].File),
 		)
 	})
@@ -168,26 +169,26 @@ func Test_directoryBareProject(t *testing.T) {
 
 		assert.Equal(
 			t,
-			"echo hello",
+			convertLine("echo hello"),
 			string(blocks["README.md:echo-hello"].Block.Content()),
 		)
 
 		assert.Equal(
 			t,
-			"echo chao",
-			string(blocks["src/DOCS.md:echo-chao"].Block.Content()),
+			convertLine("echo chao"),
+			string(blocks[convertFilePath("src/DOCS.md:echo-chao")].Block.Content()),
 		)
 
 		assert.Equal(
 			t,
-			"echo ignored",
+			convertLine("echo ignored"),
 			string(blocks["IGNORED.md:echo-ignored"].Block.Content()),
 		)
 
 		assert.Equal(
 			t,
-			"echo hi",
-			string(blocks["ignored/README.md:echo-hi"].Block.Content()),
+			convertLine("echo hi"),
+			string(blocks[convertFilePath("ignored/README.md:echo-hi")].Block.Content()),
 		)
 	})
 }
@@ -218,4 +219,16 @@ func projectDir() billy.Filesystem {
 	)
 
 	return osfs.New(root)
+}
+
+func convertFilePath(p string) string {
+	return strings.ReplaceAll(p, "/", string(filepath.Separator))
+}
+
+func convertLine(p string) string {
+	if runtime.GOOS == "windows" {
+		p += "\r"
+	}
+
+	return p
 }
