@@ -27,6 +27,7 @@ func runCmd() *cobra.Command {
 		parallel       bool
 		replaceScripts []string
 		serverAddr     string
+		category       string
 		getRunnerOpts  func() ([]client.RunnerOption, error)
 	)
 
@@ -51,7 +52,17 @@ func runCmd() *cobra.Command {
 				}
 
 				if runAll {
-					runBlocks = blocks
+					for _, block := range blocks {
+						if !block.IsExcludedFromRunAll() {
+							if category != "" && category != block.Category() {
+								continue
+							}
+							runBlocks = append(runBlocks, block)
+						}
+					}
+					if len(runBlocks) == 0 {
+						return errors.New("No tasks to execute with the category provided")
+					}
 				} else {
 					for _, arg := range args {
 						block, err := lookupCodeBlock(blocks, arg)
@@ -218,6 +229,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
+	cmd.Flags().StringVarP(&category, "category", "c", "", "Run from a specific category.")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
