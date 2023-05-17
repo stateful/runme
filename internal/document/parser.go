@@ -9,8 +9,9 @@ import (
 )
 
 type ParsedSections struct {
-	FrontMatter []byte
-	Content     []byte
+	FrontMatter   []byte
+	Content       []byte
+	ContentOffset int
 }
 
 func ParseSections(source []byte) (result ParsedSections, _ error) {
@@ -21,6 +22,7 @@ func ParseSections(source []byte) (result ParsedSections, _ error) {
 		case parsedItemFrontMatter:
 			result.FrontMatter = item.Value(source)
 		case parsedItemContent:
+			result.ContentOffset = item.start
 			result.Content = item.Value(source)
 		case parsedItemError:
 			return result, item.err
