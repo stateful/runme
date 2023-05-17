@@ -22,7 +22,8 @@ type Session struct {
 
 func NewSession(envs []string, logger *zap.Logger) *Session {
 	s := &Session{
-		ID:       xid.New().String(),
+		ID: xid.New().String(),
+
 		envStore: newEnvStore(envs...),
 		logger:   logger,
 	}
