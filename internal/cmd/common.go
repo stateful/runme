@@ -91,7 +91,7 @@ func writeMarkdownFile(args []string, data []byte) error {
 
 func getProject() (proj project.Project, err error) {
 	if fFileMode {
-		proj = project.NewSingleFileProject(filepath.Join(fChdir, fFileName), fAllowUnknown)
+		proj = project.NewSingleFileProject(filepath.Join(fChdir, fFileName), fAllowUnknown, fAllowUnnamed)
 	} else {
 		projDir, findNearestRepo := fProject, false
 		if projDir == "" {
@@ -103,7 +103,7 @@ func getProject() (proj project.Project, err error) {
 			findNearestRepo = true
 		}
 
-		dirProj, err := project.NewDirectoryProject(projDir, findNearestRepo, fAllowUnknown)
+		dirProj, err := project.NewDirectoryProject(projDir, findNearestRepo, fAllowUnknown, fAllowUnnamed)
 		if err != nil {
 			return nil, err
 		}
@@ -124,6 +124,7 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 	return project.GetCodeBlocks(
 		filepath.Join(fChdir, fFileName),
 		fAllowUnknown,
+		fAllowUnnamed,
 		nil,
 	)
 }

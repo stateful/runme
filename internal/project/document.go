@@ -34,7 +34,7 @@ func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
 	return data, nil
 }
 
-func GetCodeBlocks(filepath string, allowUnknown bool, fs billy.Basic) (document.CodeBlocks, error) {
+func GetCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, error) {
 	data, err := ReadMarkdownFile(filepath, fs)
 	if err != nil {
 		return nil, err
@@ -50,9 +50,15 @@ func GetCodeBlocks(filepath string, allowUnknown bool, fs billy.Basic) (document
 
 	filtered := make(document.CodeBlocks, 0, len(blocks))
 	for _, b := range blocks {
-		if allowUnknown || (b.Language() != "" && executable.IsSupported(b.Language())) {
-			filtered = append(filtered, b)
+		if !(allowUnknown || (b.Language() != "" && executable.IsSupported(b.Language()))) {
+			continue
 		}
+
+		if !allowUnnamed && b.NameGenerated() {
+			continue
+		}
+
+		filtered = append(filtered, b)
 	}
 	return filtered, nil
 }

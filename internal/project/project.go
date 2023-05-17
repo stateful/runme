@@ -181,6 +181,7 @@ type DirectoryProject struct {
 	fs   billy.Filesystem
 
 	allowUnknown     bool
+	allowUnnamed     bool
 	respectGitignore bool
 	envLoadOrder     []string
 }
@@ -206,9 +207,10 @@ func (p *DirectoryProject) SetRespectGitignore(respectGitignore bool) {
 	p.respectGitignore = respectGitignore
 }
 
-func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool) (*DirectoryProject, error) {
+func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool, allowUnnamed bool) (*DirectoryProject, error) {
 	project := &DirectoryProject{
 		allowUnknown:     allowUnknown,
+		allowUnnamed:     allowUnnamed,
 		respectGitignore: true,
 	}
 
@@ -311,7 +313,7 @@ func (p *DirectoryProject) LoadTasks() (CodeBlocks, error) {
 	result := make(CodeBlocks, 0)
 
 	for _, mdFile := range markdownFiles {
-		blocks, err := getFileCodeBlocks(mdFile, p.allowUnknown, p.fs)
+		blocks, err := getFileCodeBlocks(mdFile, p.allowUnknown, p.allowUnnamed, p.fs)
 		if err != nil {
 			return nil, err
 		}
@@ -362,12 +364,14 @@ func (p *DirectoryProject) Dir() string {
 type SingleFileProject struct {
 	file         string
 	allowUnknown bool
+	allowUnnamed bool
 }
 
-func NewSingleFileProject(file string, allowUnknown bool) *SingleFileProject {
+func NewSingleFileProject(file string, allowUnknown bool, allowUnnamed bool) *SingleFileProject {
 	return &SingleFileProject{
 		file:         file,
 		allowUnknown: allowUnknown,
+		allowUnnamed: allowUnnamed,
 	}
 }
 
@@ -378,7 +382,7 @@ func (p *SingleFileProject) LoadTasks() (CodeBlocks, error) {
 		return nil, err
 	}
 
-	return getFileCodeBlocks(relFile, p.allowUnknown, fs)
+	return getFileCodeBlocks(relFile, p.allowUnknown, p.allowUnnamed, fs)
 }
 
 func (p *SingleFileProject) LoadEnvs() (map[string]string, error) {
@@ -393,8 +397,8 @@ func (p *SingleFileProject) Dir() string {
 	return filepath.Dir(p.file)
 }
 
-func getFileCodeBlocks(file string, allowUnknown bool, fs billy.Basic) ([]CodeBlock, error) {
-	blocks, err := GetCodeBlocks(file, allowUnknown, fs)
+func getFileCodeBlocks(file string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) ([]CodeBlock, error) {
+	blocks, err := GetCodeBlocks(file, allowUnknown, allowUnnamed, fs)
 	if err != nil {
 		return nil, err
 	}
