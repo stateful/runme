@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/cli/v2/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/shell"
 )
 
@@ -37,6 +40,8 @@ func listCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			blocks = sortBlocks(blocks)
 
 			// TODO: this should be taken from cmd.
 			io := iostreams.System()
@@ -69,4 +74,36 @@ func listCmd() *cobra.Command {
 	setDefaultFlags(&cmd)
 
 	return &cmd
+}
+
+// sort blocks in ascending nested order
+func sortBlocks(blocks []project.CodeBlock) (res []project.CodeBlock) {
+	blocksByFile := make(map[string][]project.CodeBlock, 0)
+
+	files := make([]string, 0)
+	for _, fileBlock := range blocks {
+		if arr, ok := blocksByFile[fileBlock.File]; ok {
+			blocksByFile[fileBlock.File] = append(arr, fileBlock)
+			continue
+		}
+
+		blocksByFile[fileBlock.File] = []project.CodeBlock{fileBlock}
+		files = append(files, fileBlock.File)
+	}
+
+	sort.SliceStable(files, func(i, j int) bool {
+		return getFileDepth(files[i]) < getFileDepth(files[j])
+	})
+
+	for _, file := range files {
+		for _, block := range blocksByFile[file] {
+			res = append(res, block)
+		}
+	}
+
+	return
+}
+
+func getFileDepth(fp string) int {
+	return len(strings.Split(fp, string(filepath.Separator)))
 }
