@@ -42,6 +42,8 @@ func tuiCmd() *cobra.Command {
 				return err
 			}
 
+			blocks = sortBlocks(blocks)
+
 			if len(blocks) == 0 {
 				return errors.Errorf("no code blocks in %s", fFileName)
 			}
