@@ -43,6 +43,11 @@ func Root() *cobra.Command {
 
 			fFileMode = !cmd.Flags().Changed("project")
 
+			if envProject, ok := os.LookupEnv("RUNME_PROJECT"); ok && fFileMode {
+				fFileMode = false
+				fProject = envProject
+			}
+
 			if !fFileMode && !cmd.Flags().Changed("allow-unnamed") {
 				fAllowUnnamed = false
 			}
