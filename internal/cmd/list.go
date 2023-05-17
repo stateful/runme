@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -48,7 +47,6 @@ func listCmd() *cobra.Command {
 			table.AddField(strings.ToUpper("Name"), nil, nil)
 			table.AddField(strings.ToUpper("File"), nil, nil)
 			table.AddField(strings.ToUpper("First Command"), nil, nil)
-			table.AddField(strings.ToUpper("# of Commands"), nil, nil)
 			table.AddField(strings.ToUpper("Description"), nil, nil)
 			table.EndRow()
 
@@ -60,7 +58,6 @@ func listCmd() *cobra.Command {
 				table.AddField(block.Name(), nil, nil)
 				table.AddField(fileBlock.File, nil, nil)
 				table.AddField(shell.TryGetNonCommentLine(lines), nil, nil)
-				table.AddField(fmt.Sprintf("%d", len(shell.StripComments(lines))), nil, nil)
 				table.AddField(block.Intro(), nil, nil)
 				table.EndRow()
 			}
