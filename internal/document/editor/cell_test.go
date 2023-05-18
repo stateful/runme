@@ -431,10 +431,6 @@ func Test_notebook_frontmatter(t *testing.T) {
 			require.NoError(t, getErr(&info))
 			require.NoError(t, info.other)
 			assert.Equal(t, "fish", fmtr.Shell)
-
-			// assert.Equal(t, 1, len(notebook.Cells))
-			// assert.Equal(t, MarkupKind, notebook.Cells[0].Kind)
-			// assert.Equal(t, "Test paragraph", notebook.Cells[0].Value)
 		})
 	}
 }
