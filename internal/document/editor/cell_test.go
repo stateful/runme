@@ -2,6 +2,7 @@ package editor
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stateful/runme/internal/document"
@@ -69,6 +70,32 @@ Second inner paragraph
 
 3. Item 3
 `)
+
+	testDataFrontmatterYAML = []byte(strings.TrimSpace(`
+---
+shell: fish
+---
+
+Test paragraph
+`))
+
+	testDataFrontmatterJSON = []byte(strings.TrimSpace(`
+---
+{
+	shell: fish
+}
+---
+
+Test paragraph
+`))
+
+	testDataFrontmatterTOML = []byte(strings.TrimSpace(`
++++
+shell = "fish"
++++
+
+Test paragraph
+`))
 )
 
 func Test_toCells_DataNested(t *testing.T) {
@@ -365,4 +392,49 @@ func Test_serializeFencedCodeAttributes(t *testing.T) {
 		})
 		assert.Equal(t, " { name=name a=a b=b c=c }", buf.String())
 	})
+}
+
+func Test_notebook_frontmatter(t *testing.T) {
+	type fmtrExample struct {
+		file   []byte
+		kind   string
+		getErr func(info *FrontmatterParseInfo) error
+	}
+
+	for _, ex := range []fmtrExample{
+		{
+			file:   testDataFrontmatterYAML,
+			kind:   "YAML",
+			getErr: func(info *FrontmatterParseInfo) error { return info.yaml },
+		},
+		{
+			file:   testDataFrontmatterJSON,
+			kind:   "JSON",
+			getErr: func(info *FrontmatterParseInfo) error { return info.json },
+		},
+		{
+			file:   testDataFrontmatterTOML,
+			kind:   "TOML",
+			getErr: func(info *FrontmatterParseInfo) error { return info.toml },
+		},
+	} {
+		file := ex.file
+		getErr := ex.getErr
+
+		t.Run(ex.kind, func(t *testing.T) {
+			t.Parallel()
+
+			notebook, err := Deserialize(file)
+			require.NoError(t, err)
+
+			fmtr, info := notebook.ParsedFrontmatter()
+			require.NoError(t, getErr(&info))
+			require.NoError(t, info.other)
+			assert.Equal(t, "fish", fmtr.Shell)
+
+			// assert.Equal(t, 1, len(notebook.Cells))
+			// assert.Equal(t, MarkupKind, notebook.Cells[0].Kind)
+			// assert.Equal(t, "Test paragraph", notebook.Cells[0].Value)
+		})
+	}
 }
