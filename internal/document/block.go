@@ -135,8 +135,21 @@ func (b *CodeBlock) Value() []byte {
 	return b.value
 }
 
+func (b *CodeBlock) SetLine(p int, v string) {
+	b.lines[p] = v
+}
+
 func (b *CodeBlock) Category() string {
 	return b.Attributes()["category"]
+}
+
+func (b *CodeBlock) PromptEnv() bool {
+	val, err := strconv.ParseBool(b.Attributes()["promptEnv"])
+	if err != nil {
+		return false
+	}
+
+	return val
 }
 
 func (b *CodeBlock) ExcludeFromRunAll() bool {
