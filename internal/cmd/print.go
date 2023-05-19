@@ -15,15 +15,22 @@ func printCmd() *cobra.Command {
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			blocks, err := getCodeBlocks()
+			proj, err := getProject()
 			if err != nil {
 				return err
 			}
 
-			block, err := lookupCodeBlock(blocks, args[0])
+			blocks, err := proj.LoadTasks()
 			if err != nil {
 				return err
 			}
+
+			fileBlock, err := lookupCodeBlockWithPrompt(cmd, args[0], blocks)
+			if err != nil {
+				return err
+			}
+
+			block := fileBlock.Block
 
 			w := bulkWriter{
 				Writer: cmd.OutOrStdout(),

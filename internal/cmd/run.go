@@ -78,30 +78,9 @@ func runCmd() *cobra.Command {
 					}
 				} else {
 					for _, arg := range args {
-						queryFile, queryName, err := splitRunArgument(arg)
+						block, err := lookupCodeBlockWithPrompt(cmd, arg, blocks)
 						if err != nil {
 							return err
-						}
-
-						blocks, err := blocks.LookupWithFile(queryFile, queryName)
-						if err != nil {
-							return err
-						}
-
-						var block project.CodeBlock
-
-						if len(blocks) > 1 {
-							if !isTerminal(os.Stdout.Fd()) {
-								return errors.New("multiple matches found for code block; please use a file specifier in the form \"{file}:{task-name}\"")
-							}
-
-							pBlock, err := promptForRun(cmd, blocks)
-							if err != nil {
-								return err
-							}
-							block = *pBlock
-						} else {
-							block = blocks[0]
 						}
 
 						if err := replace(replaceScripts, block.Block.Lines()); err != nil {
@@ -408,6 +387,36 @@ func (p RunBlockPrompt) View() string {
 	content += p.Model.View()
 
 	return blockPromptAppStyle.Render(content)
+}
+
+func lookupCodeBlockWithPrompt(cmd *cobra.Command, query string, srcBlocks project.CodeBlocks) (*project.CodeBlock, error) {
+	queryFile, queryName, err := splitRunArgument(query)
+	if err != nil {
+		return nil, err
+	}
+
+	blocks, err := srcBlocks.LookupWithFile(queryFile, queryName)
+	if err != nil {
+		return nil, err
+	}
+
+	var block project.CodeBlock
+
+	if len(blocks) > 1 {
+		if !isTerminal(os.Stdout.Fd()) {
+			return nil, errors.New("multiple matches found for code block; please use a file specifier in the form \"{file}:{task-name}\"")
+		}
+
+		pBlock, err := promptForRun(cmd, blocks)
+		if err != nil {
+			return nil, err
+		}
+		block = *pBlock
+	} else {
+		block = blocks[0]
+	}
+
+	return &block, nil
 }
 
 func promptForRun(cmd *cobra.Command, blocks project.CodeBlocks) (*project.CodeBlock, error) {
