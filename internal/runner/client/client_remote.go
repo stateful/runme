@@ -209,6 +209,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 		SessionId:       r.sessionID,
 		SessionStrategy: r.sessionStrategy,
 		Background:      block.Background(),
+		StoreLastOutput: true,
 	}
 
 	if r.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {

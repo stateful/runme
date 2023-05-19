@@ -132,6 +132,10 @@ message ExecuteRequest {
 
   // strategy for selecting session
   SessionStrategy session_strategy = 21;
+
+  // whether to store the stdout of the last ran
+  // block in the environment variable `__`
+  bool store_last_output = 23;
 }
 
 message ProcessPID {

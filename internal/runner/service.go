@@ -147,6 +147,9 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return NewSession(envs, r.logger)
 	}
 
+	var stdoutMem []byte
+	storeStdout := req.StoreLastOutput
+
 	var sess *Session
 	switch req.SessionStrategy {
 	case runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
@@ -318,6 +321,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			if err != nil {
 				return err
 			}
+
+			if storeStdout {
+				stdoutMem = append(stdoutMem, data.Stdout...)
+			}
 		}
 		return nil
 	})
@@ -352,6 +359,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	werr = g.Wait()
 	if werr != nil {
 		logger.Info("failed to wait for goroutines to finish", zap.Error(err))
+	}
+
+	if storeStdout {
+		sess.envStore.Set("__", string(stdoutMem))
 	}
 
 	logger.Info("sending the final response with exit code", zap.Int("exitCode", exitCode))
