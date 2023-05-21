@@ -12,11 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
-const defaultName = "stateful.stable"
+const defaultName = "stateful.runme"
 
 // Order matters. Default extension name should be first and legacies behind.
 // It's the extension's job to make sure the newest version is used.
-var allExtensionNames = []string{defaultName, "stateful.edge", "activecove.osmosis"}
+var allExtensionNames = []string{defaultName}
 
 //go:generate mockgen --build_flags=--mod=mod -destination=./extension_mock_gen.go -package=extension . Extensioner
 type Extensioner interface {
