@@ -5,13 +5,16 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/env"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 )
@@ -23,7 +26,9 @@ type LocalRunner struct {
 	stderr io.Writer
 
 	shellID int
+
 	session *runner.Session
+	project project.Project
 
 	logger *zap.Logger
 }
@@ -45,6 +50,11 @@ func (r *LocalRunner) Clone() Runner {
 
 func (r *LocalRunner) setSession(s *runner.Session) error {
 	r.session = s
+	return nil
+}
+
+func (r *LocalRunner) setProject(p project.Project) error {
+	r.project = p
 	return nil
 }
 
@@ -133,7 +143,9 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	return r, nil
 }
 
-func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable {
+func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Executable, error) {
+	block := fileBlock.GetBlock()
+
 	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),
 		Dir:     r.dir,
@@ -142,6 +154,20 @@ func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable
 		Stderr:  r.stderr,
 		Session: r.session,
 		Logger:  r.logger,
+	}
+
+	if r.project != nil {
+		projEnvs, err := r.project.LoadEnvs()
+		if err != nil {
+			return nil, err
+		}
+
+		cfg.PreEnv = env.ConvertMapEnv(projEnvs)
+	}
+
+	mdFile := fileBlock.GetFile()
+	if mdFile != "" {
+		cfg.Dir = filepath.Join(r.dir, filepath.Dir(mdFile))
 	}
 
 	if block.Interactive() {
@@ -154,30 +180,36 @@ func (r *LocalRunner) newExecutable(block *document.CodeBlock) runner.Executable
 		return &runner.Shell{
 			ExecutableConfig: cfg,
 			Cmds:             block.Lines(),
-		}
+		}, nil
 	case "sh-raw":
 		return &runner.ShellRaw{
 			Shell: &runner.Shell{
 				ExecutableConfig: cfg,
 				Cmds:             block.Lines(),
 			},
-		}
+		}, nil
 	case "go":
 		return &runner.Go{
 			ExecutableConfig: cfg,
 			Source:           string(block.Content()),
-		}
+		}, nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
-func (r *LocalRunner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
+func (r *LocalRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
+	block := fileBlock.GetBlock()
+
 	if r.shellID > 0 {
 		return r.runBlockInShell(ctx, block)
 	}
 
-	executable := r.newExecutable(block)
+	executable, err := r.newExecutable(fileBlock)
+	if err != nil {
+		return err
+	}
+
 	if executable == nil {
 		return errors.Errorf("unknown executable: %q", block.Language())
 	}
@@ -222,8 +254,13 @@ func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeB
 	return nil
 }
 
-func (r *LocalRunner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error {
-	executable := r.newExecutable(block)
+func (r *LocalRunner) DryRunBlock(ctx context.Context, fileBlock project.FileCodeBlock, w io.Writer, opts ...RunnerOption) error {
+	block := fileBlock.GetBlock()
+
+	executable, err := r.newExecutable(block)
+	if err != nil {
+		return err
+	}
 
 	executable.DryRun(ctx, w)
 

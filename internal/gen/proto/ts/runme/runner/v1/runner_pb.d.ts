@@ -106,6 +106,24 @@ export interface DeleteSessionRequest {
 export interface DeleteSessionResponse {
 }
 /**
+ * @generated from protobuf message runme.runner.v1.Project
+ */
+export interface Project {
+    /**
+     * project root folder
+     *
+     * @generated from protobuf field: string root = 1;
+     */
+    root: string;
+    /**
+     * list of environment files to try and load
+     * start with
+     *
+     * @generated from protobuf field: repeated string env_load_order = 2;
+     */
+    envLoadOrder: string[];
+}
+/**
  * @generated from protobuf message runme.runner.v1.Winsize
  */
 export interface Winsize {
@@ -231,6 +249,13 @@ export interface ExecuteRequest {
      * @generated from protobuf field: runme.runner.v1.SessionStrategy session_strategy = 21;
      */
     sessionStrategy: SessionStrategy;
+    /**
+     * project for this runner
+     * used to load environment variables from .env files
+     *
+     * @generated from protobuf field: optional runme.runner.v1.Project project = 22;
+     */
+    project?: Project;
     /**
      * whether to store the stdout of the last ran
      * block in the environment variable `__`
@@ -379,6 +404,13 @@ declare class DeleteSessionResponse$Type extends MessageType<DeleteSessionRespon
  * @generated MessageType for protobuf message runme.runner.v1.DeleteSessionResponse
  */
 export declare const DeleteSessionResponse: DeleteSessionResponse$Type;
+declare class Project$Type extends MessageType<Project> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.Project
+ */
+export declare const Project: Project$Type;
 declare class Winsize$Type extends MessageType<Winsize> {
     constructor();
 }

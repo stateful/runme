@@ -15,8 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/renderer/cmark"
-	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 )
 
@@ -27,21 +26,7 @@ func readMarkdownFile(args []string) ([]byte, error) {
 	}
 
 	if arg == "" {
-		f, err := os.DirFS(fChdir).Open(fFileName)
-		if err != nil {
-			var pathError *os.PathError
-			if errors.As(err, &pathError) {
-				return nil, errors.Errorf("failed to %s markdown file %s: %s", pathError.Op, pathError.Path, pathError.Err.Error())
-			}
-
-			return nil, errors.Wrapf(err, "failed to read %s", filepath.Join(fChdir, fFileName))
-		}
-		defer func() { _ = f.Close() }()
-		data, err := io.ReadAll(f)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read data")
-		}
-		return data, nil
+		return project.ReadMarkdownFile(filepath.Join(fChdir, fFileName), nil)
 	}
 
 	var (
@@ -104,27 +89,44 @@ func writeMarkdownFile(args []string, data []byte) error {
 	return errors.Wrapf(err, "failed to write to %s", fullFilename)
 }
 
-func getCodeBlocks() (document.CodeBlocks, error) {
-	data, err := readMarkdownFile(nil)
-	if err != nil {
-		return nil, err
-	}
+func getProject() (proj project.Project, err error) {
+	if fFileMode {
+		proj = project.NewSingleFileProject(filepath.Join(fChdir, fFileName), fAllowUnknown, fAllowUnnamed)
+	} else {
+		projDir, findNearestRepo := fProject, false
+		if projDir == "" {
+			projDir, err = os.Getwd()
+			if err != nil {
+				return nil, err
+			}
 
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	if err != nil {
-		return nil, err
-	}
-
-	blocks := document.CollectCodeBlocks(node)
-
-	filtered := make(document.CodeBlocks, 0, len(blocks))
-	for _, b := range blocks {
-		if fAllowUnknown || (b.Language() != "" && runner.IsSupported(b.Language())) {
-			filtered = append(filtered, b)
+			findNearestRepo = true
 		}
+
+		dirProj, err := project.NewDirectoryProject(projDir, findNearestRepo, fAllowUnknown, fAllowUnnamed)
+		if err != nil {
+			return nil, err
+		}
+
+		proj = dirProj
+
+		if fLoadEnv && fEnvOrder != nil {
+			dirProj.SetEnvLoadOrder(fEnvOrder)
+		}
+
+		dirProj.SetRespectGitignore(fRespectGitignore)
 	}
-	return filtered, nil
+
+	return
+}
+
+func getCodeBlocks() (document.CodeBlocks, error) {
+	return project.GetCodeBlocks(
+		filepath.Join(fChdir, fFileName),
+		fAllowUnknown,
+		fAllowUnnamed,
+		nil,
+	)
 }
 
 func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlock, error) {
@@ -198,6 +200,11 @@ func GetDefaultConfigHome() string {
 	return filepath.Join(dir, "runme")
 }
 
+var (
+	fLoadEnv  bool
+	fEnvOrder []string
+)
+
 func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.RunnerOption, error) {
 	var (
 		SessionID                 string
@@ -208,6 +215,9 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 
 	cmd.Flags().StringVarP(serverAddr, "server", "s", os.Getenv("RUNME_SERVER_ADDR"), "Server address to connect runner to")
 	cmd.Flags().StringVar(&SessionID, "session", os.Getenv("RUNME_SESSION"), "Session id to run commands in runner inside of")
+
+	cmd.Flags().BoolVar(&fLoadEnv, "load-env", true, "Load env files from local project. Control which files to load with --env-order")
+	cmd.Flags().StringArrayVar(&fEnvOrder, "env-order", []string{".env.local", ".env"}, "List of environment files to load in order.")
 
 	cmd.Flags().BoolVar(&EnableBackgroundProcesses, "background", false, "Enable running background blocks as background processes")
 
@@ -232,6 +242,10 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 
 	getRunOpts := func() ([]client.RunnerOption, error) {
 		dir, _ := filepath.Abs(fChdir)
+
+		if !fFileMode {
+			dir, _ = filepath.Abs(fProject)
+		}
 
 		runOpts := []client.RunnerOption{
 			client.WithDir(dir),

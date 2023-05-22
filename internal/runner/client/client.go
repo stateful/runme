@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 )
@@ -18,6 +18,7 @@ var ErrRunnerClientUnimplemented = fmt.Errorf("method unimplemented")
 type Runner interface {
 	setSession(s *runner.Session) error
 	setSessionID(id string) error
+	setProject(p project.Project) error
 	setCleanupSession(cleanup bool) error
 	setSessionStrategy(runnerv1.SessionStrategy) error
 
@@ -38,8 +39,8 @@ type Runner interface {
 	setInsecure(insecure bool) error
 	setTLSDir(tlsDir string) error
 
-	RunBlock(ctx context.Context, block *document.CodeBlock) error
-	DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error
+	RunBlock(ctx context.Context, block project.FileCodeBlock) error
+	DryRunBlock(ctx context.Context, block project.FileCodeBlock, w io.Writer, opts ...RunnerOption) error
 	Cleanup(ctx context.Context) error
 
 	Clone() Runner
@@ -54,6 +55,12 @@ func WithSession(s *runner.Session) RunnerOption {
 func WithSessionID(id string) RunnerOption {
 	return func(rc Runner) error {
 		return rc.setSessionID(id)
+	}
+}
+
+func WithProject(proj project.Project) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setProject(proj)
 	}
 }
 

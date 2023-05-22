@@ -159,6 +159,19 @@ class DeleteSessionResponse$Type extends MessageType {
  */
 export const DeleteSessionResponse = new DeleteSessionResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class Project$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.Project", [
+            { no: 1, name: "root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "env_load_order", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.Project
+ */
+export const Project = new Project$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class Winsize$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.Winsize", [
@@ -190,6 +203,7 @@ class ExecuteRequest$Type extends MessageType {
             { no: 11, name: "background", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
+            { no: 22, name: "project", kind: "message", T: () => Project },
             { no: 23, name: "store_last_output", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }

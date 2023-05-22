@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/stateful/runme/internal/executable"
 	"go.uber.org/zap"
 )
 
@@ -20,29 +21,16 @@ type ExecutableConfig struct {
 	Stdin   io.Reader
 	Stdout  io.Writer
 	Stderr  io.Writer
+	PreEnv  []string
+	PostEnv []string
 	Session *Session
 	Logger  *zap.Logger
 }
 
-var supportedExecutables = []string{
-	"bash",
-	"bat", // fallback to sh
-	"sh",
-	"sh-raw",
-	"shell",
-	"zsh",
-	"go",
-}
-
 func IsSupported(lang string) bool {
-	for _, item := range supportedExecutables {
-		if item == lang {
-			return true
-		}
-	}
-	return false
+	return executable.IsSupported(lang)
 }
 
 func IsShell(lang string) bool {
-	return lang == "sh" || lang == "shell" || lang == "sh-raw"
+	return executable.IsShell(lang)
 }
