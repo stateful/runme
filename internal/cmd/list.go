@@ -96,9 +96,7 @@ func sortBlocks(blocks []project.CodeBlock) (res []project.CodeBlock) {
 	})
 
 	for _, file := range files {
-		for _, block := range blocksByFile[file] {
-			res = append(res, block)
-		}
+		res = append(res, blocksByFile[file]...)
 	}
 
 	return
