@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/muesli/cancelreader"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
@@ -106,9 +107,14 @@ func WithStderr(stderr io.Writer) RunnerOption {
 	}
 }
 
-func WithStdinTransform(op func(io.Reader) io.Reader) RunnerOption {
+func WithStdinTransform(op func(io.Reader) (io.Reader, error)) RunnerOption {
 	return func(rc Runner) error {
-		return rc.setStdin(op(rc.getStdin()))
+		stdin, err := op(rc.getStdin())
+		if err != nil {
+			return err
+		}
+
+		return rc.setStdin(stdin)
 	}
 }
 
@@ -156,4 +162,10 @@ func ApplyOptions(rc Runner, opts ...RunnerOption) error {
 	}
 
 	return nil
+}
+
+func WrapWithCancelReader() RunnerOption {
+	return WithStdinTransform(func(r io.Reader) (io.Reader, error) {
+		return cancelreader.NewReader(r)
+	})
 }

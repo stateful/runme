@@ -102,14 +102,6 @@ func runCmd() *cobra.Command {
 			ctx, cancel := ctxWithSigCancel(cmd.Context())
 			defer cancel()
 
-			var stdin io.Reader
-
-			// Use pipe here so that it can be closed and the command can exit.
-			// Without this approach, the command would hang on reading from stdin.
-			r, w := io.Pipe()
-			stdin = r
-			go func() { _, _ = io.Copy(w, cmd.InOrStdin()) }()
-
 			runnerOpts, err := getRunnerOpts()
 			if err != nil {
 				return err
@@ -118,11 +110,15 @@ func runCmd() *cobra.Command {
 			runnerOpts = append(
 				runnerOpts,
 				client.WithinShellMaybe(),
-				client.WithStdin(stdin),
+				client.WithStdin(cmd.InOrStdin()),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
 				client.WithProject(proj),
 			)
+
+			preRunOpts := []client.RunnerOption{
+				client.WrapWithCancelReader(),
+			}
 
 			var runner client.Runner
 
@@ -209,6 +205,7 @@ func runCmd() *cobra.Command {
 						exitCode,
 					)
 				},
+				PreRunOpts: preRunOpts,
 			}
 
 			if parallel {
@@ -224,6 +221,10 @@ func runCmd() *cobra.Command {
 			err = inRawMode(func() error {
 				if len(runBlocks) > 1 {
 					return multiRunner.RunBlocks(ctx, runBlocks, parallel)
+				}
+
+				if err := client.ApplyOptions(runner, preRunOpts...); err != nil {
+					return err
 				}
 
 				return runner.RunBlock(ctx, runBlocks[0])
