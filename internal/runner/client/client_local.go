@@ -25,6 +25,8 @@ type LocalRunner struct {
 	stdout io.Writer
 	stderr io.Writer
 
+	envs []string
+
 	shellID int
 
 	session *runner.Session
@@ -128,6 +130,11 @@ func (r *LocalRunner) setEnableBackgroundProcesses(bool) error {
 	return nil
 }
 
+func (r *LocalRunner) setEnvs(envs []string) error {
+	r.envs = envs
+	return nil
+}
+
 func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	r := &LocalRunner{}
 	if err := ApplyOptions(r, opts...); err != nil {
@@ -145,6 +152,8 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 
 func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Executable, error) {
 	block := fileBlock.GetBlock()
+
+	r.session.AddEnvs(r.envs)
 
 	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),

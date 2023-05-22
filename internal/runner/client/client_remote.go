@@ -28,6 +28,8 @@ type RemoteRunner struct {
 	stdout io.Writer
 	stderr io.Writer
 
+	envs []string
+
 	client          runnerv1.RunnerServiceClient
 	sessionID       string
 	sessionStrategy runnerv1.SessionStrategy
@@ -140,6 +142,11 @@ func (r *RemoteRunner) setEnableBackgroundProcesses(enableBackground bool) error
 	return nil
 }
 
+func (r *RemoteRunner) setEnvs(envs []string) error {
+	r.envs = envs
+	return nil
+}
+
 func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
 	r := &RemoteRunner{}
 
@@ -219,6 +226,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		SessionStrategy: r.sessionStrategy,
 		Background:      block.Background(),
 		StoreLastOutput: true,
+		Envs:            r.envs,
 	}
 
 	if r.project != nil {

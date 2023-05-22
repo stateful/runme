@@ -29,6 +29,8 @@ type Runner interface {
 	setStdout(stdout io.Writer) error
 	setStderr(stdout io.Writer) error
 
+	setEnvs(envs []string) error
+
 	getStdin() io.Reader
 	getStdout() io.Writer
 	getStderr() io.Writer
@@ -145,6 +147,12 @@ func WithTLSDir(tlsDir string) RunnerOption {
 func WithEnableBackgroundProcesses(disableBackground bool) RunnerOption {
 	return func(rc Runner) error {
 		return rc.setEnableBackgroundProcesses(disableBackground)
+	}
+}
+
+func WithEnvs(envs []string) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setEnvs(envs)
 	}
 }
 
