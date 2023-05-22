@@ -256,6 +256,12 @@ export interface ExecuteRequest {
      * @generated from protobuf field: optional runme.runner.v1.Project project = 22;
      */
     project?: Project;
+     * whether to store the stdout of the last ran
+     * block in the environment variable `__`
+     *
+     * @generated from protobuf field: bool store_last_output = 23;
+     */
+    storeLastOutput: boolean;
 }
 /**
  * @generated from protobuf message runme.runner.v1.ProcessPID

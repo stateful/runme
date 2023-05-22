@@ -739,6 +739,9 @@ type ExecuteRequest struct {
 	// project for this runner
 	// used to load environment variables from .env files
 	Project *Project `protobuf:"bytes,22,opt,name=project,proto3,oneof" json:"project,omitempty"`
+	// whether to store the stdout of the last ran
+	// block in the environment variable `__`
+	StoreLastOutput bool `protobuf:"varint,23,opt,name=store_last_output,json=storeLastOutput,proto3" json:"store_last_output,omitempty"`
 }
 
 func (x *ExecuteRequest) Reset() {
@@ -869,6 +872,11 @@ func (x *ExecuteRequest) GetProject() *Project {
 		return x.Project
 	}
 	return nil
+func (x *ExecuteRequest) GetStoreLastOutput() bool {
+	if x != nil {
+		return x.StoreLastOutput
+	}
+	return false
 }
 
 type ProcessPID struct {

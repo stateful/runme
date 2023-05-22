@@ -638,6 +638,12 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
    * @generated from field: optional runme.runner.v1.Project project = 22;
    */
   project?: Project;
+   * whether to store the stdout of the last ran
+   * block in the environment variable `__`
+   *
+   * @generated from field: bool store_last_output = 23;
+   */
+  storeLastOutput = false;
 
   constructor(data?: PartialMessage<ExecuteRequest>) {
     super();
@@ -661,6 +667,7 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
     { no: 20, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 21, name: "session_strategy", kind: "enum", T: proto3.getEnumType(SessionStrategy) },
     { no: 22, name: "project", kind: "message", T: Project, opt: true },
+    { no: 23, name: "store_last_output", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteRequest {

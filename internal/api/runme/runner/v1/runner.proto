@@ -145,6 +145,10 @@ message ExecuteRequest {
   // project for this runner
   // used to load environment variables from .env files
   optional Project project = 22;
+
+  // whether to store the stdout of the last ran
+  // block in the environment variable `__`
+  bool store_last_output = 23;
 }
 
 message ProcessPID {

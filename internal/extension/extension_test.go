@@ -25,6 +25,7 @@ func Test_isExtensionInstalled(t *testing.T) {
 	require.False(t, result)
 	require.Empty(t, version)
 
+	// We currently don't have any legacy names
 	// Legacy extension installed.
 	var extensions []ext
 	for _, name := range allExtensionNames {
@@ -34,8 +35,9 @@ func Test_isExtensionInstalled(t *testing.T) {
 	}
 	version, result, err = isInstalled(extensions, allExtensionNames)
 	require.NoError(t, err)
-	require.True(t, result)
-	require.NotEmpty(t, version)
+	// Without legacy extensions this needs to be falsey
+	require.False(t, result)
+	require.Empty(t, version)
 
 	// Default extension installed.
 	extensions = []ext{{Name: defaultName}}

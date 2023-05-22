@@ -2,12 +2,14 @@ package runner
 
 import (
 	"strings"
+	"sync"
 
 	"golang.org/x/exp/slices"
 )
 
 type envStore struct {
 	values map[string]string
+	mu     sync.RWMutex
 }
 
 func newEnvStore(envs ...string) *envStore {
@@ -17,6 +19,9 @@ func newEnvStore(envs ...string) *envStore {
 }
 
 func (s *envStore) Add(envs ...string) *envStore {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for _, env := range envs {
 		k, v := splitEnv(env)
 		s.values[k] = v
@@ -24,7 +29,18 @@ func (s *envStore) Add(envs ...string) *envStore {
 	return s
 }
 
+func (s *envStore) Set(k string, v string) *envStore {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.values[k] = v
+	return s
+}
+
 func (s *envStore) Delete(envs ...string) *envStore {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	temp := newEnvStore(envs...)
 	for k := range temp.values {
 		delete(s.values, k)
@@ -33,6 +49,9 @@ func (s *envStore) Delete(envs ...string) *envStore {
 }
 
 func (s *envStore) Values() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	result := make([]string, 0, len(s.values))
 	for k, v := range s.values {
 		result = append(result, k+"="+v)
