@@ -9,5 +9,5 @@ export BUF_TOKEN=Your buf token
 ```
 
 ``` sh { name=release-buf }
-cd ./internal/api && buf push
+make proto/publish
 ```
