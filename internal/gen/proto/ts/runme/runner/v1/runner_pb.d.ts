@@ -256,6 +256,7 @@ export interface ExecuteRequest {
      * @generated from protobuf field: optional runme.runner.v1.Project project = 22;
      */
     project?: Project;
+    /**
      * whether to store the stdout of the last ran
      * block in the environment variable `__`
      *

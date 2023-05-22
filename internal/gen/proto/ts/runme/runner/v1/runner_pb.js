@@ -203,7 +203,7 @@ class ExecuteRequest$Type extends MessageType {
             { no: 11, name: "background", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
-            { no: 22, name: "project", kind: "message", T: () => Project }
+            { no: 22, name: "project", kind: "message", T: () => Project },
             { no: 23, name: "store_last_output", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
