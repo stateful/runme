@@ -257,7 +257,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 			}
 		}
 
-		if stackDepth > 10 {
+		if stackDepth > 100 {
 			panic("runme stack depth limit exceeded")
 		}
 
