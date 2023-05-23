@@ -21,15 +21,15 @@ type FrontmatterParseInfo struct {
 	other error
 }
 
-func (fpi FrontmatterParseInfo) YamlError() error {
+func (fpi FrontmatterParseInfo) YAMLError() error {
 	return fpi.yaml
 }
 
-func (fpi FrontmatterParseInfo) JsonError() error {
+func (fpi FrontmatterParseInfo) JSONError() error {
 	return fpi.json
 }
 
-func (fpi FrontmatterParseInfo) TomlError() error {
+func (fpi FrontmatterParseInfo) TOMLError() error {
 	return fpi.toml
 }
 
