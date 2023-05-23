@@ -34,16 +34,28 @@ func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
 	return data, nil
 }
 
-func GetCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, error) {
+func parseDocumentForCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic, doFrontmatter bool) (document.CodeBlocks, *document.Frontmatter, error) {
 	data, err := ReadMarkdownFile(filepath, fs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	var fmtr *document.Frontmatter
+
+	if doFrontmatter {
+		sections, err := document.ParseSections(data)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		f, _ := document.ParseFrontmatter(string(sections.FrontMatter))
+		fmtr = &f
 	}
 
 	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	blocks := document.CollectCodeBlocks(node)
@@ -60,5 +72,14 @@ func GetCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs bil
 
 		filtered = append(filtered, b)
 	}
-	return filtered, nil
+	return filtered, fmtr, nil
+}
+
+func GetCodeBlocksAndParseFrontmatter(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, *document.Frontmatter, error) {
+	return parseDocumentForCodeBlocks(filepath, allowUnknown, allowUnnamed, fs, true)
+}
+
+func GetCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, error) {
+	blocks, _, err := parseDocumentForCodeBlocks(filepath, allowUnknown, allowUnnamed, fs, false)
+	return blocks, err
 }

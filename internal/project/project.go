@@ -19,8 +19,9 @@ import (
 )
 
 type CodeBlock struct {
-	Block *document.CodeBlock
-	File  string
+	Block       *document.CodeBlock
+	File        string
+	Frontmatter *document.Frontmatter
 }
 
 func (b CodeBlock) GetBlock() *document.CodeBlock {
@@ -40,9 +41,14 @@ func (b CodeBlock) GetID() string {
 	return fmt.Sprintf("%s:%s", b.File, b.Block.Name())
 }
 
+func (b CodeBlock) GetFrontmatter() *document.Frontmatter {
+	return b.Frontmatter
+}
+
 type FileCodeBlock interface {
 	GetBlock() *document.CodeBlock
 	GetFile() string
+	GetFrontmatter() *document.Frontmatter
 }
 
 type CodeBlocks []CodeBlock
@@ -403,7 +409,7 @@ func (p *SingleFileProject) Dir() string {
 }
 
 func getFileCodeBlocks(file string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) ([]CodeBlock, error) {
-	blocks, err := GetCodeBlocks(file, allowUnknown, allowUnnamed, fs)
+	blocks, fmtr, err := GetCodeBlocksAndParseFrontmatter(file, allowUnknown, allowUnnamed, fs)
 	if err != nil {
 		return nil, err
 	}
@@ -412,8 +418,9 @@ func getFileCodeBlocks(file string, allowUnknown bool, allowUnnamed bool, fs bil
 
 	for i, block := range blocks {
 		fileBlocks[i] = CodeBlock{
-			File:  file,
-			Block: block,
+			File:        file,
+			Block:       block,
+			Frontmatter: fmtr,
 		}
 	}
 

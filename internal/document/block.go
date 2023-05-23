@@ -410,3 +410,7 @@ func (b *CodeBlock) GetBlock() *CodeBlock {
 func (b *CodeBlock) GetFile() string {
 	return ""
 }
+
+func (b *CodeBlock) GetFrontmatter() *Frontmatter {
+	return &Frontmatter{}
+}
