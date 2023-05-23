@@ -25,6 +25,8 @@ type Runner interface {
 	setWithinShell() error
 	setDir(dir string) error
 
+	setCustomShell(shell string) error
+
 	setStdin(stdin io.Reader) error
 	setStdout(stdout io.Writer) error
 	setStderr(stdout io.Writer) error
@@ -145,6 +147,12 @@ func WithTLSDir(tlsDir string) RunnerOption {
 func WithEnableBackgroundProcesses(disableBackground bool) RunnerOption {
 	return func(rc Runner) error {
 		return rc.setEnableBackgroundProcesses(disableBackground)
+	}
+}
+
+func WithCustomShell(shell string) RunnerOption {
+	return func(rc Runner) error {
+		return rc.setCustomShell(shell)
 	}
 }
 

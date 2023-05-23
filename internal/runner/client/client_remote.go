@@ -34,6 +34,8 @@ type RemoteRunner struct {
 	project         project.Project
 	cleanupSession  bool
 
+	customShell string
+
 	insecure bool
 	tlsDir   string
 
@@ -140,6 +142,11 @@ func (r *RemoteRunner) setEnableBackgroundProcesses(enableBackground bool) error
 	return nil
 }
 
+func (r *RemoteRunner) setCustomShell(shell string) error {
+	r.customShell = shell
+	return nil
+}
+
 func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
 	r := &RemoteRunner{}
 
@@ -202,6 +209,7 @@ func (r *RemoteRunner) deleteSession(ctx context.Context) error {
 
 func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
 	block := fileBlock.GetBlock()
+	fmtr := fileBlock.GetFrontmatter()
 
 	stream, err := r.client.Execute(ctx)
 	if err != nil {
@@ -210,8 +218,13 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 
 	tty := block.Interactive()
 
+	customShell := r.customShell
+	if fmtr.Shell != "" {
+		customShell = fmtr.Shell
+	}
+
 	req := &runnerv1.ExecuteRequest{
-		ProgramName:     runner.ShellPath(),
+		ProgramName:     runner.ResolveShellPath(customShell),
 		Directory:       r.dir,
 		Commands:        block.Lines(),
 		Tty:             tty,

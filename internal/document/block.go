@@ -411,6 +411,6 @@ func (b *CodeBlock) GetFile() string {
 	return ""
 }
 
-func (b *CodeBlock) GetFrontmatter() *Frontmatter {
-	return &Frontmatter{}
+func (b *CodeBlock) GetFrontmatter() Frontmatter {
+	return Frontmatter{}
 }

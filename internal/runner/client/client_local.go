@@ -30,6 +30,8 @@ type LocalRunner struct {
 	session *runner.Session
 	project project.Project
 
+	customShell string
+
 	logger *zap.Logger
 }
 
@@ -128,6 +130,11 @@ func (r *LocalRunner) setEnableBackgroundProcesses(bool) error {
 	return nil
 }
 
+func (r *LocalRunner) setCustomShell(shell string) error {
+	r.customShell = shell
+	return nil
+}
+
 func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	r := &LocalRunner{}
 	if err := ApplyOptions(r, opts...); err != nil {
@@ -145,6 +152,12 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 
 func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Executable, error) {
 	block := fileBlock.GetBlock()
+	fmtr := fileBlock.GetFrontmatter()
+
+	customShell := r.customShell
+	if fmtr.Shell != "" {
+		customShell = fmtr.Shell
+	}
 
 	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),
@@ -180,6 +193,7 @@ func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Exe
 		return &runner.Shell{
 			ExecutableConfig: cfg,
 			Cmds:             block.Lines(),
+			CustomShell:      customShell,
 		}, nil
 	case "sh-raw":
 		return &runner.ShellRaw{

@@ -21,7 +21,7 @@ import (
 type CodeBlock struct {
 	Block       *document.CodeBlock
 	File        string
-	Frontmatter *document.Frontmatter
+	Frontmatter document.Frontmatter
 }
 
 func (b CodeBlock) GetBlock() *document.CodeBlock {
@@ -30,7 +30,7 @@ func (b CodeBlock) GetBlock() *document.CodeBlock {
 
 func (b CodeBlock) Clone() *CodeBlock {
 	block := b.Block.Clone()
-	return &CodeBlock{Block: block, File: b.File}
+	return &CodeBlock{Block: block, File: b.File, Frontmatter: b.Frontmatter}
 }
 
 func (b CodeBlock) GetFile() string {
@@ -41,14 +41,14 @@ func (b CodeBlock) GetID() string {
 	return fmt.Sprintf("%s:%s", b.File, b.Block.Name())
 }
 
-func (b CodeBlock) GetFrontmatter() *document.Frontmatter {
+func (b CodeBlock) GetFrontmatter() document.Frontmatter {
 	return b.Frontmatter
 }
 
 type FileCodeBlock interface {
 	GetBlock() *document.CodeBlock
 	GetFile() string
-	GetFrontmatter() *document.Frontmatter
+	GetFrontmatter() document.Frontmatter
 }
 
 type CodeBlocks []CodeBlock
