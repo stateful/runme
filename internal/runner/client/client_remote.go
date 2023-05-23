@@ -11,7 +11,6 @@ import (
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
-	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -23,123 +22,22 @@ import (
 )
 
 type RemoteRunner struct {
-	dir    string
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
-
-	client          runnerv1.RunnerServiceClient
-	sessionID       string
-	sessionStrategy runnerv1.SessionStrategy
-	project         project.Project
-	cleanupSession  bool
-
-	customShell string
-
-	insecure bool
-	tlsDir   string
-
-	enableBackground bool
+	*RunnerSettings
+	client runnerv1.RunnerServiceClient
 }
 
 func (r *RemoteRunner) Clone() Runner {
 	return &RemoteRunner{
-		dir: r.dir,
-
-		stdin:  r.stdin,
-		stdout: r.stdout,
-		stderr: r.stderr,
-
-		client:          nil,
-		sessionID:       r.sessionID,
-		sessionStrategy: r.sessionStrategy,
-		cleanupSession:  r.cleanupSession,
-
-		insecure: r.insecure,
-		tlsDir:   r.tlsDir,
-
-		enableBackground: r.enableBackground,
+		RunnerSettings: r.RunnerSettings.Clone(),
 	}
 }
 
-func (r *RemoteRunner) setDir(dir string) error {
-	r.dir = dir
-	return nil
+func (r *RemoteRunner) getSettings() *RunnerSettings {
+	return r.RunnerSettings
 }
 
-func (r *RemoteRunner) setStdin(stdin io.Reader) error {
-	r.stdin = stdin
-	return nil
-}
-
-func (r *RemoteRunner) setStdout(stdout io.Writer) error {
-	r.stdout = stdout
-	return nil
-}
-
-func (r *RemoteRunner) setStderr(stderr io.Writer) error {
-	r.stderr = stderr
-	return nil
-}
-
-func (r *RemoteRunner) getStdin() io.Reader {
-	return r.stdin
-}
-
-func (r *RemoteRunner) getStdout() io.Writer {
-	return r.stdout
-}
-
-func (r *RemoteRunner) getStderr() io.Writer {
-	return r.stderr
-}
-
-func (r *RemoteRunner) setLogger(logger *zap.Logger) error {
-	return nil
-}
-
-func (r *RemoteRunner) setSession(session *runner.Session) error {
-	r.sessionID = session.ID
-	return nil
-}
-
-func (r *RemoteRunner) setSessionID(sessionID string) error {
-	r.sessionID = sessionID
-	return nil
-}
-
-func (r *RemoteRunner) setProject(p project.Project) error {
-	r.project = p
-	return nil
-}
-
-func (r *RemoteRunner) setCleanupSession(cleanup bool) error {
-	r.cleanupSession = cleanup
-	return nil
-}
-
-func (r *RemoteRunner) setSessionStrategy(strategy runnerv1.SessionStrategy) error {
-	r.sessionStrategy = strategy
-	return nil
-}
-
-func (r *RemoteRunner) setWithinShell() error {
-	return nil
-}
-
-func (r *RemoteRunner) setInsecure(insecure bool) error {
-	r.insecure = insecure
-	return nil
-}
-
-func (r *RemoteRunner) setTLSDir(tlsDir string) error {
-	r.tlsDir = tlsDir
-	return nil
-}
-
-func (r *RemoteRunner) setEnableBackgroundProcesses(enableBackground bool) error {
-	r.enableBackground = enableBackground
-	return nil
+func (r *RemoteRunner) setSettings(rs *RunnerSettings) {
+	r.RunnerSettings = rs
 }
 
 func (r *RemoteRunner) setCustomShell(shell string) error {
@@ -148,7 +46,9 @@ func (r *RemoteRunner) setCustomShell(shell string) error {
 }
 
 func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
-	r := &RemoteRunner{}
+	r := &RemoteRunner{
+		RunnerSettings: &RunnerSettings{},
+	}
 
 	if err := ApplyOptions(r, opts...); err != nil {
 		return nil, err

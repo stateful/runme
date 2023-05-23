@@ -10,7 +10,7 @@ $ echo "Hello, runme!"
 
 With `{name=hello}` you can annotate it and give it a nice name:
 
-```sh {name=echo}
+```sh { name=echo }
 $ echo "Hello, runme!"
 ```
 
@@ -47,6 +47,14 @@ echo ok
 exit 1
 ```
 
+### Interactive Scripts
+
+```sh { name=print-name }
+echo -n "Enter your name: "
+read name
+echo "\nHi, $name!"
+```
+
 ## Go
 
 It can also execute a snippet of Go code:
@@ -69,7 +77,7 @@ Snippets without provided type are ignored.
 
 To still display unknown snippets, provide `--allow-unknown` to the `list` command.
 
-```
+```ini
 [database]
 username = admin
 password = admin
