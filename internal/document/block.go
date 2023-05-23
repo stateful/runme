@@ -86,7 +86,7 @@ func newCodeBlock(
 	}, nil
 }
 
-func (b *CodeBlock) Clone() CodeBlock {
+func (b *CodeBlock) Clone() *CodeBlock {
 	lines := make([]string, len(b.lines))
 	copy(lines, b.lines)
 	attributes := make(map[string]string)
@@ -95,7 +95,7 @@ func (b *CodeBlock) Clone() CodeBlock {
 	for key, value := range b.attributes {
 		attributes[key] = value
 	}
-	return CodeBlock{
+	return &CodeBlock{
 		attributes:    attributes,
 		intro:         b.intro,
 		language:      b.language,

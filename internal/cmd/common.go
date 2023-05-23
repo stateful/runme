@@ -280,7 +280,7 @@ const tlsFileMode = os.FileMode(int(0o700))
 
 var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")
 
-func promptEnvVars(cmd *cobra.Command, runBlocks []project.FileCodeBlock) error {
+func promptEnvVars(cmd *cobra.Command, runBlocks ...project.FileCodeBlock) error {
 	for _, block := range runBlocks {
 		if block.GetBlock().PromptEnv() {
 			varPrompts := getCommandExportExtractMatches(block.GetBlock().Lines())

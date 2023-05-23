@@ -103,7 +103,7 @@ func runCmd() *cobra.Command {
 				}
 			}
 
-			err = promptEnvVars(cmd, runBlocks)
+			err = promptEnvVars(cmd, runBlocks...)
 			if err != nil {
 				return err
 			}

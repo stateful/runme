@@ -27,6 +27,11 @@ func (b CodeBlock) GetBlock() *document.CodeBlock {
 	return b.Block
 }
 
+func (b CodeBlock) Clone() *CodeBlock {
+	block := b.Block.Clone()
+	return &CodeBlock{Block: block, File: b.File}
+}
+
 func (b CodeBlock) GetFile() string {
 	return b.File
 }

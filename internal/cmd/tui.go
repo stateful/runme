@@ -123,6 +123,13 @@ func tuiCmd() *cobra.Command {
 
 				ctx, cancel := ctxWithSigCancel(cmd.Context())
 
+				runBlock := result.block.Clone()
+
+				err = promptEnvVars(cmd, []project.FileCodeBlock{runBlock}...)
+				if err != nil {
+					return err
+				}
+
 				err = inRawMode(func() error {
 					stdin, _ := cancelreader.NewReader(cmd.InOrStdin())
 
@@ -133,14 +140,7 @@ func tuiCmd() *cobra.Command {
 						return err
 					}
 
-					tempBlock := result.block.Block.Clone()
-
-					err = promptEnvVars(cmd, []project.FileCodeBlock{&tempBlock})
-					if err != nil {
-						return err
-					}
-
-					err = runnerClient.RunBlock(ctx, &tempBlock)
+					err = runnerClient.RunBlock(ctx, runBlock)
 
 					return err
 				})
