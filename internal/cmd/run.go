@@ -9,6 +9,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/containerd/console"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
@@ -18,12 +22,19 @@ import (
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
-
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
+
+const (
+	exportExtractRegex string = `(\n*)export (\w+=)(("[^"]*")|('[^']*')|[^;\n]+)`
+)
+
+type CommandExportExtractMatch struct {
+	Key            string
+	Value          string
+	Match          string
+	HasStringValue bool
+	LineNumber     int
+}
 
 func runCmd() *cobra.Command {
 	var (
@@ -90,6 +101,11 @@ func runCmd() *cobra.Command {
 						runBlocks = append(runBlocks, block)
 					}
 				}
+			}
+
+			err = promptEnvVars(cmd, runBlocks...)
+			if err != nil {
+				return err
 			}
 
 			if runMany {
@@ -304,7 +320,7 @@ func inRawMode(cb func() error) error {
 	return err
 }
 
-const fileNameSeparator = ":"
+const fileNameSeparator = "/"
 
 func splitRunArgument(name string) (queryFile string, queryName string, err error) {
 	parts := strings.SplitN(name, fileNameSeparator, 2)
@@ -405,7 +421,7 @@ func lookupCodeBlockWithPrompt(cmd *cobra.Command, query string, srcBlocks proje
 
 	if len(blocks) > 1 {
 		if !isTerminal(os.Stdout.Fd()) {
-			return nil, errors.New("multiple matches found for code block; please use a file specifier in the form \"{file}:{task-name}\"")
+			return nil, fmt.Errorf("multiple matches found for code block; please use a file specifier in the form \"{file}%s{task-name}\"", fileNameSeparator)
 		}
 
 		pBlock, err := promptForRun(cmd, blocks)
@@ -443,7 +459,7 @@ func promptForRun(cmd *cobra.Command, blocks project.CodeBlocks) (*project.CodeB
 
 	l.Title = "Select Task"
 
-	heading := "Found multiple matching tasks. Select from the following.\n\nNote that you can avoid this screen by providing a filename specifier, such as \"{filename}:{task}\"\n\n\n"
+	heading := fmt.Sprintf("Found multiple matching tasks. Select from the following.\n\nNote that you can avoid this screen by providing a filename specifier, such as \"{filename}%s{task}\"\n\n\n", fileNameSeparator)
 
 	model := RunBlockPrompt{
 		Model:   l,

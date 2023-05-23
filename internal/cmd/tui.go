@@ -122,6 +122,13 @@ func tuiCmd() *cobra.Command {
 
 				ctx, cancel := ctxWithSigCancel(cmd.Context())
 
+				runBlock := result.block.Clone()
+
+				err = promptEnvVars(cmd, runBlock)
+				if err != nil {
+					return err
+				}
+
 				err = inRawMode(func() error {
 					if err := client.ApplyOptions(
 						runnerClient,
@@ -130,7 +137,7 @@ func tuiCmd() *cobra.Command {
 						return err
 					}
 
-					err = runnerClient.RunBlock(ctx, result.block)
+					err = runnerClient.RunBlock(ctx, runBlock)
 
 					if err := client.ApplyOptions(
 						runnerClient,

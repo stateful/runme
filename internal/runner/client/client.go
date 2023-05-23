@@ -16,142 +16,177 @@ type RunnerOption func(Runner) error
 
 var ErrRunnerClientUnimplemented = fmt.Errorf("method unimplemented")
 
+type RunnerSettings struct {
+	session         *runner.Session
+	sessionID       string
+	project         project.Project
+	cleanupSession  bool
+	sessionStrategy runnerv1.SessionStrategy
+
+	withinShellMaybe bool
+	dir              string
+
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+
+	logger           *zap.Logger
+	enableBackground bool
+
+	insecure bool
+	tlsDir   string
+}
+
+func (rs *RunnerSettings) Clone() *RunnerSettings {
+	newRs := *rs
+	return &newRs
+}
+
 type Runner interface {
-	setSession(s *runner.Session) error
-	setSessionID(id string) error
-	setProject(p project.Project) error
-	setCleanupSession(cleanup bool) error
-	setSessionStrategy(runnerv1.SessionStrategy) error
-
-	setWithinShell() error
-	setDir(dir string) error
-
-	setStdin(stdin io.Reader) error
-	setStdout(stdout io.Writer) error
-	setStderr(stdout io.Writer) error
-
-	getStdin() io.Reader
-	getStdout() io.Writer
-	getStderr() io.Writer
-
-	setLogger(logger *zap.Logger) error
-	setEnableBackgroundProcesses(disableBackground bool) error
-
-	setInsecure(insecure bool) error
-	setTLSDir(tlsDir string) error
-
 	RunBlock(ctx context.Context, block project.FileCodeBlock) error
 	DryRunBlock(ctx context.Context, block project.FileCodeBlock, w io.Writer, opts ...RunnerOption) error
 	Cleanup(ctx context.Context) error
 
 	Clone() Runner
+
+	getSettings() *RunnerSettings
+	setSettings(settings *RunnerSettings)
+}
+
+func withSettings(applySettings func(settings *RunnerSettings)) RunnerOption {
+	return withSettingsErr(func(settings *RunnerSettings) error {
+		applySettings(settings)
+		return nil
+	})
+}
+
+func withSettingsErr(applySettings func(settings *RunnerSettings) error) RunnerOption {
+	return func(r Runner) error {
+		return applySettings(r.getSettings())
+	}
 }
 
 func WithSession(s *runner.Session) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setSession(s)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.session = s
+	})
 }
 
 func WithSessionID(id string) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setSessionID(id)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.sessionID = id
+	})
 }
 
 func WithProject(proj project.Project) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setProject(proj)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.project = proj
+	})
 }
 
 func WithCleanupSession(cleanup bool) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setCleanupSession(cleanup)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.cleanupSession = cleanup
+	})
 }
 
 func WithSessionStrategy(strategy runnerv1.SessionStrategy) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setSessionStrategy(strategy)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.sessionStrategy = strategy
+	})
 }
 
 func WithinShellMaybe() RunnerOption {
-	return func(rc Runner) error {
-		return rc.setWithinShell()
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.withinShellMaybe = true
+	})
 }
 
 func WithDir(dir string) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setDir(dir)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.dir = dir
+	})
 }
 
 func WithStdin(stdin io.Reader) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setStdin(stdin)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.stdin = stdin
+	})
 }
 
 func WithStdout(stdout io.Writer) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setStdout(stdout)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.stdout = stdout
+	})
 }
 
 func WithStderr(stderr io.Writer) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setStderr(stderr)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.stderr = stderr
+	})
 }
 
 func WithStdinTransform(op func(io.Reader) (io.Reader, error)) RunnerOption {
-	return func(rc Runner) error {
-		stdin, err := op(rc.getStdin())
+	return withSettingsErr(func(rs *RunnerSettings) error {
+		stdin, err := op(rs.stdin)
 		if err != nil {
 			return err
 		}
 
-		return rc.setStdin(stdin)
-	}
+		rs.stdin = stdin
+		return nil
+	})
 }
 
 func WithStdoutTransform(op func(io.Writer) io.Writer) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setStdout(op(rc.getStdout()))
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.stdout = op(rs.stdout)
+	})
 }
 
 func WithStderrTransform(op func(io.Writer) io.Writer) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setStderr(op(rc.getStderr()))
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.stderr = op(rs.stderr)
+	})
 }
 
 func WithLogger(logger *zap.Logger) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setLogger(logger)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.logger = logger
+	})
 }
 
 func WithInsecure(insecure bool) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setInsecure(insecure)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.insecure = insecure
+	})
 }
 
 func WithTLSDir(tlsDir string) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setTLSDir(tlsDir)
-	}
+	return withSettings(func(rs *RunnerSettings) {
+		rs.tlsDir = tlsDir
+	})
 }
 
-func WithEnableBackgroundProcesses(disableBackground bool) RunnerOption {
-	return func(rc Runner) error {
-		return rc.setEnableBackgroundProcesses(disableBackground)
+func WithEnableBackgroundProcesses(enableBackground bool) RunnerOption {
+	return withSettings(func(rs *RunnerSettings) {
+		rs.enableBackground = enableBackground
+	})
+}
+
+func WithTempSettings(rc Runner, opts []RunnerOption, cb func()) error {
+	oldSettings := rc.getSettings().Clone()
+
+	err := ApplyOptions(rc, opts...)
+	if err != nil {
+		return err
 	}
+
+	cb()
+
+	rc.setSettings(oldSettings)
+
+	return nil
 }
 
 func ApplyOptions(rc Runner, opts ...RunnerOption) error {
