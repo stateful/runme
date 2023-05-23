@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/client/graphql"
 	"github.com/stateful/runme/internal/tui"
+	"github.com/stateful/runme/internal/tui/prompt"
 )
 
 func suggestCmd() *cobra.Command {
@@ -94,7 +95,7 @@ or just bad. Please use with discretion.
 }
 
 func promptForDescription(cmd *cobra.Command) (string, error) {
-	model := tui.NewStandaloneInputModel("Enter a description:", tui.MinimalKeyMap, tui.DefaultStyles)
+	model := tui.NewStandaloneInputModel(prompt.InputParams{Label: "Enter a description:"}, tui.MinimalKeyMap, tui.DefaultStyles)
 	finalModel, err := newProgram(cmd, model).Run()
 	if err != nil {
 		return "", err

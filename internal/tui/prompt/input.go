@@ -16,12 +16,20 @@ type InputModel struct {
 	log   *zap.Logger
 }
 
-func NewInputModel(text string) InputModel {
+type InputParams struct {
+	Label       string
+	Value       string
+	PlaceHolder string
+}
+
+func NewInputModel(ip InputParams) InputModel {
 	input := textinput.New()
 	input.Prompt = ""
+	input.Placeholder = ip.PlaceHolder
+	input.SetValue(ip.Value)
 
 	return InputModel{
-		Text:  text,
+		Text:  ip.Label,
 		input: input,
 		log:   log.Get().Named("prompt.InputModel"),
 	}
