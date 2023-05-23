@@ -405,17 +405,17 @@ func Test_notebook_frontmatter(t *testing.T) {
 		{
 			file:   testDataFrontmatterYAML,
 			kind:   "YAML",
-			getErr: func(info *document.FrontmatterParseInfo) error { return info.YamlError() },
+			getErr: func(info *document.FrontmatterParseInfo) error { return info.YAMLError() },
 		},
 		{
 			file:   testDataFrontmatterJSON,
 			kind:   "JSON",
-			getErr: func(info *document.FrontmatterParseInfo) error { return info.JsonError() },
+			getErr: func(info *document.FrontmatterParseInfo) error { return info.JSONError() },
 		},
 		{
 			file:   testDataFrontmatterTOML,
 			kind:   "TOML",
-			getErr: func(info *document.FrontmatterParseInfo) error { return info.TomlError() },
+			getErr: func(info *document.FrontmatterParseInfo) error { return info.TOMLError() },
 		},
 	} {
 		file := ex.file
