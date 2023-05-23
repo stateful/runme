@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -30,6 +31,7 @@ type RemoteRunner struct {
 	client          runnerv1.RunnerServiceClient
 	sessionID       string
 	sessionStrategy runnerv1.SessionStrategy
+	project         project.Project
 	cleanupSession  bool
 
 	insecure bool
@@ -101,6 +103,11 @@ func (r *RemoteRunner) setSession(session *runner.Session) error {
 
 func (r *RemoteRunner) setSessionID(sessionID string) error {
 	r.sessionID = sessionID
+	return nil
+}
+
+func (r *RemoteRunner) setProject(p project.Project) error {
+	r.project = p
 	return nil
 }
 
@@ -193,7 +200,9 @@ func (r *RemoteRunner) deleteSession(ctx context.Context) error {
 	return errors.Wrap(err, "failed to delete session")
 }
 
-func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) error {
+func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
+	block := fileBlock.GetBlock()
+
 	stream, err := r.client.Execute(ctx)
 	if err != nil {
 		return err
@@ -209,6 +218,19 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 		SessionId:       r.sessionID,
 		SessionStrategy: r.sessionStrategy,
 		Background:      block.Background(),
+		StoreLastOutput: true,
+	}
+
+	if r.project != nil {
+		req.Project = &runnerv1.Project{
+			Root:         r.project.Dir(),
+			EnvLoadOrder: r.project.EnvLoadOrder(),
+		}
+	}
+
+	mdFile := fileBlock.GetFile()
+	if mdFile != "" {
+		req.Directory = filepath.Join(r.dir, filepath.Dir(mdFile))
 	}
 
 	if r.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {
@@ -243,7 +265,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, block *document.CodeBlock) 
 	return g.Wait()
 }
 
-func (r *RemoteRunner) DryRunBlock(ctx context.Context, block *document.CodeBlock, w io.Writer, opts ...RunnerOption) error {
+func (r *RemoteRunner) DryRunBlock(ctx context.Context, fileBlock project.FileCodeBlock, w io.Writer, opts ...RunnerOption) error {
 	return ErrRunnerClientUnimplemented
 }
 

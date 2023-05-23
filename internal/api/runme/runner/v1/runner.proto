@@ -57,6 +57,15 @@ enum ExecuteStop {
   EXECUTE_STOP_KILL = 2;
 }
 
+message Project {
+  // project root folder
+  string root = 1;
+
+  // list of environment files to try and load
+  // start with
+  repeated string env_load_order = 2;
+}
+
 // strategy for selecting a session in an initial execute request
 enum SessionStrategy {
   // uses session_id field to determine session
@@ -132,6 +141,14 @@ message ExecuteRequest {
 
   // strategy for selecting session
   SessionStrategy session_strategy = 21;
+
+  // project for this runner
+  // used to load environment variables from .env files
+  optional Project project = 22;
+
+  // whether to store the stdout of the last ran
+  // block in the environment variable `__`
+  bool store_last_output = 23;
 }
 
 message ProcessPID {

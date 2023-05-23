@@ -50,13 +50,14 @@ func (b CodeBlocks) Names() (result []string) {
 type Renderer func(ast.Node, []byte) ([]byte, error)
 
 type CodeBlock struct {
-	attributes map[string]string
-	inner      *ast.FencedCodeBlock
-	intro      string
-	language   string
-	lines      []string
-	name       string
-	value      []byte
+	attributes    map[string]string
+	inner         *ast.FencedCodeBlock
+	intro         string
+	language      string
+	lines         []string
+	name          string
+	nameGenerated bool
+	value         []byte
 }
 
 func newCodeBlock(
@@ -66,7 +67,7 @@ func newCodeBlock(
 	render Renderer,
 ) (*CodeBlock, error) {
 	attributes := getAttributes(node, source)
-	name := getName(node, source, nameResolver)
+	name, hasName := getName(node, source, nameResolver)
 
 	value, err := render(node, source)
 	if err != nil {
@@ -74,13 +75,14 @@ func newCodeBlock(
 	}
 
 	return &CodeBlock{
-		attributes: attributes,
-		inner:      node,
-		intro:      getIntro(node, source),
-		language:   getLanguage(node, source),
-		lines:      getLines(node, source),
-		name:       name,
-		value:      value,
+		attributes:    attributes,
+		inner:         node,
+		intro:         getIntro(node, source),
+		language:      getLanguage(node, source),
+		lines:         getLines(node, source),
+		name:          name,
+		nameGenerated: !hasName,
+		value:         value,
 	}, nil
 }
 
@@ -125,6 +127,10 @@ func (b *CodeBlock) Lines() []string {
 
 func (b *CodeBlock) Name() string {
 	return b.name
+}
+
+func (b *CodeBlock) NameGenerated() bool {
+	return b.nameGenerated
 }
 
 func (b *CodeBlock) Unwrap() ast.Node {
@@ -292,15 +298,18 @@ func sanitizeName(s string) string {
 	return b.String()
 }
 
-func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolver) string {
+func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolver) (string, bool) {
 	attributes := make(map[string]string)
 	if node.Info != nil {
 		attributes = parseRawAttributes(rawAttributes(node.Info.Text(source)))
 	}
 
+	hasName := false
+
 	var name string
 	if n, ok := attributes["name"]; ok && n != "" {
 		name = n
+		hasName = true
 	} else {
 		lines := getLines(node, source)
 		if len(lines) > 0 {
@@ -308,7 +317,7 @@ func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolve
 			name = sanitizeName(shell.TryGetNonCommentLine(lines))
 		}
 	}
-	return nameResolver.Get(node, name)
+	return nameResolver.Get(node, name), hasName
 }
 
 type MarkdownBlock struct {
@@ -372,4 +381,12 @@ func (b *InnerBlock) Unwrap() ast.Node {
 
 func (b *InnerBlock) Value() []byte {
 	return b.value
+}
+
+func (b *CodeBlock) GetBlock() *CodeBlock {
+	return b
+}
+
+func (b *CodeBlock) GetFile() string {
+	return ""
 }

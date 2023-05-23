@@ -8,7 +8,9 @@ import (
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
 	"github.com/rs/xid"
+	"github.com/stateful/runme/internal/env"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -147,6 +149,9 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return NewSession(envs, r.logger)
 	}
 
+	var stdoutMem []byte
+	storeStdout := req.StoreLastOutput
+
 	var sess *Session
 	switch req.SessionStrategy {
 	case runnerv1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
@@ -189,6 +194,23 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		Logger:      r.logger,
 		Winsize:     runnerWinsizeToPty(req.Winsize),
 	}
+
+	if req.Project != nil {
+		proj, err := project.NewDirectoryProject(req.Project.Root, false, true, true)
+		if err != nil {
+			return err
+		}
+
+		proj.SetEnvLoadOrder(req.Project.EnvLoadOrder)
+
+		mapEnv, err := proj.LoadEnvs()
+		if err != nil {
+			return err
+		}
+
+		cfg.PreEnv = env.ConvertMapEnv(mapEnv)
+	}
+
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
 	if err != nil {
@@ -318,6 +340,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			if err != nil {
 				return err
 			}
+
+			if storeStdout {
+				stdoutMem = append(stdoutMem, data.Stdout...)
+			}
 		}
 		return nil
 	})
@@ -352,6 +378,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	werr = g.Wait()
 	if werr != nil {
 		logger.Info("failed to wait for goroutines to finish", zap.Error(err))
+	}
+
+	if storeStdout {
+		sess.envStore.Set("__", string(stdoutMem))
 	}
 
 	logger.Info("sending the final response with exit code", zap.Int("exitCode", exitCode))

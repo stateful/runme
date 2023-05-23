@@ -11,8 +11,8 @@ import (
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/document"
 	rmath "github.com/stateful/runme/internal/math"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/version"
@@ -23,6 +23,7 @@ func tuiCmd() *cobra.Command {
 		visibleEntries int
 		runOnce        bool
 		serverAddr     string
+		filter         string
 		getRunnerOpts  func() ([]client.RunnerOption, error)
 	)
 
@@ -31,10 +32,17 @@ func tuiCmd() *cobra.Command {
 		Short: "Run the interactive TUI",
 		Long:  "Run a command from a descriptive list given by an interactive TUI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			blocks, err := getCodeBlocks()
+			proj, err := getProject()
 			if err != nil {
 				return err
 			}
+
+			blocks, err := proj.LoadTasks()
+			if err != nil {
+				return err
+			}
+
+			blocks = sortBlocks(blocks)
 
 			if len(blocks) == 0 {
 				return errors.Errorf("no code blocks in %s", fFileName)
@@ -62,6 +70,7 @@ func tuiCmd() *cobra.Command {
 				client.WithStdin(cmd.InOrStdin()),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
+				client.WithProject(proj),
 			)
 
 			if serverAddr != "" {
@@ -156,6 +165,7 @@ func tuiCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
 	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
+	cmd.Flags().StringVar(&filter, "filter", "", "Regular expression to filter results, by filename and task name")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
@@ -163,7 +173,7 @@ func tuiCmd() *cobra.Command {
 }
 
 type tuiModel struct {
-	blocks         document.CodeBlocks
+	blocks         project.CodeBlocks
 	header         string
 	visibleEntries int
 	expanded       map[int]struct{}
@@ -173,7 +183,7 @@ type tuiModel struct {
 }
 
 type tuiResult struct {
-	block *document.CodeBlock
+	block *project.CodeBlock
 	exit  bool
 }
 
@@ -218,7 +228,8 @@ func (m tuiModel) View() string {
 	_, _ = s.WriteString(m.header)
 
 	for i := m.scroll; i < m.scroll+m.numBlocksShown(); i++ {
-		block := m.blocks[i]
+		fileBlock := m.blocks[i]
+		block := fileBlock.Block
 
 		active := i == m.cursor
 		_, expanded := m.expanded[i]
@@ -232,18 +243,16 @@ func (m tuiModel) View() string {
 
 		{
 			name := block.Name()
-			lang := ansi.Color(block.Language(), "white+d")
+			filename := ansi.Color(fileBlock.File, "white+d")
 
 			if active {
 				name = ansi.Color(name, "white+b")
-			} else {
-				lang = ""
 			}
 
 			identifier := fmt.Sprintf(
 				"%s %s",
 				name,
-				lang,
+				filename,
 			)
 
 			line += identifier + "\n"
@@ -264,7 +273,7 @@ func (m tuiModel) View() string {
 				break
 			}
 
-			line += content + "\n"
+			line += content + "\n\n"
 		}
 
 		_, _ = s.WriteString(line)
@@ -318,12 +327,12 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "y", "c":
-			command := strings.Join(m.blocks[m.cursor].Lines(), "\n")
+			command := strings.Join(m.blocks[m.cursor].Block.Lines(), "\n")
 			_ = clipboard.WriteAll(command)
 
 		case "enter", "l":
 			m.result = tuiResult{
-				block: m.blocks[m.cursor],
+				block: &m.blocks[m.cursor],
 			}
 
 			return m, tea.Quit

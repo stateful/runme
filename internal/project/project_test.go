@@ -1,58 +1,234 @@
 package project
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/renderer/cmark"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_selectRemoteURL(t *testing.T) {
-	storer := memory.NewStorage()
-	remotes := []*git.Remote{
-		git.NewRemote(storer, &config.RemoteConfig{
-			Name: "custom",
-			URLs: []string{"git@my-server.com:stateful/cli.git"},
-		}),
-		git.NewRemote(storer, &config.RemoteConfig{
-			Name: "origin",
-			URLs: []string{"git@github.com:stateful/cli.git"},
-		}),
-	}
-	url := selectRemoteURL(remotes)
-	require.Equal(t, "git@github.com:stateful/cli.git", url)
+var pfs = projectDir()
+
+func Test_CodeBlocks(t *testing.T) {
+	t.Run("LookupWithFile", func(t *testing.T) {
+		lfs, err := pfs.Chroot("../")
+		require.NoError(t, err)
+
+		blocks := make(CodeBlocks, 0)
+
+		for _, file := range []string{"TEST.md", "TEST2.md"} {
+			bytes, err := util.ReadFile(lfs, file)
+			require.NoError(t, err)
+
+			doc := document.New(bytes, cmark.Render)
+			node, _, err := doc.Parse()
+			require.NoError(t, err)
+
+			parsedBlocks := document.CollectCodeBlocks(node)
+
+			for _, block := range parsedBlocks {
+				blocks = append(blocks, CodeBlock{
+					Block: block,
+					File:  file,
+				})
+			}
+		}
+
+		{
+			res, err := blocks.LookupWithFile("TEST", "echo-hi")
+			require.NoError(t, err)
+			assert.Equal(t, 2, len(res))
+
+			for _, fileBlock := range res {
+				assert.Equal(t, "echo-hi", fileBlock.Block.Name())
+			}
+		}
+
+		{
+			res, err := blocks.LookupWithFile("TEST.md", "echo-hi")
+			require.NoError(t, err)
+			assert.Equal(t, 1, len(res))
+		}
+	})
 }
 
-var branchFixtures = `
-Merge pull request #333 from stateful:seb/cal-edits--||--More text edits etc
-Merge pull request #220 from stateful/admc/status-vscode-button--||--Add open in vscode button
-Merge pull request #132 from stateful/jgee/feat/cli-instructions-platform-specific--||--Use accordion like component to contain CLI instructions
-Merge branch 'main' into jgee/feat/cli-instructions-platform-specific--||--
-Merge branch 'main' into admc/standup-ux-refactor--||--
-Merging--||--
-Merge branch 'admc/slack-attack'--||--
-Merge pull request #7 from activecove/seb/file-cycles--||--Move to file sessions`
+func Test_directoryGitProject(t *testing.T) {
+	pfs.MkdirAll(".git", os.FileMode(0o700))
+	defer util.RemoveAll(pfs, ".git")
 
-func Test_branchNamePreNonGreedy(t *testing.T) {
-	expected := []Branch{
-		{Name: "seb/cal-edits", Description: "More text edits etc"},
-		{Name: "admc/status-vscode-button", Description: "Add open in vscode button"},
-		{Name: "jgee/feat/cli-instructions-platform-specific", Description: "Use accordion like component to contain CLI instructions"},
-		{Name: "seb/file-cycles", Description: "Move to file sessions"},
-	}
-	actual := getBranchNamesFromStdout(branchFixtures, false)
-	require.Equal(t, expected, actual)
+	dotgitFs, err := pfs.Chroot(".git")
+	require.NoError(t, err)
+
+	storage := filesystem.NewStorage(dotgitFs, nil)
+
+	_, err = git.Init(storage, nil)
+	require.NoError(t, err)
+
+	proj, err := NewDirectoryProject(pfs.Root(), true, true, true)
+	require.NoError(t, err)
+	require.NotNil(t, proj.repo)
+
+	wt, err := proj.repo.Worktree()
+	require.NoError(t, err)
+	t.Log(wt.Filesystem.Root())
+
+	util.WriteFile(pfs, ".gitignore", []byte("IGNORED.md\nignored"), os.FileMode(int(0o700)))
+	defer pfs.Remove(".gitignore")
+
+	t.Run("LoadEnvs", func(t *testing.T) {
+		proj.SetEnvLoadOrder([]string{".env.local", ".env"})
+
+		envs, err := proj.LoadEnvs()
+		require.NoError(t, err)
+
+		assert.Equal(t, map[string]string{
+			"SECRET_1": "secret1_overriden",
+			"SECRET_2": "secret2",
+			"SECRET_3": "secret3",
+		}, envs)
+	})
+
+	t.Run("LoadTasks", func(t *testing.T) {
+		tasks, err := proj.LoadTasks()
+		require.NoError(t, err)
+
+		assert.Equal(t, 2, len(tasks))
+
+		blocks := make(map[string]CodeBlock)
+
+		for _, task := range tasks {
+			blocks[task.Block.Name()] = task
+		}
+
+		assert.Equal(
+			t,
+			convertLine("echo hello"),
+			string(blocks["echo-hello"].Block.Content()),
+		)
+
+		assert.Equal(
+			t,
+			convertLine("echo chao"),
+			string(blocks["echo-chao"].Block.Content()),
+		)
+
+		assert.Equal(
+			t,
+			"README.md",
+			string(blocks["echo-hello"].File),
+		)
+
+		assert.Equal(
+			t,
+			convertFilePath("src/DOCS.md"),
+			string(blocks["echo-chao"].File),
+		)
+	})
 }
 
-func Test_branchNamePreGreedy(t *testing.T) {
-	expected := []Branch{
-		{Name: "cal-edits", Description: "More text edits etc"},
-		{Name: "status-vscode-button", Description: "Add open in vscode button"},
-		{Name: "cli-instructions-platform-specific", Description: "Use accordion like component to contain CLI instructions"},
-		{Name: "file-cycles", Description: "Move to file sessions"},
+func Test_directoryBareProject(t *testing.T) {
+	proj, err := NewDirectoryProject(pfs.Root(), false, true, true)
+	require.NoError(t, err)
+
+	t.Run("LoadEnvs", func(t *testing.T) {
+		proj.SetEnvLoadOrder([]string{".env.local", ".env"})
+
+		envs, err := proj.LoadEnvs()
+		require.NoError(t, err)
+
+		assert.Equal(t, map[string]string{
+			"SECRET_1": "secret1_overriden",
+			"SECRET_2": "secret2",
+			"SECRET_3": "secret3",
+		}, envs)
+	})
+
+	t.Run("LoadTasks", func(t *testing.T) {
+		tasks, err := proj.LoadTasks()
+		require.NoError(t, err)
+
+		assert.Equal(t, 4, len(tasks))
+
+		blocks := make(map[string]CodeBlock)
+
+		for _, task := range tasks {
+			blocks[fmt.Sprintf("%s:%s", task.File, task.Block.Name())] = task
+		}
+
+		assert.Equal(
+			t,
+			convertLine("echo hello"),
+			string(blocks["README.md:echo-hello"].Block.Content()),
+		)
+
+		assert.Equal(
+			t,
+			convertLine("echo chao"),
+			string(blocks[convertFilePath("src/DOCS.md:echo-chao")].Block.Content()),
+		)
+
+		assert.Equal(
+			t,
+			convertLine("echo ignored"),
+			string(blocks["IGNORED.md:echo-ignored"].Block.Content()),
+		)
+
+		assert.Equal(
+			t,
+			convertLine("echo hi"),
+			string(blocks[convertFilePath("ignored/README.md:echo-hi")].Block.Content()),
+		)
+	})
+}
+
+func Test_singleFileProject(t *testing.T) {
+	proj := NewSingleFileProject(filepath.Join(pfs.Root(), "README.md"), true, true)
+
+	t.Run("LoadEnvs", func(t *testing.T) {
+		envs, err := proj.LoadEnvs()
+		require.NoError(t, err)
+		assert.Nil(t, envs)
+	})
+
+	t.Run("LoadTasks", func(t *testing.T) {
+		tasks, err := proj.LoadTasks()
+		require.NoError(t, err)
+
+		assert.Equal(t, 1, len(tasks))
+		assert.Equal(t, tasks[0].File, "README.md")
+	})
+}
+
+func projectDir() billy.Filesystem {
+	_, b, _, _ := runtime.Caller(0)
+	root := filepath.Join(
+		filepath.Dir(b),
+		"test_project",
+	)
+
+	return osfs.New(root)
+}
+
+func convertFilePath(p string) string {
+	return strings.ReplaceAll(p, "/", string(filepath.Separator))
+}
+
+func convertLine(p string) string {
+	if runtime.GOOS == "windows" {
+		p += "\r"
 	}
-	actual := getBranchNamesFromStdout(branchFixtures, true)
-	require.Equal(t, expected, actual)
+
+	return p
 }
