@@ -257,6 +257,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 			}
 		}
 
+		// TODO(mxs): user-configurable
 		if stackDepth > 100 {
 			panic("runme stack depth limit exceeded")
 		}
