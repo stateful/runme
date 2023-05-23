@@ -21,8 +21,6 @@ import (
 type LocalRunner struct {
 	*RunnerSettings
 
-	envs []string
-
 	shellID int
 }
 
@@ -39,11 +37,6 @@ func (r *LocalRunner) getSettings() *RunnerSettings {
 
 func (r *LocalRunner) setSettings(rs *RunnerSettings) {
 	r.RunnerSettings = rs
-}
-
-func (r *LocalRunner) setEnvs(envs []string) error {
-	r.envs = envs
-	return nil
 }
 
 func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {

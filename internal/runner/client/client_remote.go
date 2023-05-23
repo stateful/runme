@@ -40,11 +40,6 @@ func (r *RemoteRunner) setSettings(rs *RunnerSettings) {
 	r.RunnerSettings = rs
 }
 
-func (r *RemoteRunner) setEnvs(envs []string) error {
-	r.envs = envs
-	return nil
-}
-
 func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
 	r := &RemoteRunner{
 		RunnerSettings: &RunnerSettings{},
