@@ -80,7 +80,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -95,6 +95,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/henvic/httpretty v0.1.0
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.7
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
