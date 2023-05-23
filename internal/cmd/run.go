@@ -10,6 +10,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/containerd/console"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
@@ -20,10 +24,6 @@ import (
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
 	"github.com/stateful/runme/internal/tui/prompt"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 const (
@@ -106,11 +106,11 @@ func runCmd() *cobra.Command {
 			}
 
 			for _, block := range runBlocks {
-				if block.PromptEnv() {
-					varPrompts := getCommandExportExtractMatches(block.Lines())
+				if block.GetBlock().PromptEnv() {
+					varPrompts := getCommandExportExtractMatches(block.GetBlock().Lines())
 					for _, ev := range varPrompts {
 						newVal, err := promptForEnvVar(cmd, ev)
-						block.SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
+						block.GetBlock().SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
 
 						if err != nil {
 							return err
