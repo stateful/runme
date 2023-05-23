@@ -398,24 +398,24 @@ func Test_notebook_frontmatter(t *testing.T) {
 	type fmtrExample struct {
 		file   []byte
 		kind   string
-		getErr func(info *FrontmatterParseInfo) error
+		getErr func(info *document.FrontmatterParseInfo) error
 	}
 
 	for _, ex := range []fmtrExample{
 		{
 			file:   testDataFrontmatterYAML,
 			kind:   "YAML",
-			getErr: func(info *FrontmatterParseInfo) error { return info.yaml },
+			getErr: func(info *document.FrontmatterParseInfo) error { return info.YamlError() },
 		},
 		{
 			file:   testDataFrontmatterJSON,
 			kind:   "JSON",
-			getErr: func(info *FrontmatterParseInfo) error { return info.json },
+			getErr: func(info *document.FrontmatterParseInfo) error { return info.JsonError() },
 		},
 		{
 			file:   testDataFrontmatterTOML,
 			kind:   "TOML",
-			getErr: func(info *FrontmatterParseInfo) error { return info.toml },
+			getErr: func(info *document.FrontmatterParseInfo) error { return info.TomlError() },
 		},
 	} {
 		file := ex.file
@@ -428,8 +428,8 @@ func Test_notebook_frontmatter(t *testing.T) {
 			require.NoError(t, err)
 
 			fmtr, info := notebook.ParsedFrontmatter()
-			require.NoError(t, getErr(&info))
-			require.NoError(t, info.other)
+			require.NoError(t, getErr(info))
+			require.NoError(t, info.Error())
 			assert.Equal(t, "fish", fmtr.Shell)
 		})
 	}
