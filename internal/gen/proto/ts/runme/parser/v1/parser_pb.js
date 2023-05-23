@@ -33,7 +33,8 @@ class Notebook$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.Notebook", [
             { no: 1, name: "cells", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => Cell },
-            { no: 2, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
+            { no: 2, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
+            { no: 3, name: "frontmatter", kind: "message", T: () => Frontmatter }
         ]);
     }
 }
@@ -70,6 +71,18 @@ class Cell$Type extends MessageType {
  * @generated MessageType for protobuf message runme.parser.v1.Cell
  */
 export const Cell = new Cell$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Frontmatter$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.Frontmatter", [
+            { no: 1, name: "shell", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.Frontmatter
+ */
+export const Frontmatter = new Frontmatter$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class DeserializeRequest$Type extends MessageType {
     constructor() {

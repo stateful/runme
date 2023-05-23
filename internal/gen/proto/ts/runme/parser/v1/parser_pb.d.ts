@@ -18,6 +18,10 @@ export interface Notebook {
     metadata: {
         [key: string]: string;
     };
+    /**
+     * @generated from protobuf field: runme.parser.v1.Frontmatter frontmatter = 3;
+     */
+    frontmatter?: Frontmatter;
 }
 /**
  * @generated from protobuf message runme.parser.v1.TextRange
@@ -58,6 +62,15 @@ export interface Cell {
      * @generated from protobuf field: runme.parser.v1.TextRange text_range = 5;
      */
     textRange?: TextRange;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.Frontmatter
+ */
+export interface Frontmatter {
+    /**
+     * @generated from protobuf field: string shell = 1;
+     */
+    shell: string;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequest
@@ -133,6 +146,13 @@ declare class Cell$Type extends MessageType<Cell> {
  * @generated MessageType for protobuf message runme.parser.v1.Cell
  */
 export declare const Cell: Cell$Type;
+declare class Frontmatter$Type extends MessageType<Frontmatter> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.Frontmatter
+ */
+export declare const Frontmatter: Frontmatter$Type;
 declare class DeserializeRequest$Type extends MessageType<DeserializeRequest> {
     constructor();
 }

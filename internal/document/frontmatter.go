@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
+	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"gopkg.in/yaml.v3"
 )
 
@@ -62,4 +63,10 @@ func ParseFrontmatter(raw string) (f Frontmatter, info FrontmatterParseInfo) {
 	}
 
 	return
+}
+
+func (fmtr Frontmatter) ToParser() *parserv1.Frontmatter {
+	return &parserv1.Frontmatter{
+		Shell: fmtr.Shell,
+	}
 }
