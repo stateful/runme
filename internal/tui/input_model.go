@@ -15,14 +15,14 @@ type StandaloneInputModel struct {
 }
 
 func NewStandaloneInputModel(
-	text string,
+	inputParams prompt.InputParams,
 	keyMap *KeyMap,
 	styles *Styles,
 	opts ...Option,
 ) StandaloneInputModel {
 	return StandaloneInputModel{
 		Model: NewModel(
-			inputWrapModel{prompt.NewInputModel(text)},
+			inputWrapModel{prompt.NewInputModel(inputParams)},
 			keyMap,
 			styles,
 			append([]Option{WithoutHelp()}, opts...)...,

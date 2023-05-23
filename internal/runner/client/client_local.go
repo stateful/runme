@@ -13,121 +13,32 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/env"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"go.uber.org/zap"
 )
 
 type LocalRunner struct {
-	dir    string
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
+	*RunnerSettings
 
 	envs []string
 
 	shellID int
-
-	session *runner.Session
-	project project.Project
-
-	logger *zap.Logger
 }
 
 func (r *LocalRunner) Clone() Runner {
 	return &LocalRunner{
-		dir: r.dir,
-
-		stdin:  r.stdin,
-		stdout: r.stdout,
-		stderr: r.stderr,
-
-		shellID: r.shellID,
-		session: r.session,
-
-		logger: r.logger,
+		RunnerSettings: r.RunnerSettings.Clone(),
+		shellID:        r.shellID,
 	}
 }
 
-func (r *LocalRunner) setSession(s *runner.Session) error {
-	r.session = s
-	return nil
+func (r *LocalRunner) getSettings() *RunnerSettings {
+	return r.RunnerSettings
 }
 
-func (r *LocalRunner) setProject(p project.Project) error {
-	r.project = p
-	return nil
-}
-
-func (r *LocalRunner) setSessionID(sessionID string) error {
-	return nil
-}
-
-func (r *LocalRunner) setCleanupSession(cleanup bool) error {
-	return nil
-}
-
-func (r *LocalRunner) setSessionStrategy(runnerv1.SessionStrategy) error {
-	return nil
-}
-
-func (r *LocalRunner) setWithinShell() error {
-	id, ok := shellID()
-	if !ok {
-		return nil
-	}
-	r.shellID = id
-	return nil
-}
-
-func (r *LocalRunner) setDir(dir string) error {
-	r.dir = dir
-	return nil
-}
-
-func (r *LocalRunner) setStdin(stdin io.Reader) error {
-	r.stdin = stdin
-	return nil
-}
-
-func (r *LocalRunner) setStdout(stdout io.Writer) error {
-	r.stdout = stdout
-	return nil
-}
-
-func (r *LocalRunner) setStderr(stderr io.Writer) error {
-	r.stderr = stderr
-	return nil
-}
-
-func (r *LocalRunner) getStdin() io.Reader {
-	return r.stdin
-}
-
-func (r *LocalRunner) getStdout() io.Writer {
-	return r.stdout
-}
-
-func (r *LocalRunner) getStderr() io.Writer {
-	return r.stderr
-}
-
-func (r *LocalRunner) setLogger(logger *zap.Logger) error {
-	r.logger = logger
-	return nil
-}
-
-func (r *LocalRunner) setInsecure(bool) error {
-	return nil
-}
-
-func (r *LocalRunner) setTLSDir(string) error {
-	return nil
-}
-
-func (r *LocalRunner) setEnableBackgroundProcesses(bool) error {
-	return nil
+func (r *LocalRunner) setSettings(rs *RunnerSettings) {
+	r.RunnerSettings = rs
 }
 
 func (r *LocalRunner) setEnvs(envs []string) error {
@@ -136,13 +47,22 @@ func (r *LocalRunner) setEnvs(envs []string) error {
 }
 
 func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
-	r := &LocalRunner{}
+	r := &LocalRunner{
+		RunnerSettings: &RunnerSettings{},
+	}
+
 	if err := ApplyOptions(r, opts...); err != nil {
 		return nil, err
 	}
 
 	if r.logger == nil {
 		r.logger = zap.NewNop()
+	}
+
+	if r.withinShellMaybe {
+		if id, ok := shellID(); ok {
+			r.shellID = id
+		}
 	}
 
 	r.session = runner.NewSession(os.Environ(), r.logger)

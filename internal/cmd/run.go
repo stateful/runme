@@ -9,6 +9,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/containerd/console"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
@@ -18,12 +22,19 @@ import (
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
-
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
+
+const (
+	exportExtractRegex string = `(\n*)export (\w+=)(("[^"]*")|('[^']*')|[^;\n]+)`
+)
+
+type CommandExportExtractMatch struct {
+	Key            string
+	Value          string
+	Match          string
+	HasStringValue bool
+	LineNumber     int
+}
 
 func runCmd() *cobra.Command {
 	var (
@@ -90,6 +101,11 @@ func runCmd() *cobra.Command {
 						runBlocks = append(runBlocks, block)
 					}
 				}
+			}
+
+			err = promptEnvVars(cmd, runBlocks...)
+			if err != nil {
+				return err
 			}
 
 			if runMany {
@@ -225,7 +241,6 @@ func runCmd() *cobra.Command {
 				if len(runBlocks) > 1 {
 					return multiRunner.RunBlocks(ctx, runBlocks, parallel)
 				}
-
 				return runner.RunBlock(ctx, runBlocks[0])
 			})
 

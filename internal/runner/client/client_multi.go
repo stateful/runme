@@ -71,7 +71,7 @@ func (w *prefixWriter) Write(p []byte) (int, error) {
 
 func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlock, parallel bool) error {
 	if m.PreRunMsg != nil && parallel {
-		_, _ = m.Runner.getStdout().Write([]byte(
+		_, _ = m.Runner.getSettings().stdout.Write([]byte(
 			m.PreRunMsg(blocks, parallel),
 		))
 	}
@@ -85,7 +85,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 		runnerClient := m.Runner.Clone()
 
 		if m.PreRunMsg != nil && !parallel {
-			_, _ = m.Runner.getStdout().Write([]byte(
+			_, _ = m.Runner.getSettings().stdout.Write([]byte(
 				m.PreRunMsg([]project.FileCodeBlock{block}, parallel),
 			))
 		}
@@ -126,7 +126,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 			}
 
 			if m.PostRunMsg != nil {
-				_, _ = m.Runner.getStdout().Write([]byte(
+				_, _ = m.Runner.getSettings().stdout.Write([]byte(
 					m.PostRunMsg(block, code),
 				))
 			}
