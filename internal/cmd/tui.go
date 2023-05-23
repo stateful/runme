@@ -130,23 +130,15 @@ func tuiCmd() *cobra.Command {
 				}
 
 				err = inRawMode(func() error {
-					if err := client.ApplyOptions(
+					return client.WithTempSettings(
 						runnerClient,
-						client.WrapWithCancelReader(),
-					); err != nil {
-						return err
-					}
-
-					err = runnerClient.RunBlock(ctx, runBlock)
-
-					if err := client.ApplyOptions(
-						runnerClient,
-						client.WithStdin(cmd.InOrStdin()),
-					); err != nil {
-						return err
-					}
-
-					return err
+						[]client.RunnerOption{
+							client.WrapWithCancelReader(),
+						},
+						func() error {
+							return runnerClient.RunBlock(ctx, runBlock)
+						},
+					)
 				})
 
 				cancel()

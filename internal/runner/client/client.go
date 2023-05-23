@@ -174,7 +174,7 @@ func WithEnableBackgroundProcesses(enableBackground bool) RunnerOption {
 	})
 }
 
-func WithTempSettings(rc Runner, opts []RunnerOption, cb func()) error {
+func WithTempSettings(rc Runner, opts []RunnerOption, cb func() error) error {
 	oldSettings := rc.getSettings().Clone()
 
 	err := ApplyOptions(rc, opts...)
@@ -182,7 +182,10 @@ func WithTempSettings(rc Runner, opts []RunnerOption, cb func()) error {
 		return err
 	}
 
-	cb()
+	err = cb()
+	if err != nil {
+		return err
+	}
 
 	rc.setSettings(oldSettings)
 
