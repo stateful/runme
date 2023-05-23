@@ -125,7 +125,7 @@ func tuiCmd() *cobra.Command {
 
 				runBlock := result.block.Clone()
 
-				err = promptEnvVars(cmd, []project.FileCodeBlock{runBlock}...)
+				err = promptEnvVars(cmd, runBlock)
 				if err != nil {
 					return err
 				}
