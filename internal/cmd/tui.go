@@ -133,7 +133,14 @@ func tuiCmd() *cobra.Command {
 						return err
 					}
 
-					err = runnerClient.RunBlock(ctx, result.block)
+					tempBlock := result.block.Block.Clone()
+
+					err = promptEnvVars(cmd, []project.FileCodeBlock{&tempBlock})
+					if err != nil {
+						return err
+					}
+
+					err = runnerClient.RunBlock(ctx, &tempBlock)
 
 					return err
 				})

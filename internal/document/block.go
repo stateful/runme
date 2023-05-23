@@ -86,6 +86,26 @@ func newCodeBlock(
 	}, nil
 }
 
+func (b *CodeBlock) Clone() CodeBlock {
+	lines := make([]string, len(b.lines))
+	copy(lines, b.lines)
+	attributes := make(map[string]string)
+	value := make([]byte, len(b.value))
+	copy(value, b.value)
+	for key, value := range b.attributes {
+		attributes[key] = value
+	}
+	return CodeBlock{
+		attributes:    attributes,
+		intro:         b.intro,
+		language:      b.language,
+		lines:         lines,
+		name:          b.name,
+		nameGenerated: b.nameGenerated,
+		value:         value,
+	}
+}
+
 func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
 
 func (b *CodeBlock) Interactive() bool {
@@ -152,7 +172,7 @@ func (b *CodeBlock) Category() string {
 func (b *CodeBlock) PromptEnv() bool {
 	val, err := strconv.ParseBool(b.Attributes()["promptEnv"])
 	if err != nil {
-		return false
+		return true
 	}
 
 	return val

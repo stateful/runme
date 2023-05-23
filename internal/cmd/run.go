@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 	"syscall"
 
@@ -23,7 +22,6 @@ import (
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
-	"github.com/stateful/runme/internal/tui/prompt"
 )
 
 const (
@@ -105,18 +103,9 @@ func runCmd() *cobra.Command {
 				}
 			}
 
-			for _, block := range runBlocks {
-				if block.GetBlock().PromptEnv() {
-					varPrompts := getCommandExportExtractMatches(block.GetBlock().Lines())
-					for _, ev := range varPrompts {
-						newVal, err := promptForEnvVar(cmd, ev)
-						block.GetBlock().SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
-
-						if err != nil {
-							return err
-						}
-					}
-				}
+			err = promptEnvVars(cmd, runBlocks)
+			if err != nil {
+				return err
 			}
 
 			if runMany {
@@ -517,61 +506,4 @@ func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool, category 
 	}
 
 	return nil
-}
-
-func promptForEnvVar(cmd *cobra.Command, ev CommandExportExtractMatch) (string, error) {
-	label := fmt.Sprintf("Set Environment Variable \" %s\"", ev.Key)
-	ip := prompt.InputParams{Label: label, PlaceHolder: ev.Value}
-	if ev.HasStringValue {
-		ip.Value = ev.Value
-	}
-	model := tui.NewStandaloneInputModel(ip, tui.MinimalKeyMap, tui.DefaultStyles)
-
-	finalModel, err := newProgram(cmd, model).Run()
-	if err != nil {
-		return "", err
-	}
-	val, ok := finalModel.(tui.StandaloneInputModel).Value()
-	if !ok {
-		return "", errors.New("canceled")
-	}
-	return val, nil
-}
-
-func replaceVarValue(ev CommandExportExtractMatch, newValue string) string {
-	parts := strings.SplitN(ev.Match, "=", 2)
-	replacedText := fmt.Sprintf("%s=%s", parts[0], newValue)
-	return replacedText
-}
-
-func getCommandExportExtractMatches(lines []string) []CommandExportExtractMatch {
-	test := regexp.MustCompile(exportExtractRegex)
-	result := []CommandExportExtractMatch{}
-
-	for i, line := range lines {
-		for _, match := range test.FindAllStringSubmatch(line, -1) {
-			e := match[0]
-
-			parts := strings.Split(strings.TrimSpace(e[len("export "):]), "=")
-			key := parts[0]
-			ph := parts[1]
-			hasStringValue := strings.HasPrefix(ph, "\"") || strings.HasPrefix(ph, "'")
-			placeHolder := ph
-			if hasStringValue {
-				placeHolder = ph[1 : len(ph)-1]
-			}
-
-			value := placeHolder
-
-			result = append(result, CommandExportExtractMatch{
-				Key:            key,
-				Value:          value,
-				Match:          e,
-				HasStringValue: hasStringValue,
-				LineNumber:     i,
-			})
-		}
-	}
-
-	return result
 }
