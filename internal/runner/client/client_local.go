@@ -39,11 +39,6 @@ func (r *LocalRunner) setSettings(rs *RunnerSettings) {
 	r.RunnerSettings = rs
 }
 
-func (r *LocalRunner) setCustomShell(shell string) error {
-	r.customShell = shell
-	return nil
-}
-
 func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	r := &LocalRunner{
 		RunnerSettings: &RunnerSettings{},
