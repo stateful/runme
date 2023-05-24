@@ -75,8 +75,15 @@ func parseDocumentForCodeBlocks(filepath string, allowUnknown bool, allowUnnamed
 	return filtered, fmtr, nil
 }
 
-func GetCodeBlocksAndParseFrontmatter(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, *document.Frontmatter, error) {
-	return parseDocumentForCodeBlocks(filepath, allowUnknown, allowUnnamed, fs, true)
+func GetCodeBlocksAndParseFrontmatter(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, document.Frontmatter, error) {
+	blocks, fmtr, err := parseDocumentForCodeBlocks(filepath, allowUnknown, allowUnnamed, fs, true)
+
+	var f document.Frontmatter
+	if fmtr != nil {
+		f = *fmtr
+	}
+
+	return blocks, f, err
 }
 
 func GetCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, error) {

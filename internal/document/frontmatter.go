@@ -40,7 +40,7 @@ func (fpi FrontmatterParseInfo) Error() error {
 func ParseFrontmatter(raw string) (f Frontmatter, info FrontmatterParseInfo) {
 	lines := strings.Split(raw, "\n")
 
-	if len(lines) < 1 || strings.TrimSpace(lines[0]) != strings.TrimSpace(lines[len(lines)-1]) {
+	if len(lines) < 2 || strings.TrimSpace(lines[0]) != strings.TrimSpace(lines[len(lines)-1]) {
 		info.other = errors.New("invalid frontmatter")
 		return
 	}
