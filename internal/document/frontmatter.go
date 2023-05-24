@@ -11,6 +11,7 @@ import (
 
 type Frontmatter struct {
 	Shell string
+	Cwd   string
 }
 
 type FrontmatterParseInfo struct {

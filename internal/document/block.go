@@ -169,6 +169,10 @@ func (b *CodeBlock) Category() string {
 	return b.Attributes()["category"]
 }
 
+func (b *CodeBlock) Cwd() string {
+	return b.Attributes()["cwd"]
+}
+
 func (b *CodeBlock) PromptEnv() bool {
 	val, err := strconv.ParseBool(b.Attributes()["promptEnv"])
 	if err != nil {

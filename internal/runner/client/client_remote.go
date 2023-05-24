@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
@@ -130,10 +129,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		}
 	}
 
-	mdFile := fileBlock.GetFile()
-	if mdFile != "" {
-		req.Directory = filepath.Join(r.dir, filepath.Dir(mdFile))
-	}
+	req.Directory = ResolveDirectory(req.Directory, fileBlock)
 
 	if r.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {
 		req.Envs = os.Environ()
