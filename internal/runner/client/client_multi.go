@@ -143,7 +143,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 			wg.Add(1)
 			go func(fileBlock project.FileCodeBlock) {
 				defer wg.Done()
-				err := run(block)
+				err := run(fileBlock)
 				errChan <- err
 			}(fileBlock)
 		}
