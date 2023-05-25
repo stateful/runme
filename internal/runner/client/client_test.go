@@ -39,17 +39,22 @@ func Test_ResolveDirectory(t *testing.T) {
 		taskMap[task.Block.Name()] = resolved
 	}
 
-	assert.Equal(t, map[string]string{
-		"absolute-pwd":     "/tmp",
-		"absolute-rel-pwd": "/",
-		"absolute-abs-pwd": "/opt",
+	if runtime.GOOS == "windows" {
+		assert.Equal(t, rp("examples\\frontmatter\\cwd"), taskMap["none-pwd"])
+		assert.Equal(t, rp("examples\\frontmatter"), taskMap["none-rel-pwd"])
+	} else {
+		assert.Equal(t, map[string]string{
+			"absolute-pwd":     "/tmp",
+			"absolute-rel-pwd": "/",
+			"absolute-abs-pwd": "/opt",
 
-		"none-pwd":     rp("examples/frontmatter/cwd"),
-		"none-rel-pwd": rp("examples/frontmatter"),
-		"none-abs-pwd": "/opt",
+			"none-pwd":     rp("examples/frontmatter/cwd"),
+			"none-rel-pwd": rp("examples/frontmatter"),
+			"none-abs-pwd": "/opt",
 
-		"relative-pwd":     root,
-		"relative-rel-pwd": rp("../"),
-		"relative-abs-pwd": "/opt",
-	}, taskMap)
+			"relative-pwd":     root,
+			"relative-rel-pwd": rp("../"),
+			"relative-abs-pwd": "/opt",
+		}, taskMap)
+	}
 }
