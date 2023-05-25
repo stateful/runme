@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -91,10 +90,7 @@ func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Exe
 		cfg.PreEnv = env.ConvertMapEnv(projEnvs)
 	}
 
-	mdFile := fileBlock.GetFile()
-	if mdFile != "" {
-		cfg.Dir = filepath.Join(r.dir, filepath.Dir(mdFile))
-	}
+	cfg.Dir = ResolveDirectory(cfg.Dir, fileBlock)
 
 	if block.Interactive() {
 		cfg.Stdin = r.stdin
