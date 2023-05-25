@@ -25,7 +25,9 @@ type RunnerSettings struct {
 	sessionStrategy runnerv1.SessionStrategy
 
 	withinShellMaybe bool
-	dir              string
+	customShell      string
+
+	dir string
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -160,6 +162,12 @@ func WithTLSDir(tlsDir string) RunnerOption {
 func WithEnableBackgroundProcesses(enableBackground bool) RunnerOption {
 	return withSettings(func(rs *RunnerSettings) {
 		rs.enableBackground = enableBackground
+	})
+}
+
+func WithCustomShell(customShell string) RunnerOption {
+	return withSettings(func(rs *RunnerSettings) {
+		rs.customShell = customShell
 	})
 }
 

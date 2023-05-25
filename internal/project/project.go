@@ -72,7 +72,6 @@ type FileCodeBlock interface {
 
 	// absolute file path
 	GetFile() string
-
 	GetFrontmatter() document.Frontmatter
 }
 

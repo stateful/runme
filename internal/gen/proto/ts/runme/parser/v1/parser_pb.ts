@@ -46,6 +46,11 @@ export class Notebook extends Message<Notebook> {
    */
   metadata: { [key: string]: string } = {};
 
+  /**
+   * @generated from field: runme.parser.v1.Frontmatter frontmatter = 3;
+   */
+  frontmatter?: Frontmatter;
+
   constructor(data?: PartialMessage<Notebook>) {
     super();
     proto3.util.initPartial(data, this);
@@ -56,6 +61,7 @@ export class Notebook extends Message<Notebook> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "cells", kind: "message", T: Cell, repeated: true },
     { no: 2, name: "metadata", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
+    { no: 3, name: "frontmatter", kind: "message", T: Frontmatter },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Notebook {
@@ -176,6 +182,43 @@ export class Cell extends Message<Cell> {
 
   static equals(a: Cell | PlainMessage<Cell> | undefined, b: Cell | PlainMessage<Cell> | undefined): boolean {
     return proto3.util.equals(Cell, a, b);
+  }
+}
+
+/**
+ * @generated from message runme.parser.v1.Frontmatter
+ */
+export class Frontmatter extends Message<Frontmatter> {
+  /**
+   * @generated from field: string shell = 1;
+   */
+  shell = "";
+
+  constructor(data?: PartialMessage<Frontmatter>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "runme.parser.v1.Frontmatter";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "shell", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Frontmatter {
+    return new Frontmatter().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Frontmatter {
+    return new Frontmatter().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Frontmatter {
+    return new Frontmatter().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Frontmatter | PlainMessage<Frontmatter> | undefined, b: Frontmatter | PlainMessage<Frontmatter> | undefined): boolean {
+    return proto3.util.equals(Frontmatter, a, b);
   }
 }
 

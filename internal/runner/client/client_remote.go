@@ -103,6 +103,7 @@ func (r *RemoteRunner) deleteSession(ctx context.Context) error {
 
 func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
 	block := fileBlock.GetBlock()
+	fmtr := fileBlock.GetFrontmatter()
 
 	stream, err := r.client.Execute(ctx)
 	if err != nil {
@@ -111,8 +112,13 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 
 	tty := block.Interactive()
 
+	customShell := r.customShell
+	if fmtr.Shell != "" {
+		customShell = fmtr.Shell
+	}
+
 	req := &runnerv1.ExecuteRequest{
-		ProgramName:     runner.ShellPath(),
+		ProgramName:     runner.ResolveShellPath(customShell),
 		Directory:       r.dir,
 		Commands:        block.Lines(),
 		Tty:             tty,

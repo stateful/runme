@@ -211,6 +211,29 @@ func Test_singleFileProject(t *testing.T) {
 	})
 }
 
+func Test_codeBlockFrontmatter(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	proj, err := NewDirectoryProject(filepath.Join(cwd, "../../", "examples", "frontmatter", "shells"), false, true, true)
+	require.NoError(t, err)
+
+	tasks, err := proj.LoadTasks()
+	require.NoError(t, err)
+
+	t.Log(tasks)
+
+	taskMemo := make(map[string]FileCodeBlock)
+
+	for _, task := range tasks {
+		taskMemo[filepath.Base(task.GetFile())] = task
+	}
+
+	assert.Equal(t, taskMemo["BASH.md"].GetFrontmatter().Shell, "bash")
+	assert.Equal(t, taskMemo["KSH.md"].GetFrontmatter().Shell, "ksh")
+	assert.Equal(t, taskMemo["ZSH.md"].GetFrontmatter().Shell, "zsh")
+}
+
 func projectDir() billy.Filesystem {
 	_, b, _, _ := runtime.Caller(0)
 	root := filepath.Join(
