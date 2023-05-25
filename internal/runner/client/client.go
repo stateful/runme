@@ -190,7 +190,8 @@ func ApplyOptions(rc Runner, opts ...RunnerOption) error {
 
 func ResolveDirectory(parentDir string, fileBlock project.FileCodeBlock) string {
 	for _, dir := range []string{
-		fileBlock.GetFile(),
+		// filepath.Join(projDir, filepath.Dir(fileBlock.GetFile())),
+		filepath.Dir(fileBlock.GetFile()),
 		fileBlock.GetFrontmatter().Cwd,
 		fileBlock.GetBlock().Cwd(),
 	} {

@@ -411,6 +411,10 @@ func (b *CodeBlock) GetBlock() *CodeBlock {
 	return b
 }
 
+func (b *CodeBlock) GetFileRel() string {
+	return ""
+}
+
 func (b *CodeBlock) GetFile() string {
 	return ""
 }

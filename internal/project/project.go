@@ -22,6 +22,16 @@ type CodeBlock struct {
 	Block       *document.CodeBlock
 	File        string
 	Frontmatter document.Frontmatter
+	fs          billy.Chroot
+}
+
+func newCodeBlock(
+	block *document.CodeBlock,
+	file string,
+	frontmatter document.Frontmatter,
+	fs billy.Chroot,
+) *CodeBlock {
+	return &CodeBlock{Block: block, File: file, Frontmatter: frontmatter, fs: fs}
 }
 
 func (b CodeBlock) GetBlock() *document.CodeBlock {
@@ -30,11 +40,20 @@ func (b CodeBlock) GetBlock() *document.CodeBlock {
 
 func (b CodeBlock) Clone() *CodeBlock {
 	block := b.Block.Clone()
-	return &CodeBlock{Block: block, File: b.File, Frontmatter: b.Frontmatter}
+	return newCodeBlock(
+		block,
+		b.File,
+		b.Frontmatter,
+		b.fs,
+	)
+}
+
+func (b CodeBlock) GetFileRel() string {
+	return b.File
 }
 
 func (b CodeBlock) GetFile() string {
-	return b.File
+	return filepath.Join(b.fs.Root(), b.File)
 }
 
 func (b CodeBlock) GetID() string {
@@ -47,7 +66,13 @@ func (b CodeBlock) GetFrontmatter() document.Frontmatter {
 
 type FileCodeBlock interface {
 	GetBlock() *document.CodeBlock
+
+	// relative to project root
+	GetFileRel() string
+
+	// absolute file path
 	GetFile() string
+
 	GetFrontmatter() document.Frontmatter
 }
 
@@ -408,7 +433,12 @@ func (p *SingleFileProject) Dir() string {
 	return filepath.Dir(p.file)
 }
 
-func getFileCodeBlocks(file string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) ([]CodeBlock, error) {
+type CodeBlockFS interface {
+	billy.Basic
+	billy.Chroot
+}
+
+func getFileCodeBlocks(file string, allowUnknown bool, allowUnnamed bool, fs CodeBlockFS) ([]CodeBlock, error) {
 	blocks, fmtr, err := GetCodeBlocksAndParseFrontmatter(file, allowUnknown, allowUnnamed, fs)
 	if err != nil {
 		return nil, err
@@ -417,11 +447,9 @@ func getFileCodeBlocks(file string, allowUnknown bool, allowUnnamed bool, fs bil
 	fileBlocks := make(CodeBlocks, len(blocks))
 
 	for i, block := range blocks {
-		fileBlocks[i] = CodeBlock{
-			File:        file,
-			Block:       block,
-			Frontmatter: fmtr,
-		}
+		fileBlocks[i] = *newCodeBlock(
+			block, file, fmtr, fs,
+		)
 	}
 
 	return fileBlocks, nil
