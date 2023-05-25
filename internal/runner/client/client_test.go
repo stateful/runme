@@ -15,7 +15,7 @@ func Test_ResolveDirectory(t *testing.T) {
 	root := filepath.Clean(
 		filepath.Join(
 			filepath.Dir(b),
-			"../../../",
+			filepath.FromSlash("../../../"),
 		),
 	)
 
@@ -23,7 +23,7 @@ func Test_ResolveDirectory(t *testing.T) {
 
 	// repo path
 	rp := func(rel string) string {
-		return filepath.Join(root, rel)
+		return filepath.Join(root, filepath.FromSlash(rel))
 	}
 
 	proj, err := project.NewDirectoryProject(projectRoot, false, false, false)
@@ -42,6 +42,9 @@ func Test_ResolveDirectory(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		assert.Equal(t, rp("examples\\frontmatter\\cwd"), taskMap["none-pwd"])
 		assert.Equal(t, rp("examples\\frontmatter"), taskMap["none-rel-pwd"])
+
+		assert.Equal(t, root, taskMap["relative-pwd"])
+		assert.Equal(t, rp("../"), taskMap["relative-rel-pwd"])
 	} else {
 		assert.Equal(t, map[string]string{
 			"absolute-pwd":     "/tmp",
