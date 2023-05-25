@@ -38,6 +38,8 @@ type RunnerSettings struct {
 
 	insecure bool
 	tlsDir   string
+
+	envs []string
 }
 
 func (rs *RunnerSettings) Clone() *RunnerSettings {
@@ -162,6 +164,12 @@ func WithTLSDir(tlsDir string) RunnerOption {
 func WithEnableBackgroundProcesses(enableBackground bool) RunnerOption {
 	return withSettings(func(rs *RunnerSettings) {
 		rs.enableBackground = enableBackground
+	})
+}
+
+func WithEnvs(envs []string) RunnerOption {
+	return withSettings(func(rs *RunnerSettings) {
+		rs.envs = envs
 	})
 }
 

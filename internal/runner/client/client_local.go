@@ -71,6 +71,8 @@ func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Exe
 		customShell = fmtr.Shell
 	}
 
+	r.session.AddEnvs(r.envs)
+
 	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),
 		Dir:     r.dir,

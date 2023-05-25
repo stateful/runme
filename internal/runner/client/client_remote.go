@@ -126,6 +126,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		SessionStrategy: r.sessionStrategy,
 		Background:      block.Background(),
 		StoreLastOutput: true,
+		Envs:            r.envs,
 	}
 
 	if r.project != nil {

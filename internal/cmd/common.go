@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ import (
 	"github.com/stateful/runme/internal/tui"
 	"github.com/stateful/runme/internal/tui/prompt"
 )
+
+const envStackDepth = "__RUNME_STACK_DEPTH"
 
 func readMarkdownFile(args []string) ([]byte, error) {
 	arg := ""
@@ -250,6 +253,18 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 			dir, _ = filepath.Abs(fProject)
 		}
 
+		stackDepth := 0
+		if depthStr, ok := os.LookupEnv(envStackDepth); ok {
+			if depth, err := strconv.Atoi(depthStr); err == nil {
+				stackDepth = depth + 1
+			}
+		}
+
+		// TODO(mxs): user-configurable
+		if stackDepth > 100 {
+			panic("runme stack depth limit exceeded")
+		}
+
 		runOpts := []client.RunnerOption{
 			client.WithDir(dir),
 			client.WithSessionID(SessionID),
@@ -257,6 +272,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 			client.WithTLSDir(TLSDir),
 			client.WithInsecure(fInsecure),
 			client.WithEnableBackgroundProcesses(EnableBackgroundProcesses),
+			client.WithEnvs([]string{fmt.Sprintf("%s=%d", envStackDepth, stackDepth)}),
 		}
 
 		switch strings.ToLower(SessionStrategy) {
