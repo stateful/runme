@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/muesli/cancelreader"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
@@ -59,9 +60,15 @@ type Runner interface {
 }
 
 func withSettings(applySettings func(settings *RunnerSettings)) RunnerOption {
-	return func(r Runner) error {
-		applySettings(r.getSettings())
+	return withSettingsErr(func(settings *RunnerSettings) error {
+		applySettings(settings)
 		return nil
+	})
+}
+
+func withSettingsErr(applySettings func(settings *RunnerSettings) error) RunnerOption {
+	return func(r Runner) error {
+		return applySettings(r.getSettings())
 	}
 }
 
@@ -125,9 +132,15 @@ func WithStderr(stderr io.Writer) RunnerOption {
 	})
 }
 
-func WithStdinTransform(op func(io.Reader) io.Reader) RunnerOption {
-	return withSettings(func(rs *RunnerSettings) {
-		rs.stdin = op(rs.stdin)
+func WithStdinTransform(op func(io.Reader) (io.Reader, error)) RunnerOption {
+	return withSettingsErr(func(rs *RunnerSettings) error {
+		stdin, err := op(rs.stdin)
+		if err != nil {
+			return err
+		}
+
+		rs.stdin = stdin
+		return nil
 	})
 }
 
@@ -179,7 +192,7 @@ func WithCustomShell(customShell string) RunnerOption {
 	})
 }
 
-func WithTempSettings(rc Runner, opts []RunnerOption, cb func()) error {
+func WithTempSettings(rc Runner, opts []RunnerOption, cb func() error) error {
 	oldSettings := rc.getSettings().Clone()
 
 	err := ApplyOptions(rc, opts...)
@@ -187,7 +200,10 @@ func WithTempSettings(rc Runner, opts []RunnerOption, cb func()) error {
 		return err
 	}
 
-	cb()
+	err = cb()
+	if err != nil {
+		return err
+	}
 
 	rc.setSettings(oldSettings)
 
@@ -202,6 +218,12 @@ func ApplyOptions(rc Runner, opts ...RunnerOption) error {
 	}
 
 	return nil
+}
+
+func WrapWithCancelReader() RunnerOption {
+	return WithStdinTransform(func(r io.Reader) (io.Reader, error) {
+		return cancelreader.NewReader(r)
+	})
 }
 
 func ResolveDirectory(parentDir string, fileBlock project.FileCodeBlock) string {

@@ -25,6 +25,8 @@ type MultiRunner struct {
 
 	PreRunMsg  func(blocks []project.FileCodeBlock, parallel bool) string
 	PostRunMsg func(block *document.CodeBlock, exitCode uint) string
+
+	PreRunOpts []RunnerOption
 }
 
 type prefixWriter struct {
@@ -84,6 +86,11 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 
 		runnerClient := m.Runner.Clone()
 
+		err := ApplyOptions(runnerClient, m.PreRunOpts...)
+		if err != nil {
+			return err
+		}
+
 		if m.PreRunMsg != nil && !parallel {
 			_, _ = m.Runner.getSettings().stdout.Write([]byte(
 				m.PreRunMsg([]project.FileCodeBlock{block}, parallel),
@@ -92,13 +99,13 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 
 		if err := ApplyOptions(
 			runnerClient,
-			WithStdinTransform(func(r io.Reader) io.Reader {
+			WithStdinTransform(func(r io.Reader) (io.Reader, error) {
 				if parallel {
 					// TODO: support stdin
-					return bytes.NewReader(nil)
+					return bytes.NewReader(nil), nil
 				}
 
-				return r
+				return r, nil
 			}),
 			WithStdoutTransform(func(w io.Writer) io.Writer {
 				if m.StdoutPrefix == "" {
