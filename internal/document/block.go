@@ -169,6 +169,10 @@ func (b *CodeBlock) Category() string {
 	return b.Attributes()["category"]
 }
 
+func (b *CodeBlock) Cwd() string {
+	return b.Attributes()["cwd"]
+}
+
 func (b *CodeBlock) PromptEnv() bool {
 	val, err := strconv.ParseBool(b.Attributes()["promptEnv"])
 	if err != nil {
@@ -407,6 +411,14 @@ func (b *CodeBlock) GetBlock() *CodeBlock {
 	return b
 }
 
+func (b *CodeBlock) GetFileRel() string {
+	return ""
+}
+
 func (b *CodeBlock) GetFile() string {
 	return ""
+}
+
+func (b *CodeBlock) GetFrontmatter() Frontmatter {
+	return Frontmatter{}
 }

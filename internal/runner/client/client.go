@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 
+	"github.com/go-git/go-billy/v5/osfs"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
@@ -23,7 +25,9 @@ type RunnerSettings struct {
 	sessionStrategy runnerv1.SessionStrategy
 
 	withinShellMaybe bool
-	dir              string
+	customShell      string
+
+	dir string
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -169,6 +173,12 @@ func WithEnvs(envs []string) RunnerOption {
 	})
 }
 
+func WithCustomShell(customShell string) RunnerOption {
+	return withSettings(func(rs *RunnerSettings) {
+		rs.customShell = customShell
+	})
+}
+
 func WithTempSettings(rc Runner, opts []RunnerOption, cb func()) error {
 	oldSettings := rc.getSettings().Clone()
 
@@ -192,4 +202,36 @@ func ApplyOptions(rc Runner, opts ...RunnerOption) error {
 	}
 
 	return nil
+}
+
+func ResolveDirectory(parentDir string, fileBlock project.FileCodeBlock) string {
+	for _, dir := range []string{
+		filepath.Dir(fileBlock.GetFile()),
+		filepath.FromSlash(fileBlock.GetFrontmatter().Cwd),
+		filepath.FromSlash(fileBlock.GetBlock().Cwd()),
+	} {
+		newDir := resolveOrAbsolute(parentDir, dir)
+
+		if stat, err := osfs.Default.Stat(newDir); err == nil && stat.IsDir() {
+			parentDir = newDir
+		}
+	}
+
+	return parentDir
+}
+
+func resolveOrAbsolute(parent string, child string) string {
+	if child == "" {
+		return parent
+	}
+
+	if filepath.IsAbs(child) {
+		return child
+	}
+
+	if parent != "" {
+		return filepath.Join(parent, child)
+	}
+
+	return child
 }

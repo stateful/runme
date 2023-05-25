@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
@@ -104,6 +103,7 @@ func (r *RemoteRunner) deleteSession(ctx context.Context) error {
 
 func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
 	block := fileBlock.GetBlock()
+	fmtr := fileBlock.GetFrontmatter()
 
 	stream, err := r.client.Execute(ctx)
 	if err != nil {
@@ -112,8 +112,13 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 
 	tty := block.Interactive()
 
+	customShell := r.customShell
+	if fmtr.Shell != "" {
+		customShell = fmtr.Shell
+	}
+
 	req := &runnerv1.ExecuteRequest{
-		ProgramName:     runner.ShellPath(),
+		ProgramName:     runner.ResolveShellPath(customShell),
 		Directory:       r.dir,
 		Commands:        block.Lines(),
 		Tty:             tty,
@@ -131,10 +136,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		}
 	}
 
-	mdFile := fileBlock.GetFile()
-	if mdFile != "" {
-		req.Directory = filepath.Join(r.dir, filepath.Dir(mdFile))
-	}
+	req.Directory = ResolveDirectory(req.Directory, fileBlock)
 
 	if r.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {
 		req.Envs = os.Environ()

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -65,6 +64,12 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 
 func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Executable, error) {
 	block := fileBlock.GetBlock()
+	fmtr := fileBlock.GetFrontmatter()
+
+	customShell := r.customShell
+	if fmtr.Shell != "" {
+		customShell = fmtr.Shell
+	}
 
 	r.session.AddEnvs(r.envs)
 
@@ -87,10 +92,7 @@ func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Exe
 		cfg.PreEnv = env.ConvertMapEnv(projEnvs)
 	}
 
-	mdFile := fileBlock.GetFile()
-	if mdFile != "" {
-		cfg.Dir = filepath.Join(r.dir, filepath.Dir(mdFile))
-	}
+	cfg.Dir = ResolveDirectory(cfg.Dir, fileBlock)
 
 	if block.Interactive() {
 		cfg.Stdin = r.stdin
@@ -102,6 +104,7 @@ func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Exe
 		return &runner.Shell{
 			ExecutableConfig: cfg,
 			Cmds:             block.Lines(),
+			CustomShell:      customShell,
 		}, nil
 	case "sh-raw":
 		return &runner.ShellRaw{

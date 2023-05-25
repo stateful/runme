@@ -2,18 +2,14 @@ package editor
 
 import (
 	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 
-	"github.com/pelletier/go-toml/v2"
 	"github.com/stateful/runme/internal/document"
 	"github.com/yuin/goldmark/ast"
 	"golang.org/x/exp/slices"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -31,10 +27,6 @@ const (
 type TextRange struct {
 	Start int `json:"start"`
 	End   int `json:"end"`
-}
-
-type Frontmatter struct {
-	Shell string
 }
 
 // Cell resembles NotebookCellData from VS Code.
@@ -55,76 +47,27 @@ type Notebook struct {
 
 	contentOffset int
 
-	parsedFrontmatter *Frontmatter
+	parsedFrontmatter *document.Frontmatter
 }
 
 func (n *Notebook) GetContentOffset() int {
 	return n.contentOffset
 }
 
-type FrontmatterParseInfo struct {
-	yaml error
-	json error
-	toml error
-
-	other error
-}
-
-func (fpi FrontmatterParseInfo) Error() error {
-	if fpi.other != nil {
-		return fpi.other
-	}
-
-	if fpi.yaml != nil {
-		return fpi.yaml
-	}
-
-	if fpi.json != nil {
-		return fpi.json
-	}
-
-	if fpi.toml != nil {
-		return fpi.toml
-	}
-
-	return nil
-}
-
-func (n *Notebook) ParsedFrontmatter() (f Frontmatter, info FrontmatterParseInfo) {
+func (n *Notebook) ParsedFrontmatter() (document.Frontmatter, *document.FrontmatterParseInfo) {
 	raw, ok := n.Metadata[FrontmatterKey]
-
-	if n.parsedFrontmatter != nil || !ok {
-		return *n.parsedFrontmatter, FrontmatterParseInfo{}
+	if n.parsedFrontmatter != nil {
+		return *n.parsedFrontmatter, nil
 	}
 
-	defer func() {
-		n.parsedFrontmatter = &f
-	}()
-
-	lines := strings.Split(raw, "\n")
-
-	if len(lines) < 1 || strings.TrimSpace(lines[0]) != strings.TrimSpace(lines[len(lines)-1]) {
-		info.other = errors.New("invalid frontmatter")
-		return
+	if !ok {
+		return document.Frontmatter{}, nil
 	}
 
-	raw = strings.Join(lines[1:len(lines)-1], "\n")
+	f, pi := document.ParseFrontmatter(raw)
+	n.parsedFrontmatter = &f
 
-	bytes := []byte(raw)
-
-	if info.yaml = yaml.Unmarshal(bytes, &f); info.yaml == nil {
-		return
-	}
-
-	if info.json = json.Unmarshal(bytes, &f); info.json == nil {
-		return
-	}
-
-	if info.toml = toml.Unmarshal(bytes, &f); info.toml == nil {
-		return
-	}
-
-	return
+	return f, &pi
 }
 
 func toCells(node *document.Node, source []byte) (result []*Cell) {

@@ -18,14 +18,15 @@ import (
 
 type Shell struct {
 	*ExecutableConfig
-	command *command
-	Cmds    []string
+	command     *command
+	Cmds        []string
+	CustomShell string
 }
 
 var _ Executable = (*Shell)(nil)
 
 func (s Shell) ProgramPath() string {
-	return ShellPath()
+	return ResolveShellPath(s.CustomShell)
 }
 
 func (s Shell) ShellType() string {
@@ -109,7 +110,17 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 	return nil
 }
 
-func ShellPath() string {
+func ResolveShellPath(customShell string) string {
+	if customShell != "" {
+		if path, err := exec.LookPath(customShell); err == nil {
+			return path
+		}
+	}
+
+	return GlobalShellPath()
+}
+
+func GlobalShellPath() string {
 	shell, ok := os.LookupEnv("SHELL")
 	if !ok {
 		shell = "sh"
