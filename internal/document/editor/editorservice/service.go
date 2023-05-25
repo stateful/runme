@@ -28,6 +28,8 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 		return nil, err
 	}
 
+	fmtr, _ := notebook.ParsedFrontmatter()
+
 	cells := make([]*parserv1.Cell, 0, len(notebook.Cells))
 	for _, cell := range notebook.Cells {
 		var TextRange *parserv1.TextRange
@@ -51,8 +53,9 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 
 	return &parserv1.DeserializeResponse{
 		Notebook: &parserv1.Notebook{
-			Cells:    cells,
-			Metadata: notebook.Metadata,
+			Cells:       cells,
+			Metadata:    notebook.Metadata,
+			Frontmatter: fmtr.ToParser(),
 		},
 	}, nil
 }

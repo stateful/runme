@@ -1,6 +1,6 @@
-# runme - run your README.md (markdown docs)
+# RUNME runs Markdown
 
-Discover and run code snippets directly from your `README.md` or other markdowns (defaults to local `README.md`).
+Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs (defaults to local `README.md`).
 
 [![](https://badgen.net/badge/Run%20this%20/README/5B3ADF?icon=https://runme.dev/img/logo.svg)](https://runme.dev/api/runme?repository=git%40github.com%3Astateful%2Frunme.git)
 

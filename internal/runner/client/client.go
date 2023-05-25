@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 
+	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/muesli/cancelreader"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
@@ -24,7 +26,9 @@ type RunnerSettings struct {
 	sessionStrategy runnerv1.SessionStrategy
 
 	withinShellMaybe bool
-	dir              string
+	customShell      string
+
+	dir string
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -35,6 +39,8 @@ type RunnerSettings struct {
 
 	insecure bool
 	tlsDir   string
+
+	envs []string
 }
 
 func (rs *RunnerSettings) Clone() *RunnerSettings {
@@ -174,6 +180,18 @@ func WithEnableBackgroundProcesses(enableBackground bool) RunnerOption {
 	})
 }
 
+func WithEnvs(envs []string) RunnerOption {
+	return withSettings(func(rs *RunnerSettings) {
+		rs.envs = envs
+	})
+}
+
+func WithCustomShell(customShell string) RunnerOption {
+	return withSettings(func(rs *RunnerSettings) {
+		rs.customShell = customShell
+	})
+}
+
 func WithTempSettings(rc Runner, opts []RunnerOption, cb func() error) error {
 	oldSettings := rc.getSettings().Clone()
 
@@ -206,4 +224,36 @@ func WrapWithCancelReader() RunnerOption {
 	return WithStdinTransform(func(r io.Reader) (io.Reader, error) {
 		return cancelreader.NewReader(r)
 	})
+}
+
+func ResolveDirectory(parentDir string, fileBlock project.FileCodeBlock) string {
+	for _, dir := range []string{
+		filepath.Dir(fileBlock.GetFile()),
+		filepath.FromSlash(fileBlock.GetFrontmatter().Cwd),
+		filepath.FromSlash(fileBlock.GetBlock().Cwd()),
+	} {
+		newDir := resolveOrAbsolute(parentDir, dir)
+
+		if stat, err := osfs.Default.Stat(newDir); err == nil && stat.IsDir() {
+			parentDir = newDir
+		}
+	}
+
+	return parentDir
+}
+
+func resolveOrAbsolute(parent string, child string) string {
+	if child == "" {
+		return parent
+	}
+
+	if filepath.IsAbs(child) {
+		return child
+	}
+
+	if parent != "" {
+		return filepath.Join(parent, child)
+	}
+
+	return child
 }

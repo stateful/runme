@@ -123,7 +123,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 			return err
 		}
 
-		run := func(block *document.CodeBlock) error {
+		run := func(block project.FileCodeBlock) error {
 			err := runnerClient.RunBlock(ctx, block)
 
 			code := uint(0)
@@ -134,7 +134,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 
 			if m.PostRunMsg != nil {
 				_, _ = m.Runner.getSettings().stdout.Write([]byte(
-					m.PostRunMsg(block, code),
+					m.PostRunMsg(block.GetBlock(), code),
 				))
 			}
 
@@ -142,17 +142,17 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 		}
 
 		if !parallel {
-			err := run(block)
+			err := run(fileBlock)
 			if err != nil {
 				return err
 			}
 		} else {
 			wg.Add(1)
-			go func(block *document.CodeBlock) {
+			go func(fileBlock project.FileCodeBlock) {
 				defer wg.Done()
-				err := run(block)
+				err := run(fileBlock)
 				errChan <- err
-			}(block)
+			}(fileBlock)
 		}
 	}
 
