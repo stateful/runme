@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/env"
@@ -145,8 +146,8 @@ func (r *LocalRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBl
 		go func() {
 			for {
 				if executable.ExitCode() > -1 {
-					if closer, ok := r.stdin.(io.ReadCloser); ok {
-						_ = closer.Close()
+					if canceler, ok := r.stdin.(cancelreader.CancelReader); ok {
+						_ = canceler.Cancel()
 					}
 
 					return

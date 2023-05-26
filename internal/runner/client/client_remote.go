@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
@@ -160,8 +161,8 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 
 	g.Go(func() error {
 		defer func() {
-			if closer, ok := r.stdin.(io.ReadCloser); ok {
-				_ = closer.Close()
+			if canceler, ok := r.stdin.(cancelreader.CancelReader); ok {
+				_ = canceler.Cancel()
 			}
 		}()
 		return r.recvLoop(stream, background)
