@@ -71,6 +71,10 @@ export interface Frontmatter {
      * @generated from protobuf field: string shell = 1;
      */
     shell: string;
+    /**
+     * @generated from protobuf field: string cwd = 2;
+     */
+    cwd: string;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequest

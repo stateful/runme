@@ -75,7 +75,8 @@ export const Cell = new Cell$Type();
 class Frontmatter$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.Frontmatter", [
-            { no: 1, name: "shell", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "shell", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "cwd", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
