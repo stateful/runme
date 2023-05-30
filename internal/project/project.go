@@ -190,7 +190,7 @@ func (blocks CodeBlocks) LookupWithFile(queryFile string, queryName string) ([]C
 	}
 
 	if len(results) == 0 {
-		if !foundFile {
+		if !foundFile && queryFile != "" {
 			return nil, ErrCodeBlockFileNotFound{queryFile: queryFile}
 		}
 
