@@ -69,5 +69,6 @@ func ParseFrontmatter(raw string) (f Frontmatter, info FrontmatterParseInfo) {
 func (fmtr Frontmatter) ToParser() *parserv1.Frontmatter {
 	return &parserv1.Frontmatter{
 		Shell: fmtr.Shell,
+		Cwd:   fmtr.Cwd,
 	}
 }
