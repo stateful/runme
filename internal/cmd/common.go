@@ -327,6 +327,12 @@ func getCommandExportExtractMatches(lines []string) []CommandExportExtractMatch 
 			}
 			key := parts[0]
 			ph := parts[1]
+
+			isExecValue := strings.HasPrefix(ph, "$(") || strings.HasPrefix(ph, ")")
+			if isExecValue {
+				continue
+			}
+
 			hasStringValue := strings.HasPrefix(ph, "\"") || strings.HasPrefix(ph, "'")
 			placeHolder := ph
 			if hasStringValue {
