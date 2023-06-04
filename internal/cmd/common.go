@@ -321,7 +321,7 @@ func getCommandExportExtractMatches(lines []string) []CommandExportExtractMatch 
 		for _, match := range test.FindAllStringSubmatch(line, -1) {
 			e := match[0]
 
-			parts := strings.Split(strings.TrimSpace(e)[len("export "):], "=")
+			parts := strings.SplitN(strings.TrimSpace(e)[len("export "):], "=", 2)
 			if len(parts) == 0 {
 				continue
 			}
