@@ -328,7 +328,7 @@ func getCommandExportExtractMatches(lines []string) []CommandExportExtractMatch 
 			key := parts[0]
 			ph := parts[1]
 
-			isExecValue := strings.HasPrefix(ph, "$(") || strings.HasPrefix(ph, ")")
+			isExecValue := strings.HasPrefix(ph, "$(") && strings.HasSuffix(ph, ")")
 			if isExecValue {
 				continue
 			}
