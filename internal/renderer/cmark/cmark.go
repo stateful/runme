@@ -314,11 +314,21 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 			}
 
 		case ast.KindEmphasis:
-			n := node.(*ast.Emphasis)
-			mark := []byte{'*'}
-			if n.Level > 1 {
-				mark = []byte{'*', '*'}
+			var p ast.Node
+			for p = node.Parent(); p.Type() == ast.TypeInline; {
+				p = p.Parent()
 			}
+			underscores := 0
+			for i := 0; i < p.Lines().Len(); i++ {
+				line := p.Lines().At(i)
+				underscores += bytes.Count(line.Value(source), []byte{'_'})
+			}
+			mark := []byte{'_'}
+			if underscores == 0 {
+				mark = []byte{'*'}
+			}
+			n := node.(*ast.Emphasis)
+			mark = bytes.Repeat(mark, n.Level)
 			if err := r.write(mark); err != nil {
 				return ast.WalkStop, err
 			}
