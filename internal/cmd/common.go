@@ -321,12 +321,18 @@ func getCommandExportExtractMatches(lines []string) []CommandExportExtractMatch 
 		for _, match := range test.FindAllStringSubmatch(line, -1) {
 			e := match[0]
 
-			parts := strings.Split(strings.TrimSpace(e)[len("export "):], "=")
+			parts := strings.SplitN(strings.TrimSpace(e)[len("export "):], "=", 2)
 			if len(parts) == 0 {
 				continue
 			}
 			key := parts[0]
-			ph := parts[1]
+			ph := strings.TrimSpace(parts[1])
+
+			isExecValue := strings.HasPrefix(ph, "$(") && strings.HasSuffix(ph, ")")
+			if isExecValue {
+				continue
+			}
+
 			hasStringValue := strings.HasPrefix(ph, "\"") || strings.HasPrefix(ph, "'")
 			placeHolder := ph
 			if hasStringValue {

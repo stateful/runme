@@ -29,6 +29,7 @@ type RemoteRunner struct {
 func (r *RemoteRunner) Clone() Runner {
 	return &RemoteRunner{
 		RunnerSettings: r.RunnerSettings.Clone(),
+		client:         r.client,
 	}
 }
 
