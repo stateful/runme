@@ -417,7 +417,7 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 		return r.buf.Bytes(), errors.WithStack(err)
 	}
 
-	// Finish writing any outstanding characters.
+	// Finish writing any remaining characters.
 	r.needCR = 1
 	err = r.write(nil)
 	return r.buf.Bytes(), errors.WithStack(err)
