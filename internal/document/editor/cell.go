@@ -305,20 +305,3 @@ func trimRightNewLine(s []byte) []byte {
 	s = bytes.TrimRight(s, "\r\n")
 	return bytes.TrimRight(s, "\n")
 }
-
-var supportedExecutables = []string{
-	"bash",
-	"bat", // fallback to sh
-	"sh",
-	"shell",
-	"zsh",
-}
-
-func isEditorSupported(lang string) bool {
-	for _, item := range supportedExecutables {
-		if item == lang {
-			return true
-		}
-	}
-	return false
-}
