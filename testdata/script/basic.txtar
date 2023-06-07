@@ -16,6 +16,11 @@ stdout 'Hello, runme!'
 ! stderr .
 
 env SHELL=/bin/bash
+exec runme run --index 0
+stdout 'Hello, runme!'
+! stderr .
+
+env SHELL=/bin/bash
 exec runme run echo-1
 stdout '1\n2\n3\n'
 ! stderr .
