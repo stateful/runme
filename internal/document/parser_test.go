@@ -7,6 +7,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestParseSections_WithMalformedFrontmatter(t *testing.T) {
+	data := []byte(`--
+a: b
+---
+
+# Heading
+`)
+	sections, err := ParseSections(data)
+	require.NoError(t, err)
+
+	assert.Equal(t, string(data), string(sections.Content))
+	assert.Equal(t, "", string(sections.FrontMatter))
+	assert.Equal(t, 0, sections.ContentOffset)
+}
+
 func TestParseSections_WithoutFrontMatter(t *testing.T) {
 	data := []byte(`# Example
 

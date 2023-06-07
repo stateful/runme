@@ -25,6 +25,12 @@ func ParseSections(source []byte) (result ParsedSections, _ error) {
 			result.ContentOffset = item.start
 			result.Content = item.Value(source)
 		case parsedItemError:
+			if errors.Is(item.err, parseFrontmatterError) {
+				return ParsedSections{
+					Content: source,
+				}, nil
+			}
+
 			return result, item.err
 		}
 	}
@@ -102,9 +108,13 @@ func (l *itemParser) emit(t parsedItemType) {
 }
 
 func (l *itemParser) errorf(format string, args ...interface{}) {
+	l.error(errors.Errorf(format, args...))
+}
+
+func (l *itemParser) error(err error) {
 	l.items = append(l.items, parsedItem{
 		typ: parsedItemError,
-		err: errors.Errorf(format, args...),
+		err: err,
 	})
 }
 
