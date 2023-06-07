@@ -1,6 +1,8 @@
 package document
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/stateful/runme/internal/renderer/cmark"
@@ -62,4 +64,43 @@ First paragraph.
 	assert.Equal(t, "3. Item 3\n", string(node.children[3].children[2].Item().Value()))
 	assert.Len(t, node.children[3].children[2].children[0].children, 0)
 	assert.Equal(t, "Item 3\n", string(node.children[3].children[2].children[0].Item().Value()))
+}
+
+func TestDocument_FinalLineBreaks(t *testing.T) {
+	data := []byte(`## Newline debugging
+
+This will test final line breaks`)
+
+	t.Run("No newline", func(t *testing.T) {
+		doc := New(data, cmark.Render)
+		_, astNode, err := doc.Parse()
+		require.NoError(t, err)
+
+		actual, err := cmark.Render(astNode, data)
+		require.NoError(t, err)
+
+		assert.Equal(
+			t,
+			string(actual),
+			string(data),
+		)
+	})
+
+	t.Run("7 line breaks", func(t *testing.T) {
+		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
+		doc := New(withLineBreaks, cmark.Render)
+		_, astNode, err := doc.Parse()
+		require.NoError(t, err)
+
+		actual, err := cmark.Render(astNode, withLineBreaks)
+		require.NoError(t, err)
+
+		fmt.Sprintln(string(withLineBreaks))
+
+		assert.Equal(
+			t,
+			string(actual),
+			string(withLineBreaks),
+		)
+	})
 }

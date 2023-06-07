@@ -1,6 +1,7 @@
 package document
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -8,6 +9,13 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
+
+	math "github.com/stateful/runme/internal/math"
+)
+
+const (
+	MaxFinalLineBreaks = 10
+	FinalLineBreaksKey = "finalLineBreaks"
 )
 
 type Document struct {
@@ -43,6 +51,9 @@ func (d *Document) Parse() (*Node, ast.Node, error) {
 		}
 		d.node = node
 	}
+
+	finalNewLines := CountFinalLineBreaks(d.source, DetectLineBreak(d.source))
+	d.astNode.SetAttributeString(FinalLineBreaksKey, finalNewLines)
 
 	return d.node, d.astNode, nil
 }
@@ -103,4 +114,21 @@ func (r *nameResolver) Get(obj interface{}, name string) string {
 	}
 	r.cache[obj] = result
 	return result
+}
+
+func CountFinalLineBreaks(source []byte, lineBreak []byte) int {
+	end := len(source)
+	start := end - MaxFinalLineBreaks*len(lineBreak)
+	tail := source[math.Max(start, 0):end]
+
+	return bytes.Count(tail, lineBreak)
+}
+
+func DetectLineBreak(source []byte) []byte {
+	crlfCount := bytes.Count(source, []byte{'\r', '\n'})
+	lfCount := bytes.Count(source, []byte{'\n'})
+	if crlfCount == lfCount {
+		return []byte{'\r', '\n'}
+	}
+	return []byte{'\n'}
 }
