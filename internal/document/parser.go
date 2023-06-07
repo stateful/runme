@@ -25,7 +25,7 @@ func ParseSections(source []byte) (result ParsedSections, _ error) {
 			result.ContentOffset = item.start
 			result.Content = item.Value(source)
 		case parsedItemError:
-			if errors.Is(item.err, parseFrontmatterError) {
+			if errors.Is(item.err, errParseFrontmatter) {
 				return ParsedSections{
 					Content: source,
 				}, nil

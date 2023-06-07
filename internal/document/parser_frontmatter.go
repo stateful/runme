@@ -5,14 +5,14 @@ import (
 	"errors"
 )
 
-var parseFrontmatterError = errors.New("failed to parse frontmatter")
+var errParseFrontmatter = errors.New("failed to parse frontmatter")
 
 func parseFrontMatter(l *itemParser, delimiter byte) parserStateFunc {
 	// lexFrontMatter was trigger when a dilimiter was observer.
 	// According to the spec, there must be three delimiter characters.
 	for i := 0; i < 2; i++ {
 		if r := l.next(); r != rune(delimiter) {
-			l.error(parseFrontmatterError)
+			l.error(errParseFrontmatter)
 			return nil
 		}
 	}
