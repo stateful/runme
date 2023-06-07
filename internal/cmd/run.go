@@ -45,6 +45,7 @@ func runCmd() *cobra.Command {
 		serverAddr     string
 		category       string
 		getRunnerOpts  func() ([]client.RunnerOption, error)
+		runIndex       int
 	)
 
 	cmd := cobra.Command{
@@ -55,8 +56,10 @@ func runCmd() *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			runWithIndex := fFileMode && runIndex >= 0
+
 			runMany := runAll || (category != "" && len(args) == 0)
-			if !runMany && len(args) == 0 {
+			if !runMany && len(args) == 0 && !runWithIndex {
 				return errors.New("must provide at least one command to run")
 			}
 
@@ -73,7 +76,13 @@ func runCmd() *cobra.Command {
 					return err
 				}
 
-				if runMany {
+				if runWithIndex {
+					if runIndex >= len(blocks) {
+						return fmt.Errorf("command index %v out of range", runIndex)
+					}
+
+					runBlocks = []project.FileCodeBlock{blocks[runIndex]}
+				} else if runMany {
 					for _, fileBlock := range blocks {
 						block := fileBlock.Block
 
@@ -262,6 +271,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
 	cmd.Flags().StringVarP(&category, "category", "c", "", "Run from a specific category.")
+	cmd.Flags().IntVarP(&runIndex, "index", "i", -1, "Index of command to run, 0-based. (Ignored in project mode)")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
