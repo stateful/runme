@@ -592,6 +592,7 @@ var programByLanguageId = map[string][]string{
 	"javascriptreact": {"node"},
 
 	"ts":              {"ts-node", "deno", "bun"},
+	"typescript":      {"ts-node", "deno", "bun"},
 	"tsx":             {"ts-node", "deno", "bun"},
 	"typescriptreact": {"ts-node", "deno", "bun"},
 
