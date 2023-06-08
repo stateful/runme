@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
 
@@ -62,7 +63,7 @@ func Serialize(notebook *Notebook) ([]byte, error) {
 	if lineBreaks, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)]; ok {
 		desired, err := strconv.ParseInt(lineBreaks, 10, 32)
 		if err != nil {
-			panic(err)
+			return nil, errors.WithStack(err)
 		}
 
 		lb := document.DetectLineBreak(result)
