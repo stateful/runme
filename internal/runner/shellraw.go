@@ -40,7 +40,7 @@ func (s ShellRaw) Run(ctx context.Context) error {
 			Stderr:      s.Stderr,
 			PreEnv:      s.PreEnv,
 			PostEnv:     s.PostEnv,
-			IsShell:     true,
+			CommandMode: CommandModeInlineShell,
 			Commands:    nil,
 			Script:      strings.Join(s.Cmds, "\n"),
 			Logger:      s.Logger,

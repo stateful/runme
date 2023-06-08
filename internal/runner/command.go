@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/creack/pty"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
@@ -47,6 +48,8 @@ type command struct {
 
 	tmpEnvDir string
 
+	tempScriptFile string
+
 	wg  sync.WaitGroup
 	mu  sync.Mutex
 	err error
@@ -65,6 +68,17 @@ func (c *command) seterr(err error) {
 	c.mu.Unlock()
 }
 
+type CommandMode uint
+
+const (
+	// Do not send script to program
+	CommandModeNone CommandMode = iota
+	// Send script as argument to "-c"
+	CommandModeInlineShell
+	// Send script as temporary file in cwd
+	CommandModeTempFile
+)
+
 type commandConfig struct {
 	ProgramName string   // a path to shell or a name, for example: "/usr/local/bin/bash", "bash"
 	Args        []string // args passed to the program
@@ -81,15 +95,18 @@ type commandConfig struct {
 	PreEnv  []string
 	PostEnv []string
 
-	IsShell  bool // if true then Commands or Scripts is passed to shell as "-c" argument's value
 	Commands []string
 	Script   string
+
+	CommandMode   CommandMode
+	LanguageID    string
+	FileExtension string
 
 	Logger *zap.Logger
 }
 
 func newCommand(cfg *commandConfig) (*command, error) {
-	programPath, err := exec.LookPath(cfg.ProgramName)
+	programPath, err := inferFileProgram(cfg.ProgramName, cfg.LanguageID)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -108,36 +125,103 @@ func newCommand(cfg *commandConfig) (*command, error) {
 		envStorePath string
 	)
 
-	if cfg.IsShell && (len(cfg.Commands) > 0 || cfg.Script != "") {
+	var isShell = false
+
+	var tempScriptFile string
+
+	var fileExtension = cfg.FileExtension
+	if fileExtension == "" {
+		fileExtension = inferFileExtension(cfg.LanguageID)
+	}
+
+	var tmpEnvDir string
+
+	for _, candidate := range []string{
+		"bash", "sh", "ksh", "zsh", "fish", "powershell", "pwsh", "cmd",
+	} {
+		cmdName := filepath.Base(programPath)
+
+		if cmdName == candidate {
+			isShell = true
+		}
+	}
+
+	if cfg.CommandMode != CommandModeNone && (len(cfg.Commands) > 0 || cfg.Script != "") {
 		var err error
 		envStorePath, err = os.MkdirTemp("", "")
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
-		var script strings.Builder
+		var script string
 
-		_, _ = script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envStartFileName)))
+		if isShell {
+			var builder strings.Builder
 
-		if len(cfg.Commands) > 0 {
-			_, _ = script.WriteString(
-				prepareScriptFromCommands(cfg.Commands, ShellFromShellPath(programPath)),
-			)
-		} else if cfg.Script != "" {
-			_, _ = script.WriteString(
-				prepareScript(cfg.Script, ShellFromShellPath(programPath)),
-			)
+			tmpEnvDir = envStorePath
+
+			_, _ = builder.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envStartFileName)))
+
+			if len(cfg.Commands) > 0 {
+				_, _ = builder.WriteString(
+					prepareScriptFromCommands(cfg.Commands, ShellFromShellPath(programPath)),
+				)
+			} else if cfg.Script != "" {
+				_, _ = builder.WriteString(
+					prepareScript(cfg.Script, ShellFromShellPath(programPath)),
+				)
+			}
+
+			_, _ = builder.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
+
+			extraArgs = []string{}
+
+			if cfg.Tty {
+				extraArgs = append(extraArgs, "-i")
+			}
+
+			script = builder.String()
+		} else {
+			if len(cfg.Commands) > 0 {
+				script = strings.Join(cfg.Commands, "\n")
+			} else {
+				script = cfg.Script
+			}
 		}
 
-		_, _ = script.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
+		switch cfg.CommandMode {
+		case CommandModeInlineShell:
+			extraArgs = append(extraArgs, "-c", script)
+		case CommandModeTempFile:
+			for {
+				id, err := uuid.NewRandom()
+				if err != nil {
+					return nil, err
+				}
 
-		extraArgs = []string{}
+				tempScriptFile = filepath.Join(cfg.Directory, fmt.Sprintf(".runme-script-%s", id.String()))
 
-		if cfg.Tty {
-			extraArgs = append(extraArgs, "-i")
+				if cfg.FileExtension != "" {
+					tempScriptFile += "." + cfg.FileExtension
+				}
+
+				_, err = os.Stat(tempScriptFile)
+
+				if os.IsNotExist(err) {
+					// FIXME: handle error
+					err = os.WriteFile(tempScriptFile, []byte(script), 0o700)
+					if err != nil {
+						return nil, err
+					}
+
+					break
+				} else if err != nil {
+					return nil, err
+				}
+			}
+
+			extraArgs = append(extraArgs, tempScriptFile)
 		}
-
-		extraArgs = append(extraArgs, "-c", script.String())
 	}
 
 	session := cfg.Session
@@ -149,17 +233,18 @@ func newCommand(cfg *commandConfig) (*command, error) {
 	}
 
 	cmd := &command{
-		ProgramPath: programPath,
-		Args:        append(cfg.Args, extraArgs...),
-		Directory:   directory,
-		Session:     session,
-		Stdin:       cfg.Stdin,
-		Stdout:      cfg.Stdout,
-		Stderr:      cfg.Stderr,
-		PreEnv:      cfg.PreEnv,
-		PostEnv:     cfg.PostEnv,
-		tmpEnvDir:   envStorePath,
-		logger:      cfg.Logger,
+		ProgramPath:    programPath,
+		Args:           append(cfg.Args, extraArgs...),
+		Directory:      directory,
+		Session:        session,
+		Stdin:          cfg.Stdin,
+		Stdout:         cfg.Stdout,
+		Stderr:         cfg.Stderr,
+		PreEnv:         cfg.PreEnv,
+		PostEnv:        cfg.PostEnv,
+		logger:         cfg.Logger,
+		tempScriptFile: tempScriptFile,
+		tmpEnvDir:      tmpEnvDir,
 	}
 
 	if cfg.Tty {
@@ -195,6 +280,13 @@ func (c *command) cleanup() {
 	if c.pty != nil {
 		if e := c.pty.Close(); err != nil {
 			c.logger.Info("failed to close pty", zap.Error(e))
+			err = multierr.Append(err, e)
+		}
+	}
+
+	if c.tempScriptFile != "" {
+		if e := os.Remove(c.tempScriptFile); e != nil {
+			c.logger.Info("failed to delete tempScriptFile", zap.Error(e))
 			err = multierr.Append(err, e)
 		}
 	}
@@ -466,4 +558,72 @@ func (c *command) setWinsize(winsize *pty.Winsize) {
 func getDumpCmd() string {
 	path, _ := os.Executable()
 	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
+}
+
+var fileExtensionByLanguageId = map[string]string{
+	"js":              "js",
+	"javascript":      "js",
+	"jsx":             "jsx",
+	"javascriptreact": "jsx",
+	"tsx":             "tsx",
+	"typescriptreact": "tsx",
+	"sh":              "sh",
+	"bash":            "sh",
+	"ksh":             "sh",
+	"zsh":             "sh",
+	"fish":            "sh",
+	"powershell":      "ps1",
+	"cmd":             "bat",
+	"dos":             "bat",
+	"py":              "py",
+	"python":          "py",
+	"ruby":            "rb",
+	"rb":              "rb",
+}
+
+func inferFileExtension(languageId string) string {
+	return fileExtensionByLanguageId[languageId]
+}
+
+var programByLanguageId = map[string][]string{
+	"js":              {"node"},
+	"javascript":      {"node"},
+	"jsx":             {"node"},
+	"javascriptreact": {"node"},
+
+	"ts":              {"ts-node", "deno", "bun"},
+	"tsx":             {"ts-node", "deno", "bun"},
+	"typescriptreact": {"ts-node", "deno", "bun"},
+
+	"sh":         {"bash", "sh"},
+	"bash":       {"bash", "sh"},
+	"ksh":        {"ksh"},
+	"zsh":        {"zsh"},
+	"fish":       {"fish"},
+	"powershell": {"powershell"},
+	"cmd":        {"cmd"},
+	"dos":        {"cmd"},
+	"python":     {"python"},
+	"py":         {"python"},
+	"ruby":       {"ruby"},
+	"rb":         {"ruby"},
+}
+
+func inferFileProgram(programPath string, languageId string) (string, error) {
+	if programPath != "" {
+		res, err := exec.LookPath(programPath)
+		if err != nil {
+			return "", errors.WithStack(err)
+		}
+		return res, nil
+	}
+
+	for _, candidate := range programByLanguageId[languageId] {
+		res, err := exec.LookPath(candidate)
+		if err == nil {
+			return res, nil
+		}
+	}
+
+	return "", errors.New("unable to infer file program")
 }

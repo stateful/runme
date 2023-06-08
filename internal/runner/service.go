@@ -211,19 +211,29 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	defer func() { _ = stderr.Close() }()
 
 	cfg := &commandConfig{
-		ProgramName: req.ProgramName,
-		Args:        req.Arguments,
-		Directory:   req.Directory,
-		Session:     sess,
-		Tty:         req.Tty,
-		Stdin:       stdin,
-		Stdout:      stdout,
-		Stderr:      stderr,
-		IsShell:     true,
-		Commands:    req.Commands,
-		Script:      req.Script,
-		Logger:      r.logger,
-		Winsize:     runnerWinsizeToPty(req.Winsize),
+		ProgramName:   req.ProgramName,
+		Args:          req.Arguments,
+		Directory:     req.Directory,
+		Session:       sess,
+		Tty:           req.Tty,
+		Stdin:         stdin,
+		Stdout:        stdout,
+		Stderr:        stderr,
+		Commands:      req.Commands,
+		Script:        req.Script,
+		Logger:        r.logger,
+		Winsize:       runnerWinsizeToPty(req.Winsize),
+		LanguageID:    req.LanguageId,
+		FileExtension: req.FileExtension,
+	}
+
+	switch req.CommandMode {
+	case runnerv1.CommandMode_COMMAND_MODE_UNSPECIFIED:
+		cfg.CommandMode = CommandModeNone
+	case runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL:
+		cfg.CommandMode = CommandModeInlineShell
+	case runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE:
+		cfg.CommandMode = CommandModeTempFile
 	}
 
 	if req.Project != nil {

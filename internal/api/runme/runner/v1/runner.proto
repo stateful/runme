@@ -60,6 +60,12 @@ enum ExecuteStop {
   EXECUTE_STOP_KILL = 2;
 }
 
+enum CommandMode {
+  COMMAND_MODE_UNSPECIFIED = 0;
+  COMMAND_MODE_INLINE_SHELL = 1;
+  COMMAND_MODE_TEMP_FILE = 2;
+}
+
 message Project {
   // project root folder
   string root = 1;
@@ -152,6 +158,14 @@ message ExecuteRequest {
   // whether to store the stdout of the last ran
   // block in the environment variable `__`
   bool store_last_output = 23;
+
+  CommandMode command_mode = 24;
+
+  // language id associated with script
+  string language_id = 25;
+
+  // file extension associated with script
+  string file_extension = 26;
 }
 
 message ProcessPID {

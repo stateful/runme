@@ -269,6 +269,22 @@ export interface ExecuteRequest {
      * @generated from protobuf field: bool store_last_output = 23;
      */
     storeLastOutput: boolean;
+    /**
+     * @generated from protobuf field: runme.runner.v1.CommandMode command_mode = 24;
+     */
+    commandMode: CommandMode;
+    /**
+     * language id associated with script
+     *
+     * @generated from protobuf field: string language_id = 25;
+     */
+    languageId: string;
+    /**
+     * file extension associated with script
+     *
+     * @generated from protobuf field: string file_extension = 26;
+     */
+    fileExtension: string;
 }
 /**
  * @generated from protobuf message runme.runner.v1.ProcessPID
@@ -325,6 +341,23 @@ export declare enum ExecuteStop {
      * @generated from protobuf enum value: EXECUTE_STOP_KILL = 2;
      */
     KILL = 2
+}
+/**
+ * @generated from protobuf enum runme.runner.v1.CommandMode
+ */
+export declare enum CommandMode {
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_INLINE_SHELL = 1;
+     */
+    INLINE_SHELL = 1,
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_TEMP_FILE = 2;
+     */
+    TEMP_FILE = 2
 }
 /**
  * strategy for selecting a session in an initial execute request
