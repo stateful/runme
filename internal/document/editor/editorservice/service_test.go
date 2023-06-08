@@ -82,7 +82,7 @@ Some content
 		assert.Equal(
 			t,
 			frontMatter,
-			dResp.Notebook.Metadata[editor.FrontmatterKey],
+			dResp.Notebook.Metadata[editor.PrefixAttributeName(editor.InternalAttributePrefix, editor.FrontmatterKey)],
 		)
 
 		sResp, err := client.Serialize(

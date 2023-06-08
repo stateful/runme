@@ -2,12 +2,18 @@ package editor
 
 import (
 	"bytes"
+	"fmt"
+	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
+
+	"github.com/stateful/runme/internal/document/constants"
+	math "github.com/stateful/runme/internal/math"
 )
 
-const FrontmatterKey = "runme.dev/frontmatter"
+const FrontmatterKey = "frontmatter"
 
 func Deserialize(data []byte) (*Notebook, error) {
 	sections, err := document.ParseSections(data)
@@ -27,11 +33,14 @@ func Deserialize(data []byte) (*Notebook, error) {
 		contentOffset: sections.ContentOffset,
 	}
 
+	finalLinesBreaks := document.CountFinalLineBreaks(data, document.DetectLineBreak(data))
+	notebook.Metadata = map[string]string{
+		PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
+	}
+
 	// If Front Matter exists, store it in Notebook's metadata.
 	if len(sections.FrontMatter) > 0 {
-		notebook.Metadata = map[string]string{
-			FrontmatterKey: string(sections.FrontMatter),
-		}
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(sections.FrontMatter)
 	}
 
 	return notebook, nil
@@ -40,25 +49,34 @@ func Deserialize(data []byte) (*Notebook, error) {
 func Serialize(notebook *Notebook) ([]byte, error) {
 	var result []byte
 
-	if intro, ok := notebook.Metadata[FrontmatterKey]; ok {
+	if intro, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]; ok {
 		intro := []byte(intro)
-		lb := detectLineBreak(intro)
+		lb := document.DetectLineBreak(intro)
 		result = append(
 			intro,
-			append(lb, lb...)...,
+			bytes.Repeat(lb, 2)...,
 		)
 	}
 
 	result = append(result, serializeCells(notebook.Cells)...)
 
-	return result, nil
-}
+	if lineBreaks, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)]; ok {
+		desired, err := strconv.ParseInt(lineBreaks, 10, 32)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
 
-func detectLineBreak(source []byte) []byte {
-	crlfCount := bytes.Count(source, []byte{'\r', '\n'})
-	lfCount := bytes.Count(source, []byte{'\n'})
-	if crlfCount == lfCount {
-		return []byte{'\r', '\n'}
+		lb := document.DetectLineBreak(result)
+		actual := document.CountFinalLineBreaks(result, lb)
+		delta := int(desired) - actual
+
+		if delta < 0 {
+			end := len(result) + delta*len(lb)
+			result = result[0:math.Max(0, end)]
+		} else {
+			result = append(result, bytes.Repeat(lb, delta)...)
+		}
 	}
-	return []byte{'\n'}
+
+	return result, nil
 }

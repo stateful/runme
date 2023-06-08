@@ -8,6 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/yuin/goldmark/ast"
+
+	"github.com/stateful/runme/internal/document/constants"
 )
 
 type NodeSourceProvider func(ast.Node) ([]byte, bool)
@@ -21,8 +23,18 @@ func Render(doc ast.Node, source []byte) ([]byte, error) {
 		lineBreak = []byte{'\r', '\n'}
 	}
 
+	finalLineBreaks := 1
+	if flb, ok := doc.AttributeString(constants.FinalLineBreaksKey); ok {
+		val, ok := flb.(int)
+		if !ok {
+			return nil, errors.Errorf("invalid type for %s expected int", constants.FinalLineBreaksKey)
+		}
+		finalLineBreaks = val
+	}
+
 	r := renderer{
-		lineBreak: lineBreak,
+		lineBreak:       lineBreak,
+		finalLineBreaks: finalLineBreaks,
 	}
 	return r.Render(doc, source)
 }
@@ -33,6 +45,7 @@ type renderer struct {
 	beginLine       bool
 	buf             bytes.Buffer
 	inTightListItem bool
+	finalLineBreaks int
 	needCR          int
 	prefix          []byte
 }
@@ -418,7 +431,7 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 	}
 
 	// Finish writing any remaining characters.
-	r.needCR = 1
+	r.needCR = r.finalLineBreaks
 	err = r.write(nil)
 	return r.buf.Bytes(), errors.WithStack(err)
 }

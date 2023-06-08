@@ -1,10 +1,13 @@
 package editor
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/stateful/runme/internal/document/constants"
 )
 
 func TestEditor(t *testing.T) {
@@ -58,7 +61,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		cell := notebook.Cells[0]
 		assert.Equal(
 			t,
-			cell.Metadata[prefixAttributeName(internalAttributePrefix, "name")],
+			cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "name")],
 			"echo-1",
 		)
 		// "name" is empty because it was not included in the original snippet.
@@ -78,7 +81,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		cell := notebook.Cells[0]
 		assert.Equal(
 			t,
-			cell.Metadata[prefixAttributeName(internalAttributePrefix, "name")],
+			cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "name")],
 			"name1",
 		)
 		// "name" is not nil because it was included in the original snippet.
@@ -112,4 +115,71 @@ A paragraph
 		string(data),
 		string(result),
 	)
+}
+
+func TestEditor_Newlines(t *testing.T) {
+	data := []byte(`## Newline debugging
+
+This will test final line breaks`)
+
+	t.Run("No line breaks", func(t *testing.T) {
+		notebook, err := Deserialize(data)
+		require.NoError(t, err)
+
+		assert.Equal(
+			t,
+			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)],
+			"0",
+		)
+
+		actual, err := Serialize(notebook)
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(actual),
+			string(data),
+		)
+	})
+
+	t.Run("Single line break", func(t *testing.T) {
+		withLineBreaks := append(data, byte('\n'))
+
+		notebook, err := Deserialize(withLineBreaks)
+		require.NoError(t, err)
+
+		assert.Equal(
+			t,
+			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)],
+			"1",
+		)
+
+		actual, err := Serialize(notebook)
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(actual),
+			string(withLineBreaks),
+		)
+	})
+
+	t.Run("7 line breaks", func(t *testing.T) {
+		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
+
+		notebook, err := Deserialize(withLineBreaks)
+		require.NoError(t, err)
+
+		assert.Equal(
+			t,
+			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)],
+			"7",
+		)
+
+		actual, err := Serialize(notebook)
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(actual),
+			string(withLineBreaks),
+		)
+	})
 }

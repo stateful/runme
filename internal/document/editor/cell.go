@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	internalAttributePrefix = "runme.dev"
-	privateAttributePrefix  = "_"
+	InternalAttributePrefix = "runme.dev"
+	PrivateAttributePrefix  = "_"
 )
 
 type CellKind int
@@ -55,7 +55,7 @@ func (n *Notebook) GetContentOffset() int {
 }
 
 func (n *Notebook) ParsedFrontmatter() (document.Frontmatter, *document.FrontmatterParseInfo) {
-	raw, ok := n.Metadata[FrontmatterKey]
+	raw, ok := n.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]
 	if n.parsedFrontmatter != nil {
 		return *n.parsedFrontmatter, nil
 	}
@@ -135,7 +135,7 @@ func toCellsRec(
 			// In the future, we will include language detection (#77).
 			if lang := block.Language(); lang == "" || isEditorSupported(lang) {
 				metadata := block.Attributes()
-				metadata[prefixAttributeName(internalAttributePrefix, "name")] = block.Name()
+				metadata[PrefixAttributeName(InternalAttributePrefix, "name")] = block.Name()
 				*cells = append(*cells, &Cell{
 					Kind:       CodeKind,
 					Value:      string(block.Content()),
@@ -202,11 +202,11 @@ func countTrailingNewLines(b []byte) int {
 	return count
 }
 
-func prefixAttributeName(prefix, name string) string {
+func PrefixAttributeName(prefix, name string) string {
 	switch prefix {
-	case internalAttributePrefix:
+	case InternalAttributePrefix:
 		return prefix + "/" + name
-	case privateAttributePrefix:
+	case PrivateAttributePrefix:
 		fallthrough
 	default:
 		return prefix + name
@@ -218,7 +218,7 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 	// A key with a name "index" that comes from VS Code is also filtered out.
 	keys := make([]string, 0, len(cell.Metadata))
 	for k := range cell.Metadata {
-		if k == "index" || strings.HasPrefix(k, privateAttributePrefix) || strings.HasPrefix(k, internalAttributePrefix) {
+		if k == "index" || strings.HasPrefix(k, PrivateAttributePrefix) || strings.HasPrefix(k, InternalAttributePrefix) {
 			continue
 		}
 		keys = append(keys, k)
