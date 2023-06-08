@@ -117,11 +117,15 @@ func (r *nameResolver) Get(obj interface{}, name string) string {
 }
 
 func CountFinalLineBreaks(source []byte, lineBreak []byte) int {
-	end := len(source)
-	start := end - MaxFinalLineBreaks*len(lineBreak)
-	tail := source[math.Max(start, 0):end]
+	i := len(source) - len(lineBreak)
+	numBreaks := 0
 
-	return bytes.Count(tail, lineBreak)
+	for i >= 0 && bytes.Equal(source[i:i+len(lineBreak)], lineBreak) {
+		i -= len(lineBreak)
+		numBreaks++
+	}
+	
+	return numBreaks
 }
 
 func DetectLineBreak(source []byte) []byte {
