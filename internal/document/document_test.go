@@ -2,7 +2,6 @@ package document
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/stateful/runme/internal/renderer/cmark"
@@ -67,11 +66,9 @@ First paragraph.
 }
 
 func TestDocument_FinalLineBreaks(t *testing.T) {
-	data := []byte(`## Newline debugging
+	data := []byte(`This will test final line breaks`)
 
-This will test final line breaks`)
-
-	t.Run("No newline", func(t *testing.T) {
+	t.Run("No breaks", func(t *testing.T) {
 		doc := New(data, cmark.Render)
 		_, astNode, err := doc.Parse()
 		require.NoError(t, err)
@@ -81,13 +78,13 @@ This will test final line breaks`)
 
 		assert.Equal(
 			t,
-			string(actual),
 			string(data),
+			string(actual),
 		)
 	})
 
-	t.Run("7 line breaks", func(t *testing.T) {
-		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
+	t.Run("1 LF", func(t *testing.T) {
+		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 1)...)
 		doc := New(withLineBreaks, cmark.Render)
 		_, astNode, err := doc.Parse()
 		require.NoError(t, err)
@@ -95,7 +92,37 @@ This will test final line breaks`)
 		actual, err := cmark.Render(astNode, withLineBreaks)
 		require.NoError(t, err)
 
-		fmt.Sprintln(string(withLineBreaks))
+		assert.Equal(
+			t,
+			string(withLineBreaks),
+			string(actual),
+		)
+	})
+
+	t.Run("1 CRLF", func(t *testing.T) {
+		withLineBreaks := append(data, bytes.Repeat([]byte{'\r', '\n'}, 1)...)
+		doc := New(withLineBreaks, cmark.Render)
+		_, astNode, err := doc.Parse()
+		require.NoError(t, err)
+
+		actual, err := cmark.Render(astNode, withLineBreaks)
+		require.NoError(t, err)
+
+		assert.Equal(
+			t,
+			string(withLineBreaks),
+			string(actual),
+		)
+	})
+
+	t.Run("7 LFs", func(t *testing.T) {
+		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
+		doc := New(withLineBreaks, cmark.Render)
+		_, astNode, err := doc.Parse()
+		require.NoError(t, err)
+
+		actual, err := cmark.Render(astNode, withLineBreaks)
+		require.NoError(t, err)
 
 		assert.Equal(
 			t,

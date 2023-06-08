@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stateful/runme/internal/document"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/stateful/runme/internal/document/constants"
 )
 
 func TestEditor(t *testing.T) {
@@ -128,7 +128,7 @@ This will test final line breaks`)
 
 		assert.Equal(
 			t,
-			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, document.FinalLineBreaksKey)],
+			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)],
 			"0",
 		)
 
@@ -149,7 +149,7 @@ This will test final line breaks`)
 
 		assert.Equal(
 			t,
-			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, document.FinalLineBreaksKey)],
+			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)],
 			"1",
 		)
 
@@ -170,7 +170,7 @@ This will test final line breaks`)
 
 		assert.Equal(
 			t,
-			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, document.FinalLineBreaksKey)],
+			notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)],
 			"7",
 		)
 

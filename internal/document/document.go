@@ -10,12 +10,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 
-	math "github.com/stateful/runme/internal/math"
-)
-
-const (
-	MaxFinalLineBreaks = 10
-	FinalLineBreaksKey = "finalLineBreaks"
+	"github.com/stateful/runme/internal/document/constants"
 )
 
 type Document struct {
@@ -53,7 +48,7 @@ func (d *Document) Parse() (*Node, ast.Node, error) {
 	}
 
 	finalNewLines := CountFinalLineBreaks(d.source, DetectLineBreak(d.source))
-	d.astNode.SetAttributeString(FinalLineBreaksKey, finalNewLines)
+	d.astNode.SetAttributeString(constants.FinalLineBreaksKey, finalNewLines)
 
 	return d.node, d.astNode, nil
 }
@@ -124,7 +119,7 @@ func CountFinalLineBreaks(source []byte, lineBreak []byte) int {
 		i -= len(lineBreak)
 		numBreaks++
 	}
-	
+
 	return numBreaks
 }
 

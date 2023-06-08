@@ -8,6 +8,7 @@ import (
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/renderer/cmark"
 
+	"github.com/stateful/runme/internal/document/constants"
 	math "github.com/stateful/runme/internal/math"
 )
 
@@ -33,7 +34,7 @@ func Deserialize(data []byte) (*Notebook, error) {
 
 	finalLinesBreaks := document.CountFinalLineBreaks(data, document.DetectLineBreak(data))
 	notebook.Metadata = map[string]string{
-		PrefixAttributeName(InternalAttributePrefix, document.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
+		PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
 	}
 
 	// If Front Matter exists, store it in Notebook's metadata.
@@ -58,7 +59,7 @@ func Serialize(notebook *Notebook) ([]byte, error) {
 
 	result = append(result, serializeCells(notebook.Cells)...)
 
-	if lineBreaks, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, document.FinalLineBreaksKey)]; ok {
+	if lineBreaks, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)]; ok {
 		desired, err := strconv.ParseInt(lineBreaks, 10, 32)
 		if err != nil {
 			panic(err)

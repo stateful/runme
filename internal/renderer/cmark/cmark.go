@@ -8,6 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/yuin/goldmark/ast"
+
+	"github.com/stateful/runme/internal/document/constants"
 )
 
 type NodeSourceProvider func(ast.Node) ([]byte, bool)
@@ -22,10 +24,10 @@ func Render(doc ast.Node, source []byte) ([]byte, error) {
 	}
 
 	finalLineBreaks := 1
-	if flb, ok := doc.AttributeString(document.FinalLineBreaksKey); ok {
+	if flb, ok := doc.AttributeString(constants.FinalLineBreaksKey); ok {
 		val, ok := flb.(int)
 		if !ok {
-			return nil, errors.Errorf("invalid type for %s expected int", document.FinalLineBreaksKey)
+			return nil, errors.Errorf("invalid type for %s expected int", constants.FinalLineBreaksKey)
 		}
 		finalLineBreaks = val
 	}
