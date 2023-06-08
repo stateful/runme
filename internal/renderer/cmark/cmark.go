@@ -25,7 +25,7 @@ func Render(doc ast.Node, source []byte) ([]byte, error) {
 	if flb, ok := doc.AttributeString(document.FinalLineBreaksKey); ok {
 		val, ok := flb.(int)
 		if !ok {
-			return nil, errors.Errorf("invalid type for %s expected int", "finalLineBreaks")
+			return nil, errors.Errorf("invalid type for %s expected int", document.FinalLineBreaksKey)
 		}
 		finalLineBreaks = val
 	}
