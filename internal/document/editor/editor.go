@@ -31,7 +31,7 @@ func Deserialize(data []byte) (*Notebook, error) {
 		contentOffset: sections.ContentOffset,
 	}
 
-	finalLinesBreaks := document.CountFinalLineBreaks(data, []byte{'\n'})
+	finalLinesBreaks := document.CountFinalLineBreaks(data, document.DetectLineBreak(data))
 	notebook.Metadata = map[string]string{
 		PrefixAttributeName(InternalAttributePrefix, document.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
 	}
