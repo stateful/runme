@@ -52,7 +52,7 @@ func Serialize(notebook *Notebook) ([]byte, error) {
 		lb := document.DetectLineBreak(intro)
 		result = append(
 			intro,
-			append(lb, lb...)...,
+			bytes.Repeat(lb, 2)...,
 		)
 	}
 
