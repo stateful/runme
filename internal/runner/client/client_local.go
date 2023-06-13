@@ -77,7 +77,7 @@ func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Exe
 		customShell = fmtr.Shell
 	}
 
-	programName, _ := runner.GetCellProgram(fileBlock.GetBlock().Language(), customShell)
+	programName, _ := runner.GetCellProgram(fileBlock.GetBlock().Language(), customShell, block)
 
 	r.session.AddEnvs(r.envs)
 

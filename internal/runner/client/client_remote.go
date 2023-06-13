@@ -133,7 +133,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		customShell = fmtr.Shell
 	}
 
-	programName, commandMode := runner.GetCellProgram(fileBlock.GetBlock().Language(), customShell)
+	programName, commandMode := runner.GetCellProgram(fileBlock.GetBlock().Language(), customShell, block)
 
 	var commandModeGrpc runnerv1.CommandMode
 

@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"github.com/stateful/runme/internal/document"
 )
 
 type Shell struct {
@@ -133,12 +134,19 @@ func IsShellLanguage(languageId string) bool {
 	}
 }
 
-func GetCellProgram(languageId string, customShell string) (string, CommandMode) {
+func GetCellProgram(languageId string, customShell string, cell *document.CodeBlock) (program string, commandMode CommandMode) {
 	if IsShellLanguage(languageId) {
-		return ResolveShellPath(customShell), CommandModeInlineShell
+		program = ResolveShellPath(customShell)
+		commandMode = CommandModeInlineShell
 	} else {
-		return "", CommandModeTempFile
+		commandMode = CommandModeTempFile
 	}
+
+	if manualProgram := cell.GetBlock().Program(); manualProgram != "" {
+		program = manualProgram
+	}
+
+	return
 }
 
 func ResolveShellPath(customShell string) string {
