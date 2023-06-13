@@ -157,6 +157,52 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
+	t.Run("ExecuteBasicTempFile", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE,
+			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		assert.Equal(t, "1\n2\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
+	})
+
+	t.Run("ExecuteBasicJavaScript", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE,
+			LanguageId:  "js",
+			Script:      "console.log('1'); console.log('2')",
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		assert.Equal(t, "1\n2\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
+	})
+
 	t.Run("ExecuteWithTTYBasic", func(t *testing.T) {
 		t.Parallel()
 
