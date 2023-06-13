@@ -201,8 +201,8 @@ func newCommand(cfg *commandConfig) (*command, error) {
 
 				tempScriptFile = filepath.Join(cfg.Directory, fmt.Sprintf(".runme-script-%s", id.String()))
 
-				if cfg.FileExtension != "" {
-					tempScriptFile += "." + cfg.FileExtension
+				if fileExtension != "" {
+					tempScriptFile += "." + fileExtension
 				}
 
 				_, err = os.Stat(tempScriptFile)
@@ -567,6 +567,8 @@ var fileExtensionByLanguageId = map[string]string{
 	"javascriptreact": "jsx",
 	"tsx":             "tsx",
 	"typescriptreact": "tsx",
+	"typescript":      "ts",
+	"ts":              "ts",
 	"sh":              "sh",
 	"bash":            "sh",
 	"ksh":             "sh",
