@@ -110,6 +110,37 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 	return nil
 }
 
+func IsShellLanguage(languageId string) bool {
+	switch strings.ToLower(languageId) {
+	// shellscripts
+	case "sh", "bash", "zsh", "ksh", "shell", "shellscript":
+		return true
+
+	// dos
+	case "bat", "cmd":
+		return true
+
+	// powershell
+	case "powershell", "pwsh":
+		return true
+
+	// fish
+	case "fish":
+		return true
+
+	default:
+		return false
+	}
+}
+
+func GetCellProgram(languageId string, customShell string) (string, CommandMode) {
+	if IsShellLanguage(languageId) {
+		return ResolveShellPath(customShell), CommandModeInlineShell
+	} else {
+		return "", CommandModeTempFile
+	}
+}
+
 func ResolveShellPath(customShell string) string {
 	if customShell != "" {
 		if path, err := exec.LookPath(customShell); err == nil {

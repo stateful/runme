@@ -612,6 +612,14 @@ var programByLanguageId = map[string][]string{
 	"rb":         {"ruby"},
 }
 
+type ErrInvalidLanguage struct {
+	LanguageId string
+}
+
+func (e ErrInvalidLanguage) Error() string {
+	return fmt.Sprintf("unsupported language %s", e.LanguageId)
+}
+
 func inferFileProgram(programPath string, languageId string) (string, error) {
 	if programPath != "" {
 		res, err := exec.LookPath(programPath)
@@ -628,5 +636,7 @@ func inferFileProgram(programPath string, languageId string) (string, error) {
 		}
 	}
 
-	return "", errors.New("unable to infer file program")
+	return "", ErrInvalidLanguage{
+		LanguageId: languageId,
+	}
 }

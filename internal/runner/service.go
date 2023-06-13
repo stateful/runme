@@ -3,6 +3,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -252,7 +254,25 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
+
 	if err != nil {
+		var errInvalidLanguage ErrInvalidLanguage
+		if errors.As(err, &errInvalidLanguage) {
+			st := status.New(codes.InvalidArgument, "invalid LanguageId")
+			v := &errdetails.BadRequest_FieldViolation{
+				Field:       "LanguageId",
+				Description: "unable to find program for language",
+			}
+			br := &errdetails.BadRequest{}
+			br.FieldViolations = append(br.FieldViolations, v)
+			st, err := st.WithDetails(br)
+			if err != nil {
+				return fmt.Errorf("Unexpected error attaching metadata: %v", err)
+			}
+
+			return st.Err()
+		}
+
 		return err
 	}
 
