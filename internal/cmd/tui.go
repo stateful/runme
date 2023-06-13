@@ -7,6 +7,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
+	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
 	"github.com/mgutz/ansi"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -290,6 +291,7 @@ func (m tuiModel) View() string {
 				fmt.Sprintf("%d/%d", m.cursor+1, len(m.blocks)),
 				"Choose ↑↓←→",
 				"Run [Enter]",
+				"Search [w, crl+w]",
 				"Expand [Space]",
 				"Quit [q]",
 			},
@@ -339,6 +341,41 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			return m, tea.Quit
+
+		case "ctrl+w", "w":
+			indexes, err := fuzzyfinder.FindMulti(
+				m.blocks,
+				func(i int) string {
+					return m.blocks[i].GetBlock().Name()
+				},
+				fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
+					codeLines := m.blocks[i].GetBlock().Lines()
+					if i == -1 {
+						return ""
+					}
+
+					lines := ""
+					for _, codeLine := range codeLines {
+						content := tab + tab + codeLine
+						content = ansi.Color(content, "white+d")
+
+						lines += content + "\n\n"
+					}
+					return fmt.Sprint(lines)
+				}))
+			if err != nil {
+				return m, tea.Quit
+			}
+			filteredNumbers := project.CodeBlocks{}
+			// Iterate through the indexes
+			for _, index := range indexes {
+				// Check if the index is within the array bounds
+				if index >= 0 && index < len(m.blocks) {
+					filteredNumbers = append(filteredNumbers, m.blocks[index])
+				}
+			}
+
+			m.blocks = filteredNumbers
 		}
 	}
 

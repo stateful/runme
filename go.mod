@@ -20,6 +20,7 @@ require (
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/joho/godotenv v1.5.1
+	github.com/ktr0731/go-fuzzyfinder v0.7.0
 	github.com/mattn/go-isatty v0.0.16
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
@@ -36,6 +37,13 @@ require (
 	golang.org/x/sys v0.5.0
 	golang.org/x/term v0.5.0
 	google.golang.org/protobuf v1.28.1
+)
+
+require (
+	github.com/gdamore/encoding v1.0.0 // indirect
+	github.com/gdamore/tcell/v2 v2.5.3 // indirect
+	github.com/ktr0731/go-ansisgr v0.1.0 // indirect
+	github.com/nsf/termbox-go v1.1.1 // indirect
 )
 
 require (
