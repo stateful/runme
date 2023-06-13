@@ -231,7 +231,7 @@ func (r *RemoteRunner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, std
 	}
 }
 
-func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient, background bool, languageId string) error {
+func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient, background bool, languageID string) error {
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
@@ -241,12 +241,11 @@ func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient, bac
 
 			st := status.Convert(err)
 			for _, detail := range st.Details() {
-				switch t := detail.(type) {
-				case *errdetails.BadRequest:
+				if t, ok := detail.(*errdetails.BadRequest); ok {
 					for _, violation := range t.GetFieldViolations() {
 						if violation.GetField() == "LanguageId" {
 							if strings.Contains(violation.GetDescription(), "unable to find program for language") {
-								return errors.Wrapf(err, "invalid language %s", languageId)
+								return errors.Wrapf(err, "invalid language %s", languageID)
 							}
 						}
 					}

@@ -254,7 +254,6 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
-
 	if err != nil {
 		var errInvalidLanguage ErrInvalidLanguage
 		if errors.As(err, &errInvalidLanguage) {
@@ -267,7 +266,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			br.FieldViolations = append(br.FieldViolations, v)
 			st, err := st.WithDetails(br)
 			if err != nil {
-				return fmt.Errorf("Unexpected error attaching metadata: %v", err)
+				return fmt.Errorf("unexpected error attaching metadata: %v", err)
 			}
 
 			return st.Err()

@@ -111,8 +111,8 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 	return nil
 }
 
-func IsShellLanguage(languageId string) bool {
-	switch strings.ToLower(languageId) {
+func IsShellLanguage(languageID string) bool {
+	switch strings.ToLower(languageID) {
 	// shellscripts
 	case "sh", "bash", "zsh", "ksh", "shell", "shellscript":
 		return true
@@ -134,8 +134,8 @@ func IsShellLanguage(languageId string) bool {
 	}
 }
 
-func GetCellProgram(languageId string, customShell string, cell *document.CodeBlock) (program string, commandMode CommandMode) {
-	if IsShellLanguage(languageId) {
+func GetCellProgram(languageID string, customShell string, cell *document.CodeBlock) (program string, commandMode CommandMode) {
+	if IsShellLanguage(languageID) {
 		program = ResolveShellPath(customShell)
 		commandMode = CommandModeInlineShell
 	} else {

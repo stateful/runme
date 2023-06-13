@@ -125,11 +125,11 @@ func newCommand(cfg *commandConfig) (*command, error) {
 		envStorePath string
 	)
 
-	var isShell = false
+	isShell := false
 
 	var tempScriptFile string
 
-	var fileExtension = cfg.FileExtension
+	fileExtension := cfg.FileExtension
 	if fileExtension == "" {
 		fileExtension = inferFileExtension(cfg.LanguageID)
 	}
@@ -208,8 +208,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 				_, err = os.Stat(tempScriptFile)
 
 				if os.IsNotExist(err) {
-					// FIXME: handle error
-					err = os.WriteFile(tempScriptFile, []byte(script), 0o700)
+					err = os.WriteFile(tempScriptFile, []byte(script), 0o600)
 					if err != nil {
 						return nil, err
 					}
@@ -560,7 +559,7 @@ func getDumpCmd() string {
 	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
 }
 
-var fileExtensionByLanguageId = map[string]string{
+var fileExtensionByLanguageID = map[string]string{
 	"js":              "js",
 	"javascript":      "js",
 	"jsx":             "jsx",
@@ -583,11 +582,11 @@ var fileExtensionByLanguageId = map[string]string{
 	"rb":              "rb",
 }
 
-func inferFileExtension(languageId string) string {
-	return fileExtensionByLanguageId[languageId]
+func inferFileExtension(languageID string) string {
+	return fileExtensionByLanguageID[languageID]
 }
 
-var programByLanguageId = map[string][]string{
+var programByLanguageID = map[string][]string{
 	"js":              {"node"},
 	"javascript":      {"node"},
 	"jsx":             {"node"},
@@ -613,14 +612,14 @@ var programByLanguageId = map[string][]string{
 }
 
 type ErrInvalidLanguage struct {
-	LanguageId string
+	LanguageID string
 }
 
 func (e ErrInvalidLanguage) Error() string {
-	return fmt.Sprintf("unsupported language %s", e.LanguageId)
+	return fmt.Sprintf("unsupported language %s", e.LanguageID)
 }
 
-func inferFileProgram(programPath string, languageId string) (string, error) {
+func inferFileProgram(programPath string, languageID string) (string, error) {
 	if programPath != "" {
 		res, err := exec.LookPath(programPath)
 		if err != nil {
@@ -629,7 +628,7 @@ func inferFileProgram(programPath string, languageId string) (string, error) {
 		return res, nil
 	}
 
-	for _, candidate := range programByLanguageId[languageId] {
+	for _, candidate := range programByLanguageID[languageID] {
 		res, err := exec.LookPath(candidate)
 		if err == nil {
 			return res, nil
@@ -637,6 +636,6 @@ func inferFileProgram(programPath string, languageId string) (string, error) {
 	}
 
 	return "", ErrInvalidLanguage{
-		LanguageId: languageId,
+		LanguageID: languageID,
 	}
 }
