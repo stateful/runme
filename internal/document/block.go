@@ -67,6 +67,7 @@ func newCodeBlock(
 	render Renderer,
 ) (*CodeBlock, error) {
 	attributes := getAttributes(node, source)
+
 	name, hasName := getName(node, source, nameResolver)
 
 	value, err := render(node, source)
