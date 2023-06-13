@@ -109,7 +109,7 @@ func getProject() (proj project.Project, err error) {
 			findNearestRepo = true
 		}
 
-		dirProj, err := project.NewDirectoryProject(projDir, findNearestRepo, fAllowUnknown, fAllowUnnamed)
+		dirProj, err := project.NewDirectoryProject(projDir, findNearestRepo, fAllowUnknown, fAllowUnnamed, fProjectIgnorePatterns)
 		if err != nil {
 			return nil, err
 		}

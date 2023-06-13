@@ -219,6 +219,8 @@ type DirectoryProject struct {
 	allowUnnamed     bool
 	respectGitignore bool
 	envLoadOrder     []string
+
+	ignorePatterns []string
 }
 
 // TODO(mxs): support `.runmeignore` file
@@ -242,11 +244,12 @@ func (p *DirectoryProject) SetRespectGitignore(respectGitignore bool) {
 	p.respectGitignore = respectGitignore
 }
 
-func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool, allowUnnamed bool) (*DirectoryProject, error) {
+func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool, allowUnnamed bool, ignorePatterns []string) (*DirectoryProject, error) {
 	project := &DirectoryProject{
 		allowUnknown:     allowUnknown,
 		allowUnnamed:     allowUnnamed,
 		respectGitignore: true,
+		ignorePatterns:   ignorePatterns,
 	}
 
 	// try to find git repo
@@ -287,12 +290,21 @@ func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool, al
 func (p *DirectoryProject) LoadTasks() (CodeBlocks, error) {
 	matcher := &DirectoryProjectMatcher{}
 
+	ignores := []gitignore.Pattern{}
+
 	if p.repo != nil && p.respectGitignore {
 		ps, _ := gitignore.ReadPatterns(p.fs, []string{})
 		dotGitPs := gitignore.ParsePattern("/.git", []string{})
 
-		matcher.gitMatcher = gitignore.NewMatcher(append([]gitignore.Pattern{dotGitPs}, ps...))
+		ignores = append(ignores, dotGitPs)
+		ignores = append(ignores, ps...)
 	}
+
+	for _, pattern := range p.ignorePatterns {
+		ignores = append(ignores, gitignore.ParsePattern(pattern, []string{}))
+	}
+
+	matcher.gitMatcher = gitignore.NewMatcher(ignores)
 
 	type RepoWalkNode struct {
 		path string
