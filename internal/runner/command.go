@@ -106,7 +106,10 @@ type commandConfig struct {
 }
 
 func newCommand(cfg *commandConfig) (*command, error) {
-	programPath, err := inferFileProgram(cfg.ProgramName, cfg.LanguageID)
+	programName, initialArgs := parseFileProgram(cfg.ProgramName)
+	args := initialArgs
+
+	programPath, err := inferFileProgram(programName, cfg.LanguageID)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -231,9 +234,11 @@ func newCommand(cfg *commandConfig) (*command, error) {
 		}
 	}
 
+	args = append(args, cfg.Args...)
+
 	cmd := &command{
 		ProgramPath:    programPath,
-		Args:           append(cfg.Args, extraArgs...),
+		Args:           append(args, extraArgs...),
 		Directory:      directory,
 		Session:        session,
 		Stdin:          cfg.Stdin,
@@ -617,6 +622,21 @@ type ErrInvalidLanguage struct {
 
 func (e ErrInvalidLanguage) Error() string {
 	return fmt.Sprintf("unsupported language %s", e.LanguageID)
+}
+
+// TODO: do this with shlex?
+func parseFileProgram(programPath string) (program string, args []string) {
+	parts := strings.SplitN(programPath, " ", 2)
+
+	if len(parts) > 0 {
+		program = parts[0]
+	}
+
+	if len(parts) > 1 {
+		args = []string{parts[1]}
+	}
+
+	return
 }
 
 func inferFileProgram(programPath string, languageID string) (string, error) {
