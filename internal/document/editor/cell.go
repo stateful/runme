@@ -2,14 +2,12 @@ package editor
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"strconv"
 	"strings"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/yuin/goldmark/ast"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -214,32 +212,15 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 		}
 		keys = append(keys, k)
 	}
-	// Sort attributes by key, however, keep the element
-	// with the key "name" in front.
-	slices.SortFunc(keys, func(a, b string) bool {
-		if a == "name" {
-			return true
-		}
-		if b == "name" {
-			return false
-		}
-		return a < b
-	})
-	if len(keys) == 0 {
-		return
+
+	attr := make(document.Attributes, len(keys))
+
+	for _, k := range keys {
+		attr[k] = cell.Metadata[k]
 	}
 
-	_, _ = w.Write([]byte{' ', '{', ' '})
-	i := 0
-	for _, k := range keys {
-		v := cell.Metadata[k]
-		_, _ = w.Write([]byte(fmt.Sprintf("%s=%v", k, v)))
-		i++
-		if i < len(keys) {
-			_, _ = w.Write([]byte{' '})
-		}
-	}
-	_, _ = w.Write([]byte{' ', '}'})
+	_, _ = w.Write([]byte{' '})
+	_ = document.DefaultDocumentParser.WriteAttributes(attr, w)
 }
 
 func serializeCells(cells []*Cell) []byte {
