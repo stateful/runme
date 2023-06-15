@@ -7,7 +7,7 @@
 Runme bridges the gap between workflow documentation and task definitions required to develop locally and execute runbooks. It allows project contributors to execute instructions step-by-step, checking intermediary results as they go, to ultimately complete and verify the desired results.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/stateful/runme.dev/main/static/img/runme-tui.gif" />
+  <img src="./.github/images/hello-world.gif" />
 </p>
 
 ## Installation
