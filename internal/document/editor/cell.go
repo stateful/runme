@@ -130,28 +130,19 @@ func toCellsRec(
 		case *document.CodeBlock:
 			textRange := block.TextRange()
 
-			// If the lang is unknown (empty) or supported then return a code cell.
-			// Otherwise, return a markup cell (#85).
 			// In the future, we will include language detection (#77).
-			if lang := block.Language(); lang == "" || isEditorSupported(lang) {
-				metadata := block.Attributes()
-				metadata[PrefixAttributeName(InternalAttributePrefix, "name")] = block.Name()
-				*cells = append(*cells, &Cell{
-					Kind:       CodeKind,
-					Value:      string(block.Content()),
-					LanguageID: block.Language(),
-					Metadata:   metadata,
-					TextRange: &TextRange{
-						Start: textRange.Start,
-						End:   textRange.End,
-					},
-				})
-			} else {
-				*cells = append(*cells, &Cell{
-					Kind:  MarkupKind,
-					Value: fmtValue(block.Value()),
-				})
-			}
+			metadata := block.Attributes()
+			metadata[PrefixAttributeName(InternalAttributePrefix, "name")] = block.Name()
+			*cells = append(*cells, &Cell{
+				Kind:       CodeKind,
+				Value:      string(block.Content()),
+				LanguageID: block.Language(),
+				Metadata:   metadata,
+				TextRange: &TextRange{
+					Start: textRange.Start,
+					End:   textRange.End,
+				},
+			})
 
 		case *document.MarkdownBlock:
 			value := block.Value()
@@ -313,21 +304,4 @@ func fmtValue(s []byte) string {
 func trimRightNewLine(s []byte) []byte {
 	s = bytes.TrimRight(s, "\r\n")
 	return bytes.TrimRight(s, "\n")
-}
-
-var supportedExecutables = []string{
-	"bash",
-	"bat", // fallback to sh
-	"sh",
-	"shell",
-	"zsh",
-}
-
-func isEditorSupported(lang string) bool {
-	for _, item := range supportedExecutables {
-		if item == lang {
-			return true
-		}
-	}
-	return false
 }

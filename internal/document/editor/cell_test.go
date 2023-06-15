@@ -177,8 +177,10 @@ def hello():
 	cells := toCells(node, data)
 	assert.Len(t, cells, 1)
 	cell := cells[0]
-	assert.Equal(t, MarkupKind, cell.Kind)
-	assert.Equal(t, "```py { readonly=true }\ndef hello():\n    print(\"Hello World\")\n```", cell.Value)
+	assert.Equal(t, CodeKind, cell.Kind)
+	assert.Equal(t, "py", cell.LanguageID)
+	assert.Equal(t, "true", cell.Metadata["readonly"])
+	assert.Equal(t, "def hello():\n    print(\"Hello World\")", cell.Value)
 }
 
 func Test_serializeCells_Edited(t *testing.T) {
