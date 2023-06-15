@@ -1,17 +1,14 @@
-# RUNME runs Markdown
+[![Runme](./.github/images/github-header.png)](https://runme.dev)
 
-Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs (defaults to local `README.md`).
+# Runme [![ci](https://github.com/stateful/runme/actions/workflows/ci.yml/badge.svg)](https://github.com/stateful/runme/actions/workflows/ci.yml) [![Join us on Discord](https://img.shields.io/discord/878764303052865537?color=5b39df&label=Join%20us%20on%20Discord)](https://discord.com/invite/BQm8zRCBUY)
 
-[![](https://badgen.net/badge/Run%20this%20/README/5B3ADF?icon=https://runme.dev/img/logo.svg)](https://runme.dev/api/runme?repository=git%40github.com%3Astateful%2Frunme.git)
+> Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs (defaults to local `README.md`).
+
+Runme bridges the gap between workflow documentation and task definitions required to develop locally and execute runbooks. It allows project contributors to execute instructions step-by-step, checking intermediary results as they go, to ultimately complete and verify the desired results.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/stateful/runme.dev/main/static/img/runme-tui.gif" />
 </p>
-
-runme makes a best effort approach to extracts all code snippets defined in code blocks and allowing to explore and execute them. runme is currently in early alpha.
-
-You can execute commands from a different directory using a `--chdir` flag.
-To select a different file than `README.md`, use `--filename`.
 
 ## Installation
 
@@ -27,6 +24,12 @@ Install runme:
 $ brew install stateful/tap/runme
 ```
 
+or via NPM:
+
+```sh { name=install-npm }
+$ npm install -g runme
+```
+
 Alternatively, check out [runme's releases](https://github.com/stateful/runme/releases) and select
 a binary for your operating system.
 
@@ -38,10 +41,10 @@ $ go install github.com/stateful/runme@latest
 
 ## Commands
 
-### Help
+### Run Workflows
 
-```sh { name=runme-help interactive=false }
-$ runme help
+```sh { name=runme-run }
+$ runme run update-brew
 ```
 
 ### List
@@ -56,21 +59,22 @@ $ runme list
 $ runme print hello-world
 ```
 
-### Run selected command, Example: Update brew
+### Help
 
-```sh { name=runme-run }
-$ runme run update-brew
+```sh { name=runme-help interactive=false }
+$ runme help
 ```
 
-### Example Command
-
-```sh { name=hello-world closeTerminalOnSuccess=false interactive=false }
-echo "hello world"
-```
-
-## Contributing & Feedback
+## Feedback
 
 Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/MFtwcSvJsk). We're looking forward to hear from you.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for more information or just click on:
+
+[![Run with Runme](https://badgen.net/badge/Run%20with/Runme/5B3ADF?icon=https://runme.dev/img/logo.svg)](https://runme.dev/api/runme?repository=https%3A%2F%2Fgithub.com%2Fstateful%2Frunme.git&fileToOpen=CONTRIBUTING.md)
+
 
 ## LICENCE
 
