@@ -272,6 +272,23 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			return st.Err()
 		}
 
+		var errInvalidProgram ErrInvalidProgram
+		if errors.As(err, &errInvalidProgram) {
+			st := status.New(codes.InvalidArgument, "invalid ProgramName")
+			v := &errdetails.BadRequest_FieldViolation{
+				Field:       "ProgramName",
+				Description: "unable to find program",
+			}
+			br := &errdetails.BadRequest{}
+			br.FieldViolations = append(br.FieldViolations, v)
+			st, err := st.WithDetails(br)
+			if err != nil {
+				return fmt.Errorf("unexpected error attaching metadata: %v", err)
+			}
+
+			return st.Err()
+		}
+
 		return err
 	}
 

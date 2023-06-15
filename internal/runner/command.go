@@ -624,6 +624,19 @@ func (e ErrInvalidLanguage) Error() string {
 	return fmt.Sprintf("unsupported language %s", e.LanguageID)
 }
 
+type ErrInvalidProgram struct {
+	Program string
+	inner   error
+}
+
+func (e ErrInvalidProgram) Error() string {
+	return fmt.Sprintf("unable to locate program %q", e.Program)
+}
+
+func (e ErrInvalidProgram) Unwrap() error {
+	return e.inner
+}
+
 // TODO: do this with shlex?
 func parseFileProgram(programPath string) (program string, args []string) {
 	parts := strings.SplitN(programPath, " ", 2)
@@ -643,7 +656,10 @@ func inferFileProgram(programPath string, languageID string) (string, error) {
 	if programPath != "" {
 		res, err := exec.LookPath(programPath)
 		if err != nil {
-			return "", errors.WithStack(err)
+			return "", ErrInvalidProgram{
+				Program: programPath,
+				inner:   err,
+			}
 		}
 		return res, nil
 	}
