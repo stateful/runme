@@ -101,7 +101,7 @@ You can find an exhaustive list of examples in the [official Runme documentation
 
 ## Feedback
 
-Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hear from you.
+Let us know what you think via [GitHub issues](https://github.com/stateful/runme/issues/new) or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hear from you.
 
 ## Community
 
