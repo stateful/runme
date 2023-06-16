@@ -216,16 +216,18 @@ func (b *CodeBlock) TextRange() (textRange TextRange) {
 }
 
 func getAttributes(node *ast.FencedCodeBlock, source []byte, parser attributeParser) (Attributes, error) {
-	attrSrc := node.Info.Text(source)
-
 	attributes := make(map[string]string)
-	if node.Info != nil && len(bytes.TrimSpace(attrSrc)) > 0 {
-		attr, err := parser.ParseAttributes(attrSrc)
-		if err != nil {
-			return nil, err
-		}
 
-		attributes = attr
+	if node.Info != nil {
+		attrSrc := node.Info.Text(source)
+		if len(bytes.TrimSpace(attrSrc)) > 0 {
+			attr, err := parser.ParseAttributes(attrSrc)
+			if err != nil {
+				return nil, err
+			}
+
+			attributes = attr
+		}
 	}
 	return attributes, nil
 }
