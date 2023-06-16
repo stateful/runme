@@ -32,7 +32,7 @@ func (p *babikMLParser) ParseAttributes(raw []byte) (Attributes, error) {
 	return p.parseRawAttributes(p.rawAttributes(raw)), nil
 }
 
-func (_ *babikMLParser) parseRawAttributes(source []byte) map[string]string {
+func (*babikMLParser) parseRawAttributes(source []byte) map[string]string {
 	items := bytes.Split(source, []byte{' '})
 	if len(items) == 0 {
 		return nil
@@ -51,7 +51,7 @@ func (_ *babikMLParser) parseRawAttributes(source []byte) map[string]string {
 	return result
 }
 
-func (_ *babikMLParser) rawAttributes(source []byte) []byte {
+func (*babikMLParser) rawAttributes(source []byte) []byte {
 	start, stop := -1, -1
 
 	for i := 0; i < len(source); i++ {
@@ -74,7 +74,7 @@ func (_ *babikMLParser) rawAttributes(source []byte) []byte {
 func sortedAttrs(attr Attributes) []string {
 	keys := make([]string, 0, len(attr))
 
-	for k, _ := range attr {
+	for k := range attr {
 		keys = append(keys, k)
 	}
 
@@ -97,7 +97,7 @@ func sortedAttrs(attr Attributes) []string {
 	return keys
 }
 
-func (_ *babikMLParser) WriteAttributes(attr Attributes, w io.Writer) error {
+func (*babikMLParser) WriteAttributes(attr Attributes, w io.Writer) error {
 	keys := sortedAttrs(attr)
 
 	_, _ = w.Write([]byte{'{', ' '})
@@ -170,11 +170,11 @@ func (p *tomlParser) WriteAttributes(attr Attributes, w io.Writer) error {
 		return string(a) < string(b)
 	})
 
-	w.Write([]byte{'{', ' '})
-	w.Write(bytes.Join(
+	_, _ = w.Write([]byte{'{', ' '})
+	_, _ = w.Write(bytes.Join(
 		lines, []byte{',', ' '},
 	))
-	w.Write([]byte{' ', '}'})
+	_, _ = w.Write([]byte{' ', '}'})
 
 	return nil
 }
