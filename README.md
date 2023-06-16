@@ -1,17 +1,16 @@
-# RUNME runs Markdown
+[![Runme](./.github/images/github-header.png)](https://runme.dev)
 
-Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs (defaults to local `README.md`).
+# Runme [![ci](https://github.com/stateful/runme/actions/workflows/ci.yml/badge.svg)](https://github.com/stateful/runme/actions/workflows/ci.yml) [![Join us on Discord](https://img.shields.io/discord/878764303052865537?color=5b39df&label=Join%20us%20on%20Discord)](https://discord.com/invite/BQm8zRCBUY)
 
-[![](https://badgen.net/badge/Run%20this%20/README/5B3ADF?icon=https://runme.dev/img/logo.svg)](https://runme.dev/api/runme?repository=git%40github.com%3Astateful%2Frunme.git)
+> Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs (defaults to local `README.md`).
+
+[Runme](https://runme.dev) is a tool that makes runbooks actually runnable, making it easier to follow step-by-step instructions. Users can execute instructions, check intermediate results, and ensure the desired outputs are achieved. Authors can create predefined golden paths and share them with others. Runme combines the guardrails of a pipeline with the flexibility of scripting, where users can check intermediary results before moving on.
+
+Runme achieves this by literally running markdown (ubiquitous for docs inside repos). More specifically, Runme runs your commands inside your fenced code blocks (shell, bash, zsh). It's 100% compatible with your programming language's task definitions (Makefile, Gradle, Grunt, NPM scripts, Pipfile or Deno tasks, etc.). Runme persists your runbooks in markdown, which your docs are likely already using.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/stateful/runme.dev/main/static/img/runme-tui.gif" />
+  <img src="./.github/images/hello-world.gif" />
 </p>
-
-runme makes a best effort approach to extracts all code snippets defined in code blocks and allowing to explore and execute them. runme is currently in early alpha.
-
-You can execute commands from a different directory using a `--chdir` flag.
-To select a different file than `README.md`, use `--filename`.
 
 ## Installation
 
@@ -27,7 +26,13 @@ Install runme:
 $ brew install stateful/tap/runme
 ```
 
-Alternatively, check out [runme's releases](https://github.com/stateful/runme/releases) and select
+or via NPM:
+
+```sh { name=install-npm }
+$ npm install -g runme
+```
+
+Alternatively, check out [Runme's releases](https://github.com/stateful/runme/releases) and select
 a binary for your operating system.
 
 If you have Go developer tools installed, you can install it with `go install`:
@@ -38,13 +43,37 @@ $ go install github.com/stateful/runme@latest
 
 ## Commands
 
-### Help
+The Runme CLI contains several commands that allow you to discover and run workflows within your project.
 
-```sh { name=runme-help interactive=false }
-$ runme help
+### Run Workflows
+
+Given the following `README.md` file:
+
+````md
+# My Project
+
+## Install
+
+First update Brew dependencies:
+
+```sh { name=update-brew }
+brew update
 ```
 
+...
+`````
+
+You can run this code cell by just calling
+
+```sh
+$ runme run update-brew
+```
+
+Read more about how you can configure code cells in the [Runme documentation](https://docs.runme.dev/configuration).
+
 ### List
+
+Explore which workflows are available in your project.
 
 ```sh { name=runme-list closeTerminalOnSuccess=false interactive=false }
 $ runme list
@@ -52,25 +81,42 @@ $ runme list
 
 ### Print
 
+Instead of running the code of a code cell, `print` just outputs the code that would have been executed.
+
 ```sh { name=runme-print interactive=false }
 $ runme print hello-world
 ```
 
-### Run selected command, Example: Update brew
+### Help
 
-```sh { name=runme-run }
-$ runme run update-brew
+Find help and information to parameters and configurations.
+
+```sh { name=runme-help interactive=false }
+$ runme help
 ```
 
-### Example Command
+## Examples
 
-```sh { name=hello-world closeTerminalOnSuccess=false interactive=false }
-echo "hello world"
-```
+You can find an exhaustive list of examples in the [official Runme documentation](https://runme.dev/examples) with examples demonstrating various use cases of Runme.
 
-## Contributing & Feedback
+## Feedback
 
-Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/MFtwcSvJsk). We're looking forward to hear from you.
+Let us know what you think via [GitHub issues](https://github.com/stateful/runme/issues/new) or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hear from you.
+
+## Community
+
+The Runme community is growing, join us!
+
+- Ask questions and be curious with us [on Discord](https://discord.gg/runme)
+- Read about real live Runme examples and use cases in [our blog](https://runme.dev/blog)
+- Meet the developers, learn about the roadmap and recent developments in our [Community Meetings](https://runme.dev/events)
+- Subscribe for updates to [our newsletter](https://runme.dev/list)
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for more information or just click on:
+
+[![Run with Runme](https://badgen.net/badge/Run%20with/Runme/5B3ADF?icon=https://runme.dev/img/logo.svg)](https://runme.dev/api/runme?repository=https%3A%2F%2Fgithub.com%2Fstateful%2Frunme.git&fileToOpen=CONTRIBUTING.md)
 
 ## LICENCE
 
