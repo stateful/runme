@@ -207,7 +207,7 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 	// A key with a name "index" that comes from VS Code is also filtered out.
 	keys := make([]string, 0, len(cell.Metadata))
 	for k := range cell.Metadata {
-		if k == "index" || strings.HasPrefix(k, PrivateAttributePrefix) || strings.HasPrefix(k, InternalAttributePrefix) {
+		if k == "index" || strings.HasPrefix(k, PrivateAttributePrefix) || strings.HasPrefix(k, InternalAttributePrefix) || len(k) == 0 {
 			continue
 		}
 		keys = append(keys, k)
@@ -216,11 +216,17 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 	attr := make(document.Attributes, len(keys))
 
 	for _, k := range keys {
+		if len(k) <= 0 {
+			continue
+		}
+
 		attr[k] = cell.Metadata[k]
 	}
 
 	_, _ = w.Write([]byte{' '})
-	_ = document.DefaultDocumentParser.WriteAttributes(attr, w)
+	if len(attr) > 0 {
+		_ = document.DefaultDocumentParser.WriteAttributes(attr, w)
+	}
 }
 
 func serializeCells(cells []*Cell) []byte {
