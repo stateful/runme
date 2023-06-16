@@ -41,13 +41,35 @@ $ go install github.com/stateful/runme@latest
 
 ## Commands
 
+The Runme CLI contains several commands that allow you to discover and run workflows within your project.
+
 ### Run Workflows
 
-```sh { name=runme-run }
+Given the following `README.md` file:
+
+````md
+# My Project
+
+## Install
+
+First update Brew dependencies:
+
+```sh { name=update-brew }
+brew update
+```
+
+...
+`````
+
+You can run this code cell by just calling
+
+```sh
 $ runme run update-brew
 ```
 
 ### List
+
+Explore which workflows are available in your project.
 
 ```sh { name=runme-list closeTerminalOnSuccess=false interactive=false }
 $ runme list
@@ -55,11 +77,15 @@ $ runme list
 
 ### Print
 
+Instead of running the code of a code cell, `print` just outputs the code that would have been executed.
+
 ```sh { name=runme-print interactive=false }
 $ runme print hello-world
 ```
 
 ### Help
+
+Find help and information to parameters and configurations.
 
 ```sh { name=runme-help interactive=false }
 $ runme help
