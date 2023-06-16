@@ -6,6 +6,8 @@
 
 Runme bridges the gap between workflow documentation and task definitions required to develop locally and execute runbooks. It allows project contributors to execute instructions step-by-step, checking intermediary results as they go, to ultimately complete and verify the desired results.
 
+Runme achieves this by literally running markdown (ubiquitous for docs inside repos). More specifically Runme runs your fenced code blocks (shell, bash, zsh). Keep using your language platform's task definitions (Makefile, Gradle, Grunt, NPM scripts, Pipfile or Deno tasks, etc), let Runme worry about how to execute them.
+
 <p align="center">
   <img src="./.github/images/hello-world.gif" />
 </p>
