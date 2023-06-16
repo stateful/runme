@@ -93,6 +93,10 @@ Find help and information to parameters and configurations.
 $ runme help
 ```
 
+## Examples
+
+You can find an exhaustive list of examples in the [official Runme documentation](https://runme.dev/examples) with examples demonstrating various use cases of Runme.
+
 ## Feedback
 
 Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/MFtwcSvJsk). We're looking forward to hear from you.
