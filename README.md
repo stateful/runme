@@ -4,7 +4,7 @@
 
 > Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs (defaults to local `README.md`).
 
-Runme bridges the gap between workflow documentation and task definitions required to develop locally and execute runbooks. It allows project contributors to execute instructions step-by-step, checking intermediary results as they go, to ultimately complete and verify the desired results.
+[Runme](https://runme.dev) bridges the gap between workflow documentation and task definitions required to develop locally and execute runbooks. It allows project contributors to execute instructions step-by-step, checking intermediary results as they go, to ultimately complete and verify the desired results.
 
 Runme achieves this by literally running markdown (ubiquitous for docs inside repos). More specifically Runme runs your fenced code blocks (shell, bash, zsh). Keep using your language platform's task definitions (Makefile, Gradle, Grunt, NPM scripts, Pipfile or Deno tasks, etc), let Runme worry about how to execute them.
 
@@ -32,7 +32,7 @@ or via NPM:
 $ npm install -g runme
 ```
 
-Alternatively, check out [runme's releases](https://github.com/stateful/runme/releases) and select
+Alternatively, check out [Runme's releases](https://github.com/stateful/runme/releases) and select
 a binary for your operating system.
 
 If you have Go developer tools installed, you can install it with `go install`:
@@ -69,6 +69,8 @@ You can run this code cell by just calling
 $ runme run update-brew
 ```
 
+Read more about how you can configure code cells in the [Runme documentation](https://docs.runme.dev/configuration).
+
 ### List
 
 Explore which workflows are available in your project.
@@ -99,14 +101,22 @@ You can find an exhaustive list of examples in the [official Runme documentation
 
 ## Feedback
 
-Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/MFtwcSvJsk). We're looking forward to hear from you.
+Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hear from you.
+
+## Community
+
+The Runme community is growing, join us!
+
+- Ask questions and be curious with us [on Discord](https://discord.gg/runme)
+- Read about real live Runme examples and use cases in [our blog](https://runme.dev/blog)
+- Meet the developers, learn about the roadmap and recent developments in our [Community Meetings](https://runme.dev/events)
+- Subscribe for updates to [our newsletter](https://runme.dev/list)
 
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for more information or just click on:
 
 [![Run with Runme](https://badgen.net/badge/Run%20with/Runme/5B3ADF?icon=https://runme.dev/img/logo.svg)](https://runme.dev/api/runme?repository=https%3A%2F%2Fgithub.com%2Fstateful%2Frunme.git&fileToOpen=CONTRIBUTING.md)
-
 
 ## LICENCE
 
