@@ -215,13 +215,35 @@ func (b *CodeBlock) TextRange() (textRange TextRange) {
 	return
 }
 
+func rawAttributes(source []byte) []byte {
+	start, stop := -1, -1
+
+	for i := 0; i < len(source); i++ {
+		if start == -1 && source[i] == '{' && i+1 < len(source) && source[i+1] != '}' {
+			start = i + 1
+		}
+		if stop == -1 && source[i] == '}' {
+			stop = i
+			break
+		}
+	}
+
+	if start >= 0 && stop >= 0 {
+		return bytes.TrimSpace(source[start-1 : stop+1])
+	}
+
+	return nil
+}
+
 func getAttributes(node *ast.FencedCodeBlock, source []byte, parser attributeParser) (Attributes, error) {
 	attributes := make(map[string]string)
 
 	if node.Info != nil {
-		attrSrc := node.Info.Text(source)
-		if len(bytes.TrimSpace(attrSrc)) > 0 {
-			attr, err := parser.ParseAttributes(attrSrc)
+		codeBlockInfo := node.Info.Text(source)
+		rawAttrs := rawAttributes(codeBlockInfo)
+
+		if len(bytes.TrimSpace(rawAttrs)) > 0 {
+			attr, err := parser.ParseAttributes(rawAttrs)
 			if err != nil {
 				return nil, err
 			}

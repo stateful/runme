@@ -223,8 +223,8 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 		attr[k] = cell.Metadata[k]
 	}
 
-	_, _ = w.Write([]byte{' '})
 	if len(attr) > 0 {
+		_, _ = w.Write([]byte{' '})
 		_ = document.DefaultDocumentParser.WriteAttributes(attr, w)
 	}
 }
