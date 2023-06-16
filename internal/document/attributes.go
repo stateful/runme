@@ -119,7 +119,7 @@ func (_ *babikMLParser) WriteAttributes(attr Attributes, w io.Writer) error {
 //
 // Example:
 //
-// { key = "value" hello = "world" string_value="2" }
+// { key = "value", hello = "world", string_value="2" }
 type tomlParser struct{}
 
 func (p *tomlParser) ParseAttributes(raw []byte) (Attributes, error) {
@@ -156,10 +156,24 @@ func (p *tomlParser) WriteAttributes(attr Attributes, w io.Writer) error {
 
 	res = bytes.TrimSpace(res)
 
+	lines := bytes.Split(res, []byte{'\n'})
+
+	// Sort attributes by key, however, keep the element
+	// with the key "name" in front.
+	slices.SortFunc(lines, func(a, b []byte) bool {
+		if bytes.HasPrefix(a, []byte("name")) {
+			return true
+		}
+		if bytes.HasPrefix(b, []byte("name")) {
+			return false
+		}
+		return string(a) < string(b)
+	})
+
 	w.Write([]byte{'{', ' '})
 	w.Write(bytes.Join(
-		bytes.Split(res, []byte{'\n'}), []byte{',', ' '}),
-	)
+		lines, []byte{',', ' '},
+	))
 	w.Write([]byte{' ', '}'})
 
 	return nil

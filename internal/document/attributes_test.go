@@ -88,7 +88,7 @@ func Test_attributes(t *testing.T) {
 			err := parser.WriteAttributes(attr, w)
 			require.NoError(t, err)
 
-			assert.Equal(t, "{ float = \"13.3\", key = \"value\", name = \"script\", val = \"20\", zebras = \"are cool\" }", w.String())
+			assert.Equal(t, "{ name = \"script\", float = \"13.3\", key = \"value\", val = \"20\", zebras = \"are cool\" }", w.String())
 		}
 	})
 }
