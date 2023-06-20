@@ -243,7 +243,7 @@ func getAttributes(node *ast.FencedCodeBlock, source []byte, parser attributePar
 		rawAttrs := rawAttributes(codeBlockInfo)
 
 		if len(bytes.TrimSpace(rawAttrs)) > 0 {
-			attr, err := parser.ParseAttributes(rawAttrs)
+			attr, err := parser.Parse(rawAttrs)
 			if err != nil {
 				return nil, err
 			}

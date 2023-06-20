@@ -15,8 +15,8 @@ import (
 type Attributes map[string]string
 
 type attributeParser interface {
-	ParseAttributes(raw []byte) (Attributes, error)
-	WriteAttributes(attr Attributes, w io.Writer) error
+	Parse(raw []byte) (Attributes, error)
+	Write(attr Attributes, w io.Writer) error
 }
 
 // Original attribute language used by runme prior to v1.3.0
@@ -28,7 +28,7 @@ type attributeParser interface {
 // Pioneered by Adam Babik
 type babikMLParser struct{}
 
-func (p *babikMLParser) ParseAttributes(raw []byte) (Attributes, error) {
+func (p *babikMLParser) Parse(raw []byte) (Attributes, error) {
 	return p.parseRawAttributes(p.rawAttributes(raw)), nil
 }
 
@@ -97,7 +97,7 @@ func sortedAttrs(attr Attributes) []string {
 	return keys
 }
 
-func (*babikMLParser) WriteAttributes(attr Attributes, w io.Writer) error {
+func (*babikMLParser) Write(attr Attributes, w io.Writer) error {
 	keys := sortedAttrs(attr)
 
 	_, _ = w.Write([]byte{'{', ' '})
@@ -122,7 +122,7 @@ func (*babikMLParser) WriteAttributes(attr Attributes, w io.Writer) error {
 // { key = "value", hello = "world", string_value="2" }
 type tomlParser struct{}
 
-func (p *tomlParser) ParseAttributes(raw []byte) (Attributes, error) {
+func (p *tomlParser) Parse(raw []byte) (Attributes, error) {
 	bytes := []byte("attr=")
 	bytes = append(bytes, raw...)
 
@@ -148,7 +148,7 @@ func (p *tomlParser) ParseAttributes(raw []byte) (Attributes, error) {
 	return attr, nil
 }
 
-func (p *tomlParser) WriteAttributes(attr Attributes, w io.Writer) error {
+func (p *tomlParser) Write(attr Attributes, w io.Writer) error {
 	res, err := toml.Marshal(attr)
 	if err != nil {
 		return err
@@ -192,9 +192,9 @@ func newFailoverAttributeParser(parsers []attributeParser, writer attributeParse
 	}
 }
 
-func (p *failoverAttributeParser) ParseAttributes(raw []byte) (attr Attributes, finalErr error) {
+func (p *failoverAttributeParser) Parse(raw []byte) (attr Attributes, finalErr error) {
 	for _, parser := range p.parsers {
-		attr, err := parser.ParseAttributes(raw)
+		attr, err := parser.Parse(raw)
 
 		if err == nil {
 			return attr, nil
@@ -206,8 +206,8 @@ func (p *failoverAttributeParser) ParseAttributes(raw []byte) (attr Attributes, 
 	return
 }
 
-func (p *failoverAttributeParser) WriteAttributes(attr Attributes, w io.Writer) error {
-	return p.writer.WriteAttributes(attr, w)
+func (p *failoverAttributeParser) Write(attr Attributes, w io.Writer) error {
+	return p.writer.Write(attr, w)
 }
 
 var DefaultDocumentParser = newFailoverAttributeParser(

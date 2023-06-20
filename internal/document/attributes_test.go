@@ -14,7 +14,7 @@ func Test_attributes(t *testing.T) {
 
 		// parser
 		{
-			attr, err := parser.ParseAttributes([]byte("{ key=value hello=world val=20 }"))
+			attr, err := parser.Parse([]byte("{ key=value hello=world val=20 }"))
 			require.NoError(t, err)
 
 			assert.Equal(t, Attributes{
@@ -25,7 +25,7 @@ func Test_attributes(t *testing.T) {
 		}
 
 		{
-			attr, err := parser.ParseAttributes([]byte("{ hello=world val=20 empty }"))
+			attr, err := parser.Parse([]byte("{ hello=world val=20 empty }"))
 			require.NoError(t, err)
 
 			assert.Equal(t, Attributes{
@@ -44,7 +44,7 @@ func Test_attributes(t *testing.T) {
 			}
 
 			w := bytes.NewBuffer([]byte{})
-			err := parser.WriteAttributes(attr, w)
+			err := parser.Write(attr, w)
 			require.NoError(t, err)
 
 			assert.Equal(t, "{ name=script float=13.3 key=value val=20 }", w.String())
@@ -56,7 +56,7 @@ func Test_attributes(t *testing.T) {
 
 		// parser
 		{
-			attr, err := parser.ParseAttributes([]byte("{ key=\"value\", val=20, float=13.3 }"))
+			attr, err := parser.Parse([]byte("{ key=\"value\", val=20, float=13.3 }"))
 			require.NoError(t, err)
 
 			assert.Equal(t, Attributes{
@@ -67,7 +67,7 @@ func Test_attributes(t *testing.T) {
 		}
 
 		{
-			attr, err := parser.ParseAttributes([]byte("{ nested={ hello=\"world\" } }"))
+			attr, err := parser.Parse([]byte("{ nested={ hello=\"world\" } }"))
 			require.NoError(t, err)
 
 			assert.Equal(t, Attributes{}, attr)
@@ -85,7 +85,7 @@ func Test_attributes(t *testing.T) {
 			}
 
 			w := bytes.NewBuffer([]byte{})
-			err := parser.WriteAttributes(attr, w)
+			err := parser.Write(attr, w)
 			require.NoError(t, err)
 
 			assert.Equal(t, "{ name = \"script\", float = \"13.3\", key = \"value\", val = \"20\", zebras = \"are cool\" }", w.String())
