@@ -14,7 +14,9 @@ func Test_attributes(t *testing.T) {
 
 		// parser
 		{
-			attr, err := parser.Parse([]byte("{ key=value hello=world val=20 }"))
+			src := []byte("{ hello=world key=value val=20 }")
+
+			attr, err := parser.Parse(src)
 			require.NoError(t, err)
 
 			assert.Equal(t, Attributes{
@@ -22,6 +24,10 @@ func Test_attributes(t *testing.T) {
 				"hello": "world",
 				"val":   "20",
 			}, attr)
+
+			serialized := bytes.NewBuffer(nil)
+			parser.Write(attr, serialized)
+			assert.Equal(t, string(src), serialized.String())
 		}
 
 		{
@@ -47,7 +53,12 @@ func Test_attributes(t *testing.T) {
 			err := parser.Write(attr, w)
 			require.NoError(t, err)
 
-			assert.Equal(t, "{ name=script float=13.3 key=value val=20 }", w.String())
+			result := w.String()
+			assert.Equal(t, "{ name=script float=13.3 key=value val=20 }", result)
+
+			parsed, err := parser.Parse([]byte(result))
+			require.NoError(t, err)
+			assert.Equal(t, attr, parsed)
 		}
 	})
 
@@ -56,7 +67,9 @@ func Test_attributes(t *testing.T) {
 
 		// parser
 		{
-			attr, err := parser.Parse([]byte("{\"key\":\"value\",\"val\":20,\"float\":13.3}"))
+			src := []byte("{\"float\":13.3,\"key\":\"value\",\"val\":20}")
+
+			attr, err := parser.Parse(src)
 			require.NoError(t, err)
 
 			assert.Equal(t, Attributes{
@@ -64,6 +77,10 @@ func Test_attributes(t *testing.T) {
 				"val":   "20",
 				"float": "13.3",
 			}, attr)
+
+			serialized := bytes.NewBuffer(nil)
+			parser.Write(attr, serialized)
+			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", serialized.String())
 		}
 
 		{
@@ -90,7 +107,12 @@ func Test_attributes(t *testing.T) {
 			err := parser.Write(attr, w)
 			require.NoError(t, err)
 
-			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"name\":\"script\",\"val\":\"20\",\"zebras\":\"are cool\"}", w.String())
+			result := w.String()
+			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"name\":\"script\",\"val\":\"20\",\"zebras\":\"are cool\"}", result)
+
+			parsed, err := parser.Parse([]byte(result))
+			require.NoError(t, err)
+			assert.Equal(t, attr, parsed)
 		}
 	})
 }
