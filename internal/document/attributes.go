@@ -78,6 +78,10 @@ func sortedAttrs(attr Attributes) []string {
 		keys = append(keys, k)
 	}
 
+	if len(keys) == 0 {
+		return nil
+	}
+
 	// Sort attributes by key, however, keep the element
 	// with the key "name" in front.
 	slices.SortFunc(keys, func(a, b string) bool {
@@ -89,10 +93,6 @@ func sortedAttrs(attr Attributes) []string {
 		}
 		return a < b
 	})
-
-	if len(keys) == 0 {
-		return nil
-	}
 
 	return keys
 }
