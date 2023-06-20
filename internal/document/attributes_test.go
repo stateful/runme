@@ -51,12 +51,12 @@ func Test_attributes(t *testing.T) {
 		}
 	})
 
-	t.Run("TOML", func(t *testing.T) {
-		parser := &tomlParser{}
+	t.Run("JSON", func(t *testing.T) {
+		parser := &jsonParser{}
 
 		// parser
 		{
-			attr, err := parser.Parse([]byte("{ key=\"value\", val=20, float=13.3 }"))
+			attr, err := parser.Parse([]byte("{\"key\":\"value\",\"val\":20,\"float\":13.3}"))
 			require.NoError(t, err)
 
 			assert.Equal(t, Attributes{
@@ -67,10 +67,12 @@ func Test_attributes(t *testing.T) {
 		}
 
 		{
-			attr, err := parser.Parse([]byte("{ nested={ hello=\"world\" } }"))
+			attr, err := parser.Parse([]byte("{\"nested\":{\"hello\":\"world\"}}"))
 			require.NoError(t, err)
 
-			assert.Equal(t, Attributes{}, attr)
+			assert.Equal(t, Attributes{
+				"nested": "{\"hello\":\"world\"}",
+			}, attr)
 		}
 
 		// writer
@@ -88,7 +90,7 @@ func Test_attributes(t *testing.T) {
 			err := parser.Write(attr, w)
 			require.NoError(t, err)
 
-			assert.Equal(t, "{ name = \"script\", float = \"13.3\", key = \"value\", val = \"20\", zebras = \"are cool\" }", w.String())
+			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"name\":\"script\",\"val\":\"20\",\"zebras\":\"are cool\"}", w.String())
 		}
 	})
 }

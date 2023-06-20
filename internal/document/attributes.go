@@ -2,14 +2,12 @@ package document
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
-	"reflect"
 
 	"go.uber.org/multierr"
 	"golang.org/x/exp/slices"
-
-	"github.com/pelletier/go-toml"
 )
 
 type Attributes map[string]string
@@ -115,66 +113,47 @@ func (*babikMLParser) Write(attr Attributes, w io.Writer) error {
 	return nil
 }
 
-// "Inline" toml parser
+// JSON parser
 //
 // Example:
 //
-// { key = "value", hello = "world", string_value="2" }
-type tomlParser struct{}
+// { key: "value", hello: "world", string_value: "2" }
+type jsonParser struct{}
 
-func (p *tomlParser) Parse(raw []byte) (Attributes, error) {
-	bytes := []byte("attr=")
-	bytes = append(bytes, raw...)
+func (p *jsonParser) Parse(raw []byte) (Attributes, error) {
+	bytes := raw
 
-	root := make(map[string](map[string]interface{}))
+	parsedAttr := make(map[string]interface{})
 
-	if err := toml.Unmarshal(bytes, &root); err != nil {
+	if err := json.Unmarshal(bytes, &parsedAttr); err != nil {
 		return nil, err
 	}
-
-	parsedAttr := root["attr"]
 
 	attr := make(Attributes, len(parsedAttr))
 
 	for k, v := range parsedAttr {
-		kind := reflect.TypeOf(v).Kind()
-
-		// primitive type
-		if kind < reflect.Array || kind == reflect.String {
-			attr[k] = fmt.Sprintf("%v", v)
+		if strVal, ok := v.(string); ok {
+			attr[k] = strVal
+		} else {
+			if stringified, err := json.Marshal(v); err == nil {
+				attr[k] = string(stringified)
+			}
 		}
 	}
 
 	return attr, nil
 }
 
-func (p *tomlParser) Write(attr Attributes, w io.Writer) error {
-	res, err := toml.Marshal(attr)
+func (p *jsonParser) Write(attr Attributes, w io.Writer) error {
+	// TODO: name at front...
+	res, err := json.Marshal(attr)
 	if err != nil {
 		return err
 	}
 
 	res = bytes.TrimSpace(res)
 
-	lines := bytes.Split(res, []byte{'\n'})
-
-	// Sort attributes by key, however, keep the element
-	// with the key "name" in front.
-	slices.SortFunc(lines, func(a, b []byte) bool {
-		if bytes.HasPrefix(a, []byte("name")) {
-			return true
-		}
-		if bytes.HasPrefix(b, []byte("name")) {
-			return false
-		}
-		return string(a) < string(b)
-	})
-
-	_, _ = w.Write([]byte{'{', ' '})
-	_, _ = w.Write(bytes.Join(
-		lines, []byte{',', ' '},
-	))
-	_, _ = w.Write([]byte{' ', '}'})
+	_, _ = w.Write(res)
 
 	return nil
 }
@@ -212,8 +191,8 @@ func (p *failoverAttributeParser) Write(attr Attributes, w io.Writer) error {
 
 var DefaultDocumentParser = newFailoverAttributeParser(
 	[]attributeParser{
-		&tomlParser{},
+		&jsonParser{},
 		&babikMLParser{},
 	},
-	&tomlParser{},
+	&jsonParser{},
 )
