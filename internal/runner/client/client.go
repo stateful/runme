@@ -201,11 +201,10 @@ func WithTempSettings(rc Runner, opts []RunnerOption, cb func() error) error {
 	}
 
 	err = cb()
+	rc.setSettings(oldSettings)
 	if err != nil {
 		return err
 	}
-
-	rc.setSettings(oldSettings)
 
 	return nil
 }
