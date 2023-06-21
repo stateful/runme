@@ -76,7 +76,7 @@ func Test_directoryGitProject(t *testing.T) {
 	_, err = git.Init(storage, nil)
 	require.NoError(t, err)
 
-	proj, err := NewDirectoryProject(pfs.Root(), true, true, true)
+	proj, err := NewDirectoryProject(pfs.Root(), true, true, true, []string{})
 	require.NoError(t, err)
 	require.NotNil(t, proj.repo)
 
@@ -139,7 +139,7 @@ func Test_directoryGitProject(t *testing.T) {
 }
 
 func Test_directoryBareProject(t *testing.T) {
-	proj, err := NewDirectoryProject(pfs.Root(), false, true, true)
+	proj, err := NewDirectoryProject(pfs.Root(), false, true, true, []string{})
 	require.NoError(t, err)
 
 	t.Run("LoadEnvs", func(t *testing.T) {
@@ -215,7 +215,7 @@ func Test_codeBlockFrontmatter(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
-	proj, err := NewDirectoryProject(filepath.Join(cwd, "../../", "examples", "frontmatter", "shells"), false, true, true)
+	proj, err := NewDirectoryProject(filepath.Join(cwd, "../../", "examples", "frontmatter", "shells"), false, true, true, []string{})
 	require.NoError(t, err)
 
 	tasks, err := proj.LoadTasks()

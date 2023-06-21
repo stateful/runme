@@ -11,14 +11,15 @@ import (
 )
 
 var (
-	fAllowUnknown     bool
-	fAllowUnnamed     bool
-	fChdir            string
-	fFileName         string
-	fFileMode         bool
-	fProject          string
-	fRespectGitignore bool
-	fInsecure         bool
+	fAllowUnknown          bool
+	fAllowUnnamed          bool
+	fChdir                 string
+	fFileName              string
+	fFileMode              bool
+	fProject               string
+	fProjectIgnorePatterns []string
+	fRespectGitignore      bool
+	fInsecure              bool
 )
 
 func Root() *cobra.Command {
@@ -70,6 +71,7 @@ func Root() *cobra.Command {
 
 	pflags.StringVar(&fProject, "project", "", "Root project to find runnable tasks")
 	pflags.BoolVar(&fRespectGitignore, "git-ignore", true, "Whether to respect .gitignore file(s) in project")
+	pflags.StringArrayVar(&fProjectIgnorePatterns, "ignore-pattern", []string{"node_modules"}, "Patterns to ignore in project mode")
 
 	setAPIFlags(pflags)
 

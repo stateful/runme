@@ -26,7 +26,7 @@ func Test_ResolveDirectory(t *testing.T) {
 		return filepath.Join(root, filepath.FromSlash(rel))
 	}
 
-	proj, err := project.NewDirectoryProject(projectRoot, false, false, false)
+	proj, err := project.NewDirectoryProject(projectRoot, false, false, false, []string{})
 	require.NoError(t, err)
 
 	tasks, err := proj.LoadTasks()

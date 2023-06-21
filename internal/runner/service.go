@@ -196,7 +196,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if req.Project != nil {
-		proj, err := project.NewDirectoryProject(req.Project.Root, false, true, true)
+		proj, err := project.NewDirectoryProject(req.Project.Root, false, true, true, []string{})
 		if err != nil {
 			return err
 		}
