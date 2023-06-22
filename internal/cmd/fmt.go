@@ -99,12 +99,9 @@ func fmtCmd() *cobra.Command {
 				if write {
 					err = project.WriteMarkdownFile(mdFilePath, projFs, formatted)
 				} else {
-					fmt.Fprintf(cmd.OutOrStdout(), "===== %s =====\n", relFile)
-					_, err = cmd.OutOrStdout().Write(formatted)
-					if err != nil {
-						err = errors.Wrap(err, "failed to write out result")
-					}
-					fmt.Fprint(cmd.OutOrStdout(), "\n")
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "===== %s =====\n", relFile)
+					_, _ = cmd.OutOrStdout().Write(formatted)
+					_, _ = fmt.Fprint(cmd.OutOrStdout(), "\n")
 				}
 
 				if err != nil {
