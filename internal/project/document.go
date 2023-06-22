@@ -36,7 +36,7 @@ func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
 }
 
 func WriteMarkdownFile(filename string, fs billy.Basic, data []byte) error {
-	return util.WriteFile(fs, filename, data, 0o700)
+	return util.WriteFile(fs, filename, data, 0o600)
 }
 
 func parseDocumentForCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic, doFrontmatter bool) (document.CodeBlocks, *document.Frontmatter, error) {

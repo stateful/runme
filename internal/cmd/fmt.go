@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
-	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
@@ -55,9 +53,7 @@ func fmtCmd() *cobra.Command {
 			for _, relFile := range files {
 				mdFilePath := filepath.Join(proj.Dir(), relFile)
 
-				projFs := osfs.Default
-
-				data, err := project.ReadMarkdownFile(mdFilePath, projFs)
+				data, err := readMarkdownFile([]string{mdFilePath})
 				if err != nil {
 					return err
 				}
@@ -97,7 +93,7 @@ func fmtCmd() *cobra.Command {
 				}
 
 				if write {
-					err = project.WriteMarkdownFile(mdFilePath, projFs, formatted)
+					err = writeMarkdownFile([]string{mdFilePath}, formatted)
 				} else {
 					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "===== %s =====\n", relFile)
 					_, _ = cmd.OutOrStdout().Write(formatted)

@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -21,6 +24,76 @@ import (
 )
 
 const envStackDepth = "__RUNME_STACK_DEPTH"
+
+func readMarkdownFile(args []string) ([]byte, error) {
+	arg := ""
+	if len(args) == 1 {
+		arg = args[0]
+	}
+
+	if arg == "" {
+		return project.ReadMarkdownFile(filepath.Join(fChdir, fFileName), nil)
+	}
+
+	var (
+		data []byte
+		err  error
+	)
+
+	if arg == "-" {
+		data, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read from stdin")
+		}
+	} else if strings.HasPrefix(arg, "https://") {
+		client := http.Client{
+			Timeout: time.Second * 5,
+		}
+		resp, err := client.Get(arg)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get a file %q", arg)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		data, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read body")
+		}
+	} else {
+		f, err := os.Open(arg)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to open file %q", arg)
+		}
+		defer func() { _ = f.Close() }()
+		data, err = io.ReadAll(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read from file %q", arg)
+		}
+	}
+
+	return data, nil
+}
+
+func writeMarkdownFile(args []string, data []byte) error {
+	arg := ""
+	if len(args) == 1 {
+		arg = args[0]
+	}
+
+	if arg == "-" {
+		return errors.New("cannot write to stdin")
+	}
+
+	if strings.HasPrefix(arg, "https://") {
+		return errors.New("cannot write to HTTP location")
+	}
+
+	fullFilename := arg
+	if fullFilename == "" {
+		return nil
+	}
+	err := os.WriteFile(fullFilename, data, 0o600)
+	return errors.Wrapf(err, "failed to write to %s", fullFilename)
+}
 
 func getProject() (proj project.Project, err error) {
 	if fFileMode {
