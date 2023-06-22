@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
@@ -377,4 +379,144 @@ func replaceVarValue(ev CommandExportExtractMatch, newValue string) string {
 	parts := strings.SplitN(ev.Match, "=", 2)
 	replacedText := fmt.Sprintf("%s=%q", parts[0], newValue)
 	return replacedText
+}
+
+type loadTasksModel struct {
+	spinner spinner.Model
+
+	status   string
+	filename string
+
+	clear bool
+
+	err error
+
+	tasks project.CodeBlocks
+
+	// channel chan interface{}
+	nextTaskMsg tea.Cmd
+}
+
+type loadTaskFinished struct{}
+
+func newLoadTasksModel(nextTaskMsg tea.Cmd) loadTasksModel {
+	return loadTasksModel{
+		spinner: spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		// channel: channel,
+		nextTaskMsg: nextTaskMsg,
+		status:      "Initializing...",
+
+		tasks: make(project.CodeBlocks, 0),
+	}
+}
+
+func loadTasks(proj project.Project) (project.CodeBlocks, error) {
+	channel := make(chan interface{})
+	go proj.LoadTasks(false, channel)
+
+	m := newLoadTasksModel(func() tea.Msg {
+		msg, ok := <-channel
+
+		if !ok {
+			return loadTaskFinished{}
+		}
+
+		return msg
+	})
+
+	p := tea.NewProgram(m)
+	result, err := p.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	resultModel := result.(loadTasksModel)
+
+	if resultModel.err != nil {
+		return nil, resultModel.err
+	}
+
+	return resultModel.tasks, nil
+}
+
+func (m loadTasksModel) Init() tea.Cmd {
+	return tea.Batch(
+		func() tea.Msg {
+			return m.spinner.Tick()
+		},
+		m.nextTaskMsg,
+	)
+}
+
+func (m loadTasksModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+	case loadTaskFinished:
+		m.clear = true
+		return m, tea.Quit
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			m.err = errors.New("aborted")
+			return m, tea.Quit
+		}
+	}
+
+	if m, ok := m.TaskUpdate(msg).(loadTasksModel); ok {
+		return m, m.nextTaskMsg
+	}
+
+	return m, nil
+}
+
+func (m loadTasksModel) TaskUpdate(msg tea.Msg) tea.Model {
+	switch msg := msg.(type) {
+
+	case project.LoadTaskError:
+		m.err = msg.Err
+
+	// status
+	case project.LoadTaskStatusSearchingFiles:
+		m.filename = ""
+		m.status = "Searching for files..."
+	case project.LoadTaskStatusParsingFiles:
+		m.filename = ""
+		m.status = "Parsing files..."
+
+	// filename
+	case project.LoadTaskSearchingFolder:
+		m.filename = msg.Folder
+	case project.LoadTaskParsingFile:
+		m.filename = msg.Filename
+
+	// results
+	case project.LoadTaskFoundFile:
+	case project.LoadTaskFoundTask:
+		m.tasks = append(m.tasks, msg.Task)
+
+	default:
+		return nil
+	}
+
+	return m
+}
+
+func (m loadTasksModel) View() (s string) {
+	if m.clear {
+		return
+	}
+
+	s += m.spinner.View()
+	s += " "
+
+	s += m.status
+
+	if m.filename != "" {
+		s += fmt.Sprintf(" (%s)", m.filename)
+	}
+
+	return
 }

@@ -212,6 +212,10 @@ type LoadTaskSearchingFolder struct {
 	Folder string
 }
 
+type LoadTaskParsingFile struct {
+	Filename string
+}
+
 type LoadTaskFoundFile struct {
 	Filename string
 }
@@ -404,6 +408,7 @@ func (p *DirectoryProject) LoadTasks(filesOnly bool, channel chan<- interface{})
 	channel <- LoadTaskStatusParsingFiles{}
 
 	for _, mdFile := range markdownFiles {
+		channel <- LoadTaskParsingFile{Filename: mdFile}
 		blocks, err := getFileCodeBlocks(mdFile, p.allowUnknown, p.allowUnnamed, p.fs)
 		if err != nil {
 			channel <- LoadTaskError{Err: err}
@@ -486,6 +491,7 @@ func (p *SingleFileProject) LoadTasks(filesOnly bool, channel chan<- interface{}
 
 	channel <- LoadTaskStatusParsingFiles{}
 
+	channel <- LoadTaskParsingFile{Filename: relFile}
 	blocks, err := getFileCodeBlocks(relFile, p.allowUnknown, p.allowUnnamed, fs)
 	if err != nil {
 		channel <- LoadTaskError{Err: err}
