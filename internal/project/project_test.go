@@ -100,8 +100,9 @@ func Test_directoryGitProject(t *testing.T) {
 		}, envs)
 	})
 
-	t.Run("LoadTasks", func(t *testing.T) {
-		tasks, err := proj.LoadTasks()
+	// TODO(mxs): test LoadTasks directly
+	t.Run("LoadProjectTasks", func(t *testing.T) {
+		tasks, err := LoadProjectTasks(proj)
 		require.NoError(t, err)
 
 		assert.Equal(t, 2, len(tasks))
@@ -155,8 +156,9 @@ func Test_directoryBareProject(t *testing.T) {
 		}, envs)
 	})
 
-	t.Run("LoadTasks", func(t *testing.T) {
-		tasks, err := proj.LoadTasks()
+	// TODO(mxs): test LoadTasks directly
+	t.Run("LoadProjectTasks", func(t *testing.T) {
+		tasks, err := LoadProjectTasks(proj)
 		require.NoError(t, err)
 
 		assert.Equal(t, 4, len(tasks))
@@ -202,8 +204,9 @@ func Test_singleFileProject(t *testing.T) {
 		assert.Nil(t, envs)
 	})
 
-	t.Run("LoadTasks", func(t *testing.T) {
-		tasks, err := proj.LoadTasks()
+	// TODO(mxs): test LoadTasks directly
+	t.Run("LoadProjectTasks", func(t *testing.T) {
+		tasks, err := LoadProjectTasks(proj)
 		require.NoError(t, err)
 
 		assert.Equal(t, 1, len(tasks))
@@ -218,7 +221,7 @@ func Test_codeBlockFrontmatter(t *testing.T) {
 	proj, err := NewDirectoryProject(filepath.Join(cwd, "../../", "examples", "frontmatter", "shells"), false, true, true, []string{})
 	require.NoError(t, err)
 
-	tasks, err := proj.LoadTasks()
+	tasks, err := LoadProjectTasks(proj)
 	require.NoError(t, err)
 
 	t.Log(tasks)

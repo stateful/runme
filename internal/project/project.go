@@ -205,9 +205,33 @@ func (blocks CodeBlocks) Names() []string {
 	return nil
 }
 
+type LoadTaskStatusSearchingFiles struct{}
+type LoadTaskStatusParsingFiles struct{}
+
+type LoadTaskSearchingFolder struct {
+	Folder string
+}
+
+type LoadTaskFoundFile struct {
+	Filename string
+}
+
+type LoadTaskFoundTask struct {
+	Task CodeBlock
+}
+
+type LoadTaskError struct {
+	Err error
+}
+
 type Project interface {
-	LoadTasks() (CodeBlocks, error)
-	LoadFiles() ([]string, error)
+	// Loads tasks in project, sending details to provided channel. Will block, but is thread-safe.
+	//
+	// Received messages for the channel will be of type `project.LoadTask*`. The
+	// channel will be closed on finish or error.
+	//
+	// Use `filesOnly` to just find files, skipping markdown parsing
+	LoadTasks(filesOnly bool, channel chan<- interface{})
 	LoadEnvs() (map[string]string, error)
 	EnvLoadOrder() []string
 	Dir() string
@@ -289,7 +313,9 @@ func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool, al
 	return project, nil
 }
 
-func (p *DirectoryProject) LoadFiles() ([]string, error) {
+func (p *DirectoryProject) LoadTasks(filesOnly bool, channel chan<- interface{}) {
+	defer close(channel)
+
 	matcher := &DirectoryProjectMatcher{}
 
 	ignores := []gitignore.Pattern{}
@@ -315,7 +341,8 @@ func (p *DirectoryProject) LoadFiles() ([]string, error) {
 
 	rootInfo, err := p.fs.Stat(".")
 	if err != nil {
-		return nil, err
+		channel <- LoadTaskError{Err: err}
+		return
 	}
 
 	stk := []RepoWalkNode{{
@@ -325,14 +352,19 @@ func (p *DirectoryProject) LoadFiles() ([]string, error) {
 
 	markdownFiles := make([]string, 0)
 
+	channel <- LoadTaskStatusSearchingFiles{}
+
 	for len(stk) > 0 {
 		var node RepoWalkNode
 		stk, node = stk[:len(stk)-1], stk[len(stk)-1]
 
 		if node.info.IsDir() {
+			channel <- LoadTaskSearchingFolder{Folder: node.path}
+
 			info, err := p.fs.ReadDir(node.path)
 			if err != nil {
-				return nil, err
+				channel <- LoadTaskError{Err: err}
+				return
 			}
 
 			for _, subfile := range info {
@@ -354,32 +386,36 @@ func (p *DirectoryProject) LoadFiles() ([]string, error) {
 			ext := strings.ToLower(filepath.Ext(node.path))
 
 			if ext == ".md" || ext == ".mdx" || ext == ".mdi" {
-				markdownFiles = append(markdownFiles, node.path)
+				channel <- LoadTaskFoundFile{Filename: node.path}
+
+				if !filesOnly {
+					markdownFiles = append(markdownFiles, node.path)
+				}
 			}
 		}
 	}
 
-	return markdownFiles, nil
-}
-
-func (p *DirectoryProject) LoadTasks() (CodeBlocks, error) {
-	markdownFiles, err := p.LoadFiles()
-	if err != nil {
-		return nil, err
+	if filesOnly {
+		return
 	}
 
 	result := make(CodeBlocks, 0)
 
+	channel <- LoadTaskStatusParsingFiles{}
+
 	for _, mdFile := range markdownFiles {
 		blocks, err := getFileCodeBlocks(mdFile, p.allowUnknown, p.allowUnnamed, p.fs)
 		if err != nil {
-			return nil, err
+			channel <- LoadTaskError{Err: err}
+			return
+		}
+
+		for _, block := range blocks {
+			channel <- LoadTaskFoundTask{Task: block}
 		}
 
 		result = append(result, blocks...)
 	}
-
-	return result, nil
 }
 
 func (p *DirectoryProject) LoadEnvs() (map[string]string, error) {
@@ -433,32 +469,32 @@ func NewSingleFileProject(file string, allowUnknown bool, allowUnnamed bool) *Si
 	}
 }
 
-func (p *SingleFileProject) getSingleFile() (string, billy.Filesystem, error) {
+func (p *SingleFileProject) LoadTasks(filesOnly bool, channel chan<- interface{}) {
+	defer close(channel)
+
+	channel <- LoadTaskStatusSearchingFiles{}
+
 	fs := osfs.New(p.Dir())
+	channel <- LoadTaskSearchingFolder{Folder: fs.Root()}
+
 	relFile, err := filepath.Rel(fs.Root(), p.file)
 	if err != nil {
-		return "", nil, err
+		channel <- LoadTaskError{Err: err}
+		return
 	}
+	channel <- LoadTaskFoundFile{Filename: relFile}
 
-	return relFile, fs, nil
-}
+	channel <- LoadTaskStatusParsingFiles{}
 
-func (p *SingleFileProject) LoadFiles() ([]string, error) {
-	relFile, _, err := p.getSingleFile()
+	blocks, err := getFileCodeBlocks(relFile, p.allowUnknown, p.allowUnnamed, fs)
 	if err != nil {
-		return nil, err
+		channel <- LoadTaskError{Err: err}
+		return
 	}
 
-	return []string{relFile}, nil
-}
-
-func (p *SingleFileProject) LoadTasks() (CodeBlocks, error) {
-	relFile, fs, err := p.getSingleFile()
-	if err != nil {
-		return nil, err
+	for _, block := range blocks {
+		channel <- LoadTaskFoundTask{Task: block}
 	}
-
-	return getFileCodeBlocks(relFile, p.allowUnknown, p.allowUnnamed, fs)
 }
 
 func (p *SingleFileProject) LoadEnvs() (map[string]string, error) {
@@ -493,4 +529,24 @@ func getFileCodeBlocks(file string, allowUnknown bool, allowUnnamed bool, fs Cod
 	}
 
 	return fileBlocks, nil
+}
+
+// Load tasks, blocking until all projects are loaded
+func LoadProjectTasks(proj Project) (CodeBlocks, error) {
+	channel := make(chan interface{})
+	go proj.LoadTasks(false, channel)
+
+	blocks := make(CodeBlocks, 0)
+	var err error
+
+	for raw := range channel {
+		switch msg := raw.(type) {
+		case LoadTaskError:
+			err = msg.Err
+		case LoadTaskFoundTask:
+			blocks = append(blocks, msg.Task)
+		}
+	}
+
+	return blocks, err
 }

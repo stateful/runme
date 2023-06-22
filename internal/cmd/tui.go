@@ -36,7 +36,7 @@ func tuiCmd() *cobra.Command {
 				return err
 			}
 
-			blocks, err := proj.LoadTasks()
+			blocks, err := project.LoadProjectTasks(proj)
 			if err != nil {
 				return err
 			}

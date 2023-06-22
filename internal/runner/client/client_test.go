@@ -29,7 +29,7 @@ func Test_ResolveDirectory(t *testing.T) {
 	proj, err := project.NewDirectoryProject(projectRoot, false, false, false, []string{})
 	require.NoError(t, err)
 
-	tasks, err := proj.LoadTasks()
+	tasks, err := project.LoadProjectTasks(proj)
 	require.NoError(t, err)
 
 	taskMap := make(map[string]string)

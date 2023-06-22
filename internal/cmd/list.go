@@ -31,7 +31,7 @@ func listCmd() *cobra.Command {
 				return err
 			}
 
-			allBlocks, err := proj.LoadTasks()
+			allBlocks, err := project.LoadProjectTasks(proj)
 			if err != nil {
 				return err
 			}

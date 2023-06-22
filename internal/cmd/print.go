@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/runme/internal/project"
 )
 
 func printCmd() *cobra.Command {
@@ -20,7 +21,7 @@ func printCmd() *cobra.Command {
 				return err
 			}
 
-			blocks, err := proj.LoadTasks()
+			blocks, err := project.LoadProjectTasks(proj)
 			if err != nil {
 				return err
 			}
