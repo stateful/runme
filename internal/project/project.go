@@ -19,7 +19,8 @@ import (
 )
 
 type CodeBlock struct {
-	Block       *document.CodeBlock
+	Block *document.CodeBlock
+	/// Relative to `project.Root()`
 	File        string
 	Frontmatter document.Frontmatter
 	fs          billy.Chroot
@@ -206,6 +207,7 @@ func (blocks CodeBlocks) Names() []string {
 
 type Project interface {
 	LoadTasks() (CodeBlocks, error)
+	LoadFiles() ([]string, error)
 	LoadEnvs() (map[string]string, error)
 	EnvLoadOrder() []string
 	Dir() string
@@ -284,7 +286,7 @@ func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool, al
 	return project, nil
 }
 
-func (p *DirectoryProject) LoadTasks() (CodeBlocks, error) {
+func (p *DirectoryProject) LoadFiles() ([]string, error) {
 	matcher := &DirectoryProjectMatcher{}
 
 	if p.repo != nil && p.respectGitignore {
@@ -343,6 +345,15 @@ func (p *DirectoryProject) LoadTasks() (CodeBlocks, error) {
 				markdownFiles = append(markdownFiles, node.path)
 			}
 		}
+	}
+
+	return markdownFiles, nil
+}
+
+func (p *DirectoryProject) LoadTasks() (CodeBlocks, error) {
+	markdownFiles, err := p.LoadFiles()
+	if err != nil {
+		return nil, err
 	}
 
 	result := make(CodeBlocks, 0)
@@ -410,9 +421,27 @@ func NewSingleFileProject(file string, allowUnknown bool, allowUnnamed bool) *Si
 	}
 }
 
-func (p *SingleFileProject) LoadTasks() (CodeBlocks, error) {
+func (p *SingleFileProject) getSingleFile() (string, billy.Filesystem, error) {
 	fs := osfs.New(p.Dir())
 	relFile, err := filepath.Rel(fs.Root(), p.file)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return relFile, fs, nil
+}
+
+func (p *SingleFileProject) LoadFiles() ([]string, error) {
+	relFile, _, err := p.getSingleFile()
+	if err != nil {
+		return nil, err
+	}
+
+	return []string{relFile}, nil
+}
+
+func (p *SingleFileProject) LoadTasks() (CodeBlocks, error) {
+	relFile, fs, err := p.getSingleFile()
 	if err != nil {
 		return nil, err
 	}

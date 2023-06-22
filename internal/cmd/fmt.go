@@ -3,11 +3,15 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"path/filepath"
 
+	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
@@ -32,60 +36,89 @@ func fmtCmd() *cobra.Command {
 				}
 			}
 
-			data, err := readMarkdownFile(args)
+			proj, err := getProject()
 			if err != nil {
 				return err
 			}
 
-			var formatted []byte
+			var files = args
 
-			if flatten {
-				notebook, err := editor.Deserialize(data)
+			if len(files) == 0 {
+				projectFiles, err := proj.LoadFiles()
 				if err != nil {
-					return errors.Wrap(err, "failed to deserialize")
+					return err
 				}
 
-				if formatJSON {
-					var buf bytes.Buffer
-					enc := json.NewEncoder(&buf)
-					enc.SetIndent("", "  ")
-					if err := enc.Encode(notebook); err != nil {
-						return errors.Wrap(err, "failed to encode to JSON")
-					}
-					formatted = buf.Bytes()
-				} else {
-					formatted, err = editor.Serialize(notebook)
+				files = projectFiles
+			}
+
+			for _, relFile := range files {
+				mdFilePath := filepath.Join(proj.Dir(), relFile)
+
+				projFs := osfs.Default
+
+				data, err := project.ReadMarkdownFile(mdFilePath, projFs)
+				if err != nil {
+					return err
+				}
+
+				var formatted []byte
+
+				if flatten {
+					notebook, err := editor.Deserialize(data)
 					if err != nil {
-						return errors.Wrap(err, "failed to serialize")
+						return errors.Wrap(err, "failed to deserialize")
+					}
+
+					if formatJSON {
+						var buf bytes.Buffer
+						enc := json.NewEncoder(&buf)
+						enc.SetIndent("", "  ")
+						if err := enc.Encode(notebook); err != nil {
+							return errors.Wrap(err, "failed to encode to JSON")
+						}
+						formatted = buf.Bytes()
+					} else {
+						formatted, err = editor.Serialize(notebook)
+						if err != nil {
+							return errors.Wrap(err, "failed to serialize")
+						}
+					}
+				} else {
+					doc := document.New(data, cmark.Render)
+					_, astNode, err := doc.Parse()
+					if err != nil {
+						return errors.Wrap(err, "failed to parse source")
+					}
+					formatted, err = cmark.Render(astNode, data)
+					if err != nil {
+						return errors.Wrap(err, "failed to render")
 					}
 				}
-			} else {
-				doc := document.New(data, cmark.Render)
-				_, astNode, err := doc.Parse()
-				if err != nil {
-					return errors.Wrap(err, "failed to parse source")
+
+				if write {
+					err = project.WriteMarkdownFile(mdFilePath, projFs, formatted)
+				} else {
+					fmt.Fprintf(cmd.OutOrStdout(), "===== %s =====\n", relFile)
+					_, err = cmd.OutOrStdout().Write(formatted)
+					if err != nil {
+						err = errors.Wrap(err, "failed to write out result")
+					}
+					fmt.Fprint(cmd.OutOrStdout(), "\n")
 				}
-				formatted, err = cmark.Render(astNode, data)
+
 				if err != nil {
-					return errors.Wrap(err, "failed to render")
+					return err
 				}
 			}
 
-			if write {
-				err = writeMarkdownFile(args, formatted)
-			} else {
-				_, err = cmd.OutOrStdout().Write(formatted)
-				if err != nil {
-					err = errors.Wrap(err, "failed to write out result")
-				}
-			}
-			return err
+			return nil
 		},
 	}
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().BoolVar(&flatten, "flatten", false, "Flatten nested blocks in the output.")
+	cmd.Flags().BoolVar(&flatten, "flatten", true, "Flatten nested blocks in the output. WARNING: This can currently break frontmatter if turned off.")
 	cmd.Flags().BoolVar(&formatJSON, "json", false, "Print out data as JSON. Only possible with --flatten and not allowed with --write.")
 	cmd.Flags().BoolVarP(&write, "write", "w", false, "Write result to the source file instead of stdout.")
 
