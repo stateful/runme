@@ -438,7 +438,7 @@ func loadTasks(proj project.Project, w io.Writer, r io.Reader) (project.CodeBloc
 			w = io.Discard
 		}
 
-		fmt.Fprintln(w, "Initializing...")
+		_, _ = fmt.Fprintln(w, "Initializing...")
 
 	outer:
 		for {
@@ -448,15 +448,15 @@ func loadTasks(proj project.Project, w io.Writer, r io.Reader) (project.CodeBloc
 
 			switch msg := nextTaskMsg().(type) {
 			case loadTaskFinished:
-				fmt.Fprintln(w, "")
+				_, _ = fmt.Fprintln(w, "")
 				break outer
 			case project.LoadTaskStatusSearchingFiles:
-				fmt.Fprintln(w, "Searching for files...")
+				_, _ = fmt.Fprintln(w, "Searching for files...")
 			case project.LoadTaskStatusParsingFiles:
-				fmt.Fprintln(w, "Parsing files...")
+				_, _ = fmt.Fprintln(w, "Parsing files...")
 			default:
-				if new, ok := resultModel.TaskUpdate(msg).(loadTasksModel); ok {
-					resultModel = new
+				if newModel, ok := resultModel.TaskUpdate(msg).(loadTasksModel); ok {
+					resultModel = newModel
 				}
 			}
 		}
@@ -493,7 +493,7 @@ func (m loadTasksModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c":
+		case "ctrl+c", "crtl+d":
 			m.err = errors.New("aborted")
 			return m, tea.Quit
 		}

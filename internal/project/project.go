@@ -205,8 +205,10 @@ func (blocks CodeBlocks) Names() []string {
 	return nil
 }
 
-type LoadTaskStatusSearchingFiles struct{}
-type LoadTaskStatusParsingFiles struct{}
+type (
+	LoadTaskStatusSearchingFiles struct{}
+	LoadTaskStatusParsingFiles   struct{}
+)
 
 type LoadTaskSearchingFolder struct {
 	Folder string
@@ -403,8 +405,6 @@ func (p *DirectoryProject) LoadTasks(filesOnly bool, channel chan<- interface{})
 		return
 	}
 
-	result := make(CodeBlocks, 0)
-
 	channel <- LoadTaskStatusParsingFiles{}
 
 	for _, mdFile := range markdownFiles {
@@ -418,8 +418,6 @@ func (p *DirectoryProject) LoadTasks(filesOnly bool, channel chan<- interface{})
 		for _, block := range blocks {
 			channel <- LoadTaskFoundTask{Task: block}
 		}
-
-		result = append(result, blocks...)
 	}
 }
 
