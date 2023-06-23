@@ -840,6 +840,58 @@ func Test_runnerService(t *testing.T) {
 			result.ExitCode,
 		)
 	})
+
+	t.Run("ExecuteStoreLastOutput", func(t *testing.T) {
+		t.Parallel()
+		s, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{})
+		require.NoError(t, err)
+
+		sessionID := s.Session.Id
+
+		{
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			err = stream.Send(&runnerv1.ExecuteRequest{
+				ProgramName: "bash",
+				Commands: []string{
+					"printf 'null byte test: \\0'",
+				},
+				Tty:             true,
+				SessionId:       sessionID,
+				StoreLastOutput: true,
+			})
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+			result := <-execResult
+
+			assert.Equal(t, "null byte test: \000", string(result.Stdout))
+		}
+
+		{
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			err = stream.Send(&runnerv1.ExecuteRequest{
+				ProgramName: "bash",
+				Commands: []string{
+					"echo -n \"$__\"",
+				},
+				Tty:             true,
+				SessionId:       sessionID,
+				StoreLastOutput: true,
+			})
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+			result := <-execResult
+
+			assert.Equal(t, "null byte test: ", string(result.Stdout))
+		}
+	})
 }
 
 func Test_readLoop(t *testing.T) {
