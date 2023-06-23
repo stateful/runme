@@ -434,6 +434,10 @@ func loadTasks(proj project.Project, w io.Writer, r io.Reader) (project.CodeBloc
 
 		resultModel = result.(loadTasksModel)
 	} else {
+		if strings.ToLower(os.Getenv("RUNME_VERBOSE")) != "true" {
+			w = io.Discard
+		}
+
 		fmt.Fprintln(w, "Initializing...")
 
 	outer:
