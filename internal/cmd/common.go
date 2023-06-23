@@ -401,20 +401,18 @@ type loadTaskFinished struct{}
 
 func newLoadTasksModel(nextTaskMsg tea.Cmd) loadTasksModel {
 	return loadTasksModel{
-		spinner: spinner.New(spinner.WithSpinner(spinner.MiniDot)),
-		// channel: channel,
+		spinner:     spinner.New(spinner.WithSpinner(spinner.MiniDot)),
 		nextTaskMsg: nextTaskMsg,
 		status:      "Initializing...",
-
-		tasks: make(project.CodeBlocks, 0),
+		tasks:       make(project.CodeBlocks, 0),
 	}
 }
 
-func loadTasks(proj project.Project) (project.CodeBlocks, error) {
+func loadTasks(proj project.Project, w io.Writer, r io.Reader) (project.CodeBlocks, error) {
 	channel := make(chan interface{})
 	go proj.LoadTasks(false, channel)
 
-	m := newLoadTasksModel(func() tea.Msg {
+	nextTaskMsg := func() tea.Msg {
 		msg, ok := <-channel
 
 		if !ok {
@@ -422,15 +420,44 @@ func loadTasks(proj project.Project) (project.CodeBlocks, error) {
 		}
 
 		return msg
-	})
-
-	p := tea.NewProgram(m)
-	result, err := p.Run()
-	if err != nil {
-		return nil, err
 	}
 
-	resultModel := result.(loadTasksModel)
+	m := newLoadTasksModel(nextTaskMsg)
+
+	resultModel := m
+
+	if isTerminal(os.Stdout.Fd()) {
+		p := tea.NewProgram(m, tea.WithOutput(w), tea.WithInput(r))
+		result, err := p.Run()
+		if err != nil {
+			return nil, err
+		}
+
+		resultModel = result.(loadTasksModel)
+	} else {
+		fmt.Fprintln(w, "Initializing...")
+
+	outer:
+		for {
+			if resultModel.err != nil {
+				break
+			}
+
+			switch msg := nextTaskMsg().(type) {
+			case loadTaskFinished:
+				fmt.Fprintln(w, "")
+				break outer
+			case project.LoadTaskStatusSearchingFiles:
+				fmt.Fprintln(w, "Searching for files...")
+			case project.LoadTaskStatusParsingFiles:
+				fmt.Fprintln(w, "Parsing files...")
+			default:
+				if new, ok := resultModel.TaskUpdate(msg).(loadTasksModel); ok {
+					resultModel = new
+				}
+			}
+		}
+	}
 
 	if resultModel.err != nil {
 		return nil, resultModel.err
@@ -449,6 +476,10 @@ func (m loadTasksModel) Init() tea.Cmd {
 }
 
 func (m loadTasksModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.err != nil {
+		return m, tea.Quit
+	}
+
 	switch msg := msg.(type) {
 	case spinner.TickMsg:
 		var cmd tea.Cmd
