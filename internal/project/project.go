@@ -478,7 +478,7 @@ func (p *SingleFileProject) LoadTasks(filesOnly bool, channel chan<- interface{}
 	channel <- LoadTaskStatusSearchingFiles{}
 
 	fs := osfs.New(p.Dir())
-	channel <- LoadTaskSearchingFolder{Folder: fs.Root()}
+	channel <- LoadTaskSearchingFolder{Folder: "."}
 
 	relFile, err := filepath.Rel(fs.Root(), p.file)
 	if err != nil {

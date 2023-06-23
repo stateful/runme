@@ -100,7 +100,41 @@ func Test_directoryGitProject(t *testing.T) {
 		}, envs)
 	})
 
-	// TODO(mxs): test LoadTasks directly
+	t.Run("LoadTask", func(t *testing.T) {
+		tasks := collectTaskMessages(proj, false)
+		require.NoError(t, err)
+
+		i := 0
+		nextMsg := func() (result interface{}) {
+			result = tasks[i]
+			i++
+			return
+		}
+
+		assert.Equal(t, LoadTaskStatusSearchingFiles{}, nextMsg())
+		assert.Equal(t, LoadTaskSearchingFolder{Folder: filepath.FromSlash(".")}, nextMsg())
+		assert.Equal(t, LoadTaskSearchingFolder{Folder: filepath.FromSlash("src")}, nextMsg())
+		assert.Equal(t, LoadTaskFoundFile{Filename: filepath.FromSlash("src/DOCS.md")}, nextMsg())
+		assert.Equal(t, LoadTaskFoundFile{Filename: filepath.FromSlash("README.md")}, nextMsg())
+		assert.Equal(t, LoadTaskStatusParsingFiles{}, nextMsg())
+
+		assert.Equal(t, LoadTaskParsingFile{Filename: filepath.FromSlash("src/DOCS.md")}, nextMsg())
+
+		{
+			msg := nextMsg().(LoadTaskFoundTask)
+			assert.Equal(t, "echo-chao", msg.Task.Block.Name())
+		}
+
+		assert.Equal(t, LoadTaskParsingFile{Filename: filepath.FromSlash("README.md")}, nextMsg())
+
+		{
+			msg := nextMsg().(LoadTaskFoundTask)
+			assert.Equal(t, "echo-hello", msg.Task.Block.Name())
+		}
+
+		assert.Equal(t, 10, len(tasks))
+	})
+
 	t.Run("LoadProjectTasks", func(t *testing.T) {
 		tasks, err := LoadProjectTasks(proj)
 		require.NoError(t, err)
@@ -204,7 +238,32 @@ func Test_singleFileProject(t *testing.T) {
 		assert.Nil(t, envs)
 	})
 
-	// TODO(mxs): test LoadTasks directly
+	t.Run("LoadTasks", func(t *testing.T) {
+		tasks := collectTaskMessages(proj, false)
+
+		i := 0
+		nextMsg := func() (result interface{}) {
+			result = tasks[i]
+			i++
+			return
+		}
+
+		assert.Equal(t, LoadTaskStatusSearchingFiles{}, nextMsg())
+		assert.Equal(t, LoadTaskSearchingFolder{Folder: "."}, nextMsg())
+		assert.Equal(t, LoadTaskFoundFile{Filename: filepath.FromSlash("README.md")}, nextMsg())
+
+		assert.Equal(t, LoadTaskStatusParsingFiles{}, nextMsg())
+
+		assert.Equal(t, LoadTaskParsingFile{Filename: filepath.FromSlash("README.md")}, nextMsg())
+
+		{
+			msg := nextMsg().(LoadTaskFoundTask)
+			assert.Equal(t, "echo-hello", msg.Task.Block.Name())
+		}
+
+		assert.Equal(t, len(tasks), 6)
+	})
+
 	t.Run("LoadProjectTasks", func(t *testing.T) {
 		tasks, err := LoadProjectTasks(proj)
 		require.NoError(t, err)
@@ -257,4 +316,15 @@ func convertLine(p string) string {
 	}
 
 	return p
+}
+
+func collectTaskMessages(proj Project, filesOnly bool) (result []interface{}) {
+	channel := make(chan interface{})
+	go proj.LoadTasks(filesOnly, channel)
+
+	for msg := range channel {
+		result = append(result, msg)
+	}
+
+	return
 }
