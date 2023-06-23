@@ -71,7 +71,7 @@ func runCmd() *cobra.Command {
 			runBlocks := make([]project.FileCodeBlock, 0)
 
 			{
-				blocks, err := project.LoadProjectTasks(proj)
+				blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin())
 				if err != nil {
 					return err
 				}

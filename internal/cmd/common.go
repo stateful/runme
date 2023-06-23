@@ -393,7 +393,6 @@ type loadTasksModel struct {
 
 	tasks project.CodeBlocks
 
-	// channel chan interface{}
 	nextTaskMsg tea.Cmd
 }
 
