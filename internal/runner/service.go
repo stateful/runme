@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -342,7 +343,9 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			}
 
 			if storeStdout {
-				stdoutMem = append(stdoutMem, data.Stdout...)
+				// sanitize for environment variable
+				sanitized := bytes.ReplaceAll(data.Stdout, []byte{'\000'}, []byte{})
+				stdoutMem = append(stdoutMem, sanitized...)
 			}
 		}
 		return nil
