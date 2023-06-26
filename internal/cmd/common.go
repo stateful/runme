@@ -89,9 +89,9 @@ func writeMarkdownFile(args []string, data []byte) error {
 
 	fullFilename := arg
 	if fullFilename == "" {
-		fullFilename = filepath.Join(fChdir, fFileName)
+		return nil
 	}
-	err := os.WriteFile(fullFilename, data, 0)
+	err := os.WriteFile(fullFilename, data, 0o600)
 	return errors.Wrapf(err, "failed to write to %s", fullFilename)
 }
 

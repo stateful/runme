@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-billy/v5/util"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/executable"
@@ -32,6 +33,10 @@ func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
 		return nil, errors.Wrapf(err, "failed to read data")
 	}
 	return data, nil
+}
+
+func WriteMarkdownFile(filename string, fs billy.Basic, data []byte) error {
+	return util.WriteFile(fs, filename, data, 0o600)
 }
 
 func parseDocumentForCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic, doFrontmatter bool) (document.CodeBlocks, *document.Frontmatter, error) {
