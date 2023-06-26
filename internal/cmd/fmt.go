@@ -42,7 +42,7 @@ func fmtCmd() *cobra.Command {
 			files := args
 
 			if len(files) == 0 {
-				projectFiles, err := proj.LoadFiles()
+				projectFiles, err := loadFiles(proj, cmd.OutOrStdout(), cmd.InOrStdin())
 				if err != nil {
 					return err
 				}

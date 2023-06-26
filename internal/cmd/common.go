@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
@@ -377,4 +379,198 @@ func replaceVarValue(ev CommandExportExtractMatch, newValue string) string {
 	parts := strings.SplitN(ev.Match, "=", 2)
 	replacedText := fmt.Sprintf("%s=%q", parts[0], newValue)
 	return replacedText
+}
+
+type loadTasksModel struct {
+	spinner spinner.Model
+
+	status   string
+	filename string
+
+	clear bool
+
+	err error
+
+	tasks project.CodeBlocks
+	files []string
+
+	nextTaskMsg tea.Cmd
+}
+
+type loadTaskFinished struct{}
+
+func newLoadTasksModel(nextTaskMsg tea.Cmd) loadTasksModel {
+	return loadTasksModel{
+		spinner:     spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		nextTaskMsg: nextTaskMsg,
+		status:      "Initializing...",
+		tasks:       make(project.CodeBlocks, 0),
+	}
+}
+
+func loadFiles(proj project.Project, w io.Writer, r io.Reader) ([]string, error) {
+	m, err := runTasksModel(proj, true, w, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return m.files, nil
+}
+
+func loadTasks(proj project.Project, w io.Writer, r io.Reader) (project.CodeBlocks, error) {
+	m, err := runTasksModel(proj, false, w, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return m.tasks, nil
+}
+
+func runTasksModel(proj project.Project, filesOnly bool, w io.Writer, r io.Reader) (*loadTasksModel, error) {
+	channel := make(chan interface{})
+	go proj.LoadTasks(filesOnly, channel)
+
+	nextTaskMsg := func() tea.Msg {
+		msg, ok := <-channel
+
+		if !ok {
+			return loadTaskFinished{}
+		}
+
+		return msg
+	}
+
+	m := newLoadTasksModel(nextTaskMsg)
+
+	resultModel := m
+
+	if isTerminal(os.Stdout.Fd()) {
+		p := tea.NewProgram(m, tea.WithOutput(w), tea.WithInput(r))
+		result, err := p.Run()
+		if err != nil {
+			return nil, err
+		}
+
+		resultModel = result.(loadTasksModel)
+	} else {
+		if strings.ToLower(os.Getenv("RUNME_VERBOSE")) != "true" {
+			w = io.Discard
+		}
+
+		_, _ = fmt.Fprintln(w, "Initializing...")
+
+	outer:
+		for {
+			if resultModel.err != nil {
+				break
+			}
+
+			switch msg := nextTaskMsg().(type) {
+			case loadTaskFinished:
+				_, _ = fmt.Fprintln(w, "")
+				break outer
+			case project.LoadTaskStatusSearchingFiles:
+				_, _ = fmt.Fprintln(w, "Searching for files...")
+			case project.LoadTaskStatusParsingFiles:
+				_, _ = fmt.Fprintln(w, "Parsing files...")
+			default:
+				if newModel, ok := resultModel.TaskUpdate(msg).(loadTasksModel); ok {
+					resultModel = newModel
+				}
+			}
+		}
+	}
+
+	if resultModel.err != nil {
+		return nil, resultModel.err
+	}
+
+	return &resultModel, nil
+}
+
+func (m loadTasksModel) Init() tea.Cmd {
+	return tea.Batch(
+		func() tea.Msg {
+			return m.spinner.Tick()
+		},
+		m.nextTaskMsg,
+	)
+}
+
+func (m loadTasksModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.err != nil {
+		return m, tea.Quit
+	}
+
+	switch msg := msg.(type) {
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+	case loadTaskFinished:
+		m.clear = true
+		return m, tea.Quit
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "crtl+d":
+			m.err = errors.New("aborted")
+			return m, tea.Quit
+		}
+	}
+
+	if m, ok := m.TaskUpdate(msg).(loadTasksModel); ok {
+		return m, m.nextTaskMsg
+	}
+
+	return m, nil
+}
+
+func (m loadTasksModel) TaskUpdate(msg tea.Msg) tea.Model {
+	switch msg := msg.(type) {
+
+	case project.LoadTaskError:
+		m.err = msg.Err
+
+	// status
+	case project.LoadTaskStatusSearchingFiles:
+		m.filename = ""
+		m.status = "Searching for files..."
+	case project.LoadTaskStatusParsingFiles:
+		m.filename = ""
+		m.status = "Parsing files..."
+
+	// filename
+	case project.LoadTaskSearchingFolder:
+		m.filename = msg.Folder
+	case project.LoadTaskParsingFile:
+		m.filename = msg.Filename
+
+	// results
+	case project.LoadTaskFoundFile:
+		m.files = append(m.files, msg.Filename)
+	case project.LoadTaskFoundTask:
+		m.tasks = append(m.tasks, msg.Task)
+
+	default:
+		return nil
+	}
+
+	return m
+}
+
+func (m loadTasksModel) View() (s string) {
+	if m.clear {
+		return
+	}
+
+	s += m.spinner.View()
+	s += " "
+
+	s += m.status
+
+	if m.filename != "" {
+		s += fmt.Sprintf(" (%s)", m.filename)
+	}
+
+	return
 }
