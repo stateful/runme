@@ -2,14 +2,12 @@ package editor
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"strconv"
 	"strings"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/yuin/goldmark/ast"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -209,37 +207,26 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 	// A key with a name "index" that comes from VS Code is also filtered out.
 	keys := make([]string, 0, len(cell.Metadata))
 	for k := range cell.Metadata {
-		if k == "index" || strings.HasPrefix(k, PrivateAttributePrefix) || strings.HasPrefix(k, InternalAttributePrefix) {
+		if k == "index" || strings.HasPrefix(k, PrivateAttributePrefix) || strings.HasPrefix(k, InternalAttributePrefix) || len(k) == 0 {
 			continue
 		}
 		keys = append(keys, k)
 	}
-	// Sort attributes by key, however, keep the element
-	// with the key "name" in front.
-	slices.SortFunc(keys, func(a, b string) bool {
-		if a == "name" {
-			return true
+
+	attr := make(document.Attributes, len(keys))
+
+	for _, k := range keys {
+		if len(k) <= 0 {
+			continue
 		}
-		if b == "name" {
-			return false
-		}
-		return a < b
-	})
-	if len(keys) == 0 {
-		return
+
+		attr[k] = cell.Metadata[k]
 	}
 
-	_, _ = w.Write([]byte{' ', '{', ' '})
-	i := 0
-	for _, k := range keys {
-		v := cell.Metadata[k]
-		_, _ = w.Write([]byte(fmt.Sprintf("%s=%v", k, v)))
-		i++
-		if i < len(keys) {
-			_, _ = w.Write([]byte{' '})
-		}
+	if len(attr) > 0 {
+		_, _ = w.Write([]byte{' '})
+		_ = document.DefaultDocumentParser.Write(attr, w)
 	}
-	_, _ = w.Write([]byte{' ', '}'})
 }
 
 func serializeCells(cells []*Cell) []byte {

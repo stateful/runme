@@ -66,8 +66,12 @@ func newCodeBlock(
 	source []byte,
 	render Renderer,
 ) (*CodeBlock, error) {
-	attributes := getAttributes(node, source)
-	name, hasName := getName(node, source, nameResolver)
+	attributes, err := getAttributes(node, source, DefaultDocumentParser)
+	if err != nil {
+		return nil, err
+	}
+
+	name, hasName := getName(node, source, nameResolver, attributes)
 
 	value, err := render(node, source)
 	if err != nil {
@@ -225,37 +229,29 @@ func rawAttributes(source []byte) []byte {
 	}
 
 	if start >= 0 && stop >= 0 {
-		return bytes.TrimSpace(source[start:stop])
+		return bytes.TrimSpace(source[start-1 : stop+1])
 	}
 
 	return nil
 }
 
-func parseRawAttributes(source []byte) map[string]string {
-	items := bytes.Split(source, []byte{' '})
-	if len(items) == 0 {
-		return nil
-	}
-
-	result := make(map[string]string)
-
-	for _, item := range items {
-		if !bytes.Contains(item, []byte{'='}) {
-			continue
-		}
-		kv := bytes.Split(item, []byte{'='})
-		result[string(kv[0])] = string(kv[1])
-	}
-
-	return result
-}
-
-func getAttributes(node *ast.FencedCodeBlock, source []byte) map[string]string {
+func getAttributes(node *ast.FencedCodeBlock, source []byte, parser attributeParser) (Attributes, error) {
 	attributes := make(map[string]string)
+
 	if node.Info != nil {
-		attributes = parseRawAttributes(rawAttributes(node.Info.Text(source)))
+		codeBlockInfo := node.Info.Text(source)
+		rawAttrs := rawAttributes(codeBlockInfo)
+
+		if len(bytes.TrimSpace(rawAttrs)) > 0 {
+			attr, err := parser.Parse(rawAttrs)
+			if err != nil {
+				return nil, err
+			}
+
+			attributes = attr
+		}
 	}
-	return attributes
+	return attributes, nil
 }
 
 // TODO(mxs): use guesslang model
@@ -322,12 +318,7 @@ func sanitizeName(s string) string {
 	return b.String()
 }
 
-func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolver) (string, bool) {
-	attributes := make(map[string]string)
-	if node.Info != nil {
-		attributes = parseRawAttributes(rawAttributes(node.Info.Text(source)))
-	}
-
+func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolver, attributes Attributes) (string, bool) {
 	hasName := false
 
 	var name string

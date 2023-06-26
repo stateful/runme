@@ -16,7 +16,7 @@ var (
 
 It can have an annotation with a name:
 
-` + "```" + `sh {name=echo first= second=2}
+` + "```" + `sh {"first":"","name":"echo","second":"2"}
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -29,7 +29,7 @@ $ echo "Hello, runme!"
 
 1. Item 1
 
-   ` + "```" + `sh {name=echo-2 first= second=2}
+   ` + "```" + `sh {"first":"","name":"echo-2","second":"2"}
    $ echo "Hello, runme!"
    ` + "```" + `
 
@@ -45,7 +45,7 @@ $ echo "Hello, runme!"
 
 It can have an annotation with a name:
 
-` + "```" + `sh { name=echo first= second=2 }
+` + "```" + `sh {"first":"","name":"echo","second":"2"}
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -58,7 +58,7 @@ $ echo "Hello, runme!"
 
 1. Item 1
 
-` + "```" + `sh { name=echo-2 first= second=2 }
+` + "```" + `sh {"first":"","name":"echo-2","second":"2"}
 $ echo "Hello, runme!"
 ` + "```" + `
 
@@ -166,7 +166,7 @@ echo 1
 }
 
 func Test_toCells_UnsupportedLang(t *testing.T) {
-	data := []byte("```py { readonly=true }" + `
+	data := []byte("```py {\"readonly\":\"true\"}" + `
 def hello():
     print("Hello World")
 ` + "```" + `
@@ -323,8 +323,18 @@ pre-commit install
 	)
 }
 
-func Test_serializeCells_attributes(t *testing.T) {
+func Test_serializeCells_attributes_babikml(t *testing.T) {
 	data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
+	expected := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
+	doc := document.New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+	cells := toCells(node, data)
+	assert.Equal(t, string(expected), string(serializeCells(cells)))
+}
+
+func Test_serializeCells_attributes(t *testing.T) {
+	data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
 	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
@@ -333,7 +343,7 @@ func Test_serializeCells_attributes(t *testing.T) {
 }
 
 func Test_serializeCells_privateFields(t *testing.T) {
-	data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
+	data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
 	doc := document.New(data, cmark.Render)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
@@ -349,7 +359,7 @@ func Test_serializeCells_privateFields(t *testing.T) {
 func Test_serializeCells_UnsupportedLang(t *testing.T) {
 	data := []byte(`## Non-Supported Languages
 
-` + "```py { readonly=true }" + `
+` + "```py {\"readonly\":\"true\"}" + `
 def hello():
     print("Hello World")
 ` + "```" + `
@@ -392,7 +402,7 @@ func Test_serializeFencedCodeAttributes(t *testing.T) {
 				"name": "name",
 			},
 		})
-		assert.Equal(t, " { name=name a=a b=b c=c }", buf.String())
+		assert.Equal(t, ` {"a":"a","b":"b","c":"c","name":"name"}`, buf.String())
 	})
 }
 

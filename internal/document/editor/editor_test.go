@@ -75,7 +75,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 	})
 
 	t.Run("PreserveName", func(t *testing.T) {
-		data := []byte("```sh { name=name1 }\necho 1\n```\n")
+		data := []byte("```sh {\"name\":\"name1\"}\necho 1\n```\n")
 		notebook, err := Deserialize(data)
 		require.NoError(t, err)
 		cell := notebook.Cells[0]
