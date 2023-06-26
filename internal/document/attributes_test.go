@@ -115,4 +115,44 @@ func Test_attributes(t *testing.T) {
 			assert.Equal(t, attr, parsed)
 		}
 	})
+
+	t.Run("failoverAttributesParser", func(t *testing.T) {
+		parser := DefaultDocumentParser
+
+		// parser handles json
+		{
+			src := []byte("{\"float\":13.3,\"key\":\"value\",\"val\":20}")
+
+			attr, err := parser.Parse(src)
+			require.NoError(t, err)
+
+			assert.Equal(t, Attributes{
+				"key":   "value",
+				"val":   "20",
+				"float": "13.3",
+			}, attr)
+
+			serialized := bytes.NewBuffer(nil)
+			parser.Write(attr, serialized)
+			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", serialized.String())
+		}
+
+		// parser handles babikml
+		{
+			src := []byte("{ float=13.3 key=value val=20 }")
+
+			attr, err := parser.Parse(src)
+			require.NoError(t, err)
+
+			assert.Equal(t, Attributes{
+				"key":   "value",
+				"val":   "20",
+				"float": "13.3",
+			}, attr)
+
+			serialized := bytes.NewBuffer(nil)
+			parser.Write(attr, serialized)
+			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", serialized.String())
+		}
+	})
 }
