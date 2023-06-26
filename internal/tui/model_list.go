@@ -93,6 +93,7 @@ func NewListModel(ctx context.Context, description string, repoUser string, clie
 		editInput:   ti,
 		editHelp:    help.New(),
 		spinner:     s,
+		confirmed:   false,
 		loading:     true,
 		usePrefix:   true,
 	}
@@ -105,6 +106,10 @@ func NewListModel(ctx context.Context, description string, repoUser string, clie
 	}
 
 	return m
+}
+
+func (m ListModel) Confirmed() bool {
+	return m.confirmed
 }
 
 func (m ListModel) startSearch() tea.Msg {
@@ -296,12 +301,12 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case confirmMsg:
 		m.confirmed = true
 		fmt.Printf("Output: %s", msg.response)
-		return m, tea.Quit // see https://github.com/charmbracelet/bubbletea/discussions/273
+		return m, tea.Quit
 
 	case errorMsg:
 		m.loading = false
 		m.err = msg.Err
-		return m, nil // see https://github.com/charmbracelet/bubbletea/discussions/273 // tea.Quit
+		return m, tea.Quit // now fixed https://github.com/charmbracelet/bubbletea/issues/274
 	}
 
 	m.list, cmd = m.list.Update(msg)
