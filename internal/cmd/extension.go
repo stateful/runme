@@ -26,7 +26,8 @@ func extensionCmd() *cobra.Command {
 				tui.MinimalKeyMap,
 				tui.DefaultStyles,
 			)
-			return newProgram(cmd, model).Start()
+			_, err := newProgram(cmd, model).Start()
+			return err
 		},
 	}
 

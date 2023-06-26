@@ -79,10 +79,13 @@ or just bad. Please use with discretion.
 			}
 
 			model := tui.NewListModel(ctx, description, repoUser, client)
-			err = newProgram(cmd, model).Start()
+			m, err := newProgram(cmd, model).Start()
+			if err != nil {
+				return err
+			}
 
-			if err == nil {
-				_, err = fmt.Fprintln(cmd.OutOrStdout(), "Great choice! Learn how to run your dev workflows with https://runme.dev/")
+			if mm, ok := m.(tui.ListModel); ok && mm.Confirmed() {
+				_, err = fmt.Fprintf(cmd.OutOrStdout(), "Great choice! Learn how to run your markdown files with https://runme.dev/\n\n")
 			}
 
 			return err

@@ -13,12 +13,12 @@ type program struct {
 	out io.Writer
 }
 
-func (p *program) Start() error {
+func (p *program) Start() (tea.Model, error) {
 	if f, ok := p.out.(*os.File); ok && !isTerminal(f.Fd()) {
 		go p.Quit()
 	}
-	_, err := p.Program.Run()
-	return err
+	m, err := p.Program.Run()
+	return m, err
 }
 
 func newProgramWithOutputs(output io.Writer, input io.Reader, model tea.Model, opts ...tea.ProgramOption) *program {
