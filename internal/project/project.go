@@ -554,3 +554,23 @@ func LoadProjectTasks(proj Project) (CodeBlocks, error) {
 
 	return blocks, err
 }
+
+// Load files, blocking until all projects are loaded
+func LoadProjectFiles(proj Project) ([]string, error) {
+	channel := make(chan interface{})
+	go proj.LoadTasks(true, channel)
+
+	files := make([]string, 0)
+	var err error
+
+	for raw := range channel {
+		switch msg := raw.(type) {
+		case LoadTaskError:
+			err = msg.Err
+		case LoadTaskFoundFile:
+			files = append(files, msg.Filename)
+		}
+	}
+
+	return files, err
+}

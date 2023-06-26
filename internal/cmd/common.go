@@ -392,6 +392,7 @@ type loadTasksModel struct {
 	err error
 
 	tasks project.CodeBlocks
+	files []string
 
 	nextTaskMsg tea.Cmd
 }
@@ -407,9 +408,27 @@ func newLoadTasksModel(nextTaskMsg tea.Cmd) loadTasksModel {
 	}
 }
 
+func loadFiles(proj project.Project, w io.Writer, r io.Reader) ([]string, error) {
+	m, err := runTasksModel(proj, true, w, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return m.files, nil
+}
+
 func loadTasks(proj project.Project, w io.Writer, r io.Reader) (project.CodeBlocks, error) {
+	m, err := runTasksModel(proj, false, w, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return m.tasks, nil
+}
+
+func runTasksModel(proj project.Project, filesOnly bool, w io.Writer, r io.Reader) (*loadTasksModel, error) {
 	channel := make(chan interface{})
-	go proj.LoadTasks(false, channel)
+	go proj.LoadTasks(filesOnly, channel)
 
 	nextTaskMsg := func() tea.Msg {
 		msg, ok := <-channel
@@ -466,7 +485,7 @@ func loadTasks(proj project.Project, w io.Writer, r io.Reader) (project.CodeBloc
 		return nil, resultModel.err
 	}
 
-	return resultModel.tasks, nil
+	return &resultModel, nil
 }
 
 func (m loadTasksModel) Init() tea.Cmd {
@@ -528,6 +547,7 @@ func (m loadTasksModel) TaskUpdate(msg tea.Msg) tea.Model {
 
 	// results
 	case project.LoadTaskFoundFile:
+		m.files = append(m.files, msg.Filename)
 	case project.LoadTaskFoundTask:
 		m.tasks = append(m.tasks, msg.Task)
 
