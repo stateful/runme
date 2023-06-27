@@ -50,7 +50,7 @@ func tuiCmd() *cobra.Command {
 				if !fAllowUnnamed {
 					return errors.Errorf("no named code blocks, consider adding flag --allow-unnamed")
 				}
-				return errors.Errorf("no named code blocks")
+				return errors.Errorf("no code blocks")
 			}
 
 			if visibleEntries <= 0 {
