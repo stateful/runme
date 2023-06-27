@@ -44,7 +44,13 @@ func tuiCmd() *cobra.Command {
 			blocks = sortBlocks(blocks)
 
 			if len(blocks) == 0 {
-				return errors.Errorf("no code blocks in %s", fFileName)
+				if fFileMode {
+					return errors.Errorf("no code blocks in %s", fFileName)
+				}
+				if !fAllowUnnamed {
+					return errors.Errorf("no named code blocks, consider adding flag --allow-unnamed")
+				}
+				return errors.Errorf("no code blocks")
 			}
 
 			if visibleEntries <= 0 {
