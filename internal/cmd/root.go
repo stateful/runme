@@ -42,6 +42,11 @@ func Root() *cobra.Command {
 				}
 			}
 
+			// backwards compat
+			if envProject, ok := os.LookupEnv("RUNME_PROJECT"); ok {
+				fProject = envProject
+			}
+
 			fFileMode = cmd.Flags().Changed("chdir") || cmd.Flags().Changed("filename")
 
 			if fFileMode {
