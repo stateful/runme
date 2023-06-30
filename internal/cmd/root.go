@@ -42,15 +42,15 @@ func Root() *cobra.Command {
 				}
 			}
 
-			fFileMode = !cmd.Flags().Changed("project")
-
-			if envProject, ok := os.LookupEnv("RUNME_PROJECT"); ok && fFileMode {
-				fFileMode = false
+			// backwards compat
+			if envProject, ok := os.LookupEnv("RUNME_PROJECT"); ok {
 				fProject = envProject
 			}
 
-			if !fFileMode && !cmd.Flags().Changed("allow-unnamed") {
-				fAllowUnnamed = false
+			fFileMode = cmd.Flags().Changed("chdir") || cmd.Flags().Changed("filename")
+
+			if fFileMode && !cmd.Flags().Changed("allow-unnamed") {
+				fAllowUnnamed = true
 			}
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -63,7 +63,7 @@ func Root() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 
 	pflags.BoolVar(&fAllowUnknown, "allow-unknown", true, "Display snippets without known executor")
-	pflags.BoolVar(&fAllowUnnamed, "allow-unnamed", true, "Allow scripts without explicit names")
+	pflags.BoolVar(&fAllowUnnamed, "allow-unnamed", false, "Allow scripts without explicit names")
 
 	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command")
 	pflags.StringVar(&fFileName, "filename", "README.md", "Name of the README file")
