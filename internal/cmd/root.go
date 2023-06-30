@@ -26,7 +26,7 @@ func Root() *cobra.Command {
 	cmd := cobra.Command{
 		Use:           "runme",
 		Short:         "Execute commands directly from a README",
-		Long:          "Runme, the next-gen runner for dev workflows. Parses commands directly\nfrom markdown (e.g. README) to make them executable.",
+		Long:          "Runme executes commands inside your runbooks, docs, and READMEs. Parses commands\ndirectly from markdown files to make them executable.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
