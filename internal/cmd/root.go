@@ -49,7 +49,7 @@ func Root() *cobra.Command {
 
 			fFileMode = cmd.Flags().Changed("chdir") || cmd.Flags().Changed("filename")
 
-			if fFileMode {
+			if fFileMode && !cmd.Flags().Changed("allow-unnamed") {
 				fAllowUnnamed = true
 			}
 		},
