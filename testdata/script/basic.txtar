@@ -2,8 +2,8 @@ exec runme ls
 cmp stdout golden-list.txt
 ! stderr .
 
-exec runme ls --allow-unknown=false
-cmp stdout golden-list-disallow-unknown.txt
+exec runme ls --allow-unnamed=true
+cmp stdout golden-list-allow-unnamed.txt
 ! stderr .
 
 ! exec runme ls --filename nonexistent.md
@@ -16,26 +16,26 @@ stdout 'Hello, runme!'
 ! stderr .
 
 env SHELL=/bin/bash
-exec runme run --index 0
+exec runme run --filename README.md --index 0
 stdout 'Hello, runme!'
 ! stderr .
 
 env SHELL=/bin/bash
-exec runme run echo-1
+exec runme run --filename README.md echo-1
 stdout '1\n2\n3\n'
 ! stderr .
 
 env SHELL=/bin/bash
-exec runme run tempdir
+exec runme run --allow-unnamed tempdir
 stdout 'hi!'
 ! stderr .
 
-! exec runme run --allow-unknown=false hello-world-2
+! exec runme run --filename README.md --allow-unknown=false hello-world-2
 ! stdout .
 stderr 'unable to find any script named "hello-world-2"'
 
 env HOME=/tmp
-exec sh -c 'runme run package-main'
+exec sh -c 'runme run --allow-unnamed package-main'
 stdout 'Hello from Go, runme!'
 ! stderr .
 
@@ -113,17 +113,11 @@ func main() {
 
 -- golden-list.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION
-echo-hello	README.md	echo "Hello, runme!"	This is a basic snippet with shell command.
-echo-hello-2	README.md	echo "Hello, runme!"	You can omit the language, and runme will assume you are in shell.
-echo-inferred	README.md	echo Inferred	Names will automatically be inferred from a script's contents.
 echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.
-echo-1	README.md	echo "1"	It can contain multiple lines too.
-echo-hello-3	README.md	echo "Hello, runme! Again!"	Also, the dollar sign is not needed.
-tempdir	README.md	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	It works with cd, pushd, and similar because all lines are executed as a single script.
-package-main	README.md	package main	It can also execute a snippet of Go code.
--- golden-list-disallow-unknown.txt --
+-- golden-list-allow-unnamed.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION
 echo-hello	README.md	echo "Hello, runme!"	This is a basic snippet with shell command.
+echo-hello-2	README.md	echo "Hello, runme!"	You can omit the language, and runme will assume you are in shell.
 echo-inferred	README.md	echo Inferred	Names will automatically be inferred from a script's contents.
 echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.
 echo-1	README.md	echo "1"	It can contain multiple lines too.
