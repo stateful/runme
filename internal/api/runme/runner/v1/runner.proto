@@ -25,6 +25,9 @@ message CreateSessionRequest {
   // envs field provides an initial set of environment variables
   // for a newly created session.
   repeated string envs = 2;
+
+  // optional project from which to immediately load environment variables
+  optional Project project = 3;
 }
 
 message CreateSessionResponse {

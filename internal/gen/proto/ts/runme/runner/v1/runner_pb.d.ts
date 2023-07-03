@@ -49,6 +49,12 @@ export interface CreateSessionRequest {
      * @generated from protobuf field: repeated string envs = 2;
      */
     envs: string[];
+    /**
+     * optional project from which to immediately load environment variables
+     *
+     * @generated from protobuf field: optional runme.runner.v1.Project project = 3;
+     */
+    project?: Project;
 }
 /**
  * @generated from protobuf message runme.runner.v1.CreateSessionResponse

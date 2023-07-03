@@ -159,33 +159,47 @@ type RunnerServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle(RunnerServiceCreateSessionProcedure, connect_go.NewUnaryHandler(
+	runnerServiceCreateSessionHandler := connect_go.NewUnaryHandler(
 		RunnerServiceCreateSessionProcedure,
 		svc.CreateSession,
 		opts...,
-	))
-	mux.Handle(RunnerServiceGetSessionProcedure, connect_go.NewUnaryHandler(
+	)
+	runnerServiceGetSessionHandler := connect_go.NewUnaryHandler(
 		RunnerServiceGetSessionProcedure,
 		svc.GetSession,
 		opts...,
-	))
-	mux.Handle(RunnerServiceListSessionsProcedure, connect_go.NewUnaryHandler(
+	)
+	runnerServiceListSessionsHandler := connect_go.NewUnaryHandler(
 		RunnerServiceListSessionsProcedure,
 		svc.ListSessions,
 		opts...,
-	))
-	mux.Handle(RunnerServiceDeleteSessionProcedure, connect_go.NewUnaryHandler(
+	)
+	runnerServiceDeleteSessionHandler := connect_go.NewUnaryHandler(
 		RunnerServiceDeleteSessionProcedure,
 		svc.DeleteSession,
 		opts...,
-	))
-	mux.Handle(RunnerServiceExecuteProcedure, connect_go.NewBidiStreamHandler(
+	)
+	runnerServiceExecuteHandler := connect_go.NewBidiStreamHandler(
 		RunnerServiceExecuteProcedure,
 		svc.Execute,
 		opts...,
-	))
-	return "/runme.runner.v1.RunnerService/", mux
+	)
+	return "/runme.runner.v1.RunnerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case RunnerServiceCreateSessionProcedure:
+			runnerServiceCreateSessionHandler.ServeHTTP(w, r)
+		case RunnerServiceGetSessionProcedure:
+			runnerServiceGetSessionHandler.ServeHTTP(w, r)
+		case RunnerServiceListSessionsProcedure:
+			runnerServiceListSessionsHandler.ServeHTTP(w, r)
+		case RunnerServiceDeleteSessionProcedure:
+			runnerServiceDeleteSessionHandler.ServeHTTP(w, r)
+		case RunnerServiceExecuteProcedure:
+			runnerServiceExecuteHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedRunnerServiceHandler returns CodeUnimplemented from all methods.

@@ -275,14 +275,16 @@ func Test_command(t *testing.T) {
 		t.Parallel()
 
 		logger := testCreateLogger(t)
-		session := NewSession(
+		session, err := NewSession(
 			[]string{
 				"TEST_OLD=value1",
 				"TEST_OLD_CHANGED=value1",
 				"TEST_OLD_UNSET=value1",
 			},
+			nil,
 			logger,
 		)
+		require.NoError(t, err)
 
 		cmd, err := newCommand(
 			&commandConfig{

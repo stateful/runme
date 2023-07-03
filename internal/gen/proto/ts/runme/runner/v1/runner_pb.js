@@ -70,7 +70,8 @@ class CreateSessionRequest$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.CreateSessionRequest", [
             { no: 1, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
-            { no: 2, name: "envs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "envs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "project", kind: "message", T: () => Project }
         ]);
     }
 }

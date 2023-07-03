@@ -10,18 +10,20 @@ import (
 func Test_SessionList(t *testing.T) {
 	t.Parallel()
 
-	createSession := func() *Session {
-		return NewSession(nil, nil)
+	createSession := func() (*Session, error) {
+		return NewSession(nil, nil, nil)
 	}
 
 	t.Run("UpdatedOnCreate", func(t *testing.T) {
 		list, err := NewSessionList()
 		require.NoError(t, err)
 
-		session1 := createSession()
+		session1, err := createSession()
+		require.NoError(t, err)
 		list.AddSession(session1)
 
-		session2 := createSession()
+		session2, err := createSession()
+		require.NoError(t, err)
 		list.AddSession(session2)
 
 		mostRecent, ok := list.MostRecent()
@@ -33,10 +35,12 @@ func Test_SessionList(t *testing.T) {
 		list, err := NewSessionList()
 		require.NoError(t, err)
 
-		session1 := createSession()
+		session1, err := createSession()
+		require.NoError(t, err)
 		list.AddSession(session1)
 
-		session2 := createSession()
+		session2, err := createSession()
+		require.NoError(t, err)
 		list.AddSession(session2)
 
 		found, ok := list.GetSession(session1.ID)
@@ -52,8 +56,11 @@ func Test_SessionList(t *testing.T) {
 		list, err := NewSessionList()
 		require.NoError(t, err)
 
-		session1 := list.CreateAndAddSession(createSession)
-		session2 := list.CreateAndAddSession(createSession)
+		session1, err := list.CreateAndAddSession(createSession)
+		require.NoError(t, err)
+
+		session2, err := list.CreateAndAddSession(createSession)
+		require.NoError(t, err)
 
 		sessions, err := list.ListSessions()
 		require.NoError(t, err)
@@ -65,8 +72,11 @@ func Test_SessionList(t *testing.T) {
 		list, err := NewSessionList()
 		require.NoError(t, err)
 
-		session1 := list.CreateAndAddSession(createSession)
-		session2 := list.CreateAndAddSession(createSession)
+		session1, err := list.CreateAndAddSession(createSession)
+		require.NoError(t, err)
+
+		session2, err := list.CreateAndAddSession(createSession)
+		require.NoError(t, err)
 
 		{
 			sessionList, err := list.ListSessions()

@@ -142,7 +142,10 @@ func newCommand(cfg *commandConfig) (*command, error) {
 
 	session := cfg.Session
 	if session == nil {
-		session = NewSession(nil, cfg.Logger)
+		session, err = NewSession(nil, nil, cfg.Logger)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cmd := &command{

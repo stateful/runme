@@ -71,7 +71,16 @@ func toRunnerv1Session(sess *Session) *runnerv1.Session {
 func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateSessionRequest) (*runnerv1.CreateSessionResponse, error) {
 	r.logger.Info("running CreateSession in runnerService")
 
-	sess := NewSession(req.Envs, r.logger)
+	proj, err := ConvertRunnerProject(req.Project)
+	if err != nil {
+		return nil, err
+	}
+
+	sess, err := NewSession(req.Envs, proj, r.logger)
+	if err != nil {
+		return nil, err
+	}
+
 	r.sessions.AddSession(sess)
 
 	return &runnerv1.CreateSessionResponse{
@@ -128,6 +137,22 @@ func (r *runnerService) findSession(id string) *Session {
 	return nil
 }
 
+func ConvertRunnerProject(runnerProj *runnerv1.Project) (project.Project, error) {
+	if runnerProj == nil {
+		return nil, nil
+	}
+
+	proj, err := project.NewDirectoryProject(runnerProj.Root, false, true, true, []string{})
+	if err != nil {
+		return nil, err
+	}
+
+	proj.SetEnvLoadOrder(runnerProj.EnvLoadOrder)
+
+	return proj, nil
+
+}
+
 func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error {
 	logger := r.logger.With(zap.String("_id", xid.New().String()))
 
@@ -146,8 +171,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	logger.Debug("received initial request", zap.Any("req", req))
 
-	createSession := func(envs []string) *Session {
-		return NewSession(envs, r.logger)
+	createSession := func(envs []string) (*Session, error) {
+		return NewSession(envs, nil, r.logger)
 	}
 
 	var stdoutMem []byte
@@ -162,14 +187,20 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				return errors.New("session not found")
 			}
 		} else {
-			sess = createSession(nil)
+			sess, err = createSession(nil)
+			if err != nil {
+				return err
+			}
 		}
 
 		if len(req.Envs) > 0 {
 			sess.AddEnvs(req.Envs)
 		}
 	case runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
-		sess = r.sessions.MostRecentOrCreate(func() *Session { return createSession(req.Envs) })
+		sess, err = r.sessions.MostRecentOrCreate(func() (*Session, error) { return createSession(req.Envs) })
+		if err != nil {
+			return err
+		}
 	}
 
 	stdin, stdinWriter := io.Pipe()
@@ -197,12 +228,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if req.Project != nil {
-		proj, err := project.NewDirectoryProject(req.Project.Root, false, true, true, []string{})
-		if err != nil {
-			return err
-		}
-
-		proj.SetEnvLoadOrder(req.Project.EnvLoadOrder)
+		proj, err := ConvertRunnerProject(req.Project)
 
 		mapEnv, err := proj.LoadEnvs()
 		if err != nil {
