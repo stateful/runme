@@ -55,6 +55,8 @@ type Runner interface {
 
 	Clone() Runner
 
+	GetEnvs(ctx context.Context) ([]string, error)
+
 	getSettings() *RunnerSettings
 	setSettings(settings *RunnerSettings)
 }

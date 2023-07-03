@@ -241,3 +241,18 @@ func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient, bac
 		}
 	}
 }
+
+func (r *RemoteRunner) GetEnvs(ctx context.Context) ([]string, error) {
+	if r.sessionID == "" {
+		return nil, nil
+	}
+
+	resp, err := r.client.GetSession(ctx, &runnerv1.GetSessionRequest{
+		Id: r.sessionID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Session.Envs, nil
+}

@@ -208,3 +208,7 @@ func shellID() (int, bool) {
 	}
 	return i, true
 }
+
+func (r *LocalRunner) GetEnvs(ctx context.Context) ([]string, error) {
+	return r.session.Envs(), nil
+}

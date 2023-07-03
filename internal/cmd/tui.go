@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -111,6 +112,11 @@ func tuiCmd() *cobra.Command {
 				expanded:       make(map[int]struct{}),
 			}
 
+			sessionEnvs, err := runnerClient.GetEnvs(context.Background())
+			if err != nil {
+				return err
+			}
+
 			for {
 				prog := newProgramWithOutputs(nil, cmd.InOrStdin(), model)
 
@@ -130,7 +136,7 @@ func tuiCmd() *cobra.Command {
 
 				runBlock := result.block.Clone()
 
-				err = promptEnvVars(cmd, runBlock)
+				err = promptEnvVars(cmd, sessionEnvs, runBlock)
 				if err != nil {
 					return err
 				}
