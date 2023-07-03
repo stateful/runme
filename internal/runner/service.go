@@ -150,7 +150,6 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (project.Project, error)
 	proj.SetEnvLoadOrder(runnerProj.EnvLoadOrder)
 
 	return proj, nil
-
 }
 
 func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error {
@@ -229,6 +228,9 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	if req.Project != nil {
 		proj, err := ConvertRunnerProject(req.Project)
+		if err != nil {
+			return err
+		}
 
 		mapEnv, err := proj.LoadEnvs()
 		if err != nil {
