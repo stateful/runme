@@ -49,7 +49,7 @@ The Runme CLI contains several commands that allow you to discover and run workf
 
 Given the following `README.md` file:
 
-```md
+````md
 # My Project
 
 ## Install
@@ -61,7 +61,7 @@ brew update
 ```
 
 ...
-```
+`````
 
 You can run this code cell by just calling
 
