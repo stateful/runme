@@ -191,6 +191,14 @@ func (p *failoverAttributeParser) Write(attr Attributes, w io.Writer) error {
 
 var DefaultDocumentParser = newFailoverAttributeParser(
 	[]attributeParser{
+		&babikMLParser{},
+	},
+	&babikMLParser{},
+)
+
+// todo(sebastian): make default in v2
+var FutureDocumentParser = newFailoverAttributeParser(
+	[]attributeParser{
 		&jsonParser{},
 		&babikMLParser{},
 	},
