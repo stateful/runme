@@ -166,6 +166,8 @@ echo 1
 }
 
 func Test_toCells_UnsupportedLang(t *testing.T) {
+	// todo(sebastian): make default in v2
+	document.DefaultDocumentParser = document.FutureDocumentParser
 	data := []byte("```py {\"readonly\":\"true\"}" + `
 def hello():
     print("Hello World")
@@ -323,55 +325,61 @@ pre-commit install
 	)
 }
 
-func Test_serializeCells_attributes_babikml(t *testing.T) {
-	data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
-	expected := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
-	cells := toCells(node, data)
-	assert.Equal(t, string(expected), string(serializeCells(cells)))
-}
+func Test_serializeCells(t *testing.T) {
+	// todo(sebastian): remove for v2
+	document.DefaultDocumentParser = document.FutureDocumentParser
+	t.Run("attributes_babikml", func(t *testing.T) {
+		data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
+		expected := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
+		doc := document.New(data, cmark.Render)
+		node, _, err := doc.Parse()
+		require.NoError(t, err)
+		cells := toCells(node, data)
+		assert.Equal(t, string(expected), string(serializeCells(cells)))
+	})
 
-func Test_serializeCells_attributes(t *testing.T) {
-	data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
-	cells := toCells(node, data)
-	assert.Equal(t, string(data), string(serializeCells(cells)))
-}
+	t.Run("attributes", func(t *testing.T) {
+		data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
+		doc := document.New(data, cmark.Render)
+		node, _, err := doc.Parse()
+		require.NoError(t, err)
+		cells := toCells(node, data)
+		assert.Equal(t, string(data), string(serializeCells(cells)))
+	})
 
-func Test_serializeCells_privateFields(t *testing.T) {
-	data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
+	t.Run("privateFields", func(t *testing.T) {
+		data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
+		doc := document.New(data, cmark.Render)
+		node, _, err := doc.Parse()
+		require.NoError(t, err)
 
-	cells := toCells(node, data)
-	// Add private fields whcih will be filtered out durign serialization.
-	cells[0].Metadata["_private"] = "private"
-	cells[0].Metadata["runme.dev/internal"] = "internal"
+		cells := toCells(node, data)
+		// Add private fields whcih will be filtered out durign serialization.
+		cells[0].Metadata["_private"] = "private"
+		cells[0].Metadata["runme.dev/internal"] = "internal"
 
-	assert.Equal(t, string(data), string(serializeCells(cells)))
-}
+		assert.Equal(t, string(data), string(serializeCells(cells)))
+	})
 
-func Test_serializeCells_UnsupportedLang(t *testing.T) {
-	data := []byte(`## Non-Supported Languages
+	t.Run("UnsupportedLang", func(t *testing.T) {
+		data := []byte(`## Non-Supported Languages
 
 ` + "```py {\"readonly\":\"true\"}" + `
 def hello():
-    print("Hello World")
+	print("Hello World")
 ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
-	cells := toCells(node, data)
-	assert.Equal(t, string(data), string(serializeCells(cells)))
+		doc := document.New(data, cmark.Render)
+		node, _, err := doc.Parse()
+		require.NoError(t, err)
+		cells := toCells(node, data)
+		assert.Equal(t, string(data), string(serializeCells(cells)))
+	})
 }
 
 func Test_serializeFencedCodeAttributes(t *testing.T) {
+	// todo(sebastian): remove for v2
+	document.DefaultDocumentParser = document.FutureDocumentParser
 	t.Run("NoMetadata", func(t *testing.T) {
 		var buf bytes.Buffer
 		serializeFencedCodeAttributes(&buf, &Cell{
