@@ -178,3 +178,11 @@ The requisite tools can be installed with:
 ```sh { interactive=false }
 make install/goreleaser
 ```
+
+## Upgrading to go 1.20
+
+After upgrading go to version 1.20, you'll need to make sure to reinstall dev packages, as some may be outdated:
+
+```sh
+make install/dev
+```
