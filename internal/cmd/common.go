@@ -23,6 +23,7 @@ import (
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
 	"github.com/stateful/runme/internal/tui/prompt"
+	"golang.org/x/exp/slices"
 )
 
 const envStackDepth = "__RUNME_STACK_DEPTH"
@@ -298,11 +299,27 @@ const tlsFileMode = os.FileMode(int(0o700))
 
 var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")
 
-func promptEnvVars(cmd *cobra.Command, runBlocks ...project.FileCodeBlock) error {
+func promptEnvVars(cmd *cobra.Command, envs []string, runBlocks ...project.FileCodeBlock) error {
+	keys := make([]string, len(envs))
+
+	for i, line := range envs {
+		if line == "" {
+			continue
+		}
+
+		keys[i] = strings.SplitN(line, "=", 2)[0]
+	}
+
 	for _, block := range runBlocks {
 		if block.GetBlock().PromptEnv() {
 			varPrompts := getCommandExportExtractMatches(block.GetBlock().Lines())
 			for _, ev := range varPrompts {
+				if slices.Contains(keys, ev.Key) {
+					block.GetBlock().SetLine(ev.LineNumber, "")
+
+					continue
+				}
+
 				newVal, err := promptForEnvVar(cmd, ev)
 				block.GetBlock().SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
 

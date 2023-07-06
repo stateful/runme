@@ -6,6 +6,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/rs/xid"
+	"github.com/stateful/runme/internal/project"
 	"go.uber.org/zap"
 )
 
@@ -20,14 +21,27 @@ type Session struct {
 	logger   *zap.Logger
 }
 
-func NewSession(envs []string, logger *zap.Logger) *Session {
+func NewSession(envs []string, proj project.Project, logger *zap.Logger) (*Session, error) {
+	sessionEnvs := []string(envs)
+
+	if proj != nil {
+		projectEnvs, err := proj.LoadEnvs()
+		if err != nil {
+			return nil, err
+		}
+
+		for key, val := range projectEnvs {
+			sessionEnvs = append(sessionEnvs, fmt.Sprintf("%v=%v", key, val))
+		}
+	}
+
 	s := &Session{
 		ID: xid.New().String(),
 
-		envStore: newEnvStore(envs...),
+		envStore: newEnvStore(sessionEnvs...),
 		logger:   logger,
 	}
-	return s
+	return s, nil
 }
 
 func (s *Session) AddEnvs(envs []string) {
@@ -69,10 +83,14 @@ func (sl *SessionList) AddSession(session *Session) {
 	sl.store.Add(session.ID, session)
 }
 
-func (sl *SessionList) CreateAndAddSession(generate func() *Session) *Session {
-	sess := generate()
+func (sl *SessionList) CreateAndAddSession(generate func() (*Session, error)) (*Session, error) {
+	sess, err := generate()
+	if err != nil {
+		return nil, err
+	}
+
 	sl.AddSession(sess)
-	return sess
+	return sess, nil
 }
 
 func (sl *SessionList) GetSession(id string) (*Session, bool) {
@@ -102,12 +120,12 @@ func (sl *SessionList) mostRecentUnsafe() (*Session, bool) {
 	return sl.store.Peek(keys[len(keys)-1])
 }
 
-func (sl *SessionList) MostRecentOrCreate(generate func() *Session) *Session {
+func (sl *SessionList) MostRecentOrCreate(generate func() (*Session, error)) (*Session, error) {
 	sl.mu.Lock()
 	defer sl.mu.Unlock()
 
 	if existing, ok := sl.mostRecentUnsafe(); ok {
-		return existing
+		return existing, nil
 	}
 
 	return sl.CreateAndAddSession(generate)

@@ -112,18 +112,6 @@ func runCmd() *cobra.Command {
 				}
 			}
 
-			err = promptEnvVars(cmd, runBlocks...)
-			if err != nil {
-				return err
-			}
-
-			if runMany {
-				err := confirmExecution(cmd, len(runBlocks), parallel, category)
-				if err != nil {
-					return err
-				}
-			}
-
 			ctx, cancel := ctxWithSigCancel(cmd.Context())
 			defer cancel()
 
@@ -165,6 +153,23 @@ func runCmd() *cobra.Command {
 				}
 
 				runner = remoteRunner
+			}
+
+			sessionEnvs, err := runner.GetEnvs(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = promptEnvVars(cmd, sessionEnvs, runBlocks...)
+			if err != nil {
+				return err
+			}
+
+			if runMany {
+				err := confirmExecution(cmd, len(runBlocks), parallel, category)
+				if err != nil {
+					return err
+				}
 			}
 
 			blockColor := color.New(color.Bold, color.FgYellow)

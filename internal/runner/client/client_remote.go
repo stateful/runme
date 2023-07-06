@@ -83,7 +83,8 @@ func (r *RemoteRunner) setupSession(ctx context.Context) error {
 	}
 
 	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{
-		Envs: os.Environ(),
+		Envs:    os.Environ(),
+		Project: ConvertToRunnerProject(r.project),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to create session")
@@ -101,6 +102,17 @@ func (r *RemoteRunner) deleteSession(ctx context.Context) error {
 
 	_, err := r.client.DeleteSession(ctx, &runnerv1.DeleteSessionRequest{Id: r.sessionID})
 	return errors.Wrap(err, "failed to delete session")
+}
+
+func ConvertToRunnerProject(proj project.Project) *runnerv1.Project {
+	if proj == nil {
+		return nil
+	}
+
+	return &runnerv1.Project{
+		Root:         proj.Dir(),
+		EnvLoadOrder: proj.EnvLoadOrder(),
+	}
 }
 
 func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
@@ -131,12 +143,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		Envs:            r.envs,
 	}
 
-	if r.project != nil {
-		req.Project = &runnerv1.Project{
-			Root:         r.project.Dir(),
-			EnvLoadOrder: r.project.EnvLoadOrder(),
-		}
-	}
+	req.Project = ConvertToRunnerProject(r.project)
 
 	req.Directory = ResolveDirectory(req.Directory, fileBlock)
 
@@ -240,4 +247,19 @@ func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient, bac
 			return nil
 		}
 	}
+}
+
+func (r *RemoteRunner) GetEnvs(ctx context.Context) ([]string, error) {
+	if r.sessionID == "" {
+		return nil, nil
+	}
+
+	resp, err := r.client.GetSession(ctx, &runnerv1.GetSessionRequest{
+		Id: r.sessionID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Session.Envs, nil
 }

@@ -97,18 +97,26 @@ type ParserServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewParserServiceHandler(svc ParserServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle(ParserServiceDeserializeProcedure, connect_go.NewUnaryHandler(
+	parserServiceDeserializeHandler := connect_go.NewUnaryHandler(
 		ParserServiceDeserializeProcedure,
 		svc.Deserialize,
 		opts...,
-	))
-	mux.Handle(ParserServiceSerializeProcedure, connect_go.NewUnaryHandler(
+	)
+	parserServiceSerializeHandler := connect_go.NewUnaryHandler(
 		ParserServiceSerializeProcedure,
 		svc.Serialize,
 		opts...,
-	))
-	return "/runme.parser.v1.ParserService/", mux
+	)
+	return "/runme.parser.v1.ParserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ParserServiceDeserializeProcedure:
+			parserServiceDeserializeHandler.ServeHTTP(w, r)
+		case ParserServiceSerializeProcedure:
+			parserServiceSerializeHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedParserServiceHandler returns CodeUnimplemented from all methods.

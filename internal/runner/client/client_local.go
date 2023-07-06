@@ -58,7 +58,12 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		}
 	}
 
-	r.session = runner.NewSession(os.Environ(), r.logger)
+	sess, err := runner.NewSession(os.Environ(), r.project, r.logger)
+	if err != nil {
+		return nil, err
+	}
+
+	r.session = sess
 
 	return r, nil
 }
@@ -207,4 +212,8 @@ func shellID() (int, bool) {
 		return -1, false
 	}
 	return i, true
+}
+
+func (r *LocalRunner) GetEnvs(ctx context.Context) ([]string, error) {
+	return r.session.Envs(), nil
 }
