@@ -183,6 +183,6 @@ make install/goreleaser
 
 After upgrading go to version 1.20, you'll need to make sure to reinstall dev packages, as some may be outdated:
 
-```sh
+```sh { name=upgrade-go-120 }
 make install/dev
 ```
