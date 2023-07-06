@@ -2,8 +2,9 @@ package rbuffer
 
 import (
 	"bytes"
+	"crypto/rand"
 	"io"
-	"math/rand"
+	mathRand "math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -65,7 +66,7 @@ func TestRingBuffer(t *testing.T) {
 			unwritten := int64((64 << 10) << 10) // 64 MiB
 
 			for unwritten > 0 {
-				c := rand.Intn(cap(token))
+				c := mathRand.Intn(cap(token))
 				if c > int(unwritten) {
 					c = int(unwritten)
 				}
