@@ -538,6 +538,8 @@ func (a *Auth) getAPIToken(ctx context.Context, accessToken string) (string, err
 		return "", err
 	}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := a.getHTTPClient().Do(req)
 	if err != nil {
 		return "", err
