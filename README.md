@@ -23,7 +23,7 @@ $ brew update
 Install runme:
 
 ```sh { name=install-runme }
-$ brew install stateful/tap/runme
+$ brew install runme
 ```
 
 or via NPM:
