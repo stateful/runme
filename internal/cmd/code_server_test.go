@@ -14,7 +14,7 @@ func Test_getExtensionURL(t *testing.T) {
 	extensionURL, err := getExtensionURL("v1.7.0")
 	assert.NoError(t, err)
 
-	regex := regexp.MustCompile("https:\\/\\/github.com\\/stateful\\/vscode-runme\\/releases\\/download\\/(.*)\\/(.*)")
+	regex := regexp.MustCompile(`https:\/\/github.com\/stateful\/vscode-runme\/releases\/download\/(.*)\/(.*)`)
 	require.Equal(
 		t,
 		regex.Match([]byte(extensionURL)),
@@ -36,7 +36,7 @@ func Test_downloadVscodeExtension(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	rootFolder := filepath.Join(tmpDir, "testing_runme_download_vscode")
-	os.MkdirAll(rootFolder, 0o700)
+	_ = os.MkdirAll(rootFolder, 0o700)
 	defer os.RemoveAll(rootFolder)
 
 	fileName, err := downloadVscodeExtension(rootFolder, false)
