@@ -109,7 +109,7 @@ func codeServerCmd() *cobra.Command {
 
 			configDir := GetDefaultConfigHome()
 
-			fmt.Fprintln(cmd.OutOrStdout(), "Downloading VS Code extension...")
+			_, _ = fmt.Fprintln(cmd.OutOrStdout(), "Downloading VS Code extension...")
 
 			extensionFile, err := downloadVscodeExtension(filepath.Join(configDir, "extension_cache"), preview)
 			if err != nil {
@@ -182,7 +182,9 @@ func getLatestExtensionVersion(experimental bool) (string, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	var dataResp interface{}
-	json.Unmarshal(body, &dataResp)
+	if err := json.Unmarshal(body, &dataResp); err != nil {
+		return "", errors.Wrap(err, "failed parsing JSON")
+	}
 
 	switch respObj := dataResp.(type) {
 	case map[string]interface{}:
@@ -198,7 +200,7 @@ func getLatestExtensionVersion(experimental bool) (string, error) {
 	return tagName, nil
 }
 
-func getExtensionUrl(tagName string) (string, error) {
+func getExtensionURL(tagName string) (string, error) {
 	var arch string
 
 	switch runtime.GOARCH {
@@ -253,7 +255,7 @@ func downloadVscodeExtension(dir string, experimental bool) (string, error) {
 		return "", err
 	}
 
-	vsixURL, err := getExtensionUrl(tagName)
+	vsixURL, err := getExtensionURL(tagName)
 	if err != nil {
 		return "", err
 	}
