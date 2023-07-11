@@ -23,9 +23,10 @@ import (
 
 func codeServerCmd() *cobra.Command {
 	var (
-		codeServerArgs []string
-		preview        bool
-		install        bool
+		userCodeServerArgs []string
+		preview            bool
+		install            bool
+		open               bool
 	)
 
 	cmd := &cobra.Command{
@@ -123,6 +124,14 @@ func codeServerCmd() *cobra.Command {
 				return nil
 			}
 
+			codeServerArgs := []string{}
+
+			if open {
+				codeServerArgs = append(codeServerArgs, "--open")
+			}
+
+			codeServerArgs = append(codeServerArgs, userCodeServerArgs...)
+
 			if err := runCodeServerCommand(cmd, execFile, codeServerArgs...); err != nil {
 				return errors.Wrap(err, "failed to launch code-server")
 			}
@@ -131,9 +140,10 @@ func codeServerCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringArrayVar(&codeServerArgs, "args", nil, "Extra args to pass to code-server")
+	cmd.Flags().StringArrayVar(&userCodeServerArgs, "args", nil, "Extra args to pass to code-server")
 	cmd.Flags().BoolVar(&preview, "preview", false, "Use preview extension instead of latest stable")
 	cmd.Flags().BoolVar(&install, "install", false, "Install the extension to code-server without launching")
+	cmd.Flags().BoolVar(&open, "open", true, "Automatically open the code server in the browser on startup")
 
 	return cmd
 }
