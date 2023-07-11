@@ -123,7 +123,7 @@ func codeServerCmd() *cobra.Command {
 				return nil
 			}
 
-			if err := runCodeServerCommand(cmd, execFile); err != nil {
+			if err := runCodeServerCommand(cmd, execFile, codeServerArgs...); err != nil {
 				return errors.Wrap(err, "failed to launch code-server")
 			}
 
