@@ -133,3 +133,11 @@ scoop:
   homepage: "https://stateful.com"
   description: "Execute code snippets directly from Markdown files."
   skip_upload: auto
+
+dockers:
+  - goos: linux
+    goarch: amd64
+    image_templates:
+      - "statefulhq/runme:latest"
+      - "statefulhq/runme:v{{ .Version }}"
+    skip_push: auto
