@@ -68,4 +68,4 @@ jobs:
           homebrew-tap: Homebrew/homebrew-core
           base-branch: master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
