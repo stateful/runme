@@ -59,3 +59,11 @@ jobs:
       - name: Copy to latest
         if: env.pre_release == 'false'
         run: gsutil -m cp "gs://runme-artifacts-41eac6/${{ env.version }}/*" gs://runme-artifacts-41eac6/latest
+      - name: Bump Homebrew Formula
+        uses: mislav/bump-homebrew-formula-action@v2
+        # skip prereleases
+        if: ${{ !contains(github.ref, '-') }}
+        with:
+          formula-name: runme
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
