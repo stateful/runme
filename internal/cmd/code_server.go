@@ -260,7 +260,7 @@ func downloadVscodeExtension(dir string, experimental bool) (string, error) {
 	}
 
 	// download extension...
-	resp, err := http.Get(vsixURL)
+	resp, err := http.Get(vsixURL) // #nosec G107
 	if err != nil {
 		return "", err
 	}
