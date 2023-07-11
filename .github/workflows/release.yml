@@ -65,7 +65,5 @@ jobs:
         if: ${{ !contains(github.ref, '-') }}
         with:
           formula-name: runme
-          homebrew-tap: Homebrew/homebrew-core
-          base-branch: master
         env:
           COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
