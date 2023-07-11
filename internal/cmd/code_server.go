@@ -109,11 +109,11 @@ func codeServerCmd() *cobra.Command {
 
 			configDir := GetDefaultConfigHome()
 
-			fmt.Fprintln(cmd.OutOrStdout(), "Downloading VSCode extension...")
+			fmt.Fprintln(cmd.OutOrStdout(), "Downloading VS Code extension...")
 
 			extensionFile, err := downloadVscodeExtension(filepath.Join(configDir, "extension_cache"), preview)
 			if err != nil {
-				return errors.Wrap(err, "failed to download vscode extension")
+				return errors.Wrap(err, "failed to download vs code extension")
 			}
 
 			if err := runCodeServerCommand(cmd, execFile, "--install-extension", extensionFile, "--force"); err != nil {
