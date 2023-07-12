@@ -141,7 +141,7 @@ func codeServerCmd() *cobra.Command {
 					[]byte("\n"),
 				)
 
-				if err := os.WriteFile(codeServerConfigFile, defaultConfig, 0o700); err != nil {
+				if err := os.WriteFile(codeServerConfigFile, defaultConfig, 0o600); err != nil {
 					return errors.Wrap(err, "failed to create config file")
 				}
 			}
