@@ -190,14 +190,14 @@ func codeServerCmd() *cobra.Command {
 	return cmd
 }
 
-func runCodeServerCommand(cmd *cobra.Command, execFile string, suppressOutput bool, args ...string) ([]byte, error) {
+func runCodeServerCommand(cmd *cobra.Command, execFile string, routeToBuffer bool, args ...string) ([]byte, error) {
 	codeServerCmd := exec.Command(execFile, args...)
 	buffer := bytes.NewBuffer(nil)
 
-	if suppressOutput {
+	if routeToBuffer {
 		codeServerCmd.Stdout = buffer
 	} else {
-		codeServerCmd.Stdout = io.MultiWriter(cmd.OutOrStdout(), buffer)
+		codeServerCmd.Stdout = cmd.OutOrStdout()
 	}
 
 	codeServerCmd.Stderr = cmd.ErrOrStderr()
