@@ -27,10 +27,11 @@ var vscodeVersionRegexp = regexp.MustCompile(`VS Code Server (\d+)\.(\d+)`)
 
 func codeServerCmd() *cobra.Command {
 	var (
-		userCodeServerArgs []string
-		preview            bool
-		install            bool
-		open               bool
+		userCodeServerArgs   []string
+		preview              bool
+		install              bool
+		open                 bool
+		codeServerConfigFile string
 	)
 
 	cmd := &cobra.Command{
@@ -120,7 +121,30 @@ func codeServerCmd() *cobra.Command {
 				return errors.New("currently, we only support coder's code server; please uninstall any other code-server installations to use this feature")
 			}
 
-			configDir := GetDefaultConfigHome()
+			configDir := filepath.Join(GetDefaultConfigHome(), "code-server")
+
+			if codeServerConfigFile == "" {
+				codeServerConfigFile = filepath.Join(configDir, "config.yaml")
+			}
+
+			if _, err := os.Stat(codeServerConfigFile); os.IsNotExist(err) {
+				if err := os.MkdirAll(configDir, 0o700); err != nil {
+					return errors.Wrap(err, "failed to create config directory")
+				}
+
+				defaultConfig := bytes.Join(
+					[][]byte{
+						[]byte("bind-addr: 127.0.0.1:8080"),
+						[]byte("auth: none"),
+						[]byte("cert: false"),
+					},
+					[]byte("\n"),
+				)
+
+				if err := os.WriteFile(codeServerConfigFile, defaultConfig, 0o700); err != nil {
+					return errors.Wrap(err, "failed to create config file")
+				}
+			}
 
 			_, _ = fmt.Fprintln(cmd.OutOrStdout(), "Downloading VS Code extension...")
 
@@ -143,6 +167,10 @@ func codeServerCmd() *cobra.Command {
 				codeServerArgs = append(codeServerArgs, "--open")
 			}
 
+			if codeServerConfigFile != "" {
+				codeServerArgs = append(codeServerArgs, "--config", codeServerConfigFile)
+			}
+
 			codeServerArgs = append(codeServerArgs, userCodeServerArgs...)
 
 			if _, err := runCodeServerCommand(cmd, execFile, codeServerArgs...); err != nil {
@@ -157,6 +185,7 @@ func codeServerCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&preview, "preview", false, "Use preview extension instead of latest stable")
 	cmd.Flags().BoolVar(&install, "install", false, "Install the extension to code-server without launching")
 	cmd.Flags().BoolVar(&open, "open", true, "Automatically open the code server in the browser on startup")
+	cmd.Flags().StringVar(&codeServerConfigFile, "config", "", "Path to code-server config file")
 
 	return cmd
 }
