@@ -41,6 +41,10 @@ func listCmd() *cobra.Command {
 				return err
 			}
 
+			if len(blocks) < 1 && !fAllowUnnamed {
+				return errors.Errorf("no named code blocks, consider adding flag --allow-unnamed")
+			}
+
 			blocks = sortBlocks(blocks)
 
 			// TODO: this should be taken from cmd.
