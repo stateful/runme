@@ -47,3 +47,17 @@ func Test_downloadVscodeExtension(t *testing.T) {
 
 	assert.Equal(t, fi.IsDir(), false)
 }
+
+func Test_vscodeCodeServerVersionRegexp(t *testing.T) {
+	assert.Equal(
+		t,
+		vscodeVersionRegexp.MatchString("VS Code Server 20220909.27"),
+		true,
+	)
+
+	assert.Equal(
+		t,
+		vscodeVersionRegexp.MatchString("4.14.1 5c199629305a0b935b4388b7db549f77eae82b5a with Code 1.79.2"),
+		false,
+	)
+}

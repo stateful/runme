@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -20,6 +22,8 @@ import (
 	"github.com/stateful/runme/internal/tui"
 	"go.uber.org/zap"
 )
+
+var vscodeVersionRegexp = regexp.MustCompile(`VS Code Server (\d+)\.(\d+)`)
 
 func codeServerCmd() *cobra.Command {
 	var (
@@ -107,6 +111,15 @@ func codeServerCmd() *cobra.Command {
 				}
 			}
 
+			output, err := runCodeServerCommand(cmd, execFile, "--version")
+			if err != nil {
+				return errors.Wrap(err, "failed to get code-server version")
+			}
+
+			if vscodeVersionRegexp.Match(output) {
+				return errors.New("currently, we only support coder's code server; please uninstall any other code-server installations to use this feature")
+			}
+
 			configDir := GetDefaultConfigHome()
 
 			_, _ = fmt.Fprintln(cmd.OutOrStdout(), "Downloading VS Code extension...")
@@ -116,7 +129,7 @@ func codeServerCmd() *cobra.Command {
 				return errors.Wrap(err, "failed to download vs code extension")
 			}
 
-			if err := runCodeServerCommand(cmd, execFile, "--install-extension", extensionFile, "--force"); err != nil {
+			if _, err := runCodeServerCommand(cmd, execFile, "--install-extension", extensionFile, "--force"); err != nil {
 				return errors.Wrap(err, "failed to install extension to code-server")
 			}
 
@@ -132,7 +145,7 @@ func codeServerCmd() *cobra.Command {
 
 			codeServerArgs = append(codeServerArgs, userCodeServerArgs...)
 
-			if err := runCodeServerCommand(cmd, execFile, codeServerArgs...); err != nil {
+			if _, err := runCodeServerCommand(cmd, execFile, codeServerArgs...); err != nil {
 				return errors.Wrap(err, "failed to launch code-server")
 			}
 
@@ -148,18 +161,19 @@ func codeServerCmd() *cobra.Command {
 	return cmd
 }
 
-func runCodeServerCommand(cmd *cobra.Command, execFile string, args ...string) error {
+func runCodeServerCommand(cmd *cobra.Command, execFile string, args ...string) ([]byte, error) {
 	codeServerCmd := exec.Command(execFile, args...)
+	buffer := bytes.NewBuffer(nil)
 
-	codeServerCmd.Stdout = cmd.OutOrStdout()
+	codeServerCmd.Stdout = io.MultiWriter(cmd.OutOrStdout(), buffer)
 	codeServerCmd.Stderr = cmd.ErrOrStderr()
 	codeServerCmd.Stdin = cmd.InOrStdin()
 
 	if err := codeServerCmd.Run(); err != nil {
-		return errors.Wrap(err, "code-server command failed")
+		return nil, errors.Wrap(err, "code-server command failed")
 	}
 
-	return nil
+	return buffer.Bytes(), nil
 }
 
 func getLatestExtensionVersion(experimental bool) (string, error) {
