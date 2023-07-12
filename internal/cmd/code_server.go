@@ -112,7 +112,7 @@ func codeServerCmd() *cobra.Command {
 				}
 			}
 
-			output, err := runCodeServerCommand(cmd, execFile, "--version")
+			output, err := runCodeServerCommand(cmd, execFile, true, "--version")
 			if err != nil {
 				return errors.Wrap(err, "failed to get code-server version")
 			}
@@ -153,7 +153,7 @@ func codeServerCmd() *cobra.Command {
 				return errors.Wrap(err, "failed to download vs code extension")
 			}
 
-			if _, err := runCodeServerCommand(cmd, execFile, "--install-extension", extensionFile, "--force"); err != nil {
+			if _, err := runCodeServerCommand(cmd, execFile, false, "--install-extension", extensionFile, "--force"); err != nil {
 				return errors.Wrap(err, "failed to install extension to code-server")
 			}
 
@@ -173,7 +173,7 @@ func codeServerCmd() *cobra.Command {
 
 			codeServerArgs = append(codeServerArgs, userCodeServerArgs...)
 
-			if _, err := runCodeServerCommand(cmd, execFile, codeServerArgs...); err != nil {
+			if _, err := runCodeServerCommand(cmd, execFile, false, codeServerArgs...); err != nil {
 				return errors.Wrap(err, "failed to launch code-server")
 			}
 
@@ -190,11 +190,16 @@ func codeServerCmd() *cobra.Command {
 	return cmd
 }
 
-func runCodeServerCommand(cmd *cobra.Command, execFile string, args ...string) ([]byte, error) {
+func runCodeServerCommand(cmd *cobra.Command, execFile string, suppressOutput bool, args ...string) ([]byte, error) {
 	codeServerCmd := exec.Command(execFile, args...)
 	buffer := bytes.NewBuffer(nil)
 
-	codeServerCmd.Stdout = io.MultiWriter(cmd.OutOrStdout(), buffer)
+	if suppressOutput {
+		codeServerCmd.Stdout = buffer
+	} else {
+		codeServerCmd.Stdout = io.MultiWriter(cmd.OutOrStdout(), buffer)
+	}
+
 	codeServerCmd.Stderr = cmd.ErrOrStderr()
 	codeServerCmd.Stdin = cmd.InOrStdin()
 
