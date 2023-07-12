@@ -346,7 +346,15 @@ func (c *command) readEnvFromFile(name string) (result []string, _ error) {
 	}
 	defer func() { _ = f.Close() }()
 
+	fileInfo, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	numBytes := fileInfo.Size()
+
 	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, numBytes), int(numBytes))
 	scanner.Split(splitNull)
 
 	for scanner.Scan() {
