@@ -32,6 +32,7 @@ func codeServerCmd() *cobra.Command {
 		install              bool
 		open                 bool
 		codeServerConfigFile string
+		codeServerTitle      string
 	)
 
 	cmd := &cobra.Command{
@@ -171,6 +172,10 @@ func codeServerCmd() *cobra.Command {
 				codeServerArgs = append(codeServerArgs, "--config", codeServerConfigFile)
 			}
 
+			if codeServerTitle != "" {
+				codeServerArgs = append(codeServerArgs, "--app-name", codeServerTitle)
+			}
+
 			codeServerArgs = append(codeServerArgs, userCodeServerArgs...)
 
 			if _, err := runCodeServerCommand(cmd, execFile, false, codeServerArgs...); err != nil {
@@ -186,6 +191,7 @@ func codeServerCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&install, "install", false, "Install the extension to code-server without launching")
 	cmd.Flags().BoolVar(&open, "open", true, "Automatically open the code server in the browser on startup")
 	cmd.Flags().StringVar(&codeServerConfigFile, "config", "", "Path to code-server config file")
+	cmd.Flags().StringVar(&codeServerTitle, "title", "Runme", "Title of the code-server window/session")
 
 	return cmd
 }
