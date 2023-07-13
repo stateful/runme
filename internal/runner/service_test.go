@@ -927,6 +927,7 @@ func Test_runnerService(t *testing.T) {
 				Tty:             true,
 				SessionId:       sessionID,
 				StoreLastOutput: true,
+				CommandMode:     runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			})
 			require.NoError(t, err)
 
@@ -949,6 +950,7 @@ func Test_runnerService(t *testing.T) {
 				Tty:             true,
 				SessionId:       sessionID,
 				StoreLastOutput: true,
+				CommandMode:     runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			})
 			require.NoError(t, err)
 
