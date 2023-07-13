@@ -40,7 +40,12 @@ func codeServerCmd() *cobra.Command {
 		Short: "Launch Runme in a headless web client",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			openDir, _ := os.Getwd()
+			proj, err := getProject()
+			if err != nil {
+				return errors.Wrap(err, "failed to get project")
+			}
+
+			openDir := proj.Dir()
 
 			if len(args) > 0 {
 				openDir = args[0]
