@@ -134,6 +134,8 @@ func main() {
 -- golden-list.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION
 echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.
+hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.
+hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom program.
 -- golden-list-allow-unnamed.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION
 echo-hello	README.md	echo "Hello, runme!"	This is a basic snippet with shell command.
