@@ -38,6 +38,7 @@ func codeServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "open",
 		Short: "Launch Runme in a headless web client",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			proj, err := getProject()
 			if err != nil {
