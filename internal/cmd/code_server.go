@@ -50,6 +50,16 @@ func codeServerCmd() *cobra.Command {
 				openDir = args[0]
 			}
 
+			fi, err := os.Stat(openDir)
+			if err != nil {
+				return errors.Wrapf(err, "directory or file %q does not exist", openDir)
+			}
+
+			// TODO: eventually we need to support opening files
+			if !fi.IsDir() {
+				openDir = filepath.Dir(openDir)
+			}
+
 			execFile, err := exec.LookPath("code-server")
 			if err != nil {
 				if !isTerminal(os.Stdout.Fd()) {
