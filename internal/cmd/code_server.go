@@ -50,8 +50,6 @@ func codeServerCmd() *cobra.Command {
 				openDir = args[0]
 			}
 
-			fmt.Println(openDir)
-
 			execFile, err := exec.LookPath("code-server")
 			if err != nil {
 				if !isTerminal(os.Stdout.Fd()) {
