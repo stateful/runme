@@ -36,7 +36,7 @@ func codeServerCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "serve",
+		Use:   "open",
 		Short: "Launch Runme in a headless web client",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			execFile, err := exec.LookPath("code-server")
