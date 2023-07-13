@@ -269,7 +269,7 @@ func normalizeIntro(s string) string {
 }
 
 func getIntro(node *ast.FencedCodeBlock, source []byte) string {
-	if prevNode := node.PreviousSibling(); prevNode != nil {
+	if prevNode := node.PreviousSibling(); prevNode != nil && prevNode.Kind() == ast.KindParagraph {
 		return normalizeIntro(string(prevNode.Text(source)))
 	}
 	return ""
