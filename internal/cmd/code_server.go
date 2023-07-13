@@ -39,6 +39,19 @@ func codeServerCmd() *cobra.Command {
 		Use:   "open",
 		Short: "Launch Runme in a headless web client",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			proj, err := getProject()
+			if err != nil {
+				return errors.Wrap(err, "failed to get project")
+			}
+
+			openDir := proj.Dir()
+
+			if len(args) > 0 {
+				openDir = args[0]
+			}
+
+			fmt.Println(openDir)
+
 			execFile, err := exec.LookPath("code-server")
 			if err != nil {
 				if !isTerminal(os.Stdout.Fd()) {
@@ -175,6 +188,14 @@ func codeServerCmd() *cobra.Command {
 			if codeServerTitle != "" {
 				codeServerArgs = append(codeServerArgs, "--app-name", codeServerTitle)
 			}
+
+			if openDir != "" {
+				codeServerArgs = append(codeServerArgs, openDir)
+			}
+
+			// this command flags forces code-server to open the provided directory,
+			// even if the user opened a different workspace before
+			codeServerArgs = append(codeServerArgs, "-e")
 
 			codeServerArgs = append(codeServerArgs, userCodeServerArgs...)
 
