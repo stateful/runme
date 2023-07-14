@@ -30,8 +30,7 @@ import (
 
 func serverCmd() *cobra.Command {
 	const (
-		defaultSocketAddr = "unix:///var/run/runme.sock"
-		defaultLocalAddr  = "localhost:7890"
+		defaultAddr = "localhost:7863"
 	)
 
 	var (
@@ -80,10 +79,6 @@ The kernel is used to run long running processes like shells and interacting wit
 			// When web is true, the server command exposes a gRPC-compatible HTTP API.
 			// Read more on https://connect.build/docs/introduction.
 			if useConnectProtocol {
-				if addr == defaultSocketAddr {
-					addr = defaultLocalAddr
-				}
-
 				mux := http.NewServeMux()
 				compress1KB := connect.WithCompressMinBytes(1024)
 				if enableRunner {
@@ -174,7 +169,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().StringVarP(&addr, "address", "a", defaultSocketAddr, "Address to create unix (unix:///path/to/socket) or IP socket (localhost:7890)")
+	cmd.Flags().StringVarP(&addr, "address", "a", defaultAddr, "Address to create unix (unix:///path/to/socket) or IP socket (localhost:7890)")
 	cmd.Flags().BoolVar(&useConnectProtocol, "connect-protocol", false, "Use Connect Protocol (https://connect.build/)")
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
 	cmd.Flags().BoolVar(&enableRunner, "runner", true, "Enable runner service (legacy, defaults to true)")
