@@ -65,6 +65,35 @@ First paragraph.
 	assert.Equal(t, "Item 3\n", string(node.children[3].children[2].children[0].Item().Value()))
 }
 
+func TestDocument_BlockIntro(t *testing.T) {
+	data := bytes.TrimSpace([]byte(`
+---
+key: value
+---
+
+` + "```" + `js { name=echo }
+console.log("hello world!")
+` + "```" + `
+
+This is an intro
+
+` + "```" + `js { name=echo-2 }
+console.log("hello world!")
+` + "```" + `
+
+`,
+	))
+
+	doc := New(data, cmark.Render)
+	node, _, err := doc.Parse()
+	require.NoError(t, err)
+
+	cells := CollectCodeBlocks(node)
+
+	assert.Equal(t, "", cells[0].Intro())
+	assert.Equal(t, "This is an intro", cells[1].Intro())
+}
+
 func TestDocument_FinalLineBreaks(t *testing.T) {
 	data := []byte(`This will test final line breaks`)
 
