@@ -370,7 +370,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				return err
 			}
 
-			if storeStdout {
+			if storeStdout && len(stdoutMem) < maxEnvSize {
 				// sanitize for environment variable
 				sanitized := bytes.ReplaceAll(data.Stdout, []byte{'\000'}, []byte{})
 				stdoutMem = append(stdoutMem, sanitized...)
@@ -412,7 +412,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if storeStdout {
-		sess.envStore.Set("__", string(stdoutMem))
+		_, err := sess.envStore.Set("__", string(stdoutMem))
+		if err != nil {
+			logger.Sugar().Errorf("%v", err)
+		}
 	}
 
 	logger.Info("sending the final response with exit code", zap.Int("exitCode", exitCode))

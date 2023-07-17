@@ -1,11 +1,15 @@
 package runner
 
 import (
+	"errors"
 	"strings"
 	"sync"
 
 	"golang.org/x/exp/slices"
 )
+
+// Limited by windows
+const maxEnvSize = 32760
 
 type envStore struct {
 	values map[string]string
@@ -29,12 +33,31 @@ func (s *envStore) Add(envs ...string) *envStore {
 	return s
 }
 
-func (s *envStore) Set(k string, v string) *envStore {
+func getEnvSizeContribution(k, v string) int {
+	// +2 for the '=' and '\0' separators
+	return len(k) + len(v) + 2
+}
+
+func (s *envStore) Set(k string, v string) (*envStore, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	newSize := 0
+	for key, value := range s.values {
+		if key == k {
+			newSize += getEnvSizeContribution(k, v)
+			continue
+		}
+
+		newSize += getEnvSizeContribution(key, value)
+	}
+
+	if newSize > maxEnvSize {
+		return s, errors.New("could not set environment variable, environment size limit exceeded")
+	}
+
 	s.values[k] = v
-	return s
+	return s, nil
 }
 
 func (s *envStore) Delete(envs ...string) *envStore {
