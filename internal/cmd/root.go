@@ -90,6 +90,7 @@ func Root() *cobra.Command {
 	suggestCmd.AddCommand(branchCmd)
 
 	cmd.AddCommand(branchCmd)
+	cmd.AddCommand(codeServerCmd())
 	cmd.AddCommand(environmentCmd())
 	cmd.AddCommand(fmtCmd())
 	cmd.AddCommand(listCmd())
