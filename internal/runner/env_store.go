@@ -42,10 +42,9 @@ func (s *envStore) Set(k string, v string) (*envStore, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	newSize := 0
+	newSize := getEnvSizeContribution(k, v)
 	for key, value := range s.values {
 		if key == k {
-			newSize += getEnvSizeContribution(k, v)
 			continue
 		}
 
