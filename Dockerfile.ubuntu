@@ -1,4 +1,4 @@
-FROM golang:alpine as build
+FROM ubuntu:23.10 as build
 RUN apk --no-cache add ca-certificates
 
 RUN mkdir /newtmp && chown 1777 /newtmp

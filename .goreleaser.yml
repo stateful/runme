@@ -139,5 +139,39 @@ dockers:
     goarch: amd64
     image_templates:
       - "statefulhq/runme:latest"
-      - "statefulhq/runme:v{{ .Version }}"
+      - "statefulhq/runme:v{{ .Version }}-alpine-amd64"
     skip_push: auto
+    dockerfile: Dockerfile.alpine
+  - goos: linux
+    goarch: amd64
+    image_templates:
+      - "statefulhq/runme:latest"
+      - "statefulhq/runme:v{{ .Version }}-ubuntu-amd64"
+    skip_push: auto
+    dockerfile: Dockerfile.ubuntu
+  - goos: linux
+    goarch: arm64
+    image_templates:
+      - "statefulhq/runme:v{{ .Version }}-alpine-arm64"
+    skip_push: auto
+    dockerfile: Dockerfile.alpine
+  - goos: linux
+    goarch: arm64
+    image_templates:
+      - "statefulhq/runme:v{{ .Version }}-ubuntu-arm64"
+    skip_push: auto
+    dockerfile: Dockerfile.ubuntu
+
+docker_manifests:
+  - name_template: 'statefulhq/runme:{{ .Version }}'
+    image_templates:
+    - 'statefulhq/runme:{{ .Version }}-alpine-amd64'
+    - 'statefulhq/runme:{{ .Version }}-alpine-arm64'
+  - name_template: 'statefulhq/runme:{{ .Version }}-alpine'
+    image_templates:
+    - 'statefulhq/runme:{{ .Version }}-alpine-amd64'
+    - 'statefulhq/runme:{{ .Version }}-alpine-arm64'
+  - name_template: 'statefulhq/runme:{{ .Version }}-ubuntu'
+    image_templates:
+    - 'statefulhq/runme:{{ .Version }}-ubuntu-amd64'
+    - 'statefulhq/runme:{{ .Version }}-ubuntu-arm64'
