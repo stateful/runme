@@ -1,6 +1,7 @@
-FROM golang:alpine as build
-RUN apk --no-cache add ca-certificates
+FROM alpine:latest as build
+LABEL maintainer="StatefulHQ <mail@stateful.com>"
 
+RUN apk --no-cache add ca-certificates
 RUN mkdir /newtmp && chown 1777 /newtmp
 
 FROM scratch

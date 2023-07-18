@@ -1,0 +1,6 @@
+FROM ubuntu:23.10 as build
+LABEL maintainer="StatefulHQ <mail@stateful.com>"
+
+COPY runme /
+
+ENTRYPOINT ["/runme"]
