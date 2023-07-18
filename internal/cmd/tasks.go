@@ -23,6 +23,9 @@ func tasksCmd() *cobra.Command {
 
 		generateBlocks:
 			blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), true)
+			if err != nil {
+				return err
+			}
 
 			block, err := lookupCodeBlockWithPrompt(cmd, args[0], blocks)
 			if err != nil {

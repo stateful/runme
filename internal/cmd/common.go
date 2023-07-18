@@ -136,14 +136,6 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 	)
 }
 
-func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlock, error) {
-	block := blocks.Lookup(name)
-	if block == nil {
-		return nil, errors.Errorf("command %q not found; known command names: %s", name, blocks.Names())
-	}
-	return block, nil
-}
-
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	blocks, err := getCodeBlocks()
 	if err != nil {
