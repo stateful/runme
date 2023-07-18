@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/tasks"
 )
 
@@ -15,19 +16,27 @@ func tasksCmd() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			blocks, err := getCodeBlocks()
+			proj, err := getProject()
 			if err != nil {
 				return err
 			}
 
-			block, err := lookupCodeBlock(blocks, args[0])
+		generateBlocks:
+			blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), true)
+
+			block, err := lookupCodeBlockWithPrompt(cmd, args[0], blocks)
 			if err != nil {
+				if project.IsCodeBlockNotFoundError(err) && !fAllowUnnamed {
+					fAllowUnnamed = true
+					goto generateBlocks
+				}
+
 				return err
 			}
 
 			tasksDef, err := tasks.GenerateFromShellCommand(
-				block.Name(),
-				block.Lines()[0],
+				block.Block.Name(),
+				block.Block.Lines()[0],
 				&tasks.ShellCommandOpts{
 					Cwd: fChdir,
 				},

@@ -31,7 +31,7 @@ func listCmd() *cobra.Command {
 				return err
 			}
 
-			allBlocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin())
+			allBlocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), true)
 			if err != nil {
 				return err
 			}
@@ -41,7 +41,7 @@ func listCmd() *cobra.Command {
 				return err
 			}
 
-			if len(blocks) < 1 && !fAllowUnnamed {
+			if len(blocks) <= 0 && !fAllowUnnamed {
 				return errors.Errorf("no named code blocks, consider adding flag --allow-unnamed")
 			}
 
@@ -57,6 +57,7 @@ func listCmd() *cobra.Command {
 			table.AddField(strings.ToUpper("File"), nil, nil)
 			table.AddField(strings.ToUpper("First Command"), nil, nil)
 			table.AddField(strings.ToUpper("Description"), nil, nil)
+			table.AddField(strings.ToUpper("Named"), nil, nil)
 			table.EndRow()
 
 			for _, fileBlock := range blocks {
@@ -64,10 +65,16 @@ func listCmd() *cobra.Command {
 
 				lines := block.Lines()
 
+				isNamedField := "True"
+				if block.IsUnnamed() {
+					isNamedField = "False"
+				}
+
 				table.AddField(block.Name(), nil, nil)
 				table.AddField(fileBlock.File, nil, nil)
 				table.AddField(shell.TryGetNonCommentLine(lines), nil, nil)
 				table.AddField(block.Intro(), nil, nil)
+				table.AddField(isNamedField, nil, nil)
 				table.EndRow()
 			}
 
