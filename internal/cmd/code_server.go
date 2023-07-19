@@ -169,14 +169,7 @@ func codeServerCmd() *cobra.Command {
 				}
 			}
 
-			_, _ = fmt.Fprintln(cmd.OutOrStdout(), "Downloading VS Code extension...")
-
-			extensionFile, err := downloadVscodeExtension(filepath.Join(configDir, "extension_cache"), preview)
-			if err != nil {
-				return errors.Wrap(err, "failed to download vs code extension")
-			}
-
-			if _, err := runCodeServerCommand(cmd, execFile, false, "--install-extension", extensionFile, "--force"); err != nil {
+			if _, err := runCodeServerCommand(cmd, execFile, false, "--install-extension", "stateful.runme", "--force"); err != nil {
 				return errors.Wrap(err, "failed to install extension to code-server")
 			}
 
