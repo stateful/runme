@@ -55,7 +55,7 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 	if r.insecure {
 		creds = insecure.NewCredentials()
 	} else {
-		tlsConfig, err := runmetls.LoadTLSConfig(r.tlsDir)
+		tlsConfig, err := runmetls.LoadTLSConfig(r.tlsDir, true)
 		if err != nil {
 			return nil, err
 		}
