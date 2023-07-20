@@ -46,6 +46,10 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+      - name: Setup Node version
+        uses: actions/setup-node@v1
+        with:
+          node-version: 18
       - name: Build
         run: |
           go build -o runme main.go

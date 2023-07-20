@@ -145,7 +145,54 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		assert.Equal(t, "1\n2\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
+	})
+
+	t.Run("ExecuteBasicTempFile", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE,
+			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		assert.Equal(t, "1\n2\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
+	})
+
+	t.Run("ExecuteBasicJavaScript", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE,
+			LanguageId:  "js",
+			Script:      "console.log('1'); console.log('2')",
 		})
 		assert.NoError(t, err)
 
@@ -167,6 +214,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Tty:         true,
 			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
 		})
@@ -190,6 +238,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Tty:         true,
 			Commands:    []string{"tr a-z x"},
 		})
@@ -240,6 +289,7 @@ func Test_runnerService(t *testing.T) {
 
 			err = stream.Send(&runnerv1.ExecuteRequest{
 				ProgramName: "bash",
+				CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 				Tty:         true,
 				Commands:    []string{"tr a-z x"},
 			})
@@ -302,6 +352,7 @@ func Test_runnerService(t *testing.T) {
 				SessionId:   createSessResp.Session.Id,
 				Envs:        []string{"EXEC_PROVIDED=execute1"},
 				ProgramName: "bash",
+				CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 				Commands: []string{
 					"echo $SESSION $EXEC_PROVIDED",
 					"export EXEC_EXPORTED=execute2",
@@ -327,6 +378,7 @@ func Test_runnerService(t *testing.T) {
 			err = stream.Send(&runnerv1.ExecuteRequest{
 				SessionId:   createSessResp.Session.Id,
 				ProgramName: "bash",
+				CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 				Commands: []string{
 					"echo $EXEC_EXPORTED",
 				},
@@ -365,6 +417,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Tty:         true,
 			Commands:    []string{"sleep 1"},
 		})
@@ -388,6 +441,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Tty:         true, // without TTY it won't work
 			Commands:    []string{"sleep 30"},
 		})
@@ -428,6 +482,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands:    []string{"sleep 30"},
 		})
 		assert.NoError(t, err)
@@ -459,6 +514,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Tty:         true,
 			Commands:    []string{"sleep 1"},
 		})
@@ -483,6 +539,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Tty:         false,
 			Commands:    []string{"sleep 1"},
 		})
@@ -508,6 +565,7 @@ func Test_runnerService(t *testing.T) {
 
 			err = stream.Send(&runnerv1.ExecuteRequest{
 				ProgramName: "bash",
+				CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 				Tty:         true,
 				Commands:    []string{"python3 -m http.server 0"},
 			})
@@ -544,6 +602,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Tty:         false, // no TTY; only way to interrupt it is to send ExecuteRequest.stop or cancel the stream
 			Commands:    []string{"sleep 30"},
 		})
@@ -581,6 +640,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Directory:   "../..",
 			Commands: []string{
 				"export LICENSE=$(cat LICENSE)",
@@ -608,6 +668,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Directory:   "../..",
 			Commands: []string{
 				"echo \"LICENSE: $LICENSE\"",
@@ -636,6 +697,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands: []string{
 				"tput lines -T linux",
 				"tput cols -T linux",
@@ -660,6 +722,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands: []string{
 				"tput lines -T linux",
 				"tput cols -T linux",
@@ -688,6 +751,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands: []string{
 				"read",
 				"tput lines -T linux",
@@ -742,6 +806,7 @@ func Test_runnerService(t *testing.T) {
 
 			err = stream.Send(&runnerv1.ExecuteRequest{
 				ProgramName:     "bash",
+				CommandMode:     runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 				SessionId:       sessionId,
 				SessionStrategy: strategy,
 				Commands: []string{
@@ -786,6 +851,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands: []string{
 				"sleep 10",
 			},
@@ -815,6 +881,7 @@ func Test_runnerService(t *testing.T) {
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands: []string{
 				"sleep 1000",
 			},
@@ -860,6 +927,7 @@ func Test_runnerService(t *testing.T) {
 				Tty:             true,
 				SessionId:       sessionID,
 				StoreLastOutput: true,
+				CommandMode:     runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			})
 			require.NoError(t, err)
 
@@ -882,6 +950,7 @@ func Test_runnerService(t *testing.T) {
 				Tty:             true,
 				SessionId:       sessionID,
 				StoreLastOutput: true,
+				CommandMode:     runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			})
 			require.NoError(t, err)
 

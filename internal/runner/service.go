@@ -3,6 +3,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/stateful/runme/internal/rbuffer"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -211,19 +213,29 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	defer func() { _ = stderr.Close() }()
 
 	cfg := &commandConfig{
-		ProgramName: req.ProgramName,
-		Args:        req.Arguments,
-		Directory:   req.Directory,
-		Session:     sess,
-		Tty:         req.Tty,
-		Stdin:       stdin,
-		Stdout:      stdout,
-		Stderr:      stderr,
-		IsShell:     true,
-		Commands:    req.Commands,
-		Script:      req.Script,
-		Logger:      r.logger,
-		Winsize:     runnerWinsizeToPty(req.Winsize),
+		ProgramName:   req.ProgramName,
+		Args:          req.Arguments,
+		Directory:     req.Directory,
+		Session:       sess,
+		Tty:           req.Tty,
+		Stdin:         stdin,
+		Stdout:        stdout,
+		Stderr:        stderr,
+		Commands:      req.Commands,
+		Script:        req.Script,
+		Logger:        r.logger,
+		Winsize:       runnerWinsizeToPty(req.Winsize),
+		LanguageID:    req.LanguageId,
+		FileExtension: req.FileExtension,
+	}
+
+	switch req.CommandMode {
+	case runnerv1.CommandMode_COMMAND_MODE_UNSPECIFIED:
+		cfg.CommandMode = CommandModeNone
+	case runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL:
+		cfg.CommandMode = CommandModeInlineShell
+	case runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE:
+		cfg.CommandMode = CommandModeTempFile
 	}
 
 	if req.Project != nil {
@@ -243,6 +255,40 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
 	if err != nil {
+		var errInvalidLanguage ErrInvalidLanguage
+		if errors.As(err, &errInvalidLanguage) {
+			st := status.New(codes.InvalidArgument, "invalid LanguageId")
+			v := &errdetails.BadRequest_FieldViolation{
+				Field:       "LanguageId",
+				Description: "unable to find program for language",
+			}
+			br := &errdetails.BadRequest{}
+			br.FieldViolations = append(br.FieldViolations, v)
+			st, err := st.WithDetails(br)
+			if err != nil {
+				return fmt.Errorf("unexpected error attaching metadata: %v", err)
+			}
+
+			return st.Err()
+		}
+
+		var errInvalidProgram ErrInvalidProgram
+		if errors.As(err, &errInvalidProgram) {
+			st := status.New(codes.InvalidArgument, "invalid ProgramName")
+			v := &errdetails.BadRequest_FieldViolation{
+				Field:       "ProgramName",
+				Description: "unable to find program",
+			}
+			br := &errdetails.BadRequest{}
+			br.FieldViolations = append(br.FieldViolations, v)
+			st, err := st.WithDetails(br)
+			if err != nil {
+				return fmt.Errorf("unexpected error attaching metadata: %v", err)
+			}
+
+			return st.Err()
+		}
+
 		return err
 	}
 

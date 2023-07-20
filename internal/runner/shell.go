@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"github.com/stateful/runme/internal/document"
 )
 
 type Shell struct {
@@ -58,7 +59,7 @@ func (s *Shell) Run(ctx context.Context) error {
 			Stderr:      s.Stderr,
 			PreEnv:      s.PreEnv,
 			PostEnv:     s.PostEnv,
-			IsShell:     true,
+			CommandMode: CommandModeInlineShell,
 			Commands:    s.Cmds,
 			Script:      "",
 			Logger:      s.Logger,
@@ -108,6 +109,44 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 	}
 
 	return nil
+}
+
+func IsShellLanguage(languageID string) bool {
+	switch strings.ToLower(languageID) {
+	// shellscripts
+	case "sh", "bash", "zsh", "ksh", "shell", "shellscript":
+		return true
+
+	// dos
+	case "bat", "cmd":
+		return true
+
+	// powershell
+	case "powershell", "pwsh":
+		return true
+
+	// fish
+	case "fish":
+		return true
+
+	default:
+		return false
+	}
+}
+
+func GetCellProgram(languageID string, customShell string, cell *document.CodeBlock) (program string, commandMode CommandMode) {
+	if IsShellLanguage(languageID) {
+		program = ResolveShellPath(customShell)
+		commandMode = CommandModeInlineShell
+	} else {
+		commandMode = CommandModeTempFile
+	}
+
+	if interpreter := cell.GetBlock().Interpreter(); interpreter != "" {
+		program = interpreter
+	}
+
+	return
 }
 
 func ResolveShellPath(customShell string) string {

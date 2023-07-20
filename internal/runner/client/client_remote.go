@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
@@ -12,6 +13,7 @@ import (
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -131,8 +133,21 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		customShell = fmtr.Shell
 	}
 
+	programName, commandMode := runner.GetCellProgram(fileBlock.GetBlock().Language(), customShell, block)
+
+	var commandModeGrpc runnerv1.CommandMode
+
+	switch commandMode {
+	case runner.CommandModeNone:
+		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_UNSPECIFIED
+	case runner.CommandModeInlineShell:
+		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL
+	case runner.CommandModeTempFile:
+		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE
+	}
+
 	req := &runnerv1.ExecuteRequest{
-		ProgramName:     runner.ResolveShellPath(customShell),
+		ProgramName:     programName,
 		Directory:       r.dir,
 		Commands:        block.Lines(),
 		Tty:             tty,
@@ -141,6 +156,8 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		Background:      block.Background(),
 		StoreLastOutput: true,
 		Envs:            r.envs,
+		CommandMode:     commandModeGrpc,
+		LanguageId:      fileBlock.GetBlock().Language(),
 	}
 
 	req.Project = ConvertToRunnerProject(r.project)
@@ -173,7 +190,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 				_ = canceler.Cancel()
 			}
 		}()
-		return r.recvLoop(stream, background)
+		return r.recvLoop(stream, background, req.LanguageId)
 	})
 
 	return g.Wait()
@@ -214,13 +231,27 @@ func (r *RemoteRunner) sendLoop(stream runnerv1.RunnerService_ExecuteClient, std
 	}
 }
 
-func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient, background bool) error {
+func (r *RemoteRunner) recvLoop(stream runnerv1.RunnerService_ExecuteClient, background bool, languageID string) error {
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) || status.Convert(err).Code() == codes.Canceled {
 				err = nil
 			}
+
+			st := status.Convert(err)
+			for _, detail := range st.Details() {
+				if t, ok := detail.(*errdetails.BadRequest); ok {
+					for _, violation := range t.GetFieldViolations() {
+						if violation.GetField() == "LanguageId" {
+							if strings.Contains(violation.GetDescription(), "unable to find program for language") {
+								return errors.Wrapf(err, "invalid language %s", languageID)
+							}
+						}
+					}
+				}
+			}
+
 			return errors.Wrap(err, "stream closed")
 		}
 

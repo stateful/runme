@@ -177,6 +177,10 @@ func (b *CodeBlock) Cwd() string {
 	return b.Attributes()["cwd"]
 }
 
+func (b *CodeBlock) Interpreter() string {
+	return b.Attributes()["interpreter"]
+}
+
 func (b *CodeBlock) PromptEnv() bool {
 	val, err := strconv.ParseBool(b.Attributes()["promptEnv"])
 	if err != nil {

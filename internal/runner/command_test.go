@@ -36,8 +36,91 @@ func Test_command(t *testing.T) {
 				ProgramName: "bash",
 				Stdout:      stdout,
 				Stderr:      stderr,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Equal(t, "1\n2\n", string(data))
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
+	})
+
+	t.Run("BasicTempfile", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "bash",
+				Stdout:      stdout,
+				Stderr:      stderr,
+				CommandMode: CommandModeTempFile,
+				Commands:    []string{"echo 1", "sleep 1", "echo 2"},
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Equal(t, "1\n2\n", string(data))
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
+	})
+
+	t.Run("JavaScript", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "",
+				LanguageID:  "js",
+				Stdout:      stdout,
+				Stderr:      stderr,
+				CommandMode: CommandModeTempFile,
+				Script:      "console.log('1'); console.log('2')",
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Equal(t, "1\n2\n", string(data))
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
+	})
+
+	t.Run("JavaScriptEnv", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "/usr/bin/env node",
+				LanguageID:  "js",
+				Stdout:      stdout,
+				Stderr:      stderr,
+				CommandMode: CommandModeTempFile,
+				Script:      "console.log('1'); console.log('2')",
 				Logger:      testCreateLogger(t),
 			},
 		)
@@ -66,7 +149,7 @@ func Test_command(t *testing.T) {
 				Stdin:       stdin,
 				Stdout:      stdout,
 				Stderr:      stderr,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Commands:    []string{"echo 1", "sleep 1", "echo 2"},
 				Logger:      testCreateLogger(t),
 			},
@@ -97,7 +180,7 @@ func Test_command(t *testing.T) {
 				Stdin:       stdin,
 				Stdout:      stdout,
 				Stderr:      stderr,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Logger:      testCreateLogger(t),
 			},
 		)
@@ -131,7 +214,7 @@ func Test_command(t *testing.T) {
 				Stdin:       stdin,
 				Stdout:      stdout,
 				Stderr:      stderr,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Script:      "cat - | tr a-z A-Z",
 				Logger:      testCreateLogger(t),
 			},
@@ -161,7 +244,7 @@ func Test_command(t *testing.T) {
 				Stdin:       stdin,
 				Stdout:      stdout,
 				Stderr:      stderr,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Script:      "cat - | tr a-z A-Z",
 				Logger:      testCreateLogger(t),
 			},
@@ -202,7 +285,7 @@ func Test_command(t *testing.T) {
 				Stdin:       stdin,
 				Stdout:      stdout,
 				Stderr:      stderr,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Script:      "cat - 1>&2 2>/dev/null | tr a-z A-Z",
 				Logger:      testCreateLogger(t),
 			},
@@ -237,7 +320,7 @@ func Test_command(t *testing.T) {
 				Stdin:       stdin,
 				Stdout:      stdout,
 				Stderr:      stderr,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Logger:      testCreateLogger(t),
 			},
 		)
@@ -293,7 +376,7 @@ func Test_command(t *testing.T) {
 				Stdin:       bytes.NewBuffer(nil),
 				Stdout:      io.Discard,
 				Stderr:      io.Discard,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Commands: []string{
 					"export TEST_NEW=value2",
 					"export TEST_OLD_CHANGED=value2",
@@ -335,7 +418,7 @@ func Test_command(t *testing.T) {
 				Stdout:      stdout,
 				Stderr:      stderr,
 				Stdin:       stdin,
-				IsShell:     true,
+				CommandMode: CommandModeInlineShell,
 				Script:      "tput lines -T linux; tput cols -T linux",
 				Logger:      testCreateLogger(t),
 				Tty:         true,
@@ -364,7 +447,7 @@ func Test_command_Stop(t *testing.T) {
 			Stdin:       bytes.NewBuffer(nil),
 			Stdout:      io.Discard,
 			Stderr:      io.Discard,
-			IsShell:     true,
+			CommandMode: CommandModeInlineShell,
 			Commands:    []string{"sleep 30"},
 			Logger:      testCreateLogger(t),
 		},
@@ -392,7 +475,7 @@ func Test_exitCodeFromErr(t *testing.T) {
 			Stdin:       bytes.NewBuffer(nil),
 			Stdout:      io.Discard,
 			Stderr:      io.Discard,
-			IsShell:     true,
+			CommandMode: CommandModeInlineShell,
 			Commands:    []string{"exit 99"},
 			Logger:      testCreateLogger(t),
 		},

@@ -55,6 +55,14 @@ read name
 echo "\nHi, $name!"
 ```
 
+## JavaScript
+
+It can also execute a snippet of JavaScript code:
+
+```js { name=hello-js }
+console.log("Hello World!")
+```
+
 ## Go
 
 It can also execute a snippet of Go code:

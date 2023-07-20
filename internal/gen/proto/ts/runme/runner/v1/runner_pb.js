@@ -30,6 +30,24 @@ export var ExecuteStop;
     ExecuteStop[ExecuteStop["KILL"] = 2] = "KILL";
 })(ExecuteStop || (ExecuteStop = {}));
 /**
+ * @generated from protobuf enum runme.runner.v1.CommandMode
+ */
+export var CommandMode;
+(function (CommandMode) {
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_UNSPECIFIED = 0;
+     */
+    CommandMode[CommandMode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_INLINE_SHELL = 1;
+     */
+    CommandMode[CommandMode["INLINE_SHELL"] = 1] = "INLINE_SHELL";
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_TEMP_FILE = 2;
+     */
+    CommandMode[CommandMode["TEMP_FILE"] = 2] = "TEMP_FILE";
+})(CommandMode || (CommandMode = {}));
+/**
  * strategy for selecting a session in an initial execute request
  *
  * @generated from protobuf enum runme.runner.v1.SessionStrategy
@@ -205,7 +223,10 @@ class ExecuteRequest$Type extends MessageType {
             { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
             { no: 22, name: "project", kind: "message", T: () => Project },
-            { no: 23, name: "store_last_output", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 23, name: "store_last_output", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 24, name: "command_mode", kind: "enum", T: () => ["runme.runner.v1.CommandMode", CommandMode, "COMMAND_MODE_"] },
+            { no: 25, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 26, name: "file_extension", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }

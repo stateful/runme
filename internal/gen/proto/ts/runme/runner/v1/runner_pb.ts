@@ -33,6 +33,32 @@ proto3.util.setEnumType(ExecuteStop, "runme.runner.v1.ExecuteStop", [
 ]);
 
 /**
+ * @generated from enum runme.runner.v1.CommandMode
+ */
+export enum CommandMode {
+  /**
+   * @generated from enum value: COMMAND_MODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: COMMAND_MODE_INLINE_SHELL = 1;
+   */
+  INLINE_SHELL = 1,
+
+  /**
+   * @generated from enum value: COMMAND_MODE_TEMP_FILE = 2;
+   */
+  TEMP_FILE = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(CommandMode)
+proto3.util.setEnumType(CommandMode, "runme.runner.v1.CommandMode", [
+  { no: 0, name: "COMMAND_MODE_UNSPECIFIED" },
+  { no: 1, name: "COMMAND_MODE_INLINE_SHELL" },
+  { no: 2, name: "COMMAND_MODE_TEMP_FILE" },
+]);
+
+/**
  * strategy for selecting a session in an initial execute request
  *
  * @generated from enum runme.runner.v1.SessionStrategy
@@ -655,6 +681,25 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
    */
   storeLastOutput = false;
 
+  /**
+   * @generated from field: runme.runner.v1.CommandMode command_mode = 24;
+   */
+  commandMode = CommandMode.UNSPECIFIED;
+
+  /**
+   * language id associated with script
+   *
+   * @generated from field: string language_id = 25;
+   */
+  languageId = "";
+
+  /**
+   * file extension associated with script
+   *
+   * @generated from field: string file_extension = 26;
+   */
+  fileExtension = "";
+
   constructor(data?: PartialMessage<ExecuteRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -678,6 +723,9 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
     { no: 21, name: "session_strategy", kind: "enum", T: proto3.getEnumType(SessionStrategy) },
     { no: 22, name: "project", kind: "message", T: Project, opt: true },
     { no: 23, name: "store_last_output", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 24, name: "command_mode", kind: "enum", T: proto3.getEnumType(CommandMode) },
+    { no: 25, name: "language_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 26, name: "file_extension", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteRequest {
