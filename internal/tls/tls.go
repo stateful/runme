@@ -23,6 +23,11 @@ type TLSFiles[T any] struct {
 	PrivKey T
 }
 
+// Done for mocking purposes
+var getNow = func() time.Time {
+	return time.Now()
+}
+
 func getTLSFiles(tlsDir string) TLSFiles[string] {
 	return TLSFiles[string]{
 		Cert:    path.Join(tlsDir, "cert.pem"),
@@ -125,7 +130,7 @@ func GenerateTLS(tlsDir string, tlsFileMode os.FileMode, logger *zap.Logger) (*t
 			goto generateNew
 		}
 
-		if time.Now().AddDate(0, 0, 7).After(cert.NotAfter) {
+		if getNow().AddDate(0, 0, 7).After(cert.NotAfter) {
 			logger.Info("pre-existing certificate will expire soon, generating new certificate...")
 			goto generateNew
 		}
@@ -152,8 +157,8 @@ generateNew:
 			Province:     []string{"California"},
 			Locality:     []string{"Berkeley"},
 		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(0, 0, 30),
+		NotBefore:             getNow(),
+		NotAfter:              getNow().AddDate(0, 0, 30),
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
