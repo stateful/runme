@@ -13,8 +13,8 @@ import (
 
 func Test_GenerateTLS(t *testing.T) {
 	tlsDir := filepath.Join(os.TempDir(), uuid.New().String())
-	os.RemoveAll(tlsDir)
-	os.MkdirAll(tlsDir, 0o700)
+	_ = os.RemoveAll(tlsDir)
+	_ = os.MkdirAll(tlsDir, 0o700)
 	defer os.RemoveAll(tlsDir)
 
 	logger := zaptest.NewLogger(t)
