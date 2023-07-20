@@ -97,9 +97,9 @@ It can even run scripting languages:
 console.log("Hello, runme, from javascript!")
 ```
 
-And it can even run a cell with a custom program:
+And it can even run a cell with a custom interpreter:
 
-```js { name=hello-js-cat program=cat }
+```js { name=hello-js-cat interpreter=cat }
 console.log("Hello, runme, from javascript!")
 ```
 
@@ -135,7 +135,7 @@ func main() {
 NAME	FILE	FIRST COMMAND	DESCRIPTION
 echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.
 hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.
-hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom program.
+hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.
 -- golden-list-allow-unnamed.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION
 echo-hello	README.md	echo "Hello, runme!"	This is a basic snippet with shell command.
@@ -145,6 +145,6 @@ echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and gi
 echo-1	README.md	echo "1"	It can contain multiple lines too.
 echo-hello-3	README.md	echo "Hello, runme! Again!"	Also, the dollar sign is not needed.
 hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.
-hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom program.
+hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.
 tempdir	README.md	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	It works with cd, pushd, and similar because all lines are executed as a single script.
 package-main	README.md	package main	It can also execute a snippet of Go code.

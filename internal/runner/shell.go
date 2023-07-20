@@ -142,8 +142,8 @@ func GetCellProgram(languageID string, customShell string, cell *document.CodeBl
 		commandMode = CommandModeTempFile
 	}
 
-	if manualProgram := cell.GetBlock().Program(); manualProgram != "" {
-		program = manualProgram
+	if interpreter := cell.GetBlock().Interpreter(); interpreter != "" {
+		program = interpreter
 	}
 
 	return

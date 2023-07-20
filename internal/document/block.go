@@ -177,8 +177,8 @@ func (b *CodeBlock) Cwd() string {
 	return b.Attributes()["cwd"]
 }
 
-func (b *CodeBlock) Program() string {
-	return b.Attributes()["program"]
+func (b *CodeBlock) Interpreter() string {
+	return b.Attributes()["interpreter"]
 }
 
 func (b *CodeBlock) PromptEnv() bool {
