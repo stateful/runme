@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/stateful/runme/internal/executable"
 	"github.com/stateful/runme/internal/shell"
 	"github.com/yuin/goldmark/ast"
 
@@ -153,8 +154,12 @@ func (b *CodeBlock) Name() string {
 	return b.name
 }
 
-func (b *CodeBlock) NameGenerated() bool {
+func (b *CodeBlock) IsUnnamed() bool {
 	return b.nameGenerated
+}
+
+func (b *CodeBlock) IsUnknown() bool {
+	return b.Language() == "" || !executable.IsSupported(b.Language())
 }
 
 func (b *CodeBlock) Unwrap() ast.Node {

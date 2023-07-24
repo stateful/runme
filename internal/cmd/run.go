@@ -71,7 +71,8 @@ func runCmd() *cobra.Command {
 			runBlocks := make([]project.FileCodeBlock, 0)
 
 			{
-				blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin())
+			searchBlocks:
+				blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), true)
 				if err != nil {
 					return err
 				}
@@ -93,13 +94,20 @@ func runCmd() *cobra.Command {
 							runBlocks = append(runBlocks, fileBlock)
 						}
 					}
-					if len(runBlocks) == 0 {
-						return errors.New("No tasks to execute with the category provided")
+
+					if len(runBlocks) == 0 && !fAllowUnnamed {
+						fAllowUnnamed = true
+						goto searchBlocks
 					}
 				} else {
 					for _, arg := range args {
 						block, err := lookupCodeBlockWithPrompt(cmd, arg, blocks)
 						if err != nil {
+							if project.IsCodeBlockNotFoundError(err) && !fAllowUnnamed {
+								fAllowUnnamed = true
+								goto searchBlocks
+							}
+
 							return err
 						}
 
@@ -110,6 +118,10 @@ func runCmd() *cobra.Command {
 						runBlocks = append(runBlocks, block)
 					}
 				}
+			}
+
+			if len(runBlocks) == 0 {
+				return errors.New("No tasks to execute with the category provided")
 			}
 
 			ctx, cancel := ctxWithSigCancel(cmd.Context())

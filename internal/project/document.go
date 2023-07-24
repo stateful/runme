@@ -9,7 +9,6 @@ import (
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/executable"
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
@@ -39,7 +38,7 @@ func WriteMarkdownFile(filename string, fs billy.Basic, data []byte) error {
 	return util.WriteFile(fs, filename, data, 0o600)
 }
 
-func parseDocumentForCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic, doFrontmatter bool) (document.CodeBlocks, *document.Frontmatter, error) {
+func parseDocumentForCodeBlocks(filepath string, fs billy.Basic, doFrontmatter bool) (document.CodeBlocks, *document.Frontmatter, error) {
 	data, err := ReadMarkdownFile(filepath, fs)
 	if err != nil {
 		return nil, nil, err
@@ -65,23 +64,11 @@ func parseDocumentForCodeBlocks(filepath string, allowUnknown bool, allowUnnamed
 
 	blocks := document.CollectCodeBlocks(node)
 
-	filtered := make(document.CodeBlocks, 0, len(blocks))
-	for _, b := range blocks {
-		if !(allowUnknown || (b.Language() != "" && executable.IsSupported(b.Language()))) {
-			continue
-		}
-
-		if !allowUnnamed && b.NameGenerated() {
-			continue
-		}
-
-		filtered = append(filtered, b)
-	}
-	return filtered, fmtr, nil
+	return blocks, fmtr, nil
 }
 
-func GetCodeBlocksAndParseFrontmatter(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, document.Frontmatter, error) {
-	blocks, fmtr, err := parseDocumentForCodeBlocks(filepath, allowUnknown, allowUnnamed, fs, true)
+func GetCodeBlocksAndParseFrontmatter(filepath string, fs billy.Basic) (document.CodeBlocks, document.Frontmatter, error) {
+	blocks, fmtr, err := parseDocumentForCodeBlocks(filepath, fs, true)
 
 	var f document.Frontmatter
 	if fmtr != nil {
@@ -91,7 +78,7 @@ func GetCodeBlocksAndParseFrontmatter(filepath string, allowUnknown bool, allowU
 	return blocks, f, err
 }
 
-func GetCodeBlocks(filepath string, allowUnknown bool, allowUnnamed bool, fs billy.Basic) (document.CodeBlocks, error) {
-	blocks, _, err := parseDocumentForCodeBlocks(filepath, allowUnknown, allowUnnamed, fs, false)
+func GetCodeBlocks(filepath string, fs billy.Basic) (document.CodeBlocks, error) {
+	blocks, _, err := parseDocumentForCodeBlocks(filepath, fs, false)
 	return blocks, err
 }

@@ -132,19 +132,19 @@ func main() {
 ```
 
 -- golden-list.txt --
-NAME	FILE	FIRST COMMAND	DESCRIPTION
-echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.
-hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.
-hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.	True
+hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	True
+hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	True
 -- golden-list-allow-unnamed.txt --
-NAME	FILE	FIRST COMMAND	DESCRIPTION
-echo-hello	README.md	echo "Hello, runme!"	This is a basic snippet with shell command.
-echo-hello-2	README.md	echo "Hello, runme!"	You can omit the language, and runme will assume you are in shell.
-echo-inferred	README.md	echo Inferred	Names will automatically be inferred from a script's contents.
-echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.
-echo-1	README.md	echo "1"	It can contain multiple lines too.
-echo-hello-3	README.md	echo "Hello, runme! Again!"	Also, the dollar sign is not needed.
-hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.
-hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.
-tempdir	README.md	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	It works with cd, pushd, and similar because all lines are executed as a single script.
-package-main	README.md	package main	It can also execute a snippet of Go code.
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+echo-hello	README.md	echo "Hello, runme!"	This is a basic snippet with shell command.	False
+echo-hello-2	README.md	echo "Hello, runme!"	You can omit the language, and runme will assume you are in shell.	False
+echo-inferred	README.md	echo Inferred	Names will automatically be inferred from a script's contents.	False
+echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.	True
+echo-1	README.md	echo "1"	It can contain multiple lines too.	False
+echo-hello-3	README.md	echo "Hello, runme! Again!"	Also, the dollar sign is not needed.	False
+hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	True
+hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	True
+tempdir	README.md	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	It works with cd, pushd, and similar because all lines are executed as a single script.	False
+package-main	README.md	package main	It can also execute a snippet of Go code.	False

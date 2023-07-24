@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stateful/runme/internal/project"
 )
 
 func printCmd() *cobra.Command {
@@ -20,13 +21,19 @@ func printCmd() *cobra.Command {
 				return err
 			}
 
-			blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin())
+		generateBlocks:
+			blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), true)
 			if err != nil {
 				return err
 			}
 
 			fileBlock, err := lookupCodeBlockWithPrompt(cmd, args[0], blocks)
 			if err != nil {
+				if project.IsCodeBlockNotFoundError(err) && !fAllowUnnamed {
+					fAllowUnnamed = true
+					goto generateBlocks
+				}
+
 				return err
 			}
 

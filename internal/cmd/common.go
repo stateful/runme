@@ -132,18 +132,8 @@ func getProject() (proj project.Project, err error) {
 func getCodeBlocks() (document.CodeBlocks, error) {
 	return project.GetCodeBlocks(
 		filepath.Join(fChdir, fFileName),
-		fAllowUnknown,
-		fAllowUnnamed,
 		nil,
 	)
-}
-
-func lookupCodeBlock(blocks document.CodeBlocks, name string) (*document.CodeBlock, error) {
-	block := blocks.Lookup(name)
-	if block == nil {
-		return nil, errors.Errorf("command %q not found; known command names: %s", name, blocks.Names())
-	}
-	return block, nil
 }
 
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -434,13 +424,24 @@ func loadFiles(proj project.Project, w io.Writer, r io.Reader) ([]string, error)
 	return m.files, nil
 }
 
-func loadTasks(proj project.Project, w io.Writer, r io.Reader) (project.CodeBlocks, error) {
+func loadTasks(proj project.Project, w io.Writer, r io.Reader, filter bool) (project.CodeBlocks, error) {
 	m, err := runTasksModel(proj, false, w, r)
 	if err != nil {
 		return nil, err
 	}
 
-	return m.tasks, nil
+	tasks := m.tasks
+
+	if filter {
+		tasks = project.FilterCodeBlocks[project.CodeBlock](m.tasks, fAllowUnknown, fAllowUnnamed)
+
+		if len(tasks) == 0 {
+			// try again without filtering unnamed
+			tasks = project.FilterCodeBlocks[project.CodeBlock](m.tasks, fAllowUnknown, true)
+		}
+	}
+
+	return tasks, nil
 }
 
 func runTasksModel(proj project.Project, filesOnly bool, w io.Writer, r io.Reader) (*loadTasksModel, error) {

@@ -37,9 +37,18 @@ func tuiCmd() *cobra.Command {
 				return err
 			}
 
-			blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin())
+			blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), false)
 			if err != nil {
 				return err
+			}
+
+			defaultAllowUnnamed := fAllowUnnamed
+
+			if !defaultAllowUnnamed {
+				newBlocks := project.FilterCodeBlocks(blocks, fAllowUnknown, false)
+				if len(newBlocks) == 0 {
+					defaultAllowUnnamed = true
+				}
 			}
 
 			blocks = sortBlocks(blocks)
@@ -102,7 +111,7 @@ func tuiCmd() *cobra.Command {
 			}
 
 			model := tuiModel{
-				blocks: blocks,
+				unfilteredBlocks: blocks,
 				header: fmt.Sprintf(
 					"%s %s\n\n",
 					ansi.Color("runme", "57+b"),
@@ -110,7 +119,12 @@ func tuiCmd() *cobra.Command {
 				),
 				visibleEntries: visibleEntries,
 				expanded:       make(map[int]struct{}),
+
+				allowUnnamed: defaultAllowUnnamed,
+				allowUnknown: fAllowUnknown,
 			}
+
+			model.filterCodeBlocks()
 
 			sessionEnvs, err := runnerClient.GetEnvs(context.Background())
 			if err != nil {
@@ -188,13 +202,16 @@ func tuiCmd() *cobra.Command {
 }
 
 type tuiModel struct {
-	blocks         project.CodeBlocks
-	header         string
-	visibleEntries int
-	expanded       map[int]struct{}
-	cursor         int
-	scroll         int
-	result         tuiResult
+	unfilteredBlocks project.CodeBlocks
+	blocks           project.CodeBlocks
+	header           string
+	visibleEntries   int
+	expanded         map[int]struct{}
+	cursor           int
+	scroll           int
+	result           tuiResult
+	allowUnnamed     bool
+	allowUnknown     bool
 }
 
 type tuiResult struct {
@@ -215,6 +232,40 @@ func (m *tuiModel) scrollBy(delta int) {
 		m.scroll+delta,
 		0, m.maxScroll(),
 	)
+}
+
+func (m *tuiModel) filterCodeBlocks() {
+	hasInitialized := m.blocks != nil
+
+	var oldSelection project.CodeBlock
+	if hasInitialized {
+		oldSelection = m.blocks[m.cursor]
+	}
+
+	m.blocks = project.FilterCodeBlocks(m.unfilteredBlocks, m.allowUnknown, m.allowUnnamed)
+
+	if !hasInitialized {
+		return
+	}
+
+	foundOldSelection := false
+	for i, block := range m.blocks {
+		if block == oldSelection {
+			m.moveCursorTo(i)
+			foundOldSelection = true
+			break
+		}
+	}
+
+	if !foundOldSelection {
+		if m.cursor >= len(m.blocks) {
+			m.moveCursorTo(len(m.blocks) - 1)
+		}
+	}
+}
+
+func (m *tuiModel) moveCursorTo(newPos int) {
+	m.moveCursor(newPos - m.cursor)
 }
 
 func (m *tuiModel) moveCursor(delta int) {
@@ -258,6 +309,11 @@ func (m tuiModel) View() string {
 
 		{
 			name := block.Name()
+
+			if block.IsUnnamed() {
+				name += " (unnamed)"
+			}
+
 			filename := ansi.Color(fileBlock.File, "white+d")
 
 			if active {
@@ -296,6 +352,13 @@ func (m tuiModel) View() string {
 
 	_, _ = s.WriteRune('\n')
 
+	var unnamedVerb string
+	if m.allowUnnamed {
+		unnamedVerb = "Hide"
+	} else {
+		unnamedVerb = "Show"
+	}
+
 	{
 		help := strings.Join(
 			[]string{
@@ -303,6 +366,7 @@ func (m tuiModel) View() string {
 				"Choose ↑↓←→",
 				"Run [Enter]",
 				"Expand [Space]",
+				fmt.Sprintf("%s Unnamed [u]", unnamedVerb),
 				"Quit [q]",
 			},
 			tab,
@@ -351,6 +415,10 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			return m, tea.Quit
+
+		case "u":
+			m.allowUnnamed = !m.allowUnnamed
+			m.filterCodeBlocks()
 		}
 	}
 

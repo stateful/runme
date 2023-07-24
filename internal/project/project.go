@@ -32,7 +32,12 @@ func newCodeBlock(
 	frontmatter document.Frontmatter,
 	fs billy.Chroot,
 ) *CodeBlock {
-	return &CodeBlock{Block: block, File: file, Frontmatter: frontmatter, fs: fs}
+	return &CodeBlock{
+		Block:       block,
+		File:        file,
+		Frontmatter: frontmatter,
+		fs:          fs,
+	}
 }
 
 func (b CodeBlock) GetBlock() *document.CodeBlock {
@@ -90,6 +95,10 @@ func (blocks CodeBlocks) Lookup(queryName string) []CodeBlock {
 	}
 
 	return results
+}
+
+func IsCodeBlockNotFoundError(err error) bool {
+	return errors.As(err, &ErrCodeBlockNameNotFound{}) || errors.As(err, &ErrCodeBlockFileNotFound{})
 }
 
 type ErrCodeBlockFileNotFound struct {
@@ -247,8 +256,6 @@ type DirectoryProject struct {
 	repo *git.Repository
 	fs   billy.Filesystem
 
-	allowUnknown     bool
-	allowUnnamed     bool
 	respectGitignore bool
 	envLoadOrder     []string
 
@@ -278,8 +285,6 @@ func (p *DirectoryProject) SetRespectGitignore(respectGitignore bool) {
 
 func NewDirectoryProject(dir string, findNearestRepo bool, allowUnknown bool, allowUnnamed bool, ignorePatterns []string) (*DirectoryProject, error) {
 	project := &DirectoryProject{
-		allowUnknown:     allowUnknown,
-		allowUnnamed:     allowUnnamed,
 		respectGitignore: true,
 		ignorePatterns:   ignorePatterns,
 	}
@@ -409,7 +414,7 @@ func (p *DirectoryProject) LoadTasks(filesOnly bool, channel chan<- interface{})
 
 	for _, mdFile := range markdownFiles {
 		channel <- LoadTaskParsingFile{Filename: mdFile}
-		blocks, err := getFileCodeBlocks(mdFile, p.allowUnknown, p.allowUnnamed, p.fs)
+		blocks, err := getFileCodeBlocks(mdFile, p.fs)
 		if err != nil {
 			channel <- LoadTaskError{Err: err}
 			return
@@ -490,7 +495,7 @@ func (p *SingleFileProject) LoadTasks(filesOnly bool, channel chan<- interface{}
 	channel <- LoadTaskStatusParsingFiles{}
 
 	channel <- LoadTaskParsingFile{Filename: relFile}
-	blocks, err := getFileCodeBlocks(relFile, p.allowUnknown, p.allowUnnamed, fs)
+	blocks, err := getFileCodeBlocks(relFile, fs)
 	if err != nil {
 		channel <- LoadTaskError{Err: err}
 		return
@@ -518,8 +523,8 @@ type CodeBlockFS interface {
 	billy.Chroot
 }
 
-func getFileCodeBlocks(file string, allowUnknown bool, allowUnnamed bool, fs CodeBlockFS) ([]CodeBlock, error) {
-	blocks, fmtr, err := GetCodeBlocksAndParseFrontmatter(file, allowUnknown, allowUnnamed, fs)
+func getFileCodeBlocks(file string, fs CodeBlockFS) ([]CodeBlock, error) {
+	blocks, fmtr, err := GetCodeBlocksAndParseFrontmatter(file, fs)
 	if err != nil {
 		return nil, err
 	}
@@ -573,4 +578,20 @@ func LoadProjectFiles(proj Project) ([]string, error) {
 	}
 
 	return files, err
+}
+
+func FilterCodeBlocks[T FileCodeBlock](blocks []T, allowUnknown bool, allowUnnamed bool) (result []T) {
+	for _, b := range blocks {
+		if !allowUnknown && b.GetBlock().IsUnknown() {
+			continue
+		}
+
+		if !allowUnnamed && b.GetBlock().IsUnnamed() {
+			continue
+		}
+
+		result = append(result, b)
+	}
+
+	return
 }
