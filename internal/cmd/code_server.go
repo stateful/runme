@@ -177,7 +177,7 @@ func codeServerCmd() *cobra.Command {
 				return nil
 			}
 
-			codeServerArgs := []string{}
+			codeServerArgs := []string{"--disable-getting-started-override"}
 
 			if open {
 				codeServerArgs = append(codeServerArgs, "--open")
