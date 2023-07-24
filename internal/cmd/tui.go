@@ -366,8 +366,8 @@ func (m tuiModel) View() string {
 				"Choose ↑↓←→",
 				"Run [Enter]",
 				"Expand [Space]",
-				"Quit [q]",
 				fmt.Sprintf("%s Unnamed [u]", unnamedVerb),
+				"Quit [q]",
 			},
 			tab,
 		)
