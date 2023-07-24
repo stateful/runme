@@ -168,6 +168,16 @@ docker_manifests:
     image_templates:
     - 'statefulhq/runme:{{ .Version }}-alpine-amd64'
     - 'statefulhq/runme:{{ .Version }}-alpine-arm64'
+  - name_template: 'statefulhq/runme:latest-alpine'
+    skip_push: auto
+    image_templates:
+    - 'statefulhq/runme:{{ .Version }}-alpine-amd64'
+    - 'statefulhq/runme:{{ .Version }}-alpine-arm64'
+  - name_template: 'statefulhq/runme:latest-ubuntu'
+    skip_push: auto
+    image_templates:
+    - 'statefulhq/runme:{{ .Version }}-ubuntu-amd64'
+    - 'statefulhq/runme:{{ .Version }}-ubuntu-arm64'
   - name_template: 'statefulhq/runme:{{ .Version }}-alpine'
     skip_push: auto
     image_templates:
