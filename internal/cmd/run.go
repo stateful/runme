@@ -22,6 +22,7 @@ import (
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -87,12 +88,16 @@ func runCmd() *cobra.Command {
 					for _, fileBlock := range blocks {
 						block := fileBlock.Block
 
-						if !block.ExcludeFromRunAll() {
-							if category != "" && category != block.Category() {
-								continue
-							}
-							runBlocks = append(runBlocks, fileBlock)
+						if category == "" || block.ExcludeFromRunAll() {
+							continue
 						}
+
+						containsCategory := slices.Contains(strings.Split(block.Category(), ","), category)
+						if !containsCategory {
+							continue
+						}
+
+						runBlocks = append(runBlocks, fileBlock)
 					}
 
 					if len(runBlocks) == 0 && !fAllowUnnamed {
