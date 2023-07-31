@@ -55,7 +55,7 @@ brew bundle --no-lock
 
 In order to use `make`, install [apple developer tools](https://developer.apple.com/xcode/resources/).
 
-## Development
+## Setup
 
 To install required CLI tools for development:
 
@@ -63,31 +63,7 @@ To install required CLI tools for development:
 make install/dev
 ```
 
-Like many complex go projects, this project uses a variety of linting tools to ensure code quality and prevent regressions!
-
-### Linting
-
-The main linter (revive) can be run with:
-
-```sh { interactive=false }
-make lint
-```
-
-The rest of the project's linting suite can be run with:
-
-```sh
-pre-commit run --files */**
-```
-
-### Testing
-
-Tests are run with go's default test runner. So, for example, you can run all tests with:
-
-```sh
-go test ./...
-```
-
-## Build Overview
+## Build
 
 This codebase is used for a few different purposes, and so there's quite a lot of architecture involved.
 
@@ -103,7 +79,12 @@ CLI is built with:
 make build
 ```
 
-This builds the CLI binary for the current platform to an executable file "runme" in the root directory. (You can change the output with the `-o` flag)
+This builds the CLI binary for the current platform to an executable file "runme" in the root directory. (You can change the output with the `-o` flag). After this command you can access the compiled binary from the root directory in your workspace, e.g.:
+
+```sh
+./runme --version
+# outputs: "runme version 1.3.0-27-g3cca8a6-3cca8a6 (3cca8a6e7d34f401c1bdd99828a7fac5b1d8fac9) on 2023-07-31T16:49:57Z"
+```
 
 #### WASM
 
@@ -115,9 +96,31 @@ make wasm
 
 This builds the wasm file to `examples/web/runme.wasm`.
 
-### Generated Files
+## Linting
 
-#### Protocol Buffers
+Like many complex go projects, this project uses a variety of linting tools to ensure code quality and prevent regressions! The main linter (revive) can be run with:
+
+```sh { interactive=false }
+make lint
+```
+
+The rest of the project's linting suite can be run with:
+
+```sh
+pre-commit run --files */**
+```
+
+## Testing
+
+Tests are run with go's default test runner. So, for example, you can run all tests with:
+
+```sh
+go test ./...
+```
+
+## Generated Files
+
+### Protocol Buffers
 
 To generate protocol buffers:
 
@@ -139,7 +142,7 @@ npm config set @buf:registry https://buf.build/gen/npm/v1
 yarn config set @buf:registry https://buf.build/gen/npm/v1
 ```
 
-#### GraphQL
+### GraphQL
 
 GraphQL schema are generated as part of:
 
@@ -155,7 +158,7 @@ go install github.com/Khan/genqlient
 
 See also [the README](/internal/client/graphql/schema/README.md) for generating GraphQL schema from the remote endpoint, which is a pre-requisite for running `go generate`.
 
-#### Mocks
+### Mocks
 
 Mocks are generated as part of:
 
