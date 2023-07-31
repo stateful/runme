@@ -115,7 +115,7 @@ pre-commit run --files */**
 Tests are run with go's default test runner. So, for example, you can run all tests with:
 
 ```sh
-go test ./...
+make test
 ```
 
 ## Generated Files
