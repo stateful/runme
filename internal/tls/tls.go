@@ -151,8 +151,8 @@ generateNew:
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			CommonName:   "stateful",
-			Organization: []string{"Stateful, INC."},
+			CommonName:   "runme",
+			Organization: []string{"Stateful, Inc."},
 			Country:      []string{"US"},
 			Province:     []string{"California"},
 			Locality:     []string{"Berkeley"},
