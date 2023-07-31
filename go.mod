@@ -38,6 +38,8 @@ require (
 	google.golang.org/protobuf v1.28.1
 )
 
+require github.com/benbjohnson/clock v1.1.0 // indirect
+
 require (
 	github.com/ProtonMail/go-crypto v0.0.0-20221026131551-cf6655e29de4 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect

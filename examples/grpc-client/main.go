@@ -37,7 +37,7 @@ func main() {
 }
 
 func run() error {
-	tlsConfig, err := runmetls.LoadTLSConfig(*tlsDir)
+	tlsConfig, err := runmetls.LoadTLSConfig(*tlsDir, true)
 	if err != nil {
 		return err
 	}
