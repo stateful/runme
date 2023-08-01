@@ -135,7 +135,8 @@ func GenerateTLS(tlsDir string, tlsFileMode os.FileMode, logger *zap.Logger) (*t
 			goto generateNew
 		}
 
-		logger.Info("using pre-existing TLS certificate")
+		ttl := cert.NotAfter.Sub(getNow()).Hours() / 24
+		logger.Sugar().Infof("using pre-existing TLS certificate, ttl: %.2fd", ttl)
 
 		return tlsConfig, nil
 	}
