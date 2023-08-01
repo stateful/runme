@@ -109,7 +109,8 @@ func newCommand(cfg *commandConfig) (*command, error) {
 	programName, initialArgs := parseFileProgram(cfg.ProgramName)
 	args := initialArgs
 
-	programPath, err := inferFileProgram(programName, cfg.LanguageID)
+	programPath, initialArgs, err := inferFileProgram(programName, cfg.LanguageID)
+	args = append(args, initialArgs...)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -597,10 +598,10 @@ var programByLanguageID = map[string][]string{
 	"jsx":             {"node"},
 	"javascriptreact": {"node"},
 
-	"ts":              {"ts-node", "deno", "bun"},
-	"typescript":      {"ts-node", "deno", "bun"},
-	"tsx":             {"ts-node", "deno", "bun"},
-	"typescriptreact": {"ts-node", "deno", "bun"},
+	"ts":              {"ts-node", "deno run", "bun run"},
+	"typescript":      {"ts-node", "deno run", "bun run"},
+	"tsx":             {"ts-node", "deno run", "bun run"},
+	"typescriptreact": {"ts-node", "deno run", "bun run"},
 
 	"sh":         {"bash", "sh"},
 	"bash":       {"bash", "sh"},
@@ -652,26 +653,27 @@ func parseFileProgram(programPath string) (program string, args []string) {
 	return
 }
 
-func inferFileProgram(programPath string, languageID string) (string, error) {
+func inferFileProgram(programPath string, languageID string) (interpreter string, args []string, err error) {
 	if programPath != "" {
 		res, err := exec.LookPath(programPath)
 		if err != nil {
-			return "", ErrInvalidProgram{
+			return "", []string{}, ErrInvalidProgram{
 				Program: programPath,
 				inner:   err,
 			}
 		}
-		return res, nil
+		return res, []string{}, nil
 	}
 
 	for _, candidate := range programByLanguageID[languageID] {
-		res, err := exec.LookPath(candidate)
+		program, args := parseFileProgram(candidate)
+		res, err := exec.LookPath(program)
 		if err == nil {
-			return res, nil
+			return res, args, nil
 		}
 	}
 
-	return "", ErrInvalidLanguage{
+	return "", []string{}, ErrInvalidLanguage{
 		LanguageID: languageID,
 	}
 }
