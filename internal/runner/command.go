@@ -597,10 +597,10 @@ var programByLanguageID = map[string][]string{
 	"jsx":             {"node"},
 	"javascriptreact": {"node"},
 
-	"ts":              {"ts-node"},
-	"typescript":      {"ts-node"},
-	"tsx":             {"ts-node"},
-	"typescriptreact": {"ts-node"},
+	"ts":              {"ts-node", "deno", "bun"},
+	"typescript":      {"ts-node", "deno", "bun"},
+	"tsx":             {"ts-node", "deno", "bun"},
+	"typescriptreact": {"ts-node", "deno", "bun"},
 
 	"sh":         {"bash", "sh"},
 	"bash":       {"bash", "sh"},
