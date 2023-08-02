@@ -40,6 +40,7 @@ func runCmd() *cobra.Command {
 	var (
 		dryRun         bool
 		runAll         bool
+		skipPromptVars bool
 		parallel       bool
 		replaceScripts []string
 		serverAddr     string
@@ -172,9 +173,11 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			err = promptEnvVars(cmd, sessionEnvs, runBlocks...)
-			if err != nil {
-				return err
+			if isTerminal(os.Stdout.Fd()) && !skipPromptVars {
+				err = promptEnvVars(cmd, sessionEnvs, runBlocks...)
+				if err != nil {
+					return err
+				}
 			}
 
 			if runMany {
@@ -287,6 +290,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
+	cmd.Flags().BoolVar(&skipPromptVars, "skip-prompt-vars", false, "Skip prompting for variables.")
 	cmd.Flags().StringVarP(&category, "category", "c", "", "Run from a specific category.")
 	cmd.Flags().IntVarP(&runIndex, "index", "i", -1, "Index of command to run, 0-based. (Ignored in project mode)")
 
