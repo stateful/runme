@@ -361,7 +361,7 @@ func (p *DirectoryProject) LoadTasks(filesOnly bool, channel chan<- interface{})
 		info: rootInfo,
 	}}
 
-	markdownFiles := make([]string, 0)
+	runbookFiles := make([]string, 0)
 
 	channel <- LoadTaskStatusSearchingFiles{}
 
@@ -396,11 +396,11 @@ func (p *DirectoryProject) LoadTasks(filesOnly bool, channel chan<- interface{})
 		} else {
 			ext := strings.ToLower(filepath.Ext(node.path))
 
-			if ext == ".md" || ext == ".mdx" || ext == ".mdi" {
+			if ext == ".md" || ext == ".mdx" || ext == ".mdi" || ext == ".mdr" || ext == ".run" || ext == ".runme" {
 				channel <- LoadTaskFoundFile{Filename: node.path}
 
 				if !filesOnly {
-					markdownFiles = append(markdownFiles, node.path)
+					runbookFiles = append(runbookFiles, node.path)
 				}
 			}
 		}
@@ -412,9 +412,9 @@ func (p *DirectoryProject) LoadTasks(filesOnly bool, channel chan<- interface{})
 
 	channel <- LoadTaskStatusParsingFiles{}
 
-	for _, mdFile := range markdownFiles {
-		channel <- LoadTaskParsingFile{Filename: mdFile}
-		blocks, err := getFileCodeBlocks(mdFile, p.fs)
+	for _, runFile := range runbookFiles {
+		channel <- LoadTaskParsingFile{Filename: runFile}
+		blocks, err := getFileCodeBlocks(runFile, p.fs)
 		if err != nil {
 			channel <- LoadTaskError{Err: err}
 			return
