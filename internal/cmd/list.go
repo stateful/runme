@@ -65,9 +65,9 @@ func listCmd() *cobra.Command {
 
 				lines := block.Lines()
 
-				isNamedField := "True"
+				isNamedField := "Yes"
 				if block.IsUnnamed() {
-					isNamedField = "False"
+					isNamedField = "No"
 				}
 
 				table.AddField(block.Name(), nil, nil)
