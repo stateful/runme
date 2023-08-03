@@ -90,3 +90,15 @@ To still display unknown snippets, provide `--allow-unknown` to the `list` comma
 username = admin
 password = admin
 ```
+
+## Categories
+
+```sh { name=a category=a }
+echo "Category A"
+```
+```sh { name=b category=a,b }
+echo "Category A,B"
+```
+```sh { name=c category=a,b,c }
+echo "Category A,B,C"
+```
