@@ -63,6 +63,13 @@ To install required CLI tools for development:
 make install/dev
 ```
 
+Make sure to export the global path for Go packages into your environment. For Mac and Linux, just run:
+
+```sh
+export GOPATH="$HOME/go"
+PATH="$GOPATH/bin:$PATH"
+```
+
 ## Build
 
 This codebase is used for a few different purposes, and so there's quite a lot of architecture involved.
