@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
-	"github.com/cli/cli/v2/utils"
+	"github.com/cli/go-gh/pkg/tableprinter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/project"
@@ -49,15 +49,14 @@ func listCmd() *cobra.Command {
 
 			// TODO: this should be taken from cmd.
 			io := iostreams.System()
-			//lint:ignore SA1019 utils is deprecated but that's ok for now.
-			table := utils.NewTablePrinter(io)
+			table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
 
 			// table header
-			table.AddField(strings.ToUpper("Name"), nil, nil)
-			table.AddField(strings.ToUpper("File"), nil, nil)
-			table.AddField(strings.ToUpper("First Command"), nil, nil)
-			table.AddField(strings.ToUpper("Description"), nil, nil)
-			table.AddField(strings.ToUpper("Named"), nil, nil)
+			table.AddField(strings.ToUpper("Name"))
+			table.AddField(strings.ToUpper("File"))
+			table.AddField(strings.ToUpper("First Command"))
+			table.AddField(strings.ToUpper("Description"))
+			table.AddField(strings.ToUpper("Named"))
 			table.EndRow()
 
 			for _, fileBlock := range blocks {
@@ -70,11 +69,11 @@ func listCmd() *cobra.Command {
 					isNamedField = "No"
 				}
 
-				table.AddField(block.Name(), nil, nil)
-				table.AddField(fileBlock.File, nil, nil)
-				table.AddField(shell.TryGetNonCommentLine(lines), nil, nil)
-				table.AddField(block.Intro(), nil, nil)
-				table.AddField(isNamedField, nil, nil)
+				table.AddField(block.Name())
+				table.AddField(fileBlock.File)
+				table.AddField(shell.TryGetNonCommentLine(lines))
+				table.AddField(block.Intro())
+				table.AddField(isNamedField)
 				table.EndRow()
 			}
 
