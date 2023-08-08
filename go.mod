@@ -45,7 +45,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/briandowns/spinner v1.18.1 // indirect
-	github.com/cli/go-gh v1.0.0 // indirect
+	github.com/cli/go-gh v1.0.0
 	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
