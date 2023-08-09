@@ -39,14 +39,16 @@ type CommandExportExtractMatch struct {
 
 func runCmd() *cobra.Command {
 	var (
-		dryRun         bool
-		runAll         bool
-		parallel       bool
-		replaceScripts []string
-		serverAddr     string
-		category       string
-		getRunnerOpts  func() ([]client.RunnerOption, error)
-		runIndex       int
+		dryRun                bool
+		runAll                bool
+		skipPrompts           bool
+		skipPromptsExplicitly bool
+		parallel              bool
+		replaceScripts        []string
+		serverAddr            string
+		category              string
+		getRunnerOpts         func() ([]client.RunnerOption, error)
+		runIndex              int
 	)
 
 	cmd := cobra.Command{
@@ -176,16 +178,17 @@ func runCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			err = promptEnvVars(cmd, sessionEnvs, runBlocks...)
-			if err != nil {
-				return err
-			}
-
-			if runMany {
-				err := confirmExecution(cmd, len(runBlocks), parallel, category)
+			if (skipPromptsExplicitly || isTerminal(os.Stdout.Fd())) && !skipPrompts {
+				err = promptEnvVars(cmd, sessionEnvs, runBlocks...)
 				if err != nil {
 					return err
+				}
+
+				if runMany {
+					err := confirmExecution(cmd, len(runBlocks), parallel, category)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
@@ -292,8 +295,12 @@ func runCmd() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
+	cmd.Flags().BoolVar(&skipPrompts, "skip-prompts", false, "Skip prompting for variables.")
 	cmd.Flags().StringVarP(&category, "category", "c", "", "Run from a specific category.")
 	cmd.Flags().IntVarP(&runIndex, "index", "i", -1, "Index of command to run, 0-based. (Ignored in project mode)")
+	cmd.PreRun = func(cmd *cobra.Command, args []string) {
+		skipPromptsExplicitly = cmd.Flags().Changed("skip-prompts")
+	}
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
