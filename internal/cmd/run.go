@@ -178,12 +178,12 @@ func runCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-			}
 
-			if runMany {
-				err := confirmExecution(cmd, len(runBlocks), parallel, category)
-				if err != nil {
-					return err
+				if runMany {
+					err := confirmExecution(cmd, len(runBlocks), parallel, category)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
