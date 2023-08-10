@@ -14,8 +14,8 @@ import (
 	"syscall"
 
 	"github.com/creack/pty"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/rs/xid"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
@@ -198,11 +198,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 			extraArgs = append(extraArgs, "-c", script)
 		case CommandModeTempFile:
 			for {
-				id, err := uuid.NewRandom()
-				if err != nil {
-					return nil, err
-				}
-
+				id := xid.New()
 				tempScriptFile = filepath.Join(cfg.Directory, fmt.Sprintf(".runme-script-%s", id.String()))
 
 				if fileExtension != "" {
