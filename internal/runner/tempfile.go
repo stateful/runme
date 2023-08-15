@@ -52,7 +52,7 @@ func (s *TempFile) Run(ctx context.Context) error {
 		return err
 	}
 	s.command = cmd
-	defer s.command.Finalize()
+	defer func() { _ = s.command.Finalize() }()
 	return s.run(ctx, cmd)
 }
 
