@@ -14,13 +14,28 @@
             "host": "127.0.0.1"
         },
         {
-            "name": "Launch",
+            "name": "Server",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
             "args": [
-                "ls"
+                "server",
+                "--dev",
+                "--address",
+                "127.0.0.1:9999",
+                "--tls",
+                "/tmp/runme/tls",
+            ]
+        },
+        {
+            "name": "CLI",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "ls",
             ]
         }
     ]
