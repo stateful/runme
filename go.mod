@@ -1,6 +1,6 @@
 module github.com/stateful/runme
 
-go 1.20
+go 1.21
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1

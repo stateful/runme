@@ -113,7 +113,7 @@ nfpms:
       amd64: x86_64
     vendor: Stateful Inc.
     homepage: https://stateful.com
-    maintainer: Adam Babik <adam.babik@stateful.com>
+    maintainer: Sebastian Tiedtke <sebastian@stateful.com>
     description: "Execute code snippets directly from Markdown files."
     file_name_template: "{{ .PackageName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}"
     formats:
