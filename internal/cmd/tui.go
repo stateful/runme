@@ -169,11 +169,13 @@ func tuiCmd() *cobra.Command {
 
 				cancel()
 
+				exitCode := uint(0)
 				if err != nil {
 					var eerror *runner.ExitError
 					if !errors.As(err, &eerror) {
 						return err
 					}
+					exitCode = eerror.Code
 					cmd.Printf(ansi.Color("%s", "red")+"\n", eerror)
 				}
 
@@ -183,7 +185,9 @@ func tuiCmd() *cobra.Command {
 
 				cmd.Print("\n")
 
-				model.moveCursor(1)
+				if exitCode == 0 {
+					model.moveCursor(1)
+				}
 			}
 
 			return nil
