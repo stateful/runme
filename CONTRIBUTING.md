@@ -189,9 +189,9 @@ The requisite tools can be installed with:
 make install/goreleaser
 ```
 
-## Upgrading to go 1.20
+## Upgrading to go 1.21
 
-After upgrading go to version 1.20, you'll need to make sure to reinstall dev packages, as some may be outdated:
+After upgrading go to version 1.21, you'll need to make sure to reinstall dev packages, as some may be outdated:
 
 ```sh { name=upgrade-go-120 }
 make install/dev
