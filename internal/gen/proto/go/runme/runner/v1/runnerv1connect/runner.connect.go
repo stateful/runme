@@ -47,6 +47,8 @@ const (
 	RunnerServiceDeleteSessionProcedure = "/runme.runner.v1.RunnerService/DeleteSession"
 	// RunnerServiceExecuteProcedure is the fully-qualified name of the RunnerService's Execute RPC.
 	RunnerServiceExecuteProcedure = "/runme.runner.v1.RunnerService/Execute"
+	// RunnerServiceGetBlocksProcedure is the fully-qualified name of the RunnerService's GetBlocks RPC.
+	RunnerServiceGetBlocksProcedure = "/runme.runner.v1.RunnerService/GetBlocks"
 )
 
 // RunnerServiceClient is a client for the runme.runner.v1.RunnerService service.
@@ -63,6 +65,7 @@ type RunnerServiceClient interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(context.Context) *connect_go.BidiStreamForClient[v1.ExecuteRequest, v1.ExecuteResponse]
+	GetBlocks(context.Context, *connect_go.Request[v1.GetBlocksRequest]) (*connect_go.Response[v1.GetBlocksResponse], error)
 }
 
 // NewRunnerServiceClient constructs a client for the runme.runner.v1.RunnerService service. By
@@ -100,6 +103,11 @@ func NewRunnerServiceClient(httpClient connect_go.HTTPClient, baseURL string, op
 			baseURL+RunnerServiceExecuteProcedure,
 			opts...,
 		),
+		getBlocks: connect_go.NewClient[v1.GetBlocksRequest, v1.GetBlocksResponse](
+			httpClient,
+			baseURL+RunnerServiceGetBlocksProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -110,6 +118,7 @@ type runnerServiceClient struct {
 	listSessions  *connect_go.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
 	deleteSession *connect_go.Client[v1.DeleteSessionRequest, v1.DeleteSessionResponse]
 	execute       *connect_go.Client[v1.ExecuteRequest, v1.ExecuteResponse]
+	getBlocks     *connect_go.Client[v1.GetBlocksRequest, v1.GetBlocksResponse]
 }
 
 // CreateSession calls runme.runner.v1.RunnerService.CreateSession.
@@ -137,6 +146,11 @@ func (c *runnerServiceClient) Execute(ctx context.Context) *connect_go.BidiStrea
 	return c.execute.CallBidiStream(ctx)
 }
 
+// GetBlocks calls runme.runner.v1.RunnerService.GetBlocks.
+func (c *runnerServiceClient) GetBlocks(ctx context.Context, req *connect_go.Request[v1.GetBlocksRequest]) (*connect_go.Response[v1.GetBlocksResponse], error) {
+	return c.getBlocks.CallUnary(ctx, req)
+}
+
 // RunnerServiceHandler is an implementation of the runme.runner.v1.RunnerService service.
 type RunnerServiceHandler interface {
 	CreateSession(context.Context, *connect_go.Request[v1.CreateSessionRequest]) (*connect_go.Response[v1.CreateSessionResponse], error)
@@ -151,6 +165,7 @@ type RunnerServiceHandler interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(context.Context, *connect_go.BidiStream[v1.ExecuteRequest, v1.ExecuteResponse]) error
+	GetBlocks(context.Context, *connect_go.Request[v1.GetBlocksRequest]) (*connect_go.Response[v1.GetBlocksResponse], error)
 }
 
 // NewRunnerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -184,6 +199,11 @@ func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect_go.Handle
 		svc.Execute,
 		opts...,
 	)
+	runnerServiceGetBlocksHandler := connect_go.NewUnaryHandler(
+		RunnerServiceGetBlocksProcedure,
+		svc.GetBlocks,
+		opts...,
+	)
 	return "/runme.runner.v1.RunnerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RunnerServiceCreateSessionProcedure:
@@ -196,6 +216,8 @@ func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect_go.Handle
 			runnerServiceDeleteSessionHandler.ServeHTTP(w, r)
 		case RunnerServiceExecuteProcedure:
 			runnerServiceExecuteHandler.ServeHTTP(w, r)
+		case RunnerServiceGetBlocksProcedure:
+			runnerServiceGetBlocksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -223,4 +245,8 @@ func (UnimplementedRunnerServiceHandler) DeleteSession(context.Context, *connect
 
 func (UnimplementedRunnerServiceHandler) Execute(context.Context, *connect_go.BidiStream[v1.ExecuteRequest, v1.ExecuteResponse]) error {
 	return connect_go.NewError(connect_go.CodeUnimplemented, errors.New("runme.runner.v1.RunnerService.Execute is not implemented"))
+}
+
+func (UnimplementedRunnerServiceHandler) GetBlocks(context.Context, *connect_go.Request[v1.GetBlocksRequest]) (*connect_go.Response[v1.GetBlocksResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("runme.runner.v1.RunnerService.GetBlocks is not implemented"))
 }

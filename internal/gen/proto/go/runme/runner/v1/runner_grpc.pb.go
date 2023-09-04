@@ -24,6 +24,7 @@ const (
 	RunnerService_ListSessions_FullMethodName  = "/runme.runner.v1.RunnerService/ListSessions"
 	RunnerService_DeleteSession_FullMethodName = "/runme.runner.v1.RunnerService/DeleteSession"
 	RunnerService_Execute_FullMethodName       = "/runme.runner.v1.RunnerService/Execute"
+	RunnerService_GetBlocks_FullMethodName     = "/runme.runner.v1.RunnerService/GetBlocks"
 )
 
 // RunnerServiceClient is the client API for RunnerService service.
@@ -42,6 +43,7 @@ type RunnerServiceClient interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(ctx context.Context, opts ...grpc.CallOption) (RunnerService_ExecuteClient, error)
+	GetBlocks(ctx context.Context, in *GetBlocksRequest, opts ...grpc.CallOption) (*GetBlocksResponse, error)
 }
 
 type runnerServiceClient struct {
@@ -119,6 +121,15 @@ func (x *runnerServiceExecuteClient) Recv() (*ExecuteResponse, error) {
 	return m, nil
 }
 
+func (c *runnerServiceClient) GetBlocks(ctx context.Context, in *GetBlocksRequest, opts ...grpc.CallOption) (*GetBlocksResponse, error) {
+	out := new(GetBlocksResponse)
+	err := c.cc.Invoke(ctx, RunnerService_GetBlocks_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RunnerServiceServer is the server API for RunnerService service.
 // All implementations must embed UnimplementedRunnerServiceServer
 // for forward compatibility
@@ -135,6 +146,7 @@ type RunnerServiceServer interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(RunnerService_ExecuteServer) error
+	GetBlocks(context.Context, *GetBlocksRequest) (*GetBlocksResponse, error)
 	mustEmbedUnimplementedRunnerServiceServer()
 }
 
@@ -156,6 +168,9 @@ func (UnimplementedRunnerServiceServer) DeleteSession(context.Context, *DeleteSe
 }
 func (UnimplementedRunnerServiceServer) Execute(RunnerService_ExecuteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (UnimplementedRunnerServiceServer) GetBlocks(context.Context, *GetBlocksRequest) (*GetBlocksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlocks not implemented")
 }
 func (UnimplementedRunnerServiceServer) mustEmbedUnimplementedRunnerServiceServer() {}
 
@@ -268,6 +283,24 @@ func (x *runnerServiceExecuteServer) Recv() (*ExecuteRequest, error) {
 	return m, nil
 }
 
+func _RunnerService_GetBlocks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBlocksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerServiceServer).GetBlocks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerService_GetBlocks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerServiceServer).GetBlocks(ctx, req.(*GetBlocksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RunnerService_ServiceDesc is the grpc.ServiceDesc for RunnerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -290,6 +323,10 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSession",
 			Handler:    _RunnerService_DeleteSession_Handler,
+		},
+		{
+			MethodName: "GetBlocks",
+			Handler:    _RunnerService_GetBlocks_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
