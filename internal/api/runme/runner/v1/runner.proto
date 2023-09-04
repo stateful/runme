@@ -18,6 +18,15 @@ message Session {
   map<string, string> metadata = 3;
 }
 
+message Uri {
+  string scheme = 1;
+  string authority = 2;
+  string path = 3;
+  string query = 4;
+  string fragment = 5;
+  string fs_path = 6;
+}
+
 message CreateSessionRequest {
   // metadata is a map of client specific metadata.
   map<string, string> metadata = 1;
@@ -38,8 +47,18 @@ message GetSessionRequest {
   string id = 1;
 }
 
+message GetBlocksRequest {
+  optional bool allow_unnamed = 1;
+  // optional project from which to immediately load environment variables
+  optional Project project = 3;
+}
+
 message GetSessionResponse {
   Session session = 1;
+}
+
+message GetBlocksResponse {
+  repeated Uri blocks = 1;
 }
 
 message ListSessionsRequest {}
@@ -201,4 +220,5 @@ service RunnerService {
   // Subsequent "ExecuteRequest" should only contain "input_data" as
   // other fields will be ignored.
   rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
+  rpc GetBlocks(GetBlocksRequest) returns (GetBlocksResponse) {}
 }

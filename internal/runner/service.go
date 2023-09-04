@@ -104,6 +104,25 @@ func (r *runnerService) GetSession(_ context.Context, req *runnerv1.GetSessionRe
 	}, nil
 }
 
+func (r *runnerService) GetBlocks(_ context.Context, req *runnerv1.GetBlocksRequest) (*runnerv1.GetBlocksResponse, error) {
+	r.logger.Info("running GetBlocks in runnerService")
+
+	proj, err := ConvertRunnerProject(req.Project)
+	if err != nil {
+		return nil, err
+	}
+
+	blocks, err := GetBlocks(proj, *req.AllowUnnamed)
+
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "blocks not found")
+	}
+
+	return &runnerv1.GetBlocksResponse{
+		Blocks: blocks,
+	}, nil
+}
+
 func (r *runnerService) ListSessions(_ context.Context, req *runnerv1.ListSessionsRequest) (*runnerv1.ListSessionsResponse, error) {
 	r.logger.Info("running ListSessions in runnerService")
 

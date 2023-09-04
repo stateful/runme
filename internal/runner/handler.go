@@ -61,3 +61,11 @@ func (h *runnerServiceHandler) DeleteSession(ctx context.Context, req *connect.R
 func (h *runnerServiceHandler) Execute(ctx context.Context, stream *connect.BidiStream[v1.ExecuteRequest, v1.ExecuteResponse]) error {
 	return status.Error(codes.Unimplemented, "Execute is not implemented")
 }
+
+func (h *runnerServiceHandler) GetBlocks(ctx context.Context, req *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error) {
+	resp, err := h.service.GetBlocks(ctx, req.Msg)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}
