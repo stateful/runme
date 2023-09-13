@@ -42,7 +42,7 @@ require (
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/benbjohnson/clock v1.3.0 // indirect
+	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/cli/go-gh/v2 v2.3.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
