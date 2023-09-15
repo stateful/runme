@@ -47,6 +47,7 @@ install/dev:
 	go install github.com/securego/gosec/v2/cmd/gosec@v2.16.0
 	go install honnef.co/go/tools/cmd/staticcheck@v0.4.3
 	go install mvdan.cc/gofumpt@v0.3.1
+	go install github.com/icholy/gomajor@v0.9.5
 
 .PHONY: install/goreleaser
 install/goreleaser:

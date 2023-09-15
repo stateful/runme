@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
+	"strings"
 
 	"go.uber.org/multierr"
-	"golang.org/x/exp/slices"
 )
 
 type Attributes map[string]string
@@ -82,14 +83,14 @@ func sortedAttrs(attr Attributes) []string {
 
 	// Sort attributes by key, however, keep the element
 	// with the key "name" in front.
-	slices.SortFunc(keys, func(a, b string) bool {
+	slices.SortFunc(keys, func(a, b string) int {
 		if a == "name" {
-			return true
+			return -1
 		}
 		if b == "name" {
-			return false
+			return 1
 		}
-		return a < b
+		return strings.Compare(a, b)
 	})
 
 	return keys
