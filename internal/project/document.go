@@ -35,6 +35,10 @@ func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
 }
 
 func WriteMarkdownFile(filename string, fs billy.Basic, data []byte) error {
+	if fs == nil {
+		fs = osfs.Default
+	}
+
 	return util.WriteFile(fs, filename, data, 0o600)
 }
 
