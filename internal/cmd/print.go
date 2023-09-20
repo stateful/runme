@@ -22,7 +22,8 @@ func printCmd() *cobra.Command {
 			}
 
 		generateBlocks:
-			blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), true)
+			loader := getLoader(cmd)
+			blocks, err := loader.LoadTasks(proj, fAllowUnknown, fAllowUnnamed, true)
 			if err != nil {
 				return err
 			}

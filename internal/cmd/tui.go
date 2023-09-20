@@ -37,7 +37,8 @@ func tuiCmd() *cobra.Command {
 				return err
 			}
 
-			blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), false)
+			loader := getLoader(cmd)
+			blocks, err := loader.LoadTasks(proj, fAllowUnknown, fAllowUnnamed, false)
 			if err != nil {
 				return err
 			}
