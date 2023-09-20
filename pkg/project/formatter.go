@@ -16,9 +16,9 @@ import (
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
-type funcFmt func(string, []byte) error
+type funcOutput func(string, []byte) error
 
-func Format(files []string, basePath string, flatten bool, formatJSON bool, write bool, formatter funcFmt) error {
+func Format(files []string, basePath string, flatten bool, formatJSON bool, write bool, outputter funcOutput) error {
 	for _, relFile := range files {
 		data, err := readMarkdown(basePath, []string{relFile})
 		if err != nil {
@@ -62,7 +62,7 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 		if write {
 			err = writeMarkdown(basePath, []string{relFile}, formatted)
 		} else {
-			err = formatter(relFile, formatted)
+			err = outputter(relFile, formatted)
 		}
 
 		if err != nil {

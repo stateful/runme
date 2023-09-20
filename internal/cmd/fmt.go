@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/pkg/project"
 )
 
 func fmtCmd() *cobra.Command {

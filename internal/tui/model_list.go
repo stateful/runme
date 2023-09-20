@@ -19,7 +19,7 @@ import (
 	"github.com/stateful/runme/internal/client/graphql"
 	"github.com/stateful/runme/internal/client/graphql/query"
 	"github.com/stateful/runme/internal/log"
-	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
 

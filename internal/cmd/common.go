@@ -17,10 +17,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
 	"github.com/stateful/runme/internal/tui/prompt"
+	"github.com/stateful/runme/pkg/project"
 	"golang.org/x/exp/slices"
 )
 

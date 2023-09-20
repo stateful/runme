@@ -6,7 +6,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/rs/xid"
-	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
 
