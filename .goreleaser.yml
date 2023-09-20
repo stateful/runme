@@ -82,7 +82,7 @@ brews:
   - name: runme
     ids:
       - cli
-    homepage: https://stateful.com
+    homepage: https://runme.dev
     description: "Execute code snippets directly from Markdown files."
     tap:
       owner: stateful
@@ -112,7 +112,7 @@ nfpms:
     replacements:
       amd64: x86_64
     vendor: Stateful Inc.
-    homepage: https://stateful.com
+    homepage: https://runme.dev
     maintainer: Sebastian Tiedtke <sebastian@stateful.com>
     description: "Execute code snippets directly from Markdown files."
     file_name_template: "{{ .PackageName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}"
@@ -130,7 +130,7 @@ scoop:
   commit_author:
     name: release-bot
     email: bot@stateful.com
-  homepage: "https://stateful.com"
+  homepage: https://runme.dev
   description: "Execute code snippets directly from Markdown files."
   skip_upload: auto
 
