@@ -16,9 +16,16 @@ import (
 	"github.com/stateful/runme/internal/shell"
 )
 
-var isJSON bool
+type row struct {
+    Name string `json:"name"`
+    File string `json:"file"`
+    FirstCommand string `json:"first_command"`
+    Description string `json:"description"`
+    Named bool `json:"named"`
+}
 
 func listCmd() *cobra.Command {
+    var formatJSON bool
 	cmd := cobra.Command{
 		Use:     "list [search]",
 		Aliases: []string{"ls"},
@@ -54,45 +61,6 @@ func listCmd() *cobra.Command {
 
 			// TODO: this should be taken from cmd.
 			io := iostreams.System()
-            if !isJSON {
-                table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
-
-                // table header
-                table.AddField(strings.ToUpper("Name"))
-                table.AddField(strings.ToUpper("File"))
-                table.AddField(strings.ToUpper("First Command"))
-                table.AddField(strings.ToUpper("Description"))
-                table.AddField(strings.ToUpper("Named"))
-                table.EndRow()
-
-                for _, fileBlock := range blocks {
-                    block := fileBlock.Block
-
-                    lines := block.Lines()
-
-                    isNamedField := "Yes"
-                    if block.IsUnnamed() {
-                        isNamedField = "No"
-                    }
-
-                    table.AddField(block.Name())
-                    table.AddField(fileBlock.File)
-                    table.AddField(shell.TryGetNonCommentLine(lines))
-                    table.AddField(block.Intro())
-                    table.AddField(isNamedField)
-                    table.EndRow()
-                }
-
-                return errors.Wrap(table.Render(), "failed to render")
-            }
-
-            type row struct {
-                Name string `json:"name"`
-                File string `json:"file"`
-                FirstCommand string `json:"first_command"`
-                Description string `json:"description"`
-                Named bool `json:"named"`
-            }
             var rows []row
             for _, fileBlock := range blocks {
                 block := fileBlock.Block
@@ -106,22 +74,54 @@ func listCmd() *cobra.Command {
                 }
                 rows = append(rows, r)
             }
-            by, err := json.Marshal(&rows)
-            if err != nil {
-                return err
+            if !formatJSON {
+                return displayTable(io, rows)
             }
-            err = jsonpretty.Format(io.Out, bytes.NewReader(by), "  ", false)
-            if err != nil {
-                return err
-            }
-            return nil
+
+            return displayJSON(io, rows)
 		},
 	}
 
-    cmd.PersistentFlags().BoolVar(&isJSON, "json", false, "This flag tells the list command to print the output in json")
+    cmd.PersistentFlags().BoolVar(&formatJSON, "json", false, "This flag tells the list command to print the output in json")
 	setDefaultFlags(&cmd)
 
 	return &cmd
+}
+
+func displayTable(io *iostreams.IOStreams, rows []row) error {
+    table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
+
+    // table header
+    table.AddField(strings.ToUpper("Name"))
+    table.AddField(strings.ToUpper("File"))
+    table.AddField(strings.ToUpper("First Command"))
+    table.AddField(strings.ToUpper("Description"))
+    table.AddField(strings.ToUpper("Named"))
+    table.EndRow()
+
+    for _, row := range rows {
+        named := "YES"
+        if !row.Named {
+            named = "NO"
+        }
+        table.AddField(row.Name)
+        table.AddField(row.File)
+        table.AddField(row.FirstCommand)
+        table.AddField(row.Description)
+        table.AddField(named)
+        table.EndRow()
+    }
+
+    return errors.Wrap(table.Render(), "failed to render")
+
+}
+
+func displayJSON(io *iostreams.IOStreams, rows []row) error {
+    by, err := json.Marshal(&rows)
+    if err != nil {
+        return err
+    }
+    return jsonpretty.Format(io.Out, bytes.NewReader(by), "  ", false)
 }
 
 // sort blocks in ascending nested order
