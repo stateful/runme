@@ -16,7 +16,7 @@ import (
 	"github.com/stateful/runme/internal/shell"
 )
 
-var isJson bool
+var isJSON bool
 
 func listCmd() *cobra.Command {
 	cmd := cobra.Command{
@@ -54,7 +54,7 @@ func listCmd() *cobra.Command {
 
 			// TODO: this should be taken from cmd.
 			io := iostreams.System()
-            if !isJson {
+            if !isJSON {
                 table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
 
                 // table header
@@ -84,41 +84,41 @@ func listCmd() *cobra.Command {
                 }
 
                 return errors.Wrap(table.Render(), "failed to render")
-            } else {
-                type row struct {
-                    Name string `json:"name"`
-                    File string `json:"file"`
-                    FirstCommand string `json:"first_command"`
-                    Description string `json:"description"`
-                    Named bool `json:"named"`
-                }
-                var rows []row
-                for _, fileBlock := range blocks {
-                    block := fileBlock.Block
-                    lines := block.Lines()
-                    r := row{
-                        Name: block.Name(),
-                        File: fileBlock.File,
-                        FirstCommand: shell.TryGetNonCommentLine(lines),
-                        Description: block.Intro(),
-                        Named: !block.IsUnnamed(),
-                    }
-                    rows = append(rows, r)
-                }
-                by, err := json.Marshal(&rows)
-                if err != nil {
-                    return err
-                }
-                err = jsonpretty.Format(io.Out, bytes.NewReader(by), "  ", false)
-                if err != nil {
-                    return err
-                }
-                return nil
             }
+
+            type row struct {
+                Name string `json:"name"`
+                File string `json:"file"`
+                FirstCommand string `json:"first_command"`
+                Description string `json:"description"`
+                Named bool `json:"named"`
+            }
+            var rows []row
+            for _, fileBlock := range blocks {
+                block := fileBlock.Block
+                lines := block.Lines()
+                r := row{
+                    Name: block.Name(),
+                    File: fileBlock.File,
+                    FirstCommand: shell.TryGetNonCommentLine(lines),
+                    Description: block.Intro(),
+                    Named: !block.IsUnnamed(),
+                }
+                rows = append(rows, r)
+            }
+            by, err := json.Marshal(&rows)
+            if err != nil {
+                return err
+            }
+            err = jsonpretty.Format(io.Out, bytes.NewReader(by), "  ", false)
+            if err != nil {
+                return err
+            }
+            return nil
 		},
 	}
 
-    cmd.PersistentFlags().BoolVar(&isJson, "json", false, "This flag tells the list command to print the output in json")
+    cmd.PersistentFlags().BoolVar(&isJSON, "json", false, "This flag tells the list command to print the output in json")
 	setDefaultFlags(&cmd)
 
 	return &cmd
