@@ -1,17 +1,22 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
+	"github.com/cli/go-gh/pkg/jsonpretty"
 	"github.com/cli/go-gh/pkg/tableprinter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/shell"
 )
+
+var isJson bool
 
 func listCmd() *cobra.Command {
 	cmd := cobra.Command{
@@ -49,38 +54,71 @@ func listCmd() *cobra.Command {
 
 			// TODO: this should be taken from cmd.
 			io := iostreams.System()
-			table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
+            if !isJson {
+                table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
 
-			// table header
-			table.AddField(strings.ToUpper("Name"))
-			table.AddField(strings.ToUpper("File"))
-			table.AddField(strings.ToUpper("First Command"))
-			table.AddField(strings.ToUpper("Description"))
-			table.AddField(strings.ToUpper("Named"))
-			table.EndRow()
+                // table header
+                table.AddField(strings.ToUpper("Name"))
+                table.AddField(strings.ToUpper("File"))
+                table.AddField(strings.ToUpper("First Command"))
+                table.AddField(strings.ToUpper("Description"))
+                table.AddField(strings.ToUpper("Named"))
+                table.EndRow()
 
-			for _, fileBlock := range blocks {
-				block := fileBlock.Block
+                for _, fileBlock := range blocks {
+                    block := fileBlock.Block
 
-				lines := block.Lines()
+                    lines := block.Lines()
 
-				isNamedField := "Yes"
-				if block.IsUnnamed() {
-					isNamedField = "No"
-				}
+                    isNamedField := "Yes"
+                    if block.IsUnnamed() {
+                        isNamedField = "No"
+                    }
 
-				table.AddField(block.Name())
-				table.AddField(fileBlock.File)
-				table.AddField(shell.TryGetNonCommentLine(lines))
-				table.AddField(block.Intro())
-				table.AddField(isNamedField)
-				table.EndRow()
-			}
+                    table.AddField(block.Name())
+                    table.AddField(fileBlock.File)
+                    table.AddField(shell.TryGetNonCommentLine(lines))
+                    table.AddField(block.Intro())
+                    table.AddField(isNamedField)
+                    table.EndRow()
+                }
 
-			return errors.Wrap(table.Render(), "failed to render")
+                return errors.Wrap(table.Render(), "failed to render")
+            } else {
+                type row struct {
+                    Name string `json:"name"`
+                    File string `json:"file"`
+                    FirstCommand string `json:"first_command"`
+                    Description string `json:"description"`
+                    Named bool `json:"named"`
+                }
+                var rows []row
+                for _, fileBlock := range blocks {
+                    block := fileBlock.Block
+                    lines := block.Lines()
+                    r := row{
+                        Name: block.Name(),
+                        File: fileBlock.File,
+                        FirstCommand: shell.TryGetNonCommentLine(lines),
+                        Description: block.Intro(),
+                        Named: !block.IsUnnamed(),
+                    }
+                    rows = append(rows, r)
+                }
+                by, err := json.Marshal(&rows)
+                if err != nil {
+                    return err
+                }
+                err = jsonpretty.Format(io.Out, bytes.NewReader(by), "  ", false)
+                if err != nil {
+                    return err
+                }
+                return nil
+            }
 		},
 	}
 
+    cmd.PersistentFlags().BoolVar(&isJson, "json", false, "This flag tells the list command to print the output in json")
 	setDefaultFlags(&cmd)
 
 	return &cmd
