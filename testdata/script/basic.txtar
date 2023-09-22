@@ -2,6 +2,10 @@ exec runme ls
 cmp stdout golden-list.txt
 ! stderr .
 
+exec runme ls --json
+cmp stdout golden-list-json.txt
+! stderr .
+
 exec runme ls --allow-unnamed=true
 cmp stdout golden-list-allow-unnamed.txt
 ! stderr .
@@ -148,3 +152,27 @@ hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run
 hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
 tempdir	README.md	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	It works with cd, pushd, and similar because all lines are executed as a single script.	No
 package-main	README.md	package main	It can also execute a snippet of Go code.	No
+-- golden-list-json.txt --
+[
+  {
+    "name": "echo",
+    "file": "README.md",
+    "first_command": "echo \"Hello, runme!\"",
+    "description": "With {name=hello} you can annotate it and give it a nice name.",
+    "named": true
+  },
+  {
+    "name": "hello-js",
+    "file": "README.md",
+    "first_command": "console.log(\"Hello, runme, from javascript!\")",
+    "description": "It can even run scripting languages.",
+    "named": true
+  },
+  {
+    "name": "hello-js-cat",
+    "file": "README.md",
+    "first_command": "console.log(\"Hello, runme, from javascript!\")",
+    "description": "And it can even run a cell with a custom interpreter.",
+    "named": true
+  }
+]

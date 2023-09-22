@@ -100,9 +100,9 @@ func displayTable(io *iostreams.IOStreams, rows []row) error {
     table.EndRow()
 
     for _, row := range rows {
-        named := "YES"
+        named := "Yes"
         if !row.Named {
-            named = "NO"
+            named = "No"
         }
         table.AddField(row.Name)
         table.AddField(row.File)
