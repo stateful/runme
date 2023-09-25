@@ -12,7 +12,6 @@ require (
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.8.0
 	github.com/cli/cli/v2 v2.34.0
-	github.com/cli/go-gh/v2 v2.3.0
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81
 	github.com/creack/pty v1.1.18
 	github.com/fatih/color v1.15.0
@@ -20,7 +19,6 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
-	github.com/itchyny/gojq v0.12.13
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
@@ -45,10 +43,10 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
+	github.com/cli/go-gh/v2 v2.3.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/itchyny/timefmt-go v0.1.5 // indirect
 )
 
 require (
