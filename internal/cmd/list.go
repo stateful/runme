@@ -17,15 +17,15 @@ import (
 )
 
 type row struct {
-    Name string `json:"name"`
-    File string `json:"file"`
-    FirstCommand string `json:"first_command"`
-    Description string `json:"description"`
-    Named bool `json:"named"`
+	Name         string `json:"name"`
+	File         string `json:"file"`
+	FirstCommand string `json:"first_command"`
+	Description  string `json:"description"`
+	Named        bool   `json:"named"`
 }
 
 func listCmd() *cobra.Command {
-    var formatJSON bool
+	var formatJSON bool
 	cmd := cobra.Command{
 		Use:     "list [search]",
 		Aliases: []string{"ls"},
@@ -61,67 +61,66 @@ func listCmd() *cobra.Command {
 
 			// TODO: this should be taken from cmd.
 			io := iostreams.System()
-            var rows []row
-            for _, fileBlock := range blocks {
-                block := fileBlock.Block
-                lines := block.Lines()
-                r := row{
-                    Name: block.Name(),
-                    File: fileBlock.File,
-                    FirstCommand: shell.TryGetNonCommentLine(lines),
-                    Description: block.Intro(),
-                    Named: !block.IsUnnamed(),
-                }
-                rows = append(rows, r)
-            }
-            if !formatJSON {
-                return displayTable(io, rows)
-            }
+			var rows []row
+			for _, fileBlock := range blocks {
+				block := fileBlock.Block
+				lines := block.Lines()
+				r := row{
+					Name:         block.Name(),
+					File:         fileBlock.File,
+					FirstCommand: shell.TryGetNonCommentLine(lines),
+					Description:  block.Intro(),
+					Named:        !block.IsUnnamed(),
+				}
+				rows = append(rows, r)
+			}
+			if !formatJSON {
+				return displayTable(io, rows)
+			}
 
-            return displayJSON(io, rows)
+			return displayJSON(io, rows)
 		},
 	}
 
-    cmd.PersistentFlags().BoolVar(&formatJSON, "json", false, "This flag tells the list command to print the output in json")
+	cmd.PersistentFlags().BoolVar(&formatJSON, "json", false, "This flag tells the list command to print the output in json")
 	setDefaultFlags(&cmd)
 
 	return &cmd
 }
 
 func displayTable(io *iostreams.IOStreams, rows []row) error {
-    table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
+	table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
 
-    // table header
-    table.AddField(strings.ToUpper("Name"))
-    table.AddField(strings.ToUpper("File"))
-    table.AddField(strings.ToUpper("First Command"))
-    table.AddField(strings.ToUpper("Description"))
-    table.AddField(strings.ToUpper("Named"))
-    table.EndRow()
+	// table header
+	table.AddField(strings.ToUpper("Name"))
+	table.AddField(strings.ToUpper("File"))
+	table.AddField(strings.ToUpper("First Command"))
+	table.AddField(strings.ToUpper("Description"))
+	table.AddField(strings.ToUpper("Named"))
+	table.EndRow()
 
-    for _, row := range rows {
-        named := "Yes"
-        if !row.Named {
-            named = "No"
-        }
-        table.AddField(row.Name)
-        table.AddField(row.File)
-        table.AddField(row.FirstCommand)
-        table.AddField(row.Description)
-        table.AddField(named)
-        table.EndRow()
-    }
+	for _, row := range rows {
+		named := "Yes"
+		if !row.Named {
+			named = "No"
+		}
+		table.AddField(row.Name)
+		table.AddField(row.File)
+		table.AddField(row.FirstCommand)
+		table.AddField(row.Description)
+		table.AddField(named)
+		table.EndRow()
+	}
 
-    return errors.Wrap(table.Render(), "failed to render")
-
+	return errors.Wrap(table.Render(), "failed to render")
 }
 
 func displayJSON(io *iostreams.IOStreams, rows []row) error {
-    by, err := json.Marshal(&rows)
-    if err != nil {
-        return err
-    }
-    return jsonpretty.Format(io.Out, bytes.NewReader(by), "  ", false)
+	by, err := json.Marshal(&rows)
+	if err != nil {
+		return err
+	}
+	return jsonpretty.Format(io.Out, bytes.NewReader(by), "  ", false)
 }
 
 // sort blocks in ascending nested order
