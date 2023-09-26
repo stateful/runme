@@ -88,6 +88,8 @@ jobs:
       - name: Run robustness test
         run: make test/robustness
         timeout-minutes: 5
-      # - name: 🐛 Debug Build
-      #   uses: stateful/vscode-server-action@v1
-      #   if: failure()
+      - name: 🐛 Debug Build
+        uses: stateful/vscode-server-action@v1.1.0
+        if: failure()
+        with:
+          timeout: "300000"
