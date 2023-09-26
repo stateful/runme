@@ -10,7 +10,6 @@ import (
 	"github.com/stateful/runme/internal/renderer/cmark"
 
 	"github.com/stateful/runme/internal/document/constants"
-	math "github.com/stateful/runme/internal/math"
 )
 
 const FrontmatterKey = "frontmatter"
@@ -72,7 +71,7 @@ func Serialize(notebook *Notebook) ([]byte, error) {
 
 		if delta < 0 {
 			end := len(result) + delta*len(lb)
-			result = result[0:math.Max(0, end)]
+			result = result[0:max(0, end)]
 		} else {
 			result = append(result, bytes.Repeat(lb, delta)...)
 		}

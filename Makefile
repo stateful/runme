@@ -44,7 +44,7 @@ lint:
 .PHONY: install/dev
 install/dev:
 	go install github.com/mgechev/revive@v1.2.3
-	go install github.com/securego/gosec/v2/cmd/gosec@v2.16.0
+	go install github.com/securego/gosec/v2/cmd/gosec@v2.17.0
 	go install honnef.co/go/tools/cmd/staticcheck@v0.4.3
 	go install mvdan.cc/gofumpt@v0.3.1
 	go install github.com/icholy/gomajor@v0.9.5

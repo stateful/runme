@@ -10,8 +10,6 @@ import (
 	"github.com/stateful/runme/internal/executable"
 	"github.com/stateful/runme/internal/shell"
 	"github.com/yuin/goldmark/ast"
-
-	rmath "github.com/stateful/runme/internal/math"
 )
 
 type BlockKind int
@@ -217,8 +215,8 @@ func (b *CodeBlock) TextRange() (textRange TextRange) {
 	// merge line ranges
 	for i := 0; i < node.Lines().Len(); i++ {
 		line := node.Lines().At(i)
-		textRange.Start = rmath.Min(textRange.Start, line.Start)
-		textRange.End = rmath.Max(textRange.Start, line.Stop)
+		textRange.Start = min(textRange.Start, line.Start)
+		textRange.End = max(textRange.Start, line.Stop)
 	}
 
 	return

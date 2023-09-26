@@ -11,11 +11,11 @@ import (
 	"github.com/mgutz/ansi"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	rmath "github.com/stateful/runme/internal/math"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/version"
+	"golang.org/x/exp/constraints"
 )
 
 func tuiCmd() *cobra.Command {
@@ -224,7 +224,7 @@ type tuiResult struct {
 }
 
 func (m *tuiModel) numBlocksShown() int {
-	return rmath.Min(len(m.blocks), m.visibleEntries)
+	return min(len(m.blocks), m.visibleEntries)
 }
 
 func (m *tuiModel) maxScroll() int {
@@ -232,7 +232,7 @@ func (m *tuiModel) maxScroll() int {
 }
 
 func (m *tuiModel) scrollBy(delta int) {
-	m.scroll = rmath.Clamp(
+	m.scroll = clamp(
 		m.scroll+delta,
 		0, m.maxScroll(),
 	)
@@ -273,7 +273,7 @@ func (m *tuiModel) moveCursorTo(newPos int) {
 }
 
 func (m *tuiModel) moveCursor(delta int) {
-	m.cursor = rmath.Clamp(
+	m.cursor = clamp(
 		m.cursor+delta,
 		0, len(m.blocks)-1,
 	)
@@ -427,4 +427,8 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func clamp[T constraints.Ordered](x, a, b T) T {
+	return min(b, max(a, x))
 }

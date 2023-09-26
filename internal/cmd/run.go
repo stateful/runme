@@ -265,7 +265,7 @@ func runCmd() *cobra.Command {
 			defer multiRunner.Cleanup(cmd.Context())
 
 			if dryRun {
-				return runner.DryRunBlock(ctx, runBlocks[0], cmd.ErrOrStderr())
+				return runner.DryRunBlock(ctx, runBlocks[0], cmd.ErrOrStderr()) // #nosec G602; runBlocks is checked
 			}
 
 			err = inRawMode(func() error {
@@ -277,7 +277,7 @@ func runCmd() *cobra.Command {
 					return err
 				}
 
-				return runner.RunBlock(ctx, runBlocks[0])
+				return runner.RunBlock(ctx, runBlocks[0]) // #nosec G602; runBlocks comes from the parent scope and is checked
 			})
 
 			if err != nil {

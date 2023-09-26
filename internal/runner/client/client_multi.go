@@ -158,7 +158,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 
 	wg.Wait()
 
-	errors := make([]error, 0)
+	var errors []error
 
 outer:
 	for {
