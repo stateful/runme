@@ -22,7 +22,11 @@ func printCmd() *cobra.Command {
 			}
 
 		generateBlocks:
-			loader := getLoader(cmd)
+			loader, err := newProjectLoader(cmd)
+			if err != nil {
+				return err
+			}
+
 			blocks, err := loader.LoadTasks(proj, fAllowUnknown, fAllowUnnamed, true)
 			if err != nil {
 				return err

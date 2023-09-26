@@ -54,8 +54,15 @@ func getProject() (proj project.Project, err error) {
 	return
 }
 
-func getLoader(cmd *cobra.Command) project.ProjectLoader {
-	return project.NewLoader(cmd.OutOrStdout(), cmd.InOrStdin(), isTerminal(os.Stdout.Fd()))
+func newProjectLoader(cmd *cobra.Command) (*project.ProjectLoader, error) {
+	fd := os.Stdout.Fd()
+
+	if int(fd) >= 0 {
+		loader := project.NewLoader(cmd.OutOrStdout(), cmd.InOrStdin(), isTerminal(fd))
+		return &loader, nil
+	}
+
+	return nil, fmt.Errorf("invalid file descriptor due to restricted environments, redirected standard output, system configuration issues, or testing/simulation setups")
 }
 
 func getCodeBlocks() (document.CodeBlocks, error) {
