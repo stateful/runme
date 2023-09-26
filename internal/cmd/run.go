@@ -19,9 +19,9 @@ import (
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
+	"github.com/stateful/runme/pkg/project"
 	"golang.org/x/exp/slices"
 )
 
@@ -75,7 +75,12 @@ func runCmd() *cobra.Command {
 
 			{
 			searchBlocks:
-				blocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), true)
+				loader, err := newProjectLoader(cmd)
+				if err != nil {
+					return err
+				}
+
+				blocks, err := loader.LoadTasks(proj, fAllowUnknown, fAllowUnnamed, true)
 				if err != nil {
 					return err
 				}

@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/env"
-	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
 

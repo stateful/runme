@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/pkg/project"
 )
 
 func fmtCmd() *cobra.Command {
@@ -37,7 +37,12 @@ func fmtCmd() *cobra.Command {
 			files := args
 
 			if len(files) == 0 {
-				projectFiles, err := loadFiles(proj, cmd.OutOrStdout(), cmd.InOrStdin())
+				loader, err := newProjectLoader(cmd)
+				if err != nil {
+					return err
+				}
+
+				projectFiles, err := loader.LoadFiles(proj)
 				if err != nil {
 					return err
 				}

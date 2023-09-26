@@ -9,8 +9,8 @@ import (
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/muesli/cancelreader"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
 

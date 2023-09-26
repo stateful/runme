@@ -12,8 +12,8 @@ import (
 	"github.com/cli/go-gh/pkg/tableprinter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/shell"
+	"github.com/stateful/runme/pkg/project"
 )
 
 type row struct {
@@ -43,7 +43,12 @@ func listCmd() *cobra.Command {
 				return err
 			}
 
-			allBlocks, err := loadTasks(proj, cmd.OutOrStdout(), cmd.InOrStdin(), true)
+			loader, err := newProjectLoader(cmd)
+			if err != nil {
+				return err
+			}
+
+			allBlocks, err := loader.LoadTasks(proj, fAllowUnknown, fAllowUnnamed, true)
 			if err != nil {
 				return err
 			}
