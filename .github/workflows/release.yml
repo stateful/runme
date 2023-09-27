@@ -60,6 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           SCOOP_BUCKET_GITHUB_TOKEN: ${{ secrets.SCOOP_BUCKET_GITHUB_TOKEN }}
+          GS_BUCKET: ${{ secrets.GS_BUCKET }}
       - name: Copy to latest
         if: env.pre_release == 'false'
         run: gsutil -m cp "gs://runme-artifacts-41eac6/${{ env.version }}/*" gs://runme-artifacts-41eac6/latest
