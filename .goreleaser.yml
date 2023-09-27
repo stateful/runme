@@ -73,7 +73,7 @@ archives:
 
 blobs:
   - provider: gs
-    bucket: "{{ .Env.GS_BUCKET }}""
+    bucket: "{{ .Env.GS_BUCKET }}"
     ids:
       - cli
     folder: "{{ .Version }}"
