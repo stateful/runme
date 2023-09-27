@@ -63,7 +63,7 @@ jobs:
           GS_BUCKET: ${{ secrets.GS_BUCKET }}
       - name: Copy to latest
         if: env.pre_release == 'false'
-        run: gsutil -m cp "gs://runme-artifacts-41eac6/${{ env.version }}/*" gs://runme-artifacts-41eac6/latest
+        run: gsutil -m cp "gs://${{ secrets.GS_BUCKET }}/${{ env.version }}/*" gs://${{ secrets.GS_BUCKET }}/latest
       - name: Bump Homebrew Formula
         uses: mislav/bump-homebrew-formula-action@v3
         # skip prereleases
