@@ -73,7 +73,7 @@ archives:
 
 blobs:
   - provider: gs
-    bucket: runme-artifacts-41eac6
+    bucket: {{ .Env.GS_BUCKET }}
     ids:
       - cli
     folder: "{{ .Version }}"
