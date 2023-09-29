@@ -43,3 +43,6 @@ dist/
 .idea
 
 .DS_Store
+
+# VSCode debugger
+__debug_bin*
