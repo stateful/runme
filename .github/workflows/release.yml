@@ -47,11 +47,11 @@ jobs:
         uses: google-github-actions/setup-gcloud@v0
       - name: Release notes
         run: |
-          go run ./cmd/release-notes/main.go -version "${GITHUB_REF_NAME}" > ${{ runner.temp }}/releasenotes
+          go run ./cmd/release-notes/main.go -version "${GITHUB_REF_NAME}" -owner "${GITHUB_ACTOR}" > ${{ runner.temp }}/releasenotes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
           version: v1.15.2
@@ -60,9 +60,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           SCOOP_BUCKET_GITHUB_TOKEN: ${{ secrets.SCOOP_BUCKET_GITHUB_TOKEN }}
+          GS_BUCKET: ${{ secrets.GS_BUCKET }}
       - name: Copy to latest
         if: env.pre_release == 'false'
-        run: gsutil -m cp "gs://runme-artifacts-41eac6/${{ env.version }}/*" gs://runme-artifacts-41eac6/latest
+        run: gsutil -m cp "gs://${{ secrets.GS_BUCKET }}/${{ env.version }}/*" gs://${{ secrets.GS_BUCKET }}/latest
       - name: Bump Homebrew Formula
         uses: mislav/bump-homebrew-formula-action@v3
         # skip prereleases
