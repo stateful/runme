@@ -2,6 +2,7 @@ package editor
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -144,6 +145,10 @@ func toCellsRec(
 
 		case *document.MarkdownBlock:
 			value := block.Value()
+			astNode := block.Unwrap()
+
+			metadata := make(map[string]string)
+			DumpToMap(astNode, source, astNode.Kind().String(), 0, &metadata)
 
 			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
 			if childIdx == 0 && isListItem {
@@ -168,8 +173,9 @@ func toCellsRec(
 			}
 
 			*cells = append(*cells, &Cell{
-				Kind:  MarkupKind,
-				Value: fmtValue(value),
+				Kind:     MarkupKind,
+				Value:    fmtValue(value),
+				Metadata: metadata,
 			})
 		}
 	}
@@ -291,4 +297,94 @@ func fmtValue(s []byte) string {
 func trimRightNewLine(s []byte) []byte {
 	s = bytes.TrimRight(s, "\r\n")
 	return bytes.TrimRight(s, "\n")
+}
+
+func DumpToMap(node ast.Node, source []byte, root string, level int, metadata *map[string]string) {
+	rootKey := "runme.dev/"
+	(*metadata)[rootKey+"Size"] = strconv.Itoa(level)
+
+	if level > 0 {
+		rootKey = fmt.Sprintf("%s%d/", rootKey, level)
+	}
+
+	(*metadata)[rootKey+"Kind"] = node.Kind().String()
+
+	if node.Type() == ast.TypeBlock {
+		buf := []string{}
+
+		for i := 0; i < node.Lines().Len(); i++ {
+			line := node.Lines().At(i)
+			buf = append(buf, string(line.Value(source)))
+		}
+
+		(*metadata)[rootKey+"RawText"] = strings.Join(buf, "")
+	}
+
+	for name, value := range DumpAttributes(node, source) {
+		(*metadata)[rootKey+name] = value
+	}
+
+	i := level
+	for c := node.FirstChild(); c != nil; c = c.NextSibling() {
+		DumpToMap(c, source, root, level+i+1, metadata)
+		i++
+	}
+}
+
+func DumpAttributes(n ast.Node, source []byte) map[string]string {
+	attributes := map[string]string{}
+
+	switch n.Kind() {
+	case ast.KindHeading:
+		t := n.(*ast.Heading)
+		attributes["Level"] = fmt.Sprintf("%d", t.Level)
+
+	case ast.KindText:
+		t := n.(*ast.Text)
+
+		buf := []string{}
+		if t.SoftLineBreak() {
+			buf = append(buf, "SoftLineBreak")
+		}
+		if t.HardLineBreak() {
+			buf = append(buf, "HardLineBreak")
+		}
+		if t.IsRaw() {
+			buf = append(buf, "Raw")
+		}
+
+		// TODO: IsCode is not available in ast.Text
+		// if t.IsCode() {
+		// 	buf = append(buf, "Code")
+		// }
+
+		fs := strings.Join(buf, ", ")
+		if len(fs) != 0 {
+			fs = "(" + fs + ")"
+		}
+
+		attributes[fmt.Sprintf("Text%s", fs)] = strings.TrimRight(string(t.Text(source)), "\n")
+
+	case ast.KindLink:
+		t := n.(*ast.Link)
+		attributes["Destination"] = string(t.Destination)
+		attributes["Title"] = string(t.Title)
+
+	case ast.KindList:
+		t := n.(*ast.List)
+		attributes["Ordered"] = fmt.Sprintf("%v", t.IsOrdered())
+		attributes["Marker"] = fmt.Sprintf("%c", t.Marker)
+		attributes["Tight"] = fmt.Sprintf("%v", t.IsTight)
+
+		if t.IsOrdered() {
+			attributes["Start"] = fmt.Sprintf("%d", t.Start)
+		}
+
+	case ast.KindListItem:
+		t := n.(*ast.ListItem)
+		attributes["Offset"] = fmt.Sprintf("%d", t.Offset)
+
+	}
+
+	return attributes
 }

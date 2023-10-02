@@ -36,19 +36,30 @@ func Test_parserServiceServer(t *testing.T) {
 		resp, err := client.Deserialize(
 			context.Background(),
 			&parserv1.DeserializeRequest{
-				Source: []byte("# Title\n\nSome content"),
+				Source: []byte("# Title\n\nSome content with [Link1](https://example1.com \"Link title 1\") [Link2](https://example2.com \"Link title2\")"),
 			},
 		)
+
+		cells := resp.Notebook.Cells
 		assert.NoError(t, err)
-		assert.Len(t, resp.Notebook.Cells, 2)
+		assert.Len(t, cells, 2)
+
 		assert.True(
 			t,
 			proto.Equal(
 				&parserv1.Cell{
 					Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
 					Value: "# Title",
+					Metadata: map[string]string{
+						"runme.dev/Kind":    "Heading",
+						"runme.dev/Level":   "1",
+						"runme.dev/Size":    "1",
+						"runme.dev/RawText": "Title",
+						"runme.dev/1/Kind":  "Text",
+						"runme.dev/1/Text":  "Title",
+					},
 				},
-				resp.Notebook.Cells[0],
+				cells[0],
 			),
 		)
 		assert.True(
@@ -56,9 +67,28 @@ func Test_parserServiceServer(t *testing.T) {
 			proto.Equal(
 				&parserv1.Cell{
 					Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
-					Value: "Some content",
+					Value: "Some content with [Link1](https://example1.com \"Link title 1\") [Link2](https://example2.com \"Link title2\")",
+					Metadata: map[string]string{
+						"runme.dev/1/Kind":        "Text",
+						"runme.dev/1/Text":        "Some content with ",
+						"runme.dev/2/Destination": "https://example1.com",
+						"runme.dev/2/Kind":        "Link",
+						"runme.dev/2/Title":       "Link title 1",
+						"runme.dev/3/Kind":        "Text",
+						"runme.dev/3/Text":        " ",
+						"runme.dev/4/Destination": "https://example2.com",
+						"runme.dev/4/Kind":        "Link",
+						"runme.dev/4/Title":       "Link title2",
+						"runme.dev/5/Kind":        "Text",
+						"runme.dev/5/Text":        "Link1",
+						"runme.dev/9/Kind":        "Text",
+						"runme.dev/9/Text":        "Link2",
+						"runme.dev/Kind":          "Paragraph",
+						"runme.dev/Size":          "9",
+						"runme.dev/RawText":       "Some content with [Link1](https://example1.com \"Link title 1\") [Link2](https://example2.com \"Link title2\")",
+					},
 				},
-				resp.Notebook.Cells[1],
+				cells[1],
 			),
 		)
 	})
