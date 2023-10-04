@@ -51,6 +51,10 @@ exec runme run hello-js-cat
 stdout 'console\.log\(\"Hello, runme, from javascript!\"\)'
 ! stderr .
 
+exec runme run hello-python
+stdout 'Hello from Python'
+! stderr .
+
 -- README.md --
 # Examples
 
@@ -135,11 +139,21 @@ func main() {
 }
 ```
 
+## Python
+
+```python { name=hello-python interpreter=python3 }
+def say_hi():
+  print("Hello from Python")
+
+say_hi()
+```
+
 -- golden-list.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
 echo	README.md	echo "Hello, runme!"	With {name=hello} you can annotate it and give it a nice name.	Yes
 hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
 hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
+hello-python	README.md	def say_hi():		Yes
 -- golden-list-allow-unnamed.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
 echo-hello	README.md	echo "Hello, runme!"	This is a basic snippet with shell command.	No
@@ -152,6 +166,7 @@ hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run
 hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
 tempdir	README.md	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	It works with cd, pushd, and similar because all lines are executed as a single script.	No
 package-main	README.md	package main	It can also execute a snippet of Go code.	No
+hello-python	README.md	def say_hi():		Yes
 -- golden-list-json.txt --
 [
   {
@@ -173,6 +188,13 @@ package-main	README.md	package main	It can also execute a snippet of Go code.	No
     "file": "README.md",
     "first_command": "console.log(\"Hello, runme, from javascript!\")",
     "description": "And it can even run a cell with a custom interpreter.",
+    "named": true
+  },
+  {
+    "name": "hello-python",
+    "file": "README.md",
+    "first_command": "def say_hi():",
+    "description": "",
     "named": true
   }
 ]
