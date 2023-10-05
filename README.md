@@ -14,86 +14,96 @@ Runme achieves this by literally running markdown (ubiquitous for docs inside re
 
 ## Installation
 
-The easiest way on MacOS is to use Homebrew:
+To get started with Runme on MacOS, the recommended method of installation is using Homebrew, a popular package manager that simplifies the installation process. First, ensure your Homebrew is up to date to avoid any compatibility issues:
 
 ```sh { name=update-brew }
 $ brew update
+
 ```
 
-Install runme:
+With Homebrew updated, proceed to install Runme. This command will fetch the latest stable release of Runme and install it on your system:
 
 ```sh { name=install-runme }
 $ brew install runme
+
 ```
 
-or via NPM:
+If you prefer using NPM (Node Package Manager) for managing your packages, Runme can also be installed globally via the following command:
 
 ```sh { name=install-npm }
 $ npm install -g runme
+
 ```
 
-Alternatively, check out [Runme's releases](https://github.com/stateful/runme/releases) and select
-a binary for your operating system.
-
-If you have Go developer tools installed, you can install it with `go install`:
+For users with different setups, you can visit [Runme's releases page](https://github.com/stateful/runme/releases) and download a binary suitable for your operating system. For those with Go developer tools set up, Runme can be installed using the `go install` command:
 
 ```sh { name=install-via-go }
 $ go install github.com/stateful/runme@latest
+
 ```
 
 ## Commands
 
-The Runme CLI contains several commands that allow you to discover and run workflows within your project.
+Runme’s CLI (Command Line Interface) offers a set of commands designed to help you seamlessly discover and execute workflows within your project. Below are examples demonstrating the use of these commands:
 
 ### Run Workflows
 
-Given the following `README.md` file:
+Suppose you have a `README.md` file in your project directory with the following content:
 
-````md
+```tex
 # My Project
 
 ## Install
 
-First update Brew dependencies:
+To initiate the installation process, start by updating Brew dependencies with the following command:
 
 ```sh { name=update-brew }
 brew update
 ```
 
 ...
-`````
 
-You can run this code cell by just calling
+```
+
+
+To execute the `update-brew` code cell from the `README.md` file, simply use the runme run command followed by the name of the code cell:
 
 ```sh
 $ runme run update-brew
+
 ```
 
-Read more about how you can configure code cells in the [Runme documentation](https://docs.runme.dev/configuration).
+For more details and advanced configurations for code cells, refer to the [Runme documentation](https://docs.runme.dev/configuration).
 
 ### List
 
-Explore which workflows are available in your project.
+To navigate through and identify available workflows in your project, use the `runme list` command. This command will display a list of all workflows you can run:
 
 ```sh { name=runme-list closeTerminalOnSuccess=false interactive=false }
 $ runme list
+
 ```
 
 ### Print
 
-Instead of running the code of a code cell, `print` just outputs the code that would have been executed.
+The `print` command is useful when you need to review the code within a code cell without executing it. It outputs the code present in the specified code cell, providing a quick way to inspect the code:
 
 ```sh { name=runme-print interactive=false }
 $ runme print hello-world
+
 ```
 
 ### Help
 
 Find help and information to parameters and configurations.
+If you need assistance or information regarding various parameters and configurations available with Runme, the `help` command provides quick access to helpful information:
 
 ```sh { name=runme-help interactive=false }
 $ runme help
+
 ```
+
+Feel free to explore further and experiment with the commands to get a deeper understanding of Runme’s functionalities!
 
 ## Examples
 
