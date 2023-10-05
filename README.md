@@ -50,7 +50,7 @@ Runme’s CLI (Command Line Interface) offers a set of commands designed to help
 
 Suppose you have a `README.md` file in your project directory with the following content:
 
-```tex
+````md
 # My Project
 
 ## Install
@@ -60,10 +60,9 @@ To initiate the installation process, start by updating Brew dependencies with t
 ```sh { name=update-brew }
 brew update
 ...
-
 ```
 
-```
+`````
 
 To execute the `update-brew` code cell from the `README.md` file, simply use the runme run command followed by the name of the code cell:
 
