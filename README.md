@@ -59,12 +59,11 @@ To initiate the installation process, start by updating Brew dependencies with t
 
 ```sh { name=update-brew }
 brew update
-```
-
 ...
 
 ```
 
+```
 
 To execute the `update-brew` code cell from the `README.md` file, simply use the runme run command followed by the name of the code cell:
 
