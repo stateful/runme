@@ -71,6 +71,5 @@ jobs:
         if: ${{ !contains(github.ref, '-') }}
         with:
           formula-name: runme
-          download-url: https://github.com/stateful/runme.git
         env:
           COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
