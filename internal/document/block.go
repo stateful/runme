@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/stateful/runme/internal/executable"
 	"github.com/stateful/runme/internal/shell"
@@ -283,7 +284,7 @@ func getIntro(node *ast.FencedCodeBlock, source []byte) string {
 }
 
 func normalizeLine(s string) string {
-	return strings.TrimSpace(strings.TrimLeft(s, "$"))
+	return strings.TrimRightFunc(strings.TrimLeft(s, "$"), unicode.IsSpace)
 }
 
 func getLines(node *ast.FencedCodeBlock, source []byte) []string {
