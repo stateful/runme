@@ -2,8 +2,10 @@ package editor
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 
@@ -148,7 +150,13 @@ func toCellsRec(
 			astNode := block.Unwrap()
 
 			metadata := make(map[string]string)
-			DumpToMap(astNode, source, astNode.Kind().String(), 0, &metadata)
+			astMetadata := DumpToMap(astNode, source, astNode.Kind().String())
+			jsonAstMetaData, err := json.Marshal(astMetadata)
+			if err != nil {
+				log.Fatalf("Error converting to JSON: %s", err)
+			}
+
+			metadata["runme.dev/ast"] = string(jsonAstMetaData)
 
 			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
 			if childIdx == 0 && isListItem {
@@ -299,15 +307,10 @@ func trimRightNewLine(s []byte) []byte {
 	return bytes.TrimRight(s, "\n")
 }
 
-func DumpToMap(node ast.Node, source []byte, root string, level int, metadata *map[string]string) {
-	rootKey := "runme.dev/"
-	(*metadata)[rootKey+"Size"] = strconv.Itoa(level)
+func DumpToMap(node ast.Node, source []byte, root string) *map[string]interface{} {
+	metadata := make(map[string]interface{})
 
-	if level > 0 {
-		rootKey = fmt.Sprintf("%s%d/", rootKey, level)
-	}
-
-	(*metadata)[rootKey+"Kind"] = node.Kind().String()
+	metadata["Kind"] = node.Kind().String()
 
 	if node.Type() == ast.TypeBlock {
 		buf := []string{}
@@ -317,27 +320,34 @@ func DumpToMap(node ast.Node, source []byte, root string, level int, metadata *m
 			buf = append(buf, string(line.Value(source)))
 		}
 
-		(*metadata)[rootKey+"RawText"] = strings.Join(buf, "")
+		metadata["RawText"] = strings.Join(buf, "")
 	}
 
 	for name, value := range DumpAttributes(node, source) {
-		(*metadata)[rootKey+name] = value
+		metadata[name] = value
 	}
 
-	i := level
+	children := []interface{}{}
+
 	for c := node.FirstChild(); c != nil; c = c.NextSibling() {
-		DumpToMap(c, source, root, level+i+1, metadata)
-		i++
+		childrenMetadata := DumpToMap(c, source, node.Kind().String())
+		children = append(children, childrenMetadata)
 	}
+
+	if len(children) > 0 {
+		metadata["Children"] = children
+	}
+
+	return &metadata
 }
 
-func DumpAttributes(n ast.Node, source []byte) map[string]string {
-	attributes := map[string]string{}
+func DumpAttributes(n ast.Node, source []byte) map[string]interface{} {
+	attributes := make(map[string]interface{})
 
 	switch n.Kind() {
 	case ast.KindHeading:
 		t := n.(*ast.Heading)
-		attributes["Level"] = fmt.Sprintf("%d", t.Level)
+		attributes["Level"] = t.Level
 
 	case ast.KindText:
 		t := n.(*ast.Text)
@@ -372,9 +382,9 @@ func DumpAttributes(n ast.Node, source []byte) map[string]string {
 
 	case ast.KindList:
 		t := n.(*ast.List)
-		attributes["Ordered"] = fmt.Sprintf("%v", t.IsOrdered())
+		attributes["Ordered"] = t.IsOrdered()
 		attributes["Marker"] = fmt.Sprintf("%c", t.Marker)
-		attributes["Tight"] = fmt.Sprintf("%v", t.IsTight)
+		attributes["Tight"] = t.IsTight
 
 		if t.IsOrdered() {
 			attributes["Start"] = fmt.Sprintf("%d", t.Start)
@@ -382,8 +392,7 @@ func DumpAttributes(n ast.Node, source []byte) map[string]string {
 
 	case ast.KindListItem:
 		t := n.(*ast.ListItem)
-		attributes["Offset"] = fmt.Sprintf("%d", t.Offset)
-
+		attributes["Offset"] = t.Offset
 	}
 
 	return attributes

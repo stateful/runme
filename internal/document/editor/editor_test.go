@@ -2,6 +2,7 @@ package editor
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -94,6 +95,49 @@ func TestEditor_CodeBlock(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
+}
+
+func TestEditor_Metadata(t *testing.T) {
+	data := []byte(`# Heading Level 1
+Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second link [Link2](https://example2.com 'Link Title 2')..
+## Heading Level 2
+### Heading Level 3
+#### Heading Level 4
+##### Heading Level 5
+`)
+	notebook, err := Deserialize(data)
+	require.NoError(t, err)
+	require.NotEmpty(t, notebook.Metadata)
+
+	astStr := notebook.Cells[0].Metadata["runme.dev/ast"]
+	var metadata map[string]interface{}
+	err = json.Unmarshal([]byte(astStr), &metadata)
+	require.NoError(t, err)
+
+	assert.Equal(t, "Heading", metadata["Kind"])
+	assert.Equal(t, 1, len(metadata["Children"].([]interface{})))
+	assert.Equal(t, 1, int(metadata["Level"].(float64)))
+
+	astStr = notebook.Cells[1].Metadata["runme.dev/ast"]
+	metadata = make(map[string]interface{})
+	err = json.Unmarshal([]byte(astStr), &metadata)
+	require.NoError(t, err)
+
+	assert.Equal(t, "Paragraph", metadata["Kind"])
+	assert.Equal(t, 5, len(metadata["Children"].([]interface{})))
+
+	children := metadata["Children"].([]interface{})
+
+	nChild := children[0].(map[string]interface{})
+	assert.Equal(t, "Paragraph 1 with a link ", nChild["Text"].(string))
+
+	nChild = children[1].(map[string]interface{})
+	assert.Equal(t, "https://example.com", nChild["Destination"].(string))
+	assert.Equal(t, "Link Title 1", nChild["Title"].(string))
+
+	children = nChild["Children"].([]interface{})
+	nChild = children[0].(map[string]interface{})
+	assert.Equal(t, "Link1", nChild["Text"].(string))
 }
 
 func TestEditor_FrontMatter(t *testing.T) {
