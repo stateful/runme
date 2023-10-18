@@ -1,0 +1,23 @@
+name: release to Homebrew
+on:
+  workflow_dispatch:
+    inputs:
+      tag-name:
+        type: string
+        description: The git tag name to bump the formula to
+        required: true
+
+jobs:
+  homebrew:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Bump Homebrew Formula
+        uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: runme
+          tag-name: ${{ github.event.inputs.tag-name }}
+          download-url: https://github.com/stateful/runme/archive/refs/tags/${{github.event.inputs.tag-name}}.tar.gz
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
