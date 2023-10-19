@@ -296,6 +296,29 @@ func Test_codeBlockFrontmatter(t *testing.T) {
 	assert.Equal(t, taskMemo["ZSH.md"].GetFrontmatter().Shell, "zsh")
 }
 
+func Test_codeBlockSkipPromptsFrontmatter(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	proj, err := NewDirectoryProject(filepath.Join(cwd, "../../", "examples", "frontmatter", "skipPrompts"), false, true, true, []string{})
+	require.NoError(t, err)
+
+	tasks, err := LoadProjectTasks(proj)
+	require.NoError(t, err)
+
+	t.Log(tasks)
+
+	taskMemo := make(map[string]FileCodeBlock)
+
+	for _, task := range tasks {
+		taskMemo[filepath.Base(task.GetFile())] = task
+	}
+
+	assert.Equal(t, taskMemo["DISABLED.md"].GetFrontmatter().SkipPrompts, false)
+	assert.Equal(t, taskMemo["ENABLED.md"].GetFrontmatter().SkipPrompts, true)
+	assert.Equal(t, taskMemo["NONE.md"].GetFrontmatter().SkipPrompts, false)
+}
+
 func projectDir() billy.Filesystem {
 	_, b, _, _ := runtime.Caller(0)
 	root := filepath.Join(

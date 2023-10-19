@@ -1,5 +1,5 @@
 ---
-skipenv: false
+skipPrompts: false
 ---
 
 ```sh

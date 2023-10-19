@@ -76,9 +76,9 @@ export interface Frontmatter {
      */
     cwd: string;
     /**
-     * @generated from protobuf field: bool skip_env = 3;
+     * @generated from protobuf field: bool skip_prompts = 3;
      */
-    skipEnv: boolean;
+    skipPrompts: boolean;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequest

@@ -200,9 +200,9 @@ export class Frontmatter extends Message<Frontmatter> {
   cwd = "";
 
   /**
-   * @generated from field: bool skip_env = 3;
+   * @generated from field: bool skip_prompts = 3;
    */
-  skipEnv = false;
+  skipPrompts = false;
 
   constructor(data?: PartialMessage<Frontmatter>) {
     super();
@@ -214,7 +214,7 @@ export class Frontmatter extends Message<Frontmatter> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "shell", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "cwd", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "skip_env", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "skip_prompts", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Frontmatter {
