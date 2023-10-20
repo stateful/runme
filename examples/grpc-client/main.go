@@ -65,13 +65,14 @@ func run() error {
 		client := parserv1.NewParserServiceClient(conn)
 
 		resp, err := client.Deserialize(context.Background(), &parserv1.DeserializeRequest{
-			Source: []byte(""),
+			Source: []byte("# Hello"),
 		})
 		if err != nil {
 			return err
 		}
 
 		_, _ = fmt.Println(resp.Notebook)
+		_, _ = fmt.Println(resp.Notebook.Cells[0].Metadata)
 
 		return nil
 	}

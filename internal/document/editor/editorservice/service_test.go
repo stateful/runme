@@ -3,6 +3,7 @@ package editorservice
 import (
 	"context"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/stateful/runme/internal/document/editor"
@@ -33,6 +34,8 @@ func Test_parserServiceServer(t *testing.T) {
 	client := parserv1.NewParserServiceClient(conn)
 
 	t.Run("Basic", func(t *testing.T) {
+		os.Setenv("RUNME_AST_METADATA", "true")
+
 		resp, err := client.Deserialize(
 			context.Background(),
 			&parserv1.DeserializeRequest{

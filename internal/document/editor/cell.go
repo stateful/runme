@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -150,13 +151,17 @@ func toCellsRec(
 			astNode := block.Unwrap()
 
 			metadata := make(map[string]string)
-			astMetadata := DumpToMap(astNode, source, astNode.Kind().String())
-			jsonAstMetaData, err := json.Marshal(astMetadata)
-			if err != nil {
-				log.Fatalf("Error converting to JSON: %s", err)
-			}
+			_, includeAstMetadata := os.LookupEnv("RUNME_AST_METADATA")
 
-			metadata["runme.dev/ast"] = string(jsonAstMetaData)
+			if includeAstMetadata {
+				astMetadata := DumpToMap(astNode, source, astNode.Kind().String())
+				jsonAstMetaData, err := json.Marshal(astMetadata)
+				if err != nil {
+					log.Fatalf("Error converting to JSON: %s", err)
+				}
+
+				metadata["runme.dev/ast"] = string(jsonAstMetaData)
+			}
 
 			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
 			if childIdx == 0 && isListItem {

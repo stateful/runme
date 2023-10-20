@@ -3,6 +3,7 @@ package editor
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -105,6 +106,9 @@ Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second
 #### Heading Level 4
 ##### Heading Level 5
 `)
+	err := os.Setenv("RUNME_AST_METADATA", "true")
+	require.NoError(t, err)
+
 	notebook, err := Deserialize(data)
 	require.NoError(t, err)
 	require.NotEmpty(t, notebook.Metadata)
