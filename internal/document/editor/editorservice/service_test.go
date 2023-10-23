@@ -3,6 +3,7 @@ package editorservice
 import (
 	"context"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/stateful/runme/internal/document/editor"
@@ -33,22 +34,30 @@ func Test_parserServiceServer(t *testing.T) {
 	client := parserv1.NewParserServiceClient(conn)
 
 	t.Run("Basic", func(t *testing.T) {
+		os.Setenv("RUNME_AST_METADATA", "true")
+
 		resp, err := client.Deserialize(
 			context.Background(),
 			&parserv1.DeserializeRequest{
-				Source: []byte("# Title\n\nSome content"),
+				Source: []byte("# Title\n\nSome content with [Link1](https://example1.com \"Link title 1\") [Link2](https://example2.com \"Link title2\")"),
 			},
 		)
+
+		cells := resp.Notebook.Cells
 		assert.NoError(t, err)
-		assert.Len(t, resp.Notebook.Cells, 2)
+		assert.Len(t, cells, 2)
+
 		assert.True(
 			t,
 			proto.Equal(
 				&parserv1.Cell{
 					Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
 					Value: "# Title",
+					Metadata: map[string]string{
+						"runme.dev/ast": `{"Children":[{"Kind":"Text","Text":"Title"}],"Kind":"Heading","Level":1,"RawText":"Title"}`,
+					},
 				},
-				resp.Notebook.Cells[0],
+				cells[0],
 			),
 		)
 		assert.True(
@@ -56,9 +65,12 @@ func Test_parserServiceServer(t *testing.T) {
 			proto.Equal(
 				&parserv1.Cell{
 					Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
-					Value: "Some content",
+					Value: "Some content with [Link1](https://example1.com \"Link title 1\") [Link2](https://example2.com \"Link title2\")",
+					Metadata: map[string]string{
+						"runme.dev/ast": `{"Children":[{"Kind":"Text","Text":"Some content with "},{"Children":[{"Kind":"Text","Text":"Link1"}],"Destination":"https://example1.com","Kind":"Link","Title":"Link title 1"},{"Kind":"Text","Text":" "},{"Children":[{"Kind":"Text","Text":"Link2"}],"Destination":"https://example2.com","Kind":"Link","Title":"Link title2"}],"Kind":"Paragraph","RawText":"Some content with [Link1](https://example1.com \"Link title 1\") [Link2](https://example2.com \"Link title2\")"}`,
+					},
 				},
-				resp.Notebook.Cells[1],
+				cells[1],
 			),
 		)
 	})

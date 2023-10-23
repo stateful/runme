@@ -2,7 +2,11 @@ package editor
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
+	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -144,6 +148,20 @@ func toCellsRec(
 
 		case *document.MarkdownBlock:
 			value := block.Value()
+			astNode := block.Unwrap()
+
+			metadata := make(map[string]string)
+			_, includeAstMetadata := os.LookupEnv("RUNME_AST_METADATA")
+
+			if includeAstMetadata {
+				astMetadata := DumpToMap(astNode, source, astNode.Kind().String())
+				jsonAstMetaData, err := json.Marshal(astMetadata)
+				if err != nil {
+					log.Fatalf("Error converting to JSON: %s", err)
+				}
+
+				metadata["runme.dev/ast"] = string(jsonAstMetaData)
+			}
 
 			isListItem := node.Item() != nil && node.Item().Unwrap().Kind() == ast.KindListItem
 			if childIdx == 0 && isListItem {
@@ -168,8 +186,9 @@ func toCellsRec(
 			}
 
 			*cells = append(*cells, &Cell{
-				Kind:  MarkupKind,
-				Value: fmtValue(value),
+				Kind:     MarkupKind,
+				Value:    fmtValue(value),
+				Metadata: metadata,
 			})
 		}
 	}
@@ -291,4 +310,95 @@ func fmtValue(s []byte) string {
 func trimRightNewLine(s []byte) []byte {
 	s = bytes.TrimRight(s, "\r\n")
 	return bytes.TrimRight(s, "\n")
+}
+
+func DumpToMap(node ast.Node, source []byte, root string) *map[string]interface{} {
+	metadata := make(map[string]interface{})
+
+	metadata["Kind"] = node.Kind().String()
+
+	if node.Type() == ast.TypeBlock {
+		buf := []string{}
+
+		for i := 0; i < node.Lines().Len(); i++ {
+			line := node.Lines().At(i)
+			buf = append(buf, string(line.Value(source)))
+		}
+
+		metadata["RawText"] = strings.Join(buf, "")
+	}
+
+	for name, value := range DumpAttributes(node, source) {
+		metadata[name] = value
+	}
+
+	children := []interface{}{}
+
+	for c := node.FirstChild(); c != nil; c = c.NextSibling() {
+		childrenMetadata := DumpToMap(c, source, node.Kind().String())
+		children = append(children, childrenMetadata)
+	}
+
+	if len(children) > 0 {
+		metadata["Children"] = children
+	}
+
+	return &metadata
+}
+
+func DumpAttributes(n ast.Node, source []byte) map[string]interface{} {
+	attributes := make(map[string]interface{})
+
+	switch n.Kind() {
+	case ast.KindHeading:
+		t := n.(*ast.Heading)
+		attributes["Level"] = t.Level
+
+	case ast.KindText:
+		t := n.(*ast.Text)
+
+		buf := []string{}
+		if t.SoftLineBreak() {
+			buf = append(buf, "SoftLineBreak")
+		}
+		if t.HardLineBreak() {
+			buf = append(buf, "HardLineBreak")
+		}
+		if t.IsRaw() {
+			buf = append(buf, "Raw")
+		}
+
+		// TODO: IsCode is not available in ast.Text
+		// if t.IsCode() {
+		// 	buf = append(buf, "Code")
+		// }
+
+		fs := strings.Join(buf, ", ")
+		if len(fs) != 0 {
+			fs = "(" + fs + ")"
+		}
+
+		attributes[fmt.Sprintf("Text%s", fs)] = strings.TrimRight(string(t.Text(source)), "\n")
+
+	case ast.KindLink:
+		t := n.(*ast.Link)
+		attributes["Destination"] = string(t.Destination)
+		attributes["Title"] = string(t.Title)
+
+	case ast.KindList:
+		t := n.(*ast.List)
+		attributes["Ordered"] = t.IsOrdered()
+		attributes["Marker"] = fmt.Sprintf("%c", t.Marker)
+		attributes["Tight"] = t.IsTight
+
+		if t.IsOrdered() {
+			attributes["Start"] = fmt.Sprintf("%d", t.Start)
+		}
+
+	case ast.KindListItem:
+		t := n.(*ast.ListItem)
+		attributes["Offset"] = t.Offset
+	}
+
+	return attributes
 }
