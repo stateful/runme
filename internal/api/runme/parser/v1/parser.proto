@@ -32,6 +32,7 @@ message Cell {
 message Frontmatter {
   string shell = 1;
   string cwd = 2;
+  bool skip_prompts = 3;
 }
 
 message DeserializeRequest {
