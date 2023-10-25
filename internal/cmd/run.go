@@ -85,6 +85,10 @@ func runCmd() *cobra.Command {
 					return err
 				}
 
+				if len(blocks) > 0 && blocks[0].Frontmatter.SkipPrompts {
+					skipPrompts = true
+				}
+
 				if runWithIndex {
 					if runIndex >= len(blocks) {
 						return fmt.Errorf("command index %v out of range", runIndex)
@@ -95,13 +99,18 @@ func runCmd() *cobra.Command {
 					for _, fileBlock := range blocks {
 						block := fileBlock.Block
 
-						if category == "" || block.ExcludeFromRunAll() {
+						if runAll && block.ExcludeFromRunAll() {
 							continue
 						}
 
-						containsCategory := slices.Contains(strings.Split(block.Category(), ","), category)
-						if !containsCategory {
-							continue
+						if category != "" {
+							if block.ExcludeFromRunAll() {
+								continue
+							}
+
+							if !slices.Contains(strings.Split(block.Category(), ","), category) {
+								continue
+							}
 						}
 
 						runBlocks = append(runBlocks, fileBlock)

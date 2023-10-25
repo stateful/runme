@@ -24,3 +24,15 @@ func TestRunme(t *testing.T) {
 		Dir: "testdata/script",
 	})
 }
+
+func TestRunmeCategories(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir: "testdata/categories",
+	})
+}
+
+func TestRunmeRunAll(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir: "testdata/runall",
+	})
+}

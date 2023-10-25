@@ -1,0 +1,42 @@
+env SHELL=/bin/bash
+exec runme run --all --category=foo --filename=CATEGORIES.md
+cmp stdout foo-bar-list.txt
+! stderr .
+
+env SHELL=/bin/bash
+exec runme run --all --category=bar --filename=CATEGORIES.md
+cmp stdout bar-list.txt
+! stderr .
+
+-- CATEGORIES.md --
+
+```bash { name=set-env category=foo }
+$ export ENV="foo!"
+```
+
+```bash { name=print-foo category=foo }
+$ stty -opost
+$ echo "$ENV"
+```
+
+```bash { name=print-bar category=foo,bar }
+$ stty -opost
+$ echo "bar!"
+```
+
+```bash { name=excluded category=foo,bar excludeFromRunAll=true }
+$ stty -opost
+$ echo "excluded!"
+```
+
+-- foo-bar-list.txt --
+ ►  Running task set-env...
+ ►  ✓ Task set-env exited with code 0
+ ►  Running task print-foo...
+foo!
+ ►  ✓ Task print-foo exited with code 0
+ ►  Running task print-bar...
+bar!
+ ►  ✓ Task print-bar exited with code 0
+-- bar-list.txt --
+bar!
