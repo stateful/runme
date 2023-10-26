@@ -49,8 +49,10 @@ func TestRunmeRunAll(t *testing.T) {
 func TestSkipPromptsWithinAPty(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	_ = os.Setenv("RUNME_VERBOSE", "false")
+	defer os.Unsetenv("RUNME_VERBOSE")
 
-	cmd := exec.Command("go", "run", ".", "run", "skip-prompts-sample")
+	cmd := exec.Command("go", "run", ".", "run", "skip-prompts-sample", "--chdir", "./examples/frontmatter/skipPrompts")
 	ptmx, err := pty.StartWithAttrs(cmd, &pty.Winsize{Rows: 25, Cols: 80}, &syscall.SysProcAttr{})
 	if err != nil {
 		t.Fatalf("Could not start command with pty: %s", err)
@@ -68,7 +70,8 @@ func TestSkipPromptsWithinAPty(t *testing.T) {
 	assert.Nil(t, err, "Command execution failed")
 
 	expected := "The content of ENV is <insert-env-here>"
-	current := RemoveAnsiCodes(buf.String())
+	current := buf.String()
+	current = RemoveAnsiCodes(current)
 	current = strings.TrimSpace(current)
 
 	assert.Equal(t, expected, current, "Output does not match")
