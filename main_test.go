@@ -59,7 +59,7 @@ func TestSkipPromptsWithinAPty(t *testing.T) {
 	defer ptmx.Close()
 
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(ptmx)
+	_, _ = buf.ReadFrom(ptmx)
 
 	if ctx.Err() == context.DeadlineExceeded {
 		t.Fatalf("Command timed out")
