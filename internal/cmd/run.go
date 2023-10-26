@@ -85,10 +85,6 @@ func runCmd() *cobra.Command {
 					return err
 				}
 
-				if len(blocks) > 0 && blocks[0].Frontmatter.SkipPrompts {
-					skipPrompts = true
-				}
-
 				if runWithIndex {
 					if runIndex >= len(blocks) {
 						return fmt.Errorf("command index %v out of range", runIndex)
@@ -192,6 +188,14 @@ func runCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			for _, block := range runBlocks {
+				if block.GetFrontmatter().SkipPrompts {
+					skipPrompts = true
+					break
+				}
+			}
+
 			if (skipPromptsExplicitly || isTerminal(os.Stdout.Fd())) && !skipPrompts {
 				err = promptEnvVars(cmd, sessionEnvs, runBlocks...)
 				if err != nil {
