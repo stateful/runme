@@ -52,7 +52,6 @@ func TestSkipPromptsWithinAPty(t *testing.T) {
 
 	cmd := exec.Command("go", "run", ".", "run", "skip-prompts-sample")
 	ptmx, err := pty.StartWithAttrs(cmd, &pty.Winsize{Rows: 25, Cols: 80}, &syscall.SysProcAttr{})
-
 	if err != nil {
 		t.Fatalf("Could not start command with pty: %s", err)
 	}
