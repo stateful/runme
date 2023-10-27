@@ -95,13 +95,18 @@ func runCmd() *cobra.Command {
 					for _, fileBlock := range blocks {
 						block := fileBlock.Block
 
-						if category == "" || block.ExcludeFromRunAll() {
+						if runAll && block.ExcludeFromRunAll() {
 							continue
 						}
 
-						containsCategory := slices.Contains(strings.Split(block.Category(), ","), category)
-						if !containsCategory {
-							continue
+						if category != "" {
+							if block.ExcludeFromRunAll() {
+								continue
+							}
+
+							if !slices.Contains(strings.Split(block.Category(), ","), category) {
+								continue
+							}
 						}
 
 						runBlocks = append(runBlocks, fileBlock)
@@ -183,6 +188,14 @@ func runCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			for _, block := range runBlocks {
+				if block.GetFrontmatter().SkipPrompts {
+					skipPrompts = true
+					break
+				}
+			}
+
 			if (skipPromptsExplicitly || isTerminal(os.Stdout.Fd())) && !skipPrompts {
 				err = promptEnvVars(cmd, sessionEnvs, runBlocks...)
 				if err != nil {

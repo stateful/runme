@@ -155,9 +155,11 @@ func tuiCmd() *cobra.Command {
 
 				runBlock := result.block.Clone()
 
-				err = promptEnvVars(cmd, sessionEnvs, runBlock)
-				if err != nil {
-					return err
+				if !runBlock.GetFrontmatter().SkipPrompts {
+					err = promptEnvVars(cmd, sessionEnvs, runBlock)
+					if err != nil {
+						return err
+					}
 				}
 
 				err = inRawMode(func() error {
