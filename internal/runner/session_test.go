@@ -41,6 +41,9 @@ func Test_SessionList(t *testing.T) {
 
 		session2, err := createSession()
 		require.NoError(t, err)
+
+		assert.NotEqual(t, session1.ID, session2.ID)
+
 		list.AddSession(session2)
 
 		found, ok := list.GetSession(session1.ID)
@@ -62,10 +65,19 @@ func Test_SessionList(t *testing.T) {
 		session2, err := list.CreateAndAddSession(createSession)
 		require.NoError(t, err)
 
+		assert.NotEqual(t, session1.ID, session2.ID)
+
 		sessions, err := list.ListSessions()
 		require.NoError(t, err)
 
-		assert.Equal(t, []*Session{session1, session2}, sessions)
+		expected := []string{session1.ID, session2.ID}
+		actual := []string{}
+
+		for _, session := range sessions {
+			actual = append(actual, session.ID)
+		}
+
+		assert.Equal(t, expected, actual)
 	})
 
 	t.Run("DeleteSession", func(t *testing.T) {
@@ -77,6 +89,8 @@ func Test_SessionList(t *testing.T) {
 
 		session2, err := list.CreateAndAddSession(createSession)
 		require.NoError(t, err)
+
+		assert.NotEqual(t, session1.ID, session2.ID)
 
 		{
 			sessionList, err := list.ListSessions()
@@ -91,7 +105,15 @@ func Test_SessionList(t *testing.T) {
 			sessionList, err := list.ListSessions()
 			require.NoError(t, err)
 			assert.Equal(t, 1, len(sessionList))
-			assert.Equal(t, session1, sessionList[0])
+
+			expected := []string{session1.ID}
+			actual := []string{}
+
+			for _, session := range sessionList {
+				actual = append(actual, session.ID)
+			}
+
+			assert.Equal(t, expected, actual)
 		}
 
 		deleted = list.DeleteSession(session1.ID)
