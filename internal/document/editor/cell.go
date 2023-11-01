@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/idgen"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -52,22 +53,38 @@ type Notebook struct {
 	parsedFrontmatter *document.Frontmatter
 }
 
+func (n *Notebook) SetFronmatter(f document.Frontmatter) {
+	n.parsedFrontmatter = &f
+}
+
+func (c *Cell) EnsureId() {
+	id, ok := c.Metadata["id"]
+	if ok && idgen.ValidID(id) {
+		return
+	}
+
+	c.Metadata["id"] = idgen.GenerateID()
+}
+
 func (n *Notebook) GetContentOffset() int {
 	return n.contentOffset
 }
 
 func (n *Notebook) ParsedFrontmatter() (document.Frontmatter, *document.FrontmatterParseInfo) {
 	raw, ok := n.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]
+
 	if n.parsedFrontmatter != nil {
+		n.parsedFrontmatter.EnsureId()
 		return *n.parsedFrontmatter, nil
 	}
 
 	if !ok {
-		return document.Frontmatter{}, nil
+		return document.NewFrontmatter(), nil
 	}
 
 	f, pi := document.ParseFrontmatter(raw)
 	n.parsedFrontmatter = &f
+	n.parsedFrontmatter.EnsureId()
 
 	return f, &pi
 }

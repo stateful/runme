@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -64,15 +65,20 @@ func run() error {
 	if *parseDocument {
 		client := parserv1.NewParserServiceClient(conn)
 
+		filename := "examples/grpc-client/hello.md"
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			return err
+		}
+
 		resp, err := client.Deserialize(context.Background(), &parserv1.DeserializeRequest{
-			Source: []byte("# Hello"),
+			Source: data,
 		})
 		if err != nil {
 			return err
 		}
 
-		_, _ = fmt.Println(resp.Notebook)
-		_, _ = fmt.Println(resp.Notebook.Cells[0].Metadata)
+		PrettyPrint(resp.Notebook)
 
 		return nil
 	}
@@ -200,4 +206,13 @@ func run() error {
 	})
 
 	return g.Wait()
+}
+
+func PrettyPrint(v interface{}) error {
+	b, err := json.MarshalIndent(v, "", "    ") // Use four spaces for indentation
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(b))
+	return nil
 }
