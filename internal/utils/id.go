@@ -16,6 +16,9 @@ var (
 	entropyOnce sync.Once
 )
 
+// DefaultEntropy returns a reader that generates ULID entropy.
+// The default entropy function utilizes math/rand.Rand, which is not safe for concurrent use by multiple goroutines.
+// Therefore, this function employs x/exp/rand, as recommended by the authors of the library.
 func DefaultEntropy() io.Reader {
 	entropyOnce.Do(func() {
 		seed := uint64(time.Now().UnixNano())
@@ -32,9 +35,9 @@ func DefaultEntropy() io.Reader {
 // IsULID checks if the given string is a valid ULID
 // ULID pattern:
 //
-//	01AN4Z07BY      79KA1307SR9X4MV3
+//	 01AN4Z07BY      79KA1307SR9X4MV3
 //	|----------|    |----------------|
-//	Timestamp          Randomness
+//	 Timestamp          Randomness
 //
 // 10 characters     16 characters
 // Crockford's Base32 is used (excludes I, L, O, and U to avoid confusion and abuse)
