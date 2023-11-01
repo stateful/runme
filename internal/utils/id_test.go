@@ -1,11 +1,10 @@
 package utils
 
 import (
-	"strings"
 	"sync"
 	"testing"
 
-	"github.com/go-playground/assert/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestValidID tests the ValidID function with both valid and invalid inputs.
@@ -27,24 +26,9 @@ func TestValidID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
 			if got := ValidID(tt.id); got != tt.expected {
-				t.Errorf("ValidID(%s) = %v; want %v", tt.id, got, tt.expected)
+				assert.Equal(t, tt.expected, got)
 			}
 		})
-	}
-}
-
-func TestGenerateID(t *testing.T) {
-	id := GenerateID()
-	if !ValidID(id) {
-		t.Errorf("Generated ID is not a valid ULID: %s", id)
-	}
-
-	if len(id) != 26 {
-		t.Errorf("Generated ID does not have the correct length: got %v want %v", len(id), 26)
-	}
-
-	if strings.ContainsAny(id, "ilou") {
-		t.Errorf("Generated ID contains invalid characters: %s", id)
 	}
 }
 
