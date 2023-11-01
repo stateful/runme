@@ -78,7 +78,7 @@ func run() error {
 			return err
 		}
 
-		PrettyPrint(resp.Notebook)
+		_ = PrettyPrint(resp.Notebook)
 
 		return nil
 	}
@@ -213,6 +213,6 @@ func PrettyPrint(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(b))
+	_, _ = fmt.Println(string(b))
 	return nil
 }

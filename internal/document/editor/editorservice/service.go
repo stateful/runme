@@ -44,7 +44,7 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 		}
 
 		if cell.Kind == editor.CodeKind {
-			cell.EnsureId()
+			cell.EnsureID()
 		}
 
 		cells = append(cells, &parserv1.Cell{
@@ -88,18 +88,7 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		Metadata: req.Notebook.Metadata,
 	}
 
-	// notebook.SetFronmatter(document.Frontmatter{
-	// 	Runme: document.RunmeMetaData{
-	// 		Id:      req.Notebook.Frontmatter.Runme.Id,
-	// 		Version: req.Notebook.Frontmatter.Runme.Version,
-	// 	},
-	// 	Cwd:         req.Notebook.Frontmatter.Cwd,
-	// 	Shell:       req.Notebook.Frontmatter.Shell,
-	// 	SkipPrompts: req.Notebook.Frontmatter.SkipPrompts,
-	// })
-
 	data, err := editor.Serialize(&notebook)
-
 	if err != nil {
 		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err

@@ -15,7 +15,7 @@ import (
 const FrontmatterParsingVersion = "V2"
 
 type RunmeMetaData struct {
-	Id      string `yaml:"id,omitempty"`
+	ID      string `protobuf:"bytes,1,opt,name=id,proto3"`
 	Version string `yaml:"version,omitempty"`
 }
 
@@ -37,7 +37,7 @@ type FrontmatterParseInfo struct {
 func NewFrontmatter() Frontmatter {
 	return Frontmatter{
 		Runme: RunmeMetaData{
-			Id:      idgen.GenerateID(),
+			ID:      idgen.GenerateID(),
 			Version: FrontmatterParsingVersion,
 		},
 	}
@@ -125,9 +125,9 @@ func StringifyFrontmatter(f Frontmatter, info FrontmatterParseInfo) (result stri
 	return
 }
 
-func (fmtr *Frontmatter) EnsureId() {
-	if fmtr.Runme.Id == "" {
-		fmtr.Runme.Id = idgen.GenerateID()
+func (fmtr *Frontmatter) EnsureID() {
+	if !idgen.ValidID(fmtr.Runme.ID) {
+		fmtr.Runme.ID = idgen.GenerateID()
 	}
 
 	if fmtr.Runme.Version == "" {
@@ -138,7 +138,7 @@ func (fmtr *Frontmatter) EnsureId() {
 func (fmtr Frontmatter) ToParser() *parserv1.Frontmatter {
 	return &parserv1.Frontmatter{
 		Runme: &parserv1.Runme{
-			Id:      fmtr.Runme.Id,
+			Id:      fmtr.Runme.ID,
 			Version: fmtr.Runme.Version,
 		},
 		Shell:       fmtr.Shell,

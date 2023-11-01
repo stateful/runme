@@ -57,7 +57,7 @@ func (n *Notebook) SetFronmatter(f document.Frontmatter) {
 	n.parsedFrontmatter = &f
 }
 
-func (c *Cell) EnsureId() {
+func (c *Cell) EnsureID() {
 	id, ok := c.Metadata["id"]
 	if ok && idgen.ValidID(id) {
 		return
@@ -74,7 +74,6 @@ func (n *Notebook) ParsedFrontmatter() (document.Frontmatter, *document.Frontmat
 	raw, ok := n.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]
 
 	if n.parsedFrontmatter != nil {
-		n.parsedFrontmatter.EnsureId()
 		return *n.parsedFrontmatter, nil
 	}
 
@@ -84,7 +83,6 @@ func (n *Notebook) ParsedFrontmatter() (document.Frontmatter, *document.Frontmat
 
 	f, pi := document.ParseFrontmatter(raw)
 	n.parsedFrontmatter = &f
-	n.parsedFrontmatter.EnsureId()
 
 	return f, &pi
 }
