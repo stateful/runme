@@ -7,9 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestValidID tests the ValidID function with both valid and invalid inputs.
 func TestValidID(t *testing.T) {
-	// Generate a valid ULID for testing.
 	validULID := GenerateID()
 
 	tests := []struct {
@@ -33,7 +31,6 @@ func TestValidID(t *testing.T) {
 }
 
 func TestGenerateUniqueID(t *testing.T) {
-	// inline function to set the generator
 	Generator := func() string { return GenerateID() }
 
 	t.Run("uniqueness", func(t *testing.T) {
