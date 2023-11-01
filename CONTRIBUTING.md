@@ -149,6 +149,31 @@ npm config set @buf:registry https://buf.build/gen/npm/v1
 yarn config set @buf:registry https://buf.build/gen/npm/v1
 ```
 
+### Enable Runme Extension Development
+
+While development it's not prudent to publish to the Buf's BSR (NPM etc). Instead, you can overwrite the generated types locally. Generate buffers:
+
+```sh
+make proto/generate
+```
+
+Then overwrite buffers in the Runme extension's development project. Make sure to delete superfluous TS files to prevent bundler from stumbling.
+
+```sh
+export RUNME_EXT_BASE="../vscode-runme"
+cp -vrf internal/gen/proto/ts/runme $RUNME_EXT_BASE/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
+find $RUNME_EXT_BASE/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts -name "*.ts" | grep -v ".d.ts" | xargs rm -f
+```
+
+Optionally, reset Runme extension's development project to NPM distributed buffers.
+
+```sh
+export RUNME_EXT_BASE="../vscode-runme"
+rm -rf $RUNME_EXT_BASE/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
+cd $RUNME_EXT_BASE
+runme run setup
+```
+
 ### GraphQL
 
 GraphQL schema are generated as part of:
