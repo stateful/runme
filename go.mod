@@ -23,9 +23,9 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
+	github.com/oklog/ulid/v2 v2.1.0
 	github.com/rogpeppe/go-internal v1.11.0
 	github.com/rs/cors v1.10.1
-	github.com/rs/xid v1.5.0
 	github.com/rwtodd/Go.Sed v0.0.0-20230610052213-ba3e9c186f0a
 	github.com/vektah/gqlparser/v2 v2.5.10
 	github.com/yuin/goldmark v1.5.6
