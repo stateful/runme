@@ -291,9 +291,9 @@ func Test_codeBlockFrontmatter(t *testing.T) {
 		taskMemo[filepath.Base(task.GetFile())] = task
 	}
 
-	assert.Equal(t, taskMemo["BASH.md"].GetFrontmatter().Shell, "bash")
-	assert.Equal(t, taskMemo["KSH.md"].GetFrontmatter().Shell, "ksh")
-	assert.Equal(t, taskMemo["ZSH.md"].GetFrontmatter().Shell, "zsh")
+	assert.Equal(t, "bash", taskMemo["BASH.md"].GetFrontmatter().Shell)
+	assert.Equal(t, "ksh", taskMemo["KSH.md"].GetFrontmatter().Shell)
+	assert.Equal(t, "zsh", taskMemo["ZSH.md"].GetFrontmatter().Shell)
 }
 
 func Test_codeBlockSkipPromptsFrontmatter(t *testing.T) {

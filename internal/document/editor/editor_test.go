@@ -3,6 +3,7 @@ package editor
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/stateful/runme/internal/document/constants"
+	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/version"
 )
 
 func TestEditor(t *testing.T) {
@@ -145,15 +148,22 @@ Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second
 }
 
 func TestEditor_FrontMatter(t *testing.T) {
-	data := []byte(`+++
-prop1 = "val1"
-prop2 = "val2"
+	id := idgen.GenerateID()
+	idgen.MockGenerator(id)
+
+	data := []byte(fmt.Sprintf(`+++
+prop1 = 'val1'
+prop2 = 'val2'
+
+[runme]
+id = '%s'
+version = '%s'
 +++
 
 # Example
 
 A paragraph
-`)
+`, id, version.BuildVersion))
 	notebook, err := Deserialize(data)
 	require.NoError(t, err)
 	result, err := Serialize(notebook)

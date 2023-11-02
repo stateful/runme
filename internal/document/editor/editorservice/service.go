@@ -87,7 +87,6 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		Cells:    cells,
 		Metadata: req.Notebook.Metadata,
 	})
-
 	if err != nil {
 		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err

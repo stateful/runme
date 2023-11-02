@@ -1,7 +1,7 @@
 package document
 
 import (
-	"bytes"
+	byteslib "bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,14 +10,13 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/version"
 	"gopkg.in/yaml.v3"
 )
 
-const FrontmatterParsingVersion = "V2"
-
 type RunmeMetaData struct {
-	ID      string `protobuf:"bytes,1,opt,name=id,proto3"`
-	Version string `yaml:"version,omitempty"`
+	ID      string `protobuf:"bytes,1,opt,name=id,proto3" yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
+	Version string `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
 }
 
 type Frontmatter struct {
@@ -39,7 +38,7 @@ func NewFrontmatter() Frontmatter {
 	return Frontmatter{
 		Runme: RunmeMetaData{
 			ID:      idgen.GenerateID(),
-			Version: FrontmatterParsingVersion,
+			Version: version.BuildVersion,
 		},
 	}
 }
@@ -61,74 +60,83 @@ func (fpi FrontmatterParseInfo) Error() error {
 }
 
 // ParseFrontmatter extracts the Frontmatter from a raw string and identifies its format.
-func ParseFrontmatter(raw string) (Frontmatter, FrontmatterParseInfo) {
-	var (
-		f    Frontmatter
-		info FrontmatterParseInfo
-		err  error
-	)
-
-	// Split the input string by new lines.
+func ParseFrontmatter(raw string) (f Frontmatter, info FrontmatterParseInfo) {
 	lines := strings.Split(raw, "\n")
 
-	// Check for valid frontmatter delimiters.
 	if len(lines) < 2 || strings.TrimSpace(lines[0]) != strings.TrimSpace(lines[len(lines)-1]) {
 		info.other = errors.New("invalid frontmatter")
-		return f, info
+		return
 	}
 
-	// Rejoin the lines to get the raw frontmatter content.
 	raw = strings.Join(lines[1:len(lines)-1], "\n")
 
-	// Attempt to unmarshal the frontmatter in various formats.
-	if err = yaml.Unmarshal([]byte(raw), &f); err == nil {
-		info.yaml = err
-		return f, info
+	bytes := []byte(raw)
+
+	if info.yaml = yaml.Unmarshal(bytes, &f); info.yaml == nil {
+		return
 	}
 
-	if err = json.Unmarshal([]byte(raw), &f); err == nil {
-		info.json = err
-		return f, info
+	if info.json = json.Unmarshal(bytes, &f); info.json == nil {
+		return
 	}
 
-	if err = toml.Unmarshal([]byte(raw), &f); err == nil {
-		info.toml = err
-		return f, info
-	}
-
-	// If unmarshaling fails for all formats, record the error.
-	info.other = err
-	return f, info
-}
-
-// StringifyFrontmatter converts Frontmatter to a string based on the provided format.
-func StringifyFrontmatter(f Frontmatter, info FrontmatterParseInfo) (result string) {
-	var (
-		encodedBytes []byte
-		err          error
-	)
-
-	switch {
-	case info.yaml != nil:
-		encodedBytes, err = yaml.Marshal(f)
-	case info.json != nil:
-		encodedBytes, err = json.Marshal(f)
-	case info.toml != nil:
-		encodedBytes, err = toml.Marshal(f)
-	default:
-		var buf bytes.Buffer
-		encoder := yaml.NewEncoder(&buf)
-		encoder.SetIndent(2)
-		err = encoder.Encode(&f)
-		encodedBytes = buf.Bytes()
-		_ = encoder.Close()
-	}
-
-	if err == nil {
-		result = fmt.Sprintf("---\n%s---", string(encodedBytes))
+	if info.toml = toml.Unmarshal(bytes, &f); info.toml == nil {
+		return
 	}
 
 	return
+}
+
+// StringifyFrontmatter converts Frontmatter to a string based on the provided format.
+func StringifyFrontmatter(raw string, f Frontmatter, info FrontmatterParseInfo) (result string) {
+	fmMap := make(map[string]interface{})
+	fmMap["runme"] = f.Runme
+
+	lines := strings.Split(raw, "\n")
+
+	if len(lines) < 2 || strings.TrimSpace(lines[0]) != strings.TrimSpace(lines[len(lines)-1]) {
+		info.other = errors.New("invalid frontmatter")
+		return
+	}
+
+	raw = strings.Join(lines[1:len(lines)-1], "\n")
+
+	bytes := []byte(raw)
+
+	switch {
+	case info.yaml == nil:
+		if err := yaml.Unmarshal(bytes, &fmMap); err != nil {
+			return
+		}
+
+		var buf byteslib.Buffer
+		encoder := yaml.NewEncoder(&buf)
+		encoder.SetIndent(2)
+		_ = encoder.Encode(&fmMap)
+		bytes := buf.Bytes()
+		_ = encoder.Close()
+
+		result = fmt.Sprintf("---\n%s---", string(bytes))
+		return
+	case info.json == nil:
+		if err := json.Unmarshal(bytes, &fmMap); err != nil {
+			return
+		}
+
+		bytes, _ := json.Marshal(fmMap)
+		result = string(bytes)
+		return
+	case info.toml == nil:
+		if err := toml.Unmarshal(bytes, &fmMap); err != nil {
+			return
+		}
+
+		bytes, _ := toml.Marshal(fmMap)
+		result = fmt.Sprintf("+++\n%s+++", string(bytes))
+		return
+	default:
+		return ""
+	}
 }
 
 func (fmtr *Frontmatter) EnsureID() {
@@ -137,7 +145,7 @@ func (fmtr *Frontmatter) EnsureID() {
 	}
 
 	if fmtr.Runme.Version == "" {
-		fmtr.Runme.Version = FrontmatterParsingVersion
+		fmtr.Runme.Version = version.BuildVersion
 	}
 }
 
