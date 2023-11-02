@@ -150,6 +150,7 @@ Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second
 func TestEditor_FrontMatter(t *testing.T) {
 	id := idgen.GenerateID()
 	idgen.MockGenerator(id)
+	defer idgen.ResetGenerator()
 
 	data := []byte(fmt.Sprintf(`+++
 prop1 = 'val1'

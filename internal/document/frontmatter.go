@@ -72,11 +72,11 @@ func ParseFrontmatter(raw string) (f Frontmatter, info FrontmatterParseInfo) {
 
 	bytes := []byte(raw)
 
-	if info.yaml = yaml.Unmarshal(bytes, &f); info.yaml == nil {
+	if info.json = json.Unmarshal(bytes, &f); info.json == nil {
 		return
 	}
 
-	if info.json = json.Unmarshal(bytes, &f); info.json == nil {
+	if info.yaml = yaml.Unmarshal(bytes, &f); info.yaml == nil {
 		return
 	}
 
@@ -95,7 +95,7 @@ func StringifyFrontmatter(raw string, f Frontmatter, info FrontmatterParseInfo) 
 	lines := strings.Split(raw, "\n")
 
 	if len(lines) < 2 || strings.TrimSpace(lines[0]) != strings.TrimSpace(lines[len(lines)-1]) {
-		info.other = errors.New("invalid frontmatter")
+		info.other = errors.New("invalid frontmatter 2")
 		return
 	}
 
@@ -104,6 +104,14 @@ func StringifyFrontmatter(raw string, f Frontmatter, info FrontmatterParseInfo) 
 	bytes := []byte(raw)
 
 	switch {
+	case info.json == nil:
+		if err := json.Unmarshal(bytes, &fmMap); err != nil {
+			return
+		}
+
+		bytes, _ := json.Marshal(fmMap)
+		result = fmt.Sprintf("---\n%s\n---", string(bytes))
+		return
 	case info.yaml == nil:
 		if err := yaml.Unmarshal(bytes, &fmMap); err != nil {
 			return
@@ -117,14 +125,6 @@ func StringifyFrontmatter(raw string, f Frontmatter, info FrontmatterParseInfo) 
 		_ = encoder.Close()
 
 		result = fmt.Sprintf("---\n%s---", string(bytes))
-		return
-	case info.json == nil:
-		if err := json.Unmarshal(bytes, &fmMap); err != nil {
-			return
-		}
-
-		bytes, _ := json.Marshal(fmMap)
-		result = string(bytes)
 		return
 	case info.toml == nil:
 		if err := toml.Unmarshal(bytes, &fmMap); err != nil {
