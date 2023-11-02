@@ -83,12 +83,11 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		})
 	}
 
-	notebook := editor.Notebook{
+	data, err := editor.Serialize(&editor.Notebook{
 		Cells:    cells,
 		Metadata: req.Notebook.Metadata,
-	}
+	})
 
-	data, err := editor.Serialize(&notebook)
 	if err != nil {
 		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err

@@ -53,10 +53,6 @@ type Notebook struct {
 	parsedFrontmatter *document.Frontmatter
 }
 
-func (n *Notebook) SetFronmatter(f document.Frontmatter) {
-	n.parsedFrontmatter = &f
-}
-
 func (c *Cell) EnsureID() {
 	id, ok := c.Metadata["id"]
 	if ok && idgen.ValidID(id) {

@@ -1,6 +1,7 @@
 package document
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,7 +72,7 @@ func ParseFrontmatter(raw string) (Frontmatter, FrontmatterParseInfo) {
 	lines := strings.Split(raw, "\n")
 
 	// Check for valid frontmatter delimiters.
-	if len(lines) < 2 || strings.TrimSpace(lines[0]) != "---" || strings.TrimSpace(lines[len(lines)-1]) != "---" {
+	if len(lines) < 2 || strings.TrimSpace(lines[0]) != strings.TrimSpace(lines[len(lines)-1]) {
 		info.other = errors.New("invalid frontmatter")
 		return f, info
 	}
@@ -103,23 +104,28 @@ func ParseFrontmatter(raw string) (Frontmatter, FrontmatterParseInfo) {
 // StringifyFrontmatter converts Frontmatter to a string based on the provided format.
 func StringifyFrontmatter(f Frontmatter, info FrontmatterParseInfo) (result string) {
 	var (
-		bytes []byte
-		err   error
+		encodedBytes []byte
+		err          error
 	)
 
 	switch {
 	case info.yaml != nil:
-		bytes, err = yaml.Marshal(f)
+		encodedBytes, err = yaml.Marshal(f)
 	case info.json != nil:
-		bytes, err = json.Marshal(f)
+		encodedBytes, err = json.Marshal(f)
 	case info.toml != nil:
-		bytes, err = toml.Marshal(f)
+		encodedBytes, err = toml.Marshal(f)
 	default:
-		bytes, err = yaml.Marshal(f)
+		var buf bytes.Buffer
+		encoder := yaml.NewEncoder(&buf)
+		encoder.SetIndent(2)
+		err = encoder.Encode(&f)
+		encodedBytes = buf.Bytes()
+		_ = encoder.Close()
 	}
 
 	if err == nil {
-		result = fmt.Sprintf("---\n%s---", string(bytes))
+		result = fmt.Sprintf("---\n%s---", string(encodedBytes))
 	}
 
 	return
