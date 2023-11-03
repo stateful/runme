@@ -41,6 +41,10 @@ fmt:
 lint:
 	@revive -config revive.toml -formatter stylish ./...
 
+.PHONY: pre-commit
+pre-commit: build test lint
+	pre-commit run --all-files
+
 .PHONY: install/dev
 install/dev:
 	go install github.com/mgechev/revive@v1.2.3
@@ -64,9 +68,7 @@ proto/clean:
 	rm -rf internal/gen/proto
 
 .PHONY: proto/dev
-proto/dev:
-	make proto/clean
-	make proto/generate
+proto/dev: build proto/clean proto/generate
 	cp -vrf internal/gen/proto/ts/runme $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
 	find $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts -name "*.ts" | grep -v ".d.ts" | xargs rm -f
 

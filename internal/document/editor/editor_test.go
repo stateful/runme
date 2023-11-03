@@ -10,10 +10,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/constants"
 	"github.com/stateful/runme/internal/idgen"
 	"github.com/stateful/runme/internal/version"
 )
+
+var id = idgen.GenerateID()
+
+func TestMain(m *testing.M) {
+	idgen.MockGenerator(id)
+
+	code := m.Run()
+	idgen.ResetGenerator()
+	os.Exit(code)
+}
 
 func TestEditor(t *testing.T) {
 	notebook, err := Deserialize(testDataNested)
@@ -22,7 +33,7 @@ func TestEditor(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		string(testDataNestedFlattened),
+		document.InjectYamlTestID(string(testDataNestedFlattened)),
 		string(result),
 	)
 }
@@ -41,9 +52,9 @@ func TestEditor_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		`1. Item 1
+		document.InjectYamlTestID(`1. Item 1
 2. Item 2
-`,
+`),
 		string(newData),
 	)
 
@@ -51,9 +62,9 @@ func TestEditor_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		`1. Item 1
+		document.InjectYamlTestID(`1. Item 1
 2. Item 2
-`,
+`),
 		string(newData),
 	)
 }
@@ -76,7 +87,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		)
 		result, err := Serialize(notebook)
 		require.NoError(t, err)
-		assert.Equal(t, string(data), string(result))
+		assert.Equal(t, document.InjectYamlTestID(string(data)), string(result))
 	})
 
 	t.Run("PreserveName", func(t *testing.T) {
@@ -97,7 +108,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		)
 		result, err := Serialize(notebook)
 		require.NoError(t, err)
-		assert.Equal(t, string(data), string(result))
+		assert.Equal(t, document.InjectYamlTestID(string(data)), string(result))
 	})
 }
 
@@ -148,10 +159,6 @@ Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second
 }
 
 func TestEditor_FrontMatter(t *testing.T) {
-	id := idgen.GenerateID()
-	idgen.MockGenerator(id)
-	defer idgen.ResetGenerator()
-
 	data := []byte(fmt.Sprintf(`+++
 prop1 = 'val1'
 prop2 = 'val2'
@@ -195,8 +202,8 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
+			document.InjectYamlTestID(string(data)),
 			string(actual),
-			string(data),
 		)
 	})
 
@@ -216,8 +223,8 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
+			document.InjectYamlTestID(string(withLineBreaks)),
 			string(actual),
-			string(withLineBreaks),
 		)
 	})
 
@@ -237,8 +244,8 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
+			document.InjectYamlTestID(string(withLineBreaks)),
 			string(actual),
-			string(withLineBreaks),
 		)
 	})
 }

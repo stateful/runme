@@ -38,13 +38,9 @@ func Deserialize(data []byte) (*Notebook, error) {
 	}
 
 	fmtr, info := document.ParseFrontmatter(string(sections.FrontMatter))
-	fmtr.EnsureID()
+	frontmatterStr := document.ReEncodeFrontmatter(string(sections.FrontMatter), fmtr, info)
 
-	frontmatterStr := document.StringifyFrontmatter(string(sections.FrontMatter), fmtr, info)
-
-	if frontmatterStr != "" {
-		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = frontmatterStr
-	}
+	notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = frontmatterStr
 
 	return notebook, nil
 }

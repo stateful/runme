@@ -20,11 +20,17 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func Test_parserServiceServer(t *testing.T) {
-	id := idgen.GenerateID()
-	idgen.MockGenerator(id)
-	defer idgen.ResetGenerator()
+var id = idgen.GenerateID()
 
+func TestMain(m *testing.M) {
+	idgen.MockGenerator(id)
+
+	code := m.Run()
+	idgen.ResetGenerator()
+	os.Exit(code)
+}
+
+func Test_parserServiceServer(t *testing.T) {
 	lis := bufconn.Listen(2048)
 	server := grpc.NewServer()
 	parserv1.RegisterParserServiceServer(server, NewParserServiceServer(zap.NewNop()))
