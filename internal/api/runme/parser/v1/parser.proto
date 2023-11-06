@@ -29,10 +29,16 @@ message Cell {
   TextRange text_range = 5;
 }
 
+message Runme {
+  string version = 1;
+  string id = 2;
+}
+
 message Frontmatter {
   string shell = 1;
   string cwd = 2;
   bool skip_prompts = 3;
+  Runme runme = 4;
 }
 
 message DeserializeRequest {
