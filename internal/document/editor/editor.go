@@ -37,7 +37,9 @@ func Deserialize(data []byte) (*Notebook, error) {
 		PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
 	}
 
-	_, info := document.ParseFrontmatter(string(sections.FrontMatter))
+	f, info := document.ParseFrontmatter(string(sections.FrontMatter))
+	notebook.parsedFrontmatter = &f
+	notebook.frontmatterParseInfo = &info
 	notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = info.GetRaw()
 
 	return notebook, nil

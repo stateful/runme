@@ -38,6 +38,43 @@ func TestEditor(t *testing.T) {
 	)
 }
 
+func TestEditorEmptyRunme(t *testing.T) {
+	data := []byte(`---
+runme:
+shell: bash
+---`)
+
+	notebook, err := Deserialize(data)
+	require.NoError(t, err)
+	assert.Equal(t, testMockID, notebook.parsedFrontmatter.Runme.ID)
+	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
+}
+
+func TestEditorNullRunme(t *testing.T) {
+	data := []byte(`---
+runme: null
+shell: bash
+---`)
+
+	notebook, err := Deserialize(data)
+	require.NoError(t, err)
+	assert.Equal(t, testMockID, notebook.parsedFrontmatter.Runme.ID)
+	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
+}
+
+func TestEditorOnlyRunmeVersion(t *testing.T) {
+	data := []byte(`---
+runme:
+  id: 01HEBAF6W797022GRA5QV0VZS6
+shell: bash
+---`)
+
+	notebook, err := Deserialize(data)
+	require.NoError(t, err)
+	assert.Equal(t, "01HEBAF6W797022GRA5QV0VZS6", notebook.parsedFrontmatter.Runme.ID)
+	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
+}
+
 func TestEditor_List(t *testing.T) {
 	data := []byte(`1. Item 1
 2. Item 2

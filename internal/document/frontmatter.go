@@ -66,13 +66,14 @@ func (fpi FrontmatterParseInfo) Error() error {
 }
 
 func toJSONStr(f *Frontmatter, source []byte) (string, error) {
-	f.ensureID()
 	m := make(map[string]interface{})
-	m["runme"] = f.Runme
 
 	if err := json.Unmarshal(source, &m); err != nil {
 		return "", err
 	}
+
+	f.ensureID()
+	m["runme"] = f.Runme
 
 	dest, err := json.Marshal(m)
 	if err != nil {
@@ -83,13 +84,13 @@ func toJSONStr(f *Frontmatter, source []byte) (string, error) {
 }
 
 func toYamlStr(f *Frontmatter, source []byte) (string, error) {
-	f.ensureID()
 	m := make(map[string]interface{})
-	m["runme"] = f.Runme
-
 	if err := yaml.Unmarshal(source, &m); err != nil {
 		return "", err
 	}
+
+	f.ensureID()
+	m["runme"] = f.Runme
 
 	var buf byteslib.Buffer
 	encoder := yaml.NewEncoder(&buf)
@@ -109,13 +110,14 @@ func toYamlStr(f *Frontmatter, source []byte) (string, error) {
 }
 
 func toTomlStr(f *Frontmatter, source []byte) (string, error) {
-	f.ensureID()
 	m := make(map[string]interface{})
-	m["runme"] = f.Runme
 
 	if err := toml.Unmarshal(source, &m); err != nil {
 		return "", err
 	}
+
+	f.ensureID()
+	m["runme"] = f.Runme
 
 	dest, err := toml.Marshal(m)
 	if err != nil {
