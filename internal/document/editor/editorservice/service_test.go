@@ -2,12 +2,15 @@ package editorservice
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"testing"
 
 	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
+	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -16,6 +19,16 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 )
+
+var testMockID = idgen.GenerateID()
+
+func TestMain(m *testing.M) {
+	idgen.MockGenerator(testMockID)
+
+	code := m.Run()
+	idgen.ResetGenerator()
+	os.Exit(code)
+}
 
 func Test_parserServiceServer(t *testing.T) {
 	lis := bufconn.Listen(2048)
@@ -76,9 +89,12 @@ func Test_parserServiceServer(t *testing.T) {
 	})
 
 	t.Run("Frontmatter", func(t *testing.T) {
-		frontMatter := `---
+		frontMatter := fmt.Sprintf(`---
 prop: value
----`
+runme:
+  id: %s
+  version: "%s"
+---`, testMockID, version.BaseVersion())
 		content := `# Hello
 
 Some content

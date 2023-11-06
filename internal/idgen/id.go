@@ -1,4 +1,4 @@
-// Package utils contains utility functions for the application
+// Package idgen contains utility functions for the application
 package idgen
 
 import (
@@ -14,6 +14,7 @@ import (
 var (
 	entropy     io.Reader
 	entropyOnce sync.Once
+	generator   = DefaultGenerator
 )
 
 // DefaultEntropy returns a reader that generates ULID entropy.
@@ -56,8 +57,22 @@ func ValidID(id string) bool {
 
 // GenerateID generates a new universal ID
 func GenerateID() string {
+	return generator()
+}
+
+func DefaultGenerator() string {
 	entropy := DefaultEntropy()
 	now := time.Now()
 	ts := ulid.Timestamp(now)
 	return ulid.MustNew(ts, entropy).String()
+}
+
+func ResetGenerator() {
+	generator = DefaultGenerator
+}
+
+func MockGenerator(mockValue string) {
+	generator = func() string {
+		return mockValue
+	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
+	"github.com/stateful/runme/internal/idgen"
 	"go.uber.org/zap"
 	"golang.org/x/exp/constraints"
 )
@@ -42,6 +43,10 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			}
 		}
 
+		if cell.Kind == editor.CodeKind {
+			cell.EnsureID()
+		}
+
 		cells = append(cells, &parserv1.Cell{
 			Kind:       parserv1.CellKind(cell.Kind),
 			Value:      cell.Value,
@@ -65,6 +70,10 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
+		if _, ok := cell.Metadata["id"]; !ok && cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
+			cell.Metadata["id"] = idgen.GenerateID()
+		}
+
 		cells = append(cells, &editor.Cell{
 			Kind:       editor.CellKind(cell.Kind),
 			Value:      cell.Value,
@@ -72,6 +81,7 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 			Metadata:   cell.Metadata,
 		})
 	}
+
 	data, err := editor.Serialize(&editor.Notebook{
 		Cells:    cells,
 		Metadata: req.Notebook.Metadata,

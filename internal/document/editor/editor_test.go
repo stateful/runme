@@ -3,14 +3,28 @@ package editor
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/constants"
+	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/version"
 )
+
+var testMockID = idgen.GenerateID()
+
+func TestMain(m *testing.M) {
+	idgen.MockGenerator(testMockID)
+
+	code := m.Run()
+	idgen.ResetGenerator()
+	os.Exit(code)
+}
 
 func TestEditor(t *testing.T) {
 	notebook, err := Deserialize(testDataNested)
@@ -19,9 +33,46 @@ func TestEditor(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		string(testDataNestedFlattened),
+		document.InjectFrontmatter(string(testDataNestedFlattened)),
 		string(result),
 	)
+}
+
+func TestEditorEmptyRunme(t *testing.T) {
+	data := []byte(`---
+runme:
+shell: bash
+---`)
+
+	notebook, err := Deserialize(data)
+	require.NoError(t, err)
+	assert.Equal(t, testMockID, notebook.parsedFrontmatter.Runme.ID)
+	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
+}
+
+func TestEditorNullRunme(t *testing.T) {
+	data := []byte(`---
+runme: null
+shell: bash
+---`)
+
+	notebook, err := Deserialize(data)
+	require.NoError(t, err)
+	assert.Equal(t, testMockID, notebook.parsedFrontmatter.Runme.ID)
+	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
+}
+
+func TestEditorOnlyRunmeVersion(t *testing.T) {
+	data := []byte(`---
+runme:
+  id: 01HEBAF6W797022GRA5QV0VZS6
+shell: bash
+---`)
+
+	notebook, err := Deserialize(data)
+	require.NoError(t, err)
+	assert.Equal(t, "01HEBAF6W797022GRA5QV0VZS6", notebook.parsedFrontmatter.Runme.ID)
+	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
 }
 
 func TestEditor_List(t *testing.T) {
@@ -38,9 +89,9 @@ func TestEditor_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		`1. Item 1
+		document.InjectFrontmatter(`1. Item 1
 2. Item 2
-`,
+`),
 		string(newData),
 	)
 
@@ -48,9 +99,9 @@ func TestEditor_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		`1. Item 1
+		document.InjectFrontmatter(`1. Item 1
 2. Item 2
-`,
+`),
 		string(newData),
 	)
 }
@@ -73,7 +124,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		)
 		result, err := Serialize(notebook)
 		require.NoError(t, err)
-		assert.Equal(t, string(data), string(result))
+		assert.Equal(t, document.InjectFrontmatter(string(data)), string(result))
 	})
 
 	t.Run("PreserveName", func(t *testing.T) {
@@ -94,7 +145,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		)
 		result, err := Serialize(notebook)
 		require.NoError(t, err)
-		assert.Equal(t, string(data), string(result))
+		assert.Equal(t, document.InjectFrontmatter(string(data)), string(result))
 	})
 }
 
@@ -145,15 +196,19 @@ Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second
 }
 
 func TestEditor_FrontMatter(t *testing.T) {
-	data := []byte(`+++
-prop1 = "val1"
-prop2 = "val2"
+	data := []byte(fmt.Sprintf(`+++
+prop1 = 'val1'
+prop2 = 'val2'
+
+[runme]
+id = '%s'
+version = '%s'
 +++
 
 # Example
 
 A paragraph
-`)
+`, testMockID, version.BaseVersion()))
 	notebook, err := Deserialize(data)
 	require.NoError(t, err)
 	result, err := Serialize(notebook)
@@ -184,8 +239,8 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
+			document.InjectFrontmatter(string(data)),
 			string(actual),
-			string(data),
 		)
 	})
 
@@ -205,8 +260,8 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
+			document.InjectFrontmatter(string(withLineBreaks)),
 			string(actual),
-			string(withLineBreaks),
 		)
 	})
 
@@ -226,8 +281,8 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
+			document.InjectFrontmatter(string(withLineBreaks)),
 			string(actual),
-			string(withLineBreaks),
 		)
 	})
 }
