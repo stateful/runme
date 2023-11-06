@@ -16,10 +16,10 @@ import (
 	"github.com/stateful/runme/internal/version"
 )
 
-var id = idgen.GenerateID()
+var testMockID = idgen.GenerateID()
 
 func TestMain(m *testing.M) {
-	idgen.MockGenerator(id)
+	idgen.MockGenerator(testMockID)
 
 	code := m.Run()
 	idgen.ResetGenerator()
@@ -33,7 +33,7 @@ func TestEditor(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		document.InjectYamlTestID(string(testDataNestedFlattened)),
+		document.InjectFrontmatter(string(testDataNestedFlattened)),
 		string(result),
 	)
 }
@@ -52,7 +52,7 @@ func TestEditor_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		document.InjectYamlTestID(`1. Item 1
+		document.InjectFrontmatter(`1. Item 1
 2. Item 2
 `),
 		string(newData),
@@ -62,7 +62,7 @@ func TestEditor_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		document.InjectYamlTestID(`1. Item 1
+		document.InjectFrontmatter(`1. Item 1
 2. Item 2
 `),
 		string(newData),
@@ -87,7 +87,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		)
 		result, err := Serialize(notebook)
 		require.NoError(t, err)
-		assert.Equal(t, document.InjectYamlTestID(string(data)), string(result))
+		assert.Equal(t, document.InjectFrontmatter(string(data)), string(result))
 	})
 
 	t.Run("PreserveName", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		)
 		result, err := Serialize(notebook)
 		require.NoError(t, err)
-		assert.Equal(t, document.InjectYamlTestID(string(data)), string(result))
+		assert.Equal(t, document.InjectFrontmatter(string(data)), string(result))
 	})
 }
 
@@ -171,7 +171,7 @@ version = '%s'
 # Example
 
 A paragraph
-`, id, version.BuildVersion))
+`, testMockID, version.BaseVersion()))
 	notebook, err := Deserialize(data)
 	require.NoError(t, err)
 	result, err := Serialize(notebook)
@@ -202,7 +202,7 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			document.InjectYamlTestID(string(data)),
+			document.InjectFrontmatter(string(data)),
 			string(actual),
 		)
 	})
@@ -223,7 +223,7 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			document.InjectYamlTestID(string(withLineBreaks)),
+			document.InjectFrontmatter(string(withLineBreaks)),
 			string(actual),
 		)
 	})
@@ -244,7 +244,7 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			document.InjectYamlTestID(string(withLineBreaks)),
+			document.InjectFrontmatter(string(withLineBreaks)),
 			string(actual),
 		)
 	})

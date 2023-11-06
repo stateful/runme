@@ -78,9 +78,7 @@ func run() error {
 			return err
 		}
 
-		_ = PrettyPrint(resp.Notebook)
-
-		return nil
+		return prettyPrint(resp.Notebook)
 	}
 
 	client := runnerv1.NewRunnerServiceClient(conn)
@@ -208,8 +206,8 @@ func run() error {
 	return g.Wait()
 }
 
-func PrettyPrint(v interface{}) error {
-	b, err := json.MarshalIndent(v, "", "    ") // Use four spaces for indentation
+func prettyPrint(v interface{}) error {
+	b, err := json.MarshalIndent(v, "", "    ")
 	if err != nil {
 		return err
 	}

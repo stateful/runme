@@ -20,10 +20,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var id = idgen.GenerateID()
+var testMockID = idgen.GenerateID()
 
 func TestMain(m *testing.M) {
-	idgen.MockGenerator(id)
+	idgen.MockGenerator(testMockID)
 
 	code := m.Run()
 	idgen.ResetGenerator()
@@ -93,8 +93,8 @@ func Test_parserServiceServer(t *testing.T) {
 prop: value
 runme:
   id: %s
-  version: %s
----`, id, version.BuildVersion)
+  version: "%s"
+---`, testMockID, version.BaseVersion())
 		content := `# Hello
 
 Some content

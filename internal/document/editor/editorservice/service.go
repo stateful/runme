@@ -70,7 +70,6 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
-
 		if _, ok := cell.Metadata["id"]; !ok && cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
 			cell.Metadata["id"] = idgen.GenerateID()
 		}
