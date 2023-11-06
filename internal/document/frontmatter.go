@@ -9,7 +9,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/identity"
 	"github.com/stateful/runme/internal/version"
 	"gopkg.in/yaml.v3"
 )
@@ -39,7 +39,7 @@ type FrontmatterParseInfo struct {
 func NewFrontmatter() Frontmatter {
 	return Frontmatter{
 		Runme: RunmeMetaData{
-			ID:      idgen.GenerateID(),
+			ID:      identity.GenerateID(),
 			Version: version.BaseVersion(),
 		},
 	}
@@ -165,8 +165,8 @@ func ParseFrontmatter(raw string) (f Frontmatter, info FrontmatterParseInfo) {
 }
 
 func (fmtr *Frontmatter) ensureID() {
-	if !idgen.ValidID(fmtr.Runme.ID) {
-		fmtr.Runme.ID = idgen.GenerateID()
+	if !identity.ValidID(fmtr.Runme.ID) {
+		fmtr.Runme.ID = identity.GenerateID()
 	}
 
 	fmtr.Runme.Version = version.BaseVersion()
@@ -194,5 +194,5 @@ runme:
 
 %s`
 
-	return fmt.Sprintf(format, idgen.GenerateID(), version.BaseVersion(), s)
+	return fmt.Sprintf(format, identity.GenerateID(), version.BaseVersion(), s)
 }

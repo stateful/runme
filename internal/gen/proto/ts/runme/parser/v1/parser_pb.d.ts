@@ -123,6 +123,10 @@ export interface SerializeRequest {
      * @generated from protobuf field: runme.parser.v1.Notebook notebook = 1;
      */
     notebook?: Notebook;
+    /**
+     * @generated from protobuf field: runme.parser.v1.RunmeIdentity identity = 2;
+     */
+    identity: RunmeIdentity;
 }
 /**
  * @generated from protobuf message runme.parser.v1.SerializeResponse
@@ -149,6 +153,29 @@ export declare enum CellKind {
      * @generated from protobuf enum value: CELL_KIND_CODE = 2;
      */
     CODE = 2
+}
+/**
+ * @generated from protobuf enum runme.parser.v1.RunmeIdentity
+ */
+export declare enum RunmeIdentity {
+    /**
+     * aka NONE
+     *
+     * @generated from protobuf enum value: RUNME_IDENTITY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_ALL = 1;
+     */
+    ALL = 1,
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_DOCUMENT = 2;
+     */
+    DOCUMENT = 2,
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_CELL = 3;
+     */
+    CELL = 3
 }
 declare class Notebook$Type extends MessageType<Notebook> {
     constructor();

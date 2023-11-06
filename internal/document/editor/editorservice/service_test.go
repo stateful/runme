@@ -9,7 +9,7 @@ import (
 
 	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/identity"
 	"github.com/stateful/runme/internal/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,13 +20,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var testMockID = idgen.GenerateID()
+var testMockID = identity.GenerateID()
 
 func TestMain(m *testing.M) {
-	idgen.MockGenerator(testMockID)
+	identity.MockGenerator(testMockID)
 
 	code := m.Run()
-	idgen.ResetGenerator()
+	identity.ResetGenerator()
 	os.Exit(code)
 }
 

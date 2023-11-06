@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/env"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/identity"
 	"github.com/stateful/runme/internal/rbuffer"
 	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
@@ -155,7 +155,7 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (project.Project, error)
 }
 
 func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error {
-	logger := r.logger.With(zap.String("_id", idgen.GenerateID()))
+	logger := r.logger.With(zap.String("_id", identity.GenerateID()))
 
 	logger.Info("running Execute in runnerService")
 
