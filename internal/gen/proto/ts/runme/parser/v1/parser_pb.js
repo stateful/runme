@@ -28,6 +28,30 @@ export var CellKind;
      */
     CellKind[CellKind["CODE"] = 2] = "CODE";
 })(CellKind || (CellKind = {}));
+/**
+ * @generated from protobuf enum runme.parser.v1.RunmeIdentity
+ */
+export var RunmeIdentity;
+(function (RunmeIdentity) {
+    /**
+     * aka NONE
+     *
+     * @generated from protobuf enum value: RUNME_IDENTITY_UNSPECIFIED = 0;
+     */
+    RunmeIdentity[RunmeIdentity["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_ALL = 1;
+     */
+    RunmeIdentity[RunmeIdentity["ALL"] = 1] = "ALL";
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_DOCUMENT = 2;
+     */
+    RunmeIdentity[RunmeIdentity["DOCUMENT"] = 2] = "DOCUMENT";
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_CELL = 3;
+     */
+    RunmeIdentity[RunmeIdentity["CELL"] = 3] = "CELL";
+})(RunmeIdentity || (RunmeIdentity = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class Notebook$Type extends MessageType {
     constructor() {
@@ -110,10 +134,23 @@ class DeserializeResponse$Type extends MessageType {
  */
 export const DeserializeResponse = new DeserializeResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SerializeRequestOptions$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.SerializeRequestOptions", [
+            { no: 1, name: "identity", kind: "enum", T: () => ["runme.parser.v1.RunmeIdentity", RunmeIdentity, "RUNME_IDENTITY_"] }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export const SerializeRequestOptions = new SerializeRequestOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SerializeRequest$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.SerializeRequest", [
-            { no: 1, name: "notebook", kind: "message", T: () => Notebook }
+            { no: 1, name: "notebook", kind: "message", T: () => Notebook },
+            { no: 2, name: "options", kind: "message", T: () => SerializeRequestOptions }
         ]);
     }
 }

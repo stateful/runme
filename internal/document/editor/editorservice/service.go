@@ -3,8 +3,10 @@ package editorservice
 import (
 	"context"
 
+	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
+	"github.com/stateful/runme/internal/identity"
 	"go.uber.org/zap"
 	"golang.org/x/exp/constraints"
 )
@@ -42,6 +44,10 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			}
 		}
 
+		if cell.Kind == editor.CodeKind {
+			cell.EnsureID()
+		}
+
 		cells = append(cells, &parserv1.Cell{
 			Kind:       parserv1.CellKind(cell.Kind),
 			Value:      cell.Value,
@@ -65,6 +71,15 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
+		if req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_ALL ||
+			req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
+			if _, ok := cell.Metadata["id"]; !ok && cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
+				cell.Metadata["id"] = identity.GenerateID()
+			}
+		} else {
+			delete(cell.Metadata, "id")
+		}
+
 		cells = append(cells, &editor.Cell{
 			Kind:       editor.CellKind(cell.Kind),
 			Value:      cell.Value,
@@ -72,6 +87,21 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 			Metadata:   cell.Metadata,
 		})
 	}
+
+	if req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED ||
+		req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
+		frontMatterKey := editor.PrefixAttributeName(editor.InternalAttributePrefix, editor.FrontmatterKey)
+		raw := req.Notebook.Metadata[frontMatterKey]
+
+		_, info := document.ParseFrontmatterWithIdentity(raw, false)
+		raw = info.GetRaw()
+		if raw == "" {
+			delete(req.Notebook.Metadata, frontMatterKey)
+		} else {
+			req.Notebook.Metadata[frontMatterKey] = raw
+		}
+	}
+
 	data, err := editor.Serialize(&editor.Notebook{
 		Cells:    cells,
 		Metadata: req.Notebook.Metadata,
@@ -80,6 +110,7 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err
 	}
+
 	return &parserv1.SerializeResponse{Result: data}, nil
 }
 

@@ -15,7 +15,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"github.com/rs/xid"
+	"github.com/stateful/runme/internal/identity"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
@@ -198,8 +198,8 @@ func newCommand(cfg *commandConfig) (*command, error) {
 			extraArgs = append(extraArgs, "-c", script)
 		case CommandModeTempFile:
 			for {
-				id := xid.New()
-				tempScriptFile = filepath.Join(cfg.Directory, fmt.Sprintf(".runme-script-%s", id.String()))
+				id := identity.GenerateID()
+				tempScriptFile = filepath.Join(cfg.Directory, fmt.Sprintf(".runme-script-%s", id))
 
 				if fileExtension != "" {
 					tempScriptFile += "." + fileExtension

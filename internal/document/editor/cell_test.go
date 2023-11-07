@@ -82,7 +82,7 @@ Test paragraph
 	testDataFrontmatterJSON = []byte(strings.TrimSpace(`
 ---
 {
-	shell: fish
+	"shell": "fish"
 }
 ---
 

@@ -10,6 +10,10 @@ LDFLAGS := -s -w \
 	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))' \
 	-X 'github.com/stateful/runme/internal/version.Commit=$(GIT_SHA)'
 
+ifeq ($(RUNME_EXT_BASE),)
+RUNME_EXT_BASE := "../vscode-runme"
+endif
+
 .PHONY: build
 build:
 	go build -o runme -ldflags="$(LDFLAGS)" main.go
@@ -41,6 +45,10 @@ fmt:
 lint:
 	@revive -config revive.toml -formatter stylish ./...
 
+.PHONY: pre-commit
+pre-commit: build test lint
+	pre-commit run --all-files
+
 .PHONY: install/dev
 install/dev:
 	go install github.com/mgechev/revive@v1.2.3
@@ -62,6 +70,17 @@ proto/generate:
 .PHONY: proto/clean
 proto/clean:
 	rm -rf internal/gen/proto
+
+.PHONY: proto/dev
+proto/dev: build proto/clean proto/generate
+	cp -vrf internal/gen/proto/ts/runme $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
+	find $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts -name "*.ts" | grep -v ".d.ts" | xargs rm -f
+
+.PHONY: proto/dev/reset
+proto/dev/reset:
+	rm -rf $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
+	cd $(RUNME_EXT_BASE)
+	runme run setup
 
 # Remember to set up buf registry beforehand.
 # More: https://docs.buf.build/bsr/authentication
