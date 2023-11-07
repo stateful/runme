@@ -10,6 +10,10 @@ LDFLAGS := -s -w \
 	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))' \
 	-X 'github.com/stateful/runme/internal/version.Commit=$(GIT_SHA)'
 
+ifeq ($(RUNME_EXT_BASE),)
+RUNME_EXT_BASE := "../vscode-runme"
+endif
+
 .PHONY: build
 build:
 	go build -o runme -ldflags="$(LDFLAGS)" main.go

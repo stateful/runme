@@ -71,13 +71,13 @@ func TestSkipPromptsWithinAPty(t *testing.T) {
 
 	expected := "The content of ENV is <insert-env-here>"
 	current := buf.String()
-	current = RemoveAnsiCodes(current)
+	current = removeAnsiCodes(current)
 	current = strings.TrimSpace(current)
 
 	assert.Equal(t, expected, current, "Output does not match")
 }
 
-func RemoveAnsiCodes(str string) string {
+func removeAnsiCodes(str string) string {
 	re := regexp.MustCompile(`\x1b\[.*?[a-zA-Z]|\x1b\].*?\x1b\\`)
 	return re.ReplaceAllString(str, "")
 }
