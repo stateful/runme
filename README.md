@@ -4,9 +4,9 @@
 
 > Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs (defaults to local `README.md`).
 
-[Runme](https://runme.dev) is a tool that makes runbooks actually runnable, making it easier to follow step-by-step instructions. Users can execute instructions, check intermediate results, and ensure the desired outputs are achieved. Authors can create predefined golden paths and share them with others. Runme combines the guardrails of a pipeline with the flexibility of scripting, where users can check intermediary results before moving on.
+[Runme](https://runme.dev) is a tool that makes runbooks actually runnable, making it easier to follow step-by-step instructions. Shell/bash, Python, Ruby, Javascript/Typescript, Lua, PHP, Perl, and many other runtimes are supported via Runme's shebang feature. Runme allows users to execute instructions, check intermediate results, and ensure the desired outputs are achieved. This makes it an excellent solution for runbooks, playbooks, and documentation that requires users to complete runnable steps incrementally—making operational docs reliable and much less susceptible to bitrot.
 
-Runme achieves this by literally running markdown (ubiquitous for docs inside repos). More specifically, Runme runs your commands inside your fenced code blocks (shell, bash, zsh). It's 100% compatible with your programming language's task definitions (Makefile, Gradle, Grunt, NPM scripts, Pipfile or Deno tasks, etc.). Runme persists your runbooks in markdown, which your docs are likely already using.
+Runme achieves this by literally running markdown. More specifically, Runme runs your commands (shell, bash, zsh) or code inside your fenced code blocks. It's 100% compatible with your programming language's task definitions (Makefile, Gradle, Grunt, NPM scripts, Pipfile or Deno tasks, etc.) and markdown-native. Much like a terminal session, environment variables are retained across execution, and it is possible to pipe previous cells's output into successive cells. Runme persists your runbooks in markdown, which your docs are likely already using.
 
 <p align="center">
   <img src="./.github/images/hello-world.gif" />
