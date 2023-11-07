@@ -15,7 +15,7 @@ import (
 )
 
 type RunmeMetaData struct {
-	ID      string `protobuf:"bytes,1,opt,name=id,proto3" yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
+	ID      string `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
 	Version string `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
 }
 
