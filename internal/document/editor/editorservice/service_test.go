@@ -129,13 +129,19 @@ Some content
 	})
 
 	t.Run("Frontmatter Identity RUNME_IDENTITY_UNSPECIFIED", func(t *testing.T) {
-		frontMatter := `---
-prop: value
----`
-		content := `# Hello
+		frontMatter := strings.Join([]string{
+			"---",
+			"prop: value",
+			"---",
+		}, "\n")
 
-Some content
-`
+		content := strings.Join([]string{
+			"# Hello",
+			"",
+			"Some content",
+			"",
+		}, "\n")
+
 		dResp, err := client.Deserialize(
 			context.Background(),
 			&parserv1.DeserializeRequest{
