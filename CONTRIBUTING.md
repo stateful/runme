@@ -160,18 +160,13 @@ make proto/generate
 Then overwrite buffers in the Runme extension's development project. Make sure to delete superfluous TS files to prevent bundler from stumbling.
 
 ```sh
-export RUNME_EXT_BASE="../vscode-runme"
-cp -vrf internal/gen/proto/ts/runme $RUNME_EXT_BASE/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
-find $RUNME_EXT_BASE/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts -name "*.ts" | grep -v ".d.ts" | xargs rm -f
+make proto/dev
 ```
 
 Optionally, reset Runme extension's development project to NPM distributed buffers.
 
 ```sh
-export RUNME_EXT_BASE="../vscode-runme"
-rm -rf $RUNME_EXT_BASE/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
-cd $RUNME_EXT_BASE
-runme run setup
+make proto/dev/reset
 ```
 
 ### GraphQL
