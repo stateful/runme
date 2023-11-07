@@ -78,7 +78,24 @@ func run() error {
 			return err
 		}
 
-		return prettyPrint(resp.Notebook)
+		err = prettyPrint(resp.Notebook)
+		if err != nil {
+			return err
+		}
+
+		resp2, err := client.Serialize(context.Background(), &parserv1.SerializeRequest{
+			Notebook: resp.Notebook,
+			Options: &parserv1.SerializeRequestOptions{
+				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		_, _ = fmt.Println(string(resp2.GetResult()))
+
+		return nil
 	}
 
 	client := runnerv1.NewRunnerServiceClient(conn)

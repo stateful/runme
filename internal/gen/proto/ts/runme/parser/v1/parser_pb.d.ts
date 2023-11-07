@@ -64,19 +64,6 @@ export interface Cell {
     textRange?: TextRange;
 }
 /**
- * @generated from protobuf message runme.parser.v1.Runme
- */
-export interface Runme {
-    /**
-     * @generated from protobuf field: string version = 1;
-     */
-    version: string;
-    /**
-     * @generated from protobuf field: string id = 2;
-     */
-    id: string;
-}
-/**
  * @generated from protobuf message runme.parser.v1.Frontmatter
  */
 export interface Frontmatter {
@@ -92,10 +79,6 @@ export interface Frontmatter {
      * @generated from protobuf field: bool skip_prompts = 3;
      */
     skipPrompts: boolean;
-    /**
-     * @generated from protobuf field: runme.parser.v1.Runme runme = 4;
-     */
-    runme?: Runme;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequest
@@ -116,6 +99,15 @@ export interface DeserializeResponse {
     notebook?: Notebook;
 }
 /**
+ * @generated from protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export interface SerializeRequestOptions {
+    /**
+     * @generated from protobuf field: runme.parser.v1.RunmeIdentity identity = 1;
+     */
+    identity: RunmeIdentity;
+}
+/**
  * @generated from protobuf message runme.parser.v1.SerializeRequest
  */
 export interface SerializeRequest {
@@ -123,6 +115,10 @@ export interface SerializeRequest {
      * @generated from protobuf field: runme.parser.v1.Notebook notebook = 1;
      */
     notebook?: Notebook;
+    /**
+     * @generated from protobuf field: runme.parser.v1.SerializeRequestOptions options = 2;
+     */
+    options?: SerializeRequestOptions;
 }
 /**
  * @generated from protobuf message runme.parser.v1.SerializeResponse
@@ -150,6 +146,29 @@ export declare enum CellKind {
      */
     CODE = 2
 }
+/**
+ * @generated from protobuf enum runme.parser.v1.RunmeIdentity
+ */
+export declare enum RunmeIdentity {
+    /**
+     * aka NONE
+     *
+     * @generated from protobuf enum value: RUNME_IDENTITY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_ALL = 1;
+     */
+    ALL = 1,
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_DOCUMENT = 2;
+     */
+    DOCUMENT = 2,
+    /**
+     * @generated from protobuf enum value: RUNME_IDENTITY_CELL = 3;
+     */
+    CELL = 3
+}
 declare class Notebook$Type extends MessageType<Notebook> {
     constructor();
 }
@@ -171,13 +190,6 @@ declare class Cell$Type extends MessageType<Cell> {
  * @generated MessageType for protobuf message runme.parser.v1.Cell
  */
 export declare const Cell: Cell$Type;
-declare class Runme$Type extends MessageType<Runme> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.parser.v1.Runme
- */
-export declare const Runme: Runme$Type;
 declare class Frontmatter$Type extends MessageType<Frontmatter> {
     constructor();
 }
@@ -199,6 +211,13 @@ declare class DeserializeResponse$Type extends MessageType<DeserializeResponse> 
  * @generated MessageType for protobuf message runme.parser.v1.DeserializeResponse
  */
 export declare const DeserializeResponse: DeserializeResponse$Type;
+declare class SerializeRequestOptions$Type extends MessageType<SerializeRequestOptions> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export declare const SerializeRequestOptions: SerializeRequestOptions$Type;
 declare class SerializeRequest$Type extends MessageType<SerializeRequest> {
     constructor();
 }

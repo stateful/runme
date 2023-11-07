@@ -12,17 +12,17 @@ import (
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/constants"
-	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/identity"
 	"github.com/stateful/runme/internal/version"
 )
 
-var testMockID = idgen.GenerateID()
+var testMockID = identity.GenerateID()
 
 func TestMain(m *testing.M) {
-	idgen.MockGenerator(testMockID)
+	identity.MockGenerator(testMockID)
 
 	code := m.Run()
-	idgen.ResetGenerator()
+	identity.ResetGenerator()
 	os.Exit(code)
 }
 
