@@ -1,4 +1,4 @@
-package idgen
+package identity
 
 import (
 	"sync"

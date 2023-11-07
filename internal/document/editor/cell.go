@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/identity"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -56,11 +56,11 @@ type Notebook struct {
 
 func (c *Cell) EnsureID() {
 	id, ok := c.Metadata["id"]
-	if ok && idgen.ValidID(id) {
+	if ok && identity.ValidID(id) {
 		return
 	}
 
-	c.Metadata["id"] = idgen.GenerateID()
+	c.Metadata["id"] = identity.GenerateID()
 }
 
 func (n *Notebook) GetContentOffset() int {

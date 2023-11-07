@@ -1,5 +1,4 @@
-// Package idgen contains utility functions for the application
-package idgen
+package identity
 
 import (
 	"io"

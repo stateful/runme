@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	"github.com/stateful/runme/internal/idgen"
+	"github.com/stateful/runme/internal/identity"
 	"github.com/stateful/runme/internal/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,13 +21,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var testMockID = idgen.GenerateID()
+var testMockID = identity.GenerateID()
 
 func TestMain(m *testing.M) {
-	idgen.MockGenerator(testMockID)
+	identity.MockGenerator(testMockID)
 
 	code := m.Run()
-	idgen.ResetGenerator()
+	identity.ResetGenerator()
 	os.Exit(code)
 }
 
@@ -88,7 +89,7 @@ func Test_parserServiceServer(t *testing.T) {
 		)
 	})
 
-	t.Run("Frontmatter", func(t *testing.T) {
+	t.Run("Frontmatter Identity RUNME_IDENTITY_ALL", func(t *testing.T) {
 		frontMatter := fmt.Sprintf(`---
 prop: value
 runme:
@@ -117,9 +118,133 @@ Some content
 			context.Background(),
 			&parserv1.SerializeRequest{
 				Notebook: dResp.Notebook,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
+				},
+			},
+		)
+		expected := frontMatter + "\n\n" + content
+		actual := string(sResp.Result)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("Frontmatter Identity RUNME_IDENTITY_UNSPECIFIED", func(t *testing.T) {
+		frontMatter := strings.Join([]string{
+			"---",
+			"prop: value",
+			"---",
+		}, "\n")
+
+		content := strings.Join([]string{
+			"# Hello",
+			"",
+			"Some content",
+			"",
+		}, "\n")
+
+		dResp, err := client.Deserialize(
+			context.Background(),
+			&parserv1.DeserializeRequest{
+				Source: []byte(frontMatter + "\n" + content),
 			},
 		)
 		assert.NoError(t, err)
-		assert.Equal(t, frontMatter+"\n\n"+content, string(sResp.Result))
+		assert.Len(t, dResp.Notebook.Cells, 2)
+		sResp, err := client.Serialize(
+			context.Background(),
+			&parserv1.SerializeRequest{
+				Notebook: dResp.Notebook,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+				},
+			},
+		)
+
+		expected := frontMatter + "\n\n" + content
+		actual := string(sResp.Result)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("Frontmatter Identity RUNME_IDENTITY_CELL", func(t *testing.T) {
+		frontMatter := strings.Join([]string{
+			"---",
+			"prop: value",
+			"---",
+		}, "\n")
+
+		content := strings.Join([]string{
+			"# Hello",
+			"",
+			"Some content",
+			"",
+			"```sh { name=foo }",
+			`echo "Hello"`,
+			"```",
+		}, "\n")
+
+		expectedContent := strings.Join([]string{
+			"# Hello",
+			"",
+			"Some content",
+			"",
+			fmt.Sprintf("```sh { name=foo id=%s }", testMockID),
+			`echo "Hello"`,
+			"```",
+		}, "\n")
+
+		dResp, err := client.Deserialize(
+			context.Background(),
+			&parserv1.DeserializeRequest{
+				Source: []byte(frontMatter + "\n" + content),
+			},
+		)
+
+		assert.NoError(t, err)
+		assert.Len(t, dResp.Notebook.Cells, 3)
+		sResp, err := client.Serialize(
+			context.Background(),
+			&parserv1.SerializeRequest{
+				Notebook: dResp.Notebook,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
+				},
+			},
+		)
+
+		expected := frontMatter + "\n\n" + expectedContent
+		actual := string(sResp.Result)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("Frontmatter Identity RUNME_IDENTITY_UNSPECIFIED Empty", func(t *testing.T) {
+		content := ""
+
+		dResp, err := client.Deserialize(
+			context.Background(),
+			&parserv1.DeserializeRequest{
+				Source: []byte(content),
+			},
+		)
+
+		assert.NoError(t, err)
+		assert.Len(t, dResp.Notebook.Cells, 0)
+		sResp, err := client.Serialize(
+			context.Background(),
+			&parserv1.SerializeRequest{
+				Notebook: dResp.Notebook,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+				},
+			},
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(sResp.Result))
 	})
 }
