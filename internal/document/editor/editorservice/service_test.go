@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stateful/runme/internal/document/editor"
@@ -88,7 +89,7 @@ func Test_parserServiceServer(t *testing.T) {
 		)
 	})
 
-	t.Run("Frontmatter", func(t *testing.T) {
+	t.Run("Frontmatter Identity RUNME_IDENTITY_ALL", func(t *testing.T) {
 		frontMatter := fmt.Sprintf(`---
 prop: value
 runme:
@@ -117,9 +118,95 @@ Some content
 			context.Background(),
 			&parserv1.SerializeRequest{
 				Notebook: dResp.Notebook,
+				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
+			},
+		)
+		expected := frontMatter + "\n\n" + content
+		actual := string(sResp.Result)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("Frontmatter Identity RUNME_IDENTITY_UNSPECIFIED", func(t *testing.T) {
+		frontMatter := `---
+prop: value
+---`
+		content := `# Hello
+
+Some content
+`
+		dResp, err := client.Deserialize(
+			context.Background(),
+			&parserv1.DeserializeRequest{
+				Source: []byte(frontMatter + "\n" + content),
 			},
 		)
 		assert.NoError(t, err)
-		assert.Equal(t, frontMatter+"\n\n"+content, string(sResp.Result))
+		assert.Len(t, dResp.Notebook.Cells, 2)
+		sResp, err := client.Serialize(
+			context.Background(),
+			&parserv1.SerializeRequest{
+				Notebook: dResp.Notebook,
+				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+			},
+		)
+
+		expected := frontMatter + "\n\n" + content
+		actual := string(sResp.Result)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("Frontmatter Identity RUNME_IDENTITY_CELL", func(t *testing.T) {
+		frontMatter := strings.Join([]string{
+			"---",
+			"prop: value",
+			"---",
+		}, "\n")
+
+		content := strings.Join([]string{
+			"# Hello",
+			"",
+			"Some content",
+			"",
+			"```sh { name=foo }",
+			`echo "Hello"`,
+			"```",
+		}, "\n")
+
+		expectedContent := strings.Join([]string{
+			"# Hello",
+			"",
+			"Some content",
+			"",
+			fmt.Sprintf("```sh { name=foo id=%s }", testMockID),
+			`echo "Hello"`,
+			"```",
+		}, "\n")
+
+		dResp, err := client.Deserialize(
+			context.Background(),
+			&parserv1.DeserializeRequest{
+				Source: []byte(frontMatter + "\n" + content),
+			},
+		)
+
+		assert.NoError(t, err)
+		assert.Len(t, dResp.Notebook.Cells, 3)
+		sResp, err := client.Serialize(
+			context.Background(),
+			&parserv1.SerializeRequest{
+				Notebook: dResp.Notebook,
+				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
+			},
+		)
+
+		expected := frontMatter + "\n\n" + expectedContent
+		actual := string(sResp.Result)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
 	})
 }
