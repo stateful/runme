@@ -71,8 +71,8 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
-		if req.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_ALL ||
-			req.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
+		if req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_ALL ||
+			req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
 			if _, ok := cell.Metadata["id"]; !ok && cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
 				cell.Metadata["id"] = identity.GenerateID()
 			}
@@ -88,8 +88,8 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		})
 	}
 
-	if req.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED ||
-		req.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
+	if req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED ||
+		req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
 		frontMatterKey := editor.PrefixAttributeName(editor.InternalAttributePrefix, editor.FrontmatterKey)
 		raw := req.Notebook.Metadata[frontMatterKey]
 

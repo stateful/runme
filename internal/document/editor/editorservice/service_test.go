@@ -118,7 +118,9 @@ Some content
 			context.Background(),
 			&parserv1.SerializeRequest{
 				Notebook: dResp.Notebook,
-				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
+				},
 			},
 		)
 		expected := frontMatter + "\n\n" + content
@@ -154,7 +156,9 @@ Some content
 			context.Background(),
 			&parserv1.SerializeRequest{
 				Notebook: dResp.Notebook,
-				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+				},
 			},
 		)
 
@@ -205,7 +209,9 @@ Some content
 			context.Background(),
 			&parserv1.SerializeRequest{
 				Notebook: dResp.Notebook,
-				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
+				},
 			},
 		)
 
@@ -232,7 +238,9 @@ Some content
 			context.Background(),
 			&parserv1.SerializeRequest{
 				Notebook: dResp.Notebook,
-				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+				},
 			},
 		)
 

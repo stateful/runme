@@ -85,7 +85,9 @@ func run() error {
 
 		resp2, err := client.Serialize(context.Background(), &parserv1.SerializeRequest{
 			Notebook: resp.Notebook,
-			Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+			Options: &parserv1.SerializeRequestOptions{
+				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+			},
 		})
 		if err != nil {
 			return err

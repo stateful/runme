@@ -64,19 +64,6 @@ export interface Cell {
     textRange?: TextRange;
 }
 /**
- * @generated from protobuf message runme.parser.v1.Runme
- */
-export interface Runme {
-    /**
-     * @generated from protobuf field: string version = 1;
-     */
-    version: string;
-    /**
-     * @generated from protobuf field: string id = 2;
-     */
-    id: string;
-}
-/**
  * @generated from protobuf message runme.parser.v1.Frontmatter
  */
 export interface Frontmatter {
@@ -92,10 +79,6 @@ export interface Frontmatter {
      * @generated from protobuf field: bool skip_prompts = 3;
      */
     skipPrompts: boolean;
-    /**
-     * @generated from protobuf field: runme.parser.v1.Runme runme = 4;
-     */
-    runme?: Runme;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequest
@@ -116,6 +99,15 @@ export interface DeserializeResponse {
     notebook?: Notebook;
 }
 /**
+ * @generated from protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export interface SerializeRequestOptions {
+    /**
+     * @generated from protobuf field: runme.parser.v1.RunmeIdentity identity = 1;
+     */
+    identity: RunmeIdentity;
+}
+/**
  * @generated from protobuf message runme.parser.v1.SerializeRequest
  */
 export interface SerializeRequest {
@@ -124,9 +116,9 @@ export interface SerializeRequest {
      */
     notebook?: Notebook;
     /**
-     * @generated from protobuf field: runme.parser.v1.RunmeIdentity identity = 2;
+     * @generated from protobuf field: runme.parser.v1.SerializeRequestOptions options = 2;
      */
-    identity: RunmeIdentity;
+    options?: SerializeRequestOptions;
 }
 /**
  * @generated from protobuf message runme.parser.v1.SerializeResponse
@@ -198,13 +190,6 @@ declare class Cell$Type extends MessageType<Cell> {
  * @generated MessageType for protobuf message runme.parser.v1.Cell
  */
 export declare const Cell: Cell$Type;
-declare class Runme$Type extends MessageType<Runme> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.parser.v1.Runme
- */
-export declare const Runme: Runme$Type;
 declare class Frontmatter$Type extends MessageType<Frontmatter> {
     constructor();
 }
@@ -226,6 +211,13 @@ declare class DeserializeResponse$Type extends MessageType<DeserializeResponse> 
  * @generated MessageType for protobuf message runme.parser.v1.DeserializeResponse
  */
 export declare const DeserializeResponse: DeserializeResponse$Type;
+declare class SerializeRequestOptions$Type extends MessageType<SerializeRequestOptions> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export declare const SerializeRequestOptions: SerializeRequestOptions$Type;
 declare class SerializeRequest$Type extends MessageType<SerializeRequest> {
     constructor();
 }

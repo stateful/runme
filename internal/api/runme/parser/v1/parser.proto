@@ -29,11 +29,6 @@ message Cell {
   TextRange text_range = 5;
 }
 
-message Runme {
-  string version = 1;
-  string id = 2;
-}
-
 enum RunmeIdentity {
   RUNME_IDENTITY_UNSPECIFIED = 0; // aka NONE
   RUNME_IDENTITY_ALL = 1;
@@ -45,7 +40,6 @@ message Frontmatter {
   string shell = 1;
   string cwd = 2;
   bool skip_prompts = 3;
-  Runme runme = 4;
 }
 
 message DeserializeRequest {
@@ -56,9 +50,13 @@ message DeserializeResponse {
   Notebook notebook = 1;
 }
 
+message SerializeRequestOptions {
+  RunmeIdentity identity = 1;
+}
+
 message SerializeRequest {
   Notebook notebook = 1;
-  RunmeIdentity identity = 2;
+  SerializeRequestOptions options = 2;
 }
 
 message SerializeResponse {
