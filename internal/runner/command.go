@@ -609,6 +609,7 @@ var programByLanguageID = map[string][]string{
 	"dos":        {"cmd"},
 	"lua":        {"lua"},
 	"perl":       {"perl"},
+	"php":        {"php"},
 	"python":     {"python3", "python"},
 	"py":         {"python3", "python"},
 	"ruby":       {"ruby"},
