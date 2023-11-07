@@ -215,4 +215,28 @@ Some content
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	})
+
+	t.Run("Frontmatter Identity RUNME_IDENTITY_UNSPECIFIED Empty", func(t *testing.T) {
+		content := ""
+
+		dResp, err := client.Deserialize(
+			context.Background(),
+			&parserv1.DeserializeRequest{
+				Source: []byte(content),
+			},
+		)
+
+		assert.NoError(t, err)
+		assert.Len(t, dResp.Notebook.Cells, 0)
+		sResp, err := client.Serialize(
+			context.Background(),
+			&parserv1.SerializeRequest{
+				Notebook: dResp.Notebook,
+				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+			},
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(sResp.Result))
+	})
 }

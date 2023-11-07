@@ -84,6 +84,10 @@ func toJSONStr(f *Frontmatter, source []byte, requireIdentity bool) (string, err
 		return "", err
 	}
 
+	if len(m) == 0 {
+		return "", nil
+	}
+
 	return fmt.Sprintf("---\n%s\n---", string(dest)), nil
 }
 
@@ -115,6 +119,10 @@ func toYamlStr(f *Frontmatter, source []byte, requireIdentity bool) (string, err
 		return "", err
 	}
 
+	if len(m) == 0 {
+		return "", nil
+	}
+
 	return fmt.Sprintf("---\n%s---", string(source)), nil
 }
 
@@ -135,6 +143,10 @@ func toTomlStr(f *Frontmatter, source []byte, requireIdentity bool) (string, err
 	dest, err := toml.Marshal(m)
 	if err != nil {
 		return "", err
+	}
+
+	if len(m) == 0 {
+		return "", nil
 	}
 
 	return fmt.Sprintf("+++\n%s+++", string(dest)), nil
