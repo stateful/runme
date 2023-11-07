@@ -223,7 +223,7 @@ Some content
 	})
 
 	t.Run("Frontmatter Identity RUNME_IDENTITY_UNSPECIFIED Empty", func(t *testing.T) {
-		content := ""
+		content := "# H1"
 
 		dResp, err := client.Deserialize(
 			context.Background(),
@@ -233,7 +233,7 @@ Some content
 		)
 
 		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 0)
+		assert.Len(t, dResp.Notebook.Cells, 1)
 		sResp, err := client.Serialize(
 			context.Background(),
 			&parserv1.SerializeRequest{
@@ -245,6 +245,6 @@ Some content
 		)
 
 		assert.NoError(t, err)
-		assert.Equal(t, "", string(sResp.Result))
+		assert.Equal(t, content, string(sResp.Result))
 	})
 }

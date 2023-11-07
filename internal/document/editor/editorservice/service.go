@@ -94,7 +94,12 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		raw := req.Notebook.Metadata[frontMatterKey]
 
 		_, info := document.ParseFrontmatterWithIdentity(raw, false)
-		req.Notebook.Metadata[frontMatterKey] = info.GetRaw()
+		raw = info.GetRaw()
+		if raw == "" {
+			delete(req.Notebook.Metadata, frontMatterKey)
+		} else {
+			req.Notebook.Metadata[frontMatterKey] = raw
+		}
 	}
 
 	data, err := editor.Serialize(&editor.Notebook{
