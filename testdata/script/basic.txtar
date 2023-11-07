@@ -10,6 +10,7 @@ exec runme ls --allow-unnamed=true
 cmp stdout golden-list-allow-unnamed.txt
 ! stderr .
 
+env PATH=/opt/homebrew/bin:$PATH
 ! exec runme ls --filename nonexistent.md
 stderr 'failed to open markdown file .*/nonexistent.md: no such file or directory'
 ! stdout .
