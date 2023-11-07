@@ -6,8 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetMinorVersion(t *testing.T) {
-	// Test cases
+func TestBaseVersion(t *testing.T) {
 	tests := []struct {
 		name          string
 		buildVersion  string
@@ -33,14 +32,17 @@ func TestGetMinorVersion(t *testing.T) {
 			buildVersion:  "0.0.0",
 			expectedMinor: "0.0",
 		},
+		{
+			name:          "invalid semver",
+			buildVersion:  "1.2.beta",
+			expectedMinor: "unknown",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			BuildVersion = tt.buildVersion
-
 			baseVersion := BaseVersion()
-
 			assert.Equal(t, tt.expectedMinor, baseVersion)
 		})
 	}
