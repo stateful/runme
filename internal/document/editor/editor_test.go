@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/constants"
 	"github.com/stateful/runme/internal/identity"
 	"github.com/stateful/runme/internal/version"
@@ -33,47 +32,49 @@ func TestEditor(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		document.InjectFrontmatter(string(testDataNestedFlattened)),
+		string(testDataNestedFlattened),
 		string(result),
 	)
 }
 
-func TestEditorEmptyRunme(t *testing.T) {
-	data := []byte(`---
-runme:
-shell: bash
----`)
+// Fixme: Invalid tests due to IDT now resides in the Serialize GRPC Land
+// func TestEditorEmptyRunme(t *testing.T) {
+// 	data := []byte(`---
+// runme:
+// shell: bash
+// ---`)
 
-	notebook, err := Deserialize(data)
-	require.NoError(t, err)
-	assert.Equal(t, testMockID, notebook.parsedFrontmatter.Runme.ID)
-	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
-}
+// 	notebook, err := Deserialize(data)
+// 	require.NoError(t, err)
 
-func TestEditorNullRunme(t *testing.T) {
-	data := []byte(`---
-runme: null
-shell: bash
----`)
+// 	assert.Equal(t, testMockID, notebook.parsedFrontmatter.Runme.ID)
+// 	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
+// }
 
-	notebook, err := Deserialize(data)
-	require.NoError(t, err)
-	assert.Equal(t, testMockID, notebook.parsedFrontmatter.Runme.ID)
-	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
-}
+// func TestEditorNullRunme(t *testing.T) {
+// 	data := []byte(`---
+// runme: null
+// shell: bash
+// ---`)
 
-func TestEditorOnlyRunmeVersion(t *testing.T) {
-	data := []byte(`---
-runme:
-  id: 01HEBAF6W797022GRA5QV0VZS6
-shell: bash
----`)
+// 	notebook, err := Deserialize(data)
+// 	require.NoError(t, err)
+// 	assert.Equal(t, testMockID, notebook.parsedFrontmatter.Runme.ID)
+// 	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
+// }
 
-	notebook, err := Deserialize(data)
-	require.NoError(t, err)
-	assert.Equal(t, "01HEBAF6W797022GRA5QV0VZS6", notebook.parsedFrontmatter.Runme.ID)
-	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
-}
+// func TestEditorOnlyRunmeVersion(t *testing.T) {
+// 	data := []byte(`---
+// runme:
+//   id: 01HEBAF6W797022GRA5QV0VZS6
+// shell: bash
+// ---`)
+
+// 	notebook, err := Deserialize(data)
+// 	require.NoError(t, err)
+// 	assert.Equal(t, "01HEBAF6W797022GRA5QV0VZS6", notebook.parsedFrontmatter.Runme.ID)
+// 	assert.Equal(t, version.BaseVersion(), notebook.parsedFrontmatter.Runme.Version)
+// }
 
 func TestEditor_List(t *testing.T) {
 	data := []byte(`1. Item 1
@@ -89,9 +90,9 @@ func TestEditor_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		document.InjectFrontmatter(`1. Item 1
+		`1. Item 1
 2. Item 2
-`),
+`,
 		string(newData),
 	)
 
@@ -99,9 +100,9 @@ func TestEditor_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		document.InjectFrontmatter(`1. Item 1
+		`1. Item 1
 2. Item 2
-`),
+`,
 		string(newData),
 	)
 }
@@ -124,7 +125,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		)
 		result, err := Serialize(notebook)
 		require.NoError(t, err)
-		assert.Equal(t, document.InjectFrontmatter(string(data)), string(result))
+		assert.Equal(t, string(data), string(result))
 	})
 
 	t.Run("PreserveName", func(t *testing.T) {
@@ -145,7 +146,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 		)
 		result, err := Serialize(notebook)
 		require.NoError(t, err)
-		assert.Equal(t, document.InjectFrontmatter(string(data)), string(result))
+		assert.Equal(t, string(data), string(result))
 	})
 }
 
@@ -239,7 +240,7 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			document.InjectFrontmatter(string(data)),
+			string(data),
 			string(actual),
 		)
 	})
@@ -260,7 +261,7 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			document.InjectFrontmatter(string(withLineBreaks)),
+			string(withLineBreaks),
 			string(actual),
 		)
 	})
@@ -281,7 +282,7 @@ This will test final line breaks`)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			document.InjectFrontmatter(string(withLineBreaks)),
+			string(withLineBreaks),
 			string(actual),
 		)
 	})

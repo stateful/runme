@@ -94,7 +94,7 @@ func Test_parserServiceServer(t *testing.T) {
 prop: value
 runme:
   id: %s
-  version: "%s"
+  version: %s
 ---`, testMockID, version.BaseVersion())
 		content := `# Hello
 
@@ -134,6 +134,9 @@ Some content
 		frontMatter := strings.Join([]string{
 			"---",
 			"prop: value",
+			"runme:",
+			"  id: " + testMockID,
+			"  version: v" + version.BaseVersion(),
 			"---",
 		}, "\n")
 
@@ -142,6 +145,9 @@ Some content
 			"",
 			"Some content",
 			"",
+			fmt.Sprintf("```sh { name=foo id=%s }", testMockID),
+			`echo "Hello"`,
+			"```",
 		}, "\n")
 
 		dResp, err := client.Deserialize(
@@ -151,7 +157,7 @@ Some content
 			},
 		)
 		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 2)
+		assert.Len(t, dResp.Notebook.Cells, 3)
 		sResp, err := client.Serialize(
 			context.Background(),
 			&parserv1.SerializeRequest{
@@ -173,6 +179,9 @@ Some content
 		frontMatter := strings.Join([]string{
 			"---",
 			"prop: value",
+			"runme:",
+			"  id: " + testMockID,
+			"  version: v" + version.BaseVersion(),
 			"---",
 		}, "\n")
 
@@ -181,8 +190,12 @@ Some content
 			"",
 			"Some content",
 			"",
-			"```sh { name=foo }",
-			`echo "Hello"`,
+			fmt.Sprintf("```sh { name=foo id=%s }", testMockID),
+			`echo "Foo"`,
+			"```",
+			"",
+			"```sh { name=bar }",
+			`echo "Bar"`,
 			"```",
 		}, "\n")
 
@@ -192,7 +205,11 @@ Some content
 			"Some content",
 			"",
 			fmt.Sprintf("```sh { name=foo id=%s }", testMockID),
-			`echo "Hello"`,
+			`echo "Foo"`,
+			"```",
+			"",
+			fmt.Sprintf("```sh { name=bar id=%s }", testMockID),
+			`echo "Bar"`,
 			"```",
 		}, "\n")
 
@@ -204,7 +221,7 @@ Some content
 		)
 
 		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 3)
+		assert.Len(t, dResp.Notebook.Cells, 4)
 		sResp, err := client.Serialize(
 			context.Background(),
 			&parserv1.SerializeRequest{

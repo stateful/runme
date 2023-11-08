@@ -40,7 +40,10 @@ func Deserialize(data []byte) (*Notebook, error) {
 	f, info := document.ParseFrontmatter(string(sections.FrontMatter))
 	notebook.parsedFrontmatter = &f
 	notebook.frontmatterParseInfo = &info
-	notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = info.GetRaw()
+
+	if raw := info.GetRaw(); raw != "" {
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = raw
+	}
 
 	return notebook, nil
 }

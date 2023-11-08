@@ -75,8 +75,6 @@ func toJSONStr(f *Frontmatter, source []byte, requireIdentity bool) (string, err
 	if requireIdentity {
 		f.ensureID()
 		m["runme"] = f.Runme
-	} else {
-		delete(m, "runme")
 	}
 
 	dest, err := json.Marshal(m)
@@ -101,8 +99,6 @@ func toYamlStr(f *Frontmatter, source []byte, requireIdentity bool) (string, err
 	if requireIdentity {
 		f.ensureID()
 		m["runme"] = f.Runme
-	} else {
-		delete(m, "runme")
 	}
 
 	var buf byteslib.Buffer
@@ -136,8 +132,6 @@ func toTomlStr(f *Frontmatter, source []byte, requireIdentity bool) (string, err
 	if requireIdentity {
 		f.ensureID()
 		m["runme"] = f.Runme
-	} else {
-		delete(m, "runme")
 	}
 
 	dest, err := toml.Marshal(m)
@@ -154,7 +148,7 @@ func toTomlStr(f *Frontmatter, source []byte, requireIdentity bool) (string, err
 
 // ParseFrontmatter extracts the Frontmatter from a raw string and identifies its format.
 func ParseFrontmatter(raw string) (f Frontmatter, info FrontmatterParseInfo) {
-	f, info = ParseFrontmatterWithIdentity(raw, true)
+	f, info = ParseFrontmatterWithIdentity(raw, false)
 	return
 }
 
@@ -212,14 +206,14 @@ func (fmtr Frontmatter) ToParser() *parserv1.Frontmatter {
 }
 
 // InjectFrontmatter injects a test id into a yaml document
-func InjectFrontmatter(s string) string {
-	format := `---
-runme:
-  id: %s
-  version: "%s"
----
+// func InjectFrontmatter(s string) string {
+// 	format := `---
+// runme:
+//   id: %s
+//   version: %s
+// ---
 
-%s`
+// %s`
 
-	return fmt.Sprintf(format, identity.GenerateID(), version.BaseVersion(), s)
-}
+// 	return fmt.Sprintf(format, identity.GenerateID(), version.BaseVersion(), s)
+// }
