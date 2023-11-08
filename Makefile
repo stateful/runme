@@ -79,8 +79,7 @@ proto/dev: build proto/clean proto/generate
 .PHONY: proto/dev/reset
 proto/dev/reset:
 	rm -rf $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
-	cd $(RUNME_EXT_BASE)
-	runme run setup
+	cd $(RUNME_EXT_BASE) && runme run setup
 
 # Remember to set up buf registry beforehand.
 # More: https://docs.buf.build/bsr/authentication
