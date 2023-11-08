@@ -67,11 +67,14 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
-		if req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_ALL ||
-			req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
-			if _, ok := cell.Metadata["id"]; !ok && cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
-				cell.Metadata["id"] = identity.GenerateID()
+		if cell.Kind == parserv1.CellKind_CELL_KIND_CODE &&
+			(req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_ALL ||
+				req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL) {
+			if cell.Metadata == nil {
+				cell.Metadata = make(map[string]string)
 			}
+
+			cell.Metadata["id"] = identity.GenerateID()
 		}
 
 		cells = append(cells, &editor.Cell{

@@ -264,4 +264,46 @@ Some content
 		assert.NoError(t, err)
 		assert.Equal(t, content, string(sResp.Result))
 	})
+
+	t.Run("Frontmatter Identity RUNME_IDENTITY_CELL Without Annotations", func(t *testing.T) {
+		content := strings.Join([]string{
+			"```js",
+			`console.log("Always bet on JS!")`,
+			"```",
+		}, "\n")
+
+		expected := strings.Join([]string{
+			"```js { id=" + testMockID + " }",
+			`console.log("Always bet on JS!")`,
+			"```",
+			"",
+		}, "\n")
+
+		dResp, err := client.Deserialize(
+			context.Background(),
+			&parserv1.DeserializeRequest{
+				Source: []byte(content),
+			},
+		)
+
+		// removes finalLineBreaks setting
+		dResp.Notebook.Metadata = nil
+		// Like vscode extension when there is no annotations
+		dResp.Notebook.Cells[0].Metadata = nil
+
+		assert.NoError(t, err)
+		assert.Len(t, dResp.Notebook.Cells, 1)
+		sResp, err := client.Serialize(
+			context.Background(),
+			&parserv1.SerializeRequest{
+				Notebook: dResp.Notebook,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
+				},
+			},
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expected, string(sResp.Result))
+	})
 }
