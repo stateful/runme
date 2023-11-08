@@ -204,16 +204,3 @@ func (fmtr Frontmatter) ToParser() *parserv1.Frontmatter {
 		SkipPrompts: fmtr.SkipPrompts,
 	}
 }
-
-// InjectFrontmatter injects a test id into a yaml document
-// func InjectFrontmatter(s string) string {
-// 	format := `---
-// runme:
-//   id: %s
-//   version: %s
-// ---
-
-// %s`
-
-// 	return fmt.Sprintf(format, identity.GenerateID(), version.BaseVersion(), s)
-// }
