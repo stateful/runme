@@ -74,7 +74,9 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 				cell.Metadata = make(map[string]string)
 			}
 
-			cell.Metadata["id"] = identity.GenerateID()
+			if _, ok := cell.Metadata["id"]; !ok {
+				cell.Metadata["id"] = identity.GenerateID()
+			}
 		}
 
 		cells = append(cells, &editor.Cell{

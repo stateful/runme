@@ -175,6 +175,61 @@ Some content
 		assert.Equal(t, expected, actual)
 	})
 
+	t.Run("Frontmatter Empty Identity RUNME_IDENTITY_CELL", func(t *testing.T) {
+		content := strings.Join([]string{
+			"# Hello",
+			"",
+			"Some content",
+			"",
+			"```sh { name=foo id=01HER4Q4S6TV65TQR2WWAZKZHE }",
+			`echo "Foo"`,
+			"```",
+			"",
+			"```sh { name=bar }",
+			`echo "Bar"`,
+			"```",
+		}, "\n")
+
+		expectedContent := strings.Join([]string{
+			"# Hello",
+			"",
+			"Some content",
+			"",
+			"```sh { name=foo id=01HER4Q4S6TV65TQR2WWAZKZHE }",
+			`echo "Foo"`,
+			"```",
+			"",
+			fmt.Sprintf("```sh { name=bar id=%s }", testMockID),
+			`echo "Bar"`,
+			"```",
+		}, "\n")
+
+		dResp, err := client.Deserialize(
+			context.Background(),
+			&parserv1.DeserializeRequest{
+				Source: []byte(content),
+			},
+		)
+
+		assert.NoError(t, err)
+		assert.Len(t, dResp.Notebook.Cells, 4)
+		sResp, err := client.Serialize(
+			context.Background(),
+			&parserv1.SerializeRequest{
+				Notebook: dResp.Notebook,
+				Options: &parserv1.SerializeRequestOptions{
+					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
+				},
+			},
+		)
+
+		expected := expectedContent
+		actual := string(sResp.Result)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
+
 	t.Run("Frontmatter Identity RUNME_IDENTITY_CELL", func(t *testing.T) {
 		frontMatter := strings.Join([]string{
 			"---",
