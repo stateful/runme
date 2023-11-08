@@ -10,7 +10,6 @@ exec runme ls --allow-unnamed=true
 cmp stdout golden-list-allow-unnamed.txt
 ! stderr .
 
-env PATH=/opt/homebrew/bin:$PATH
 ! exec runme ls --filename nonexistent.md
 stderr 'failed to open markdown file .*/nonexistent.md: no such file or directory'
 ! stdout .
@@ -44,14 +43,17 @@ exec sh -c 'runme run --allow-unnamed package-main'
 stdout 'Hello from Go, runme!'
 ! stderr .
 
+env PATH=/opt/homebrew/bin:$PATH
 exec runme run hello-js
 stdout 'Hello, runme, from javascript!'
 ! stderr .
 
+env PATH=/opt/homebrew/bin:$PATH
 exec runme run hello-js-cat
 stdout 'console\.log\(\"Hello, runme, from javascript!\"\)'
 ! stderr .
 
+env PATH=/opt/homebrew/bin:$PATH
 exec runme run hello-python
 stdout 'Hello from Python'
 ! stderr .
