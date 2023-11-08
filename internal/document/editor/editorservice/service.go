@@ -44,10 +44,6 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			}
 		}
 
-		if cell.Kind == editor.CodeKind {
-			cell.EnsureID()
-		}
-
 		cells = append(cells, &parserv1.Cell{
 			Kind:       parserv1.CellKind(cell.Kind),
 			Value:      cell.Value,
