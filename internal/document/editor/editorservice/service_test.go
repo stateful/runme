@@ -76,23 +76,45 @@ func TestMain(m *testing.M) {
 }
 
 func Test_IdentityUnspecified(t *testing.T) {
-	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED
+	tests := []struct {
+		content             string
+		hasExtraFrontmatter bool
+	}{
+		{content: documentWithFrontmatter, hasExtraFrontmatter: true},
+		{content: documentWithoutFrontmatter, hasExtraFrontmatter: false},
+	}
 
-	dResp, err := deserialize(client, documentWithFrontmatter, identity)
-	assert.NoError(t, err)
+	for _, tt := range tests {
+		identity := parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED
 
-	rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
-	assert.True(t, ok)
+		dResp, err := deserialize(client, tt.content, identity)
+		assert.NoError(t, err)
 
-	assert.Len(t, dResp.Notebook.Metadata, 2)
-	assert.Contains(t, rawFrontmatter, "prop: value")
-	assert.Contains(t, rawFrontmatter, "id: 123")
-	assert.Contains(t, rawFrontmatter, "version: v1.0")
+		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+		if tt.hasExtraFrontmatter {
+			assert.True(t, ok)
+			assert.Len(t, dResp.Notebook.Metadata, 2)
+			assert.Contains(t, rawFrontmatter, "prop: value\n")
+			assert.Contains(t, rawFrontmatter, "id: 123\n")
+			assert.Contains(t, rawFrontmatter, "version: v1.0\n")
+		} else {
+			assert.False(t, ok)
+			assert.Len(t, dResp.Notebook.Metadata, 1)
+		}
 
-	sResp, err := serialize(client, dResp.Notebook, identity)
-	assert.NoError(t, err)
-	content := string(sResp.Result)
-	assert.Contains(t, content, "```sh { name=foo id=123 }\n")
+		sResp, err := serialize(client, dResp.Notebook, identity)
+		assert.NoError(t, err)
+		content := string(sResp.Result)
+
+		if tt.hasExtraFrontmatter {
+			assert.Regexp(t, "^---\n", content)
+		} else {
+			assert.NotRegexp(t, "^---\n", content)
+			assert.NotRegexp(t, "^\n\n", content)
+		}
+
+		assert.Contains(t, content, "```sh { name=foo id=123 }\n")
+	}
 }
 
 func Test_IdentityAll(t *testing.T) {
@@ -126,6 +148,7 @@ func Test_IdentityAll(t *testing.T) {
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
+		assert.Regexp(t, "^---\n", content)
 		assert.Contains(t, content, "runme:\n")
 		assert.Contains(t, content, "id: "+testMockID)
 		assert.Contains(t, content, "version: "+version.BaseVersion())
@@ -166,6 +189,7 @@ func Test_IdentityDocument(t *testing.T) {
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
+		assert.Regexp(t, "^---\n", content)
 		assert.Contains(t, content, "runme:\n")
 		assert.Contains(t, content, "id: "+testMockID+"\n")
 		assert.Contains(t, content, "version: "+version.BaseVersion()+"\n")
@@ -212,6 +236,9 @@ func Test_IdentityCell(t *testing.T) {
 			assert.Contains(t, content, "runme:\n")
 			assert.Contains(t, content, "id: 123\n")
 			assert.Contains(t, content, "version: v1.0\n")
+		} else {
+			assert.NotRegexp(t, "^---\n", content)
+			assert.NotRegexp(t, "^\n\n", content)
 		}
 
 		assert.Contains(t, content, "```sh { name=foo id="+testMockID+" }\n")
