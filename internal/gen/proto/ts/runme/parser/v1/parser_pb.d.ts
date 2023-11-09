@@ -81,6 +81,15 @@ export interface Frontmatter {
     skipPrompts: boolean;
 }
 /**
+ * @generated from protobuf message runme.parser.v1.DeserializeRequestOptions
+ */
+export interface DeserializeRequestOptions {
+    /**
+     * @generated from protobuf field: runme.parser.v1.RunmeIdentity identity = 1;
+     */
+    identity: RunmeIdentity;
+}
+/**
  * @generated from protobuf message runme.parser.v1.DeserializeRequest
  */
 export interface DeserializeRequest {
@@ -88,6 +97,10 @@ export interface DeserializeRequest {
      * @generated from protobuf field: bytes source = 1;
      */
     source: Uint8Array;
+    /**
+     * @generated from protobuf field: runme.parser.v1.DeserializeRequestOptions options = 2;
+     */
+    options?: DeserializeRequestOptions;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeResponse
@@ -197,6 +210,13 @@ declare class Frontmatter$Type extends MessageType<Frontmatter> {
  * @generated MessageType for protobuf message runme.parser.v1.Frontmatter
  */
 export declare const Frontmatter: Frontmatter$Type;
+declare class DeserializeRequestOptions$Type extends MessageType<DeserializeRequestOptions> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.DeserializeRequestOptions
+ */
+export declare const DeserializeRequestOptions: DeserializeRequestOptions$Type;
 declare class DeserializeRequest$Type extends MessageType<DeserializeRequest> {
     constructor();
 }
