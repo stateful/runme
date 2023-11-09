@@ -37,12 +37,28 @@ func Deserialize(data []byte) (*Notebook, error) {
 		PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
 	}
 
-	f, info := document.ParseFrontmatter(string(sections.FrontMatter))
+	// If Front Matter exists, store it in Notebook's metadata.
+	if len(sections.FrontMatter) > 0 {
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(sections.FrontMatter)
+	}
+
+	return notebook, nil
+}
+
+func DeserializeV2(data []byte, requireIdentity bool) (*Notebook, error) {
+	notebook, err := Deserialize(data)
+	if err != nil {
+		return nil, err
+	}
+
+	rawfm := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]
+
+	f, info := document.ParseFrontmatterWithIdentity(rawfm, requireIdentity)
 	notebook.parsedFrontmatter = &f
 	notebook.frontmatterParseInfo = &info
 
-	if raw := info.GetRaw(); raw != "" {
-		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = raw
+	if rawfm := info.GetRaw(); rawfm != "" {
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = rawfm
 	}
 
 	return notebook, nil
