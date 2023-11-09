@@ -5,7 +5,6 @@ import (
 
 	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	"github.com/stateful/runme/internal/identity"
 	"go.uber.org/zap"
 	"golang.org/x/exp/constraints"
 )
@@ -62,9 +61,7 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 				cell.Metadata = make(map[string]string)
 			}
 
-			if _, ok := cell.Metadata["id"]; !ok {
-				cell.Metadata["id"] = identity.GenerateID()
-			}
+			cell.EnsureID()
 		}
 
 		cells = append(cells, &parserv1.Cell{

@@ -2,7 +2,6 @@ package editorservice
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/internal/identity"
+	"github.com/stateful/runme/internal/version"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -20,10 +20,37 @@ import (
 var (
 	testMockID = identity.GenerateID()
 	client     parserv1.ParserServiceClient
+
+	documentWithoutFrontmatter = strings.Join([]string{
+		"# H1",
+		"```sh { name=foo id=123 }",
+		`echo "Foo"`,
+		"```",
+		"## H2",
+		"```sh { name=bar }",
+		`echo "Bar"`,
+		"```",
+		"### H3",
+		"```js",
+		`echo "Shebang"`,
+		"```",
+	}, "\n")
+
+	documentWithFrontmatter = strings.Join([]string{
+		"---",
+		"prop: value",
+		"runme:",
+		"  id: 123",
+		"  version: v1.0",
+		"---",
+		"",
+		documentWithoutFrontmatter,
+	}, "\n")
 )
 
 func TestMain(m *testing.M) {
 	identity.MockGenerator(testMockID)
+
 	lis := bufconn.Listen(2048)
 	server := grpc.NewServer()
 	parserv1.RegisterParserServiceServer(server, NewParserServiceServer(zap.NewNop()))
@@ -48,90 +75,101 @@ func TestMain(m *testing.M) {
 }
 
 func Test_IdentityUnspecified(t *testing.T) {
-	t.Run("Respect existent cell Id", func(t *testing.T) {
-		content := strings.Join([]string{
-			fmt.Sprintf("```sh { name=foo id=%s }", testMockID),
-			`echo "Hello"`,
-			"```",
-		}, "\n")
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED
 
-		dResp, err := deserialize(client, content, parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED)
+	dResp, err := deserialize(client, documentWithFrontmatter, identity)
+	assert.NoError(t, err)
+
+	rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+	assert.True(t, ok)
+
+	assert.Len(t, dResp.Notebook.Metadata, 2)
+	assert.Contains(t, rawFrontmatter, "prop: value")
+	assert.Contains(t, rawFrontmatter, "id: 123")
+	assert.Contains(t, rawFrontmatter, "version: v1.0")
+
+	sResp, err := serialize(client, dResp.Notebook, identity)
+	assert.NoError(t, err)
+	content := string(sResp.Result)
+	assert.Contains(t, content, "```sh { name=foo id=123 }\n")
+}
+
+func Test_IdentityAll(t *testing.T) {
+	tests := []struct {
+		content             string
+		hasExtraFrontMatter bool
+	}{
+		{content: documentWithFrontmatter, hasExtraFrontMatter: true},
+		{content: documentWithoutFrontmatter, hasExtraFrontMatter: false},
+	}
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_ALL
+
+	for _, tt := range tests {
+		dResp, err := deserialize(client, tt.content, identity)
 		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 1)
-		assert.Len(t, dResp.Notebook.Metadata, 1)
 
-		sResp, err := serialize(client, dResp.Notebook, parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED)
-		assert.NoError(t, err)
-		assert.Equal(t, content, string(sResp.Result))
-	})
+		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+		assert.True(t, ok)
 
-	t.Run("Respect original without metadata", func(t *testing.T) {
-		content := strings.Join([]string{
-			"```sh { name=foo }",
-			`echo "Hello"`,
-			"```",
-		}, "\n")
-
-		dResp, err := deserialize(client, content, parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED)
-		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 1)
-		assert.Len(t, dResp.Notebook.Metadata, 1)
-
-		sResp, err := serialize(client, dResp.Notebook, parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED)
-		assert.NoError(t, err)
-		assert.Equal(t, content, string(sResp.Result))
-	})
-
-	t.Run("Respect original with metadata", func(t *testing.T) {
-		content := strings.Join([]string{
-			"---",
-			"prop: value",
-			"---",
-			"",
-			"```sh { name=foo }",
-			`echo "Hello"`,
-			"```",
-		}, "\n")
-
-		dResp, err := deserialize(client, content, parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED)
-		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 1)
 		assert.Len(t, dResp.Notebook.Metadata, 2)
 
-		sResp, err := serialize(client, dResp.Notebook, parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED)
-		assert.NoError(t, err)
-		assert.Equal(t, content, string(sResp.Result))
-	})
+		if tt.hasExtraFrontMatter {
+			assert.Contains(t, rawFrontmatter, "prop: value")
+		}
 
-	t.Run("Respect original with metadata + idt", func(t *testing.T) {
-		content := strings.Join([]string{
-			"---",
-			"prop: value",
-			"runme:",
-			"  id: 123",
-			"  version: v1.0",
-			"---",
-			"",
-			"```sh { name=foo }",
-			`echo "Hello"`,
-			"```",
-		}, "\n")
+		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
+		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
 
-		dResp, err := deserialize(client, content, parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED)
+		sResp, err := serialize(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 
-		rawFrontmatter := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+		content := string(sResp.Result)
+		assert.Contains(t, content, "id: "+testMockID)
+		assert.Contains(t, content, "version: "+version.BaseVersion())
+		assert.Contains(t, content, "```sh { name=foo id="+testMockID+" }\n")
+		assert.Contains(t, content, "```sh { name=bar id="+testMockID+" }\n")
+		assert.Contains(t, content, "```js { id="+testMockID+" }\n")
+	}
+}
 
+func Test_IdentityDocument(t *testing.T) {
+	tests := []struct {
+		content             string
+		hasExtraFrontMatter bool
+	}{
+		{content: documentWithFrontmatter, hasExtraFrontMatter: true},
+		{content: documentWithoutFrontmatter, hasExtraFrontMatter: false},
+	}
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_DOCUMENT
+
+	for _, tt := range tests {
+		dResp, err := deserialize(client, tt.content, identity)
 		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 1)
+
+		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+		assert.True(t, ok)
+
 		assert.Len(t, dResp.Notebook.Metadata, 2)
-		assert.Contains(t, rawFrontmatter, "id: 123")
-		assert.Contains(t, rawFrontmatter, "version: v1.0")
 
-		sResp, err := serialize(client, dResp.Notebook, parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED)
+		if tt.hasExtraFrontMatter {
+			assert.Contains(t, rawFrontmatter, "prop: value")
+		}
+
+		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
+		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
+
+		sResp, err := serialize(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
-		assert.Equal(t, content, string(sResp.Result))
-	})
+
+		content := string(sResp.Result)
+		assert.Contains(t, content, "id: "+testMockID)
+		assert.Contains(t, content, "version: "+version.BaseVersion())
+		assert.Contains(t, content, "```sh { name=foo id=123 }\n")
+		assert.Contains(t, content, "```sh { name=bar }\n")
+		assert.Contains(t, content, "```js\n")
+	}
 }
 
 // func Test_parserServiceServer(t *testing.T) {
