@@ -147,9 +147,8 @@ func toTomlStr(f *Frontmatter, source []byte, requireIdentity bool) (string, err
 }
 
 // ParseFrontmatter extracts the Frontmatter from a raw string and identifies its format.
-func ParseFrontmatter(raw string) (f Frontmatter, info FrontmatterParseInfo) {
-	f, info = ParseFrontmatterWithIdentity(raw, false)
-	return
+func ParseFrontmatter(raw string) (Frontmatter, FrontmatterParseInfo) {
+	return ParseFrontmatterWithIdentity(raw, true)
 }
 
 func ParseFrontmatterWithIdentity(raw string, enabled bool) (f Frontmatter, info FrontmatterParseInfo) {

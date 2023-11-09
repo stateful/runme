@@ -3,7 +3,6 @@ package editorservice
 import (
 	"context"
 
-	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/internal/identity"
@@ -17,6 +16,16 @@ type parserServiceServer struct {
 	logger *zap.Logger
 }
 
+var notebookIdentities = []parserv1.RunmeIdentity{
+	parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
+	parserv1.RunmeIdentity_RUNME_IDENTITY_DOCUMENT,
+}
+
+var cellIdentities = []parserv1.RunmeIdentity{
+	parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
+	parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
+}
+
 func NewParserServiceServer(logger *zap.Logger) parserv1.ParserServiceServer {
 	return &parserServiceServer{logger: logger}
 }
@@ -24,7 +33,11 @@ func NewParserServiceServer(logger *zap.Logger) parserv1.ParserServiceServer {
 func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.DeserializeRequest) (*parserv1.DeserializeResponse, error) {
 	s.logger.Info("Deserialize", zap.ByteString("source", req.Source[:min(len(req.Source), 64)]))
 
-	notebook, err := editor.Deserialize(req.Source)
+	currentIdentity := req.Options.Identity
+	notebookIdentity := containsIdentity(notebookIdentities, currentIdentity)
+	cellIdentity := containsIdentity(cellIdentities, currentIdentity)
+
+	notebook, err := editor.DeserializeV2(req.Source, notebookIdentity)
 	if err != nil {
 		s.logger.Info("failed to call Deserialize", zap.Error(err))
 		return nil, err
@@ -41,6 +54,16 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			TextRange = &parserv1.TextRange{
 				Start: uint32(cellTextRange.Start + notebook.GetContentOffset()),
 				End:   uint32(cellTextRange.End + notebook.GetContentOffset()),
+			}
+		}
+
+		if cell.Kind == editor.CodeKind && cellIdentity {
+			if cell.Metadata == nil {
+				cell.Metadata = make(map[string]string)
+			}
+
+			if _, ok := cell.Metadata["id"]; !ok {
+				cell.Metadata["id"] = identity.GenerateID()
 			}
 		}
 
@@ -67,38 +90,12 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
-		if cell.Kind == parserv1.CellKind_CELL_KIND_CODE &&
-			(req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_ALL ||
-				req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL) {
-			if cell.Metadata == nil {
-				cell.Metadata = make(map[string]string)
-			}
-
-			if _, ok := cell.Metadata["id"]; !ok {
-				cell.Metadata["id"] = identity.GenerateID()
-			}
-		}
-
 		cells = append(cells, &editor.Cell{
 			Kind:       editor.CellKind(cell.Kind),
 			Value:      cell.Value,
 			LanguageID: cell.LanguageId,
 			Metadata:   cell.Metadata,
 		})
-	}
-
-	if req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED ||
-		req.Options.Identity == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
-		frontMatterKey := editor.PrefixAttributeName(editor.InternalAttributePrefix, editor.FrontmatterKey)
-		raw := req.Notebook.Metadata[frontMatterKey]
-
-		_, info := document.ParseFrontmatterWithIdentity(raw, false)
-		raw = info.GetRaw()
-		if raw == "" {
-			delete(req.Notebook.Metadata, frontMatterKey)
-		} else {
-			req.Notebook.Metadata[frontMatterKey] = raw
-		}
 	}
 
 	data, err := editor.Serialize(&editor.Notebook{
@@ -118,4 +115,13 @@ func min[T constraints.Ordered](a, b T) T {
 		return a
 	}
 	return b
+}
+
+func containsIdentity(ids []parserv1.RunmeIdentity, i parserv1.RunmeIdentity) bool {
+	for _, v := range ids {
+		if v == i {
+			return true
+		}
+	}
+	return false
 }
