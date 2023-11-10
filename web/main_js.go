@@ -44,7 +44,7 @@ func deserialize(this js.Value, args []js.Value) any {
 		reject := args[1]
 
 		go func() {
-			notebook, err := editor.Deserialize([]byte(source))
+			notebook, err := editor.Deserialize([]byte(source), false)
 			if err != nil {
 				reject.Invoke(toJSError(err))
 				return
