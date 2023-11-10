@@ -160,12 +160,14 @@ make proto/generate
 Then overwrite buffers in the Runme extension's development project. Make sure to delete superfluous TS files to prevent bundler from stumbling.
 
 ```sh
+export RUNME_EXT_BASE="../vscode-runme"
 make proto/dev
 ```
 
 Optionally, reset Runme extension's development project to NPM distributed buffers.
 
 ```sh
+export RUNME_EXT_BASE="../vscode-runme"
 make proto/dev/reset
 ```
 
