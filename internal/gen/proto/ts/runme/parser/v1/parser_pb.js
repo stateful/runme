@@ -110,10 +110,23 @@ class Frontmatter$Type extends MessageType {
  */
 export const Frontmatter = new Frontmatter$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class DeserializeRequestOptions$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.DeserializeRequestOptions", [
+            { no: 1, name: "identity", kind: "enum", T: () => ["runme.parser.v1.RunmeIdentity", RunmeIdentity, "RUNME_IDENTITY_"] }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.DeserializeRequestOptions
+ */
+export const DeserializeRequestOptions = new DeserializeRequestOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class DeserializeRequest$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.DeserializeRequest", [
-            { no: 1, name: "source", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+            { no: 1, name: "source", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "options", kind: "message", T: () => DeserializeRequestOptions }
         ]);
     }
 }

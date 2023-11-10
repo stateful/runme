@@ -28,7 +28,7 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 		var formatted []byte
 
 		if flatten {
-			notebook, err := editor.Deserialize(data)
+			notebook, err := editor.Deserialize(data, false)
 			if err != nil {
 				return errors.Wrap(err, "failed to deserialize")
 			}

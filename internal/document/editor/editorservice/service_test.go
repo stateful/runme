@@ -2,18 +2,15 @@ package editorservice
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/stateful/runme/internal/document/editor"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/internal/identity"
 	"github.com/stateful/runme/internal/version"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -21,17 +18,40 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var testMockID = identity.GenerateID()
+var (
+	testMockID = identity.GenerateID()
+	client     parserv1.ParserServiceClient
+
+	documentWithoutFrontmatter = strings.Join([]string{
+		"# H1",
+		"```sh { name=foo id=123 }",
+		`echo "Foo"`,
+		"```",
+		"## H2",
+		"```sh { name=bar }",
+		`echo "Bar"`,
+		"```",
+		"### H3",
+		"```js",
+		`echo "Shebang"`,
+		"```",
+	}, "\n")
+
+	documentWithFrontmatter = strings.Join([]string{
+		"---",
+		"prop: value",
+		"runme:",
+		"  id: 123",
+		"  version: v1.0",
+		"---",
+		"",
+		documentWithoutFrontmatter,
+	}, "\n")
+)
 
 func TestMain(m *testing.M) {
 	identity.MockGenerator(testMockID)
 
-	code := m.Run()
-	identity.ResetGenerator()
-	os.Exit(code)
-}
-
-func Test_parserServiceServer(t *testing.T) {
 	lis := bufconn.Listen(2048)
 	server := grpc.NewServer()
 	parserv1.RegisterParserServiceServer(server, NewParserServiceServer(zap.NewNop()))
@@ -44,18 +64,198 @@ func Test_parserServiceServer(t *testing.T) {
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-	require.NoError(t, err)
-	client := parserv1.NewParserServiceClient(conn)
+	if err != nil {
+		panic(err)
+	}
 
+	client = parserv1.NewParserServiceClient(conn)
+	code := m.Run()
+
+	identity.ResetGenerator()
+	os.Exit(code)
+}
+
+func Test_IdentityUnspecified(t *testing.T) {
+	tests := []struct {
+		content             string
+		hasExtraFrontmatter bool
+	}{
+		{content: documentWithFrontmatter, hasExtraFrontmatter: true},
+		{content: documentWithoutFrontmatter, hasExtraFrontmatter: false},
+	}
+
+	for _, tt := range tests {
+		identity := parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED
+
+		dResp, err := deserialize(client, tt.content, identity)
+		assert.NoError(t, err)
+
+		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+		if tt.hasExtraFrontmatter {
+			assert.True(t, ok)
+			assert.Len(t, dResp.Notebook.Metadata, 2)
+			assert.Contains(t, rawFrontmatter, "prop: value\n")
+			assert.Contains(t, rawFrontmatter, "id: 123\n")
+			assert.Contains(t, rawFrontmatter, "version: v1.0\n")
+		} else {
+			assert.False(t, ok)
+			assert.Len(t, dResp.Notebook.Metadata, 1)
+		}
+
+		sResp, err := serialize(client, dResp.Notebook, identity)
+		assert.NoError(t, err)
+		content := string(sResp.Result)
+
+		if tt.hasExtraFrontmatter {
+			assert.Regexp(t, "^---\n", content)
+		} else {
+			assert.NotRegexp(t, "^---\n", content)
+			assert.NotRegexp(t, "^\n\n", content)
+		}
+
+		assert.Contains(t, content, "```sh { name=foo id=123 }\n")
+	}
+}
+
+func Test_IdentityAll(t *testing.T) {
+	tests := []struct {
+		content             string
+		hasExtraFrontmatter bool
+	}{
+		{content: documentWithFrontmatter, hasExtraFrontmatter: true},
+		{content: documentWithoutFrontmatter, hasExtraFrontmatter: false},
+	}
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_ALL
+
+	for _, tt := range tests {
+		dResp, err := deserialize(client, tt.content, identity)
+		assert.NoError(t, err)
+
+		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+		assert.True(t, ok)
+
+		assert.Len(t, dResp.Notebook.Metadata, 2)
+
+		if tt.hasExtraFrontmatter {
+			assert.Contains(t, rawFrontmatter, "prop: value")
+		}
+
+		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
+		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
+
+		sResp, err := serialize(client, dResp.Notebook, identity)
+		assert.NoError(t, err)
+
+		content := string(sResp.Result)
+		assert.Regexp(t, "^---\n", content)
+		assert.Contains(t, content, "runme:\n")
+		assert.Contains(t, content, "id: "+testMockID)
+		assert.Contains(t, content, "version: "+version.BaseVersion())
+		assert.Contains(t, content, "```sh { name=foo id="+testMockID+" }\n")
+		assert.Contains(t, content, "```sh { name=bar id="+testMockID+" }\n")
+		assert.Contains(t, content, "```js { id="+testMockID+" }\n")
+	}
+}
+
+func Test_IdentityDocument(t *testing.T) {
+	tests := []struct {
+		content             string
+		hasExtraFrontmatter bool
+	}{
+		{content: documentWithFrontmatter, hasExtraFrontmatter: true},
+		{content: documentWithoutFrontmatter, hasExtraFrontmatter: false},
+	}
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_DOCUMENT
+
+	for _, tt := range tests {
+		dResp, err := deserialize(client, tt.content, identity)
+		assert.NoError(t, err)
+
+		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+		assert.True(t, ok)
+
+		assert.Len(t, dResp.Notebook.Metadata, 2)
+
+		if tt.hasExtraFrontmatter {
+			assert.Contains(t, rawFrontmatter, "prop: value")
+		}
+
+		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
+		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
+
+		sResp, err := serialize(client, dResp.Notebook, identity)
+		assert.NoError(t, err)
+
+		content := string(sResp.Result)
+		assert.Regexp(t, "^---\n", content)
+		assert.Contains(t, content, "runme:\n")
+		assert.Contains(t, content, "id: "+testMockID+"\n")
+		assert.Contains(t, content, "version: "+version.BaseVersion()+"\n")
+		assert.Contains(t, content, "```sh { name=foo id=123 }\n")
+		assert.Contains(t, content, "```sh { name=bar }\n")
+		assert.Contains(t, content, "```js\n")
+	}
+}
+
+func Test_IdentityCell(t *testing.T) {
+	tests := []struct {
+		content             string
+		hasExtraFrontmatter bool
+	}{
+		{content: documentWithFrontmatter, hasExtraFrontmatter: true},
+		{content: documentWithoutFrontmatter, hasExtraFrontmatter: false},
+	}
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_CELL
+
+	for _, tt := range tests {
+		dResp, err := deserialize(client, tt.content, identity)
+		assert.NoError(t, err)
+
+		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+
+		if tt.hasExtraFrontmatter {
+			assert.True(t, ok)
+			assert.Len(t, dResp.Notebook.Metadata, 2)
+			assert.Contains(t, rawFrontmatter, "prop: value\n")
+			assert.Contains(t, rawFrontmatter, "id: 123\n")
+			assert.Contains(t, rawFrontmatter, "version: v1.0\n")
+		} else {
+			assert.False(t, ok)
+			assert.Len(t, dResp.Notebook.Metadata, 1)
+		}
+
+		sResp, err := serialize(client, dResp.Notebook, identity)
+		assert.NoError(t, err)
+
+		content := string(sResp.Result)
+
+		if tt.hasExtraFrontmatter {
+			assert.Contains(t, content, "runme:\n")
+			assert.Contains(t, content, "id: 123\n")
+			assert.Contains(t, content, "version: v1.0\n")
+		} else {
+			assert.NotRegexp(t, "^---\n", content)
+			assert.NotRegexp(t, "^\n\n", content)
+		}
+
+		assert.Contains(t, content, "```sh { name=foo id="+testMockID+" }\n")
+		assert.Contains(t, content, "```sh { name=bar id="+testMockID+" }\n")
+		assert.Contains(t, content, "```js { id="+testMockID+" }\n")
+	}
+}
+
+func Test_parserServiceServer(t *testing.T) {
 	t.Run("Basic", func(t *testing.T) {
 		os.Setenv("RUNME_AST_METADATA", "true")
 
-		resp, err := client.Deserialize(
-			context.Background(),
-			&parserv1.DeserializeRequest{
-				Source: []byte("# Title\n\nSome content with [Link1](https://example1.com \"Link title 1\") [Link2](https://example2.com \"Link title2\")"),
-			},
-		)
+		identity := parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED
+
+		content := "# Title\n\nSome content with [Link1](https://example1.com \"Link title 1\") [Link2](https://example2.com \"Link title2\")"
+
+		resp, err := deserialize(client, content, identity)
 
 		cells := resp.Notebook.Cells
 		assert.NoError(t, err)
@@ -88,163 +288,28 @@ func Test_parserServiceServer(t *testing.T) {
 			),
 		)
 	})
+}
 
-	t.Run("Frontmatter Identity RUNME_IDENTITY_ALL", func(t *testing.T) {
-		frontMatter := fmt.Sprintf(`---
-prop: value
-runme:
-  id: %s
-  version: "%s"
----`, testMockID, version.BaseVersion())
-		content := `# Hello
-
-Some content
-`
-		dResp, err := client.Deserialize(
-			context.Background(),
-			&parserv1.DeserializeRequest{
-				Source: []byte(frontMatter + "\n" + content),
+func deserialize(client parserv1.ParserServiceClient, content string, idt parserv1.RunmeIdentity) (*parserv1.DeserializeResponse, error) {
+	return client.Deserialize(
+		context.Background(),
+		&parserv1.DeserializeRequest{
+			Source: []byte(content),
+			Options: &parserv1.DeserializeRequestOptions{
+				Identity: idt,
 			},
-		)
-		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 2)
-		assert.Equal(
-			t,
-			frontMatter,
-			dResp.Notebook.Metadata[editor.PrefixAttributeName(editor.InternalAttributePrefix, editor.FrontmatterKey)],
-		)
+		},
+	)
+}
 
-		sResp, err := client.Serialize(
-			context.Background(),
-			&parserv1.SerializeRequest{
-				Notebook: dResp.Notebook,
-				Options: &parserv1.SerializeRequestOptions{
-					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
-				},
+func serialize(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, idt parserv1.RunmeIdentity) (*parserv1.SerializeResponse, error) {
+	return client.Serialize(
+		context.Background(),
+		&parserv1.SerializeRequest{
+			Notebook: notebook,
+			Options: &parserv1.SerializeRequestOptions{
+				Identity: idt,
 			},
-		)
-		expected := frontMatter + "\n\n" + content
-		actual := string(sResp.Result)
-
-		assert.NoError(t, err)
-		assert.Equal(t, expected, actual)
-	})
-
-	t.Run("Frontmatter Identity RUNME_IDENTITY_UNSPECIFIED", func(t *testing.T) {
-		frontMatter := strings.Join([]string{
-			"---",
-			"prop: value",
-			"---",
-		}, "\n")
-
-		content := strings.Join([]string{
-			"# Hello",
-			"",
-			"Some content",
-			"",
-		}, "\n")
-
-		dResp, err := client.Deserialize(
-			context.Background(),
-			&parserv1.DeserializeRequest{
-				Source: []byte(frontMatter + "\n" + content),
-			},
-		)
-		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 2)
-		sResp, err := client.Serialize(
-			context.Background(),
-			&parserv1.SerializeRequest{
-				Notebook: dResp.Notebook,
-				Options: &parserv1.SerializeRequestOptions{
-					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
-				},
-			},
-		)
-
-		expected := frontMatter + "\n\n" + content
-		actual := string(sResp.Result)
-
-		assert.NoError(t, err)
-		assert.Equal(t, expected, actual)
-	})
-
-	t.Run("Frontmatter Identity RUNME_IDENTITY_CELL", func(t *testing.T) {
-		frontMatter := strings.Join([]string{
-			"---",
-			"prop: value",
-			"---",
-		}, "\n")
-
-		content := strings.Join([]string{
-			"# Hello",
-			"",
-			"Some content",
-			"",
-			"```sh { name=foo }",
-			`echo "Hello"`,
-			"```",
-		}, "\n")
-
-		expectedContent := strings.Join([]string{
-			"# Hello",
-			"",
-			"Some content",
-			"",
-			fmt.Sprintf("```sh { name=foo id=%s }", testMockID),
-			`echo "Hello"`,
-			"```",
-		}, "\n")
-
-		dResp, err := client.Deserialize(
-			context.Background(),
-			&parserv1.DeserializeRequest{
-				Source: []byte(frontMatter + "\n" + content),
-			},
-		)
-
-		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 3)
-		sResp, err := client.Serialize(
-			context.Background(),
-			&parserv1.SerializeRequest{
-				Notebook: dResp.Notebook,
-				Options: &parserv1.SerializeRequestOptions{
-					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
-				},
-			},
-		)
-
-		expected := frontMatter + "\n\n" + expectedContent
-		actual := string(sResp.Result)
-
-		assert.NoError(t, err)
-		assert.Equal(t, expected, actual)
-	})
-
-	t.Run("Frontmatter Identity RUNME_IDENTITY_UNSPECIFIED Empty", func(t *testing.T) {
-		content := "# H1"
-
-		dResp, err := client.Deserialize(
-			context.Background(),
-			&parserv1.DeserializeRequest{
-				Source: []byte(content),
-			},
-		)
-
-		assert.NoError(t, err)
-		assert.Len(t, dResp.Notebook.Cells, 1)
-		sResp, err := client.Serialize(
-			context.Background(),
-			&parserv1.SerializeRequest{
-				Notebook: dResp.Notebook,
-				Options: &parserv1.SerializeRequestOptions{
-					Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
-				},
-			},
-		)
-
-		assert.NoError(t, err)
-		assert.Equal(t, content, string(sResp.Result))
-	})
+		},
+	)
 }

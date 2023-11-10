@@ -19,5 +19,5 @@ func BaseVersion() string {
 		return BuildDate
 	}
 
-	return fmt.Sprintf("%d.%d", v.Major(), v.Minor())
+	return fmt.Sprintf("v%d.%d", v.Major(), v.Minor())
 }

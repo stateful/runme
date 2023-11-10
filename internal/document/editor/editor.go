@@ -14,7 +14,7 @@ import (
 
 const FrontmatterKey = "frontmatter"
 
-func Deserialize(data []byte) (*Notebook, error) {
+func Deserialize(data []byte, requireIdentity bool) (*Notebook, error) {
 	sections, err := document.ParseSections(data)
 	if err != nil {
 		return nil, err
@@ -37,10 +37,13 @@ func Deserialize(data []byte) (*Notebook, error) {
 		PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
 	}
 
-	f, info := document.ParseFrontmatter(string(sections.FrontMatter))
+	f, info := document.ParseFrontmatterWithIdentity(string(sections.FrontMatter), requireIdentity)
 	notebook.parsedFrontmatter = &f
 	notebook.frontmatterParseInfo = &info
-	notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = info.GetRaw()
+
+	if rawfm := info.GetRaw(); rawfm != "" {
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = rawfm
+	}
 
 	return notebook, nil
 }

@@ -42,8 +42,13 @@ message Frontmatter {
   bool skip_prompts = 3;
 }
 
+message DeserializeRequestOptions {
+  RunmeIdentity identity = 1;
+}
+
 message DeserializeRequest {
   bytes source = 1;
+  DeserializeRequestOptions options = 2;
 }
 
 message DeserializeResponse {
