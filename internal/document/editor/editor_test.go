@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestEditor(t *testing.T) {
-	notebook, err := Deserialize(testDataNested)
+	notebook, err := Deserialize(testDataNested, false)
 	require.NoError(t, err)
 	result, err := Serialize(notebook)
 	require.NoError(t, err)
@@ -42,7 +42,7 @@ func TestEditor_List(t *testing.T) {
 2. Item 2
 3. Item 3
 `)
-	notebook, err := Deserialize(data)
+	notebook, err := Deserialize(data, false)
 	require.NoError(t, err)
 
 	notebook.Cells[0].Value = "1. Item 1\n2. Item 2\n"
@@ -71,7 +71,7 @@ func TestEditor_List(t *testing.T) {
 func TestEditor_CodeBlock(t *testing.T) {
 	t.Run("ProvideGeneratedName", func(t *testing.T) {
 		data := []byte("```sh\necho 1\n```\n")
-		notebook, err := Deserialize(data)
+		notebook, err := Deserialize(data, false)
 		require.NoError(t, err)
 		cell := notebook.Cells[0]
 		assert.Equal(
@@ -91,7 +91,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 
 	t.Run("PreserveName", func(t *testing.T) {
 		data := []byte("```sh {\"name\":\"name1\"}\necho 1\n```\n")
-		notebook, err := Deserialize(data)
+		notebook, err := Deserialize(data, false)
 		require.NoError(t, err)
 		cell := notebook.Cells[0]
 		assert.Equal(
@@ -122,7 +122,7 @@ Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second
 	err := os.Setenv("RUNME_AST_METADATA", "true")
 	require.NoError(t, err)
 
-	notebook, err := Deserialize(data)
+	notebook, err := Deserialize(data, false)
 	require.NoError(t, err)
 	require.NotEmpty(t, notebook.Metadata)
 
@@ -171,7 +171,7 @@ version = '%s'
 
 A paragraph
 `, testMockID, version.BaseVersion()))
-	notebook, err := Deserialize(data)
+	notebook, err := Deserialize(data, false)
 	require.NoError(t, err)
 	result, err := Serialize(notebook)
 	require.NoError(t, err)
@@ -188,7 +188,7 @@ func TestEditor_Newlines(t *testing.T) {
 This will test final line breaks`)
 
 	t.Run("No line breaks", func(t *testing.T) {
-		notebook, err := Deserialize(data)
+		notebook, err := Deserialize(data, false)
 		require.NoError(t, err)
 
 		assert.Equal(
@@ -209,7 +209,7 @@ This will test final line breaks`)
 	t.Run("Single line break", func(t *testing.T) {
 		withLineBreaks := append(data, byte('\n'))
 
-		notebook, err := Deserialize(withLineBreaks)
+		notebook, err := Deserialize(withLineBreaks, false)
 		require.NoError(t, err)
 
 		assert.Equal(
@@ -230,7 +230,7 @@ This will test final line breaks`)
 	t.Run("7 line breaks", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
 
-		notebook, err := Deserialize(withLineBreaks)
+		notebook, err := Deserialize(withLineBreaks, false)
 		require.NoError(t, err)
 
 		assert.Equal(

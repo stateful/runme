@@ -36,7 +36,7 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 	notebookIdentity := containsIdentity(notebookIdentities, currentIdentity)
 	cellIdentity := containsIdentity(cellIdentities, currentIdentity)
 
-	notebook, err := editor.DeserializeV2(req.Source, notebookIdentity)
+	notebook, err := editor.Deserialize(req.Source, notebookIdentity)
 	if err != nil {
 		s.logger.Info("failed to call Deserialize", zap.Error(err))
 		return nil, err

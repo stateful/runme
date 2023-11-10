@@ -444,7 +444,7 @@ func Test_notebook_frontmatter(t *testing.T) {
 		t.Run(ex.kind, func(t *testing.T) {
 			t.Parallel()
 
-			notebook, err := Deserialize(file)
+			notebook, err := Deserialize(file, false)
 			require.NoError(t, err)
 
 			fmtr, info := notebook.ParsedFrontmatter()
