@@ -193,7 +193,11 @@ func (fmtr *Frontmatter) ensureID() {
 		fmtr.Runme.ID = identity.GenerateID()
 	}
 
-	fmtr.Runme.Version = version.BaseVersion()
+	baseVersion := version.BaseVersion()
+	if fmtr.Runme.Version != "" && baseVersion == "v0.0" {
+		return
+	}
+	fmtr.Runme.Version = baseVersion
 }
 
 func (fmtr Frontmatter) ToParser() *parserv1.Frontmatter {
