@@ -10,18 +10,19 @@ import (
 	"github.com/stateful/runme/internal/renderer/cmark"
 
 	"github.com/stateful/runme/internal/document/constants"
+	"github.com/stateful/runme/internal/document/identity"
 )
 
 const FrontmatterKey = "frontmatter"
 
-func Deserialize(data []byte, requireIdentity bool) (*Notebook, error) {
+func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Notebook, error) {
 	sections, err := document.ParseSections(data)
 	if err != nil {
 		return nil, err
 	}
 
 	// Deserialize content to cells.
-	doc := document.New(sections.Content, cmark.Render)
+	doc := document.New(sections.Content, cmark.Render, identityResolver)
 	node, _, err := doc.Parse()
 	if err != nil {
 		return nil, err
@@ -37,7 +38,7 @@ func Deserialize(data []byte, requireIdentity bool) (*Notebook, error) {
 		PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
 	}
 
-	f, info := document.ParseFrontmatterWithIdentity(string(sections.FrontMatter), requireIdentity)
+	f, info := document.ParseFrontmatterWithIdentity(string(sections.FrontMatter), identityResolver.DocumentEnabled())
 	notebook.parsedFrontmatter = &f
 	notebook.frontmatterParseInfo = &info
 

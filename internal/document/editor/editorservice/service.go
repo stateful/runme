@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/stateful/runme/internal/document/editor"
+	"github.com/stateful/runme/internal/document/identity"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
 	"go.uber.org/zap"
 	"golang.org/x/exp/constraints"
@@ -15,16 +16,6 @@ type parserServiceServer struct {
 	logger *zap.Logger
 }
 
-var notebookIdentities = []parserv1.RunmeIdentity{
-	parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
-	parserv1.RunmeIdentity_RUNME_IDENTITY_DOCUMENT,
-}
-
-var cellIdentities = []parserv1.RunmeIdentity{
-	parserv1.RunmeIdentity_RUNME_IDENTITY_ALL,
-	parserv1.RunmeIdentity_RUNME_IDENTITY_CELL,
-}
-
 func NewParserServiceServer(logger *zap.Logger) parserv1.ParserServiceServer {
 	return &parserServiceServer{logger: logger}
 }
@@ -32,11 +23,8 @@ func NewParserServiceServer(logger *zap.Logger) parserv1.ParserServiceServer {
 func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.DeserializeRequest) (*parserv1.DeserializeResponse, error) {
 	s.logger.Info("Deserialize", zap.ByteString("source", req.Source[:min(len(req.Source), 64)]))
 
-	currentIdentity := req.Options.Identity
-	notebookIdentity := containsIdentity(notebookIdentities, currentIdentity)
-	cellIdentity := containsIdentity(cellIdentities, currentIdentity)
-
-	notebook, err := editor.Deserialize(req.Source, notebookIdentity)
+	identityResolver := identity.NewResolver(identity.ToLifecycleIdentity(req.Options.Identity))
+	notebook, err := editor.Deserialize(req.Source, identityResolver)
 	if err != nil {
 		s.logger.Info("failed to call Deserialize", zap.Error(err))
 		return nil, err
@@ -54,14 +42,6 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 				Start: uint32(cellTextRange.Start + notebook.GetContentOffset()),
 				End:   uint32(cellTextRange.End + notebook.GetContentOffset()),
 			}
-		}
-
-		if cell.Kind == editor.CodeKind && cellIdentity {
-			if cell.Metadata == nil {
-				cell.Metadata = make(map[string]string)
-			}
-
-			cell.EnsureID()
 		}
 
 		cells = append(cells, &parserv1.Cell{
@@ -112,13 +92,4 @@ func min[T constraints.Ordered](a, b T) T {
 		return a
 	}
 	return b
-}
-
-func containsIdentity(ids []parserv1.RunmeIdentity, i parserv1.RunmeIdentity) bool {
-	for _, v := range ids {
-		if v == i {
-			return true
-		}
-	}
-	return false
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/stateful/runme/internal/document/identity"
 	"github.com/stateful/runme/internal/executable"
 	"github.com/stateful/runme/internal/shell"
 	"github.com/yuin/goldmark/ast"
@@ -50,6 +51,8 @@ func (b CodeBlocks) Names() (result []string) {
 type Renderer func(ast.Node, []byte) ([]byte, error)
 
 type CodeBlock struct {
+	id            string
+	idGenerated   bool
 	attributes    map[string]string
 	inner         *ast.FencedCodeBlock
 	intro         string
@@ -62,6 +65,7 @@ type CodeBlock struct {
 
 func newCodeBlock(
 	node *ast.FencedCodeBlock,
+	identityResolver *identity.IdentityResolver,
 	nameResolver *nameResolver,
 	source []byte,
 	render Renderer,
@@ -71,6 +75,8 @@ func newCodeBlock(
 		return nil, err
 	}
 
+	id, hasId := identityResolver.GetCellId(node, attributes)
+
 	name, hasName := getName(node, source, nameResolver, attributes)
 
 	value, err := render(node, source)
@@ -79,6 +85,8 @@ func newCodeBlock(
 	}
 
 	return &CodeBlock{
+		id:            id,
+		idGenerated:   !hasId,
 		attributes:    attributes,
 		inner:         node,
 		intro:         getIntro(node, source),
@@ -100,6 +108,8 @@ func (b *CodeBlock) Clone() *CodeBlock {
 		attributes[key] = value
 	}
 	return &CodeBlock{
+		id:            b.id,
+		idGenerated:   b.idGenerated,
 		attributes:    attributes,
 		intro:         b.intro,
 		language:      b.language,
@@ -147,6 +157,10 @@ func (b *CodeBlock) Language() string {
 
 func (b *CodeBlock) Lines() []string {
 	return b.lines
+}
+
+func (b *CodeBlock) Id() string {
+	return b.id
 }
 
 func (b *CodeBlock) Name() string {

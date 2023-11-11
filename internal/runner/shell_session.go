@@ -8,7 +8,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/identity"
+	"github.com/stateful/runme/internal/document/identity"
 	xpty "github.com/stateful/runme/internal/pty"
 	"golang.org/x/term"
 )

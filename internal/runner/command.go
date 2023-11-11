@@ -15,7 +15,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/identity"
+	"github.com/stateful/runme/internal/document/identity"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )

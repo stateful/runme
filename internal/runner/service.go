@@ -9,9 +9,9 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
+	"github.com/stateful/runme/internal/document/identity"
 	"github.com/stateful/runme/internal/env"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/identity"
 	"github.com/stateful/runme/internal/rbuffer"
 	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
