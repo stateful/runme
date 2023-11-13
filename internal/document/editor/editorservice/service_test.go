@@ -102,7 +102,7 @@ func Test_IdentityUnspecified(t *testing.T) {
 			assert.Len(t, dResp.Notebook.Metadata, 1)
 		}
 
-		sResp, err := serialize(client, dResp.Notebook, identity)
+		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 		content := string(sResp.Result)
 
@@ -144,7 +144,7 @@ func Test_IdentityAll(t *testing.T) {
 		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
 		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
 
-		sResp, err := serialize(client, dResp.Notebook, identity)
+		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -185,7 +185,7 @@ func Test_IdentityDocument(t *testing.T) {
 		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
 		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
 
-		sResp, err := serialize(client, dResp.Notebook, identity)
+		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -227,7 +227,7 @@ func Test_IdentityCell(t *testing.T) {
 			assert.Len(t, dResp.Notebook.Metadata, 1)
 		}
 
-		sResp, err := serialize(client, dResp.Notebook, identity)
+		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -291,7 +291,7 @@ func Test_parserServiceServer(t *testing.T) {
 }
 
 func deserialize(client parserv1.ParserServiceClient, content string, idt parserv1.RunmeIdentity) (*parserv1.DeserializeResponse, error) {
-	sResp, err := client.Deserialize(
+	return client.Deserialize(
 		context.Background(),
 		&parserv1.DeserializeRequest{
 			Source: []byte(content),
@@ -300,11 +300,10 @@ func deserialize(client parserv1.ParserServiceClient, content string, idt parser
 			},
 		},
 	)
-	persistIdentityLikeExtension(sResp.Notebook)
-	return sResp, err
 }
 
-func serialize(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, idt parserv1.RunmeIdentity) (*parserv1.SerializeResponse, error) {
+func serializeWithIdentityPersistence(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, idt parserv1.RunmeIdentity) (*parserv1.SerializeResponse, error) {
+	persistIdentityLikeExtension(notebook)
 	return client.Serialize(
 		context.Background(),
 		&parserv1.SerializeRequest{
@@ -319,9 +318,10 @@ func serialize(client parserv1.ParserServiceClient, notebook *parserv1.Notebook,
 // mimics what would happen on the extension side
 func persistIdentityLikeExtension(notebook *parserv1.Notebook) {
 	for _, cell := range notebook.Cells {
-		if _, ok := cell.Metadata["id"]; ok {
-			break
-		}
+		// todo(sebastian): preserve original id when they are set?
+		// if _, ok := cell.Metadata["id"]; ok {
+		// 	break
+		// }
 		if v, ok := cell.Metadata["runme.dev/id"]; ok {
 			cell.Metadata["id"] = v
 		}
