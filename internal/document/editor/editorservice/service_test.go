@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	"github.com/stateful/runme/internal/identity"
+	ulid "github.com/stateful/runme/internal/ulid"
 	"github.com/stateful/runme/internal/version"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	testMockID = identity.GenerateID()
+	testMockID = ulid.GenerateID()
 	client     parserv1.ParserServiceClient
 
 	documentWithoutFrontmatter = strings.Join([]string{
@@ -50,7 +50,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	identity.MockGenerator(testMockID)
+	ulid.MockGenerator(testMockID)
 
 	lis := bufconn.Listen(2048)
 	server := grpc.NewServer()
@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 	client = parserv1.NewParserServiceClient(conn)
 	code := m.Run()
 
-	identity.ResetGenerator()
+	ulid.ResetGenerator()
 	os.Exit(code)
 }
 
@@ -102,7 +102,7 @@ func Test_IdentityUnspecified(t *testing.T) {
 			assert.Len(t, dResp.Notebook.Metadata, 1)
 		}
 
-		sResp, err := serialize(client, dResp.Notebook, identity)
+		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 		content := string(sResp.Result)
 
@@ -144,7 +144,7 @@ func Test_IdentityAll(t *testing.T) {
 		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
 		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
 
-		sResp, err := serialize(client, dResp.Notebook, identity)
+		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -185,7 +185,7 @@ func Test_IdentityDocument(t *testing.T) {
 		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
 		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
 
-		sResp, err := serialize(client, dResp.Notebook, identity)
+		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -227,7 +227,7 @@ func Test_IdentityCell(t *testing.T) {
 			assert.Len(t, dResp.Notebook.Metadata, 1)
 		}
 
-		sResp, err := serialize(client, dResp.Notebook, identity)
+		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -302,14 +302,25 @@ func deserialize(client parserv1.ParserServiceClient, content string, idt parser
 	)
 }
 
-func serialize(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, idt parserv1.RunmeIdentity) (*parserv1.SerializeResponse, error) {
+func serializeWithIdentityPersistence(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, idt parserv1.RunmeIdentity) (*parserv1.SerializeResponse, error) {
+	persistIdentityLikeExtension(notebook)
 	return client.Serialize(
 		context.Background(),
 		&parserv1.SerializeRequest{
 			Notebook: notebook,
-			Options: &parserv1.SerializeRequestOptions{
-				Identity: idt,
-			},
 		},
 	)
+}
+
+// mimics what would happen on the extension side
+func persistIdentityLikeExtension(notebook *parserv1.Notebook) {
+	for _, cell := range notebook.Cells {
+		// todo(sebastian): preserve original id when they are set?
+		// if _, ok := cell.Metadata["id"]; ok {
+		// 	break
+		// }
+		if v, ok := cell.Metadata["runme.dev/id"]; ok {
+			cell.Metadata["id"] = v
+		}
+	}
 }

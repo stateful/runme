@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/identity"
+	ulid "github.com/stateful/runme/internal/ulid"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -54,13 +54,15 @@ type Notebook struct {
 	frontmatterParseInfo *document.FrontmatterParseInfo
 }
 
-func (c *Cell) EnsureID() {
-	id, ok := c.Metadata["id"]
-	if ok && identity.ValidID(id) {
-		return
+// This mimics what otherwise would happen in the extension
+func (n *Notebook) ForceLifecyleIdentities() {
+	for _, c := range n.Cells {
+		id, ok := c.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")]
+		if !ok && id == "" || !ulid.ValidID(id) {
+			continue
+		}
+		c.Metadata["id"] = id
 	}
-
-	c.Metadata["id"] = identity.GenerateID()
 }
 
 func (n *Notebook) GetContentOffset() int {
@@ -147,6 +149,10 @@ func toCellsRec(
 
 			// In the future, we will include language detection (#77).
 			metadata := block.Attributes()
+			cellID := block.ID()
+			if cellID != "" {
+				metadata[PrefixAttributeName(InternalAttributePrefix, "id")] = cellID
+			}
 			metadata[PrefixAttributeName(InternalAttributePrefix, "name")] = block.Name()
 			*cells = append(*cells, &Cell{
 				Kind:       CodeKind,

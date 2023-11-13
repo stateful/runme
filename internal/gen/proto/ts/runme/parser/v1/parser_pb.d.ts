@@ -112,15 +112,6 @@ export interface DeserializeResponse {
     notebook?: Notebook;
 }
 /**
- * @generated from protobuf message runme.parser.v1.SerializeRequestOptions
- */
-export interface SerializeRequestOptions {
-    /**
-     * @generated from protobuf field: runme.parser.v1.RunmeIdentity identity = 1;
-     */
-    identity: RunmeIdentity;
-}
-/**
  * @generated from protobuf message runme.parser.v1.SerializeRequest
  */
 export interface SerializeRequest {
@@ -128,10 +119,6 @@ export interface SerializeRequest {
      * @generated from protobuf field: runme.parser.v1.Notebook notebook = 1;
      */
     notebook?: Notebook;
-    /**
-     * @generated from protobuf field: runme.parser.v1.SerializeRequestOptions options = 2;
-     */
-    options?: SerializeRequestOptions;
 }
 /**
  * @generated from protobuf message runme.parser.v1.SerializeResponse
@@ -231,13 +218,6 @@ declare class DeserializeResponse$Type extends MessageType<DeserializeResponse> 
  * @generated MessageType for protobuf message runme.parser.v1.DeserializeResponse
  */
 export declare const DeserializeResponse: DeserializeResponse$Type;
-declare class SerializeRequestOptions$Type extends MessageType<SerializeRequestOptions> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOptions
- */
-export declare const SerializeRequestOptions: SerializeRequestOptions$Type;
 declare class SerializeRequest$Type extends MessageType<SerializeRequest> {
     constructor();
 }

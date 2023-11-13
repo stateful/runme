@@ -99,7 +99,7 @@ Test paragraph
 )
 
 func Test_toCells_DataNested(t *testing.T) {
-	doc := document.New(testDataNested, cmark.Render)
+	doc := document.New(testDataNested, cmark.Render, identityResolverAll)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	cells := toCells(node, testDataNested)
@@ -122,7 +122,7 @@ func Test_toCells_Lists(t *testing.T) {
 2. Item 2
 3. Item 3
 `)
-		doc := document.New(data, cmark.Render)
+		doc := document.New(data, cmark.Render, identityResolverAll)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
 		cells := toCells(node, data)
@@ -138,7 +138,7 @@ func Test_toCells_Lists(t *testing.T) {
    ` + "```" + `
 3. Item 3
 `)
-		doc := document.New(data, cmark.Render)
+		doc := document.New(data, cmark.Render, identityResolverAll)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
 		cells := toCells(node, data)
@@ -155,7 +155,7 @@ func Test_toCells_EmptyLang(t *testing.T) {
 echo 1
 ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render)
+	doc := document.New(data, cmark.Render, identityResolverAll)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	cells := toCells(node, data)
@@ -173,7 +173,7 @@ def hello():
     print("Hello World")
 ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render)
+	doc := document.New(data, cmark.Render, identityResolverAll)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	cells := toCells(node, data)
@@ -196,7 +196,7 @@ Last paragraph.
 `)
 
 	parse := func() []*Cell {
-		doc := document.New(data, cmark.Render)
+		doc := document.New(data, cmark.Render, identityResolverAll)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
 		cells := toCells(node, data)
@@ -299,7 +299,7 @@ func Test_serializeCells_nestedCode(t *testing.T) {
    pre-commit install
    ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render)
+	doc := document.New(data, cmark.Render, identityResolverAll)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	cells := toCells(node, data)
@@ -331,7 +331,7 @@ func Test_serializeCells(t *testing.T) {
 	t.Run("attributes_babikml", func(t *testing.T) {
 		data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
 		expected := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-		doc := document.New(data, cmark.Render)
+		doc := document.New(data, cmark.Render, identityResolverAll)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
 		cells := toCells(node, data)
@@ -340,7 +340,7 @@ func Test_serializeCells(t *testing.T) {
 
 	t.Run("attributes", func(t *testing.T) {
 		data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-		doc := document.New(data, cmark.Render)
+		doc := document.New(data, cmark.Render, identityResolverAll)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
 		cells := toCells(node, data)
@@ -349,7 +349,7 @@ func Test_serializeCells(t *testing.T) {
 
 	t.Run("privateFields", func(t *testing.T) {
 		data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-		doc := document.New(data, cmark.Render)
+		doc := document.New(data, cmark.Render, identityResolverAll)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
 
@@ -369,7 +369,7 @@ def hello():
 	print("Hello World")
 ` + "```" + `
 `)
-		doc := document.New(data, cmark.Render)
+		doc := document.New(data, cmark.Render, identityResolverAll)
 		node, _, err := doc.Parse()
 		require.NoError(t, err)
 		cells := toCells(node, data)
@@ -444,7 +444,7 @@ func Test_notebook_frontmatter(t *testing.T) {
 		t.Run(ex.kind, func(t *testing.T) {
 			t.Parallel()
 
-			notebook, err := Deserialize(file, false)
+			notebook, err := Deserialize(file, identityResolverAll)
 			require.NoError(t, err)
 
 			fmtr, info := notebook.ParsedFrontmatter()

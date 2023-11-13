@@ -8,8 +8,8 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/identity"
 	xpty "github.com/stateful/runme/internal/pty"
+	ulid "github.com/stateful/runme/internal/ulid"
 	"golang.org/x/term"
 )
 
@@ -25,7 +25,7 @@ type ShellSession struct {
 }
 
 func NewShellSession(command string) (*ShellSession, error) {
-	id := identity.GenerateID()
+	id := ulid.GenerateID()
 
 	cmd := exec.Command(command)
 	cmd.Env = append(os.Environ(), "RUNMESHELL="+id)

@@ -9,6 +9,7 @@ import (
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/document/identity"
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
@@ -60,7 +61,8 @@ func parseDocumentForCodeBlocks(filepath string, fs billy.Basic, doFrontmatter b
 		fmtr = &f
 	}
 
-	doc := document.New(data, cmark.Render)
+	identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
+	doc := document.New(data, cmark.Render, identityResolver)
 	node, _, err := doc.Parse()
 	if err != nil {
 		return nil, nil, err

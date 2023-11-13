@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
+	"github.com/stateful/runme/internal/document/identity"
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
@@ -26,9 +27,10 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 		}
 
 		var formatted []byte
+		identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
 
 		if flatten {
-			notebook, err := editor.Deserialize(data, false)
+			notebook, err := editor.Deserialize(data, identityResolver)
 			if err != nil {
 				return errors.Wrap(err, "failed to deserialize")
 			}
@@ -42,13 +44,17 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 				}
 				formatted = buf.Bytes()
 			} else {
+				if identityResolver.CellEnabled() {
+					notebook.ForceLifecyleIdentities()
+				}
+
 				formatted, err = editor.Serialize(notebook)
 				if err != nil {
 					return errors.Wrap(err, "failed to serialize")
 				}
 			}
 		} else {
-			doc := document.New(data, cmark.Render)
+			doc := document.New(data, cmark.Render, identityResolver)
 			_, astNode, err := doc.Parse()
 			if err != nil {
 				return errors.Wrap(err, "failed to parse source")

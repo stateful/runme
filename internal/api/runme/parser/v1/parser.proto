@@ -55,13 +55,8 @@ message DeserializeResponse {
   Notebook notebook = 1;
 }
 
-message SerializeRequestOptions {
-  RunmeIdentity identity = 1;
-}
-
 message SerializeRequest {
   Notebook notebook = 1;
-  SerializeRequestOptions options = 2;
 }
 
 message SerializeResponse {

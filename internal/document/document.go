@@ -11,19 +11,22 @@ import (
 	"github.com/yuin/goldmark/text"
 
 	"github.com/stateful/runme/internal/document/constants"
+	"github.com/stateful/runme/internal/document/identity"
 )
 
 type Document struct {
-	astNode      ast.Node
-	nameResolver *nameResolver
-	node         *Node
-	parser       parser.Parser
-	renderer     Renderer
-	source       []byte
+	astNode          ast.Node
+	identityResolver *identity.IdentityResolver
+	nameResolver     *nameResolver
+	node             *Node
+	parser           parser.Parser
+	renderer         Renderer
+	source           []byte
 }
 
-func New(source []byte, renderer Renderer) *Document {
+func New(source []byte, renderer Renderer, identityResolver *identity.IdentityResolver) *Document {
 	return &Document{
+		identityResolver: identityResolver,
 		nameResolver: &nameResolver{
 			namesCounter: map[string]int{},
 			cache:        map[interface{}]string{},
@@ -63,6 +66,7 @@ func (d *Document) buildBlocksTree(parent ast.Node, node *Node) error {
 		case ast.KindFencedCodeBlock:
 			block, err := newCodeBlock(
 				astNode.(*ast.FencedCodeBlock),
+				d.identityResolver,
 				d.nameResolver,
 				d.source,
 				d.renderer,

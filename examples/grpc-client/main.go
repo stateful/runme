@@ -73,6 +73,9 @@ func run() error {
 
 		resp, err := client.Deserialize(context.Background(), &parserv1.DeserializeRequest{
 			Source: data,
+			Options: &parserv1.DeserializeRequestOptions{
+				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
+			},
 		})
 		if err != nil {
 			return err
@@ -85,9 +88,6 @@ func run() error {
 
 		resp2, err := client.Serialize(context.Background(), &parserv1.SerializeRequest{
 			Notebook: resp.Notebook,
-			Options: &parserv1.SerializeRequestOptions{
-				Identity: parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED,
-			},
 		})
 		if err != nil {
 			return err
