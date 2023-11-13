@@ -75,7 +75,7 @@ func newCodeBlock(
 		return nil, err
 	}
 
-	id, hasId := identityResolver.GetCellId(node, attributes)
+	id, hasID := identityResolver.GetCellID(node, attributes)
 
 	name, hasName := getName(node, source, nameResolver, attributes)
 
@@ -86,7 +86,7 @@ func newCodeBlock(
 
 	return &CodeBlock{
 		id:            id,
-		idGenerated:   !hasId,
+		idGenerated:   !hasID,
 		attributes:    attributes,
 		inner:         node,
 		intro:         getIntro(node, source),
@@ -159,7 +159,7 @@ func (b *CodeBlock) Lines() []string {
 	return b.lines
 }
 
-func (b *CodeBlock) Id() string {
+func (b *CodeBlock) ID() string {
 	return b.id
 }
 

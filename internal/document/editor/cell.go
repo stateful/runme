@@ -149,9 +149,9 @@ func toCellsRec(
 
 			// In the future, we will include language detection (#77).
 			metadata := block.Attributes()
-			cellId := block.Id()
-			if cellId != "" {
-				metadata[PrefixAttributeName(InternalAttributePrefix, "id")] = cellId
+			cellID := block.ID()
+			if cellID != "" {
+				metadata[PrefixAttributeName(InternalAttributePrefix, "id")] = cellID
 			}
 			metadata[PrefixAttributeName(InternalAttributePrefix, "name")] = block.Name()
 			*cells = append(*cells, &Cell{

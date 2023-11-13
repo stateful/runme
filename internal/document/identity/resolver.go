@@ -61,7 +61,7 @@ func (ir *IdentityResolver) DocumentEnabled() bool {
 	return ir.documentIdentity
 }
 
-func (ir *IdentityResolver) GetCellId(obj interface{}, attributes map[string]string) (string, bool) {
+func (ir *IdentityResolver) GetCellID(obj interface{}, attributes map[string]string) (string, bool) {
 	if !ir.cellIdentity {
 		return "", false
 	}
