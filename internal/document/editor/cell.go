@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/document/identity"
+	ulid "github.com/stateful/runme/internal/ulid"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -58,7 +58,7 @@ type Notebook struct {
 func (n *Notebook) ForceLifecyleIdentities() {
 	for _, c := range n.Cells {
 		id, ok := c.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")]
-		if !ok && id == "" || !identity.ValidID(id) {
+		if !ok && id == "" || !ulid.ValidID(id) {
 			continue
 		}
 		c.Metadata["id"] = id

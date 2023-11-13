@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/stateful/runme/internal/document/identity"
+	ulid "github.com/stateful/runme/internal/ulid"
 	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
@@ -36,7 +36,7 @@ func NewSession(envs []string, proj project.Project, logger *zap.Logger) (*Sessi
 	}
 
 	s := &Session{
-		ID: identity.GenerateID(),
+		ID: ulid.GenerateID(),
 
 		envStore: newEnvStore(sessionEnvs...),
 		logger:   logger,

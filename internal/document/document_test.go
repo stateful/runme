@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/stateful/runme/internal/document/identity"
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var identityResolver = identity.NewResolver(identity.AllLifecycleIdentity)
 
 func TestDocument_Parse(t *testing.T) {
 	data := []byte(`# Examples
@@ -32,7 +35,7 @@ First paragraph.
 2. Item 2
 3. Item 3
 `)
-	doc := New(data, cmark.Render)
+	doc := New(data, cmark.Render, identityResolver)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 	assert.Len(t, node.children, 4)
@@ -84,7 +87,7 @@ console.log("hello world!")
 `,
 	))
 
-	doc := New(data, cmark.Render)
+	doc := New(data, cmark.Render, identityResolver)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
 
@@ -98,7 +101,7 @@ func TestDocument_FinalLineBreaks(t *testing.T) {
 	data := []byte(`This will test final line breaks`)
 
 	t.Run("No breaks", func(t *testing.T) {
-		doc := New(data, cmark.Render)
+		doc := New(data, cmark.Render, identityResolver)
 		_, astNode, err := doc.Parse()
 		require.NoError(t, err)
 
@@ -114,7 +117,7 @@ func TestDocument_FinalLineBreaks(t *testing.T) {
 
 	t.Run("1 LF", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 1)...)
-		doc := New(withLineBreaks, cmark.Render)
+		doc := New(withLineBreaks, cmark.Render, identityResolver)
 		_, astNode, err := doc.Parse()
 		require.NoError(t, err)
 
@@ -130,7 +133,7 @@ func TestDocument_FinalLineBreaks(t *testing.T) {
 
 	t.Run("1 CRLF", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\r', '\n'}, 1)...)
-		doc := New(withLineBreaks, cmark.Render)
+		doc := New(withLineBreaks, cmark.Render, identityResolver)
 		_, astNode, err := doc.Parse()
 		require.NoError(t, err)
 
@@ -146,7 +149,7 @@ func TestDocument_FinalLineBreaks(t *testing.T) {
 
 	t.Run("7 LFs", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
-		doc := New(withLineBreaks, cmark.Render)
+		doc := New(withLineBreaks, cmark.Render, identityResolver)
 		_, astNode, err := doc.Parse()
 		require.NoError(t, err)
 

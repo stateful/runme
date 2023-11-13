@@ -14,12 +14,16 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/document/identity"
 	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var pfs = projectDir()
+var (
+	identityResolverNone = identity.NewResolver(identity.UnspecifiedLifecycleIdentity)
+	pfs                  = projectDir()
+)
 
 func Test_CodeBlocks(t *testing.T) {
 	t.Run("LookupWithFile", func(t *testing.T) {
@@ -32,7 +36,7 @@ func Test_CodeBlocks(t *testing.T) {
 			bytes, err := util.ReadFile(lfs, file)
 			require.NoError(t, err)
 
-			doc := document.New(bytes, cmark.Render)
+			doc := document.New(bytes, cmark.Render, identityResolverNone)
 			node, _, err := doc.Parse()
 			require.NoError(t, err)
 

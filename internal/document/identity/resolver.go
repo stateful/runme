@@ -2,6 +2,7 @@ package identity
 
 import (
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
+	ulid "github.com/stateful/runme/internal/ulid"
 )
 
 type LifecycleIdentity int
@@ -74,7 +75,7 @@ func (ir *IdentityResolver) GetCellId(obj interface{}, attributes map[string]str
 		return v, false
 	}
 
-	id := GenerateID()
+	id := ulid.GenerateID()
 	ir.cache[obj] = id
 
 	return id, false

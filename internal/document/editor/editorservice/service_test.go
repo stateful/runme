@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	"github.com/stateful/runme/internal/identity"
+	ulid "github.com/stateful/runme/internal/ulid"
 	"github.com/stateful/runme/internal/version"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	testMockID = identity.GenerateID()
+	testMockID = ulid.GenerateID()
 	client     parserv1.ParserServiceClient
 
 	documentWithoutFrontmatter = strings.Join([]string{
@@ -50,7 +50,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	identity.MockGenerator(testMockID)
+	ulid.MockGenerator(testMockID)
 
 	lis := bufconn.Listen(2048)
 	server := grpc.NewServer()
@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 	client = parserv1.NewParserServiceClient(conn)
 	code := m.Run()
 
-	identity.ResetGenerator()
+	ulid.ResetGenerator()
 	os.Exit(code)
 }
 
@@ -291,7 +291,7 @@ func Test_parserServiceServer(t *testing.T) {
 }
 
 func deserialize(client parserv1.ParserServiceClient, content string, idt parserv1.RunmeIdentity) (*parserv1.DeserializeResponse, error) {
-	return client.Deserialize(
+	sResp, err := client.Deserialize(
 		context.Background(),
 		&parserv1.DeserializeRequest{
 			Source: []byte(content),
@@ -300,6 +300,8 @@ func deserialize(client parserv1.ParserServiceClient, content string, idt parser
 			},
 		},
 	)
+	persistIdentityLikeExtension(sResp.Notebook)
+	return sResp, err
 }
 
 func serialize(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, idt parserv1.RunmeIdentity) (*parserv1.SerializeResponse, error) {
@@ -312,4 +314,16 @@ func serialize(client parserv1.ParserServiceClient, notebook *parserv1.Notebook,
 			},
 		},
 	)
+}
+
+// mimics what would happen on the extension side
+func persistIdentityLikeExtension(notebook *parserv1.Notebook) {
+	for _, cell := range notebook.Cells {
+		if _, ok := cell.Metadata["id"]; ok {
+			break
+		}
+		if v, ok := cell.Metadata["runme.dev/id"]; ok {
+			cell.Metadata["id"] = v
+		}
+	}
 }
