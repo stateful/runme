@@ -11,10 +11,10 @@ require (
 	github.com/bufbuild/connect-grpcreflect-go v1.1.0
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.9.1
-	github.com/cli/cli/v2 v2.36.0
+	github.com/cli/cli/v2 v2.38.0
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81
-	github.com/creack/pty v1.1.18
-	github.com/fatih/color v1.15.0
+	github.com/creack/pty v1.1.20
+	github.com/fatih/color v1.16.0
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v45 v45.2.0
@@ -28,21 +28,21 @@ require (
 	github.com/rs/cors v1.10.1
 	github.com/rwtodd/Go.Sed v0.0.0-20230610052213-ba3e9c186f0a
 	github.com/vektah/gqlparser/v2 v2.5.10
-	github.com/yuin/goldmark v1.5.6
+	github.com/yuin/goldmark v1.6.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
-	golang.org/x/net v0.17.0
-	golang.org/x/oauth2 v0.13.0
-	golang.org/x/sys v0.13.0
-	golang.org/x/term v0.13.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
+	golang.org/x/net v0.18.0
+	golang.org/x/oauth2 v0.14.0
+	golang.org/x/sys v0.14.0
+	golang.org/x/term v0.14.0
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17
 	google.golang.org/protobuf v1.31.0
 )
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/cli/go-gh/v2 v2.4.0 // indirect
+	github.com/cli/go-gh/v2 v2.4.1-0.20231024095351-47a83eeb1778 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -54,7 +54,7 @@ require (
 	github.com/briandowns/spinner v1.23.0 // indirect
 	github.com/cli/go-gh v1.2.1
 	github.com/cli/safeexec v1.0.1 // indirect
-	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/cloudflare/circl v1.3.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
@@ -79,10 +79,10 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/mod v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/tools v0.14.0 // indirect
+	golang.org/x/crypto v0.15.0 // indirect
+	golang.org/x/mod v0.14.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/tools v0.15.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1
@@ -91,23 +91,23 @@ require (
 require (
 	github.com/Khan/genqlient v0.6.0
 	github.com/charmbracelet/bubbles v0.16.1
-	github.com/elliotchance/orderedmap v1.5.0
-	github.com/go-git/go-git/v5 v5.9.0
+	github.com/elliotchance/orderedmap v1.5.1
+	github.com/go-git/go-git/v5 v5.10.0
 	github.com/go-playground/assert/v2 v2.2.0
-	github.com/go-playground/validator/v10 v10.15.5
+	github.com/go-playground/validator/v10 v10.16.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/henvic/httpretty v0.1.2
+	github.com/henvic/httpretty v0.1.3
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
-	golang.org/x/sync v0.4.0
-	google.golang.org/grpc v1.58.3
+	golang.org/x/sync v0.5.0
+	google.golang.org/grpc v1.59.0
 )
