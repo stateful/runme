@@ -5,6 +5,7 @@ import (
 	"syscall/js"
 
 	"github.com/stateful/runme/internal/document/editor"
+	"github.com/stateful/runme/internal/document/identity"
 )
 
 // These are variables so that they can be set during the build time.
@@ -44,7 +45,8 @@ func deserialize(this js.Value, args []js.Value) any {
 		reject := args[1]
 
 		go func() {
-			notebook, err := editor.Deserialize([]byte(source), false)
+			identity := identity.NewResolver(identity.DefaultLifecycleIdentity)
+			notebook, err := editor.Deserialize([]byte(source), identity)
 			if err != nil {
 				reject.Invoke(toJSError(err))
 				return
