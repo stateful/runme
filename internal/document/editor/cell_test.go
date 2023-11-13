@@ -99,7 +99,6 @@ Test paragraph
 )
 
 func Test_toCells_DataNested(t *testing.T) {
-
 	doc := document.New(testDataNested, cmark.Render, identityResolverAll)
 	node, _, err := doc.Parse()
 	require.NoError(t, err)
