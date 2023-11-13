@@ -308,9 +308,6 @@ func serializeWithIdentityPersistence(client parserv1.ParserServiceClient, noteb
 		context.Background(),
 		&parserv1.SerializeRequest{
 			Notebook: notebook,
-			Options: &parserv1.SerializeRequestOptions{
-				Identity: idt,
-			},
 		},
 	)
 }

@@ -147,23 +147,10 @@ class DeserializeResponse$Type extends MessageType {
  */
 export const DeserializeResponse = new DeserializeResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class SerializeRequestOptions$Type extends MessageType {
-    constructor() {
-        super("runme.parser.v1.SerializeRequestOptions", [
-            { no: 1, name: "identity", kind: "enum", T: () => ["runme.parser.v1.RunmeIdentity", RunmeIdentity, "RUNME_IDENTITY_"] }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOptions
- */
-export const SerializeRequestOptions = new SerializeRequestOptions$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class SerializeRequest$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.SerializeRequest", [
-            { no: 1, name: "notebook", kind: "message", T: () => Notebook },
-            { no: 2, name: "options", kind: "message", T: () => SerializeRequestOptions }
+            { no: 1, name: "notebook", kind: "message", T: () => Notebook }
         ]);
     }
 }

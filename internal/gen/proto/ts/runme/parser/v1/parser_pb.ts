@@ -386,43 +386,6 @@ export class DeserializeResponse extends Message<DeserializeResponse> {
 }
 
 /**
- * @generated from message runme.parser.v1.SerializeRequestOptions
- */
-export class SerializeRequestOptions extends Message<SerializeRequestOptions> {
-  /**
-   * @generated from field: runme.parser.v1.RunmeIdentity identity = 1;
-   */
-  identity = RunmeIdentity.UNSPECIFIED;
-
-  constructor(data?: PartialMessage<SerializeRequestOptions>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "runme.parser.v1.SerializeRequestOptions";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "identity", kind: "enum", T: proto3.getEnumType(RunmeIdentity) },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SerializeRequestOptions {
-    return new SerializeRequestOptions().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SerializeRequestOptions {
-    return new SerializeRequestOptions().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SerializeRequestOptions {
-    return new SerializeRequestOptions().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: SerializeRequestOptions | PlainMessage<SerializeRequestOptions> | undefined, b: SerializeRequestOptions | PlainMessage<SerializeRequestOptions> | undefined): boolean {
-    return proto3.util.equals(SerializeRequestOptions, a, b);
-  }
-}
-
-/**
  * @generated from message runme.parser.v1.SerializeRequest
  */
 export class SerializeRequest extends Message<SerializeRequest> {
@@ -430,11 +393,6 @@ export class SerializeRequest extends Message<SerializeRequest> {
    * @generated from field: runme.parser.v1.Notebook notebook = 1;
    */
   notebook?: Notebook;
-
-  /**
-   * @generated from field: runme.parser.v1.SerializeRequestOptions options = 2;
-   */
-  options?: SerializeRequestOptions;
 
   constructor(data?: PartialMessage<SerializeRequest>) {
     super();
@@ -445,7 +403,6 @@ export class SerializeRequest extends Message<SerializeRequest> {
   static readonly typeName = "runme.parser.v1.SerializeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "notebook", kind: "message", T: Notebook },
-    { no: 2, name: "options", kind: "message", T: SerializeRequestOptions },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SerializeRequest {
