@@ -88,7 +88,7 @@ func ToLifecycleIdentity(idt parserv1.RunmeIdentity) LifecycleIdentity {
 	case parserv1.RunmeIdentity_RUNME_IDENTITY_DOCUMENT:
 		return DocumentLifecycleIdentity
 	case parserv1.RunmeIdentity_RUNME_IDENTITY_CELL:
-		return DocumentLifecycleIdentity
+		return CellLifecycleIdentity
 	default:
 		return UnspecifiedLifecycleIdentity
 	}
