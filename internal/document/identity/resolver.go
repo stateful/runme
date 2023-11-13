@@ -66,7 +66,8 @@ func (ir *IdentityResolver) GetCellId(obj interface{}, attributes map[string]str
 		return "", false
 	}
 
-	if n, ok := attributes["id"]; ok && n != "" {
+	// todo(sebastian): are invalid ulid's valid IDs?
+	if n, ok := attributes["id"]; ok && ulid.ValidID(n) {
 		ir.cache[obj] = n
 		return n, true
 	}
