@@ -117,7 +117,7 @@ func Test_attributes(t *testing.T) {
 	})
 
 	t.Run("failoverAttributesParser", func(t *testing.T) {
-		parser := FutureDocumentParser
+		parser := DefaultDocumentParser
 
 		// parser handles json
 		{
