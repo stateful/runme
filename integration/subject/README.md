@@ -1,3 +1,9 @@
+---
+runme:
+  id: 01HF7BT3HBDTRGQAQMGK1X49SF
+  version: v2.0
+---
+
 # dummy
 
 This template should help get you started developing with Vue 3 in Vite.
@@ -13,8 +19,10 @@ TypeScript cannot handle type information for `.vue` imports by default, so we r
 If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
 
 1. Disable the built-in TypeScript Extension
-    1) Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-    2) Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
+
+   1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette
+   2. Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
+
 2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
 
 ## Customize configuration
@@ -23,30 +31,30 @@ See [Vite Configuration Reference](https://vitejs.dev/config/).
 
 ## Project Setup
 
-```sh
+```sh {"id":"01HF7BT3HBDTRGQAQMG7BKPYX3"}
 npm install
 ```
 
 ### Compile and Hot-Reload for Development
 
-```sh
+```sh {"id":"01HF7BT3HBDTRGQAQMG9Z09WQT"}
 npm run dev
 ```
 
 ### Type-Check, Compile and Minify for Production
 
-```sh
+```sh {"id":"01HF7BT3HBDTRGQAQMGBA59CNP"}
 npm run build
 ```
 
 ### Run Unit Tests with [Vitest](https://vitest.dev/)
 
-```sh
+```sh {"id":"01HF7BT3HBDTRGQAQMGCHAH2BG"}
 npm run test:unit
 ```
 
 ### Lint with [ESLint](https://eslint.org/)
 
-```sh
+```sh {"id":"01HF7BT3HBDTRGQAQMGG0RCAMM"}
 npm run lint
 ```

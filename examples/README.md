@@ -1,22 +1,28 @@
+---
+runme:
+  id: 01HF7BT3HD84GWTQB9008APC3C
+  version: v2.0
+---
+
 # Examples
 
 ## Shell
 
 This is a basic snippet with shell command:
 
-```sh
+```sh {"id":"01HF7BT3HD84GWTQB8ZCWPH803"}
 $ echo "Hello, runme!"
 ```
 
 With `{name=hello}` you can annotate it and give it a nice name:
 
-```sh { name=echo }
+```sh {"id":"01HF7BT3HD84GWTQB8ZEBC4E7R","name":"echo"}
 $ echo "Hello, runme!"
 ```
 
 It can contain multiple lines too:
 
-```sh
+```sh {"id":"01HF7BT3HD84GWTQB8ZESW75T0"}
 $ echo "1"
 $ echo "2"
 $ echo "3"
@@ -24,13 +30,13 @@ $ echo "3"
 
 Also, the dollar sign is not needed:
 
-```sh
+```sh {"id":"01HF7BT3HD84GWTQB8ZGWMJJE6"}
 echo "Hello, runme! Again!"
 ```
 
 It works with `cd`, `pushd`, and similar because all lines are executed as a single script:
 
-```sh
+```sh {"id":"01HF7BT3HD84GWTQB8ZHV2AF26"}
 temp_dir=$(mktemp -d -t "runme-XXXXXXX")
 pushd $temp_dir
 echo "hi!" > hi.txt
@@ -42,14 +48,14 @@ pwd
 
 Sometimes, shell scripts fail:
 
-```sh
+```sh {"id":"01HF7BT3HD84GWTQB8ZNRMG7MW"}
 echo ok
 exit 1
 ```
 
 ### Interactive Scripts
 
-```sh { name=print-name }
+```sh {"id":"01HF7BT3HD84GWTQB8ZNTNW63E","name":"print-name"}
 echo -n "Enter your name: "
 read name
 echo "\nHi, $name!"
@@ -59,7 +65,7 @@ echo "\nHi, $name!"
 
 It can also execute a snippet of JavaScript code:
 
-```js { name=hello-js }
+```js {"id":"01HF7BT3HD84GWTQB8ZPB8TH53","name":"hello-js"}
 console.log("Hello World!")
 ```
 
@@ -67,7 +73,7 @@ console.log("Hello World!")
 
 It can also execute a snippet of Go code:
 
-```go
+```go {"id":"01HF7BT3HD84GWTQB8ZQXG4049"}
 package main
 
 import (
@@ -85,7 +91,7 @@ Snippets without provided type are ignored.
 
 To still display unknown snippets, provide `--allow-unknown` to the `list` command.
 
-```ini
+```ini {"id":"01HF7BT3HD84GWTQB8ZR32T70Y"}
 [database]
 username = admin
 password = admin
@@ -93,12 +99,14 @@ password = admin
 
 ## Categories
 
-```sh { name=a category=a }
+```sh {"category":"a","id":"01HF7BT3HD84GWTQB8ZT8D9SVW","name":"a"}
 echo "Category A"
 ```
-```sh { name=b category=a,b }
+
+```sh {"category":"a,b","id":"01HF7BT3HD84GWTQB8ZVF8JVKF","name":"b"}
 echo "Category A,B"
 ```
-```sh { name=c category=a,b,c }
+
+```sh {"category":"a,b,c","id":"01HF7BT3HD84GWTQB8ZY0GBA06","name":"c"}
 echo "Category A,B,C"
 ```

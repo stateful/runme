@@ -1,15 +1,18 @@
 ---
 cwd: ../../../
+runme:
+  id: 01HF7BT3HCDS1X1WJJHXFHR4ZG
+  version: v2.0
 ---
 
-```sh { name=relative-pwd }
+```sh {"id":"01HF7BT3HCDS1X1WJJHS5YH0Y1","name":"relative-pwd"}
 pwd
 ```
 
-```sh { name=relative-rel-pwd cwd=../}
+```sh {"cwd":"../","id":"01HF7BT3HCDS1X1WJJHSYYJW0S","name":"relative-rel-pwd"}
 pwd
 ```
 
-```sh { name=relative-abs-pwd cwd=/opt}
+```sh {"cwd":"/opt","id":"01HF7BT3HCDS1X1WJJHVP5TMAV","name":"relative-abs-pwd"}
 pwd
 ```

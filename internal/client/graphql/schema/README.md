@@ -1,3 +1,9 @@
+---
+runme:
+  id: 01HF7BT3HAZ32WVAFYJ4N5BF0X
+  version: v2.0
+---
+
 # GraphQL Schema
 
 This package contains schema of the Stateful GraphQL API.
@@ -7,13 +13,15 @@ This package contains schema of the Stateful GraphQL API.
 The process of generating Go models from the schema works as follows:
 
 1. Download schema represented as an Introspection Query result: `go run ./cmd/gqltool/main.go --api-url=[YOUR STAGING URL] > ./internal/client/graphql/schema/introspection_query_result.json`
-1. Convert it to GraphQL Schema Definition Language using `graphql-js`:
-   ```
-   $ pushd ./internal/client/graphql/schema
-   $ npm run convert
-   $ popd
-   ```
-1. Generate Go stubs: `make generate`
+2. Convert it to GraphQL Schema Definition Language using `graphql-js`:
+
+``` {"id":"01HF7BT3HAZ32WVAFYJ2BX02JW"}
+$ pushd ./internal/client/graphql/schema
+$ npm run convert
+$ popd
+```
+
+3. Generate Go stubs: `make generate`
 
 ## Resources
 

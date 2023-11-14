@@ -1,3 +1,9 @@
+---
+runme:
+  id: 01HF7BT3HF9WY615MNGVPCSFMV
+  version: v2.0
+---
+
 # Contributing to `runme`
 
 **Thank you for your interest in `runme`. Your contributions are highly welcome.**
@@ -49,7 +55,7 @@ You will need to have a `go` installation - ideally compatible with the project'
 
 If you are using [`homebrew`](https://brew.sh/), you can install the required system modules with the following command:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSTB6V9WKN","interactive":"false"}
 brew bundle --no-lock
 ```
 
@@ -59,13 +65,13 @@ In order to use `make`, install [apple developer tools](https://developer.apple.
 
 To install required CLI tools for development:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSTBPD50X3","interactive":"false"}
 make install/dev
 ```
 
 Make sure to export the global path for Go packages into your environment. For Mac and Linux, just run:
 
-```sh
+```sh {"id":"01HF7BT3HEQBTBM9SSTCFZ708X"}
 export GOPATH="$HOME/go"
 PATH="$GOPATH/bin:$PATH"
 ```
@@ -82,13 +88,13 @@ Following is some documentation on the different build targets `runme` has, and 
 
 CLI is built with:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSTFD1C6N4","interactive":"false"}
 make build
 ```
 
 This builds the CLI binary for the current platform to an executable file "runme" in the root directory. (You can change the output with the `-o` flag). After this command you can access the compiled binary from the root directory in your workspace, e.g.:
 
-```sh
+```sh {"id":"01HF7BT3HEQBTBM9SSTG26T7EJ"}
 ./runme --version
 # outputs: "runme version 1.3.0-27-g3cca8a6-3cca8a6 (3cca8a6e7d34f401c1bdd99828a7fac5b1d8fac9) on 2023-07-31T16:49:57Z"
 ```
@@ -97,7 +103,7 @@ This builds the CLI binary for the current platform to an executable file "runme
 
 WASM is built with:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSTH3HC2DS","interactive":"false"}
 make wasm
 ```
 
@@ -107,13 +113,13 @@ This builds the wasm file to `examples/web/runme.wasm`.
 
 Like many complex go projects, this project uses a variety of linting tools to ensure code quality and prevent regressions! The main linter (revive) can be run with:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSTKQENPT3","interactive":"false"}
 make lint
 ```
 
 The rest of the project's linting suite can be run with:
 
-```sh
+```sh {"id":"01HF7BT3HEQBTBM9SSTPGWHF1K"}
 pre-commit run --files */**
 ```
 
@@ -121,7 +127,7 @@ pre-commit run --files */**
 
 Tests are run with go's default test runner. So, for example, you can run all tests with:
 
-```sh
+```sh {"id":"01HF7BT3HEQBTBM9SSTS88ZSCF"}
 make test
 ```
 
@@ -131,7 +137,7 @@ make test
 
 To generate protocol buffers:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSTSGD14KY","interactive":"false"}
 make proto/generate
 ```
 
@@ -141,11 +147,11 @@ Currently, we use `timostamm-protobuf-ts` to generate TypeScript definitions. Th
 
 Note that for protocol buffers to work with `npm` projects, you'll need to add the [`@buf` registry](https://docs.buf.build/bsr/remote-packages/npm) to your `npm` or `yarn` config:
 
-```sh { interactive=true }
+```sh {"id":"01HF7BT3HEQBTBM9SSTSY4P9YW","interactive":"true"}
 npm config set @buf:registry https://buf.build/gen/npm/v1
 ```
 
-```sh
+```sh {"id":"01HF7BT3HEQBTBM9SSTTB4NANA"}
 yarn config set @buf:registry https://buf.build/gen/npm/v1
 ```
 
@@ -153,20 +159,20 @@ yarn config set @buf:registry https://buf.build/gen/npm/v1
 
 While development it's not prudent to publish to the Buf's BSR (NPM etc). Instead, you can overwrite the generated types locally. Generate buffers:
 
-```sh
+```sh {"id":"01HF7BT3HEQBTBM9SSTX2S878Z"}
 make proto/generate
 ```
 
 Then overwrite buffers in the Runme extension's development project. Make sure to delete superfluous TS files to prevent bundler from stumbling.
 
-```sh
+```sh {"id":"01HF7BT3HEQBTBM9SSTYEHXXYE"}
 export RUNME_EXT_BASE="../vscode-runme"
 make proto/dev
 ```
 
 Optionally, reset Runme extension's development project to NPM distributed buffers.
 
-```sh
+```sh {"id":"01HF7BT3HEQBTBM9SSV0J14G58"}
 export RUNME_EXT_BASE="../vscode-runme"
 make proto/dev/reset
 ```
@@ -175,13 +181,13 @@ make proto/dev/reset
 
 GraphQL schema are generated as part of:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSV36518MW","interactive":"false"}
 make generate
 ```
 
 This project uses [genqlient](https://github.com/Khan/genqlient) to generate a GraphQL client for interacting with the Stateful API. You will need to install `genqlient` in order for `go generate` to work properly:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSV4MQT4AF","interactive":"false"}
 go install github.com/Khan/genqlient
 ```
 
@@ -191,7 +197,7 @@ See also [the README](/internal/client/graphql/schema/README.md) for generating 
 
 Mocks are generated as part of:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HEQBTBM9SSV8D8K14G","interactive":"false"}
 make generate
 ```
 
@@ -201,13 +207,13 @@ This project uses [gomock](https://github.com/golang/mock) to generate some mock
 
 The releaser uses `goreleaser` to handle cross-compilation, as well as snapshotting etc. This is run with:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HF9WY615MNGP2PTHHR","interactive":"false"}
 make release
 ```
 
 The requisite tools can be installed with:
 
-```sh { interactive=false }
+```sh {"id":"01HF7BT3HF9WY615MNGR8HJEKZ","interactive":"false"}
 make install/goreleaser
 ```
 
@@ -215,6 +221,6 @@ make install/goreleaser
 
 After upgrading go to version 1.21, you'll need to make sure to reinstall dev packages, as some may be outdated:
 
-```sh { name=upgrade-go-120 }
+```sh {"id":"01HF7BT3HF9WY615MNGREVYKFG","name":"upgrade-go-120"}
 make install/dev
 ```

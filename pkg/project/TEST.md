@@ -1,7 +1,13 @@
-```sh
+---
+runme:
+  id: 01HF7BT3H7BRM8D0M1T19YT3WR
+  version: v2.0
+---
+
+```sh {"id":"01HF7BT3H7BRM8D0M1SZZMASSJ"}
 echo hi
 ```
 
-```sh
+```sh {"id":"01HF7BT3H7BRM8D0M1T03QS9MH"}
 echo hello
 ```

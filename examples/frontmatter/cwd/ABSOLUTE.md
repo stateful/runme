@@ -1,15 +1,18 @@
 ---
 cwd: /tmp
+runme:
+  id: 01HF7BT3HCDS1X1WJJJCRQRAMX
+  version: v2.0
 ---
 
-```sh { name=absolute-pwd }
+```sh {"id":"01HF7BT3HCDS1X1WJJJ7Z64V8R","name":"absolute-pwd"}
 pwd
 ```
 
-```sh { name=absolute-rel-pwd cwd=../}
+```sh {"cwd":"../","id":"01HF7BT3HCDS1X1WJJJ95AMEJW","name":"absolute-rel-pwd"}
 pwd
 ```
 
-```sh { name=absolute-abs-pwd cwd=/opt}
+```sh {"cwd":"/opt","id":"01HF7BT3HCDS1X1WJJJB0F2QNX","name":"absolute-abs-pwd"}
 pwd
 ```

@@ -1,3 +1,9 @@
+---
+runme:
+  id: 01HF7BT3HBDTRGQAQMGSTTGJC5
+  version: v2.0
+---
+
 # WASM example
 
 This is an example of running runme in a browser using WASM.
