@@ -324,7 +324,6 @@ pre-commit install
 }
 
 func Test_serializeCells(t *testing.T) {
-	// todo(sebastian): remove for v2
 	t.Run("attributes_babikml", func(t *testing.T) {
 		data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
 		expected := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")

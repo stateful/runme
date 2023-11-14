@@ -17,7 +17,7 @@ const (
 type LifecycleIdentities []LifecycleIdentity
 
 const (
-	DefaultLifecycleIdentity = UnspecifiedLifecycleIdentity
+	DefaultLifecycleIdentity = AllLifecycleIdentity
 )
 
 var documentIdentities = &LifecycleIdentities{
