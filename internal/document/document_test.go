@@ -82,10 +82,6 @@ First paragraph
 		doc := New(data, identityResolver)
 		err := doc.Parse()
 		require.NoError(t, err)
-
-		rawFrontmatter, err := doc.RawFrontmatter()
-		require.NoError(t, err)
-		assert.Equal(t, []byte("---\nkey: value\n---"), rawFrontmatter)
 		assert.Equal(t, []byte("First paragraph"), doc.Content())
 		assert.Equal(t, 20, doc.ContentOffset())
 

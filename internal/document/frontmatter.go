@@ -36,7 +36,7 @@ type Frontmatter struct {
 	raw    string // using string to be able to compare using ==
 }
 
-func NewFrontmatter() *Frontmatter {
+func newFrontmatter() *Frontmatter {
 	return &Frontmatter{
 		Runme: RunmeMetadata{
 			ID:      ulid.GenerateID(),
@@ -47,21 +47,19 @@ func NewFrontmatter() *Frontmatter {
 	}
 }
 
-func (f *Frontmatter) IsEmpty() bool {
-	return f == nil || f.raw == ""
-}
-
+// Marshal returns a marshaled frontmatter including triple-dashed lines.
+// If the identity is required, but Frontmatter is nil, a new one is created.
 func (f *Frontmatter) Marshal(requireIdentity bool) ([]byte, error) {
 	if f == nil {
 		if !requireIdentity {
 			return nil, nil
 		}
-		f = NewFrontmatter()
+		f = newFrontmatter()
 	}
-	return f.marshalWithIdentity(requireIdentity)
+	return f.marshal(requireIdentity)
 }
 
-func (f *Frontmatter) marshalWithIdentity(requireIdentity bool) ([]byte, error) {
+func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 	if requireIdentity {
 		f.ensureID()
 	}
@@ -136,16 +134,6 @@ func (f *Frontmatter) ensureID() {
 	f.Runme.Version = baseVersion
 }
 
-func (d *Document) RawFrontmatter() ([]byte, error) {
-	d.splitSource()
-
-	if d.splitSourceErr != nil {
-		return nil, d.splitSourceErr
-	}
-
-	return d.frontmatterRaw, nil
-}
-
 func (d *Document) Frontmatter() (*Frontmatter, error) {
 	d.splitSource()
 
@@ -168,6 +156,7 @@ func (d *Document) parseFrontmatter() {
 	})
 }
 
+// TODO(adamb): it should be removed when the complete refactoring of the project is finished.
 func ParseFrontmatter(raw []byte) (*Frontmatter, error) {
 	return parseFrontmatter(raw)
 }
