@@ -2,12 +2,10 @@ package editor
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/cmark"
 
 	"github.com/stateful/runme/internal/document/constants"
 	"github.com/stateful/runme/internal/document/identity"
@@ -16,34 +14,30 @@ import (
 const FrontmatterKey = "frontmatter"
 
 func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Notebook, error) {
-	sections, err := document.ParseSections(data)
+	// Deserialize content to cells.
+	doc := document.New(data, identityResolver)
+	node, err := doc.Root()
 	if err != nil {
 		return nil, err
 	}
 
-	// Deserialize content to cells.
-	doc := document.New(sections.Content, cmark.Render, identityResolver)
-	node, _, err := doc.Parse()
+	frontmatter, err := doc.Frontmatter()
 	if err != nil {
 		return nil, err
 	}
 
 	notebook := &Notebook{
-		Cells:         toCells(node, data),
-		contentOffset: sections.ContentOffset,
+		Cells:       toCells(doc, node, doc.Content()),
+		Frontmatter: frontmatter,
+		Metadata: map[string]string{
+			PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): strconv.Itoa(doc.TrailingLineBreaksCount()),
+		},
 	}
 
-	finalLinesBreaks := document.CountFinalLineBreaks(data, document.DetectLineBreak(data))
-	notebook.Metadata = map[string]string{
-		PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): fmt.Sprint(finalLinesBreaks),
-	}
-
-	f, info := document.ParseFrontmatterWithIdentity(string(sections.FrontMatter), identityResolver.DocumentEnabled())
-	notebook.parsedFrontmatter = &f
-	notebook.frontmatterParseInfo = &info
-
-	if rawfm := info.GetRaw(); rawfm != "" {
-		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = rawfm
+	// Additionally, put raw frontmatter in notebook's metadata.
+	// TODO(adamb): handle the error.
+	if raw, err := frontmatter.Marshal(identityResolver.DocumentEnabled()); err == nil && len(raw) > 0 {
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
 
 	return notebook, nil
@@ -52,6 +46,7 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 func Serialize(notebook *Notebook) ([]byte, error) {
 	var result []byte
 
+	// Serialize frontmatter.
 	if intro, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]; ok {
 		intro := []byte(intro)
 		lb := document.DetectLineBreak(intro)
@@ -61,16 +56,18 @@ func Serialize(notebook *Notebook) ([]byte, error) {
 		)
 	}
 
+	// Serialize cells.
 	result = append(result, serializeCells(notebook.Cells)...)
 
+	// Add trailing line breaks.
 	if lineBreaks, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)]; ok {
-		desired, err := strconv.ParseInt(lineBreaks, 10, 32)
+		desired, err := strconv.Atoi(lineBreaks)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
 		lb := document.DetectLineBreak(result)
-		actual := document.CountFinalLineBreaks(result, lb)
+		actual := document.CountTrailingLineBreaks(result, lb)
 		delta := int(desired) - actual
 
 		if delta < 0 {

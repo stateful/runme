@@ -2,11 +2,9 @@ package editor
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -70,39 +68,13 @@ Second inner paragraph
 
 3. Item 3
 `)
-
-	testDataFrontmatterYAML = []byte(strings.TrimSpace(`
----
-shell: fish
----
-
-Test paragraph
-`))
-
-	testDataFrontmatterJSON = []byte(strings.TrimSpace(`
----
-{
-	"shell": "fish"
-}
----
-
-Test paragraph
-`))
-
-	testDataFrontmatterTOML = []byte(strings.TrimSpace(`
-+++
-shell = "fish"
-+++
-
-Test paragraph
-`))
 )
 
 func Test_toCells_DataNested(t *testing.T) {
-	doc := document.New(testDataNested, cmark.Render, identityResolverAll)
-	node, _, err := doc.Parse()
+	doc := document.New(testDataNested, identityResolverAll)
+	node, err := doc.Root()
 	require.NoError(t, err)
-	cells := toCells(node, testDataNested)
+	cells := toCells(doc, node, testDataNested)
 	assert.Len(t, cells, 10)
 	assert.Equal(t, "# Examples", cells[0].Value)
 	assert.Equal(t, "It can have an annotation with a name:", cells[1].Value)
@@ -122,10 +94,10 @@ func Test_toCells_Lists(t *testing.T) {
 2. Item 2
 3. Item 3
 `)
-		doc := document.New(data, cmark.Render, identityResolverAll)
-		node, _, err := doc.Parse()
+		doc := document.New(data, identityResolverAll)
+		node, err := doc.Root()
 		require.NoError(t, err)
-		cells := toCells(node, data)
+		cells := toCells(doc, node, data)
 		assert.Len(t, cells, 1)
 		assert.Equal(t, "1. Item 1\n2. Item 2\n3. Item 3", cells[0].Value)
 	})
@@ -138,10 +110,10 @@ func Test_toCells_Lists(t *testing.T) {
    ` + "```" + `
 3. Item 3
 `)
-		doc := document.New(data, cmark.Render, identityResolverAll)
-		node, _, err := doc.Parse()
+		doc := document.New(data, identityResolverAll)
+		node, err := doc.Root()
 		require.NoError(t, err)
-		cells := toCells(node, data)
+		cells := toCells(doc, node, data)
 		assert.Len(t, cells, 4)
 		assert.Equal(t, "1. Item 1", cells[0].Value)
 		assert.Equal(t, "2. Item 2", cells[1].Value)
@@ -155,10 +127,10 @@ func Test_toCells_EmptyLang(t *testing.T) {
 echo 1
 ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render, identityResolverAll)
-	node, _, err := doc.Parse()
+	doc := document.New(data, identityResolverAll)
+	node, err := doc.Root()
 	require.NoError(t, err)
-	cells := toCells(node, data)
+	cells := toCells(doc, node, data)
 	assert.Len(t, cells, 1)
 	cell := cells[0]
 	assert.Equal(t, CodeKind, cell.Kind)
@@ -171,10 +143,10 @@ def hello():
     print("Hello World")
 ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render, identityResolverAll)
-	node, _, err := doc.Parse()
+	doc := document.New(data, identityResolverAll)
+	node, err := doc.Root()
 	require.NoError(t, err)
-	cells := toCells(node, data)
+	cells := toCells(doc, node, data)
 	assert.Len(t, cells, 1)
 	cell := cells[0]
 	assert.Equal(t, CodeKind, cell.Kind)
@@ -194,10 +166,10 @@ Last paragraph.
 `)
 
 	parse := func() []*Cell {
-		doc := document.New(data, cmark.Render, identityResolverAll)
-		node, _, err := doc.Parse()
+		doc := document.New(data, identityResolverAll)
+		node, err := doc.Root()
 		require.NoError(t, err)
-		cells := toCells(node, data)
+		cells := toCells(doc, node, data)
 		assert.Len(t, cells, 3)
 		return cells
 	}
@@ -297,10 +269,10 @@ func Test_serializeCells_nestedCode(t *testing.T) {
    pre-commit install
    ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render, identityResolverAll)
-	node, _, err := doc.Parse()
+	doc := document.New(data, identityResolverAll)
+	node, err := doc.Root()
 	require.NoError(t, err)
-	cells := toCells(node, data)
+	cells := toCells(doc, node, data)
 	assert.Equal(
 		t,
 		`# Development
@@ -324,53 +296,43 @@ pre-commit install
 }
 
 func Test_serializeCells(t *testing.T) {
-	t.Run("attributes_babikml", func(t *testing.T) {
-		data := []byte("```sh { name=echo first= second=2 }\necho 1\n```\n")
-		expected := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-		doc := document.New(data, cmark.Render, identityResolverAll)
-		node, _, err := doc.Parse()
-		require.NoError(t, err)
-		cells := toCells(node, data)
-		assert.Equal(t, string(expected), string(serializeCells(cells)))
-	})
-
 	t.Run("attributes", func(t *testing.T) {
 		data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-		doc := document.New(data, cmark.Render, identityResolverAll)
-		node, _, err := doc.Parse()
+		doc := document.New(data, identityResolverAll)
+		node, err := doc.Root()
 		require.NoError(t, err)
-		cells := toCells(node, data)
+		cells := toCells(doc, node, data)
 		assert.Equal(t, string(data), string(serializeCells(cells)))
 	})
 
 	t.Run("privateFields", func(t *testing.T) {
 		data := []byte("```sh {\"first\":\"\",\"name\":\"echo\",\"second\":\"2\"}\necho 1\n```\n")
-		doc := document.New(data, cmark.Render, identityResolverAll)
-		node, _, err := doc.Parse()
+		doc := document.New(data, identityResolverAll)
+		node, err := doc.Root()
 		require.NoError(t, err)
 
-		cells := toCells(node, data)
+		cells := toCells(doc, node, data)
 		// Add private fields whcih will be filtered out durign serialization.
 		cells[0].Metadata["_private"] = "private"
 		cells[0].Metadata["runme.dev/internal"] = "internal"
 
 		assert.Equal(t, string(data), string(serializeCells(cells)))
 	})
-}
 
-func Test_serializeCells_UnsupportedLang(t *testing.T) {
-	data := []byte(`## Non-Supported Languages
+	t.Run("UnsupportedLang", func(t *testing.T) {
+		data := []byte(`## Non-Supported Languages
 
 ` + "```py {\"readonly\":\"true\"}" + `
 def hello():
-    print("Hello World")
+	print("Hello World")
 ` + "```" + `
 `)
-	doc := document.New(data, cmark.Render, identityResolverAll)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
-	cells := toCells(node, data)
-	assert.Equal(t, string(data), string(serializeCells(cells)))
+		doc := document.New(data, identityResolverAll)
+		node, err := doc.Root()
+		require.NoError(t, err)
+		cells := toCells(doc, node, data)
+		assert.Equal(t, string(data), string(serializeCells(cells)))
+	})
 }
 
 func Test_serializeFencedCodeAttributes(t *testing.T) {
@@ -406,45 +368,4 @@ func Test_serializeFencedCodeAttributes(t *testing.T) {
 		})
 		assert.Equal(t, ` {"a":"a","b":"b","c":"c","name":"name"}`, buf.String())
 	})
-}
-
-func Test_notebook_frontmatter(t *testing.T) {
-	type fmtrExample struct {
-		file   []byte
-		kind   string
-		getErr func(info *document.FrontmatterParseInfo) error
-	}
-
-	for _, ex := range []fmtrExample{
-		{
-			file:   testDataFrontmatterYAML,
-			kind:   "YAML",
-			getErr: func(info *document.FrontmatterParseInfo) error { return info.YAMLError() },
-		},
-		{
-			file:   testDataFrontmatterJSON,
-			kind:   "JSON",
-			getErr: func(info *document.FrontmatterParseInfo) error { return info.JSONError() },
-		},
-		{
-			file:   testDataFrontmatterTOML,
-			kind:   "TOML",
-			getErr: func(info *document.FrontmatterParseInfo) error { return info.TOMLError() },
-		},
-	} {
-		file := ex.file
-		getErr := ex.getErr
-
-		t.Run(ex.kind, func(t *testing.T) {
-			t.Parallel()
-
-			notebook, err := Deserialize(file, identityResolverAll)
-			require.NoError(t, err)
-
-			fmtr, info := notebook.ParsedFrontmatter()
-			require.NoError(t, getErr(info))
-			require.NoError(t, info.Error())
-			assert.Equal(t, "fish", fmtr.Shell)
-		})
-	}
 }

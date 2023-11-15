@@ -45,13 +45,9 @@ type Cell struct {
 // Notebook resembles NotebookData form VS Code.
 // https://github.com/microsoft/vscode/blob/085c409898bbc89c83409f6a394e73130b932add/src/vscode-dts/vscode.d.ts#L13767
 type Notebook struct {
-	Cells    []*Cell           `json:"cells"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-
-	contentOffset int
-
-	parsedFrontmatter    *document.Frontmatter
-	frontmatterParseInfo *document.FrontmatterParseInfo
+	Cells       []*Cell               `json:"cells"`
+	Metadata    map[string]string     `json:"metadata,omitempty"`
+	Frontmatter *document.Frontmatter `json:"frontmatter,omitempty"`
 }
 
 // This mimics what otherwise would happen in the extension
@@ -65,34 +61,13 @@ func (n *Notebook) ForceLifecyleIdentities() {
 	}
 }
 
-func (n *Notebook) GetContentOffset() int {
-	return n.contentOffset
-}
-
-func (n *Notebook) ParsedFrontmatter() (document.Frontmatter, *document.FrontmatterParseInfo) {
-	raw, ok := n.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]
-
-	if n.parsedFrontmatter != nil && n.frontmatterParseInfo != nil {
-		return *n.parsedFrontmatter, n.frontmatterParseInfo
-	}
-
-	if !ok {
-		return document.NewFrontmatter(), nil
-	}
-
-	f, pi := document.ParseFrontmatter(raw)
-	n.parsedFrontmatter = &f
-	n.frontmatterParseInfo = &pi
-
-	return f, &pi
-}
-
-func toCells(node *document.Node, source []byte) (result []*Cell) {
-	toCellsRec(node, &result, source)
+func toCells(doc *document.Document, node *document.Node, source []byte) (result []*Cell) {
+	toCellsRec(doc, node, &result, source)
 	return
 }
 
 func toCellsRec(
+	doc *document.Document,
 	node *document.Node,
 	cells *[]*Cell,
 	source []byte,
@@ -120,7 +95,7 @@ func toCellsRec(
 							return n.Item().Kind() == document.CodeBlockKind
 						})
 						if nodeWithCode != nil {
-							toCellsRec(listItemNode, cells, source)
+							toCellsRec(doc, listItemNode, cells, source)
 						} else {
 							*cells = append(*cells, &Cell{
 								Kind:  MarkupKind,
@@ -135,7 +110,7 @@ func toCellsRec(
 					return n.Item().Kind() == document.CodeBlockKind
 				})
 				if nodeWithCode != nil {
-					toCellsRec(child, cells, source)
+					toCellsRec(doc, child, cells, source)
 				} else {
 					*cells = append(*cells, &Cell{
 						Kind:  MarkupKind,
@@ -160,8 +135,8 @@ func toCellsRec(
 				LanguageID: block.Language(),
 				Metadata:   metadata,
 				TextRange: &TextRange{
-					Start: textRange.Start,
-					End:   textRange.End,
+					Start: textRange.Start + doc.ContentOffset(),
+					End:   textRange.End + doc.ContentOffset(),
 				},
 			})
 

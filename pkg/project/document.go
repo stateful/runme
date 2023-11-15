@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/identity"
-	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
 func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {
@@ -57,13 +56,13 @@ func parseDocumentForCodeBlocks(filepath string, fs billy.Basic, doFrontmatter b
 			return nil, nil, err
 		}
 
-		f, _ := document.ParseFrontmatter(string(sections.FrontMatter))
-		fmtr = &f
+		f, _ := document.ParseFrontmatter(sections.FrontMatter)
+		fmtr = f
 	}
 
 	identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
-	doc := document.New(data, cmark.Render, identityResolver)
-	node, _, err := doc.Parse()
+	doc := document.New(data, identityResolver)
+	node, err := doc.Root()
 	if err != nil {
 		return nil, nil, err
 	}
