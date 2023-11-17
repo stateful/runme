@@ -11,7 +11,7 @@ cmp stdout golden-list-allow-unnamed.txt
 ! stderr .
 
 ! exec runme ls --filename nonexistent.md
-stderr 'failed to open markdown file .*/nonexistent.md: no such file or directory'
+stderr 'failed to open file-based project \".*\/nonexistent.md\": file does not exist'
 ! stdout .
 
 env SHELL=/bin/bash

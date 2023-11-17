@@ -9,17 +9,17 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/env"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/rbuffer"
-	ulid "github.com/stateful/runme/internal/ulid"
-	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/internal/rbuffer"
+	ulid "github.com/stateful/runme/internal/ulid"
 )
 
 const (
@@ -87,7 +87,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 			return nil, err
 		}
 
-		envs = append(envs, env.ConvertMapEnv(projEnvs)...)
+		envs = append(envs, projEnvs...)
 	}
 
 	sess, err := NewSession(envs, r.logger)
@@ -151,18 +151,21 @@ func (r *runnerService) findSession(id string) *Session {
 	return nil
 }
 
-func ConvertRunnerProject(runnerProj *runnerv1.Project) (project.Project, error) {
+func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error) {
 	if runnerProj == nil {
 		return nil, nil
 	}
 
-	proj, err := project.NewDirectoryProject(runnerProj.Root, false, true, true, []string{})
+	opts := []project.ProjectOption{project.WithFindRepoUpward()}
+
+	if len(runnerProj.EnvLoadOrder) > 0 {
+		opts = append(opts, project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder))
+	}
+
+	proj, err := project.NewDirProject(runnerProj.Root, opts...)
 	if err != nil {
 		return nil, err
 	}
-
-	proj.SetEnvLoadOrder(runnerProj.EnvLoadOrder)
-
 	return proj, nil
 }
 
@@ -256,12 +259,12 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			return err
 		}
 
-		mapEnv, err := proj.LoadEnvs()
+		projEnvs, err := proj.LoadEnvs()
 		if err != nil {
 			return err
 		}
 
-		cfg.PreEnv = env.ConvertMapEnv(mapEnv)
+		cfg.PreEnv = append(cfg.PreEnv, projEnvs...)
 	}
 
 	logger.Debug("command config", zap.Any("cfg", cfg))

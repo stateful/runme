@@ -12,64 +12,125 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
 	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/document/identity"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
 	"github.com/stateful/runme/internal/tui/prompt"
-	"github.com/stateful/runme/pkg/project"
 	"golang.org/x/exp/slices"
 )
 
 const envStackDepth = "__RUNME_STACK_DEPTH"
 
-func getProject() (proj project.Project, err error) {
+func getIdentityResolver() *identity.IdentityResolver {
+	return identity.NewResolver(identity.DefaultLifecycleIdentity)
+}
+
+func getProject() (*project.Project, error) {
+	opts := []project.ProjectOption{
+		project.WithIdentityResolver(getIdentityResolver()),
+	}
+
+	var proj *project.Project
+
 	if fFileMode {
-		proj = project.NewSingleFileProject(filepath.Join(fChdir, fFileName), fAllowUnknown, fAllowUnnamed)
+		var err error
+		proj, err = project.NewFileProject(filepath.Join(fChdir, fFileName), opts...)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
 	} else {
-		projDir, findNearestRepo := fProject, false
+		var err error
+
+		projDir := fProject
+		// TODO(adamb): wrap it in a function that will explain the logic
 		if projDir == "" {
 			projDir, err = os.Getwd()
 			if err != nil {
-				return nil, err
+				return nil, errors.WithMessage(err, "failed to get cwd")
 			}
 
-			findNearestRepo = true
+			opts = append(opts, project.WithFindRepoUpward())
 		}
 
-		dirProj, err := project.NewDirectoryProject(projDir, findNearestRepo, fAllowUnknown, fAllowUnnamed, fProjectIgnorePatterns)
+		opts = append(
+			opts,
+			project.WithRespectGitignore(),
+			project.WithIgnoreFilePatterns(fProjectIgnorePatterns...),
+		)
+
+		if fLoadEnv && fEnvOrder != nil {
+			opts = append(opts, project.WithEnvFilesReadOrder(fEnvOrder))
+		}
+
+		proj, err = project.NewDirProject(projDir, opts...)
 		if err != nil {
 			return nil, err
 		}
-
-		proj = dirProj
-
-		if fLoadEnv && fEnvOrder != nil {
-			dirProj.SetEnvLoadOrder(fEnvOrder)
-		}
-
-		dirProj.SetRespectGitignore(fRespectGitignore)
 	}
 
-	return
+	return proj, nil
 }
 
-func newProjectLoader(cmd *cobra.Command) (*project.ProjectLoader, error) {
-	fd := os.Stdout.Fd()
-
-	if int(fd) >= 0 {
-		loader := project.NewLoader(cmd.OutOrStdout(), cmd.InOrStdin(), isTerminal(fd))
-		return &loader, nil
+func getProjectFiles(cmd *cobra.Command) ([]string, error) {
+	proj, err := getProject()
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("invalid file descriptor due to restricted environments, redirected standard output, system configuration issues, or testing/simulation setups")
+	loader, err := newProjectLoader(cmd, fAllowUnknown, fAllowUnnamed)
+	if err != nil {
+		return nil, err
+	}
+
+	return loader.LoadFiles(proj)
+}
+
+func getProjectTasks(cmd *cobra.Command) ([]project.Task, error) {
+	proj, err := getProject()
+	if err != nil {
+		return nil, err
+	}
+
+	loader, err := newProjectLoader(cmd, fAllowUnknown, fAllowUnnamed)
+	if err != nil {
+		return nil, err
+	}
+
+	return loader.LoadTasks(proj)
+}
+
+func getAllProjectTasks(cmd *cobra.Command) ([]project.Task, error) {
+	proj, err := getProject()
+	if err != nil {
+		return nil, err
+	}
+
+	loader, err := newProjectLoader(cmd, fAllowUnknown, fAllowUnnamed)
+	if err != nil {
+		return nil, err
+	}
+
+	return loader.LoadAllTasks(proj)
 }
 
 func getCodeBlocks() (document.CodeBlocks, error) {
-	return project.GetCodeBlocks(
-		filepath.Join(fChdir, fFileName),
-		nil,
-	)
+	source, err := os.ReadFile(filepath.Join(fChdir, fFileName))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	doc := document.New(source, getIdentityResolver())
+
+	node, err := doc.Root()
+	if err != nil {
+		return nil, err
+	}
+
+	return document.CollectCodeBlocks(node), nil
 }
 
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -225,7 +286,7 @@ const tlsFileMode = os.FileMode(int(0o700))
 
 var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")
 
-func promptEnvVars(cmd *cobra.Command, envs []string, runBlocks ...project.FileCodeBlock) error {
+func promptEnvVars(cmd *cobra.Command, envs []string, tasks ...project.Task) error {
 	keys := make([]string, len(envs))
 
 	for i, line := range envs {
@@ -236,9 +297,11 @@ func promptEnvVars(cmd *cobra.Command, envs []string, runBlocks ...project.FileC
 		keys[i] = strings.SplitN(line, "=", 2)[0]
 	}
 
-	for _, block := range runBlocks {
-		if block.GetBlock().PromptEnv() {
-			varPrompts := getCommandExportExtractMatches(block.GetBlock().Lines())
+	for _, task := range tasks {
+		block := task.CodeBlock
+
+		if block.PromptEnv() {
+			varPrompts := getCommandExportExtractMatches(block.Lines())
 			for _, ev := range varPrompts {
 				if slices.Contains(keys, ev.Key) {
 					block.GetBlock().SetLine(ev.LineNumber, "")

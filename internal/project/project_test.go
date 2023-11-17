@@ -210,33 +210,33 @@ func TestProjectLoad(t *testing.T) {
 		assert.Equal(
 			t,
 			filepath.Join(gitProjectDir, "git-ignored.md"),
-			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[10]).DocumentPath,
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[10]).Task.DocumentPath,
 		)
 		assert.Equal(
 			t,
 			filepath.Join(gitProjectDir, "ignored.md"),
-			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[13]).DocumentPath,
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[13]).Task.DocumentPath,
 		)
 		assert.Equal(
 			t,
 			filepath.Join(gitProjectDir, "nested", "git-ignored.md"),
-			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[16]).DocumentPath,
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[16]).Task.DocumentPath,
 		)
 		// Unnamed task
 		{
 			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[19])
 
-			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.DocumentPath)
-			assert.Equal(t, "echo-hello", data.Name)
-			assert.True(t, data.IsNameGenerated)
+			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
+			assert.Equal(t, "echo-hello", data.Task.CodeBlock.Name())
+			assert.True(t, data.Task.CodeBlock.IsUnnamed())
 		}
 		// Named task
 		{
 			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[20])
 
-			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.DocumentPath)
-			assert.Equal(t, "my-task", data.Name)
-			assert.False(t, data.IsNameGenerated)
+			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
+			assert.Equal(t, "my-task", data.Task.CodeBlock.Name())
+			assert.False(t, data.Task.CodeBlock.IsUnnamed())
 		}
 	})
 
@@ -414,9 +414,19 @@ func TestProjectLoad(t *testing.T) {
 		assert.Equal(
 			t,
 			fileProject,
-			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[5]).DocumentPath,
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[5]).Task.DocumentPath,
 		)
 	})
+}
+
+func TestLoadTasks(t *testing.T) {
+	gitProjectDir := testdata.GitProjectPath()
+	p, err := NewDirProject(gitProjectDir, WithFindRepoUpward(), WithIgnoreFilePatterns(".*.bkp"))
+	require.NoError(t, err)
+
+	tasks, err := LoadTasks(context.Background(), p)
+	require.NoError(t, err)
+	assert.Len(t, tasks, 5)
 }
 
 func mapLoadEvents[T any](events []LoadEvent, fn func(LoadEvent) T) []T {

@@ -5,7 +5,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/pkg/project"
+
+	"github.com/stateful/runme/internal/project"
 )
 
 func printCmd() *cobra.Command {
@@ -16,38 +17,24 @@ func printCmd() *cobra.Command {
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			proj, err := getProject()
-			if err != nil {
-				return err
-			}
-
 		generateBlocks:
-			loader, err := newProjectLoader(cmd)
+			tasks, err := getProjectTasks(cmd)
 			if err != nil {
 				return err
 			}
 
-			blocks, err := loader.LoadTasks(proj, fAllowUnknown, fAllowUnnamed, true)
-			if err != nil {
+			task, err := lookupTaskWithPrompt(cmd, args[0], tasks)
+			if project.IsTaskNotFoundError(err) && !fAllowUnnamed {
+				fAllowUnnamed = true
+				goto generateBlocks
+			} else if err != nil {
 				return err
 			}
-
-			fileBlock, err := lookupCodeBlockWithPrompt(cmd, args[0], blocks)
-			if err != nil {
-				if project.IsCodeBlockNotFoundError(err) && !fAllowUnnamed {
-					fAllowUnnamed = true
-					goto generateBlocks
-				}
-
-				return err
-			}
-
-			block := fileBlock.Block
 
 			w := bulkWriter{
 				Writer: cmd.OutOrStdout(),
 			}
-			w.Write([]byte(block.Value()))
+			w.Write([]byte(task.CodeBlock.Value()))
 			w.Write([]byte{'\n'})
 			return errors.Wrap(w.Err(), "failed to write to stdout")
 		},

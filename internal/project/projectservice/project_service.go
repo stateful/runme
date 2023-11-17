@@ -160,10 +160,10 @@ func setDataForLoadResponseFromLoadEvent(resp *projectv1.LoadResponse, event pro
 
 		resp.Data = &projectv1.LoadResponse_FoundTask{
 			FoundTask: &projectv1.LoadEventFoundTask{
-				DocumentPath:    data.DocumentPath,
-				Id:              data.ID,
-				Name:            data.Name,
-				IsNameGenerated: data.IsNameGenerated,
+				DocumentPath:    data.Task.DocumentPath,
+				Id:              data.Task.CodeBlock.ID(),
+				Name:            data.Task.CodeBlock.Name(),
+				IsNameGenerated: data.Task.CodeBlock.IsUnnamed(),
 			},
 		}
 	case project.LoadEventError:

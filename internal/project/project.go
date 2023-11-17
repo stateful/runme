@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
+	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/identity"
@@ -53,10 +55,7 @@ type (
 	}
 
 	LoadEventFoundTaskData struct {
-		DocumentPath    string
-		ID              string
-		Name            string
-		IsNameGenerated bool
+		Task Task
 	}
 
 	LoadEventErrorData struct {
@@ -113,6 +112,12 @@ func WithIdentityResolver(resolver *identity.IdentityResolver) ProjectOption {
 	}
 }
 
+func WithEnvFilesReadOrder(order []string) ProjectOption {
+	return func(p *Project) {
+		p.envFilesReadOrder = order
+	}
+}
+
 type Project struct {
 	identityResolver *identity.IdentityResolver
 
@@ -129,6 +134,10 @@ type Project struct {
 	repo             *git.Repository
 	plainOpenOptions *git.PlainOpenOptions
 	respectGitignore bool
+
+	// envFilesReadOrder is a list of paths to .env files
+	// to read from.
+	envFilesReadOrder []string
 }
 
 func NewDirProject(
@@ -145,18 +154,22 @@ func NewDirProject(
 		return nil, errors.WithStack(err)
 	}
 
-	if p.plainOpenOptions != nil {
-		var err error
-		p.repo, err = git.PlainOpenWithOptions(
-			dir,
-			p.plainOpenOptions,
-		)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
+	p.fs = osfs.New(dir)
+
+	openOptions := p.plainOpenOptions
+
+	if openOptions == nil {
+		openOptions = &git.PlainOpenOptions{}
 	}
 
-	p.fs = osfs.New(dir)
+	var err error
+	p.repo, err = git.PlainOpenWithOptions(
+		dir,
+		openOptions,
+	)
+	if err != nil && !errors.Is(err, git.ErrRepositoryNotExists) {
+		return nil, errors.WithStack(err)
+	}
 
 	return p, nil
 }
@@ -175,19 +188,36 @@ func NewFileProject(
 
 	if !filepath.IsAbs(path) {
 		var err error
-		path, err = filepath.Abs(path)
+		p.filePath, err = filepath.Abs(path)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errors.Wrapf(err, "failed to open file-based project %q", path)
 		}
+	} else {
+		p.filePath = path
 	}
 
 	if _, err := os.Stat(path); err != nil {
-		return nil, errors.WithStack(err)
+		// Handle ErrNotExist to provide more user-friendly error message.
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, errors.Wrapf(os.ErrNotExist, "failed to open file-based project %q", path)
+		}
+		return nil, errors.Wrapf(err, "failed to open file-based project %q", path)
 	}
 
-	p.filePath = path
-
 	return p, nil
+}
+
+func (p *Project) String() string {
+	switch {
+	case p.filePath != "":
+		return fmt.Sprintf("File-based project with path %q", p.filePath)
+	case p.repo != nil:
+		return fmt.Sprintf("Git-based project in directory %q", p.fs.Root())
+	case p.fs != nil:
+		return fmt.Sprintf("Directory-based project in %q", p.fs.Root())
+	default:
+		return "Invalid project"
+	}
 }
 
 func (p *Project) Root() string {
@@ -202,10 +232,34 @@ func (p *Project) Root() string {
 	panic("invariant: Project was not initialized properly")
 }
 
+func (p *Project) EnvFilesReadOrder() []string {
+	return p.envFilesReadOrder
+}
+
+type LoadOptions struct {
+	OnlyFiles bool
+}
+
 func (p *Project) Load(
 	ctx context.Context,
 	eventc chan<- LoadEvent,
 	onlyFiles bool,
+) {
+	p.load(ctx, eventc, LoadOptions{OnlyFiles: onlyFiles})
+}
+
+func (p *Project) LoadWithOptions(
+	ctx context.Context,
+	eventc chan<- LoadEvent,
+	options LoadOptions,
+) {
+	p.load(ctx, eventc, options)
+}
+
+func (p *Project) load(
+	ctx context.Context,
+	eventc chan<- LoadEvent,
+	options LoadOptions,
 ) {
 	defer close(eventc)
 
@@ -219,7 +273,7 @@ func (p *Project) Load(
 			})
 		}
 
-		p.loadFromDirectory(ctx, eventc, ignorePatterns, onlyFiles)
+		p.loadFromDirectory(ctx, eventc, ignorePatterns, options)
 	case p.fs != nil:
 		ignorePatterns, err := p.getAllIgnorePatterns()
 		if err != nil {
@@ -229,9 +283,9 @@ func (p *Project) Load(
 			})
 		}
 
-		p.loadFromDirectory(ctx, eventc, ignorePatterns, onlyFiles)
+		p.loadFromDirectory(ctx, eventc, ignorePatterns, options)
 	case p.filePath != "":
-		p.loadFromFile(ctx, eventc, p.filePath, onlyFiles)
+		p.loadFromFile(ctx, eventc, p.filePath, options)
 	default:
 		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventError,
@@ -276,11 +330,11 @@ func (p *Project) loadFromDirectory(
 	ctx context.Context,
 	eventc chan<- LoadEvent,
 	ignorePatterns []gitignore.Pattern,
-	onlyFiles bool,
+	options LoadOptions,
 ) {
 	filesToSearchBlocks := make([]string, 0)
 	onFileFound := func(path string) {
-		if !onlyFiles {
+		if !options.OnlyFiles {
 			filesToSearchBlocks = append(filesToSearchBlocks, path)
 		}
 	}
@@ -344,7 +398,7 @@ func (p *Project) loadFromFile(
 	ctx context.Context,
 	eventc chan<- LoadEvent,
 	path string,
-	onlyFiles bool,
+	options LoadOptions,
 ) {
 	p.send(ctx, eventc, LoadEvent{Type: LoadEventStartedWalk})
 	p.send(ctx, eventc, LoadEvent{
@@ -355,7 +409,7 @@ func (p *Project) loadFromFile(
 		Type: LoadEventFinishedWalk,
 	})
 
-	if onlyFiles {
+	if options.OnlyFiles {
 		return
 	}
 
@@ -390,10 +444,10 @@ func (p *Project) extractTasksFromFile(
 		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventFoundTask,
 			Data: LoadEventFoundTaskData{
-				DocumentPath:    path,
-				ID:              b.ID(),
-				Name:            b.Name(),
-				IsNameGenerated: b.IsUnnamed(),
+				Task: Task{
+					CodeBlock:    b,
+					DocumentPath: path,
+				},
 			},
 		})
 	}
@@ -425,4 +479,54 @@ func getCodeBlocks(data []byte) (document.CodeBlocks, error) {
 func isMarkdown(filePath string) bool {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	return ext == ".md" || ext == ".mdx" || ext == ".mdi" || ext == ".mdr" || ext == ".run" || ext == ".runme"
+}
+
+func (p *Project) LoadEnvs() ([]string, error) {
+	envs, err := p.LoadEnvsAsMap()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]string, 0, len(envs))
+
+	for k, v := range envs {
+		result = append(result, k+"="+v)
+	}
+
+	return result, nil
+}
+
+func (p *Project) LoadEnvsAsMap() (map[string]string, error) {
+	// For file-based projects, there are no envs to read.
+	if p.fs == nil {
+		return nil, nil
+	}
+
+	envs := make(map[string]string)
+
+	for _, envFile := range p.envFilesReadOrder {
+		bytes, err := util.ReadFile(p.fs, envFile)
+
+		var pathError *os.PathError
+		if err != nil {
+			if !errors.As(err, &pathError) {
+				return nil, errors.Wrapf(err, "failed to read .env file %q", envFile)
+			}
+
+			continue
+		}
+
+		parsed, err := godotenv.UnmarshalBytes(bytes)
+		if err != nil {
+			// silently fail for now
+			// TODO(mxs): come up with better solution
+			continue
+		}
+
+		for k, v := range parsed {
+			envs[k] = v
+		}
+	}
+
+	return envs, nil
 }

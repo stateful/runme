@@ -40,6 +40,8 @@ func CleanupGitProject() {
 // prepareGitProject copies .git.bkp from the ./testdata/git-project to .git in order to
 // make ./testdata/git-project a valid git project.
 func prepareGitProject() {
+	cleanupGitProject()
+
 	dir := GitProjectPath()
 
 	srcBkpFilesToDestFiles := map[string]string{
@@ -49,7 +51,7 @@ func prepareGitProject() {
 	}
 
 	for src, dest := range srcBkpFilesToDestFiles {
-		cmd := exec.Command("cp", "-fr", src, dest)
+		cmd := exec.Command("cp", "-f", "-r", src, dest)
 		if output, err := cmd.CombinedOutput(); err != nil {
 			log.Fatalf("failed to prepare %s: %v; output: %s", dest, err, output)
 		}
@@ -66,7 +68,7 @@ func cleanupGitProject() {
 	}
 
 	for _, file := range files {
-		cmd := exec.Command("rm", "-rf", file)
+		cmd := exec.Command("rm", "-r", "-f", file)
 		if output, err := cmd.CombinedOutput(); err != nil {
 			log.Fatalf("failed clean up %s: %v; output: %s", file, err, output)
 		}

@@ -45,7 +45,7 @@ func codeServerCmd() *cobra.Command {
 				return errors.Wrap(err, "failed to get project")
 			}
 
-			openDir := proj.Dir()
+			openDir := proj.Root()
 
 			if len(args) > 0 {
 				openDir = args[0]

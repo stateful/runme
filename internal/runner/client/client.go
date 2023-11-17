@@ -8,9 +8,10 @@ import (
 
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/muesli/cancelreader"
+	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
-	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
 
@@ -21,7 +22,7 @@ var ErrRunnerClientUnimplemented = fmt.Errorf("method unimplemented")
 type RunnerSettings struct {
 	session         *runner.Session
 	sessionID       string
-	project         project.Project
+	project         *project.Project
 	cleanupSession  bool
 	sessionStrategy runnerv1.SessionStrategy
 
@@ -49,8 +50,8 @@ func (rs *RunnerSettings) Clone() *RunnerSettings {
 }
 
 type Runner interface {
-	RunBlock(ctx context.Context, block project.FileCodeBlock) error
-	DryRunBlock(ctx context.Context, block project.FileCodeBlock, w io.Writer, opts ...RunnerOption) error
+	RunTask(ctx context.Context, task project.Task) error
+	DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error
 	Cleanup(ctx context.Context) error
 
 	Clone() Runner
@@ -86,7 +87,7 @@ func WithSessionID(id string) RunnerOption {
 	})
 }
 
-func WithProject(proj project.Project) RunnerOption {
+func WithProject(proj *project.Project) RunnerOption {
 	return withSettings(func(rs *RunnerSettings) {
 		rs.project = proj
 	})
@@ -227,12 +228,20 @@ func WrapWithCancelReader() RunnerOption {
 	})
 }
 
-func ResolveDirectory(parentDir string, fileBlock project.FileCodeBlock) string {
-	for _, dir := range []string{
-		filepath.Dir(fileBlock.GetFile()),
-		filepath.FromSlash(fileBlock.GetFrontmatter().Cwd),
-		filepath.FromSlash(fileBlock.GetBlock().Cwd()),
-	} {
+func ResolveDirectory(parentDir string, task project.Task) string {
+	// TODO(adamb): consider handling this error or add a comment it can be skipped.
+	fmtr, _ := task.CodeBlock.Document().Frontmatter()
+	if fmtr == nil {
+		fmtr = &document.Frontmatter{}
+	}
+
+	dirs := []string{
+		filepath.Dir(task.DocumentPath),
+		filepath.FromSlash(fmtr.Cwd),
+		filepath.FromSlash(task.CodeBlock.Cwd()),
+	}
+
+	for _, dir := range dirs {
 		newDir := resolveOrAbsolute(parentDir, dir)
 
 		if stat, err := osfs.Default.Stat(newDir); err == nil && stat.IsDir() {

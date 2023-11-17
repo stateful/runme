@@ -9,9 +9,8 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
-	"github.com/stateful/runme/pkg/project"
 )
 
 const stripAnsi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
@@ -23,8 +22,8 @@ type MultiRunner struct {
 
 	StdoutPrefix string
 
-	PreRunMsg  func(blocks []project.FileCodeBlock, parallel bool) string
-	PostRunMsg func(block *document.CodeBlock, exitCode uint) string
+	PreRunMsg  func(tasks []project.Task, parallel bool) string
+	PostRunMsg func(task project.Task, exitCode uint) string
 
 	PreRunOpts []RunnerOption
 }
@@ -71,18 +70,18 @@ func (w *prefixWriter) Write(p []byte) (int, error) {
 	return n - extraBytes, err
 }
 
-func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlock, parallel bool) error {
+func (m MultiRunner) RunBlocks(ctx context.Context, tasks []project.Task, parallel bool) error {
 	if m.PreRunMsg != nil && parallel {
 		_, _ = m.Runner.getSettings().stdout.Write([]byte(
-			m.PreRunMsg(blocks, parallel),
+			m.PreRunMsg(tasks, parallel),
 		))
 	}
 
-	errChan := make(chan error, len(blocks))
+	errChan := make(chan error, len(tasks))
 	var wg sync.WaitGroup
 
-	for _, fileBlock := range blocks {
-		block := fileBlock.GetBlock()
+	for _, task := range tasks {
+		block := task.CodeBlock
 
 		runnerClient := m.Runner.Clone()
 
@@ -93,7 +92,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 
 		if m.PreRunMsg != nil && !parallel {
 			_, _ = m.Runner.getSettings().stdout.Write([]byte(
-				m.PreRunMsg([]project.FileCodeBlock{block}, parallel),
+				m.PreRunMsg([]project.Task{task}, parallel),
 			))
 		}
 
@@ -123,8 +122,8 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 			return err
 		}
 
-		run := func(block project.FileCodeBlock) error {
-			err := runnerClient.RunBlock(ctx, block)
+		run := func(task project.Task) error {
+			err := runnerClient.RunTask(ctx, task)
 
 			code := uint(0)
 
@@ -134,7 +133,7 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 
 			if m.PostRunMsg != nil {
 				_, _ = m.Runner.getSettings().stdout.Write([]byte(
-					m.PostRunMsg(block.GetBlock(), code),
+					m.PostRunMsg(task, code),
 				))
 			}
 
@@ -142,17 +141,17 @@ func (m MultiRunner) RunBlocks(ctx context.Context, blocks []project.FileCodeBlo
 		}
 
 		if !parallel {
-			err := run(fileBlock)
+			err := run(task)
 			if err != nil {
 				return err
 			}
 		} else {
 			wg.Add(1)
-			go func(fileBlock project.FileCodeBlock) {
+			go func(task project.Task) {
 				defer wg.Done()
-				err := run(fileBlock)
+				err := run(task)
 				errChan <- err
-			}(fileBlock)
+			}(task)
 		}
 	}
 

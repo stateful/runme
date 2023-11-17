@@ -12,9 +12,8 @@ import (
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/env"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner"
-	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
 
@@ -58,16 +57,7 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		}
 	}
 
-	envs := os.Environ()
-
-	if r.project != nil {
-		projEnvs, err := r.project.LoadEnvs()
-		if err != nil {
-			return nil, err
-		}
-
-		envs = append(envs, env.ConvertMapEnv(projEnvs)...)
-	}
+	envs := append(os.Environ(), r.envs...)
 
 	sess, err := runner.NewSession(envs, r.logger)
 	if err != nil {
@@ -79,16 +69,19 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	return r, nil
 }
 
-func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Executable, error) {
-	block := fileBlock.GetBlock()
-	fmtr := fileBlock.GetFrontmatter()
+func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
+	block := task.CodeBlock
+	fmtr, err := task.CodeBlock.Document().Frontmatter()
+	if err != nil {
+		return nil, err
+	}
 
 	customShell := r.customShell
-	if fmtr.Shell != "" {
+	if fmtr != nil && fmtr.Shell != "" {
 		customShell = fmtr.Shell
 	}
 
-	programName, _ := runner.GetCellProgram(fileBlock.GetBlock().Language(), customShell, block)
+	programName, _ := runner.GetCellProgram(block.Language(), customShell, block)
 
 	r.session.AddEnvs(r.envs)
 
@@ -102,16 +95,13 @@ func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Exe
 		Logger:  r.logger,
 	}
 
-	if r.project != nil {
-		projEnvs, err := r.project.LoadEnvs()
-		if err != nil {
-			return nil, err
-		}
-
-		cfg.PreEnv = env.ConvertMapEnv(projEnvs)
+	// TODO(adamb): what about `r.envs`?
+	cfg.PreEnv, err = r.project.LoadEnvs()
+	if err != nil {
+		return nil, err
 	}
 
-	cfg.Dir = ResolveDirectory(cfg.Dir, fileBlock)
+	cfg.Dir = ResolveDirectory(cfg.Dir, task)
 
 	if block.Interactive() {
 		cfg.Stdin = r.stdin
@@ -147,14 +137,14 @@ func (r *LocalRunner) newExecutable(fileBlock project.FileCodeBlock) (runner.Exe
 	}
 }
 
-func (r *LocalRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
-	block := fileBlock.GetBlock()
+func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {
+	block := task.CodeBlock
 
 	if r.shellID > 0 {
 		return r.runBlockInShell(ctx, block)
 	}
 
-	executable, err := r.newExecutable(fileBlock)
+	executable, err := r.newExecutable(task)
 	if err != nil {
 		return err
 	}
@@ -203,10 +193,8 @@ func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeB
 	return nil
 }
 
-func (r *LocalRunner) DryRunBlock(ctx context.Context, fileBlock project.FileCodeBlock, w io.Writer, opts ...RunnerOption) error {
-	block := fileBlock.GetBlock()
-
-	executable, err := r.newExecutable(block)
+func (r *LocalRunner) DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error {
+	executable, err := r.newExecutable(task)
 	if err != nil {
 		return err
 	}
