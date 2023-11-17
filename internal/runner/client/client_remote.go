@@ -9,9 +9,6 @@ import (
 
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/runner"
-	"github.com/stateful/runme/pkg/project"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
@@ -20,6 +17,9 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
+	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/internal/runner"
 	runmetls "github.com/stateful/runme/internal/tls"
 )
 
@@ -106,20 +106,23 @@ func (r *RemoteRunner) deleteSession(ctx context.Context) error {
 	return errors.Wrap(err, "failed to delete session")
 }
 
-func ConvertToRunnerProject(proj project.Project) *runnerv1.Project {
+func ConvertToRunnerProject(proj *project.Project) *runnerv1.Project {
 	if proj == nil {
 		return nil
 	}
 
 	return &runnerv1.Project{
-		Root:         proj.Dir(),
-		EnvLoadOrder: proj.EnvLoadOrder(),
+		Root:         proj.Root(),
+		EnvLoadOrder: proj.EnvFilesReadOrder(),
 	}
 }
 
-func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeBlock) error {
-	block := fileBlock.GetBlock()
-	fmtr := fileBlock.GetFrontmatter()
+func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
+	block := task.CodeBlock
+	fmtr, err := task.CodeBlock.Document().Frontmatter()
+	if err != nil {
+		return err
+	}
 
 	stream, err := r.client.Execute(ctx)
 	if err != nil {
@@ -133,7 +136,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		customShell = fmtr.Shell
 	}
 
-	programName, commandMode := runner.GetCellProgram(fileBlock.GetBlock().Language(), customShell, block)
+	programName, commandMode := runner.GetCellProgram(block.Language(), customShell, block)
 
 	var commandModeGrpc runnerv1.CommandMode
 
@@ -157,12 +160,12 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 		StoreLastOutput: true,
 		Envs:            r.envs,
 		CommandMode:     commandModeGrpc,
-		LanguageId:      fileBlock.GetBlock().Language(),
+		LanguageId:      block.Language(),
 	}
 
 	req.Project = ConvertToRunnerProject(r.project)
 
-	req.Directory = ResolveDirectory(req.Directory, fileBlock)
+	req.Directory = ResolveDirectory(req.Directory, task)
 
 	if r.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {
 		req.Envs = os.Environ()
@@ -196,7 +199,7 @@ func (r *RemoteRunner) RunBlock(ctx context.Context, fileBlock project.FileCodeB
 	return g.Wait()
 }
 
-func (r *RemoteRunner) DryRunBlock(ctx context.Context, fileBlock project.FileCodeBlock, w io.Writer, opts ...RunnerOption) error {
+func (r *RemoteRunner) DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error {
 	return ErrRunnerClientUnimplemented
 }
 

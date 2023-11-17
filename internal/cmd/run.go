@@ -18,10 +18,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
-	"github.com/stateful/runme/pkg/project"
 	"golang.org/x/exp/slices"
 )
 
@@ -71,29 +70,24 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			runBlocks := make([]project.FileCodeBlock, 0)
+			var runTasks []project.Task
 
 			{
 			searchBlocks:
-				loader, err := newProjectLoader(cmd)
-				if err != nil {
-					return err
-				}
-
-				blocks, err := loader.LoadTasks(proj, fAllowUnknown, fAllowUnnamed, true)
+				tasks, err := getProjectTasks(cmd)
 				if err != nil {
 					return err
 				}
 
 				if runWithIndex {
-					if runIndex >= len(blocks) {
+					if runIndex >= len(tasks) {
 						return fmt.Errorf("command index %v out of range", runIndex)
 					}
 
-					runBlocks = []project.FileCodeBlock{blocks[runIndex]}
+					runTasks = []project.Task{tasks[runIndex]}
 				} else if runMany {
-					for _, fileBlock := range blocks {
-						block := fileBlock.Block
+					for _, task := range tasks {
+						block := task.CodeBlock
 
 						if runAll && block.ExcludeFromRunAll() {
 							continue
@@ -109,18 +103,18 @@ func runCmd() *cobra.Command {
 							}
 						}
 
-						runBlocks = append(runBlocks, fileBlock)
+						runTasks = append(runTasks, task)
 					}
 
-					if len(runBlocks) == 0 && !fAllowUnnamed {
+					if len(runTasks) == 0 && !fAllowUnnamed {
 						fAllowUnnamed = true
 						goto searchBlocks
 					}
 				} else {
 					for _, arg := range args {
-						block, err := lookupCodeBlockWithPrompt(cmd, arg, blocks)
+						task, err := lookupTaskWithPrompt(cmd, arg, tasks)
 						if err != nil {
-							if project.IsCodeBlockNotFoundError(err) && !fAllowUnnamed {
+							if project.IsTaskNotFoundError(err) && !fAllowUnnamed {
 								fAllowUnnamed = true
 								goto searchBlocks
 							}
@@ -128,16 +122,16 @@ func runCmd() *cobra.Command {
 							return err
 						}
 
-						if err := replace(replaceScripts, block.Block.Lines()); err != nil {
+						if err := replace(replaceScripts, task.CodeBlock.Lines()); err != nil {
 							return err
 						}
 
-						runBlocks = append(runBlocks, block)
+						runTasks = append(runTasks, task)
 					}
 				}
 			}
 
-			if len(runBlocks) == 0 {
+			if len(runTasks) == 0 {
 				return errors.New("No tasks to execute with the category provided")
 			}
 
@@ -189,21 +183,25 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			for _, block := range runBlocks {
-				if block.GetFrontmatter().SkipPrompts {
+			for _, task := range runTasks {
+				fmtr, err := task.CodeBlock.Document().Frontmatter()
+				if err != nil {
+					return err
+				}
+				if fmtr != nil && fmtr.SkipPrompts {
 					skipPrompts = true
 					break
 				}
 			}
 
 			if (skipPromptsExplicitly || isTerminal(os.Stdout.Fd())) && !skipPrompts {
-				err = promptEnvVars(cmd, sessionEnvs, runBlocks...)
+				err = promptEnvVars(cmd, sessionEnvs, runTasks...)
 				if err != nil {
 					return err
 				}
 
 				if runMany {
-					err := confirmExecution(cmd, len(runBlocks), parallel, category)
+					err := confirmExecution(cmd, len(runTasks), parallel, category)
 					if err != nil {
 						return err
 					}
@@ -220,10 +218,10 @@ func runCmd() *cobra.Command {
 
 			multiRunner := client.MultiRunner{
 				Runner: runner,
-				PreRunMsg: func(blocks []project.FileCodeBlock, parallel bool) string {
-					blockNames := make([]string, len(blocks))
-					for i, block := range blocks {
-						blockNames[i] = block.GetBlock().Name()
+				PreRunMsg: func(tasks []project.Task, parallel bool) string {
+					blockNames := make([]string, len(tasks))
+					for i, task := range tasks {
+						blockNames[i] = task.CodeBlock.Name()
 						blockNames[i] = blockColor.Sprint(blockNames[i])
 					}
 
@@ -236,7 +234,7 @@ func runCmd() *cobra.Command {
 						}
 					}
 
-					if len(blocks) > 1 && !runMany {
+					if len(tasks) > 1 && !runMany {
 						scriptRunText += "s"
 					}
 
@@ -254,7 +252,7 @@ func runCmd() *cobra.Command {
 						textColor.Sprint(extraText),
 					)
 				},
-				PostRunMsg: func(block *document.CodeBlock, exitCode uint) string {
+				PostRunMsg: func(task project.Task, exitCode uint) string {
 					var statusIcon string
 
 					if exitCode == 0 {
@@ -268,7 +266,7 @@ func runCmd() *cobra.Command {
 						infoMsgPrefix,
 						statusIcon,
 						textColor.Sprint("Task"),
-						blockColor.Sprint(block.Name()),
+						blockColor.Sprint(task.CodeBlock.Name()),
 						textColor.Sprint("exited with code"),
 						exitCode,
 					)
@@ -283,19 +281,19 @@ func runCmd() *cobra.Command {
 			defer multiRunner.Cleanup(cmd.Context())
 
 			if dryRun {
-				return runner.DryRunBlock(ctx, runBlocks[0], cmd.ErrOrStderr()) // #nosec G602; runBlocks is checked
+				return runner.DryRunTask(ctx, runTasks[0], cmd.ErrOrStderr()) // #nosec G602; runBlocks is checked
 			}
 
 			err = inRawMode(func() error {
-				if len(runBlocks) > 1 {
-					return multiRunner.RunBlocks(ctx, runBlocks, parallel)
+				if len(runTasks) > 1 {
+					return multiRunner.RunBlocks(ctx, runTasks, parallel)
 				}
 
 				if err := client.ApplyOptions(runner, preRunOpts...); err != nil {
 					return err
 				}
 
-				return runner.RunBlock(ctx, runBlocks[0]) // #nosec G602; runBlocks comes from the parent scope and is checked
+				return runner.RunTask(ctx, runTasks[0]) // #nosec G602; runBlocks comes from the parent scope and is checked
 			})
 
 			if err != nil {
@@ -398,19 +396,19 @@ var (
 )
 
 type blockPromptItem struct {
-	block *project.CodeBlock
+	task *project.Task
 }
 
 func (i blockPromptItem) FilterValue() string {
-	return i.block.Block.Name()
+	return i.task.CodeBlock.Name()
 }
 
 func (i blockPromptItem) Title() string {
-	return blockPromptListItemStyle.Render(i.block.Block.Name())
+	return blockPromptListItemStyle.Render(i.task.CodeBlock.Name())
 }
 
 func (i blockPromptItem) Description() string {
-	return i.block.File
+	return i.task.DocumentPath
 }
 
 type RunBlockPrompt struct {
@@ -463,42 +461,39 @@ func (p RunBlockPrompt) View() string {
 	return blockPromptAppStyle.Render(content)
 }
 
-func lookupCodeBlockWithPrompt(cmd *cobra.Command, query string, srcBlocks project.CodeBlocks) (*project.CodeBlock, error) {
+func lookupTaskWithPrompt(cmd *cobra.Command, query string, tasks []project.Task) (task project.Task, err error) {
 	queryFile, queryName, err := splitRunArgument(query)
 	if err != nil {
-		return nil, err
+		return task, err
 	}
 
-	blocks, err := srcBlocks.LookupWithFile(queryFile, queryName)
+	filteredTasks, err := project.FilterTasksByFileAndTaskName(tasks, queryFile, queryName)
 	if err != nil {
-		return nil, err
+		return task, err
 	}
 
-	var block project.CodeBlock
-
-	if len(blocks) > 1 {
+	if len(filteredTasks) > 1 {
 		if !isTerminal(os.Stdout.Fd()) {
-			return nil, fmt.Errorf("multiple matches found for code block; please use a file specifier in the form \"{file}%s{task-name}\"", fileNameSeparator)
+			return task, fmt.Errorf("multiple matches found for code block; please use a file specifier in the form \"{file}%s{task-name}\"", fileNameSeparator)
 		}
 
-		pBlock, err := promptForRun(cmd, blocks)
+		task, err = promptForRun(cmd, filteredTasks)
 		if err != nil {
-			return nil, err
+			return task, err
 		}
-		block = *pBlock
 	} else {
-		block = blocks[0]
+		task = filteredTasks[0]
 	}
 
-	return &block, nil
+	return task, nil
 }
 
-func promptForRun(cmd *cobra.Command, blocks project.CodeBlocks) (*project.CodeBlock, error) {
-	items := make([]list.Item, len(blocks))
+func promptForRun(cmd *cobra.Command, tasks []project.Task) (project.Task, error) {
+	items := make([]list.Item, len(tasks))
 
-	for i := range blocks {
+	for i := range tasks {
 		items[i] = blockPromptItem{
-			block: &blocks[i],
+			task: &tasks[i],
 		}
 	}
 
@@ -526,16 +521,16 @@ func promptForRun(cmd *cobra.Command, blocks project.CodeBlocks) (*project.CodeB
 	prog := newProgramWithOutputs(cmd.OutOrStdout(), cmd.InOrStdin(), model, tea.WithAltScreen())
 	m, err := prog.Run()
 	if err != nil {
-		return nil, err
+		return project.Task{}, err
 	}
 
 	result := m.(RunBlockPrompt).selectedBlock
 
 	if result == nil {
-		return nil, errors.New("no block selected")
+		return project.Task{}, errors.New("no block selected")
 	}
 
-	return result.(blockPromptItem).block, nil
+	return *result.(blockPromptItem).task, nil
 }
 
 func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool, category string) error {
