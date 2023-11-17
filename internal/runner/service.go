@@ -442,10 +442,6 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	logger.Info("command was finalized successfully")
 
-	if exitCode == -1 {
-		logger.Info("command failed", zap.Error(werr))
-	}
-
 	// Close buffers so that the readLoop() can exit.
 	_ = stdout.Close()
 	_ = stderr.Close()
@@ -462,10 +458,16 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		}
 	}
 
-	logger.Info("sending the final response with exit code", zap.Int("exitCode", exitCode))
+	var finalExitCode *wrapperspb.UInt32Value
+	if exitCode > -1 {
+		finalExitCode = wrapperspb.UInt32(uint32(exitCode))
+		logger.Info("sending the final response with exit code", zap.Int("exitCode", int(finalExitCode.GetValue())))
+	} else {
+		logger.Info("sending the final response without exit code since its unknown", zap.Int("exitCode", exitCode))
+	}
 
 	if err := srv.Send(&runnerv1.ExecuteResponse{
-		ExitCode: wrapperspb.UInt32(uint32(exitCode)),
+		ExitCode: finalExitCode,
 	}); err != nil {
 		logger.Info("failed to send exit code", zap.Error(err))
 		if werr == nil {

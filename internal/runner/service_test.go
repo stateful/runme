@@ -74,7 +74,7 @@ func getExecuteResult(
 	stream runnerv1.RunnerService_ExecuteClient,
 	resultc chan<- executeResult,
 ) {
-	var result executeResult
+	result := executeResult{ExitCode: -1}
 
 	for {
 		r, rerr := stream.Recv()
