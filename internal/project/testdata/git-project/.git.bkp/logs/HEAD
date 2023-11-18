@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 9862f00324465b219d0f60dcf1bfcc25bc2dfced Adam Babik <a.babik@designfortress.com> 1699177224 +0100	commit (initial): init commit
+9862f00324465b219d0f60dcf1bfcc25bc2dfced aee634a16f739074d397581b16f359e26ff53891 Adam Babik <a.babik@designfortress.com> 1699189389 +0100	commit: add .gitignore
+aee634a16f739074d397581b16f359e26ff53891 820729cec4e8387ac3462762fe726cb8297997c8 Adam Babik <a.babik@designfortress.com> 1699192891 +0100	commit (amend): add .gitignore
