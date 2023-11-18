@@ -1,61 +1,14 @@
-package project
+package gitrepo
 
 import (
 	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
-	"sort"
 	"strings"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/pkg/errors"
 )
-
-type Resolver struct {
-	cwd string
-}
-
-func NewResolver(dir string) *Resolver {
-	return &Resolver{cwd: dir}
-}
-
-func selectRemoteURL(remotes []*git.Remote) string {
-	sort.Slice(remotes, func(i, j int) bool {
-		a, b := remotes[i], remotes[j]
-		if a.Config().Name == "origin" {
-			return true
-		}
-		if b.Config().Name == "origin" {
-			return false
-		}
-		aURL, bURL := a.Config().URLs[0], b.Config().URLs[0]
-		aIncludesGithub, bIncludesGithub := strings.Contains(aURL, "github"), strings.Contains(bURL, "github")
-		if aIncludesGithub != bIncludesGithub {
-			if aIncludesGithub {
-				return true
-			}
-			if bIncludesGithub {
-				return false
-			}
-		}
-		return strings.Compare(aURL, bURL) == -1
-	})
-	return remotes[0].Config().URLs[0]
-}
-
-func GetCurrentGitEmail(cwd string) (string, error) {
-	cmdSlice := []string{"git", "config", "user.email"}
-	cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
-	cmd.Dir = cwd
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	return string(out), nil
-}
 
 type Branch struct {
 	Name        string
@@ -112,11 +65,12 @@ func getBranchNamesFromStdout(stdout string, greedy bool) []Branch {
 }
 
 func GetUsersBranches(repoUser string) ([]Branch, error) {
-	var email string
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
+
+	var email string
 
 	if len(repoUser) > 0 {
 		email = repoUser
