@@ -2,7 +2,9 @@ package project
 
 import (
 	"context"
+	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -10,6 +12,44 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// prepareGitProject copies .git.bkp from the ./testdata/git-project to .git in order to
+// make ./testdata/git-project a valid git project.
+func prepareGitProject() {
+	dir := testdataGitProject()
+
+	cmd := exec.Command("cp", "-fr", filepath.Join(dir, ".git.bkp"), filepath.Join(dir, ".git"))
+	if output, err := cmd.CombinedOutput(); err != nil {
+		log.Fatalf("failed to prepare .git: %v; output: %s", err, output)
+	}
+
+	cmd = exec.Command("cp", "-f", filepath.Join(dir, ".gitignore.bkp"), filepath.Join(dir, ".gitignore"))
+	if output, err := cmd.CombinedOutput(); err != nil {
+		log.Fatalf("failed to prepare .gitignore: %v; output: %s", err, output)
+	}
+}
+
+func cleanupGitProject() {
+	dir := testdataGitProject()
+
+	cmd := exec.Command("rm", "-rf", filepath.Join(dir, ".git"))
+	if output, err := cmd.CombinedOutput(); err != nil {
+		log.Fatalf("failed clean up .git: %v; output: %s", err, output)
+	}
+
+	cmd = exec.Command("rm", "-f", filepath.Join(dir, ".gitignore"))
+	if output, err := cmd.CombinedOutput(); err != nil {
+		log.Fatalf("failed clean up .gitignore: %v; output: %s", err, output)
+	}
+}
+
+func TestMain(m *testing.M) {
+	prepareGitProject()
+	defer cleanupGitProject()
+
+	code := m.Run()
+	os.Exit(code)
+}
 
 func TestNewDirProject(t *testing.T) {
 	testdataDir := testdataDir()
@@ -51,11 +91,10 @@ func TestNewFileProject(t *testing.T) {
 }
 
 func TestProjectLoad(t *testing.T) {
-	testdataDir := testdataDir()
-	gitProjectDir := filepath.Join(testdataDir, "git-project")
+	gitProjectDir := testdataGitProject()
 
 	t.Run("GitProject", func(t *testing.T) {
-		p, err := NewDirProject(gitProjectDir, WithFindRepoUpward())
+		p, err := NewDirProject(gitProjectDir, WithFindRepoUpward(), WithIgnoreFilePatterns(".git.bkp"))
 		require.NoError(t, err)
 
 		eventc := make(chan LoadEvent)
@@ -93,6 +132,8 @@ func TestProjectLoad(t *testing.T) {
 			t,
 			expectedEvents,
 			mapLoadEvents(events, func(le LoadEvent) LoadEventType { return le.Type }),
+			"collected events: %+v",
+			events,
 		)
 		assert.Equal(
 			t,
@@ -148,6 +189,7 @@ func TestProjectLoad(t *testing.T) {
 			gitProjectDir,
 			WithFindRepoUpward(),
 			WithRespectGitignore(),
+			WithIgnoreFilePatterns(".git.bkp"),
 			WithIgnoreFilePatterns("ignored.md"),
 		)
 		require.NoError(t, err)
@@ -182,7 +224,7 @@ func TestProjectLoad(t *testing.T) {
 		)
 	})
 
-	projectDir := filepath.Join(testdataDir, "dir-project")
+	projectDir := testdataDirProject()
 
 	t.Run("DirProject", func(t *testing.T) {
 		p, err := NewDirProject(projectDir)
@@ -264,7 +306,7 @@ func TestProjectLoad(t *testing.T) {
 		)
 	})
 
-	fileProject := filepath.Join(testdataDir, "file-project.md")
+	fileProject := testdataFileProject()
 
 	t.Run("FileProject", func(t *testing.T) {
 		p, err := NewFileProject(fileProject)
@@ -321,6 +363,18 @@ func testdataDir() string {
 		filepath.Dir(b),
 		"testdata",
 	)
+}
+
+func testdataGitProject() string {
+	return filepath.Join(testdataDir(), "git-project")
+}
+
+func testdataDirProject() string {
+	return filepath.Join(testdataDir(), "dir-project")
+}
+
+func testdataFileProject() string {
+	return filepath.Join(testdataDir(), "file-project.md")
 }
 
 func mapLoadEvents[T any](events []LoadEvent, fn func(LoadEvent) T) []T {

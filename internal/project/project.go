@@ -46,7 +46,7 @@ func WithRespectGitignore() ProjectOption {
 
 func WithIgnoreFilePatterns(patterns ...string) ProjectOption {
 	return func(p *Project) {
-		p.ignoreFilePatterns = patterns
+		p.ignoreFilePatterns = append(p.ignoreFilePatterns, patterns...)
 	}
 }
 
