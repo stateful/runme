@@ -139,7 +139,7 @@ message ExecuteRequest {
   // has no effect in non-interactive mode
   optional Winsize winsize = 10;
 
-  // background indiciates a background process
+  // background indicates a background process
   // this will send the process' PID as a first response
   bool background = 11;
 

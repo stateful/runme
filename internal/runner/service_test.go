@@ -467,7 +467,7 @@ func Test_runnerService(t *testing.T) {
 	})
 
 	// ExecuteClientCancel is similar to "ExecuteCloseSendDirection" but the client cancels
-	// the connection. When running wihout TTY, this and sending ExecuteRequest.stop are
+	// the connection. When running without TTY, this and sending ExecuteRequest.stop are
 	// the only ways to interrupt a program.
 	t.Run("ExecuteClientCancel", func(t *testing.T) {
 		t.Parallel()

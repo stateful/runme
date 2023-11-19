@@ -98,7 +98,7 @@ func Test_directoryGitProject(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, map[string]string{
-			"SECRET_1": "secret1_overriden",
+			"SECRET_1": "secret1_overridden",
 			"SECRET_2": "secret2",
 			"SECRET_3": "secret3",
 		}, envs)
@@ -188,7 +188,7 @@ func Test_directoryBareProject(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, map[string]string{
-			"SECRET_1": "secret1_overriden",
+			"SECRET_1": "secret1_overridden",
 			"SECRET_2": "secret2",
 			"SECRET_3": "secret3",
 		}, envs)

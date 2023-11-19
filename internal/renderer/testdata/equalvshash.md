@@ -18,7 +18,7 @@ The current version looks as follows:
 
 ## Best Practices
 
-We have accumulated a set of best practices while developing VSCode extensions. Please note that these are just recommendations, sometimes based on personal preference. There are many ways to write an extension, and we found the following allow you to write them in a scaleable and testable way:
+We have accumulated a set of best practices while developing VSCode extensions. Please note that these are just recommendations, sometimes based on personal preference. There are many ways to write an extension, and we found the following allow you to write them in a scalable and testable way:
 
 - [Initiate Extensions through an `ExtensionController`](./docs/ExtensionController.md)
 - [Building WebViews](./docs/WebViews.md)
