@@ -18,8 +18,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/stateful/runme/internal/client/graphql"
 	"github.com/stateful/runme/internal/client/graphql/query"
+	"github.com/stateful/runme/internal/gitrepo"
 	"github.com/stateful/runme/internal/log"
-	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
 
@@ -113,7 +113,7 @@ func (m ListModel) Confirmed() bool {
 }
 
 func (m ListModel) startSearch() tea.Msg {
-	userBranches, err := project.GetUsersBranches(m.repoUser)
+	userBranches, err := gitrepo.GetUsersBranches(m.repoUser)
 	if err != nil {
 		// This isn't fatal, we will just defer to the repo branches.
 		log.Get().Debug("Error preparing users branches", zap.Any("err", err))
@@ -122,7 +122,7 @@ func (m ListModel) startSearch() tea.Msg {
 		userBranches = userBranches[:100]
 	}
 
-	repoBranches, err := project.GetRepoBranches()
+	repoBranches, err := gitrepo.GetRepoBranches()
 	if err != nil {
 		// This isn't fatal, worst case we fall back to generic recommendations.
 		log.Get().Debug("Error preparing repository branches", zap.Any("err", err))
@@ -380,7 +380,7 @@ func createListItem(branchName string, showPrefix bool) item {
 	return item{branchName: branchName, usePrefix: showPrefix}
 }
 
-func newGetSuggestedBranch(description string, userBranches []project.Branch, repoBranches []project.Branch) (input query.SuggestedBranchInput, _ error) {
+func newGetSuggestedBranch(description string, userBranches []gitrepo.Branch, repoBranches []gitrepo.Branch) (input query.SuggestedBranchInput, _ error) {
 	ub := []query.BranchSuggestionInput{}
 	for _, x := range userBranches {
 		ub = append(ub, query.BranchSuggestionInput{Branch: x.Name, Description: x.Description})
