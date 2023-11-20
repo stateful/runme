@@ -72,7 +72,9 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		m["runme"] = f.Runme
+		if requireIdentity {
+			m["runme"] = f.Runme
+		}
 
 		var buf bytes.Buffer
 		encoder := yaml.NewEncoder(&buf)
@@ -93,7 +95,9 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		m["runme"] = f.Runme
+		if requireIdentity {
+			m["runme"] = f.Runme
+		}
 
 		data, err := json.Marshal(m)
 		if err != nil {
@@ -108,7 +112,9 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		m["runme"] = f.Runme
+		if requireIdentity {
+			m["runme"] = f.Runme
+		}
 
 		data, err := toml.Marshal(m)
 		if err != nil {

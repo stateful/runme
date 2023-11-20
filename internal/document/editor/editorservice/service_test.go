@@ -95,7 +95,7 @@ func Test_IdentityUnspecified(t *testing.T) {
 			assert.True(t, ok)
 			assert.Len(t, dResp.Notebook.Metadata, 2)
 			assert.Contains(t, rawFrontmatter, "prop: value\n")
-			assert.Contains(t, rawFrontmatter, "id: \"123\"\n")
+			assert.Contains(t, rawFrontmatter, "id: 123\n")
 			assert.Contains(t, rawFrontmatter, "version: v1.0\n")
 		} else {
 			assert.False(t, ok)
@@ -220,7 +220,7 @@ func Test_IdentityCell(t *testing.T) {
 			assert.True(t, ok)
 			assert.Len(t, dResp.Notebook.Metadata, 2)
 			assert.Contains(t, rawFrontmatter, "prop: value\n")
-			assert.Contains(t, rawFrontmatter, "id: \"123\"\n")
+			assert.Contains(t, rawFrontmatter, "id: 123\n")
 			assert.Contains(t, rawFrontmatter, "version: v1.0\n")
 		} else {
 			assert.False(t, ok)
@@ -234,7 +234,7 @@ func Test_IdentityCell(t *testing.T) {
 
 		if tt.hasExtraFrontmatter {
 			assert.Contains(t, content, "runme:\n")
-			assert.Contains(t, content, "id: \"123\"\n")
+			assert.Contains(t, content, "id: 123\n")
 			assert.Contains(t, content, "version: v1.0\n")
 		} else {
 			assert.NotRegexp(t, "^---\n", content)
