@@ -51,7 +51,7 @@ type Notebook struct {
 }
 
 // This mimics what otherwise would happen in the extension
-func (n *Notebook) ForceLifecyleIdentities() {
+func (n *Notebook) ForceLifecycleIdentities() {
 	for _, c := range n.Cells {
 		id, ok := c.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")]
 		if !ok && id == "" || !ulid.ValidID(id) {

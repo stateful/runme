@@ -642,7 +642,7 @@ export class ExecuteRequest extends Message<ExecuteRequest> {
   winsize?: Winsize;
 
   /**
-   * background indiciates a background process
+   * background indicates a background process
    * this will send the process' PID as a first response
    *
    * @generated from field: bool background = 11;

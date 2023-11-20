@@ -45,7 +45,7 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 				formatted = buf.Bytes()
 			} else {
 				if identityResolver.CellEnabled() {
-					notebook.ForceLifecyleIdentities()
+					notebook.ForceLifecycleIdentities()
 				}
 
 				formatted, err = editor.Serialize(notebook)

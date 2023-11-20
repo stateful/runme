@@ -41,7 +41,7 @@ It is always best to discuss your plans beforehand, to ensure that your contribu
 - Make commits of logical units
 - Write [good commit messages](https://cbea.ms/git-commit/)
 - Push your changes to a topic branch in your fork of the repository
-- As you push your changes, update the pull request with new infomation and tasks as you complete them
+- As you push your changes, update the pull request with new information and tasks as you complete them
 - Project maintainers might comment on your work as you progress
 - When you are done, remove the PR's draft status and ping the maintainers for a review
 

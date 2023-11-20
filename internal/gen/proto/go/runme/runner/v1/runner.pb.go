@@ -785,7 +785,7 @@ type ExecuteRequest struct {
 	// sets pty winsize
 	// has no effect in non-interactive mode
 	Winsize *Winsize `protobuf:"bytes,10,opt,name=winsize,proto3,oneof" json:"winsize,omitempty"`
-	// background indiciates a background process
+	// background indicates a background process
 	// this will send the process' PID as a first response
 	Background bool `protobuf:"varint,11,opt,name=background,proto3" json:"background,omitempty"`
 	// session_id indicates in which Session the program should execute.

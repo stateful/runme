@@ -312,7 +312,7 @@ func Test_serializeCells(t *testing.T) {
 		require.NoError(t, err)
 
 		cells := toCells(doc, node, data)
-		// Add private fields whcih will be filtered out durign serialization.
+		// Add private fields which will be filtered out durign serialization.
 		cells[0].Metadata["_private"] = "private"
 		cells[0].Metadata["runme.dev/internal"] = "internal"
 

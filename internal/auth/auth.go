@@ -62,7 +62,7 @@ type Auth struct {
 	// while other can rely on manual copy&paste.
 	env Env
 
-	// loginInProgress is a mutex to prevent concurrect `Login` calls.
+	// loginInProgress is a mutex to prevent concurrent `Login` calls.
 	loginInProgress uint32
 
 	// loginSession contains details about the current login session.

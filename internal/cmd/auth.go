@@ -14,7 +14,7 @@ func loginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Log in to Runme (optional)",
-		Long:  "Log in to Runme is not required for standalone funtionality",
+		Long:  "Log in to Runme is not required for standalone functionality",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return newAuth().Login(cmd.Context())
 		},
