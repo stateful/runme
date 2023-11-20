@@ -498,7 +498,7 @@ func (c *command) ProcessWait() error {
 	return errors.WithStack(c.cmd.Wait())
 }
 
-// Finalize performs necassary actions and cleanups after the process exits.
+// Finalize performs necessary actions and cleanups after the process exits.
 func (c *command) Finalize() (err error) {
 	if c.cmd.ProcessState == nil {
 		return errors.New("process not finished")

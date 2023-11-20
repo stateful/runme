@@ -24,7 +24,7 @@ func TestDiskStorage(t *testing.T) {
 	require.Equal(t, expectedToken, token)
 
 	// Read from non existing key.
-	err = ds.Load("invaid-key", &token)
+	err = ds.Load("invalid-key", &token)
 	require.ErrorIs(t, err, ErrNotFound)
 
 	// Read from invalid path.
