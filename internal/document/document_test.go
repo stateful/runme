@@ -35,8 +35,8 @@ First paragraph.
 2. Item 2
 3. Item 3
 `)
-	doc := New(data, cmark.Render, identityResolver)
-	node, _, err := doc.Parse()
+	doc := New(data, identityResolver)
+	node, err := doc.Root()
 	require.NoError(t, err)
 	assert.Len(t, node.children, 4)
 	assert.Len(t, node.children[0].children, 0)
@@ -68,41 +68,111 @@ First paragraph.
 	assert.Equal(t, "Item 3\n", string(node.children[3].children[2].children[0].Item().Value()))
 }
 
-func TestDocument_BlockIntro(t *testing.T) {
-	data := bytes.TrimSpace([]byte(`
+func TestDocument_Frontmatter(t *testing.T) {
+	t.Run("Parse", func(t *testing.T) {
+		data := bytes.TrimSpace([]byte(`
 ---
 key: value
 ---
 
-` + "```" + `js { name=echo }
-console.log("hello world!")
-` + "```" + `
-
-This is an intro
-
-` + "```" + `js { name=echo-2 }
-console.log("hello world!")
-` + "```" + `
-
+First paragraph
 `,
-	))
+		))
 
-	doc := New(data, cmark.Render, identityResolver)
-	node, _, err := doc.Parse()
-	require.NoError(t, err)
+		doc := New(data, identityResolver)
+		err := doc.Parse()
+		require.NoError(t, err)
+		assert.Equal(t, []byte("First paragraph"), doc.Content())
+		assert.Equal(t, 20, doc.ContentOffset())
 
-	cells := CollectCodeBlocks(node)
+		frontmatter, err := doc.Frontmatter()
+		require.NoError(t, err)
+		marshaledFrontmatter, err := frontmatter.Marshal(identityResolver.DocumentEnabled())
+		require.NoError(t, err)
+		assert.Regexp(t, "---\nkey: value\nrunme:\n  id: .*\n  version: v0.0\n---", string(marshaledFrontmatter))
+	})
 
-	assert.Equal(t, "", cells[0].Intro())
-	assert.Equal(t, "This is an intro", cells[1].Intro())
+	t.Run("Format", func(t *testing.T) {
+		testCases := []struct {
+			Name   string
+			Format string
+			Data   []byte
+		}{
+			{
+				Name:   "YAML",
+				Format: frontmatterFormatYAML,
+				Data: bytes.TrimSpace([]byte(`
+---
+shell: fish
+---
+				`,
+				)),
+			},
+			{
+				Name: "JSON",
+				// TODO(adamb): technically, JSON is valid YAML and the lib that is used here
+				// does not allow to disable that. Figure out a solution.
+				Format: frontmatterFormatYAML,
+				Data: bytes.TrimSpace([]byte(`
+---
+{
+  "shell": "fish"
+}
+---
+				`,
+				)),
+			},
+			{
+				Name:   "TOML",
+				Format: frontmatterFormatTOML,
+				Data: bytes.TrimSpace([]byte(`
+---
+shell = "fish"
+---
+				`,
+				)),
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.Name, func(t *testing.T) {
+				doc := New(tc.Data, identityResolver)
+				_, err := doc.Root()
+				require.NoError(t, err)
+
+				frontmatter, err := doc.Frontmatter()
+				assert.NoError(t, err)
+				assert.Equal(t, "fish", frontmatter.Shell)
+			})
+		}
+	})
+
+	t.Run("InvalidFormat", func(t *testing.T) {
+		data := bytes.TrimSpace([]byte(`
+---
+{
+  "shell": "bin/sh",
+  "cwd": "/path/to/cwd
+}
+---
+`,
+		))
+		doc := New(data, identityResolver)
+		err := doc.Parse()
+		require.NoError(t, err)
+
+		frontmatter, err := doc.Frontmatter()
+		assert.ErrorContains(t, err, "failed to parse frontmatter content: yaml: line 3: found unexpected end of stream")
+		assert.Nil(t, frontmatter)
+	})
 }
 
-func TestDocument_FinalLineBreaks(t *testing.T) {
+func TestDocument_TrailingLineBreaks(t *testing.T) {
 	data := []byte(`This will test final line breaks`)
 
 	t.Run("No breaks", func(t *testing.T) {
-		doc := New(data, cmark.Render, identityResolver)
-		_, astNode, err := doc.Parse()
+		doc := New(data, identityResolver)
+		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
 		actual, err := cmark.Render(astNode, data)
@@ -113,12 +183,13 @@ func TestDocument_FinalLineBreaks(t *testing.T) {
 			string(data),
 			string(actual),
 		)
+		assert.Equal(t, 0, doc.TrailingLineBreaksCount())
 	})
 
 	t.Run("1 LF", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 1)...)
-		doc := New(withLineBreaks, cmark.Render, identityResolver)
-		_, astNode, err := doc.Parse()
+		doc := New(withLineBreaks, identityResolver)
+		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
 		actual, err := cmark.Render(astNode, withLineBreaks)
@@ -129,12 +200,13 @@ func TestDocument_FinalLineBreaks(t *testing.T) {
 			string(withLineBreaks),
 			string(actual),
 		)
+		assert.Equal(t, 1, doc.TrailingLineBreaksCount())
 	})
 
 	t.Run("1 CRLF", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\r', '\n'}, 1)...)
-		doc := New(withLineBreaks, cmark.Render, identityResolver)
-		_, astNode, err := doc.Parse()
+		doc := New(withLineBreaks, identityResolver)
+		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
 		actual, err := cmark.Render(astNode, withLineBreaks)
@@ -145,12 +217,13 @@ func TestDocument_FinalLineBreaks(t *testing.T) {
 			string(withLineBreaks),
 			string(actual),
 		)
+		assert.Equal(t, 1, doc.TrailingLineBreaksCount())
 	})
 
 	t.Run("7 LFs", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
-		doc := New(withLineBreaks, cmark.Render, identityResolver)
-		_, astNode, err := doc.Parse()
+		doc := New(withLineBreaks, identityResolver)
+		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
 		actual, err := cmark.Render(astNode, withLineBreaks)
@@ -161,5 +234,6 @@ func TestDocument_FinalLineBreaks(t *testing.T) {
 			string(actual),
 			string(withLineBreaks),
 		)
+		assert.Equal(t, 7, doc.TrailingLineBreaksCount())
 	})
 }

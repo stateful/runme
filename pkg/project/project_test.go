@@ -15,7 +15,6 @@ import (
 	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/identity"
-	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,8 +35,8 @@ func Test_CodeBlocks(t *testing.T) {
 			bytes, err := util.ReadFile(lfs, file)
 			require.NoError(t, err)
 
-			doc := document.New(bytes, cmark.Render, identityResolverNone)
-			node, _, err := doc.Parse()
+			doc := document.New(bytes, identityResolverNone)
+			node, err := doc.Root()
 			require.NoError(t, err)
 
 			parsedBlocks := document.CollectCodeBlocks(node)

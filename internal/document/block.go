@@ -54,6 +54,7 @@ type CodeBlock struct {
 	id            string
 	idGenerated   bool
 	attributes    map[string]string
+	document      *Document
 	inner         *ast.FencedCodeBlock
 	intro         string
 	language      string
@@ -64,6 +65,7 @@ type CodeBlock struct {
 }
 
 func newCodeBlock(
+	document *Document,
 	node *ast.FencedCodeBlock,
 	identityResolver *identity.IdentityResolver,
 	nameResolver *nameResolver,
@@ -88,6 +90,7 @@ func newCodeBlock(
 		id:            id,
 		idGenerated:   !hasID,
 		attributes:    attributes,
+		document:      document,
 		inner:         node,
 		intro:         getIntro(node, source),
 		language:      getLanguage(node, source),
@@ -99,14 +102,17 @@ func newCodeBlock(
 }
 
 func (b *CodeBlock) Clone() *CodeBlock {
-	lines := make([]string, len(b.lines))
-	copy(lines, b.lines)
-	attributes := make(map[string]string)
-	value := make([]byte, len(b.value))
-	copy(value, b.value)
+	attributes := make(map[string]string, len(b.attributes))
 	for key, value := range b.attributes {
 		attributes[key] = value
 	}
+
+	lines := make([]string, len(b.lines))
+	copy(lines, b.lines)
+
+	value := make([]byte, len(b.value))
+	copy(value, b.value)
+
 	return &CodeBlock{
 		id:            b.id,
 		idGenerated:   b.idGenerated,
@@ -121,6 +127,8 @@ func (b *CodeBlock) Clone() *CodeBlock {
 }
 
 func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
+
+func (b *CodeBlock) Document() *Document { return b.document }
 
 func (b *CodeBlock) Interactive() bool {
 	val, err := strconv.ParseBool(b.Attributes()["interactive"])

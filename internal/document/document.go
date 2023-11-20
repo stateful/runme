@@ -3,6 +3,7 @@ package document
 import (
 	"bytes"
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/yuin/goldmark"
@@ -12,52 +13,144 @@ import (
 
 	"github.com/stateful/runme/internal/document/constants"
 	"github.com/stateful/runme/internal/document/identity"
+	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
+var DefaultRenderer = cmark.Render
+
 type Document struct {
-	astNode          ast.Node
+	source           []byte
 	identityResolver *identity.IdentityResolver
 	nameResolver     *nameResolver
-	node             *Node
 	parser           parser.Parser
 	renderer         Renderer
-	source           []byte
+
+	onceParse               sync.Once
+	parseErr                error
+	onceSplitSource         sync.Once
+	splitSourceErr          error
+	rootASTNode             ast.Node
+	rootNode                *Node
+	frontmatterRaw          []byte
+	content                 []byte // raw data after frontmatter
+	contentOffset           int
+	trailingLineBreaksCount int
+
+	onceParseFrontmatter sync.Once
+	parseFrontmatterErr  error
+	frontmatter          *Frontmatter
 }
 
-func New(source []byte, renderer Renderer, identityResolver *identity.IdentityResolver) *Document {
+func New(source []byte, identityResolver *identity.IdentityResolver) *Document {
 	return &Document{
+		source:           source,
 		identityResolver: identityResolver,
 		nameResolver: &nameResolver{
 			namesCounter: map[string]int{},
 			cache:        map[interface{}]string{},
 		},
-		parser:   goldmark.DefaultParser(),
-		renderer: renderer,
-		source:   source,
+		parser:               goldmark.DefaultParser(),
+		renderer:             DefaultRenderer,
+		onceParse:            sync.Once{},
+		onceSplitSource:      sync.Once{},
+		onceParseFrontmatter: sync.Once{},
+		contentOffset:        -1,
 	}
 }
 
-func (d *Document) Parse() (*Node, ast.Node, error) {
-	if d.astNode == nil {
-		d.astNode = d.parse()
+func (d *Document) Content() []byte {
+	return d.content
+}
+
+// ContentOffset returns the position of source from which
+// the actual content starts. If a value <0 is returned,
+// it means that the source is not parsed yet.
+//
+// Frontmatter is not a part of the content.
+func (d *Document) ContentOffset() int {
+	return d.contentOffset
+}
+
+func (d *Document) TrailingLineBreaksCount() int {
+	return d.trailingLineBreaksCount
+}
+
+func (d *Document) Parse() error {
+	return d.splitAndParse()
+}
+
+func (d *Document) RootAST() (ast.Node, error) {
+	if err := d.splitAndParse(); err != nil {
+		return nil, err
+	}
+	return d.rootASTNode, nil
+}
+
+func (d *Document) Root() (*Node, error) {
+	if err := d.splitAndParse(); err != nil {
+		return nil, err
+	}
+	return d.rootNode, nil
+}
+
+func (d *Document) splitAndParse() error {
+	d.splitSource()
+
+	if err := d.splitSourceErr; err != nil {
+		return err
 	}
 
-	if d.node == nil {
-		node := &Node{}
-		if err := d.buildBlocksTree(d.astNode, node); err != nil {
-			return nil, nil, errors.WithStack(err)
+	d.parse()
+
+	if d.parseErr != nil {
+		return d.parseErr
+	}
+
+	return nil
+}
+
+func (d *Document) splitSource() {
+	d.onceSplitSource.Do(func() {
+		l := &itemParser{input: d.source}
+
+		runItemParser(l, parseInit)
+
+		for _, item := range l.items {
+			switch item.Type() {
+			case parsedItemFrontMatter:
+				d.frontmatterRaw = item.Value(d.source)
+			case parsedItemContent:
+				d.content = item.Value(d.source)
+				d.contentOffset = item.start
+			case parsedItemError:
+				// TODO(adamb): handle this error somehow
+				if !errors.Is(item.err, errParseFrontmatter) {
+					d.splitSourceErr = item.err
+					return
+				}
+			}
 		}
-		d.node = node
-	}
-
-	finalNewLines := CountFinalLineBreaks(d.source, DetectLineBreak(d.source))
-	d.astNode.SetAttributeString(constants.FinalLineBreaksKey, finalNewLines)
-
-	return d.node, d.astNode, nil
+	})
 }
 
-func (d *Document) parse() ast.Node {
-	return d.parser.Parse(text.NewReader(d.source))
+func (d *Document) parse() {
+	d.onceParse.Do(func() {
+		d.rootASTNode = d.parser.Parse(text.NewReader(d.content))
+
+		node := &Node{}
+		if err := d.buildBlocksTree(d.rootASTNode, node); err != nil {
+			d.parseErr = err
+			return
+		}
+
+		d.rootNode = node
+
+		d.trailingLineBreaksCount = countTrailingLineBreaks(d.source, detectLineBreak(d.source))
+		// Retain trailing new lines. This information must be stored in
+		// ast.Node's attributes because it's later used by internal/renderer/cmark.Render,
+		// which does not use anything else than ast.Node.
+		d.rootASTNode.SetAttributeString(constants.FinalLineBreaksKey, d.trailingLineBreaksCount)
+	})
 }
 
 func (d *Document) buildBlocksTree(parent ast.Node, node *Node) error {
@@ -65,10 +158,11 @@ func (d *Document) buildBlocksTree(parent ast.Node, node *Node) error {
 		switch astNode.Kind() {
 		case ast.KindFencedCodeBlock:
 			block, err := newCodeBlock(
+				d,
 				astNode.(*ast.FencedCodeBlock),
 				d.identityResolver,
 				d.nameResolver,
-				d.source,
+				d.content,
 				d.renderer,
 			)
 			if err != nil {
@@ -76,7 +170,7 @@ func (d *Document) buildBlocksTree(parent ast.Node, node *Node) error {
 			}
 			node.add(block)
 		case ast.KindBlockquote, ast.KindList, ast.KindListItem:
-			block, err := newInnerBlock(astNode, d.source, d.renderer)
+			block, err := newInnerBlock(astNode, d.content, d.renderer)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -85,7 +179,7 @@ func (d *Document) buildBlocksTree(parent ast.Node, node *Node) error {
 				return err
 			}
 		default:
-			block, err := newMarkdownBlock(astNode, d.source, d.renderer)
+			block, err := newMarkdownBlock(astNode, d.content, d.renderer)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -115,7 +209,11 @@ func (r *nameResolver) Get(obj interface{}, name string) string {
 	return result
 }
 
-func CountFinalLineBreaks(source []byte, lineBreak []byte) int {
+func CountTrailingLineBreaks(source []byte, lineBreak []byte) int {
+	return countTrailingLineBreaks(source, lineBreak)
+}
+
+func countTrailingLineBreaks(source []byte, lineBreak []byte) int {
 	i := len(source) - len(lineBreak)
 	numBreaks := 0
 
@@ -128,6 +226,10 @@ func CountFinalLineBreaks(source []byte, lineBreak []byte) int {
 }
 
 func DetectLineBreak(source []byte) []byte {
+	return detectLineBreak(source)
+}
+
+func detectLineBreak(source []byte) []byte {
 	crlfCount := bytes.Count(source, []byte{'\r', '\n'})
 	lfCount := bytes.Count(source, []byte{'\n'})
 	if crlfCount == lfCount {

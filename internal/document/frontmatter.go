@@ -1,196 +1,135 @@
 package document
 
 import (
-	byteslib "bytes"
+	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"strings"
+	stderrors "errors"
 
 	"github.com/pelletier/go-toml/v2"
-	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	ulid "github.com/stateful/runme/internal/ulid"
-	"github.com/stateful/runme/internal/version"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
+
+	"github.com/stateful/runme/internal/ulid"
+	"github.com/stateful/runme/internal/version"
 )
 
-type RunmeMetaData struct {
+var ErrFrontmatterInvalid = stderrors.New("invalid frontmatter")
+
+const (
+	frontmatterFormatYAML = "yaml"
+	frontmatterFormatJSON = "json"
+	frontmatterFormatTOML = "toml"
+)
+
+type RunmeMetadata struct {
 	ID      string `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
 	Version string `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
 }
 
 type Frontmatter struct {
-	Runme       RunmeMetaData `yaml:"runme,omitempty"`
-	Shell       string        `yaml:"shell,omitempty"`
-	Cwd         string        `yaml:"cwd,omitempty"`
+	Runme       RunmeMetadata `yaml:"runme,omitempty"`
+	Shell       string        `yaml:"shell"`
+	Cwd         string        `yaml:"cwd"`
 	SkipPrompts bool          `yaml:"skipPrompts,omitempty"`
+
+	format string
+	raw    string // using string to be able to compare using ==
 }
 
-type FrontmatterParseInfo struct {
-	yaml error
-	json error
-	toml error
-
-	other error
-
-	raw string
-}
-
-func NewFrontmatter() Frontmatter {
-	return Frontmatter{
-		Runme: RunmeMetaData{
+func newFrontmatter() *Frontmatter {
+	return &Frontmatter{
+		Runme: RunmeMetadata{
 			ID:      ulid.GenerateID(),
 			Version: version.BaseVersion(),
 		},
+
+		format: frontmatterFormatYAML,
 	}
 }
 
-func (fpi *FrontmatterParseInfo) GetRaw() string {
-	return fpi.raw
-}
-
-func (fpi FrontmatterParseInfo) YAMLError() error {
-	return fpi.yaml
-}
-
-func (fpi FrontmatterParseInfo) JSONError() error {
-	return fpi.json
-}
-
-func (fpi FrontmatterParseInfo) TOMLError() error {
-	return fpi.toml
-}
-
-func (fpi FrontmatterParseInfo) Error() error {
-	return fpi.other
-}
-
-func toJSONStr(f *Frontmatter, source []byte, requireIdentity bool) (string, error) {
-	m := make(map[string]interface{})
-
-	if err := json.Unmarshal(source, &m); err != nil {
-		return "", err
+// Marshal returns a marshaled frontmatter including triple-dashed lines.
+// If the identity is required, but Frontmatter is nil, a new one is created.
+func (f *Frontmatter) Marshal(requireIdentity bool) ([]byte, error) {
+	if f == nil {
+		if !requireIdentity {
+			return nil, nil
+		}
+		f = newFrontmatter()
 	}
+	return f.marshal(requireIdentity)
+}
 
+func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 	if requireIdentity {
 		f.ensureID()
-		m["runme"] = f.Runme
 	}
 
-	dest, err := json.Marshal(m)
-	if err != nil {
-		return "", err
-	}
+	switch f.format {
+	case frontmatterFormatYAML:
+		m := make(map[string]interface{})
 
-	if len(m) == 0 {
-		return "", nil
-	}
+		if err := yaml.Unmarshal([]byte(f.raw), &m); err != nil {
+			return nil, errors.WithStack(err)
+		}
 
-	return fmt.Sprintf("---\n%s\n---", string(dest)), nil
+		if requireIdentity {
+			m["runme"] = f.Runme
+		}
+
+		var buf bytes.Buffer
+		encoder := yaml.NewEncoder(&buf)
+		encoder.SetIndent(2)
+		if err := encoder.Encode(m); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if err := encoder.Close(); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		return append(append([]byte("---\n"), buf.Bytes()...), []byte("---")...), nil
+
+	case frontmatterFormatJSON:
+		m := make(map[string]interface{})
+
+		if err := json.Unmarshal([]byte(f.raw), &m); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		if requireIdentity {
+			m["runme"] = f.Runme
+		}
+
+		data, err := json.Marshal(m)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return append(append([]byte("---\n"), data...), []byte("---")...), nil
+
+	case frontmatterFormatTOML:
+		m := make(map[string]interface{})
+
+		if err := toml.Unmarshal([]byte(f.raw), &m); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		if requireIdentity {
+			m["runme"] = f.Runme
+		}
+
+		data, err := toml.Marshal(m)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return append(append([]byte("+++\n"), data...), []byte("+++")...), nil
+
+	default:
+		panic("invariant: Frontmatter created with invalid format")
+	}
 }
 
-func toYamlStr(f *Frontmatter, source []byte, requireIdentity bool) (string, error) {
-	m := make(map[string]interface{})
-
-	if err := yaml.Unmarshal(source, &m); err != nil {
-		return "", err
-	}
-
-	if requireIdentity {
-		f.ensureID()
-		m["runme"] = f.Runme
-	}
-
-	var buf byteslib.Buffer
-	encoder := yaml.NewEncoder(&buf)
-	encoder.SetIndent(2)
-	err := encoder.Encode(&m)
-	if err != nil {
-		return "", err
-	}
-
-	source = buf.Bytes()
-	err = encoder.Close()
-	if err != nil {
-		return "", err
-	}
-
-	if len(m) == 0 {
-		return "", nil
-	}
-
-	return fmt.Sprintf("---\n%s---", string(source)), nil
-}
-
-func toTomlStr(f *Frontmatter, source []byte, requireIdentity bool) (string, error) {
-	m := make(map[string]interface{})
-
-	if err := toml.Unmarshal(source, &m); err != nil {
-		return "", err
-	}
-
-	if requireIdentity {
-		f.ensureID()
-		m["runme"] = f.Runme
-	}
-
-	dest, err := toml.Marshal(m)
-	if err != nil {
-		return "", err
-	}
-
-	if len(m) == 0 {
-		return "", nil
-	}
-
-	return fmt.Sprintf("+++\n%s+++", string(dest)), nil
-}
-
-// ParseFrontmatter extracts the Frontmatter from a raw string and identifies its format.
-func ParseFrontmatter(raw string) (Frontmatter, FrontmatterParseInfo) {
-	return ParseFrontmatterWithIdentity(raw, false)
-}
-
-func ParseFrontmatterWithIdentity(raw string, enabled bool) (f Frontmatter, info FrontmatterParseInfo) {
-	lines := strings.Split(raw, "\n")
-
-	if raw == "" {
-		info.raw, info.yaml = toYamlStr(&f, []byte(raw), enabled)
-		return
-	}
-
-	if len(lines) < 2 || strings.TrimSpace(lines[0]) != strings.TrimSpace(lines[len(lines)-1]) {
-		info.other = errors.New("invalid frontmatter")
-		return
-	}
-
-	raw = strings.Join(lines[1:len(lines)-1], "\n")
-
-	bytes := []byte(raw)
-
-	if info.yaml = yaml.Unmarshal(bytes, &f); info.yaml == nil {
-		info.raw, info.yaml = toYamlStr(&f, bytes, enabled)
-		return
-	}
-
-	if info.json = json.Unmarshal(bytes, &f); info.json == nil {
-		info.raw, info.json = toJSONStr(&f, bytes, enabled)
-		return
-	}
-
-	if info.toml = toml.Unmarshal(bytes, &f); info.toml == nil {
-		info.raw, info.toml = toTomlStr(&f, bytes, enabled)
-		return
-	}
-
-	info.raw, info.yaml = toYamlStr(&f, bytes, enabled)
-
-	return
-}
-
-func (fmtr *Frontmatter) ensureID() {
-	if !ulid.ValidID(fmtr.Runme.ID) {
-		fmtr.Runme.ID = ulid.GenerateID()
+func (f *Frontmatter) ensureID() {
+	if !ulid.ValidID(f.Runme.ID) {
+		f.Runme.ID = ulid.GenerateID()
 	}
 
 	baseVersion := version.BaseVersion()
@@ -198,13 +137,91 @@ func (fmtr *Frontmatter) ensureID() {
 	// if fmtr.Runme.Version != "" && baseVersion == "v0.0" {
 	// 	return
 	// }
-	fmtr.Runme.Version = baseVersion
+	f.Runme.Version = baseVersion
 }
 
-func (fmtr Frontmatter) ToParser() *parserv1.Frontmatter {
-	return &parserv1.Frontmatter{
-		Shell:       fmtr.Shell,
-		Cwd:         fmtr.Cwd,
-		SkipPrompts: fmtr.SkipPrompts,
+func (d *Document) Frontmatter() (*Frontmatter, error) {
+	d.splitSource()
+
+	if d.splitSourceErr != nil {
+		return nil, d.splitSourceErr
 	}
+
+	d.parseFrontmatter()
+
+	if d.parseFrontmatterErr != nil {
+		return nil, d.parseFrontmatterErr
+	}
+
+	return d.frontmatter, nil
+}
+
+func (d *Document) parseFrontmatter() {
+	d.onceParseFrontmatter.Do(func() {
+		d.frontmatter, d.parseFrontmatterErr = parseFrontmatter(d.frontmatterRaw)
+	})
+}
+
+// TODO(adamb): it should be removed when the complete refactoring of the project is finished.
+func ParseFrontmatter(raw []byte) (*Frontmatter, error) {
+	return parseFrontmatter(raw)
+}
+
+func parseFrontmatter(raw []byte) (*Frontmatter, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+
+	// We know that frontmatter is not empty,
+	// so d.frontmatter won't be nil ever.
+	// However, it may still be invalid and
+	// this detail will be in d.parseFrontmatterErr.
+	var f Frontmatter
+
+	lines := bytes.Split(raw, []byte{'\n'})
+
+	if len(lines) < 2 || !bytes.Equal(bytes.TrimSpace(lines[0]), bytes.TrimSpace(lines[len(lines)-1])) {
+		return nil, errors.WithStack(ErrFrontmatterInvalid)
+	}
+
+	raw = bytes.Join(lines[1:len(lines)-1], []byte{'\n'})
+
+	// TODO(adamb): discuss how to approach this in the most sensible way.
+	// It can always return to the initial idea of returning all errors,
+	// but the client will be left with the same problem.
+	parsers := []func([]byte, any) error{
+		yaml.Unmarshal,
+		json.Unmarshal,
+		toml.Unmarshal,
+	}
+	parsersNames := []string{
+		frontmatterFormatYAML,
+		frontmatterFormatJSON,
+		frontmatterFormatTOML,
+	}
+	errorsCount := 0
+
+	var firstError error
+
+	for idx, parser := range parsers {
+		err := parser(raw, &f)
+		if err != nil {
+			errorsCount++
+
+			if firstError == nil {
+				firstError = errors.Wrap(err, "failed to parse frontmatter content")
+			}
+		} else {
+			f.format = parsersNames[idx]
+			f.raw = string(raw)
+			break
+		}
+	}
+
+	// If all parsers returned errors, select the first one.
+	if errorsCount == len(parsers) {
+		return nil, firstError
+	}
+
+	return &f, nil
 }

@@ -54,8 +54,8 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 				}
 			}
 		} else {
-			doc := document.New(data, cmark.Render, identityResolver)
-			_, astNode, err := doc.Parse()
+			doc := document.New(data, identityResolver)
+			astNode, err := doc.RootAST()
 			if err != nil {
 				return errors.Wrap(err, "failed to parse source")
 			}

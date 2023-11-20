@@ -26,7 +26,7 @@ wasm:
 
 .PHONY: test
 test: build
-	@TZ=UTC go test ./...
+	@TZ=UTC go test -timeout=30s ./...
 
 .PHONY: test/update-snapshots
 test/update-snapshots:

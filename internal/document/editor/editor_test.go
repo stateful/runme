@@ -24,7 +24,6 @@ var (
 
 func TestMain(m *testing.M) {
 	ulid.MockGenerator(testMockID)
-
 	code := m.Run()
 	ulid.ResetGenerator()
 	os.Exit(code)
@@ -162,7 +161,7 @@ Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second
 	assert.Equal(t, "Link1", nChild["Text"].(string))
 }
 
-func TestEditor_FrontMatter(t *testing.T) {
+func TestEditor_Frontmatter(t *testing.T) {
 	data := []byte(fmt.Sprintf(`+++
 prop1 = 'val1'
 prop2 = 'val2'
