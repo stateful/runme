@@ -10,6 +10,9 @@ LDFLAGS := -s -w \
 	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))' \
 	-X 'github.com/stateful/runme/internal/version.Commit=$(GIT_SHA)'
 
+LDTESTFLAGS := -s -w \
+	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))'
+
 ifeq ($(RUNME_EXT_BASE),)
 RUNME_EXT_BASE := "../vscode-runme"
 endif
@@ -26,7 +29,7 @@ wasm:
 
 .PHONY: test
 test: build
-	@TZ=UTC go test -timeout=30s ./...
+	@TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=30s ./...
 
 .PHONY: test/update-snapshots
 test/update-snapshots:
