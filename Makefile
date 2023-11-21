@@ -10,8 +10,7 @@ LDFLAGS := -s -w \
 	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))' \
 	-X 'github.com/stateful/runme/internal/version.Commit=$(GIT_SHA)'
 
-LDTESTFLAGS := -s -w \
-	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))'
+LDTESTFLAGS := -X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))'
 
 ifeq ($(RUNME_EXT_BASE),)
 RUNME_EXT_BASE := "../vscode-runme"
