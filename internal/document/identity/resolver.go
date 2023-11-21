@@ -96,12 +96,6 @@ func (ir *IdentityResolver) GetCellID(obj interface{}, attributes map[string]str
 	id := ulid.GenerateID()
 	ir.cache[obj] = id
 
-	// TODO(cepeda): I'm not entirely confident that this is the optimal approach.
-	// In my opinion, if a new ID is generated at the time of ID resolution,
-	// it should also be updated in the metadata. Alternatively, this could be handled
-	// outside of this function.
-	// attributes["id"] = id
-
 	return id, false
 }
 
