@@ -27,6 +27,7 @@ wasm:
 	GOOS=js GOARCH=wasm go build -o $(WASM_OUTPUT)/runme.wasm -ldflags="$(LDFLAGS)" ./web
 
 .PHONY: test
+test: PKGS ?= "./..."
 test: build
 	@TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=30s ./...
 
@@ -38,6 +39,10 @@ test/update-snapshots:
 test/robustness:
 	@cd integration/subject && npm install --include=dev
 	find . -name "README.md" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --chdir {} > /dev/null
+
+.PHONY: coverage/html
+test/coverage/html:
+	go tool cover -html=cover.out
 
 .PHONY: fmt
 fmt:
