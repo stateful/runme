@@ -24,21 +24,21 @@ foo-command
 skipPrompts: true
 ---
 
-```bash { name=set-env category=foo interactive=true  }
+```bash {"category":"foo","interactive":true,"name":"set-env"}
 $ export ENV="foo!"
 ```
 
-```bash { name=print-foo category=foo interactive=true }
+```bash {"category":"foo","interactive":true,"name":"print-foo"}
 $ stty -opost
 $ echo "$ENV"
 ```
 
-```bash { name=print-bar category=foo,bar interactive=true }
+```bash {"category":"foo,bar","interactive":true,"name":"print-bar"}
 $ stty -opost
 $ echo "bar!"
 ```
 
-```bash { name=excluded category=foo,bar interactive=true excludeFromRunAll=true }
+```bash {"category":"foo,bar","interactive":true,"excludeFromRunAll":true,"name":"excluded"}
 $ stty -opost
 $ echo "excluded!"
 ```
@@ -47,7 +47,7 @@ $ echo "excluded!"
 skipPrompts: true
 ---
 
-```sh { name=foo-command category=c1 interactive=true}
+```sh {"category":"c1","interactive":true,"name":"foo-command"}
 $ stty -opost
 export BAR="foo-command"
 echo $BAR

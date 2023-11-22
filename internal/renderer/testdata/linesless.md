@@ -1,6 +1,6 @@
 To deploy to production, run:
 
-```sh
+```sh {"id":"01HFW6VKQX9B4ZJH9TG4A5XKKC"}
 deployctl deploy --project=runme main.ts
 ```
 

@@ -10,21 +10,21 @@ cmp stdout bar-list.txt
 
 -- CATEGORIES.md --
 
-```bash { name=set-env category=foo }
+```bash {"category":"foo","name":"set-env"}
 $ export ENV="foo!"
 ```
 
-```bash { name=print-foo category=foo }
+```bash {"category":"foo","name":"print-foo"}
 $ stty -opost
 $ echo "$ENV"
 ```
 
-```bash { name=print-bar category=foo,bar }
+```bash {"category":"foo,bar","name":"print-bar"}
 $ stty -opost
 $ echo "bar!"
 ```
 
-```bash { name=excluded category=foo,bar excludeFromRunAll=true }
+```bash {"category":"foo,bar","excludeFromRunAll":true,"name":"excluded"}
 $ stty -opost
 $ echo "excluded!"
 ```
