@@ -140,19 +140,23 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 			})
 		}
 
-		execSummary := &editor.CellExecutionSummary{}
-		if cell.ExecutionSummary.ExecutionOrder != nil {
-			execSummary.ExecutionOrder = cell.ExecutionSummary.ExecutionOrder.Value
-		}
+		var execSummary *editor.CellExecutionSummary
+		if cell.ExecutionSummary != nil {
+			execSummary = &editor.CellExecutionSummary{}
 
-		if cell.ExecutionSummary.Success != nil {
-			execSummary.Success = cell.ExecutionSummary.Success.Value
-		}
+			if cell.ExecutionSummary.ExecutionOrder != nil {
+				execSummary.ExecutionOrder = cell.ExecutionSummary.ExecutionOrder.Value
+			}
 
-		if cell.ExecutionSummary.Timing != nil {
-			execSummary.Timing = &editor.ExecutionSummaryTiming{
-				StartTime: cell.ExecutionSummary.Timing.StartTime.Value,
-				EndTime:   cell.ExecutionSummary.Timing.EndTime.Value,
+			if cell.ExecutionSummary.Success != nil {
+				execSummary.Success = cell.ExecutionSummary.Success.Value
+			}
+
+			if cell.ExecutionSummary.Timing != nil {
+				execSummary.Timing = &editor.ExecutionSummaryTiming{
+					StartTime: cell.ExecutionSummary.Timing.StartTime.Value,
+					EndTime:   cell.ExecutionSummary.Timing.EndTime.Value,
+				}
 			}
 		}
 
