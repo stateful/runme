@@ -2,12 +2,47 @@ syntax = "proto3";
 
 package runme.parser.v1;
 
+import "google/protobuf/wrappers.proto";
+
 option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1;parserv1";
 
 message Notebook {
   repeated Cell cells = 1;
   map<string, string> metadata = 2;
   Frontmatter frontmatter = 3;
+}
+
+message ExecutionSummaryTiming {
+  google.protobuf.Int64Value start_time = 1;
+  google.protobuf.Int64Value end_time = 2;
+}
+
+message CellOutputItem {
+  bytes data = 1;
+  string type = 2;
+  string mime = 3;
+}
+
+message ProcessInfoExitReason {
+  string type = 1;
+  uint32 code = 2;
+}
+
+message CellOutputProcessInfo {
+  ProcessInfoExitReason exit_reason = 1;
+  int64 pid = 2;
+}
+
+message CellOutput {
+  repeated CellOutputItem items = 1;
+  map<string, string> metadata = 2;
+  CellOutputProcessInfo process_info = 3;
+}
+
+message CellExecutionSummary {
+  google.protobuf.UInt32Value execution_order = 1;
+  google.protobuf.BoolValue success = 2;
+  ExecutionSummaryTiming timing = 3;
 }
 
 message TextRange {
@@ -27,6 +62,8 @@ message Cell {
   string language_id = 3;
   map<string, string> metadata = 4;
   TextRange text_range = 5;
+  repeated CellOutput outputs = 6;
+  CellExecutionSummary execution_summary = 7;
 }
 
 enum RunmeIdentity {

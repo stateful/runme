@@ -2,6 +2,8 @@ package editorservice
 
 import (
 	"context"
+	"encoding/base64"
+	"strings"
 
 	"github.com/stateful/runme/internal/document/editor"
 	"github.com/stateful/runme/internal/document/identity"
@@ -88,11 +90,79 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
+		outputs := make([]*editor.CellOutput, 0, len(cell.Outputs))
+		for _, cellOut := range cell.Outputs {
+			var outputItems []*editor.CellOutputItem
+			for _, item := range cellOut.Items {
+				if strings.HasPrefix(item.Mime, "stateful.") {
+					continue
+				}
+
+				if len(item.Data) <= 0 {
+					continue
+				}
+
+				dataBase64 := ""
+				dataValue := ""
+				if !strings.HasPrefix(item.Mime, "image") {
+					dataValue = string(item.Data)
+				} else {
+					dataBase64 = base64.URLEncoding.EncodeToString(item.Data)
+				}
+
+				outputItems = append(outputItems, &editor.CellOutputItem{
+					Data:  dataBase64,
+					Value: dataValue,
+					Type:  item.Type,
+					Mime:  item.Mime,
+				})
+			}
+
+			if len(outputItems) <= 0 {
+				continue
+			}
+
+			var outputProcessInfo *editor.CellOutputProcessInfo
+			if cellOut.ProcessInfo != nil {
+				outputProcessInfo = &editor.CellOutputProcessInfo{
+					ExitReason: &editor.ProcessInfoExitReason{
+						Type: cellOut.ProcessInfo.ExitReason.Type,
+						Code: cellOut.ProcessInfo.ExitReason.Code,
+					},
+					Pid: cellOut.ProcessInfo.Pid,
+				}
+			}
+
+			outputs = append(outputs, &editor.CellOutput{
+				Items:       outputItems,
+				Metadata:    cellOut.Metadata,
+				ProcessInfo: outputProcessInfo,
+			})
+		}
+
+		execSummary := &editor.CellExecutionSummary{}
+		if cell.ExecutionSummary.ExecutionOrder != nil {
+			execSummary.ExecutionOrder = cell.ExecutionSummary.ExecutionOrder.Value
+		}
+
+		if cell.ExecutionSummary.Success != nil {
+			execSummary.Success = cell.ExecutionSummary.Success.Value
+		}
+
+		if cell.ExecutionSummary.Timing != nil {
+			execSummary.Timing = &editor.ExecutionSummaryTiming{
+				StartTime: cell.ExecutionSummary.Timing.StartTime.Value,
+				EndTime:   cell.ExecutionSummary.Timing.EndTime.Value,
+			}
+		}
+
 		cells = append(cells, &editor.Cell{
-			Kind:       editor.CellKind(cell.Kind),
-			Value:      cell.Value,
-			LanguageID: cell.LanguageId,
-			Metadata:   cell.Metadata,
+			Kind:             editor.CellKind(cell.Kind),
+			Value:            cell.Value,
+			LanguageID:       cell.LanguageId,
+			Metadata:         cell.Metadata,
+			Outputs:          outputs,
+			ExecutionSummary: execSummary,
 		})
 	}
 
