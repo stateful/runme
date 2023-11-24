@@ -2,7 +2,7 @@
     "go.testTimeout": "10s",
     "go.buildFlags": [
         // Hardcoded the runme version because VSCode couldn't resolve it.
-        "-ldflags=-X 'github.com/stateful/runme/internal/version.BuildVersion=2.0.0'",
+        "-ldflags=-X 'github.com/stateful/runme/internal/version.BuildVersion=9.9.9'",
     ],
     "protoc": {
         "options": [
