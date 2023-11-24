@@ -4,12 +4,14 @@ import (
 	"context"
 	"io"
 	"net"
-	"path/filepath"
-	"runtime"
 	"testing"
 
+	"github.com/pkg/errors"
 	projectv1 "github.com/stateful/runme/internal/gen/proto/go/runme/project/v1"
 	"github.com/stateful/runme/internal/project/projectservice"
+	"github.com/stateful/runme/internal/project/testdata"
+	"github.com/stateful/runme/internal/project/testutils"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -24,26 +26,63 @@ func TestProjectServiceServerLoad(t *testing.T) {
 	t.Cleanup(stop)
 	_, client := testCreateProjectServiceClient(t, lis)
 
-	req := &projectv1.LoadRequest{
-		Kind: &projectv1.LoadRequest_Directory{
-			Directory: &projectv1.DirectoryProjectOptions{
-				Path:               filepath.Join(testdataDir(), "git-project"),
-				RespectGitignore:   true,
-				IgnoreFilePatterns: []string{"ignored.md"},
-				FindRepoUpward:     true,
+	t.Run("GitProject", func(t *testing.T) {
+		t.Parallel()
+
+		req := &projectv1.LoadRequest{
+			Kind: &projectv1.LoadRequest_Directory{
+				Directory: &projectv1.DirectoryProjectOptions{
+					Path:               testdata.GitProjectPath(),
+					RespectGitignore:   true,
+					IgnoreFilePatterns: testutils.IgnoreFilePatternsWithDefaults("ignored.md"),
+					FindRepoUpward:     true,
+				},
 			},
-		},
-	}
-	loadClient, err := client.Load(context.Background(), req)
-	require.NoError(t, err)
+		}
+
+		loadClient, err := client.Load(context.Background(), req)
+		require.NoError(t, err)
+
+		eventTypes, err := collectLoadEventTypes(loadClient)
+		require.NoError(t, err)
+		assert.Len(t, eventTypes, len(testutils.GitProjectLoadOnlyNotIgnoredFilesEvents))
+	})
+
+	t.Run("FileProject", func(t *testing.T) {
+		t.Parallel()
+
+		req := &projectv1.LoadRequest{
+			Kind: &projectv1.LoadRequest_File{
+				File: &projectv1.FileProjectOptions{
+					Path: testdata.ProjectFilePath(),
+				},
+			},
+		}
+
+		loadClient, err := client.Load(context.Background(), req)
+		require.NoError(t, err)
+
+		eventTypes, err := collectLoadEventTypes(loadClient)
+		require.NoError(t, err)
+		assert.Len(t, eventTypes, len(testutils.FileProjectEvents))
+	})
+}
+
+func collectLoadEventTypes(client projectv1.ProjectService_LoadClient) ([]projectv1.LoadEventType, error) {
+	var eventTypes []projectv1.LoadEventType
 
 	for {
-		_, err := loadClient.Recv()
-		if err == io.EOF {
+		resp, err := client.Recv()
+		if errors.Is(err, io.EOF) {
 			break
+		} else if err != nil {
+			return nil, errors.WithStack(err)
 		}
-		require.NoError(t, err)
+
+		eventTypes = append(eventTypes, resp.Type)
 	}
+
+	return eventTypes, nil
 }
 
 func testStartProjectServiceServer(t *testing.T) (
@@ -77,14 +116,4 @@ func testCreateProjectServiceClient(
 	)
 	require.NoError(t, err)
 	return conn, projectv1.NewProjectServiceClient(conn)
-}
-
-// TODO(adamb): a better approach is to store "testdata" during build time.
-func testdataDir() string {
-	_, b, _, _ := runtime.Caller(0)
-	return filepath.Join(
-		filepath.Dir(b),
-		"..",
-		"testdata",
-	)
 }

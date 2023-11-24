@@ -2,72 +2,68 @@ package project
 
 import (
 	"context"
-	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 
+	"github.com/stateful/runme/internal/project/testdata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// prepareGitProject copies .git.bkp from the ./testdata/git-project to .git in order to
-// make ./testdata/git-project a valid git project.
-func prepareGitProject() {
-	dir := testdataGitProject()
+func TestLoadEvent_ExtractData(t *testing.T) {
+	t.Run("MatchingTypes", func(t *testing.T) {
+		event := LoadEvent{
+			Type: LoadEventFoundDir,
+			Data: LoadEventFoundDirData{
+				Dir: "/some/path",
+			},
+		}
 
-	cmd := exec.Command("cp", "-fr", filepath.Join(dir, ".git.bkp"), filepath.Join(dir, ".git"))
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Fatalf("failed to prepare .git: %v; output: %s", err, output)
-	}
+		var data LoadEventFoundDirData
+		event.ExtractDataValue(&data)
+		assert.Equal(t, "/some/path", data.Dir)
+	})
 
-	cmd = exec.Command("cp", "-f", filepath.Join(dir, ".gitignore.bkp"), filepath.Join(dir, ".gitignore"))
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Fatalf("failed to prepare .gitignore: %v; output: %s", err, output)
-	}
-}
+	t.Run("NotMatchingTypes", func(t *testing.T) {
+		event := LoadEvent{
+			Type: LoadEventFoundDir,
+			Data: LoadEventFoundDirData{
+				Dir: "/some/path",
+			},
+		}
 
-func cleanupGitProject() {
-	dir := testdataGitProject()
-
-	cmd := exec.Command("rm", "-rf", filepath.Join(dir, ".git"))
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Fatalf("failed clean up .git: %v; output: %s", err, output)
-	}
-
-	cmd = exec.Command("rm", "-f", filepath.Join(dir, ".gitignore"))
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Fatalf("failed clean up .gitignore: %v; output: %s", err, output)
-	}
+		var dir LoadEventStartedWalkData
+		require.Panics(t, func() {
+			event.ExtractDataValue(&dir)
+		})
+	})
 }
 
 func TestMain(m *testing.M) {
-	prepareGitProject()
-	defer cleanupGitProject()
+	testdata.PrepareGitProject()
+	defer testdata.CleanupGitProject()
 
 	code := m.Run()
 	os.Exit(code)
 }
 
 func TestNewDirProject(t *testing.T) {
-	testdataDir := testdataDir()
-
 	t.Run("ProperDirProject", func(t *testing.T) {
-		projectDir := filepath.Join(testdataDir, "dir-project")
+		projectDir := testdata.DirProjectPath()
 		_, err := NewDirProject(projectDir)
 		require.NoError(t, err)
 	})
 
 	t.Run("ProperGitProject", func(t *testing.T) {
 		// git-based project is also a dir-based project.
-		gitProjectDir := filepath.Join(testdataDir, "git-project")
+		gitProjectDir := testdata.GitProjectPath()
 		_, err := NewDirProject(gitProjectDir)
 		require.NoError(t, err)
 	})
 
 	t.Run("UnknownDir", func(t *testing.T) {
+		testdataDir := testdata.TestdataPath()
 		unknownDir := filepath.Join(testdataDir, "unknown-project")
 		_, err := NewDirProject(unknownDir)
 		require.ErrorIs(t, err, os.ErrNotExist)
@@ -75,23 +71,21 @@ func TestNewDirProject(t *testing.T) {
 }
 
 func TestNewFileProject(t *testing.T) {
-	testdataDir := testdataDir()
-
 	t.Run("UnknownFile", func(t *testing.T) {
-		fileProject := filepath.Join(testdataDir, "unknown-file.md")
+		fileProject := filepath.Join(testdata.TestdataPath(), "unknown-file.md")
 		_, err := NewFileProject(fileProject)
 		require.ErrorIs(t, err, os.ErrNotExist)
 	})
 
 	t.Run("ProperFileProject", func(t *testing.T) {
-		fileProject := filepath.Join(testdataDir, "file-project.md")
+		fileProject := testdata.ProjectFilePath()
 		_, err := NewFileProject(fileProject)
 		require.NoError(t, err)
 	})
 }
 
 func TestProjectLoad(t *testing.T) {
-	gitProjectDir := testdataGitProject()
+	gitProjectDir := testdata.GitProjectPath()
 
 	t.Run("GitProject", func(t *testing.T) {
 		p, err := NewDirProject(gitProjectDir, WithFindRepoUpward(), WithIgnoreFilePatterns(".git.bkp"))
@@ -224,7 +218,7 @@ func TestProjectLoad(t *testing.T) {
 		)
 	})
 
-	projectDir := testdataDirProject()
+	projectDir := testdata.DirProjectPath()
 
 	t.Run("DirProject", func(t *testing.T) {
 		p, err := NewDirProject(projectDir)
@@ -306,7 +300,7 @@ func TestProjectLoad(t *testing.T) {
 		)
 	})
 
-	fileProject := testdataFileProject()
+	fileProject := testdata.ProjectFilePath()
 
 	t.Run("FileProject", func(t *testing.T) {
 		p, err := NewFileProject(fileProject)
@@ -354,27 +348,6 @@ func TestProjectLoad(t *testing.T) {
 			dataFromLoadEvent[CodeBlock](events[5]).Filename,
 		)
 	})
-}
-
-// TODO(adamb): a better approach is to store "testdata" during build time.
-func testdataDir() string {
-	_, b, _, _ := runtime.Caller(0)
-	return filepath.Join(
-		filepath.Dir(b),
-		"testdata",
-	)
-}
-
-func testdataGitProject() string {
-	return filepath.Join(testdataDir(), "git-project")
-}
-
-func testdataDirProject() string {
-	return filepath.Join(testdataDir(), "dir-project")
-}
-
-func testdataFileProject() string {
-	return filepath.Join(testdataDir(), "file-project.md")
 }
 
 func mapLoadEvents[T any](events []LoadEvent, fn func(LoadEvent) T) []T {

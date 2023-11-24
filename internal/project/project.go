@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/go-git/go-billy/v5"
@@ -31,9 +32,49 @@ const (
 	LoadEventError
 )
 
+type (
+	LoadEventStartedWalkData  struct{}
+	LoadEventFinishedWalkData struct{}
+
+	LoadEventFoundDirData struct {
+		Dir string
+	}
+
+	LoadEventFoundFileData struct {
+		Path string
+	}
+
+	LoadEventStartedParsingDocumentData struct {
+		Path string
+	}
+
+	LoadEventFinishedParsingDocumentData struct {
+		Path string
+	}
+
+	LoadEventFoundTaskData struct {
+		DocumentPath string
+		ID           string
+		Name         string
+	}
+
+	LoadEventErrorData struct {
+		Err error
+	}
+)
+
 type LoadEvent struct {
 	Type LoadEventType
 	Data any
+}
+
+// TODO(adamb): add more robust implementation.
+//
+//	I think it's ok to keep it reflection-based,
+//	but it should check if LoadEventType matches
+//	Data type.
+func (e LoadEvent) ExtractDataValue(val any) {
+	reflect.ValueOf(val).Elem().Set(reflect.ValueOf(e.Data))
 }
 
 type ProjectOption func(*Project)
@@ -224,7 +265,7 @@ func (p *Project) Load(
 			if err != nil {
 				eventc <- LoadEvent{
 					Type: LoadEventError,
-					Data: errors.WithStack(err),
+					Data: LoadEventErrorData{Err: errors.WithStack(err)},
 				}
 			}
 			ignorePatterns = append(ignorePatterns, patterns...)
@@ -246,7 +287,7 @@ func (p *Project) Load(
 			if err != nil {
 				eventc <- LoadEvent{
 					Type: LoadEventError,
-					Data: errors.WithStack(err),
+					Data: LoadEventErrorData{Err: errors.WithStack(err)},
 				}
 			}
 			ignorePatterns = append(ignorePatterns, patterns...)
@@ -262,7 +303,7 @@ func (p *Project) Load(
 	default:
 		eventc <- LoadEvent{
 			Type: LoadEventError,
-			Data: errors.New("invariant violation: Project struct initialized incorrectly"),
+			Data: LoadEventErrorData{Err: errors.New("invariant violation: Project struct initialized incorrectly")},
 		}
 	}
 }
@@ -299,12 +340,12 @@ func (p *Project) loadFromDirectory(
 			if info.IsDir() {
 				eventc <- LoadEvent{
 					Type: LoadEventFoundDir,
-					Data: absPath,
+					Data: LoadEventFoundDirData{Dir: absPath},
 				}
 			} else if isMarkdown(path) {
 				eventc <- LoadEvent{
 					Type: LoadEventFoundFile,
-					Data: absPath,
+					Data: LoadEventFoundFileData{Path: absPath},
 				}
 
 				onFileFound(absPath)
@@ -318,7 +359,7 @@ func (p *Project) loadFromDirectory(
 	if err != nil {
 		eventc <- LoadEvent{
 			Type: LoadEventError,
-			Data: err,
+			Data: LoadEventErrorData{Err: err},
 		}
 	}
 
@@ -345,7 +386,7 @@ func (p *Project) loadFromFile(
 
 	eventc <- LoadEvent{
 		Type: LoadEventFoundFile,
-		Data: path,
+		Data: LoadEventFoundFileData{Path: path},
 	}
 
 	eventc <- LoadEvent{
@@ -366,29 +407,30 @@ func extractTasksFromFile(
 ) {
 	eventc <- LoadEvent{
 		Type: LoadEventStartedParsingDocument,
-		Data: path,
+		Data: LoadEventStartedParsingDocumentData{Path: path},
 	}
 
 	codeBlocks, err := getCodeBlocksFromFile(path)
 
 	eventc <- LoadEvent{
 		Type: LoadEventFinishedParsingDocument,
-		Data: path,
+		Data: LoadEventFinishedParsingDocumentData{Path: path},
 	}
 
 	if err != nil {
 		eventc <- LoadEvent{
 			Type: LoadEventError,
-			Data: err,
+			Data: LoadEventErrorData{Err: err},
 		}
 	}
 
 	for _, b := range codeBlocks {
 		eventc <- LoadEvent{
 			Type: LoadEventFoundTask,
-			Data: CodeBlock{
-				Filename:  path,
-				CodeBlock: b,
+			Data: LoadEventFoundTaskData{
+				DocumentPath: path,
+				ID:           b.ID(),
+				Name:         b.Name(),
 			},
 		}
 	}

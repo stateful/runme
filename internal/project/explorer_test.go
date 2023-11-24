@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stateful/runme/internal/project/testdata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestExplorer_Files(t *testing.T) {
-	gitProject := filepath.Join(testdataDir(), "git-project")
+	gitProject := testdata.GitProjectPath()
 
 	p, err := NewDirProject(gitProject, WithRespectGitignore())
 	require.NoError(t, err)
@@ -25,7 +26,7 @@ func TestExplorer_Files(t *testing.T) {
 }
 
 func TestExplorer_Tasks(t *testing.T) {
-	gitProject := filepath.Join(testdataDir(), "git-project")
+	gitProject := testdata.GitProjectPath()
 
 	p, err := NewDirProject(gitProject, WithRespectGitignore())
 	require.NoError(t, err)
