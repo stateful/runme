@@ -58,7 +58,7 @@ func (s *projectServiceServer) Load(req *projectv1.LoadRequest, srv projectv1.Pr
 			// via cancel(). eventc will be closed, but it should be drained too
 			// in order to clean up any in-flight events.
 			// In theory, this is not necessary provided that all sends to eventc
-			// are wrapped in selects, which observe ctx.Done().
+			// are wrapped in selects which observe ctx.Done().
 			//revive:disable:empty-block
 			for range eventc {
 			}
@@ -105,21 +105,63 @@ func projectFromReq(req *projectv1.LoadRequest) (*project.Project, error) {
 func setDataForLoadResponseFromLoadEvent(resp *projectv1.LoadResponse, event project.LoadEvent) error {
 	switch event.Type {
 	case project.LoadEventStartedWalk:
+		resp.Data = &projectv1.LoadResponse_StartedWalk{
+			StartedWalk: &projectv1.LoadEventStartedWalk{},
+		}
 	case project.LoadEventFoundDir:
-		var data project.LoadEventFoundDirData
-		event.ExtractDataValue(&data)
+		data := project.ExtractDataFromLoadEvent[project.LoadEventFoundDirData](event)
 
 		resp.Data = &projectv1.LoadResponse_FoundDir{
 			FoundDir: &projectv1.LoadEventFoundDir{
-				Dir: data.Dir,
+				Dir: data.Path,
 			},
 		}
 	case project.LoadEventFoundFile:
+		data := project.ExtractDataFromLoadEvent[project.LoadEventFoundFileData](event)
+
+		resp.Data = &projectv1.LoadResponse_FoundFile{
+			FoundFile: &projectv1.LoadEventFoundFile{
+				FilepathAbs: data.Path,
+			},
+		}
 	case project.LoadEventFinishedWalk:
+		resp.Data = &projectv1.LoadResponse_FinishedWalk{
+			FinishedWalk: &projectv1.LoadEventFinishedWalk{},
+		}
 	case project.LoadEventStartedParsingDocument:
+		data := project.ExtractDataFromLoadEvent[project.LoadEventStartedParsingDocumentData](event)
+
+		resp.Data = &projectv1.LoadResponse_StartedParsingDoc{
+			StartedParsingDoc: &projectv1.LoadEventStartedParsingDoc{
+				FilepathAbs: data.Path,
+			},
+		}
 	case project.LoadEventFinishedParsingDocument:
+		data := project.ExtractDataFromLoadEvent[project.LoadEventFinishedParsingDocumentData](event)
+
+		resp.Data = &projectv1.LoadResponse_FinishedParsingDoc{
+			FinishedParsingDoc: &projectv1.LoadEventFinishedParsingDoc{
+				FilepathAbs: data.Path,
+			},
+		}
 	case project.LoadEventFoundTask:
+		data := project.ExtractDataFromLoadEvent[project.LoadEventFoundTaskData](event)
+
+		resp.Data = &projectv1.LoadResponse_FoundTask{
+			FoundTask: &projectv1.LoadEventFoundTask{
+				Filename: data.DocumentPath,
+				Id:       data.ID,
+				Name:     data.Name,
+			},
+		}
 	case project.LoadEventError:
+		data := project.ExtractDataFromLoadEvent[project.LoadEventErrorData](event)
+
+		resp.Data = &projectv1.LoadResponse_Error{
+			Error: &projectv1.LoadEventError{
+				ErrorMessage: data.Err.Error(),
+			},
+		}
 	default:
 		return errors.New("unknown LoadEventType while converting project.LoadEvent to projectv1.LoadResponse")
 	}

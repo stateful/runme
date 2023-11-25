@@ -11,31 +11,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoadEvent_ExtractData(t *testing.T) {
+func TestExtractDataFromLoadEvent(t *testing.T) {
 	t.Run("MatchingTypes", func(t *testing.T) {
 		event := LoadEvent{
 			Type: LoadEventFoundDir,
 			Data: LoadEventFoundDirData{
-				Dir: "/some/path",
+				Path: "/some/path",
 			},
 		}
 
-		var data LoadEventFoundDirData
-		event.ExtractDataValue(&data)
-		assert.Equal(t, "/some/path", data.Dir)
+		data := ExtractDataFromLoadEvent[LoadEventFoundDirData](event)
+		assert.Equal(t, "/some/path", data.Path)
 	})
 
 	t.Run("NotMatchingTypes", func(t *testing.T) {
 		event := LoadEvent{
 			Type: LoadEventFoundDir,
 			Data: LoadEventFoundDirData{
-				Dir: "/some/path",
+				Path: "/some/path",
 			},
 		}
 
-		var dir LoadEventStartedWalkData
 		require.Panics(t, func() {
-			event.ExtractDataValue(&dir)
+			ExtractDataFromLoadEvent[LoadEventStartedWalkData](event)
 		})
 	})
 }
@@ -77,10 +75,31 @@ func TestNewFileProject(t *testing.T) {
 		require.ErrorIs(t, err, os.ErrNotExist)
 	})
 
+	t.Run("NotAbsPath", func(t *testing.T) {
+		_, err := NewFileProject("unknown-file.md")
+		require.ErrorIs(t, err, os.ErrNotExist)
+	})
+
 	t.Run("ProperFileProject", func(t *testing.T) {
 		fileProject := testdata.ProjectFilePath()
 		_, err := NewFileProject(fileProject)
 		require.NoError(t, err)
+	})
+}
+
+func TestProjectRoot(t *testing.T) {
+	t.Run("GitProject", func(t *testing.T) {
+		gitProjectDir := testdata.GitProjectPath()
+		p, err := NewDirProject(gitProjectDir)
+		require.NoError(t, err)
+		assert.Equal(t, gitProjectDir, p.Root())
+	})
+
+	t.Run("FileProject", func(t *testing.T) {
+		fileProject := testdata.ProjectFilePath()
+		p, err := NewFileProject(fileProject)
+		require.NoError(t, err)
+		assert.Equal(t, testdata.TestdataPath(), p.Root())
 	})
 }
 
@@ -133,7 +152,7 @@ func TestProjectLoad(t *testing.T) {
 			t,
 			LoadEvent{
 				Type: LoadEventFoundDir,
-				Data: gitProjectDir,
+				Data: LoadEventFoundDirData{Path: gitProjectDir},
 			},
 			events[1],
 		)
@@ -141,7 +160,7 @@ func TestProjectLoad(t *testing.T) {
 			t,
 			LoadEvent{
 				Type: LoadEventFoundFile,
-				Data: filepath.Join(gitProjectDir, "git-ignored.md"),
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "git-ignored.md")},
 			},
 			events[2],
 		)
@@ -149,7 +168,7 @@ func TestProjectLoad(t *testing.T) {
 			t,
 			LoadEvent{
 				Type: LoadEventFoundFile,
-				Data: filepath.Join(gitProjectDir, "ignored.md"),
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "ignored.md")},
 			},
 			events[3],
 		)
@@ -157,24 +176,24 @@ func TestProjectLoad(t *testing.T) {
 			t,
 			LoadEvent{
 				Type: LoadEventFoundFile,
-				Data: filepath.Join(gitProjectDir, "readme.md"),
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "readme.md")},
 			},
 			events[4],
 		)
 		assert.Equal(
 			t,
 			filepath.Join(gitProjectDir, "git-ignored.md"),
-			dataFromLoadEvent[CodeBlock](events[8]).Filename,
+			dataFromLoadEvent[LoadEventFoundTaskData](events[8]).DocumentPath,
 		)
 		assert.Equal(
 			t,
 			filepath.Join(gitProjectDir, "ignored.md"),
-			dataFromLoadEvent[CodeBlock](events[11]).Filename,
+			dataFromLoadEvent[LoadEventFoundTaskData](events[11]).DocumentPath,
 		)
 		assert.Equal(
 			t,
 			filepath.Join(gitProjectDir, "readme.md"),
-			dataFromLoadEvent[CodeBlock](events[14]).Filename,
+			dataFromLoadEvent[LoadEventFoundTaskData](events[14]).DocumentPath,
 		)
 	})
 
@@ -338,14 +357,14 @@ func TestProjectLoad(t *testing.T) {
 			t,
 			LoadEvent{
 				Type: LoadEventFoundFile,
-				Data: fileProject,
+				Data: LoadEventFoundFileData{Path: fileProject},
 			},
 			events[1],
 		)
 		assert.Equal(
 			t,
 			fileProject,
-			dataFromLoadEvent[CodeBlock](events[5]).Filename,
+			dataFromLoadEvent[LoadEventFoundTaskData](events[5]).DocumentPath,
 		)
 	})
 }

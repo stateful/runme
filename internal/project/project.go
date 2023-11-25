@@ -13,10 +13,10 @@ import (
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/identity"
+	"go.uber.org/multierr"
 )
 
 type LoadEventType uint8
@@ -37,7 +37,7 @@ type (
 	LoadEventFinishedWalkData struct{}
 
 	LoadEventFoundDirData struct {
-		Dir string
+		Path string
 	}
 
 	LoadEventFoundFileData struct {
@@ -70,11 +70,16 @@ type LoadEvent struct {
 
 // TODO(adamb): add more robust implementation.
 //
-//	I think it's ok to keep it reflection-based,
-//	but it should check if LoadEventType matches
-//	Data type.
-func (e LoadEvent) ExtractDataValue(val any) {
+// Consider switching away from reflection
+// as this method is used in hot code path.
+func (e LoadEvent) extractDataValue(val any) {
 	reflect.ValueOf(val).Elem().Set(reflect.ValueOf(e.Data))
+}
+
+func ExtractDataFromLoadEvent[T any](event LoadEvent) T {
+	var data T
+	event.extractDataValue(&data)
+	return data
 }
 
 type ProjectOption func(*Project)
@@ -101,12 +106,6 @@ func WithFindRepoUpward() ProjectOption {
 	}
 }
 
-func WithEnvRelFilenames(orderFilenames []string) ProjectOption {
-	return func(p *Project) {
-		p.envRelFilenames = orderFilenames
-	}
-}
-
 func WithIdentityResolver(resolver *identity.IdentityResolver) ProjectOption {
 	return func(p *Project) {
 		p.identityResolver = resolver
@@ -129,11 +128,6 @@ type Project struct {
 	repo             *git.Repository
 	plainOpenOptions *git.PlainOpenOptions
 	respectGitignore bool
-
-	// envRelFilenames contains an ordered list of file names,
-	// relative to dir-based projects, from which envs
-	// should be loaded.
-	envRelFilenames []string
 }
 
 func NewDirProject(
@@ -172,6 +166,8 @@ func NewFileProject(
 ) (*Project, error) {
 	p := &Project{}
 
+	// For compatibility, but currently no option is
+	// valid for file projects,
 	for _, opt := range opts {
 		opt(p)
 	}
@@ -205,44 +201,6 @@ func (p *Project) Root() string {
 	panic("invariant: Project was not initialized properly")
 }
 
-func (p *Project) EnvRelFilenames() []string {
-	return p.envRelFilenames
-}
-
-func (p *Project) LoadEnvs() ([]string, error) {
-	if p.fs == nil {
-		return nil, nil
-	}
-
-	var envs []string
-
-	for _, envFile := range p.envRelFilenames {
-		bytes, err := util.ReadFile(p.fs, envFile)
-		if err != nil {
-			// TODO(adamb): log this error
-			var pathError *os.PathError
-			if !errors.As(err, &pathError) {
-				return nil, errors.WithStack(err)
-			}
-
-			continue
-		}
-
-		parsed, err := godotenv.UnmarshalBytes(bytes)
-		if err != nil {
-			// silently fail for now
-			// TODO(mxs): come up with better solution
-			continue
-		}
-
-		for k, v := range parsed {
-			envs = append(envs, k+"="+v)
-		}
-	}
-
-	return envs, nil
-}
-
 func (p *Project) Load(
 	ctx context.Context,
 	eventc chan<- LoadEvent,
@@ -252,60 +210,63 @@ func (p *Project) Load(
 
 	switch {
 	case p.repo != nil:
-		// Git-based project.
-		// TODO: confirm if the order of appending to ignorePatterns is important.
-		ignorePatterns := []gitignore.Pattern{
-			// Ignore .git by default.
-			gitignore.ParsePattern(".git", nil),
-			gitignore.ParsePattern(".git/*", nil),
-		}
-
-		if p.respectGitignore {
-			patterns, err := gitignore.ReadPatterns(p.fs, nil)
-			if err != nil {
-				eventc <- LoadEvent{
-					Type: LoadEventError,
-					Data: LoadEventErrorData{Err: errors.WithStack(err)},
-				}
-			}
-			ignorePatterns = append(ignorePatterns, patterns...)
-		}
-
-		for _, p := range p.ignoreFilePatterns {
-			ignorePatterns = append(ignorePatterns, gitignore.ParsePattern(p, nil))
+		ignorePatterns, err := p.getAllIgnorePatterns()
+		if err != nil {
+			p.send(ctx, eventc, LoadEvent{
+				Type: LoadEventError,
+				Data: LoadEventErrorData{Err: err},
+			})
 		}
 
 		p.loadFromDirectory(ctx, eventc, ignorePatterns, onlyFiles)
 	case p.fs != nil:
-		// Dir-based project.
-		ignorePatterns := make([]gitignore.Pattern, 0, len(p.ignoreFilePatterns))
-
-		// It's allowed for a dir-based project to read
-		// .gitignore and interpret it.
-		if p.respectGitignore {
-			patterns, err := gitignore.ReadPatterns(p.fs, nil)
-			if err != nil {
-				eventc <- LoadEvent{
-					Type: LoadEventError,
-					Data: LoadEventErrorData{Err: errors.WithStack(err)},
-				}
-			}
-			ignorePatterns = append(ignorePatterns, patterns...)
-		}
-
-		for _, p := range p.ignoreFilePatterns {
-			ignorePatterns = append(ignorePatterns, gitignore.ParsePattern(p, nil))
+		ignorePatterns, err := p.getAllIgnorePatterns()
+		if err != nil {
+			p.send(ctx, eventc, LoadEvent{
+				Type: LoadEventError,
+				Data: LoadEventErrorData{Err: err},
+			})
 		}
 
 		p.loadFromDirectory(ctx, eventc, ignorePatterns, onlyFiles)
 	case p.filePath != "":
 		p.loadFromFile(ctx, eventc, p.filePath, onlyFiles)
 	default:
-		eventc <- LoadEvent{
+		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventError,
 			Data: LoadEventErrorData{Err: errors.New("invariant violation: Project struct initialized incorrectly")},
+		})
+	}
+}
+
+func (p *Project) send(ctx context.Context, eventc chan<- LoadEvent, event LoadEvent) {
+	select {
+	case eventc <- event:
+	case <-ctx.Done():
+	}
+}
+
+func (p *Project) getAllIgnorePatterns() (_ []gitignore.Pattern, err error) {
+	// TODO: confirm if the order of appending to ignorePatterns is important.
+	ignorePatterns := []gitignore.Pattern{
+		// Ignore .git by default.
+		gitignore.ParsePattern(".git", nil),
+	}
+
+	if p.respectGitignore {
+		patterns, readErr := gitignore.ReadPatterns(p.fs, nil)
+		if readErr != nil {
+			err = multierr.Append(err, errors.WithStack(readErr))
+		} else {
+			ignorePatterns = append(ignorePatterns, patterns...)
 		}
 	}
+
+	for _, p := range p.ignoreFilePatterns {
+		ignorePatterns = append(ignorePatterns, gitignore.ParsePattern(p, nil))
+	}
+
+	return ignorePatterns, err
 }
 
 func (p *Project) loadFromDirectory(
@@ -323,7 +284,7 @@ func (p *Project) loadFromDirectory(
 
 	ignoreMatcher := gitignore.NewMatcher(ignorePatterns)
 
-	eventc <- LoadEvent{Type: LoadEventStartedWalk}
+	p.send(ctx, eventc, LoadEvent{Type: LoadEventStartedWalk})
 
 	err := util.Walk(p.fs, ".", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -338,15 +299,15 @@ func (p *Project) loadFromDirectory(
 			absPath := p.fs.Join(p.fs.Root(), path)
 
 			if info.IsDir() {
-				eventc <- LoadEvent{
+				p.send(ctx, eventc, LoadEvent{
 					Type: LoadEventFoundDir,
-					Data: LoadEventFoundDirData{Dir: absPath},
-				}
+					Data: LoadEventFoundDirData{Path: absPath},
+				})
 			} else if isMarkdown(path) {
-				eventc <- LoadEvent{
+				p.send(ctx, eventc, LoadEvent{
 					Type: LoadEventFoundFile,
 					Data: LoadEventFoundFileData{Path: absPath},
-				}
+				})
 
 				onFileFound(absPath)
 			}
@@ -357,22 +318,22 @@ func (p *Project) loadFromDirectory(
 		return nil
 	})
 	if err != nil {
-		eventc <- LoadEvent{
+		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventError,
 			Data: LoadEventErrorData{Err: err},
-		}
+		})
 	}
 
-	eventc <- LoadEvent{
+	p.send(ctx, eventc, LoadEvent{
 		Type: LoadEventFinishedWalk,
-	}
+	})
 
 	if len(filesToSearchBlocks) == 0 {
 		return
 	}
 
 	for _, file := range filesToSearchBlocks {
-		extractTasksFromFile(ctx, eventc, file)
+		p.extractTasksFromFile(ctx, eventc, file)
 	}
 }
 
@@ -382,57 +343,55 @@ func (p *Project) loadFromFile(
 	path string,
 	onlyFiles bool,
 ) {
-	eventc <- LoadEvent{Type: LoadEventStartedWalk}
-
-	eventc <- LoadEvent{
+	p.send(ctx, eventc, LoadEvent{Type: LoadEventStartedWalk})
+	p.send(ctx, eventc, LoadEvent{
 		Type: LoadEventFoundFile,
 		Data: LoadEventFoundFileData{Path: path},
-	}
-
-	eventc <- LoadEvent{
+	})
+	p.send(ctx, eventc, LoadEvent{
 		Type: LoadEventFinishedWalk,
-	}
+	})
 
 	if onlyFiles {
 		return
 	}
 
-	extractTasksFromFile(ctx, eventc, path)
+	p.extractTasksFromFile(ctx, eventc, path)
 }
 
-func extractTasksFromFile(
+func (p *Project) extractTasksFromFile(
 	ctx context.Context,
 	eventc chan<- LoadEvent,
 	path string,
 ) {
-	eventc <- LoadEvent{
+	p.send(ctx, eventc, LoadEvent{
 		Type: LoadEventStartedParsingDocument,
 		Data: LoadEventStartedParsingDocumentData{Path: path},
-	}
+	})
 
 	codeBlocks, err := getCodeBlocksFromFile(path)
 
-	eventc <- LoadEvent{
+	p.send(ctx, eventc, LoadEvent{
 		Type: LoadEventFinishedParsingDocument,
 		Data: LoadEventFinishedParsingDocumentData{Path: path},
-	}
+	})
 
 	if err != nil {
-		eventc <- LoadEvent{
+		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventError,
 			Data: LoadEventErrorData{Err: err},
-		}
+		})
 	}
 
 	for _, b := range codeBlocks {
-		eventc <- LoadEvent{
+		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventFoundTask,
 			Data: LoadEventFoundTaskData{
 				DocumentPath: path,
 				ID:           b.ID(),
 				Name:         b.Name(),
 			},
-		}
+		})
 	}
 }
 
