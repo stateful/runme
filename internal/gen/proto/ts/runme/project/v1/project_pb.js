@@ -86,8 +86,7 @@ class LoadRequest$Type extends MessageType {
         super("runme.project.v1.LoadRequest", [
             { no: 1, name: "directory", kind: "message", oneof: "kind", T: () => DirectoryProjectOptions },
             { no: 2, name: "file", kind: "message", oneof: "kind", T: () => FileProjectOptions },
-            { no: 3, name: "identity", kind: "enum", T: () => ["runme.parser.v1.RunmeIdentity", RunmeIdentity, "RUNME_IDENTITY_"] },
-            { no: 4, name: "env_relative_filenames", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "identity", kind: "enum", T: () => ["runme.parser.v1.RunmeIdentity", RunmeIdentity, "RUNME_IDENTITY_"] }
         ]);
     }
 }
@@ -109,7 +108,7 @@ export const LoadEventStartedWalk = new LoadEventStartedWalk$Type();
 class LoadEventFoundDir$Type extends MessageType {
     constructor() {
         super("runme.project.v1.LoadEventFoundDir", [
-            { no: 1, name: "dir", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
@@ -121,7 +120,7 @@ export const LoadEventFoundDir = new LoadEventFoundDir$Type();
 class LoadEventFoundFile$Type extends MessageType {
     constructor() {
         super("runme.project.v1.LoadEventFoundFile", [
-            { no: 1, name: "filepath_abs", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
@@ -143,7 +142,7 @@ export const LoadEventFinishedWalk = new LoadEventFinishedWalk$Type();
 class LoadEventStartedParsingDoc$Type extends MessageType {
     constructor() {
         super("runme.project.v1.LoadEventStartedParsingDoc", [
-            { no: 1, name: "filepath_abs", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
@@ -155,7 +154,7 @@ export const LoadEventStartedParsingDoc = new LoadEventStartedParsingDoc$Type();
 class LoadEventFinishedParsingDoc$Type extends MessageType {
     constructor() {
         super("runme.project.v1.LoadEventFinishedParsingDoc", [
-            { no: 1, name: "filepath_abs", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
@@ -167,7 +166,7 @@ export const LoadEventFinishedParsingDoc = new LoadEventFinishedParsingDoc$Type(
 class LoadEventFoundTask$Type extends MessageType {
     constructor() {
         super("runme.project.v1.LoadEventFoundTask", [
-            { no: 1, name: "filename", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "document_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);

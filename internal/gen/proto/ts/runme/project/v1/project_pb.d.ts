@@ -61,10 +61,6 @@ export interface LoadRequest {
      * @generated from protobuf field: runme.parser.v1.RunmeIdentity identity = 3;
      */
     identity: RunmeIdentity;
-    /**
-     * @generated from protobuf field: repeated string env_relative_filenames = 4;
-     */
-    envRelativeFilenames: string[];
 }
 /**
  * @generated from protobuf message runme.project.v1.LoadEventStartedWalk
@@ -76,18 +72,18 @@ export interface LoadEventStartedWalk {
  */
 export interface LoadEventFoundDir {
     /**
-     * @generated from protobuf field: string dir = 1;
+     * @generated from protobuf field: string path = 1;
      */
-    dir: string;
+    path: string;
 }
 /**
  * @generated from protobuf message runme.project.v1.LoadEventFoundFile
  */
 export interface LoadEventFoundFile {
     /**
-     * @generated from protobuf field: string filepath_abs = 1;
+     * @generated from protobuf field: string path = 1;
      */
-    filepathAbs: string;
+    path: string;
 }
 /**
  * @generated from protobuf message runme.project.v1.LoadEventFinishedWalk
@@ -99,27 +95,27 @@ export interface LoadEventFinishedWalk {
  */
 export interface LoadEventStartedParsingDoc {
     /**
-     * @generated from protobuf field: string filepath_abs = 1;
+     * @generated from protobuf field: string path = 1;
      */
-    filepathAbs: string;
+    path: string;
 }
 /**
  * @generated from protobuf message runme.project.v1.LoadEventFinishedParsingDoc
  */
 export interface LoadEventFinishedParsingDoc {
     /**
-     * @generated from protobuf field: string filepath_abs = 1;
+     * @generated from protobuf field: string path = 1;
      */
-    filepathAbs: string;
+    path: string;
 }
 /**
  * @generated from protobuf message runme.project.v1.LoadEventFoundTask
  */
 export interface LoadEventFoundTask {
     /**
-     * @generated from protobuf field: string filename = 1;
+     * @generated from protobuf field: string document_path = 1;
      */
-    filename: string;
+    documentPath: string;
     /**
      * @generated from protobuf field: string id = 2;
      */

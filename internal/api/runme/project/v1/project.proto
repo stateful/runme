@@ -27,8 +27,6 @@ message LoadRequest {
   }
 
   runme.parser.v1.RunmeIdentity identity = 3;
-
-  repeated string env_relative_filenames = 4;
 }
 
 enum LoadEventType {
@@ -46,25 +44,25 @@ enum LoadEventType {
 message LoadEventStartedWalk {}
 
 message LoadEventFoundDir {
-  string dir = 1;
+  string path = 1;
 }
 
 message LoadEventFoundFile {
-  string filepath_abs = 1;
+  string path = 1;
 }
 
 message LoadEventFinishedWalk {}
 
 message LoadEventStartedParsingDoc {
-  string filepath_abs = 1;
+  string path = 1;
 }
 
 message LoadEventFinishedParsingDoc {
-  string filepath_abs = 1;
+  string path = 1;
 }
 
 message LoadEventFoundTask {
-  string filename = 1;
+  string document_path = 1;
 
   string id = 2;
 

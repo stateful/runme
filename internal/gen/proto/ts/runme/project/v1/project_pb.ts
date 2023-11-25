@@ -187,11 +187,6 @@ export class LoadRequest extends Message<LoadRequest> {
    */
   identity = RunmeIdentity.UNSPECIFIED;
 
-  /**
-   * @generated from field: repeated string env_relative_filenames = 4;
-   */
-  envRelativeFilenames: string[] = [];
-
   constructor(data?: PartialMessage<LoadRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -203,7 +198,6 @@ export class LoadRequest extends Message<LoadRequest> {
     { no: 1, name: "directory", kind: "message", T: DirectoryProjectOptions, oneof: "kind" },
     { no: 2, name: "file", kind: "message", T: FileProjectOptions, oneof: "kind" },
     { no: 3, name: "identity", kind: "enum", T: proto3.getEnumType(RunmeIdentity) },
-    { no: 4, name: "env_relative_filenames", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadRequest {
@@ -259,9 +253,9 @@ export class LoadEventStartedWalk extends Message<LoadEventStartedWalk> {
  */
 export class LoadEventFoundDir extends Message<LoadEventFoundDir> {
   /**
-   * @generated from field: string dir = 1;
+   * @generated from field: string path = 1;
    */
-  dir = "";
+  path = "";
 
   constructor(data?: PartialMessage<LoadEventFoundDir>) {
     super();
@@ -271,7 +265,7 @@ export class LoadEventFoundDir extends Message<LoadEventFoundDir> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "runme.project.v1.LoadEventFoundDir";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadEventFoundDir {
@@ -296,9 +290,9 @@ export class LoadEventFoundDir extends Message<LoadEventFoundDir> {
  */
 export class LoadEventFoundFile extends Message<LoadEventFoundFile> {
   /**
-   * @generated from field: string filepath_abs = 1;
+   * @generated from field: string path = 1;
    */
-  filepathAbs = "";
+  path = "";
 
   constructor(data?: PartialMessage<LoadEventFoundFile>) {
     super();
@@ -308,7 +302,7 @@ export class LoadEventFoundFile extends Message<LoadEventFoundFile> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "runme.project.v1.LoadEventFoundFile";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "filepath_abs", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadEventFoundFile {
@@ -364,9 +358,9 @@ export class LoadEventFinishedWalk extends Message<LoadEventFinishedWalk> {
  */
 export class LoadEventStartedParsingDoc extends Message<LoadEventStartedParsingDoc> {
   /**
-   * @generated from field: string filepath_abs = 1;
+   * @generated from field: string path = 1;
    */
-  filepathAbs = "";
+  path = "";
 
   constructor(data?: PartialMessage<LoadEventStartedParsingDoc>) {
     super();
@@ -376,7 +370,7 @@ export class LoadEventStartedParsingDoc extends Message<LoadEventStartedParsingD
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "runme.project.v1.LoadEventStartedParsingDoc";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "filepath_abs", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadEventStartedParsingDoc {
@@ -401,9 +395,9 @@ export class LoadEventStartedParsingDoc extends Message<LoadEventStartedParsingD
  */
 export class LoadEventFinishedParsingDoc extends Message<LoadEventFinishedParsingDoc> {
   /**
-   * @generated from field: string filepath_abs = 1;
+   * @generated from field: string path = 1;
    */
-  filepathAbs = "";
+  path = "";
 
   constructor(data?: PartialMessage<LoadEventFinishedParsingDoc>) {
     super();
@@ -413,7 +407,7 @@ export class LoadEventFinishedParsingDoc extends Message<LoadEventFinishedParsin
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "runme.project.v1.LoadEventFinishedParsingDoc";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "filepath_abs", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadEventFinishedParsingDoc {
@@ -438,9 +432,9 @@ export class LoadEventFinishedParsingDoc extends Message<LoadEventFinishedParsin
  */
 export class LoadEventFoundTask extends Message<LoadEventFoundTask> {
   /**
-   * @generated from field: string filename = 1;
+   * @generated from field: string document_path = 1;
    */
-  filename = "";
+  documentPath = "";
 
   /**
    * @generated from field: string id = 2;
@@ -460,7 +454,7 @@ export class LoadEventFoundTask extends Message<LoadEventFoundTask> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "runme.project.v1.LoadEventFoundTask";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "filename", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "document_path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
