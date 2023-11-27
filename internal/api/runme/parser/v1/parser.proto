@@ -25,12 +25,12 @@ message CellOutputItem {
 
 message ProcessInfoExitReason {
   string type = 1;
-  uint32 code = 2;
+  google.protobuf.UInt32Value code = 2;
 }
 
 message CellOutputProcessInfo {
   ProcessInfoExitReason exit_reason = 1;
-  int64 pid = 2;
+  google.protobuf.Int64Value pid = 2;
 }
 
 message CellOutput {

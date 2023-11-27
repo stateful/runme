@@ -24,6 +24,101 @@ export interface Notebook {
     frontmatter?: Frontmatter;
 }
 /**
+<<<<<<< HEAD
+=======
+ * @generated from protobuf message runme.parser.v1.ExecutionSummaryTiming
+ */
+export interface ExecutionSummaryTiming {
+    /**
+     * @generated from protobuf field: google.protobuf.Int64Value start_time = 1;
+     */
+    startTime?: Int64Value;
+    /**
+     * @generated from protobuf field: google.protobuf.Int64Value end_time = 2;
+     */
+    endTime?: Int64Value;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.CellOutputItem
+ */
+export interface CellOutputItem {
+    /**
+     * @generated from protobuf field: bytes data = 1;
+     */
+    data: Uint8Array;
+    /**
+     * @generated from protobuf field: string type = 2;
+     */
+    type: string;
+    /**
+     * @generated from protobuf field: string mime = 3;
+     */
+    mime: string;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.ProcessInfoExitReason
+ */
+export interface ProcessInfoExitReason {
+    /**
+     * @generated from protobuf field: string type = 1;
+     */
+    type: string;
+    /**
+     * @generated from protobuf field: google.protobuf.UInt32Value code = 2;
+     */
+    code?: UInt32Value;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.CellOutputProcessInfo
+ */
+export interface CellOutputProcessInfo {
+    /**
+     * @generated from protobuf field: runme.parser.v1.ProcessInfoExitReason exit_reason = 1;
+     */
+    exitReason?: ProcessInfoExitReason;
+    /**
+     * @generated from protobuf field: google.protobuf.Int64Value pid = 2;
+     */
+    pid?: Int64Value;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.CellOutput
+ */
+export interface CellOutput {
+    /**
+     * @generated from protobuf field: repeated runme.parser.v1.CellOutputItem items = 1;
+     */
+    items: CellOutputItem[];
+    /**
+     * @generated from protobuf field: map<string, string> metadata = 2;
+     */
+    metadata: {
+        [key: string]: string;
+    };
+    /**
+     * @generated from protobuf field: runme.parser.v1.CellOutputProcessInfo process_info = 3;
+     */
+    processInfo?: CellOutputProcessInfo;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.CellExecutionSummary
+ */
+export interface CellExecutionSummary {
+    /**
+     * @generated from protobuf field: google.protobuf.UInt32Value execution_order = 1;
+     */
+    executionOrder?: UInt32Value;
+    /**
+     * @generated from protobuf field: google.protobuf.BoolValue success = 2;
+     */
+    success?: BoolValue;
+    /**
+     * @generated from protobuf field: runme.parser.v1.ExecutionSummaryTiming timing = 3;
+     */
+    timing?: ExecutionSummaryTiming;
+}
+/**
+>>>>>>> 012c57d (Use wrapper for pid)
  * @generated from protobuf message runme.parser.v1.TextRange
  */
 export interface TextRange {

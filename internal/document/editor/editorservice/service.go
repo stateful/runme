@@ -124,12 +124,17 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 			var outputProcessInfo *editor.CellOutputProcessInfo
 			if cellOut.ProcessInfo != nil {
+				exitReason := &editor.ProcessInfoExitReason{
+					Type: cellOut.ProcessInfo.ExitReason.Type,
+				}
+				if cellOut.ProcessInfo.ExitReason.Code != nil {
+					exitReason.Code = cellOut.ProcessInfo.ExitReason.Code.Value
+				}
 				outputProcessInfo = &editor.CellOutputProcessInfo{
-					ExitReason: &editor.ProcessInfoExitReason{
-						Type: cellOut.ProcessInfo.ExitReason.Type,
-						Code: cellOut.ProcessInfo.ExitReason.Code,
-					},
-					Pid: cellOut.ProcessInfo.Pid,
+					ExitReason: exitReason,
+				}
+				if cellOut.ProcessInfo.Pid != nil {
+					outputProcessInfo.Pid = cellOut.ProcessInfo.Pid.Value
 				}
 			}
 
