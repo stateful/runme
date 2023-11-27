@@ -4,6 +4,11 @@ package runme.parser.v1;
 
 option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1;parserv1";
 
+message Runme {
+  string id = 1;
+  string version = 2;
+}
+
 message Notebook {
   repeated Cell cells = 1;
   map<string, string> metadata = 2;
@@ -40,6 +45,7 @@ message Frontmatter {
   string shell = 1;
   string cwd = 2;
   bool skip_prompts = 3;
+  Runme runme = 4;
 }
 
 message DeserializeRequestOptions {

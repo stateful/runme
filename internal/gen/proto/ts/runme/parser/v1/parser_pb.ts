@@ -67,6 +67,49 @@ proto3.util.setEnumType(RunmeIdentity, "runme.parser.v1.RunmeIdentity", [
 ]);
 
 /**
+ * @generated from message runme.parser.v1.Runme
+ */
+export class Runme extends Message<Runme> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string version = 2;
+   */
+  version = "";
+
+  constructor(data?: PartialMessage<Runme>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "runme.parser.v1.Runme";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Runme {
+    return new Runme().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Runme {
+    return new Runme().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Runme {
+    return new Runme().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Runme | PlainMessage<Runme> | undefined, b: Runme | PlainMessage<Runme> | undefined): boolean {
+    return proto3.util.equals(Runme, a, b);
+  }
+}
+
+/**
  * @generated from message runme.parser.v1.Notebook
  */
 export class Notebook extends Message<Notebook> {
@@ -238,6 +281,11 @@ export class Frontmatter extends Message<Frontmatter> {
    */
   skipPrompts = false;
 
+  /**
+   * @generated from field: runme.parser.v1.Runme runme = 4;
+   */
+  runme?: Runme;
+
   constructor(data?: PartialMessage<Frontmatter>) {
     super();
     proto3.util.initPartial(data, this);
@@ -249,6 +297,7 @@ export class Frontmatter extends Message<Frontmatter> {
     { no: 1, name: "shell", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "cwd", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "skip_prompts", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "runme", kind: "message", T: Runme },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Frontmatter {
