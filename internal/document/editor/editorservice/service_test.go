@@ -77,6 +77,48 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func Test_DenySavingInvalidVersion(t *testing.T) {
+	documentWithValidVersion := strings.Join([]string{
+		"---",
+		"prop: value",
+		"runme:",
+		"  id: 123",
+		"  version: v2.0",
+		"---",
+		"",
+		documentWithoutFrontmatter,
+	}, "\n")
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_ALL
+
+	dResp, err := deserialize(client, documentWithValidVersion, identity)
+	assert.NoError(t, err)
+
+	rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+	assert.True(t, ok)
+
+	assert.Len(t, dResp.Notebook.Metadata, 2)
+
+	assert.Contains(t, rawFrontmatter, "prop: value")
+
+	assert.Contains(t, rawFrontmatter, "id: "+testMockID)
+	assert.NotContains(t, rawFrontmatter, "version: "+version.BaseVersion())
+	assert.Contains(t, rawFrontmatter, "version: v2.0")
+
+	sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+	assert.NoError(t, err)
+
+	content := string(sResp.Result)
+	assert.Regexp(t, "^---\n", content)
+	assert.Contains(t, content, "runme:\n")
+	assert.Contains(t, content, "id: "+testMockID)
+	assert.NotContains(t, content, "version: "+version.BaseVersion())
+	assert.Contains(t, content, "version: v2.0")
+	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"foo\"}\n")
+	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
+	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
+}
+
 func Test_IdentityUnspecified(t *testing.T) {
 	tests := []struct {
 		content             string
