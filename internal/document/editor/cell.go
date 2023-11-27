@@ -307,58 +307,11 @@ func serializeCells(cells []*Cell) []byte {
 			_, _ = buf.WriteString(cell.Value)
 			_ = buf.WriteByte('\n')
 
-			for _, output := range cell.Outputs {
-				for _, item := range output.Items {
-					if strings.HasPrefix(item.Mime, "image") {
-						continue
-					}
-					if cell.ExecutionSummary != nil {
-						startTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.StartTime)
-						endTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.EndTime)
-
-						execDuration := endTimestamp.Sub(startTimestamp)
-
-						_, _ = buf.WriteString("\n# Ran on ")
-						_, _ = buf.WriteString(prettyTime(startTimestamp))
-						_, _ = buf.WriteString(" for ")
-						_, _ = buf.WriteString(prettyDuration(execDuration))
-						if output.ProcessInfo != nil && output.ProcessInfo.ExitReason.Type == "exit" {
-							_, _ = buf.WriteString(" exited with ")
-							_, _ = buf.WriteString(fmt.Sprintf("%d", output.ProcessInfo.ExitReason.Code))
-						}
-						_, _ = buf.WriteString("\n")
-					} else {
-						_ = buf.WriteByte('\n')
-					}
-					_, _ = buf.WriteString(removeAnsiCodes(item.Value))
-					_ = buf.WriteByte('\n')
-				}
-			}
+			serializeCellOutputsText(&buf, cell)
 
 			_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
 
-			for _, output := range cell.Outputs {
-				for _, item := range output.Items {
-					if !strings.HasPrefix(item.Mime, "image") {
-						continue
-					}
-
-					_ = buf.WriteByte('\n')
-					if strings.HasPrefix(item.Mime, "image") {
-						_ = buf.WriteByte('\n')
-						_, _ = buf.WriteString("![")
-						_, _ = buf.WriteString(cell.Value)
-						_, _ = buf.WriteString("](data:")
-						_, _ = buf.WriteString(item.Mime)
-						_, _ = buf.WriteString(";base64,")
-						_, _ = buf.WriteString(item.Data)
-						_, _ = buf.WriteString(")")
-					} else {
-						_, _ = buf.WriteString(removeAnsiCodes(item.Value))
-					}
-					_ = buf.WriteByte('\n')
-				}
-			}
+			serializeCellOutputsImage(&buf, cell)
 
 		case MarkupKind:
 			_, _ = buf.WriteString(cell.Value)
@@ -375,6 +328,67 @@ func serializeCells(cells []*Cell) []byte {
 	}
 
 	return buf.Bytes()
+}
+
+func serializeCellOutputsText(w io.Writer, cell *Cell) {
+	var buf bytes.Buffer
+	for _, output := range cell.Outputs {
+		for _, item := range output.Items {
+			if strings.HasPrefix(item.Mime, "image") {
+				continue
+			}
+			if cell.ExecutionSummary != nil {
+				startTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.StartTime)
+				endTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.EndTime)
+
+				execDuration := endTimestamp.Sub(startTimestamp)
+
+				// todo(sebastian): consider using tpl for this
+				_, _ = buf.WriteString("\n# Ran on ")
+				_, _ = buf.WriteString(prettyTime(startTimestamp))
+				_, _ = buf.WriteString(" for ")
+				_, _ = buf.WriteString(prettyDuration(execDuration))
+				if output.ProcessInfo != nil && output.ProcessInfo.ExitReason.Type == "exit" {
+					_, _ = buf.WriteString(" exited with ")
+					_, _ = buf.WriteString(fmt.Sprintf("%d", output.ProcessInfo.ExitReason.Code))
+				}
+				_, _ = buf.WriteString("\n")
+			} else {
+				_ = buf.WriteByte('\n')
+			}
+			_, _ = buf.WriteString(removeAnsiCodes(item.Value))
+			_ = buf.WriteByte('\n')
+		}
+	}
+	_, _ = w.Write(buf.Bytes())
+}
+
+func serializeCellOutputsImage(w io.Writer, cell *Cell) {
+	var buf bytes.Buffer
+	for _, output := range cell.Outputs {
+		for _, item := range output.Items {
+			if !strings.HasPrefix(item.Mime, "image") {
+				continue
+			}
+
+			_ = buf.WriteByte('\n')
+			if strings.HasPrefix(item.Mime, "image") {
+				_ = buf.WriteByte('\n')
+				_, _ = buf.WriteString("![")
+				_, _ = buf.WriteString(cell.Value)
+				_, _ = buf.WriteString("](data:")
+				_, _ = buf.WriteString(item.Mime)
+				_, _ = buf.WriteString(";base64,")
+				_, _ = buf.WriteString(item.Data)
+				_, _ = buf.WriteString(")")
+			} else {
+				_, _ = buf.WriteString(removeAnsiCodes(item.Value))
+			}
+			_ = buf.WriteByte('\n')
+		}
+	}
+
+	_, _ = w.Write(buf.Bytes())
 }
 
 func longestBacktickSeq(data string) int {
