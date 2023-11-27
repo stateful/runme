@@ -16,7 +16,7 @@ jobs:
         go: ["1.21"]
     name: Lint with Go ${{ matrix.go }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup go
         uses: actions/setup-go@v2
         with:
@@ -41,7 +41,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - name: Setup go
         uses: actions/setup-go@v2
         with:
@@ -55,12 +58,12 @@ jobs:
           go build -o runme main.go
           ./runme --version
       - name: Test
-        run: SHELL=/bin/bash TZ=UTC go test ./...
+        run: SHELL=/bin/bash TZ=UTC make test
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Test
         run: |
           Set-Timezone -Id "UTC" -PassThru
-          go test ./...
+          make test
         if: ${{ matrix.os == 'windows-latest' }}
 
   build-and-robustness-test:
@@ -68,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup Node version

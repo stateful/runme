@@ -133,10 +133,9 @@ func (f *Frontmatter) ensureID() {
 	}
 
 	baseVersion := version.BaseVersion()
-	// todo(sebastian): fix tests when reenabled
-	// if fmtr.Runme.Version != "" && baseVersion == "v0.0" {
-	// 	return
-	// }
+	if f.Runme.Version != "" && baseVersion == "v0.0" {
+		return
+	}
 	f.Runme.Version = baseVersion
 }
 

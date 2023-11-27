@@ -19,6 +19,9 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
+            "buildFlags": [
+                "-ldflags='-X 'github.com/stateful/runme/internal/version.BuildVersion=99.9.9''",
+            ],
             "args": [
                 "server",
                 "--dev",
@@ -34,8 +37,11 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
+            "buildFlags": [
+                "-ldflags='-X 'github.com/stateful/runme/internal/version.BuildVersion=99.9.9''",
+            ],
             "args": [
-                "ls",
+                "--version",
             ]
         }
     ]

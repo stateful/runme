@@ -19,8 +19,10 @@ import (
 )
 
 var (
-	testMockID = ulid.GenerateID()
-	client     parserv1.ParserServiceClient
+	versionRegex = `version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.0)`
+	testMockID   = ulid.GenerateID()
+
+	client parserv1.ParserServiceClient
 
 	documentWithoutFrontmatter = strings.Join([]string{
 		"# H1",
@@ -42,7 +44,7 @@ var (
 		"prop: value",
 		"runme:",
 		"  id: 123",
-		"  version: v1.0",
+		"  version: v99.9",
 		"---",
 		"",
 		documentWithoutFrontmatter,
@@ -96,7 +98,7 @@ func Test_IdentityUnspecified(t *testing.T) {
 			assert.Len(t, dResp.Notebook.Metadata, 2)
 			assert.Contains(t, rawFrontmatter, "prop: value\n")
 			assert.Contains(t, rawFrontmatter, "id: 123\n")
-			assert.Contains(t, rawFrontmatter, "version: v1.0\n")
+			assert.Contains(t, rawFrontmatter, "version: v99.9\n")
 		} else {
 			assert.False(t, ok)
 			assert.Len(t, dResp.Notebook.Metadata, 1)
@@ -183,7 +185,7 @@ func Test_IdentityDocument(t *testing.T) {
 		}
 
 		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
-		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
+		assert.Regexpf(t, versionRegex, rawFrontmatter, "Wrong version")
 
 		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
 		assert.NoError(t, err)
@@ -221,7 +223,7 @@ func Test_IdentityCell(t *testing.T) {
 			assert.Len(t, dResp.Notebook.Metadata, 2)
 			assert.Contains(t, rawFrontmatter, "prop: value\n")
 			assert.Contains(t, rawFrontmatter, "id: 123\n")
-			assert.Contains(t, rawFrontmatter, "version: v1.0\n")
+			assert.Regexp(t, versionRegex, rawFrontmatter, "Wrong version")
 		} else {
 			assert.False(t, ok)
 			assert.Len(t, dResp.Notebook.Metadata, 1)
@@ -235,7 +237,7 @@ func Test_IdentityCell(t *testing.T) {
 		if tt.hasExtraFrontmatter {
 			assert.Contains(t, content, "runme:\n")
 			assert.Contains(t, content, "id: 123\n")
-			assert.Contains(t, content, "version: v1.0\n")
+			assert.Contains(t, content, "version: v99.9\n")
 		} else {
 			assert.NotRegexp(t, "^---\n", content)
 			assert.NotRegexp(t, "^\n\n", content)
