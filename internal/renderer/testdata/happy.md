@@ -8,25 +8,25 @@ The API built for [Tortuga Prototype](https://www.notion.so/statefulhq/Tortuga-P
 
 First 😇, install dev dependencies:
 
-```sh { name=install }
+```sh {"id":"01HFW6VKQYFGMC9MX7BBAP4YM5","name":"install"}
 brew bundle
 ```
 
 Deploy site to Vercel
 
-```Vercel
+```Vercel {"id":"01HFW6VKQYFGMC9MX7BDT3D3P4"}
 https://vercel.com/stateful/stateful-com
 ```
 
 Next run dependencies:
 
-```sh { name=docker-compose }
+```sh {"id":"01HFW6VKQYFGMC9MX7BFNCP512","name":"docker-compose"}
 $ docker compose up -d
 ```
 
 Then you should be able to successfully run:
 
-```sh { name=run }
+```sh {"id":"01HFW6VKQYFGMC9MX7BK1X58KR","name":"run"}
 $ echo "Running"
 $ go run ./cmd/api/main.go
 2022/05/10 12:18:18 starting to listen on: :8080
@@ -39,7 +39,7 @@ $ go run ./cmd/api/main.go
 
 Try using [watchexec](https://github.com/watchexec/watchexec) to autoreload.
 
-```sh { name=watch }
+```sh {"id":"01HFW6VKQYFGMC9MX7BK6BH27X","name":"watch"}
 watchexec -r -e go -- go run ./cmd/api/main.go
 ```
 
@@ -61,7 +61,7 @@ Migrations are run automatically by the API server process.
 
 In a case you want to run them manually and re-use Postgres from Docker Compose:
 
-```sh { name=migrate }
+```sh {"id":"01HFW6VKQYFGMC9MX7BME16373","name":"migrate"}
 $ atlas schema apply -u "postgres://postgres:postgres@localhost:15432/tortuga?sslmode=disable" -f atlas.hcl
 ```
 
@@ -74,14 +74,14 @@ $ atlas schema apply -u "postgres://postgres:postgres@localhost:15432/tortuga?ss
 
 Inserting task execution metadata:
 
-```sh { name=post-task }
+```sh {"id":"01HFW6VKQYFGMC9MX7BN0DVBJ5","name":"post-task"}
 $ curl -XPOST -H "Content-Type: application/json" localhost:8080/tasks/ -d '{"duration": "10s", "exit_code": 0, "name": "Run task", "runbook_name": "RB 1", "runbook_run_id": "6e975f1b-0c0f-4765-b24a-2aa87b901c06", "start_time": "2022-05-05T04:12:43Z", "command": "/bin/sh", "args": "echo hello", "feedback": "this is cool!", "extra": "{\"hello\": \"world\"}"}'
 {"id":"6e975f1b-0c0f-4765-b24a-2aa87b901c06"}
 ```
 
 A task can be patched:
 
-```sh { name=patch-task }
+```sh {"id":"01HFW6VKQYFGMC9MX7BPNPAYYH","name":"patch-task"}
 $ curl -X PATCH -H "Content-Type: application/json" localhost:8080/tasks/6e975f1b-0c0f-4765-b24a-2aa87b901c06/ -d '{"duration": "15s", "exit_code": 1}'
 {"id":"6e975f1b-0c0f-4765-b24a-2aa87b901c06"}
 ```
@@ -90,14 +90,14 @@ $ curl -X PATCH -H "Content-Type: application/json" localhost:8080/tasks/6e975f1
 
 Inserting feedback can optionally take a `task_id`:
 
-```sh { name=post-feedback }
+```sh {"id":"01HFW6VKQYFGMC9MX7BSYXYYAZ","name":"post-feedback"}
 $ curl -XPOST -H "Content-Type: application/json" localhost:8080/feedback/ -d '{"message": "My feedback!", "task_id": "6e975f1b-0c0f-4765-b24a-2aa87b901c06"}'
 {"id":"a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f"}
 ```
 
 Feedback can be patched:
 
-```sh { name=patch-feedback }
+```sh {"id":"01HFW6VKQYFGMC9MX7BWNP0EG0","name":"patch-feedback"}
 $ curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f/ -d '{"message": "Modified!"}'
 {"id":"a02b6b5f-46c4-40ff-8160-ff7d55b8ca6f"}
 ```
@@ -106,7 +106,7 @@ $ curl -X PATCH -H "Content-Type: application/json" localhost:8080/feedback/a02b
 
 Inserting editor configs:
 
-```sh { name=post-editor-config }
+```sh {"id":"01HFW6VKQYFGMC9MX7BZK10CRJ","name":"post-editor-config"}
 $ curl -XPOST -H "Content-Type: application/json" localhost:8080/editor-configs/ -d '{"data": "{\"files.autoSave\": \"afterDelay\"}"}'
 {"id":"4c7d6fb5-eb53-44f7-8883-80f276af65a1"}
 ```

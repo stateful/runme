@@ -8,11 +8,11 @@ This markdown file contains some custom examples to test the execution within a 
 
 ## Shell Executions
 
-```sh
+```sh {"id":"01HFW6VKQYFGMC9MX7C4EGD3VJ"}
 echo "Hello World"
 ```
 
-```sh
+```sh {"id":"01HFW6VKQYFGMC9MX7C79W55FF"}
 echo "Foo 👀"
 sleep 2
 echo "Bar 🕺"
@@ -22,12 +22,12 @@ echo "Loo 🚀"
 
 ## Complexer Output
 
-```sh
+```sh {"id":"01HFW6VKQYFGMC9MX7C9YF97KH"}
 yarn global add webdriverio
 ```
 
 ## Stdin Example
 
-```sh
+```sh {"id":"01HFW6VKQYFGMC9MX7CC0N65KT"}
 node ./scripts/stdin.js
 ```

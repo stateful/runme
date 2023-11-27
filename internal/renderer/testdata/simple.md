@@ -11,7 +11,7 @@ To select a different file than `README.md`, use `--filename`.
 
 The easiest way on MacOS is to use Homebrew:
 
-```sh
+```sh {"id":"01HFW6VKQX9B4ZJH9TFYET10X4"}
 $ brew install stateful/tap/runme
 ```
 
@@ -20,7 +20,7 @@ a binary for your operating system.
 
 If you have Go developer tools installed, you can install it with `go install`:
 
-```sh
+```sh {"id":"01HFW6VKQX9B4ZJH9TFYH7VEPJ"}
 $ go install github.com/stateful/runme@latest
 ```
 
