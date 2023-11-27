@@ -312,7 +312,7 @@ func serializeCells(cells []*Cell) []byte {
 					if strings.HasPrefix(item.Mime, "image") {
 						continue
 					}
-					if cell.ExecutionSummary.Timing != nil {
+					if cell.ExecutionSummary != nil {
 						startTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.StartTime)
 						endTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.EndTime)
 
@@ -327,6 +327,8 @@ func serializeCells(cells []*Cell) []byte {
 							_, _ = buf.WriteString(fmt.Sprintf("%d", output.ProcessInfo.ExitReason.Code))
 						}
 						_, _ = buf.WriteString("\n")
+					} else {
+						_ = buf.WriteByte('\n')
 					}
 					_, _ = buf.WriteString(removeAnsiCodes(item.Value))
 					_ = buf.WriteByte('\n')
