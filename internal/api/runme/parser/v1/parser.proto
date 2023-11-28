@@ -98,8 +98,18 @@ message DeserializeResponse {
   Notebook notebook = 1;
 }
 
+message SerializeRequestOutputOptions {
+  bool enabled = 1;
+  bool summary = 2;
+}
+
+message SerializeRequestOptions {
+  SerializeRequestOutputOptions outputs = 1;
+}
+
 message SerializeRequest {
   Notebook notebook = 1;
+  SerializeRequestOptions options = 2;
 }
 
 message SerializeResponse {
