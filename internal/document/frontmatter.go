@@ -133,7 +133,7 @@ func (f *Frontmatter) ensureID() {
 	}
 
 	baseVersion := version.BaseVersion()
-	if f.Runme.Version != "" && baseVersion == "v0.0" {
+	if baseVersion == "v99.9" || baseVersion == "v0.0" {
 		return
 	}
 	f.Runme.Version = baseVersion
