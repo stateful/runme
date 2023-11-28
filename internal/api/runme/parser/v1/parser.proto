@@ -36,10 +36,16 @@ enum RunmeIdentity {
   RUNME_IDENTITY_CELL = 3;
 }
 
+message FrontmatterRunme {
+  string id = 1;
+  string version = 2;
+}
+
 message Frontmatter {
   string shell = 1;
   string cwd = 2;
   bool skip_prompts = 3;
+  FrontmatterRunme runme = 4;
 }
 
 message DeserializeRequestOptions {

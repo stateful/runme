@@ -64,6 +64,19 @@ export interface Cell {
     textRange?: TextRange;
 }
 /**
+ * @generated from protobuf message runme.parser.v1.FrontmatterRunme
+ */
+export interface FrontmatterRunme {
+    /**
+     * @generated from protobuf field: string id = 1;
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string version = 2;
+     */
+    version: string;
+}
+/**
  * @generated from protobuf message runme.parser.v1.Frontmatter
  */
 export interface Frontmatter {
@@ -79,6 +92,10 @@ export interface Frontmatter {
      * @generated from protobuf field: bool skip_prompts = 3;
      */
     skipPrompts: boolean;
+    /**
+     * @generated from protobuf field: runme.parser.v1.FrontmatterRunme runme = 4;
+     */
+    runme?: FrontmatterRunme;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequestOptions
@@ -190,6 +207,13 @@ declare class Cell$Type extends MessageType<Cell> {
  * @generated MessageType for protobuf message runme.parser.v1.Cell
  */
 export declare const Cell: Cell$Type;
+declare class FrontmatterRunme$Type extends MessageType<FrontmatterRunme> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.FrontmatterRunme
+ */
+export declare const FrontmatterRunme: FrontmatterRunme$Type;
 declare class Frontmatter$Type extends MessageType<Frontmatter> {
     constructor();
 }
