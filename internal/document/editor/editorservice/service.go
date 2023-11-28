@@ -116,30 +116,31 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 }
 
 func (*parserServiceServer) serializeCellExecutionSummary(cell *parserv1.Cell, options *parserv1.SerializeRequestOptions) *editor.CellExecutionSummary {
-	var execSummary *editor.CellExecutionSummary
-
 	if options != nil && options.Outputs != nil && !options.Outputs.GetSummary() {
-		return execSummary
+		return nil
 	}
 
-	if cell.ExecutionSummary != nil {
-		execSummary = &editor.CellExecutionSummary{}
+	if cell.ExecutionSummary == nil {
+		return nil
+	}
 
-		if cell.ExecutionSummary.ExecutionOrder != nil {
-			execSummary.ExecutionOrder = cell.ExecutionSummary.ExecutionOrder.Value
-		}
+	execSummary := &editor.CellExecutionSummary{}
 
-		if cell.ExecutionSummary.Success != nil {
-			execSummary.Success = cell.ExecutionSummary.Success.Value
-		}
+	if cell.ExecutionSummary.ExecutionOrder != nil {
+		execSummary.ExecutionOrder = cell.ExecutionSummary.ExecutionOrder.Value
+	}
 
-		if cell.ExecutionSummary.Timing != nil {
-			execSummary.Timing = &editor.ExecutionSummaryTiming{
-				StartTime: cell.ExecutionSummary.Timing.StartTime.Value,
-				EndTime:   cell.ExecutionSummary.Timing.EndTime.Value,
-			}
+	if cell.ExecutionSummary.Success != nil {
+		execSummary.Success = cell.ExecutionSummary.Success.Value
+	}
+
+	if cell.ExecutionSummary.Timing != nil {
+		execSummary.Timing = &editor.ExecutionSummaryTiming{
+			StartTime: cell.ExecutionSummary.Timing.StartTime.Value,
+			EndTime:   cell.ExecutionSummary.Timing.EndTime.Value,
 		}
 	}
+
 	return execSummary
 }
 
