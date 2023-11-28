@@ -5,19 +5,6 @@
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
 /**
- * @generated from protobuf message runme.parser.v1.Runme
- */
-export interface Runme {
-    /**
-     * @generated from protobuf field: string id = 1;
-     */
-    id: string;
-    /**
-     * @generated from protobuf field: string version = 2;
-     */
-    version: string;
-}
-/**
  * @generated from protobuf message runme.parser.v1.Notebook
  */
 export interface Notebook {
@@ -77,6 +64,19 @@ export interface Cell {
     textRange?: TextRange;
 }
 /**
+ * @generated from protobuf message runme.parser.v1.FrontmatterRunme
+ */
+export interface FrontmatterRunme {
+    /**
+     * @generated from protobuf field: string id = 1;
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string version = 2;
+     */
+    version: string;
+}
+/**
  * @generated from protobuf message runme.parser.v1.Frontmatter
  */
 export interface Frontmatter {
@@ -93,9 +93,9 @@ export interface Frontmatter {
      */
     skipPrompts: boolean;
     /**
-     * @generated from protobuf field: runme.parser.v1.Runme runme = 4;
+     * @generated from protobuf field: runme.parser.v1.FrontmatterRunme runme = 4;
      */
-    runme?: Runme;
+    runme?: FrontmatterRunme;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequestOptions
@@ -186,13 +186,6 @@ export declare enum RunmeIdentity {
      */
     CELL = 3
 }
-declare class Runme$Type extends MessageType<Runme> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.parser.v1.Runme
- */
-export declare const Runme: Runme$Type;
 declare class Notebook$Type extends MessageType<Notebook> {
     constructor();
 }
@@ -214,6 +207,13 @@ declare class Cell$Type extends MessageType<Cell> {
  * @generated MessageType for protobuf message runme.parser.v1.Cell
  */
 export declare const Cell: Cell$Type;
+declare class FrontmatterRunme$Type extends MessageType<FrontmatterRunme> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.FrontmatterRunme
+ */
+export declare const FrontmatterRunme: FrontmatterRunme$Type;
 declare class Frontmatter$Type extends MessageType<Frontmatter> {
     constructor();
 }

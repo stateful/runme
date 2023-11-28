@@ -59,15 +59,18 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			SkipPrompts: notebook.Frontmatter.SkipPrompts,
 		}
 
-		var runme *parserv1.Runme
+		runme := parserv1.FrontmatterRunme{}
 
-		if notebook.Frontmatter.Runme.ID != "" && notebook.Frontmatter.Runme.Version != "" {
-			runme = &parserv1.Runme{
-				Id:      notebook.Frontmatter.Runme.ID,
-				Version: notebook.Frontmatter.Runme.Version,
-			}
+		if notebook.Frontmatter.Runme.ID != "" {
+			runme.Id = notebook.Frontmatter.Runme.ID
+		}
 
-			frontmatter.Runme = runme
+		if notebook.Frontmatter.Runme.Version != "" {
+			runme.Version = notebook.Frontmatter.Runme.Version
+		}
+
+		if runme.Id != "" || runme.Version != "" {
+			frontmatter.Runme = &runme
 		}
 	}
 

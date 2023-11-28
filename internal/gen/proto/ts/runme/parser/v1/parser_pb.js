@@ -53,19 +53,6 @@ export var RunmeIdentity;
     RunmeIdentity[RunmeIdentity["CELL"] = 3] = "CELL";
 })(RunmeIdentity || (RunmeIdentity = {}));
 // @generated message type with reflection information, may provide speed optimized methods
-class Runme$Type extends MessageType {
-    constructor() {
-        super("runme.parser.v1.Runme", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.parser.v1.Runme
- */
-export const Runme = new Runme$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class Notebook$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.Notebook", [
@@ -109,13 +96,26 @@ class Cell$Type extends MessageType {
  */
 export const Cell = new Cell$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class FrontmatterRunme$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.FrontmatterRunme", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.FrontmatterRunme
+ */
+export const FrontmatterRunme = new FrontmatterRunme$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class Frontmatter$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.Frontmatter", [
             { no: 1, name: "shell", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "cwd", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "skip_prompts", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 4, name: "runme", kind: "message", T: () => Runme }
+            { no: 4, name: "runme", kind: "message", T: () => FrontmatterRunme }
         ]);
     }
 }
