@@ -48,7 +48,7 @@ lint:
 	@revive -config revive.toml -formatter stylish ./...
 
 .PHONY: pre-commit
-pre-commit: build test lint
+pre-commit: build wasm test lint
 	pre-commit run --all-files
 
 .PHONY: install/dev
