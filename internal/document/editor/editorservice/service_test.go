@@ -300,6 +300,7 @@ func Test_parserServiceServer_Outputs(t *testing.T) {
 			Mime: "application/vnd.code.notebook.stdout",
 			Type: "Buffer",
 		}
+		// todo(sebastian): until we have deserialization
 		cell := &parserv1.Cell{
 			Value:      "$ printf \"\\u001b[34mDoes it work?\\n\"\n$ sleep 2\n$ printf \"\\u001b[32mYes, success!\\x1b[0m\\n\"\n$ exit 16",
 			Kind:       parserv1.CellKind_CELL_KIND_CODE,
