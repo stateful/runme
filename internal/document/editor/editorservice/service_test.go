@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -249,8 +250,8 @@ func Test_IdentityCell(t *testing.T) {
 	}
 }
 
-func Test_parserServiceServer(t *testing.T) {
-	t.Run("Basic", func(t *testing.T) {
+func Test_parserServiceServer_Ast(t *testing.T) {
+	t.Run("Metadata", func(t *testing.T) {
 		os.Setenv("RUNME_AST_METADATA", "true")
 
 		identity := parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED
@@ -292,6 +293,45 @@ func Test_parserServiceServer(t *testing.T) {
 	})
 }
 
+func Test_parserServiceServer_Outputs(t *testing.T) {
+	t.Run("Text", func(t *testing.T) {
+		item := &parserv1.CellOutputItem{
+			Data: []byte("\x1b[34mDoes it work?\r\n\x1b[32mYes, success!\x1b[1B\x1b[13D\x1b[0m"),
+			Mime: "application/vnd.code.notebook.stdout",
+			Type: "Buffer",
+		}
+		cell := &parserv1.Cell{
+			Value:      "$ printf \"\\u001b[34mDoes it work?\\n\"\n$ sleep 2\n$ printf \"\\u001b[32mYes, success!\\x1b[0m\\n\"\n$ exit 16",
+			Kind:       parserv1.CellKind_CELL_KIND_CODE,
+			LanguageId: "sh",
+			Outputs: []*parserv1.CellOutput{{
+				Items: []*parserv1.CellOutputItem{item},
+				ProcessInfo: &parserv1.CellOutputProcessInfo{
+					ExitReason: &parserv1.ProcessInfoExitReason{
+						Type: "exit",
+						Code: &wrapperspb.UInt32Value{Value: 16},
+					},
+				},
+			}},
+			Metadata: map[string]string{"background": "false", "id": "01HF7B0KJPF469EG9ZVX256S75", "interactive": "true"},
+			ExecutionSummary: &parserv1.CellExecutionSummary{
+				Success: &wrapperspb.BoolValue{Value: true},
+				Timing: &parserv1.ExecutionSummaryTiming{
+					StartTime: &wrapperspb.Int64Value{Value: 1701280699458},
+					EndTime:   &wrapperspb.Int64Value{Value: 1701280701754},
+				},
+			},
+		}
+		notebook := &parserv1.Notebook{Cells: []*parserv1.Cell{cell}}
+
+		serializeOptions := &parserv1.SerializeRequestOptions{Outputs: &parserv1.SerializeRequestOutputOptions{Enabled: true, Summary: true}}
+		resp, err := serializeWithOutputs(client, notebook, serializeOptions)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "```sh {\"background\":\"false\",\"id\":\"01HF7B0KJPF469EG9ZVX256S75\",\"interactive\":\"true\"}\n$ printf \"\\u001b[34mDoes it work?\\n\"\n$ sleep 2\n$ printf \"\\u001b[32mYes, success!\\x1b[0m\\n\"\n$ exit 16\n\n# Ran on 2023-11-29 17:58:19Z for 2.296s exited with 16\nDoes it work?\r\nYes, success!\n```\n", string(resp.Result))
+	})
+}
+
 func deserialize(client parserv1.ParserServiceClient, content string, idt parserv1.RunmeIdentity) (*parserv1.DeserializeResponse, error) {
 	return client.Deserialize(
 		context.Background(),
@@ -310,6 +350,16 @@ func serializeWithIdentityPersistence(client parserv1.ParserServiceClient, noteb
 		context.Background(),
 		&parserv1.SerializeRequest{
 			Notebook: notebook,
+		},
+	)
+}
+
+func serializeWithOutputs(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, options *parserv1.SerializeRequestOptions) (*parserv1.SerializeResponse, error) {
+	return client.Serialize(
+		context.Background(),
+		&parserv1.SerializeRequest{
+			Notebook: notebook,
+			Options:  options,
 		},
 	)
 }
