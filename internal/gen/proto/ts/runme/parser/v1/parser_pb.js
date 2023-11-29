@@ -10,6 +10,9 @@
 // @ts-nocheck
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
+import { BoolValue } from "../../../google/protobuf/wrappers_pb";
+import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
+import { Int64Value } from "../../../google/protobuf/wrappers_pb";
 /**
  * @generated from protobuf enum runme.parser.v1.CellKind
  */
@@ -67,8 +70,6 @@ class Notebook$Type extends MessageType {
  */
 export const Notebook = new Notebook$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-<<<<<<< HEAD
-=======
 class ExecutionSummaryTiming$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.ExecutionSummaryTiming", [
@@ -150,7 +151,6 @@ class CellExecutionSummary$Type extends MessageType {
  */
 export const CellExecutionSummary = new CellExecutionSummary$Type();
 // @generated message type with reflection information, may provide speed optimized methods
->>>>>>> 012c57d (Use wrapper for pid)
 class TextRange$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.TextRange", [
@@ -171,7 +171,9 @@ class Cell$Type extends MessageType {
             { no: 2, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
-            { no: 5, name: "text_range", kind: "message", T: () => TextRange }
+            { no: 5, name: "text_range", kind: "message", T: () => TextRange },
+            { no: 6, name: "outputs", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => CellOutput },
+            { no: 7, name: "execution_summary", kind: "message", T: () => CellExecutionSummary }
         ]);
     }
 }
@@ -245,10 +247,36 @@ class DeserializeResponse$Type extends MessageType {
  */
 export const DeserializeResponse = new DeserializeResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SerializeRequestOutputOptions$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.SerializeRequestOutputOptions", [
+            { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "summary", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOutputOptions
+ */
+export const SerializeRequestOutputOptions = new SerializeRequestOutputOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SerializeRequestOptions$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.SerializeRequestOptions", [
+            { no: 1, name: "outputs", kind: "message", T: () => SerializeRequestOutputOptions }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export const SerializeRequestOptions = new SerializeRequestOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SerializeRequest$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.SerializeRequest", [
-            { no: 1, name: "notebook", kind: "message", T: () => Notebook }
+            { no: 1, name: "notebook", kind: "message", T: () => Notebook },
+            { no: 2, name: "options", kind: "message", T: () => SerializeRequestOptions }
         ]);
     }
 }
