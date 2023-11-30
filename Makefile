@@ -75,8 +75,8 @@ proto/clean:
 
 .PHONY: proto/dev
 proto/dev: build proto/clean proto/generate
+	rm -rf $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts/runme
 	cp -vrf internal/gen/proto/ts/runme $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
-	find $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts -name "*.ts" | grep -v ".d.ts" | xargs rm -f
 
 .PHONY: proto/dev/reset
 proto/dev/reset:
