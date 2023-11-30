@@ -11,7 +11,7 @@ func Test_SessionList(t *testing.T) {
 	t.Parallel()
 
 	createSession := func() (*Session, error) {
-		return NewSession(nil, nil, nil)
+		return NewSession(nil, nil)
 	}
 
 	t.Run("UpdatedOnCreate", func(t *testing.T) {

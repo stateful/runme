@@ -6,7 +6,6 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	ulid "github.com/stateful/runme/internal/ulid"
-	"github.com/stateful/runme/pkg/project"
 	"go.uber.org/zap"
 )
 
@@ -21,19 +20,8 @@ type Session struct {
 	logger   *zap.Logger
 }
 
-func NewSession(envs []string, proj project.Project, logger *zap.Logger) (*Session, error) {
+func NewSession(envs []string, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
-
-	if proj != nil {
-		projectEnvs, err := proj.LoadEnvs()
-		if err != nil {
-			return nil, err
-		}
-
-		for key, val := range projectEnvs {
-			sessionEnvs = append(sessionEnvs, fmt.Sprintf("%v=%v", key, val))
-		}
-	}
 
 	s := &Session{
 		ID: ulid.GenerateID(),
