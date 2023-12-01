@@ -4,6 +4,9 @@
 // tslint:disable
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
+import { BoolValue } from "../../../google/protobuf/wrappers_pb";
+import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
+import { Int64Value } from "../../../google/protobuf/wrappers_pb";
 /**
  * @generated from protobuf message runme.parser.v1.Notebook
  */
@@ -22,6 +25,98 @@ export interface Notebook {
      * @generated from protobuf field: runme.parser.v1.Frontmatter frontmatter = 3;
      */
     frontmatter?: Frontmatter;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.ExecutionSummaryTiming
+ */
+export interface ExecutionSummaryTiming {
+    /**
+     * @generated from protobuf field: google.protobuf.Int64Value start_time = 1;
+     */
+    startTime?: Int64Value;
+    /**
+     * @generated from protobuf field: google.protobuf.Int64Value end_time = 2;
+     */
+    endTime?: Int64Value;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.CellOutputItem
+ */
+export interface CellOutputItem {
+    /**
+     * @generated from protobuf field: bytes data = 1;
+     */
+    data: Uint8Array;
+    /**
+     * @generated from protobuf field: string type = 2;
+     */
+    type: string;
+    /**
+     * @generated from protobuf field: string mime = 3;
+     */
+    mime: string;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.ProcessInfoExitReason
+ */
+export interface ProcessInfoExitReason {
+    /**
+     * @generated from protobuf field: string type = 1;
+     */
+    type: string;
+    /**
+     * @generated from protobuf field: google.protobuf.UInt32Value code = 2;
+     */
+    code?: UInt32Value;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.CellOutputProcessInfo
+ */
+export interface CellOutputProcessInfo {
+    /**
+     * @generated from protobuf field: runme.parser.v1.ProcessInfoExitReason exit_reason = 1;
+     */
+    exitReason?: ProcessInfoExitReason;
+    /**
+     * @generated from protobuf field: google.protobuf.Int64Value pid = 2;
+     */
+    pid?: Int64Value;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.CellOutput
+ */
+export interface CellOutput {
+    /**
+     * @generated from protobuf field: repeated runme.parser.v1.CellOutputItem items = 1;
+     */
+    items: CellOutputItem[];
+    /**
+     * @generated from protobuf field: map<string, string> metadata = 2;
+     */
+    metadata: {
+        [key: string]: string;
+    };
+    /**
+     * @generated from protobuf field: runme.parser.v1.CellOutputProcessInfo process_info = 3;
+     */
+    processInfo?: CellOutputProcessInfo;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.CellExecutionSummary
+ */
+export interface CellExecutionSummary {
+    /**
+     * @generated from protobuf field: google.protobuf.UInt32Value execution_order = 1;
+     */
+    executionOrder?: UInt32Value;
+    /**
+     * @generated from protobuf field: google.protobuf.BoolValue success = 2;
+     */
+    success?: BoolValue;
+    /**
+     * @generated from protobuf field: runme.parser.v1.ExecutionSummaryTiming timing = 3;
+     */
+    timing?: ExecutionSummaryTiming;
 }
 /**
  * @generated from protobuf message runme.parser.v1.TextRange
@@ -62,6 +157,14 @@ export interface Cell {
      * @generated from protobuf field: runme.parser.v1.TextRange text_range = 5;
      */
     textRange?: TextRange;
+    /**
+     * @generated from protobuf field: repeated runme.parser.v1.CellOutput outputs = 6;
+     */
+    outputs: CellOutput[];
+    /**
+     * @generated from protobuf field: runme.parser.v1.CellExecutionSummary execution_summary = 7;
+     */
+    executionSummary?: CellExecutionSummary;
 }
 /**
  * @generated from protobuf message runme.parser.v1.FrontmatterRunme
@@ -129,6 +232,28 @@ export interface DeserializeResponse {
     notebook?: Notebook;
 }
 /**
+ * @generated from protobuf message runme.parser.v1.SerializeRequestOutputOptions
+ */
+export interface SerializeRequestOutputOptions {
+    /**
+     * @generated from protobuf field: bool enabled = 1;
+     */
+    enabled: boolean;
+    /**
+     * @generated from protobuf field: bool summary = 2;
+     */
+    summary: boolean;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export interface SerializeRequestOptions {
+    /**
+     * @generated from protobuf field: runme.parser.v1.SerializeRequestOutputOptions outputs = 1;
+     */
+    outputs?: SerializeRequestOutputOptions;
+}
+/**
  * @generated from protobuf message runme.parser.v1.SerializeRequest
  */
 export interface SerializeRequest {
@@ -136,6 +261,10 @@ export interface SerializeRequest {
      * @generated from protobuf field: runme.parser.v1.Notebook notebook = 1;
      */
     notebook?: Notebook;
+    /**
+     * @generated from protobuf field: runme.parser.v1.SerializeRequestOptions options = 2;
+     */
+    options?: SerializeRequestOptions;
 }
 /**
  * @generated from protobuf message runme.parser.v1.SerializeResponse
@@ -193,6 +322,48 @@ declare class Notebook$Type extends MessageType<Notebook> {
  * @generated MessageType for protobuf message runme.parser.v1.Notebook
  */
 export declare const Notebook: Notebook$Type;
+declare class ExecutionSummaryTiming$Type extends MessageType<ExecutionSummaryTiming> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.ExecutionSummaryTiming
+ */
+export declare const ExecutionSummaryTiming: ExecutionSummaryTiming$Type;
+declare class CellOutputItem$Type extends MessageType<CellOutputItem> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.CellOutputItem
+ */
+export declare const CellOutputItem: CellOutputItem$Type;
+declare class ProcessInfoExitReason$Type extends MessageType<ProcessInfoExitReason> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.ProcessInfoExitReason
+ */
+export declare const ProcessInfoExitReason: ProcessInfoExitReason$Type;
+declare class CellOutputProcessInfo$Type extends MessageType<CellOutputProcessInfo> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.CellOutputProcessInfo
+ */
+export declare const CellOutputProcessInfo: CellOutputProcessInfo$Type;
+declare class CellOutput$Type extends MessageType<CellOutput> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.CellOutput
+ */
+export declare const CellOutput: CellOutput$Type;
+declare class CellExecutionSummary$Type extends MessageType<CellExecutionSummary> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.CellExecutionSummary
+ */
+export declare const CellExecutionSummary: CellExecutionSummary$Type;
 declare class TextRange$Type extends MessageType<TextRange> {
     constructor();
 }
@@ -242,6 +413,20 @@ declare class DeserializeResponse$Type extends MessageType<DeserializeResponse> 
  * @generated MessageType for protobuf message runme.parser.v1.DeserializeResponse
  */
 export declare const DeserializeResponse: DeserializeResponse$Type;
+declare class SerializeRequestOutputOptions$Type extends MessageType<SerializeRequestOutputOptions> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOutputOptions
+ */
+export declare const SerializeRequestOutputOptions: SerializeRequestOutputOptions$Type;
+declare class SerializeRequestOptions$Type extends MessageType<SerializeRequestOptions> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export declare const SerializeRequestOptions: SerializeRequestOptions$Type;
 declare class SerializeRequest$Type extends MessageType<SerializeRequest> {
     constructor();
 }

@@ -10,6 +10,9 @@
 // @ts-nocheck
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
+import { BoolValue } from "../../../google/protobuf/wrappers_pb";
+import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
+import { Int64Value } from "../../../google/protobuf/wrappers_pb";
 /**
  * @generated from protobuf enum runme.parser.v1.CellKind
  */
@@ -67,6 +70,87 @@ class Notebook$Type extends MessageType {
  */
 export const Notebook = new Notebook$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ExecutionSummaryTiming$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.ExecutionSummaryTiming", [
+            { no: 1, name: "start_time", kind: "message", T: () => Int64Value },
+            { no: 2, name: "end_time", kind: "message", T: () => Int64Value }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.ExecutionSummaryTiming
+ */
+export const ExecutionSummaryTiming = new ExecutionSummaryTiming$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CellOutputItem$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.CellOutputItem", [
+            { no: 1, name: "data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "mime", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.CellOutputItem
+ */
+export const CellOutputItem = new CellOutputItem$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ProcessInfoExitReason$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.ProcessInfoExitReason", [
+            { no: 1, name: "type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "code", kind: "message", T: () => UInt32Value }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.ProcessInfoExitReason
+ */
+export const ProcessInfoExitReason = new ProcessInfoExitReason$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CellOutputProcessInfo$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.CellOutputProcessInfo", [
+            { no: 1, name: "exit_reason", kind: "message", T: () => ProcessInfoExitReason },
+            { no: 2, name: "pid", kind: "message", T: () => Int64Value }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.CellOutputProcessInfo
+ */
+export const CellOutputProcessInfo = new CellOutputProcessInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CellOutput$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.CellOutput", [
+            { no: 1, name: "items", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => CellOutputItem },
+            { no: 2, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
+            { no: 3, name: "process_info", kind: "message", T: () => CellOutputProcessInfo }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.CellOutput
+ */
+export const CellOutput = new CellOutput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CellExecutionSummary$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.CellExecutionSummary", [
+            { no: 1, name: "execution_order", kind: "message", T: () => UInt32Value },
+            { no: 2, name: "success", kind: "message", T: () => BoolValue },
+            { no: 3, name: "timing", kind: "message", T: () => ExecutionSummaryTiming }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.CellExecutionSummary
+ */
+export const CellExecutionSummary = new CellExecutionSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class TextRange$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.TextRange", [
@@ -87,7 +171,9 @@ class Cell$Type extends MessageType {
             { no: 2, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
-            { no: 5, name: "text_range", kind: "message", T: () => TextRange }
+            { no: 5, name: "text_range", kind: "message", T: () => TextRange },
+            { no: 6, name: "outputs", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => CellOutput },
+            { no: 7, name: "execution_summary", kind: "message", T: () => CellExecutionSummary }
         ]);
     }
 }
@@ -161,10 +247,36 @@ class DeserializeResponse$Type extends MessageType {
  */
 export const DeserializeResponse = new DeserializeResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SerializeRequestOutputOptions$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.SerializeRequestOutputOptions", [
+            { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "summary", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOutputOptions
+ */
+export const SerializeRequestOutputOptions = new SerializeRequestOutputOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SerializeRequestOptions$Type extends MessageType {
+    constructor() {
+        super("runme.parser.v1.SerializeRequestOptions", [
+            { no: 1, name: "outputs", kind: "message", T: () => SerializeRequestOutputOptions }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.SerializeRequestOptions
+ */
+export const SerializeRequestOptions = new SerializeRequestOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SerializeRequest$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.SerializeRequest", [
-            { no: 1, name: "notebook", kind: "message", T: () => Notebook }
+            { no: 1, name: "notebook", kind: "message", T: () => Notebook },
+            { no: 2, name: "options", kind: "message", T: () => SerializeRequestOptions }
         ]);
     }
 }

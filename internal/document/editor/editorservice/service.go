@@ -2,6 +2,8 @@ package editorservice
 
 import (
 	"context"
+	"encoding/base64"
+	"strings"
 
 	"github.com/stateful/runme/internal/document/editor"
 	"github.com/stateful/runme/internal/document/identity"
@@ -88,11 +90,16 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
+		outputs := s.serializeCellOutputs(cell, req.Options)
+		executionSummary := s.serializeCellExecutionSummary(cell, req.Options)
+
 		cells = append(cells, &editor.Cell{
-			Kind:       editor.CellKind(cell.Kind),
-			Value:      cell.Value,
-			LanguageID: cell.LanguageId,
-			Metadata:   cell.Metadata,
+			Kind:             editor.CellKind(cell.Kind),
+			Value:            cell.Value,
+			LanguageID:       cell.LanguageId,
+			Metadata:         cell.Metadata,
+			Outputs:          outputs,
+			ExecutionSummary: executionSummary,
 		})
 	}
 
@@ -106,6 +113,98 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 	}
 
 	return &parserv1.SerializeResponse{Result: data}, nil
+}
+
+func (*parserServiceServer) serializeCellExecutionSummary(cell *parserv1.Cell, options *parserv1.SerializeRequestOptions) *editor.CellExecutionSummary {
+	if options != nil && options.Outputs != nil && !options.Outputs.GetSummary() {
+		return nil
+	}
+
+	if cell.ExecutionSummary == nil {
+		return nil
+	}
+
+	execSummary := &editor.CellExecutionSummary{}
+
+	if cell.ExecutionSummary.ExecutionOrder != nil {
+		execSummary.ExecutionOrder = cell.ExecutionSummary.ExecutionOrder.Value
+	}
+
+	if cell.ExecutionSummary.Success != nil {
+		execSummary.Success = cell.ExecutionSummary.Success.Value
+	}
+
+	if cell.ExecutionSummary.Timing != nil {
+		execSummary.Timing = &editor.ExecutionSummaryTiming{
+			StartTime: cell.ExecutionSummary.Timing.StartTime.Value,
+			EndTime:   cell.ExecutionSummary.Timing.EndTime.Value,
+		}
+	}
+
+	return execSummary
+}
+
+func (*parserServiceServer) serializeCellOutputs(cell *parserv1.Cell, options *parserv1.SerializeRequestOptions) []*editor.CellOutput {
+	outputs := make([]*editor.CellOutput, 0, len(cell.Outputs))
+
+	if options != nil && options.Outputs != nil && !options.Outputs.GetEnabled() {
+		return outputs
+	}
+
+	for _, cellOutput := range cell.Outputs {
+		var outputItems []*editor.CellOutputItem
+		for _, item := range cellOutput.Items {
+			if strings.HasPrefix(item.Mime, "stateful.") {
+				continue
+			}
+
+			if len(item.Data) <= 0 {
+				continue
+			}
+
+			dataBase64 := ""
+			dataValue := ""
+			if !strings.HasPrefix(item.Mime, "image") {
+				dataValue = string(item.Data)
+			} else {
+				dataBase64 = base64.URLEncoding.EncodeToString(item.Data)
+			}
+
+			outputItems = append(outputItems, &editor.CellOutputItem{
+				Data:  dataBase64,
+				Value: dataValue,
+				Type:  item.Type,
+				Mime:  item.Mime,
+			})
+		}
+
+		if len(outputItems) <= 0 {
+			continue
+		}
+
+		var outputProcessInfo *editor.CellOutputProcessInfo
+		if cellOutput.ProcessInfo != nil {
+			exitReason := &editor.ProcessInfoExitReason{
+				Type: cellOutput.ProcessInfo.ExitReason.Type,
+			}
+			if cellOutput.ProcessInfo.ExitReason.Code != nil {
+				exitReason.Code = cellOutput.ProcessInfo.ExitReason.Code.Value
+			}
+			outputProcessInfo = &editor.CellOutputProcessInfo{
+				ExitReason: exitReason,
+			}
+			if cellOutput.ProcessInfo.Pid != nil {
+				outputProcessInfo.Pid = cellOutput.ProcessInfo.Pid.Value
+			}
+		}
+
+		outputs = append(outputs, &editor.CellOutput{
+			Items:       outputItems,
+			Metadata:    cellOutput.Metadata,
+			ProcessInfo: outputProcessInfo,
+		})
+	}
+	return outputs
 }
 
 func min[T constraints.Ordered](a, b T) T {

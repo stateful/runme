@@ -2,6 +2,7 @@ package editor
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 
 	"github.com/stateful/runme/internal/document"
@@ -367,5 +368,31 @@ func Test_serializeFencedCodeAttributes(t *testing.T) {
 			},
 		})
 		assert.Equal(t, ` {"a":"a","b":"b","c":"c","name":"name"}`, buf.String())
+	})
+}
+
+// todo(sebastian): Use JSON until we support deserialization
+var (
+	testDataOutputsText  = []byte(`{"kind":2,"value":"$ printf \"\\u001b[34mDoes it work?\\n\"\n$ sleep 2\n$ printf \"\\u001b[32mYes, success!\\x1b[0m\\n\"\n$ exit 16","languageId":"sh","metadata":{"background":"false","id":"01HF7B0KJPF469EG9ZVX256S75","interactive":"true"},"outputs":[{"items":[{"value":"\u001b[34mDoes it work?\r\n\u001b[32mYes, success!\u001b[1B\u001b[13D\u001b[0m","data":"","type":"Buffer","mime":"application/vnd.code.notebook.stdout"}],"processInfo":{"exitReason":{"type":"exit","code":16},"pid":0}}],"executionSummary":{"executionSummary":0,"success":false,"timing":{"startTime":1701280699458,"endTime":1701280701754}}}`)
+	testDataOutputsImage = []byte(`{"kind":2,"value":"$ curl -s \"https://runme.dev/runme_cube.svg\"","languageId":"sh","metadata":{"id":"01HF7B0KJPF469EG9ZW030N7RQ","interactive":"false","mimeType":"image/svg+xml"},"outputs":[{"items":[{"value":"","data":"PHN2ZyB3aWR0aD0iOTUzNSIgaGVpZ2h0PSI4MDA0IiB2aWV3Qm94PSIwIDAgOTUzNSA4MDA0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNTA0Ni45NCAzMy43Mzk1QzQ4MzIuNDYgLTE2LjQwNjEgNDQ5MS42OSAtOS43ODk5IDQyODYuNTkgNDcuODI2NkwzNTA0IDI2OC42MUwyNzIxLjQyIDQ4OS4zOTJMMTE1Ni4yNSA5MzAuOTU4Qzk1MS4zMSA5ODguNTc1IDk1OC4wOTIgMTA3Ni40OSAxMTcyLjQ2IDExMjYuNDdMNDQzMS44NCAxODg3Ljk0QzQ2NDUuNDcgMTkzNy43OSA0OTg2LjE1IDE5MzEuMzQgNTE5MS4wOSAxODczLjU1TDU5NzMuNzUgMTY1Mi43Nkw2NzU2LjQyIDE0MzEuOTdMNzUzOS4wOSAxMjExLjE4TDgzMjEuNzYgOTkwLjM5NEM4NTI2LjcgOTMyLjc3OCA4NTE5LjkyIDg0NS4wNTcgODMwNi4zOCA3OTUuMjE1TDUwNDYuOTQgMzMuNzM5NVoiIGZpbGw9IiM1QjNBREYiIGZpbGwtb3BhY2l0eT0iMC43Ii8","type":"Buffer","mime":"image/svg+xml"}],"processInfo":null}],"executionSummary":{"executionSummary":0,"success":true,"timing":{"startTime":1701282636792,"endTime":1701282636923}}}`)
+)
+
+func Test_serializeOutputs(t *testing.T) {
+	t.Run("Text", func(t *testing.T) {
+		var testCell Cell
+		json.Unmarshal(testDataOutputsText, &testCell)
+
+		var buf bytes.Buffer
+		serializeCellOutputsText(&buf, &testCell)
+		assert.Equal(t, "\n# Ran on 2023-11-29 17:58:19Z for 2.296s exited with 16\nDoes it work?\r\nYes, success!\n", buf.String())
+	})
+
+	t.Run("Image", func(t *testing.T) {
+		var testCell Cell
+		json.Unmarshal(testDataOutputsImage, &testCell)
+
+		var buf bytes.Buffer
+		serializeCellOutputsImage(&buf, &testCell)
+		assert.Equal(t, "\n\n![$ curl -s \"https://runme.dev/runme_cube.svg\"](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTUzNSIgaGVpZ2h0PSI4MDA0IiB2aWV3Qm94PSIwIDAgOTUzNSA4MDA0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNTA0Ni45NCAzMy43Mzk1QzQ4MzIuNDYgLTE2LjQwNjEgNDQ5MS42OSAtOS43ODk5IDQyODYuNTkgNDcuODI2NkwzNTA0IDI2OC42MUwyNzIxLjQyIDQ4OS4zOTJMMTE1Ni4yNSA5MzAuOTU4Qzk1MS4zMSA5ODguNTc1IDk1OC4wOTIgMTA3Ni40OSAxMTcyLjQ2IDExMjYuNDdMNDQzMS44NCAxODg3Ljk0QzQ2NDUuNDcgMTkzNy43OSA0OTg2LjE1IDE5MzEuMzQgNTE5MS4wOSAxODczLjU1TDU5NzMuNzUgMTY1Mi43Nkw2NzU2LjQyIDE0MzEuOTdMNzUzOS4wOSAxMjExLjE4TDgzMjEuNzYgOTkwLjM5NEM4NTI2LjcgOTMyLjc3OCA4NTE5LjkyIDg0NS4wNTcgODMwNi4zOCA3OTUuMjE1TDUwNDYuOTQgMzMuNzM5NVoiIGZpbGw9IiM1QjNBREYiIGZpbGwtb3BhY2l0eT0iMC43Ii8)\n", buf.String())
 	})
 }

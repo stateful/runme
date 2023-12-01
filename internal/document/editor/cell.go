@@ -7,8 +7,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/stateful/runme/internal/document"
 	ulid "github.com/stateful/runme/internal/ulid"
@@ -35,11 +37,47 @@ type TextRange struct {
 // Cell resembles NotebookCellData from VS Code.
 // https://github.com/microsoft/vscode/blob/085c409898bbc89c83409f6a394e73130b932add/src/vscode-dts/vscode.d.ts#L13715
 type Cell struct {
-	Kind       CellKind          `json:"kind"`
-	Value      string            `json:"value"`
-	LanguageID string            `json:"languageId"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
-	TextRange  *TextRange        `json:"textRange,omitempty"`
+	Kind             CellKind              `json:"kind"`
+	Value            string                `json:"value"`
+	LanguageID       string                `json:"languageId"`
+	Metadata         map[string]string     `json:"metadata,omitempty"`
+	Outputs          []*CellOutput         `json:"outputs,omitempty"`
+	TextRange        *TextRange            `json:"textRange,omitempty"`
+	ExecutionSummary *CellExecutionSummary `json:"executionSummary,omitempty"`
+}
+
+type CellExecutionSummary struct {
+	ExecutionOrder uint32                  `json:"executionSummary"`
+	Success        bool                    `json:"success"`
+	Timing         *ExecutionSummaryTiming `json:"timing,omitempty"`
+}
+
+type ExecutionSummaryTiming struct {
+	StartTime int64 `json:"startTime"`
+	EndTime   int64 `json:"endTime"`
+}
+
+type CellOutputItem struct {
+	Value string `json:"value"`
+	Data  string `json:"data"`
+	Type  string `json:"type"`
+	Mime  string `json:"mime"`
+}
+
+type ProcessInfoExitReason struct {
+	Type string `json:"type"`
+	Code uint32 `json:"code"`
+}
+
+type CellOutputProcessInfo struct {
+	ExitReason *ProcessInfoExitReason `json:"exitReason"`
+	Pid        int64                  `json:"pid"`
+}
+
+type CellOutput struct {
+	Items       []*CellOutputItem      `json:"items"`
+	Metadata    map[string]string      `json:"metadata,omitempty"`
+	ProcessInfo *CellOutputProcessInfo `json:"processInfo"`
 }
 
 // Notebook resembles NotebookData form VS Code.
@@ -242,6 +280,11 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 	}
 }
 
+func removeAnsiCodes(str string) string {
+	re := regexp.MustCompile(`\x1b\[.*?[a-zA-Z]|\x1b\].*?\x1b\\`)
+	return re.ReplaceAllString(str, "")
+}
+
 func serializeCells(cells []*Cell) []byte {
 	var buf bytes.Buffer
 
@@ -263,7 +306,12 @@ func serializeCells(cells []*Cell) []byte {
 			_ = buf.WriteByte('\n')
 			_, _ = buf.WriteString(cell.Value)
 			_ = buf.WriteByte('\n')
+
+			serializeCellOutputsText(&buf, cell)
+
 			_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
+
+			serializeCellOutputsImage(&buf, cell)
 
 		case MarkupKind:
 			_, _ = buf.WriteString(cell.Value)
@@ -282,6 +330,67 @@ func serializeCells(cells []*Cell) []byte {
 	return buf.Bytes()
 }
 
+func serializeCellOutputsText(w io.Writer, cell *Cell) {
+	var buf bytes.Buffer
+	for _, output := range cell.Outputs {
+		for _, item := range output.Items {
+			if strings.HasPrefix(item.Mime, "image") {
+				continue
+			}
+			if cell.ExecutionSummary != nil {
+				startTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.StartTime)
+				endTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.EndTime)
+
+				execDuration := endTimestamp.Sub(startTimestamp)
+
+				// todo(sebastian): consider using tpl for this
+				_, _ = buf.WriteString("\n# Ran on ")
+				_, _ = buf.WriteString(prettyTime(startTimestamp))
+				_, _ = buf.WriteString(" for ")
+				_, _ = buf.WriteString(prettyDuration(execDuration))
+				if output.ProcessInfo != nil && output.ProcessInfo.ExitReason.Type == "exit" {
+					_, _ = buf.WriteString(" exited with ")
+					_, _ = buf.WriteString(fmt.Sprintf("%d", output.ProcessInfo.ExitReason.Code))
+				}
+				_, _ = buf.WriteString("\n")
+			} else {
+				_ = buf.WriteByte('\n')
+			}
+			_, _ = buf.WriteString(removeAnsiCodes(item.Value))
+			_ = buf.WriteByte('\n')
+		}
+	}
+	_, _ = w.Write(buf.Bytes())
+}
+
+func serializeCellOutputsImage(w io.Writer, cell *Cell) {
+	var buf bytes.Buffer
+	for _, output := range cell.Outputs {
+		for _, item := range output.Items {
+			if !strings.HasPrefix(item.Mime, "image") {
+				continue
+			}
+
+			_ = buf.WriteByte('\n')
+			if strings.HasPrefix(item.Mime, "image") {
+				_ = buf.WriteByte('\n')
+				_, _ = buf.WriteString("![")
+				_, _ = buf.WriteString(cell.Value)
+				_, _ = buf.WriteString("](data:")
+				_, _ = buf.WriteString(item.Mime)
+				_, _ = buf.WriteString(";base64,")
+				_, _ = buf.WriteString(item.Data)
+				_, _ = buf.WriteString(")")
+			} else {
+				_, _ = buf.WriteString(removeAnsiCodes(item.Value))
+			}
+			_ = buf.WriteByte('\n')
+		}
+	}
+
+	_, _ = w.Write(buf.Bytes())
+}
+
 func longestBacktickSeq(data string) int {
 	longest, current := 0, 0
 	for _, b := range data {
@@ -295,6 +404,24 @@ func longestBacktickSeq(data string) int {
 		}
 	}
 	return longest
+}
+
+func prettyTime(timestamp time.Time) string {
+	rfc3339 := timestamp.Format(time.RFC3339)
+	return strings.ReplaceAll(rfc3339, "T", " ")
+}
+
+func prettyDuration(duration time.Duration) string {
+	spaced := duration.Truncate(time.Millisecond).String()
+	if duration < time.Second {
+		return spaced
+	}
+
+	units := []string{"d", "h", "m", "s"}
+	for _, u := range units {
+		spaced = strings.ReplaceAll(spaced, u, fmt.Sprintf("%s ", u))
+	}
+	return strings.TrimRight(spaced, " ")
 }
 
 func fmtValue(s []byte) string {
