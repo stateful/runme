@@ -86,7 +86,7 @@ brews:
     ids:
       - cli
     homepage: https://runme.dev
-    description: "Execute code snippets directly from Markdown files."
+    description: "Execute your runbooks, docs, and READMEs."
     tap:
       owner: stateful
       name: homebrew-tap
@@ -115,7 +115,7 @@ nfpms:
     vendor: Stateful Inc.
     homepage: https://runme.dev
     maintainer: Sebastian Tiedtke <sebastian@stateful.com>
-    description: "Execute code snippets directly from Markdown files."
+    description: "Execute your runbooks, docs, and READMEs."
     file_name_template: >-
       {{- .PackageName }}_
       {{- .Os }}_
@@ -138,7 +138,7 @@ scoop:
     name: release-bot
     email: bot@stateful.com
   homepage: https://runme.dev
-  description: "Execute code snippets directly from Markdown files."
+  description: "Execute your runbooks, docs, and READMEs."
   skip_upload: auto
 
 dockers:
