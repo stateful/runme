@@ -29,7 +29,7 @@ wasm:
 .PHONY: test
 test: PKGS ?= "./..."
 test: build
-	@TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=30s ./...
+	@TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=30s $(PKGS)
 
 .PHONY: test/update-snapshots
 test/update-snapshots:
