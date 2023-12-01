@@ -116,7 +116,7 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 }
 
 func (*parserServiceServer) serializeCellExecutionSummary(cell *parserv1.Cell, options *parserv1.SerializeRequestOptions) *editor.CellExecutionSummary {
-	if options != nil && options.Outputs != nil && !options.Outputs.GetSummary() {
+	if options == nil || options.Outputs == nil || !options.Outputs.GetSummary() {
 		return nil
 	}
 
@@ -147,7 +147,7 @@ func (*parserServiceServer) serializeCellExecutionSummary(cell *parserv1.Cell, o
 func (*parserServiceServer) serializeCellOutputs(cell *parserv1.Cell, options *parserv1.SerializeRequestOptions) []*editor.CellOutput {
 	outputs := make([]*editor.CellOutput, 0, len(cell.Outputs))
 
-	if options != nil && options.Outputs != nil && !options.Outputs.GetEnabled() {
+	if options == nil || options.Outputs == nil || !options.Outputs.GetEnabled() {
 		return outputs
 	}
 
