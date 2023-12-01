@@ -1,8 +1,13 @@
 {
     "go.testTimeout": "10s",
     "go.buildFlags": [
-        // Hardcoded the runme version because VSCode couldn't resolve it.
-        "-ldflags=-X 'github.com/stateful/runme/internal/version.BuildVersion=99.9.9'",
+        "-ldflags",
+        "-X github.com/stateful/runme/internal/version.BuildVersion=99.9.9",
+    ],
+    // TODO(adamb): figure out why it does not work in debug mode using delve.
+    "go.testFlags": [
+        "-ldflags",
+        "-X github.com/stateful/runme/internal/version.BuildVersion=99.9.9",
     ],
     "protoc": {
         "options": [
