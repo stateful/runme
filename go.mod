@@ -11,9 +11,9 @@ require (
 	github.com/bufbuild/connect-grpcreflect-go v1.1.0
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.9.1
-	github.com/cli/cli/v2 v2.38.0
+	github.com/cli/cli/v2 v2.39.2
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81
-	github.com/creack/pty v1.1.20
+	github.com/creack/pty v1.1.21
 	github.com/fatih/color v1.16.0
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/golang/mock v1.6.0
@@ -30,19 +30,19 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.10
 	github.com/yuin/goldmark v1.6.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
-	golang.org/x/net v0.18.0
-	golang.org/x/oauth2 v0.14.0
-	golang.org/x/sys v0.14.0
-	golang.org/x/term v0.14.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17
+	golang.org/x/exp v0.0.0-20231127185646-65229373498e
+	golang.org/x/net v0.19.0
+	golang.org/x/oauth2 v0.15.0
+	golang.org/x/sys v0.15.0
+	golang.org/x/term v0.15.0
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231127180814-3a041ad873d4
 	google.golang.org/protobuf v1.31.0
 )
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/cli/go-gh/v2 v2.4.1-0.20231024095351-47a83eeb1778 // indirect
+	github.com/cli/go-gh/v2 v2.4.1-0.20231120145612-d32c104a9a25 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -50,7 +50,6 @@ require (
 
 require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c // indirect
-	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/briandowns/spinner v1.23.0 // indirect
 	github.com/cli/go-gh v1.2.1
 	github.com/cli/safeexec v1.0.1 // indirect
@@ -79,10 +78,10 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.15.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.15.0 // indirect
+	golang.org/x/tools v0.16.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1
@@ -92,7 +91,7 @@ require (
 	github.com/Khan/genqlient v0.6.0
 	github.com/charmbracelet/bubbles v0.16.1
 	github.com/elliotchance/orderedmap v1.5.1
-	github.com/go-git/go-git/v5 v5.10.0
+	github.com/go-git/go-git/v5 v5.10.1
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
