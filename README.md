@@ -87,7 +87,7 @@ $ runme list
 The `print` command is useful when you need to review the code within a code cell without executing it. It outputs the code present in the specified code cell, providing a quick way to inspect the code:
 
 ```sh { name=runme-print interactive=false }
-$ runme print hello-world
+$ runme print hello-js
 
 ```
 
