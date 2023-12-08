@@ -184,29 +184,26 @@ func TestProjectLoad(t *testing.T) {
 		assert.Equal(
 			t,
 			filepath.Join(gitProjectDir, "git-ignored.md"),
-			dataFromLoadEvent[LoadEventFoundTaskData](events[8]).DocumentPath,
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[8]).DocumentPath,
 		)
 		assert.Equal(
 			t,
 			filepath.Join(gitProjectDir, "ignored.md"),
-			dataFromLoadEvent[LoadEventFoundTaskData](events[11]).DocumentPath,
-		)
-		assert.Equal(
-			t,
-			filepath.Join(gitProjectDir, "readme.md"),
-			dataFromLoadEvent[LoadEventFoundTaskData](events[14]).DocumentPath,
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[11]).DocumentPath,
 		)
 		// Unnamed task
 		{
-			data := dataFromLoadEvent[LoadEventFoundTaskData](events[14])
+			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[14])
 
+			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.DocumentPath)
 			assert.Equal(t, "echo-hello", data.Name)
 			assert.True(t, data.IsNameGenerated)
 		}
 		// Named task
 		{
-			data := dataFromLoadEvent[LoadEventFoundTaskData](events[15])
+			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[15])
 
+			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.DocumentPath)
 			assert.Equal(t, "my-task", data.Name)
 			assert.False(t, data.IsNameGenerated)
 		}
@@ -243,7 +240,8 @@ func TestProjectLoad(t *testing.T) {
 			LoadEventFinishedWalk,
 			LoadEventStartedParsingDocument,  // "readme.md"
 			LoadEventFinishedParsingDocument, // "readme.md"
-			LoadEventFoundTask,
+			LoadEventFoundTask,               // unnamed; echo-hello
+			LoadEventFoundTask,               // named; my-task
 		}
 		require.EqualValues(
 			t,
@@ -287,7 +285,8 @@ func TestProjectLoad(t *testing.T) {
 			LoadEventFoundTask,
 			LoadEventStartedParsingDocument,  // "readme.md"
 			LoadEventFinishedParsingDocument, // "readme.md"
-			LoadEventFoundTask,
+			LoadEventFoundTask,               // unnamed; echo-hello
+			LoadEventFoundTask,               // named; my-task
 		}
 		require.EqualValues(
 			t,
@@ -325,7 +324,8 @@ func TestProjectLoad(t *testing.T) {
 			LoadEventFinishedWalk,
 			LoadEventStartedParsingDocument,  // "readme.md"
 			LoadEventFinishedParsingDocument, // "readme.md"
-			LoadEventFoundTask,
+			LoadEventFoundTask,               // unnamed; echo-hello
+			LoadEventFoundTask,               // named; my-task
 		}
 		require.EqualValues(
 			t,
@@ -379,7 +379,7 @@ func TestProjectLoad(t *testing.T) {
 		assert.Equal(
 			t,
 			fileProject,
-			dataFromLoadEvent[LoadEventFoundTaskData](events[5]).DocumentPath,
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[5]).DocumentPath,
 		)
 	})
 }
@@ -392,8 +392,4 @@ func mapLoadEvents[T any](events []LoadEvent, fn func(LoadEvent) T) []T {
 	}
 
 	return result
-}
-
-func dataFromLoadEvent[T any](e LoadEvent) T {
-	return e.Data.(T)
 }

@@ -17,7 +17,8 @@ var GitProjectLoadAllExpectedEvents = []project.LoadEventType{
 	project.LoadEventFoundTask,
 	project.LoadEventStartedParsingDocument,  // "readme.md"
 	project.LoadEventFinishedParsingDocument, // "readme.md"
-	project.LoadEventFoundTask,
+	project.LoadEventFoundTask,               // unnamed; echo-hello
+	project.LoadEventFoundTask,               // named; my-task
 }
 
 var GitProjectLoadOnlyNotIgnoredFilesEvents = []project.LoadEventType{
@@ -27,7 +28,8 @@ var GitProjectLoadOnlyNotIgnoredFilesEvents = []project.LoadEventType{
 	project.LoadEventFinishedWalk,
 	project.LoadEventStartedParsingDocument,  // "readme.md"
 	project.LoadEventFinishedParsingDocument, // "readme.md"
-	project.LoadEventFoundTask,
+	project.LoadEventFoundTask,               // unnamed; echo-hello
+	project.LoadEventFoundTask,               // named; my-task
 }
 
 var FileProjectEvents = []project.LoadEventType{
