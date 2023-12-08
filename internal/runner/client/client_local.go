@@ -58,7 +58,18 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		}
 	}
 
-	sess, err := runner.NewSession(os.Environ(), r.project, r.logger)
+	envs := os.Environ()
+
+	if r.project != nil {
+		projEnvs, err := r.project.LoadEnvs()
+		if err != nil {
+			return nil, err
+		}
+
+		envs = append(envs, env.ConvertMapEnv(projEnvs)...)
+	}
+
+	sess, err := runner.NewSession(envs, r.logger)
 	if err != nil {
 		return nil, err
 	}

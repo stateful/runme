@@ -5,23 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Connect to server",
+            "name": "Debug CLI",
             "type": "go",
-            "request": "attach",
-            "mode": "remote",
-            "remotePath": "${workspaceFolder}",
-            "port": 56379,
-            "host": "127.0.0.1"
+            "mode": "auto",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.go",
+            "buildFlags": "-ldflags=-X=github.com/stateful/runme/internal/version.BuildVersion=99.9.9",
         },
         {
-            "name": "Server",
+            "name": "Debug server",
             "type": "go",
-            "request": "launch",
             "mode": "auto",
+            "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "buildFlags": [
-                "-ldflags='-X 'github.com/stateful/runme/internal/version.BuildVersion=99.9.9''",
-            ],
+            "buildFlags": "-ldflags=-X=github.com/stateful/runme/internal/version.BuildVersion=99.9.9",
             "args": [
                 "server",
                 "--dev",
@@ -29,19 +26,6 @@
                 "127.0.0.1:9999",
                 "--tls",
                 "/tmp/runme/tls",
-            ]
-        },
-        {
-            "name": "CLI",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}/main.go",
-            "buildFlags": [
-                "-ldflags='-X 'github.com/stateful/runme/internal/version.BuildVersion=99.9.9''",
-            ],
-            "args": [
-                "--version",
             ]
         }
     ]

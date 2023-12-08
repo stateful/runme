@@ -78,7 +78,19 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		return nil, err
 	}
 
-	sess, err := NewSession(req.Envs, proj, r.logger)
+	envs := make([]string, len(req.Envs))
+	copy(envs, req.Envs)
+
+	if proj != nil {
+		projEnvs, err := proj.LoadEnvs()
+		if err != nil {
+			return nil, err
+		}
+
+		envs = append(envs, env.ConvertMapEnv(projEnvs)...)
+	}
+
+	sess, err := NewSession(envs, r.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +185,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	logger.Debug("received initial request", zap.Any("req", req))
 
 	createSession := func(envs []string) (*Session, error) {
-		return NewSession(envs, nil, r.logger)
+		return NewSession(envs, r.logger)
 	}
 
 	var stdoutMem []byte

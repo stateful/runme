@@ -364,7 +364,6 @@ func Test_command(t *testing.T) {
 				"TEST_OLD_CHANGED=value1",
 				"TEST_OLD_UNSET=value1",
 			},
-			nil,
 			logger,
 		)
 		require.NoError(t, err)

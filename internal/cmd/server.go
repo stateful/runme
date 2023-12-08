@@ -15,8 +15,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/internal/document/editor/editorservice"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
+	projectv1 "github.com/stateful/runme/internal/gen/proto/go/runme/project/v1"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1/runnerv1connect"
+	"github.com/stateful/runme/internal/project/projectservice"
 	"github.com/stateful/runme/internal/runner"
 	runmetls "github.com/stateful/runme/internal/tls"
 	"go.uber.org/zap"
@@ -149,6 +151,7 @@ The kernel is used to run long running processes like shells and interacting wit
 				grpc.MaxSendMsgSize(runner.MaxMsgSize),
 			)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
+			projectv1.RegisterProjectServiceServer(server, projectservice.NewProjectServiceServer(logger))
 			if enableRunner {
 				runnerService, err := runner.NewRunnerService(logger)
 				if err != nil {

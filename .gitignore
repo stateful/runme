@@ -46,3 +46,9 @@ dist/
 
 # VSCode debugger
 __debug_bin*
+
+cover.out
+
+# Prevent git from interpreting internal/project/testdata/git-project as a submodule.
+internal/project/testdata/git-project/.git
+internal/project/testdata/git-project/.gitignore
