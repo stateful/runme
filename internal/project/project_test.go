@@ -140,6 +140,7 @@ func TestProjectLoad(t *testing.T) {
 			LoadEventStartedParsingDocument,  // "readme.md"
 			LoadEventFinishedParsingDocument, // "readme.md"
 			LoadEventFoundTask,
+			LoadEventFoundTask,
 		}
 		require.EqualValues(
 			t,
@@ -195,6 +196,20 @@ func TestProjectLoad(t *testing.T) {
 			filepath.Join(gitProjectDir, "readme.md"),
 			dataFromLoadEvent[LoadEventFoundTaskData](events[14]).DocumentPath,
 		)
+		// Unnamed task
+		{
+			data := dataFromLoadEvent[LoadEventFoundTaskData](events[14])
+
+			assert.Equal(t, "echo-hello", data.Name)
+			assert.True(t, data.IsNameGenerated)
+		}
+		// Named task
+		{
+			data := dataFromLoadEvent[LoadEventFoundTaskData](events[15])
+
+			assert.Equal(t, "my-task", data.Name)
+			assert.False(t, data.IsNameGenerated)
+		}
 	})
 
 	t.Run("DirProjectWithRespectGitignoreAndIgnorePatterns", func(t *testing.T) {

@@ -73,6 +73,8 @@ message LoadEventFoundTask {
   string id = 2;
 
   string name = 3;
+
+  bool is_name_generated = 4;
 }
 
 message LoadEventError {

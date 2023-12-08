@@ -53,9 +53,10 @@ type (
 	}
 
 	LoadEventFoundTaskData struct {
-		DocumentPath string
-		ID           string
-		Name         string
+		DocumentPath    string
+		ID              string
+		Name            string
+		IsNameGenerated bool
 	}
 
 	LoadEventErrorData struct {
@@ -387,9 +388,10 @@ func (p *Project) extractTasksFromFile(
 		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventFoundTask,
 			Data: LoadEventFoundTaskData{
-				DocumentPath: path,
-				ID:           b.ID(),
-				Name:         b.Name(),
+				DocumentPath:    path,
+				ID:              b.ID(),
+				Name:            b.Name(),
+				IsNameGenerated: b.IsUnnamed(),
 			},
 		})
 	}
