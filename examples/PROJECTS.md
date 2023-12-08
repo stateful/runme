@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HG9CJ12JXPWFTA90C2HT8ZX3
-  version: v0.0
+  version: v2.0
 ---
 
 ## gRPC runme.project.v1.ProjectService
@@ -36,6 +36,6 @@ $ grpcurl \
     -cacert /tmp/runme/tls/cert.pem \
     -cert /tmp/runme/tls/cert.pem \
     -key /tmp/runme/tls/key.pem \
-    -d "{\"directory\":{\"path\":\".\",\"respect_gitignore\":true}}" \
+    -d "{\"directory\":{\"path\":\".\"}}" \
     127.0.0.1:9999 runme.project.v1.ProjectService/Load
 ```
