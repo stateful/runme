@@ -42,27 +42,33 @@ func CleanupGitProject() {
 func prepareGitProject() {
 	dir := GitProjectPath()
 
-	cmd := exec.Command("cp", "-fr", filepath.Join(dir, ".git.bkp"), filepath.Join(dir, ".git"))
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Fatalf("failed to prepare .git: %v; output: %s", err, output)
+	srcBkpFilesToDestFiles := map[string]string{
+		filepath.Join(dir, ".git.bkp"):                 filepath.Join(dir, ".git"),
+		filepath.Join(dir, ".gitignore.bkp"):           filepath.Join(dir, ".gitignore"),
+		filepath.Join(dir, "nested", ".gitignore.bkp"): filepath.Join(dir, "nested", ".gitignore"),
 	}
 
-	cmd = exec.Command("cp", "-f", filepath.Join(dir, ".gitignore.bkp"), filepath.Join(dir, ".gitignore"))
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Fatalf("failed to prepare .gitignore: %v; output: %s", err, output)
+	for src, dest := range srcBkpFilesToDestFiles {
+		cmd := exec.Command("cp", "-fr", src, dest)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			log.Fatalf("failed to prepare %s: %v; output: %s", dest, err, output)
+		}
 	}
 }
 
 func cleanupGitProject() {
 	dir := GitProjectPath()
 
-	cmd := exec.Command("rm", "-rf", filepath.Join(dir, ".git"))
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Fatalf("failed clean up .git: %v; output: %s", err, output)
+	files := []string{
+		filepath.Join(dir, ".git"),
+		filepath.Join(dir, ".gitignore"),
+		filepath.Join(dir, "nested", ".gitignore"),
 	}
 
-	cmd = exec.Command("rm", "-f", filepath.Join(dir, ".gitignore"))
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Fatalf("failed clean up .gitignore: %v; output: %s", err, output)
+	for _, file := range files {
+		cmd := exec.Command("rm", "-rf", file)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			log.Fatalf("failed clean up %s: %v; output: %s", file, err, output)
+		}
 	}
 }
