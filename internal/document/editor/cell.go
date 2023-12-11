@@ -356,8 +356,12 @@ func serializeCellOutputsText(w io.Writer, cell *Cell) {
 			} else {
 				_ = buf.WriteByte('\n')
 			}
-			_, _ = buf.WriteString(removeAnsiCodes(item.Value))
-			_ = buf.WriteByte('\n')
+
+			textOnly := removeAnsiCodes(item.Value)
+			if len(textOnly) > 0 {
+				_, _ = buf.WriteString(textOnly)
+				_ = buf.WriteByte('\n')
+			}
 		}
 	}
 	_, _ = w.Write(buf.Bytes())

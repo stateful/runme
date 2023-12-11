@@ -158,7 +158,7 @@ func (*parserServiceServer) serializeCellOutputs(cell *parserv1.Cell, options *p
 				continue
 			}
 
-			if len(item.Data) <= 0 {
+			if cellOutput.ProcessInfo == nil && len(item.Data) <= 0 {
 				continue
 			}
 
