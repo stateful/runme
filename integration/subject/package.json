@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "devDependencies": {
-    "@octokit/rest": "^19.0.5",
+    "@octokit/rest": "^20.0.2",
     "@rollup/plugin-html": "^0.2.4",
     "@rushstack/eslint-patch": "^1.1.4",
     "@types/jsdom": "^20.0.0",
@@ -74,7 +74,7 @@
     "svelte": "^3.50.1",
     "tailwindcss": "^3.1.8",
     "tmp-promise": "^3.0.3",
-    "undici": "^5.19.1",
+    "undici": "^6.0.1",
     "vercel": "^28.4.4",
     "vite": "^3.1.4",
     "vue": "^3.2.40",
