@@ -1,3 +1,0 @@
-```sh
-echo "git-ignored"
-```

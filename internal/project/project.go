@@ -251,7 +251,9 @@ func (p *Project) getAllIgnorePatterns() (_ []gitignore.Pattern, err error) {
 	// TODO: confirm if the order of appending to ignorePatterns is important.
 	ignorePatterns := []gitignore.Pattern{
 		// Ignore .git by default.
-		gitignore.ParsePattern(".git", nil),
+		gitignore.ParsePattern("/.git", nil),
+		// Ignore node_modules by default.
+		gitignore.ParsePattern("node_modules", nil),
 	}
 
 	if p.respectGitignore {
@@ -293,7 +295,7 @@ func (p *Project) loadFromDirectory(
 		}
 
 		ignored := ignoreMatcher.Match(
-			[]string{path},
+			strings.Split(path, string(filepath.Separator)),
 			info.IsDir(),
 		)
 		if !ignored {

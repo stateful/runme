@@ -24,6 +24,7 @@ var GitProjectLoadAllExpectedEvents = []project.LoadEventType{
 var GitProjectLoadOnlyNotIgnoredFilesEvents = []project.LoadEventType{
 	project.LoadEventStartedWalk,
 	project.LoadEventFoundDir,  // "."
+	project.LoadEventFoundDir,  // "nested"
 	project.LoadEventFoundFile, // "readme.md"
 	project.LoadEventFinishedWalk,
 	project.LoadEventStartedParsingDocument,  // "readme.md"
