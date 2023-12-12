@@ -117,7 +117,6 @@ The Runme community is growing, join us!
 
 - Ask questions and be curious with us [on Discord](https://discord.gg/runme)
 - Read about real live Runme examples and use cases in [our blog](https://runme.dev/blog)
-- Meet the developers, learn about the roadmap and recent developments in our [Community Meetings](https://runme.dev/events)
 - Subscribe for updates to [our newsletter](https://runme.dev/list)
 
 ## Contributing
