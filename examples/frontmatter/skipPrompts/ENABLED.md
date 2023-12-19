@@ -7,4 +7,5 @@ skipPrompts: true
 
 ```sh {"id":"01HF7BT3HBDTRGQAQMHNSXB9K2"}
 $ export ENV="<insert-env-here>"
+$ echo "ENV=$ENV"
 ```

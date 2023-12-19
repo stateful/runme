@@ -6,4 +6,5 @@ runme:
 
 ```sh {"id":"01HF7BT3HBDTRGQAQMHFPKGXRH"}
 $ export ENV="<insert-env-here>"
+$ echo "ENV=$ENV"
 ```
