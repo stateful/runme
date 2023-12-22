@@ -99,6 +99,12 @@ This builds the CLI binary for the current platform to an executable file "runme
 # outputs: "runme version 1.3.0-27-g3cca8a6-3cca8a6 (3cca8a6e7d34f401c1bdd99828a7fac5b1d8fac9) on 2023-07-31T16:49:57Z"
 ```
 
+To run the server in dev mode with predictable port and TLS credentials location:
+
+```sh {"id":"01HJ9NZT45B03C9J6YJJJDB8PG","name":"server-dev"}
+./runme server --dev --address 127.0.0.1:9999 --tls /tmp/runme/tls
+```
+
 #### WASM
 
 WASM is built with:

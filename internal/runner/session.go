@@ -1,13 +1,54 @@
 package runner
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"sync"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	ulid "github.com/stateful/runme/internal/ulid"
 	"go.uber.org/zap"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
+
+var tp *sdktrace.TracerProvider
+
+// initTracer creates and registers trace provider instance.
+func init() {
+	traceProvider()
+}
+
+func traceProvider() {
+	// stdr.SetVerbosity(5)
+
+	ppExp, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	if err != nil {
+		log.Fatal("failed to initialize stdouttrace exporter", err)
+	}
+	ppBsp := sdktrace.NewBatchSpanProcessor(ppExp)
+	ctx := context.Background()
+
+	grpcExp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithInsecure())
+	if err != nil {
+		log.Fatal("failed to initialize otlptracegrpc exporter", err)
+	}
+	grpcBsp := sdktrace.NewBatchSpanProcessor(grpcExp)
+	tp = sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSpanProcessor(grpcBsp),
+		sdktrace.WithSpanProcessor(ppBsp),
+	)
+	otel.SetTracerProvider(tp)
+}
 
 // Session is an abstract entity separate from
 // an execution. Currently, its main role is to
@@ -18,18 +59,43 @@ type Session struct {
 
 	envStore *envStore
 	logger   *zap.Logger
+	Tracer   trace.Tracer
+	Span     trace.Span
+	Context  context.Context
 }
 
 func NewSession(envs []string, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
+	ID := ulid.GenerateID()
+	tracer := tp.Tracer("session")
+
+	fileName := "session.md"
+	m0, _ := baggage.NewMember(string("SessionID"), ID)
+	m1, _ := baggage.NewMember(string("filename"), fileName)
+	b, _ := baggage.New(m0, m1)
+	ctx := context.Background()
+	ctx = baggage.ContextWithBaggage(ctx, b)
+	ctx, span := tracer.Start(ctx, "Session")
+
+	sidKey := attribute.Key("SessionID")
+	fnKey := attribute.Key("Filename")
+
+	span.SetAttributes(sidKey.String(ID), fnKey.String(fileName))
 
 	s := &Session{
-		ID: ulid.GenerateID(),
+		ID: ID,
 
 		envStore: newEnvStore(sessionEnvs...),
 		logger:   logger,
+		Tracer:   tracer,
+		Span:     span,
+		Context:  ctx,
 	}
 	return s, nil
+}
+
+func (s *Session) EndSpan() {
+	s.Span.End(trace.WithTimestamp(time.Now()))
 }
 
 func (s *Session) AddEnvs(envs []string) {
@@ -86,6 +152,11 @@ func (sl *SessionList) GetSession(id string) (*Session, bool) {
 }
 
 func (sl *SessionList) DeleteSession(id string) (present bool) {
+	s, ok := sl.GetSession(id)
+	if ok {
+		s.EndSpan()
+	}
+
 	return sl.store.Remove(id)
 }
 
