@@ -21,15 +21,27 @@ const (
 	frontmatterFormatTOML = "toml"
 )
 
-type RunmeMetadata struct {
+type RunmeMetadataDocument struct {
+	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty" toml:"relativePath,omitempty"`
+}
+
+type RunmeMetadataSession struct {
 	ID      string `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
-	Version string `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
+	Updated string `yaml:"updated,omitempty" json:"updated,omitempty" toml:"updated,omitempty"`
+}
+
+type RunmeMetadata struct {
+	ID       string                `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
+	Version  string                `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
+	Document RunmeMetadataDocument `yaml:"document,omitempty" json:"document,omitempty" toml:"document,omitempty"`
+	Session  RunmeMetadataSession  `yaml:"session,omitempty" json:"session,omitempty" toml:"session,omitempty"`
 }
 
 type Frontmatter struct {
 	Runme       RunmeMetadata `yaml:"runme,omitempty"`
 	Shell       string        `yaml:"shell"`
 	Cwd         string        `yaml:"cwd"`
+	Category    string        `yaml:"category"`
 	SkipPrompts bool          `yaml:"skipPrompts,omitempty"`
 
 	format string

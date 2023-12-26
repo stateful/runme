@@ -73,9 +73,19 @@ enum RunmeIdentity {
   RUNME_IDENTITY_CELL = 3;
 }
 
+message RunmeSessionDocument {
+  string relative_path = 1;
+}
+
+message RunmeSession {
+  string id = 1;
+  RunmeSessionDocument document = 2;
+}
+
 message FrontmatterRunme {
   string id = 1;
   string version = 2;
+  RunmeSession session = 3;
 }
 
 message Frontmatter {
@@ -83,6 +93,7 @@ message Frontmatter {
   string cwd = 2;
   bool skip_prompts = 3;
   FrontmatterRunme runme = 4;
+  string category = 5;
 }
 
 message DeserializeRequestOptions {
@@ -105,6 +116,7 @@ message SerializeRequestOutputOptions {
 
 message SerializeRequestOptions {
   SerializeRequestOutputOptions outputs = 1;
+  RunmeSession session = 2;
 }
 
 message SerializeRequest {

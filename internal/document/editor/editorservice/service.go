@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"strings"
 
+	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
 	"github.com/stateful/runme/internal/document/identity"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
@@ -103,10 +104,28 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		})
 	}
 
+	var rMetadata *document.RunmeMetadata
+	if req.Options != nil && req.Options.Session != nil {
+		relativePath := ""
+		if req.Options.Session.Document != nil {
+			relativePath = req.Options.Session.Document.GetRelativePath()
+		}
+
+		rMetadata = &document.RunmeMetadata{
+			Session: document.RunmeMetadataSession{
+				ID: req.Options.Session.GetId(),
+			},
+			Document: document.RunmeMetadataDocument{
+				RelativePath: relativePath,
+			},
+		}
+
+	}
+
 	data, err := editor.Serialize(&editor.Notebook{
 		Cells:    cells,
 		Metadata: req.Notebook.Metadata,
-	})
+	}, rMetadata)
 	if err != nil {
 		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err

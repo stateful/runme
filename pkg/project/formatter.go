@@ -48,7 +48,7 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 					notebook.ForceLifecycleIdentities()
 				}
 
-				formatted, err = editor.Serialize(notebook)
+				formatted, err = editor.Serialize(notebook, nil)
 				if err != nil {
 					return errors.Wrap(err, "failed to serialize")
 				}
