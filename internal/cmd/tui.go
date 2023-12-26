@@ -61,8 +61,6 @@ func tuiCmd() *cobra.Command {
 				}
 			}
 
-			tasks = project.SortTasks(tasks)
-
 			if len(tasks) == 0 {
 				if fFileMode {
 					return errors.Errorf("no code blocks in %s", fFileName)

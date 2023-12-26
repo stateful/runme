@@ -43,17 +43,9 @@ func getProject() (*project.Project, error) {
 			return nil, errors.WithStack(err)
 		}
 	} else {
-		var err error
-
 		projDir := fProject
-		// TODO(adamb): wrap it in a function that will explain the logic
 		if projDir == "" {
-			projDir, err = os.Getwd()
-			if err != nil {
-				return nil, errors.WithMessage(err, "failed to get cwd")
-			}
-
-			opts = append(opts, project.WithFindRepoUpward())
+			projDir = "."
 		}
 
 		opts = append(
@@ -66,6 +58,7 @@ func getProject() (*project.Project, error) {
 			opts = append(opts, project.WithEnvFilesReadOrder(fEnvOrder))
 		}
 
+		var err error
 		proj, err = project.NewDirProject(projDir, opts...)
 		if err != nil {
 			return nil, err

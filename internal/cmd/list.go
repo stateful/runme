@@ -51,8 +51,6 @@ func listCmd() *cobra.Command {
 				return errors.Errorf("no named code blocks, consider adding flag --allow-unnamed")
 			}
 
-			tasks = project.SortTasks(tasks)
-
 			// TODO: this should be taken from cmd.
 			io := iostreams.System()
 			var rows []row

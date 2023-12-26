@@ -3,10 +3,7 @@ package project
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"regexp"
-	"sort"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
@@ -90,39 +87,6 @@ func LoadTasks(ctx context.Context, p *Project) ([]Task, error) {
 	}
 
 	return result, err
-}
-
-// SortTasks sorts tasks in ascending nested order.
-func SortTasks(tasks []Task) []Task {
-	tasksByFile := make(map[string][]Task)
-
-	var files []string
-
-	for _, task := range tasks {
-		if arr, ok := tasksByFile[task.DocumentPath]; ok {
-			tasksByFile[task.DocumentPath] = append(arr, task)
-			continue
-		}
-
-		tasksByFile[task.DocumentPath] = []Task{task}
-		files = append(files, task.DocumentPath)
-	}
-
-	sort.SliceStable(files, func(i, j int) bool {
-		return getFileDepth(files[i]) < getFileDepth(files[j])
-	})
-
-	result := make([]Task, 0, len(tasks))
-
-	for _, file := range files {
-		result = append(result, tasksByFile[file]...)
-	}
-
-	return result
-}
-
-func getFileDepth(fp string) int {
-	return len(strings.Split(fp, string(filepath.Separator)))
 }
 
 var ErrReturnEarly = errors.New("return early")
