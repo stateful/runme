@@ -20,6 +20,8 @@ var (
 	fProjectIgnorePatterns []string
 	fRespectGitignore      bool
 	fInsecure              bool
+	fLogEnabled            bool
+	fLogFilePath           string
 )
 
 func Root() *cobra.Command {
@@ -73,6 +75,9 @@ func Root() *cobra.Command {
 	pflags.BoolVar(&fRespectGitignore, "git-ignore", true, "Whether to respect .gitignore file(s) in project")
 	pflags.StringArrayVar(&fProjectIgnorePatterns, "ignore-pattern", []string{"node_modules", ".venv"}, "Patterns to ignore in project mode")
 
+	pflags.BoolVar(&fLogEnabled, "log", false, "Enable logging")
+	pflags.StringVar(&fLogFilePath, "log-file", filepath.Join(getTempDir(), "runme.log"), "Log file path")
+
 	setAPIFlags(pflags)
 
 	tuiCmd := tuiCmd()
@@ -124,4 +129,12 @@ func getCwd() string {
 		cwd = "."
 	}
 	return cwd
+}
+
+func getTempDir() string {
+	tmp := "/var/tmp"
+	if _, err := os.Stat(tmp); err != nil {
+		tmp = os.TempDir()
+	}
+	return tmp
 }

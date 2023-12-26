@@ -587,7 +587,7 @@ func Test_runnerService(t *testing.T) {
 			result := <-execResult
 
 			assert.NoError(t, result.Err)
-			assert.EqualValues(t, 0, result.ExitCode)
+			assert.EqualValues(t, 0, result.ExitCode, "expected exit code; stdout: %s; stderr: %s", result.Stdout, result.Stderr)
 		})
 	}
 
