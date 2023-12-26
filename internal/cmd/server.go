@@ -53,16 +53,16 @@ The parser allows serializing and deserializing markdown content.
 
 The kernel is used to run long running processes like shells and interacting with them.`,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var (
-				logger *zap.Logger
-				err    error
-			)
-			if devMode {
-				logger, err = zap.NewDevelopment()
-			} else {
-				logger, err = zap.NewProduction()
+		PreRun: func(cmd *cobra.Command, args []string) {
+			// By default, we want to log when running the server command.
+			fLogEnabled = true
+			// By default, we want to log to stderr when running the server command.
+			if !cmd.Flags().Changed("log-file") {
+				fLogFilePath = "stderr"
 			}
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			logger, err := getLogger(devMode)
 			if err != nil {
 				return err
 			}

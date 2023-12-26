@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/identity"
@@ -33,6 +34,13 @@ func getProject() (*project.Project, error) {
 	opts := []project.ProjectOption{
 		project.WithIdentityResolver(getIdentityResolver()),
 	}
+
+	logger, err := getLogger(false)
+	if err != nil {
+		return nil, err
+	}
+
+	opts = append(opts, project.WithLogger(logger))
 
 	var proj *project.Project
 
@@ -131,6 +139,40 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 	}
 
 	return document.CollectCodeBlocks(node), nil
+}
+
+func getLogger(devMode bool) (*zap.Logger, error) {
+	if !fLogEnabled {
+		return zap.NewNop(), nil
+	}
+
+	config := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Development: false,
+		Sampling: &zap.SamplingConfig{
+			Initial:    100,
+			Thereafter: 100,
+		},
+		Encoding:         "json",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	if devMode {
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		config.Development = true
+		config.Encoding = "console"
+		config.EncoderConfig = zap.NewDevelopmentEncoderConfig()
+	}
+
+	if fLogFilePath != "" {
+		config.OutputPaths = []string{fLogFilePath}
+		config.ErrorOutputPaths = []string{fLogFilePath}
+	}
+
+	l, err := config.Build()
+	return l, errors.WithStack(err)
 }
 
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

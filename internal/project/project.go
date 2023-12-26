@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/identity"
+	"go.uber.org/zap"
 )
 
 type LoadEventType uint8
@@ -117,6 +118,12 @@ func WithEnvFilesReadOrder(order []string) ProjectOption {
 	}
 }
 
+func WithLogger(logger *zap.Logger) ProjectOption {
+	return func(p *Project) {
+		p.logger = logger
+	}
+}
+
 type Project struct {
 	identityResolver *identity.IdentityResolver
 
@@ -130,6 +137,8 @@ type Project struct {
 	ignoreFilePatterns []string
 
 	// Used when dir project is or is within a git repository.
+	// `repo`, if not nil, only indicates that the directory
+	// contains a valid .git directory. It's not used for anything.
 	repo             *git.Repository
 	plainOpenOptions *git.PlainOpenOptions
 	respectGitignore bool
@@ -137,6 +146,8 @@ type Project struct {
 	// envFilesReadOrder is a list of paths to .env files
 	// to read from.
 	envFilesReadOrder []string
+
+	logger *zap.Logger
 }
 
 func NewDirProject(
@@ -170,6 +181,10 @@ func NewDirProject(
 		return nil, errors.WithStack(err)
 	}
 
+	if p.logger == nil {
+		p.logger = zap.NewNop()
+	}
+
 	return p, nil
 }
 
@@ -201,6 +216,10 @@ func NewFileProject(
 			return nil, errors.Wrapf(os.ErrNotExist, "failed to open file-based project %q", path)
 		}
 		return nil, errors.Wrapf(err, "failed to open file-based project %q", path)
+	}
+
+	if p.logger == nil {
+		p.logger = zap.NewNop()
 	}
 
 	return p, nil
@@ -264,7 +283,9 @@ func (p *Project) load(
 
 	switch {
 	case p.repo != nil:
-		p.loadFromDirectory(ctx, eventc, options)
+		// Even if p.repo is not nil, the current logic is identical to
+		// a dir-based project.
+		fallthrough
 	case p.fs != nil:
 		p.loadFromDirectory(ctx, eventc, options)
 	case p.filePath != "":
@@ -292,15 +313,24 @@ func (p *Project) getAllIgnorePatterns() []gitignore.Pattern {
 	}
 
 	if p.respectGitignore {
-		sysPatterns, _ := gitignore.LoadSystemPatterns(p.fs)
+		sysPatterns, err := gitignore.LoadSystemPatterns(p.fs)
+		if err != nil {
+			p.logger.Info("failed to load system ignore patterns", zap.Error(err))
+		}
 		ignorePatterns = append(ignorePatterns, sysPatterns...)
 
-		globPatterns, _ := gitignore.LoadGlobalPatterns(p.fs)
+		globPatterns, err := gitignore.LoadGlobalPatterns(p.fs)
+		if err != nil {
+			p.logger.Info("failed to load global ignore patterns", zap.Error(err))
+		}
 		ignorePatterns = append(ignorePatterns, globPatterns...)
 
 		// TODO(adamb): this is a slow operation if there are many directories.
 		// Profile this function and figure out a way to optimize it.
-		patterns, _ := gitignore.ReadPatterns(p.fs, nil)
+		patterns, err := gitignore.ReadPatterns(p.fs, nil)
+		if err != nil {
+			p.logger.Info("failed to load local ignore patterns", zap.Error(err))
+		}
 		ignorePatterns = append(ignorePatterns, patterns...)
 	}
 
