@@ -107,7 +107,7 @@ func (pl projectLoader) loadInTerminal(proj *project.Project, onlyFiles bool) ([
 	resultModel := result.(loadTasksModel)
 
 	if resultModel.err != nil {
-		return nil, nil, err
+		return nil, nil, resultModel.err
 	}
 
 	return resultModel.files, resultModel.tasks, nil
