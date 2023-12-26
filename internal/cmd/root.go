@@ -71,7 +71,7 @@ func Root() *cobra.Command {
 
 	pflags.StringVar(&fProject, "project", ".", "Root project to find runnable tasks")
 	pflags.BoolVar(&fRespectGitignore, "git-ignore", true, "Whether to respect .gitignore file(s) in project")
-	pflags.StringArrayVar(&fProjectIgnorePatterns, "ignore-pattern", []string{"node_modules"}, "Patterns to ignore in project mode")
+	pflags.StringArrayVar(&fProjectIgnorePatterns, "ignore-pattern", []string{"node_modules", ".venv"}, "Patterns to ignore in project mode")
 
 	setAPIFlags(pflags)
 

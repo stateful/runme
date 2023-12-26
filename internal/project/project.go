@@ -18,7 +18,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/identity"
-	"go.uber.org/multierr"
 )
 
 type LoadEventType uint8
@@ -265,25 +264,9 @@ func (p *Project) load(
 
 	switch {
 	case p.repo != nil:
-		ignorePatterns, err := p.getAllIgnorePatterns()
-		if err != nil {
-			p.send(ctx, eventc, LoadEvent{
-				Type: LoadEventError,
-				Data: LoadEventErrorData{Err: err},
-			})
-		}
-
-		p.loadFromDirectory(ctx, eventc, ignorePatterns, options)
+		p.loadFromDirectory(ctx, eventc, options)
 	case p.fs != nil:
-		ignorePatterns, err := p.getAllIgnorePatterns()
-		if err != nil {
-			p.send(ctx, eventc, LoadEvent{
-				Type: LoadEventError,
-				Data: LoadEventErrorData{Err: err},
-			})
-		}
-
-		p.loadFromDirectory(ctx, eventc, ignorePatterns, options)
+		p.loadFromDirectory(ctx, eventc, options)
 	case p.filePath != "":
 		p.loadFromFile(ctx, eventc, p.filePath, options)
 	default:
@@ -301,35 +284,36 @@ func (p *Project) send(ctx context.Context, eventc chan<- LoadEvent, event LoadE
 	}
 }
 
-func (p *Project) getAllIgnorePatterns() (_ []gitignore.Pattern, err error) {
+func (p *Project) getAllIgnorePatterns() []gitignore.Pattern {
 	// TODO: confirm if the order of appending to ignorePatterns is important.
 	ignorePatterns := []gitignore.Pattern{
 		// Ignore .git by default.
-		gitignore.ParsePattern("/.git", nil),
-		// Ignore node_modules by default.
-		gitignore.ParsePattern("node_modules", nil),
+		gitignore.ParsePattern(".git", nil),
 	}
 
 	if p.respectGitignore {
-		patterns, readErr := gitignore.ReadPatterns(p.fs, nil)
-		if readErr != nil {
-			err = multierr.Append(err, errors.WithStack(readErr))
-		} else {
-			ignorePatterns = append(ignorePatterns, patterns...)
-		}
+		sysPatterns, _ := gitignore.LoadSystemPatterns(p.fs)
+		ignorePatterns = append(ignorePatterns, sysPatterns...)
+
+		globPatterns, _ := gitignore.LoadGlobalPatterns(p.fs)
+		ignorePatterns = append(ignorePatterns, globPatterns...)
+
+		// TODO(adamb): this is a slow operation if there are many directories.
+		// Profile this function and figure out a way to optimize it.
+		patterns, _ := gitignore.ReadPatterns(p.fs, nil)
+		ignorePatterns = append(ignorePatterns, patterns...)
 	}
 
 	for _, p := range p.ignoreFilePatterns {
 		ignorePatterns = append(ignorePatterns, gitignore.ParsePattern(p, nil))
 	}
 
-	return ignorePatterns, err
+	return ignorePatterns
 }
 
 func (p *Project) loadFromDirectory(
 	ctx context.Context,
 	eventc chan<- LoadEvent,
-	ignorePatterns []gitignore.Pattern,
 	options LoadOptions,
 ) {
 	filesToSearchBlocks := make([]string, 0)
@@ -339,6 +323,7 @@ func (p *Project) loadFromDirectory(
 		}
 	}
 
+	ignorePatterns := p.getAllIgnorePatterns()
 	ignoreMatcher := gitignore.NewMatcher(ignorePatterns)
 
 	p.send(ctx, eventc, LoadEvent{Type: LoadEventStartedWalk})
