@@ -69,7 +69,7 @@ func Root() *cobra.Command {
 	pflags.StringVar(&fFileName, "filename", "README.md", "Name of the README file")
 	pflags.BoolVar(&fInsecure, "insecure", false, "Run command in insecure-mode")
 
-	pflags.StringVar(&fProject, "project", "", "Root project to find runnable tasks")
+	pflags.StringVar(&fProject, "project", ".", "Root project to find runnable tasks")
 	pflags.BoolVar(&fRespectGitignore, "git-ignore", true, "Whether to respect .gitignore file(s) in project")
 	pflags.StringArrayVar(&fProjectIgnorePatterns, "ignore-pattern", []string{"node_modules"}, "Patterns to ignore in project mode")
 
