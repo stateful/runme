@@ -60,6 +60,8 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			Shell:       notebook.Frontmatter.Shell,
 			Cwd:         notebook.Frontmatter.Cwd,
 			SkipPrompts: notebook.Frontmatter.SkipPrompts,
+			// todo(sebastian): impl logic for doc category (runme#369)
+			Category: notebook.Frontmatter.Category,
 		}
 
 		runme := parserv1.FrontmatterRunme{}
@@ -72,7 +74,16 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			runme.Version = notebook.Frontmatter.Runme.Version
 		}
 
-		if runme.Id != "" || runme.Version != "" {
+		if notebook.Frontmatter.Runme.Session.ID != "" {
+			runme.Session = &parserv1.RunmeSession{
+				Id: notebook.Frontmatter.Runme.Session.ID,
+				Document: &parserv1.RunmeSessionDocument{
+					RelativePath: notebook.Frontmatter.Runme.Document.RelativePath,
+				},
+			}
+		}
+
+		if runme.Id != "" || runme.Version != "" || runme.Session != nil {
 			frontmatter.Runme = &runme
 		}
 	}
@@ -104,14 +115,14 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		})
 	}
 
-	var rMetadata *document.RunmeMetadata
+	var outputMetadata *document.RunmeMetadata
 	if req.Options != nil && req.Options.Session != nil {
 		relativePath := ""
 		if req.Options.Session.Document != nil {
 			relativePath = req.Options.Session.Document.GetRelativePath()
 		}
 
-		rMetadata = &document.RunmeMetadata{
+		outputMetadata = &document.RunmeMetadata{
 			Session: document.RunmeMetadataSession{
 				ID: req.Options.Session.GetId(),
 			},
@@ -125,7 +136,7 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 	data, err := editor.Serialize(&editor.Notebook{
 		Cells:    cells,
 		Metadata: req.Notebook.Metadata,
-	}, rMetadata)
+	}, outputMetadata)
 	if err != nil {
 		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err

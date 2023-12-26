@@ -44,21 +44,21 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 	return notebook, nil
 }
 
-func Serialize(notebook *Notebook, runmeMetadata *document.RunmeMetadata) ([]byte, error) {
+func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]byte, error) {
 	var result []byte
 
 	// Serialize frontmatter.
 	if intro, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]; ok {
 		raw := []byte(intro)
 
-		if runmeMetadata != nil {
+		if outputMetadata != nil {
 			frontmatter, err := document.ParseFrontmatter(raw)
 			if err != nil {
 				return nil, err
 			}
-			frontmatter.Runme.Session = runmeMetadata.Session
+			frontmatter.Runme.Session = outputMetadata.Session
 			frontmatter.Runme.Session.Updated = prettyTime(time.Now())
-			frontmatter.Runme.Document = runmeMetadata.Document
+			frontmatter.Runme.Document = outputMetadata.Document
 
 			// true because no outputs serialization without lifecycle identity
 			raw, err = frontmatter.Marshal(true)
