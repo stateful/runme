@@ -44,15 +44,22 @@ func getProject() (*project.Project, error) {
 		}
 	} else {
 		projDir := fProject
+		// If no project directory is specified, use the current directory.
+		// "." is a valid project directory, similarly to "..".
 		if projDir == "" {
 			projDir = "."
 		}
 
+		// By default, all commands try to find repo upward.
 		opts = append(
 			opts,
-			project.WithRespectGitignore(),
+			project.WithFindRepoUpward(),
 			project.WithIgnoreFilePatterns(fProjectIgnorePatterns...),
 		)
+
+		if fRespectGitignore {
+			opts = append(opts, project.WithRespectGitignore())
+		}
 
 		if fLoadEnv && fEnvOrder != nil {
 			opts = append(opts, project.WithEnvFilesReadOrder(fEnvOrder))
