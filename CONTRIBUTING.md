@@ -101,8 +101,8 @@ This builds the CLI binary for the current platform to an executable file "runme
 
 To run the server in dev mode with predictable port and TLS credentials location:
 
-```sh {"id":"01HJ9NZT45B03C9J6YJJJDB8PG","name":"server-dev"}
-./runme server --dev --address 127.0.0.1:9999 --tls /tmp/runme/tls
+```sh {"id":"01HJ9NZT45B03C9J6YJJJDB8PG","interactive":"true","name":"server-dev"}
+./runme server --dev --address 127.0.0.1:9999 --tls /tmp/runme/tls 2>&1
 ```
 
 #### WASM
