@@ -20,7 +20,7 @@ func root() (status int) {
 
 	rootWithCPUProfile(func() {
 		if err := root.Execute(); err != nil {
-			logf("could not execute command: %v", err)
+			logf("could not execute command: %v\n", err)
 			status = 1
 		}
 	})
@@ -32,12 +32,12 @@ func rootWithCPUProfile(fn func()) {
 	if profile := os.Getenv("RUNME_PROFILE_CPU"); profile != "" {
 		f, err := os.Create(profile)
 		if err != nil {
-			fatalf("could not create CPU profile: %v", err)
+			fatalf("could not create CPU profile: %v\n", err)
 		}
 		defer f.Close()
 
 		if err := pprof.StartCPUProfile(f); err != nil {
-			fatalf("could not start CPU profile: %v", err)
+			fatalf("could not start CPU profile: %v\n", err)
 		}
 		defer pprof.StopCPUProfile()
 	}
@@ -47,14 +47,14 @@ func rootWithCPUProfile(fn func()) {
 	if profile := os.Getenv("RUNME_PROFILE_MEM"); profile != "" {
 		f, err := os.Create(profile)
 		if err != nil {
-			fatalf("could not create mem profile: %v", err)
+			fatalf("could not create mem profile: %v\n", err)
 		}
 		defer f.Close()
 
 		runtime.GC()
 
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			fatalf("could not write heap profile: %v", err)
+			fatalf("could not write heap profile: %v\n", err)
 		}
 	}
 }
