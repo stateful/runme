@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 func TestEditor(t *testing.T) {
 	notebook, err := Deserialize(testDataNested, identityResolverNone)
 	require.NoError(t, err)
-	result, err := Serialize(notebook)
+	result, err := Serialize(notebook, nil)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -51,7 +51,7 @@ func TestEditor_List(t *testing.T) {
 
 	notebook.Cells[0].Value = "1. Item 1\n2. Item 2\n"
 
-	newData, err := Serialize(notebook)
+	newData, err := Serialize(notebook, nil)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -61,7 +61,7 @@ func TestEditor_List(t *testing.T) {
 		string(newData),
 	)
 
-	newData, err = Serialize(notebook)
+	newData, err = Serialize(notebook, nil)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -88,7 +88,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 			t,
 			cell.Metadata["name"],
 		)
-		result, err := Serialize(notebook)
+		result, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
@@ -109,7 +109,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 			cell.Metadata["name"],
 			"name1",
 		)
-		result, err := Serialize(notebook)
+		result, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
@@ -177,7 +177,7 @@ A paragraph
 `, testMockID, version.BaseVersion()))
 	notebook, err := Deserialize(data, identityResolverNone)
 	require.NoError(t, err)
-	result, err := Serialize(notebook)
+	result, err := Serialize(notebook, nil)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -201,7 +201,7 @@ This will test final line breaks`)
 			"0",
 		)
 
-		actual, err := Serialize(notebook)
+		actual, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
@@ -222,7 +222,7 @@ This will test final line breaks`)
 			"1",
 		)
 
-		actual, err := Serialize(notebook)
+		actual, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
@@ -243,7 +243,7 @@ This will test final line breaks`)
 			"7",
 		)
 
-		actual, err := Serialize(notebook)
+		actual, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
