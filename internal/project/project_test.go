@@ -309,6 +309,7 @@ func TestProjectLoad(t *testing.T) {
 			LoadEventFoundDir,  // "."
 			LoadEventFoundFile, // "ignored.md"
 			LoadEventFoundFile, // "readme.md"
+			LoadEventFoundFile, // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
 			LoadEventFinishedWalk,
 			LoadEventStartedParsingDocument,  // "ignored.md"
 			LoadEventFinishedParsingDocument, // "ignored.md"
@@ -317,6 +318,8 @@ func TestProjectLoad(t *testing.T) {
 			LoadEventFinishedParsingDocument, // "readme.md"
 			LoadEventFoundTask,               // unnamed; echo-hello
 			LoadEventFoundTask,               // named; my-task
+			LoadEventStartedParsingDocument,  // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
+			LoadEventFinishedParsingDocument, // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
 		}
 		require.EqualValues(
 			t,
@@ -350,11 +353,14 @@ func TestProjectLoad(t *testing.T) {
 			LoadEventStartedWalk,
 			LoadEventFoundDir,  // "."
 			LoadEventFoundFile, // "readme.md"
+			LoadEventFoundFile, // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
 			LoadEventFinishedWalk,
 			LoadEventStartedParsingDocument,  // "readme.md"
 			LoadEventFinishedParsingDocument, // "readme.md"
 			LoadEventFoundTask,               // unnamed; echo-hello
 			LoadEventFoundTask,               // named; my-task
+			LoadEventStartedParsingDocument,  // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
+			LoadEventFinishedParsingDocument, // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
 		}
 		require.EqualValues(
 			t,
