@@ -410,6 +410,11 @@ func getCodeBlocksFromFile(path string) (document.CodeBlocks, error) {
 func getCodeBlocks(data []byte) (document.CodeBlocks, error) {
 	identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
 	d := document.New(data, identityResolver)
+
+	if f, _ := d.Frontmatter(); f != nil && f.Runme.Session.ID != "" {
+		return document.CodeBlocks{}, nil
+	}
+
 	node, err := d.Root()
 	if err != nil {
 		return nil, err
