@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
-	"path/filepath"
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -59,7 +58,7 @@ func listCmd() *cobra.Command {
 				lines := block.Lines()
 				r := row{
 					Name:         block.Name(),
-					File:         filepath.Base(task.DocumentPath),
+					File:         task.DocumentPath,
 					FirstCommand: shell.TryGetNonCommentLine(lines),
 					Description:  block.Intro(),
 					Named:        !block.IsUnnamed(),
