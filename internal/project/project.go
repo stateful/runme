@@ -411,8 +411,8 @@ func getCodeBlocks(data []byte) (document.CodeBlocks, error) {
 	identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
 	d := document.New(data, identityResolver)
 
-	if f, _ := d.Frontmatter(); f != nil && f.Runme.Session.ID != "" {
-		return document.CodeBlocks{}, nil
+	if f, err := d.Frontmatter(); err == nil && f != nil && f.Runme.Session.ID != "" {
+		return nil, nil
 	}
 
 	node, err := d.Root()
