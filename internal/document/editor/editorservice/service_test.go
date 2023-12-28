@@ -324,8 +324,8 @@ func Test_parserServiceServer_Outputs(t *testing.T) {
 			},
 		}
 
-		prasedFm := "---\nrunme:\n  id: 01HF7B0KK32HBQ9X4AC2GPMZG5\n  version: v2.0\nsidebar_position: 1\ntitle: Examples\n---"
-		notebook := &parserv1.Notebook{Cells: []*parserv1.Cell{cell}, Metadata: map[string]string{"runme.dev/frontmatter": prasedFm}}
+		parsedFm := "---\nrunme:\n  id: 01HF7B0KK32HBQ9X4AC2GPMZG5\n  version: v2.0\nsidebar_position: 1\ntitle: Examples\n---"
+		notebook := &parserv1.Notebook{Cells: []*parserv1.Cell{cell}, Metadata: map[string]string{"runme.dev/frontmatter": parsedFm}}
 
 		serializeOptions := &parserv1.SerializeRequestOptions{
 			Outputs: &parserv1.SerializeRequestOutputOptions{Enabled: true, Summary: true},
