@@ -81,7 +81,7 @@ func serialize(this js.Value, args []js.Value) any {
 				reject.Invoke(toJSError(err))
 				return
 			}
-			result, err := editor.Serialize(&notebook)
+			result, err := editor.Serialize(&notebook, nil)
 			if err != nil {
 				reject.Invoke(toJSError(err))
 				return
