@@ -323,13 +323,30 @@ func Test_parserServiceServer_Outputs(t *testing.T) {
 				},
 			},
 		}
-		notebook := &parserv1.Notebook{Cells: []*parserv1.Cell{cell}}
 
-		serializeOptions := &parserv1.SerializeRequestOptions{Outputs: &parserv1.SerializeRequestOutputOptions{Enabled: true, Summary: true}}
+		parsedFm := "---\nrunme:\n  id: 01HF7B0KK32HBQ9X4AC2GPMZG5\n  version: v2.0\nsidebar_position: 1\ntitle: Examples\n---"
+		notebook := &parserv1.Notebook{Cells: []*parserv1.Cell{cell}, Metadata: map[string]string{"runme.dev/frontmatter": parsedFm}}
+
+		serializeOptions := &parserv1.SerializeRequestOptions{
+			Outputs: &parserv1.SerializeRequestOutputOptions{Enabled: true, Summary: true},
+			Session: &parserv1.RunmeSession{
+				Id:       "01HJP23P1R57BPGEA17QDJXJE",
+				Document: &parserv1.RunmeSessionDocument{RelativePath: "README.md"},
+			},
+		}
 		resp, err := serializeWithOutputs(client, notebook, serializeOptions)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "```sh {\"background\":\"false\",\"id\":\"01HF7B0KJPF469EG9ZVX256S75\",\"interactive\":\"true\"}\n$ printf \"\\u001b[34mDoes it work?\\n\"\n$ sleep 2\n$ printf \"\\u001b[32mYes, success!\\x1b[0m\\n\"\n$ exit 16\n\n# Ran on 2023-11-29 17:58:19Z for 2.296s exited with 16\nDoes it work?\r\nYes, success!\n```\n", string(resp.Result))
+		var content []string
+		lines := strings.Split(string(resp.Result), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "    updated:") {
+				content = append(content, "    updated: 0000-00-00 00:00:00Z")
+				continue
+			}
+			content = append(content, line)
+		}
+		assert.Equal(t, "---\nrunme:\n  id: 01HF7B0KK32HBQ9X4AC2GPMZG5\n  version: v2.0\n  document:\n    relativePath: README.md\n  session:\n    id: 01HJP23P1R57BPGEA17QDJXJE\n    updated: 0000-00-00 00:00:00Z\nsidebar_position: 1\ntitle: Examples\n---\n\n```sh {\"background\":\"false\",\"id\":\"01HF7B0KJPF469EG9ZVX256S75\",\"interactive\":\"true\"}\n$ printf \"\\u001b[34mDoes it work?\\n\"\n$ sleep 2\n$ printf \"\\u001b[32mYes, success!\\x1b[0m\\n\"\n$ exit 16\n\n# Ran on 2023-11-29 17:58:19Z for 2.296s exited with 16\nDoes it work?\r\nYes, success!\n```\n", strings.Join(content, "\n"))
 	})
 }
 

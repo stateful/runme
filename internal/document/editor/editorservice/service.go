@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"strings"
 
+	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
 	"github.com/stateful/runme/internal/document/identity"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
@@ -59,6 +60,8 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			Shell:       notebook.Frontmatter.Shell,
 			Cwd:         notebook.Frontmatter.Cwd,
 			SkipPrompts: notebook.Frontmatter.SkipPrompts,
+			// todo(sebastian): impl logic for doc category (runme#369)
+			Category: notebook.Frontmatter.Category,
 		}
 
 		runme := parserv1.FrontmatterRunme{}
@@ -71,7 +74,16 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			runme.Version = notebook.Frontmatter.Runme.Version
 		}
 
-		if runme.Id != "" || runme.Version != "" {
+		if notebook.Frontmatter.Runme.Session.ID != "" {
+			runme.Session = &parserv1.RunmeSession{
+				Id: notebook.Frontmatter.Runme.Session.ID,
+				Document: &parserv1.RunmeSessionDocument{
+					RelativePath: notebook.Frontmatter.Runme.Document.RelativePath,
+				},
+			}
+		}
+
+		if runme.Id != "" || runme.Version != "" || runme.Session != nil {
 			frontmatter.Runme = &runme
 		}
 	}
@@ -103,10 +115,28 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		})
 	}
 
+	var outputMetadata *document.RunmeMetadata
+	if req.Options != nil && req.Options.Session != nil {
+		relativePath := ""
+		if req.Options.Session.Document != nil {
+			relativePath = req.Options.Session.Document.GetRelativePath()
+		}
+
+		outputMetadata = &document.RunmeMetadata{
+			Session: document.RunmeMetadataSession{
+				ID: req.Options.Session.GetId(),
+			},
+			Document: document.RunmeMetadataDocument{
+				RelativePath: relativePath,
+			},
+		}
+
+	}
+
 	data, err := editor.Serialize(&editor.Notebook{
 		Cells:    cells,
 		Metadata: req.Notebook.Metadata,
-	})
+	}, outputMetadata)
 	if err != nil {
 		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err

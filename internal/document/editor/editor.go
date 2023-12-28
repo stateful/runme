@@ -3,6 +3,7 @@ package editor
 import (
 	"bytes"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
@@ -43,15 +44,32 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 	return notebook, nil
 }
 
-func Serialize(notebook *Notebook) ([]byte, error) {
+func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]byte, error) {
 	var result []byte
 
 	// Serialize frontmatter.
 	if intro, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]; ok {
-		intro := []byte(intro)
-		lb := document.DetectLineBreak(intro)
+		raw := []byte(intro)
+
+		if outputMetadata != nil {
+			frontmatter, err := document.ParseFrontmatter(raw)
+			if err != nil {
+				return nil, err
+			}
+			frontmatter.Runme.Session = outputMetadata.Session
+			frontmatter.Runme.Session.Updated = prettyTime(time.Now())
+			frontmatter.Runme.Document = outputMetadata.Document
+
+			// true because no outputs serialization without lifecycle identity
+			raw, err = frontmatter.Marshal(true)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		lb := document.DetectLineBreak(raw)
 		result = append(
-			intro,
+			raw,
 			bytes.Repeat(lb, 2)...,
 		)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/constants"
 	"github.com/stateful/runme/internal/document/identity"
 	ulid "github.com/stateful/runme/internal/ulid"
@@ -32,7 +33,7 @@ func TestMain(m *testing.M) {
 func TestEditor(t *testing.T) {
 	notebook, err := Deserialize(testDataNested, identityResolverNone)
 	require.NoError(t, err)
-	result, err := Serialize(notebook)
+	result, err := Serialize(notebook, nil)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -51,7 +52,7 @@ func TestEditor_List(t *testing.T) {
 
 	notebook.Cells[0].Value = "1. Item 1\n2. Item 2\n"
 
-	newData, err := Serialize(notebook)
+	newData, err := Serialize(notebook, nil)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -61,7 +62,7 @@ func TestEditor_List(t *testing.T) {
 		string(newData),
 	)
 
-	newData, err = Serialize(notebook)
+	newData, err = Serialize(notebook, nil)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -88,7 +89,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 			t,
 			cell.Metadata["name"],
 		)
-		result, err := Serialize(notebook)
+		result, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
@@ -109,7 +110,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 			cell.Metadata["name"],
 			"name1",
 		)
-		result, err := Serialize(notebook)
+		result, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
@@ -177,13 +178,60 @@ A paragraph
 `, testMockID, version.BaseVersion()))
 	notebook, err := Deserialize(data, identityResolverNone)
 	require.NoError(t, err)
-	result, err := Serialize(notebook)
+	result, err := Serialize(notebook, nil)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
 		string(data),
 		string(result),
 	)
+}
+
+func TestEditor_SessionOutput(t *testing.T) {
+	data := []byte(fmt.Sprintf(`+++
+prop1 = 'val1'
+prop2 = 'val2'
+
+[runme]
+id = '%s'
+version = '%s'
++++
+
+# Example
+
+A paragraph
+`, testMockID, version.BaseVersion()))
+	notebook, err := Deserialize(data, identityResolverNone)
+	require.NoError(t, err)
+
+	sid := "01HJP23P1R57BPGEA17QDJXJE"
+	rpath := "README.md"
+	invalidTs := "invalid-timestamp-should-be-overwritten"
+	outputMetadata := &document.RunmeMetadata{
+		Session: document.RunmeMetadataSession{
+			ID:      sid,
+			Updated: invalidTs,
+		},
+		Document: document.RunmeMetadataDocument{RelativePath: rpath},
+	}
+	result, err := Serialize(notebook, outputMetadata)
+	require.NoError(t, err)
+	assert.Contains(
+		t,
+		string(result),
+		string(sid),
+	)
+
+	sessionNb, err := Deserialize(result, identityResolverAll)
+	require.NoError(t, err)
+
+	sess := sessionNb.Frontmatter.Runme.Session
+	assert.Equal(t, sid, sess.ID)
+	assert.NotEqual(t, sess.Updated, invalidTs)
+	assert.Greater(t, len(sess.Updated), 0)
+
+	doc := sessionNb.Frontmatter.Runme.Document
+	assert.Equal(t, doc.RelativePath, rpath)
 }
 
 func TestEditor_Newlines(t *testing.T) {
@@ -201,7 +249,7 @@ This will test final line breaks`)
 			"0",
 		)
 
-		actual, err := Serialize(notebook)
+		actual, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
@@ -222,7 +270,7 @@ This will test final line breaks`)
 			"1",
 		)
 
-		actual, err := Serialize(notebook)
+		actual, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
@@ -243,7 +291,7 @@ This will test final line breaks`)
 			"7",
 		)
 
-		actual, err := Serialize(notebook)
+		actual, err := Serialize(notebook, nil)
 		require.NoError(t, err)
 		assert.Equal(
 			t,
