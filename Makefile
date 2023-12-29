@@ -29,7 +29,8 @@ wasm:
 .PHONY: test
 test: PKGS ?= "./..."
 test: build
-	@TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=30s $(PKGS)
+	@TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=30s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
+	go tool cover -func=cover.out
 
 .PHONY: test/update-snapshots
 test/update-snapshots:
