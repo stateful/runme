@@ -27,6 +27,15 @@
                 "--tls",
                 "/tmp/runme/tls",
             ]
-        }
+        },
+        {
+            "name": "Connect to dlv",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "remotePath": "${workspaceFolder}",
+            "port": 56379,
+            "host": "127.0.0.1"
+        },
     ]
 }
