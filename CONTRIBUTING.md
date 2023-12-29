@@ -131,6 +131,18 @@ Tests are run with go's default test runner. So, for example, you can run all te
 make test
 ```
 
+Generate HTML representation of coverage profile
+
+```sh {"id":"01HJVHEVPX2AZJ86999P1MY5H0","name":"coverage-html"}
+make test/coverage/html
+```
+
+Output coverage profile information for each function
+
+```sh {"id":"01HJVHHNMZRNK0ZGA154A9AJCZ","name":"coverage-func"}
+make test/coverage/func
+```
+
 ## Generated Files
 
 ### Protocol Buffers
