@@ -19,6 +19,10 @@ func GitProjectPath() string {
 	return filepath.Join(testdataDir(), "git-project")
 }
 
+func GitProjectNestedPath() string {
+	return filepath.Join(testdataDir(), "git-project", "nested")
+}
+
 func ProjectFilePath() string {
 	return filepath.Join(testdataDir(), "file-project.md")
 }

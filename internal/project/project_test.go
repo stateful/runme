@@ -240,6 +240,144 @@ func TestProjectLoad(t *testing.T) {
 		}
 	})
 
+	gitProjectNestedDir := testdata.GitProjectNestedPath()
+
+	t.Run("GitProjectWithNested", func(t *testing.T) {
+		require.NotEqualValues(t, gitProjectNestedDir, gitProjectDir)
+
+		p, err := NewDirProject(
+			gitProjectNestedDir,
+			WithFindRepoUpward(),
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+		)
+		require.NoError(t, err)
+
+		eventc := make(chan LoadEvent)
+
+		events := make([]LoadEvent, 0)
+		doneReadingEvents := make(chan struct{})
+		go func() {
+			defer close(doneReadingEvents)
+			for e := range eventc {
+				events = append(events, e)
+			}
+		}()
+
+		p.Load(context.Background(), eventc, false)
+		<-doneReadingEvents
+
+		expectedEvents := []LoadEventType{
+			LoadEventStartedWalk,
+			LoadEventFoundDir,  // "."
+			LoadEventFoundFile, // "git-ignored.md"
+			LoadEventFoundFile, // "ignored.md"
+			LoadEventFoundDir,  // "nested"
+			LoadEventFoundFile, // "nested/git-ignored.md"
+			LoadEventFoundFile, // "readme.md"
+			LoadEventFinishedWalk,
+			LoadEventStartedParsingDocument,  // "git-ignored.md"
+			LoadEventFinishedParsingDocument, // "git-ignored.md"
+			LoadEventFoundTask,
+			LoadEventStartedParsingDocument,  // "nested/git-ignored.md"
+			LoadEventFinishedParsingDocument, // "nested/git-ignored.md"
+			LoadEventFoundTask,
+			LoadEventStartedParsingDocument,  // "ignored.md"
+			LoadEventFinishedParsingDocument, // "ignored.md"
+			LoadEventFoundTask,
+			LoadEventStartedParsingDocument,  // "readme.md"
+			LoadEventFinishedParsingDocument, // "readme.md"
+			LoadEventFoundTask,
+			LoadEventFoundTask,
+		}
+		require.EqualValues(
+			t,
+			expectedEvents,
+			mapLoadEvents(events, func(le LoadEvent) LoadEventType { return le.Type }),
+			"collected events: %+v",
+			events,
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundDir,
+				Data: LoadEventFoundDirData{Path: gitProjectDir},
+			},
+			events[1],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "git-ignored.md")},
+			},
+			events[2],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "ignored.md")},
+			},
+			events[3],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundDir,
+				Data: LoadEventFoundDirData{Path: filepath.Join(gitProjectDir, "nested")},
+			},
+			events[4],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "nested", "git-ignored.md")},
+			},
+			events[5],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "readme.md")},
+			},
+			events[6],
+		)
+		assert.Equal(
+			t,
+			filepath.Join(gitProjectDir, "git-ignored.md"),
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[10]).Task.DocumentPath,
+		)
+		assert.Equal(
+			t,
+			filepath.Join(gitProjectDir, "ignored.md"),
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[13]).Task.DocumentPath,
+		)
+		assert.Equal(
+			t,
+			filepath.Join(gitProjectDir, "nested", "git-ignored.md"),
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[16]).Task.DocumentPath,
+		)
+		// Unnamed task
+		{
+			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[19])
+
+			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
+			assert.Equal(t, "echo-hello", data.Task.CodeBlock.Name())
+			assert.True(t, data.Task.CodeBlock.IsUnnamed())
+		}
+		// Named task
+		{
+			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[20])
+
+			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
+			assert.Equal(t, "my-task", data.Task.CodeBlock.Name())
+			assert.False(t, data.Task.CodeBlock.IsUnnamed())
+		}
+	})
+
 	t.Run("DirProjectWithRespectGitignoreAndIgnorePatterns", func(t *testing.T) {
 		p, err := NewDirProject(
 			gitProjectDir,

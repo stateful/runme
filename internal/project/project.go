@@ -283,8 +283,12 @@ func (p *Project) load(
 
 	switch {
 	case p.repo != nil:
-		// Even if p.repo is not nil, the current logic is identical to
-		// a dir-based project.
+		wt, err := p.repo.Worktree()
+		if err != nil {
+			p.logger.Warn("invalid worktree for repo; using base directory instead", zap.Error(err))
+		} else {
+			p.fs = wt.Filesystem
+		}
 		fallthrough
 	case p.fs != nil:
 		p.loadFromDirectory(ctx, eventc, options)
