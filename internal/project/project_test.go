@@ -240,6 +240,27 @@ func TestProjectLoad(t *testing.T) {
 		}
 	})
 
+	gitProjectNestedDir := testdata.GitProjectNestedPath()
+
+	t.Run("GitProjectWithNested", func(t *testing.T) {
+		pRoot, err := NewDirProject(
+			gitProjectDir,
+			WithFindRepoUpward(),
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+		)
+		require.NoError(t, err)
+
+		pNested, err := NewDirProject(gitProjectNestedDir,
+			WithFindRepoUpward(),
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+		)
+		require.NoError(t, err)
+
+		require.EqualValues(t, pRoot.fs.Root(), pNested.fs.Root())
+	})
+
 	t.Run("DirProjectWithRespectGitignoreAndIgnorePatterns", func(t *testing.T) {
 		p, err := NewDirProject(
 			gitProjectDir,
