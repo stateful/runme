@@ -181,6 +181,14 @@ func NewDirProject(
 		return nil, errors.WithStack(err)
 	}
 
+	if p.repo != nil {
+		wt, err := p.repo.Worktree()
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		p.fs = wt.Filesystem
+	}
+
 	if p.logger == nil {
 		p.logger = zap.NewNop()
 	}
@@ -283,12 +291,8 @@ func (p *Project) load(
 
 	switch {
 	case p.repo != nil:
-		wt, err := p.repo.Worktree()
-		if err != nil {
-			p.logger.Warn("invalid worktree for repo; using base directory instead", zap.Error(err))
-		} else {
-			p.fs = wt.Filesystem
-		}
+		// The logic is identical to a dir-based project because
+		// we adjust the root to the repo's in the ctor
 		fallthrough
 	case p.fs != nil:
 		p.loadFromDirectory(ctx, eventc, options)
