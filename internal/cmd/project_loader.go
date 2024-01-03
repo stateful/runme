@@ -169,7 +169,7 @@ type loadTasksModel struct {
 
 func newLoadTasksModel(nextTaskMsg tea.Cmd) loadTasksModel {
 	return loadTasksModel{
-		spinner:     spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		spinner:     spinner.New(spinner.WithSpinner(spinner.Pulse)),
 		nextTaskMsg: nextTaskMsg,
 		status:      "Initializing...",
 	}
