@@ -45,7 +45,7 @@ type loadTaskFinished struct{}
 
 func (pl ProjectLoader) newLoadTasksModel(nextTaskMsg tea.Cmd) loadTasksModel {
 	return loadTasksModel{
-		spinner:     spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		spinner:     spinner.New(spinner.WithSpinner(spinner.Pulse)),
 		nextTaskMsg: nextTaskMsg,
 		status:      "Initializing...",
 		tasks:       make(CodeBlocks, 0),
