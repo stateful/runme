@@ -3,6 +3,9 @@ project_name: runme
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
+git:
+  tag_sort: -version:creatordate
+
 builds:
   - id: cli
     main: .
