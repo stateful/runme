@@ -42,15 +42,15 @@ func AssertGitProject() {
 func assertGitProject() {
 	dir := GitProjectPath()
 
-	srcBkpFilesToDestFiles := []string{
+	gitProjectDestFiles := []string{
 		filepath.Join(dir, ".git"),
 		filepath.Join(dir, ".gitignore"),
 		filepath.Join(dir, "nested", ".gitignore"),
 	}
 
-	for _, dest := range srcBkpFilesToDestFiles {
+	for _, dest := range gitProjectDestFiles {
 		if _, err := os.Stat(dest); err != nil {
-			log.Fatalf("failed to prepare %s: %v; please run maket target 'test/prepare-git-project'.", dest, err)
+			log.Fatalf("failed to assert %s: %v; please run maket target 'test/prepare-git-project'.", dest, err)
 		}
 	}
 }
