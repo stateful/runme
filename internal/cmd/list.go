@@ -58,7 +58,7 @@ func listCmd() *cobra.Command {
 				block := task.CodeBlock
 				lines := block.Lines()
 				relPath, err := filepath.Rel(getCwd(), task.DocumentPath)
-				if err != nil || !isTerminal(io.Out.Fd()) {
+				if err != nil {
 					relPath = task.DocumentPath
 				}
 				r := row{
