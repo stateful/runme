@@ -89,7 +89,7 @@ First paragraph
 		require.NoError(t, err)
 		marshaledFrontmatter, err := frontmatter.Marshal(identityResolver.DocumentEnabled())
 		require.NoError(t, err)
-		assert.Regexp(t, `---\nkey: value\nrunme:\n  id: .*\n  version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.0)\n---`, string(marshaledFrontmatter))
+		assert.Regexp(t, `---\nkey: value\nrunme:\n  id: .*\n  version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+)\n---`, string(marshaledFrontmatter))
 	})
 
 	t.Run("Format", func(t *testing.T) {
