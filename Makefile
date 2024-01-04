@@ -26,10 +26,22 @@ wasm:
 	cp $(GO_ROOT)/misc/wasm/wasm_exec.js $(WASM_OUTPUT)
 	GOOS=js GOARCH=wasm go build -o $(WASM_OUTPUT)/runme.wasm -ldflags="$(LDFLAGS)" ./web
 
-.PHONY: test
-test: PKGS ?= "./..."
-test: build
+.PHONY: test/execute
+test/execute: PKGS ?= "./..."
+test/execute: build test/prep-git-project
 	@TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=30s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
+
+.PHONY: test/prep-git-project
+test/prep-git-project:
+	@cp -r -f internal/project/testdata/git-project/.git.bkp internal/project/testdata/git-project/.git
+	@cp -r -f internal/project/testdata/git-project/.gitignore.bkp internal/project/testdata/git-project/.gitignore
+	@cp -r -f internal/project/testdata/git-project/nested/.gitignore.bkp internal/project/testdata/git-project/nested/.gitignore
+
+.PHONY: test
+test: test/execute
+	@rm -r -f internal/project/testdata/git-project/.git
+	@rm -r -f internal/project/testdata/git-project/.gitignore
+	@rm -r -f internal/project/testdata/git-project/nested/.gitignore
 
 .PHONY: test/update-snapshots
 test/update-snapshots:

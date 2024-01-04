@@ -23,8 +23,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	testdata.PrepareGitProject()
-	defer testdata.CleanupGitProject()
+	testdata.AssertGitProject()
 
 	code := m.Run()
 	os.Exit(code)
