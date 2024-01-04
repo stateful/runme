@@ -1,6 +1,8 @@
 package testdata
 
 import (
+	"log"
+	"os"
 	"path/filepath"
 	"runtime"
 )
@@ -29,4 +31,26 @@ func ProjectFilePath() string {
 func testdataDir() string {
 	_, b, _, _ := runtime.Caller(0)
 	return filepath.Dir(b)
+}
+
+func AssertGitProject() {
+	assertGitProject()
+}
+
+// assertGitProject checks that ./testdata/git-project is a valid git project.
+// If it's not it will fail with a call to action to run the right make targets.
+func assertGitProject() {
+	dir := GitProjectPath()
+
+	srcBkpFilesToDestFiles := []string{
+		filepath.Join(dir, ".git"),
+		filepath.Join(dir, ".gitignore"),
+		filepath.Join(dir, "nested", ".gitignore"),
+	}
+
+	for _, dest := range srcBkpFilesToDestFiles {
+		if _, err := os.Stat(dest); err != nil {
+			log.Fatalf("failed to prepare %s: %v; please run maket target 'test/prepare-git-project'.", dest, err)
+		}
+	}
 }

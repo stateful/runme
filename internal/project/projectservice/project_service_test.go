@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -20,6 +21,13 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
+
+func TestMain(m *testing.M) {
+	testdata.AssertGitProject()
+
+	code := m.Run()
+	os.Exit(code)
+}
 
 func TestProjectServiceServer_Load(t *testing.T) {
 	t.Parallel()
