@@ -34,6 +34,12 @@ func TestRunme(t *testing.T) {
 	})
 }
 
+func TestRunmeFlags(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir: "testdata/flags",
+	})
+}
+
 func TestRunmeCategories(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir: "testdata/categories",

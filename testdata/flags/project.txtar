@@ -1,0 +1,102 @@
+cd nested
+exec runme ls
+cmp stdout ../gitupwards.txt
+! stderr .
+
+cd ..
+exec runme ls --project nested
+cmp stdout projectset.txt
+! stderr .
+
+-- .git/config --
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+	precomposeunicode = true
+-- .git/HEAD --
+ref: refs/heads/main
+-- nested/file.md --
+---
+runme:
+  id: 01HFVTDYA775K2HREH9ZGQJ75B
+  version: 2.0
+---
+
+```sh {"name":"echo"}
+$ echo "Hello, runme!"
+```
+
+It can contain multiple lines too:
+
+```sh {"interactive":"false"}
+$ echo "1"
+$ echo "2"
+$ echo "3"
+```
+-- root.md --
+---
+runme:
+  id: 01HFVTDBE512K2HREH9ZJGQB57
+  version: 2.0
+---
+
+It can even run scripting languages:
+
+```js {"name":"hello-js"}
+console.log("Hello, runme, from javascript!")
+```
+
+And it can even run a cell with a custom interpreter:
+
+```js {"interpreter":"cat","name":"hello-js-cat"}
+console.log("Hello, runme, from javascript!")
+```
+
+It works with `cd`, `pushd`, and similar because all lines are executed as a single script:
+
+```sh
+temp_dir=$(mktemp -d -t "runme-XXXXXXX")
+pushd $temp_dir
+echo "hi!" > hi.txt
+pwd
+cat hi.txt
+popd
+pwd
+```
+
+## Go
+
+It can also execute a snippet of Go code:
+
+```go
+package main
+
+import (
+    "fmt"
+)
+
+func main() {
+    fmt.Println("Hello from Go, runme!")
+}
+```
+
+## Python
+
+```python {"interpreter":"python3","name":"hello-python"}
+def say_hi():
+  print("Hello from Python")
+
+say_hi()
+```
+-- gitupwards.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+echo	file.md	echo "Hello, runme!"		Yes
+hello-js	../root.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
+hello-js-cat	../root.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
+hello-python	../root.md	def say_hi():		Yes
+-- projectset.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+echo	nested/file.md	echo "Hello, runme!"		Yes
