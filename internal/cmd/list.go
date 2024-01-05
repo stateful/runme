@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
-	"path/filepath"
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -57,10 +56,7 @@ func listCmd() *cobra.Command {
 			for _, task := range tasks {
 				block := task.CodeBlock
 				lines := block.Lines()
-				relPath, err := filepath.Rel(getCwd(), task.DocumentPath)
-				if err != nil {
-					relPath = task.DocumentPath
-				}
+				relPath := getRelativePath(getCwd(), task.DocumentPath)
 				r := row{
 					Name:         block.Name(),
 					File:         relPath,
