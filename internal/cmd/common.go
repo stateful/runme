@@ -434,3 +434,11 @@ func replaceVarValue(ev CommandExportExtractMatch, newValue string) string {
 	replacedText := fmt.Sprintf("%s=%q", parts[0], newValue)
 	return replacedText
 }
+
+func getRelativePath(base string, documentPath string) string {
+	relPath, err := filepath.Rel(base, documentPath)
+	if err != nil {
+		relPath = documentPath
+	}
+	return relPath
+}

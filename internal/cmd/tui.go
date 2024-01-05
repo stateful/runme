@@ -303,10 +303,10 @@ func (m *tuiModel) moveCursorTo(newPos int) {
 }
 
 func (m *tuiModel) moveCursor(delta int) {
-	m.cursor = clamp(
+	m.cursor = max(0, clamp(
 		m.cursor+delta,
 		0, len(m.tasks)-1,
-	)
+	))
 
 	if m.cursor < m.scroll || m.cursor >= m.scroll+m.numBlocksShown() {
 		m.scrollBy(delta)
@@ -348,7 +348,7 @@ func (m tuiModel) View() string {
 				name += " (unnamed)"
 			}
 
-			filename := ansi.Color(task.DocumentPath, "white+d")
+			filename := ansi.Color(getRelativePath(getCwd(), task.DocumentPath), "white+d")
 
 			if active {
 				name = ansi.Color(name, "white+b")
