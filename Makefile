@@ -66,7 +66,7 @@ fmt:
 
 .PHONY: lint
 lint:
-	@revive -config revive.toml -formatter stylish ./...
+	@revive -config revive.toml -formatter stylish -exclude integration/subject/... ./...
 
 .PHONY: pre-commit
 pre-commit: build wasm test lint
