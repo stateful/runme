@@ -1,0 +1,84 @@
+cd very/deeply
+exec runme ls --project ../..
+cmp stdout relative.txt
+! stderr .
+
+-- very/deeply/nested/file.md --
+```sh {"name":"echo"}
+$ echo "Hello, runme!"
+```
+-- very/deeply/sub.md --
+It can contain multiple lines too:
+
+```sh {"interactive":"false","name":"count"}
+$ echo "1"
+$ echo "2"
+$ echo "3"
+```
+-- very/another.md --
+```sh {"name":"again"}
+echo "Hello, runme! Again!"
+```
+-- root.md --
+---
+runme:
+  id: 01HFVTDBE512K2HREH9ZJGQB57
+  version: 2.0
+---
+
+It can even run scripting languages:
+
+```js {"name":"hello-js"}
+console.log("Hello, runme, from javascript!")
+```
+
+And it can even run a cell with a custom interpreter:
+
+```js {"interpreter":"cat","name":"hello-js-cat"}
+console.log("Hello, runme, from javascript!")
+```
+
+It works with `cd`, `pushd`, and similar because all lines are executed as a single script:
+
+```sh
+temp_dir=$(mktemp -d -t "runme-XXXXXXX")
+pushd $temp_dir
+echo "hi!" > hi.txt
+pwd
+cat hi.txt
+popd
+pwd
+```
+
+## Go
+
+It can also execute a snippet of Go code:
+
+```go
+package main
+
+import (
+    "fmt"
+)
+
+func main() {
+    fmt.Println("Hello from Go, runme!")
+}
+```
+
+## Python
+
+```python {"interpreter":"python3","name":"hello-python"}
+def say_hi():
+  print("Hello from Python")
+
+say_hi()
+```
+-- very/deeply/relative.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+hello-js	../../root.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
+hello-js-cat	../../root.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
+hello-python	../../root.md	def say_hi():		Yes
+again	../../very/another.md	echo "Hello, runme! Again!"		Yes
+echo	../../very/deeply/nested/file.md	echo "Hello, runme!"		Yes
+count	../../very/deeply/sub.md	echo "1"	It can contain multiple lines too.	Yes
