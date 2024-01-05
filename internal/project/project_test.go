@@ -65,6 +65,18 @@ func TestNewDirProject(t *testing.T) {
 		_, err := NewDirProject(unknownDir)
 		require.ErrorIs(t, err, os.ErrNotExist)
 	})
+
+	t.Run("RelativePathConvertedToAbsolute", func(t *testing.T) {
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+
+		projectDir, err := filepath.Rel(cwd, testdata.DirProjectPath())
+		require.NoError(t, err)
+
+		proj, err := NewDirProject(projectDir)
+		require.NoError(t, err)
+		assert.True(t, filepath.IsAbs(proj.Root()), "project root is not absolute: %s", proj.Root())
+	})
 }
 
 func TestNewFileProject(t *testing.T) {
@@ -74,9 +86,21 @@ func TestNewFileProject(t *testing.T) {
 		require.ErrorIs(t, err, os.ErrNotExist)
 	})
 
-	t.Run("NotAbsPath", func(t *testing.T) {
+	t.Run("UnknownFileAndRelativePath", func(t *testing.T) {
 		_, err := NewFileProject("unknown-file.md")
 		require.ErrorIs(t, err, os.ErrNotExist)
+	})
+
+	t.Run("RelativePathConvertedToAbsolute", func(t *testing.T) {
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+
+		fileProject, err := filepath.Rel(cwd, testdata.ProjectFilePath())
+		require.NoError(t, err)
+
+		proj, err := NewFileProject(fileProject)
+		require.NoError(t, err)
+		assert.True(t, filepath.IsAbs(proj.Root()), "project root is not absolute: %s", proj.Root())
 	})
 
 	t.Run("ProperFileProject", func(t *testing.T) {
@@ -92,6 +116,7 @@ func TestProjectRoot(t *testing.T) {
 		p, err := NewDirProject(gitProjectDir)
 		require.NoError(t, err)
 		assert.Equal(t, gitProjectDir, p.Root())
+		assert.True(t, filepath.IsAbs(p.Root()), "project root is not absolute: %s", p.Root())
 	})
 
 	t.Run("FileProject", func(t *testing.T) {
@@ -99,6 +124,7 @@ func TestProjectRoot(t *testing.T) {
 		p, err := NewFileProject(fileProject)
 		require.NoError(t, err)
 		assert.Equal(t, testdata.TestdataPath(), p.Root())
+		assert.True(t, filepath.IsAbs(p.Root()), "project root is not absolute: %s", p.Root())
 	})
 }
 
