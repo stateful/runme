@@ -150,6 +150,25 @@ type Project struct {
 	logger *zap.Logger
 }
 
+// normalizeAndValidatePath makes sure that the path is absolute and
+// checks if the path exists.
+func normalizeAndValidatePath(path string) (string, error) {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		// Handle ErrNotExist to provide more user-friendly error message.
+		if errors.Is(err, os.ErrNotExist) {
+			return "", errors.Wrapf(os.ErrNotExist, "failed to open file-based project %q", path)
+		}
+		return "", errors.WithStack(err)
+	}
+
+	return path, nil
+}
+
 func NewDirProject(
 	dir string,
 	opts ...ProjectOption,
@@ -160,8 +179,11 @@ func NewDirProject(
 		opt(p)
 	}
 
-	if _, err := os.Stat(dir); err != nil {
-		return nil, errors.WithStack(err)
+	var err error
+
+	dir, err = normalizeAndValidatePath(dir)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to open dir-based project %q", dir)
 	}
 
 	p.fs = osfs.New(dir)
@@ -172,19 +194,18 @@ func NewDirProject(
 		openOptions = &git.PlainOpenOptions{}
 	}
 
-	var err error
 	p.repo, err = git.PlainOpenWithOptions(
 		dir,
 		openOptions,
 	)
 	if err != nil && !errors.Is(err, git.ErrRepositoryNotExists) {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrapf(err, "failed to open dir-based project %q", dir)
 	}
 
 	if p.repo != nil {
 		wt, err := p.repo.Worktree()
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errors.Wrapf(err, "failed to open dir-based project %q", dir)
 		}
 		p.fs = wt.Filesystem
 	}
@@ -202,29 +223,19 @@ func NewFileProject(
 ) (*Project, error) {
 	p := &Project{}
 
-	// For compatibility, but currently no option is
-	// valid for file projects,
+	// For compatibility; many options are not used for file-based projects.
 	for _, opt := range opts {
 		opt(p)
 	}
 
-	if !filepath.IsAbs(path) {
-		var err error
-		p.filePath, err = filepath.Abs(path)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open file-based project %q", path)
-		}
-	} else {
-		p.filePath = path
-	}
+	var err error
 
-	if _, err := os.Stat(path); err != nil {
-		// Handle ErrNotExist to provide more user-friendly error message.
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, errors.Wrapf(os.ErrNotExist, "failed to open file-based project %q", path)
-		}
+	path, err = normalizeAndValidatePath(path)
+	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file-based project %q", path)
 	}
+
+	p.filePath = path
 
 	if p.logger == nil {
 		p.logger = zap.NewNop()
