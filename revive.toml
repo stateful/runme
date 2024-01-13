@@ -23,7 +23,6 @@ warningCode = 0
 [rule.error-naming]
 [rule.exported]
 Disabled = true
-severity = "warning"
 [rule.if-return]
 [rule.increment-decrement]
 [rule.var-naming]

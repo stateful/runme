@@ -104,6 +104,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(printCmd())
 	cmd.AddCommand(extensionCmd())
 	cmd.AddCommand(runCmd())
+	cmd.AddCommand(runLocally())
 	cmd.AddCommand(serverCmd())
 	cmd.AddCommand(shellCmd())
 	cmd.AddCommand(suggestCmd)

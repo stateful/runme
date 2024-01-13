@@ -135,7 +135,6 @@ func (b *CodeBlock) Interactive() bool {
 	if err != nil {
 		return true
 	}
-
 	return val
 }
 

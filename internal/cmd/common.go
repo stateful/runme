@@ -350,13 +350,13 @@ func promptEnvVars(cmd *cobra.Command, envs []string, tasks ...project.Task) err
 			varPrompts := getCommandExportExtractMatches(block.Lines())
 			for _, ev := range varPrompts {
 				if slices.Contains(keys, ev.Key) {
-					block.GetBlock().SetLine(ev.LineNumber, "")
+					block.SetLine(ev.LineNumber, "")
 
 					continue
 				}
 
 				newVal, err := promptForEnvVar(cmd, ev)
-				block.GetBlock().SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
+				block.SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
 
 				if err != nil {
 					return err
