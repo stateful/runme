@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/Microsoft/go-winio v0.6.1
 	github.com/atotto/clipboard v0.1.4
+	github.com/bufbuild/connect-go v1.10.0
 	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/cli/cli/v2 v2.42.1
@@ -13,6 +14,7 @@ require (
 	github.com/creack/pty v1.1.21
 	github.com/fatih/color v1.16.0
 	github.com/go-git/go-billy/v5 v5.5.0
+	github.com/gobwas/glob v0.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510

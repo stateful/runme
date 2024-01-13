@@ -13,6 +13,7 @@ import (
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project/projectservice"
 	"github.com/stateful/runme/internal/runner"
+	runnerv2service "github.com/stateful/runme/internal/runnerv2service"
 	runmetls "github.com/stateful/runme/internal/tls"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -100,11 +101,17 @@ The kernel is used to run long running processes like shells and interacting wit
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			projectv1.RegisterProjectServiceServer(server, projectservice.NewProjectServiceServer(logger))
 			if enableRunner {
-				runnerService, err := runner.NewRunnerService(logger)
+				runnerServicev1, err := runner.NewRunnerService(logger)
 				if err != nil {
 					return err
 				}
-				runnerv1.RegisterRunnerServiceServer(server, runnerService)
+				runnerv1.RegisterRunnerServiceServer(server, runnerServicev1)
+
+				runnerServicev2, err := runnerv2service.NewRunnerService(logger)
+				if err != nil {
+					return err
+				}
+				runnerv2alpha1.RegisterRunnerServiceServer(server, runnerServicev2)
 			}
 
 			healthcheck := health.NewServer()

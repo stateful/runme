@@ -58,7 +58,8 @@ exit 1
 ```sh {"id":"01HF7BT3HD84GWTQB8ZNTNW63E","name":"print-name"}
 echo -n "Enter your name: "
 read name
-echo "\nHi, $name!"
+echo ""
+echo "Hi, $name!"
 ```
 
 ## JavaScript
@@ -66,7 +67,7 @@ echo "\nHi, $name!"
 It can also execute a snippet of JavaScript code:
 
 ```js {"id":"01HF7BT3HD84GWTQB8ZPB8TH53","name":"hello-js"}
-console.log("Hello World!")
+console.log("Hello World!");
 ```
 
 ## Go
