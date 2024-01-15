@@ -39,15 +39,10 @@ func (c *NativeCommand) Start(ctx context.Context) (err error) {
 		logger:  c.logger,
 	}
 
-	source := []envSource{c.opts.GetEnv}
-	if c.opts.Session != nil {
-		source = append(source, c.opts.Session.GetEnv)
-	}
-
 	cfg, err := normalizeConfig(
 		c.cfg,
 		argsNormalizer,
-		&envNormalizer{sources: source},
+		&envNormalizer{sources: []envSource{c.opts.Session.GetEnv}},
 	)
 	if err != nil {
 		return

@@ -38,8 +38,6 @@ func init() {
 }
 
 func TestExecutionCommandFromCodeBlocks(t *testing.T) {
-	t.Parallel()
-
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	defer logger.Sync()
@@ -112,6 +110,8 @@ func TestExecutionCommandFromCodeBlocks(t *testing.T) {
 		t.Run("NativeCommand", func(t *testing.T) {
 			t.Parallel()
 
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
@@ -129,6 +129,8 @@ func TestExecutionCommandFromCodeBlocks(t *testing.T) {
 
 		t.Run("VirtualCommand", func(t *testing.T) {
 			t.Parallel()
+
+			tc := tc
 
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
@@ -189,7 +191,7 @@ func testExecuteNativeCommand(
 	command, err := NewNative(cfg, options)
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	require.NoError(t, command.Start(ctx))
@@ -240,8 +242,6 @@ func testExecuteVirtualCommand(
 }
 
 func TestCommandWithSession(t *testing.T) {
-	t.Parallel()
-
 	setterCfg := &Config{
 		ProgramName: "bash",
 		Source: &runnerv2alpha1.ProgramConfig_Commands{

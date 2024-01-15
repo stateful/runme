@@ -16,6 +16,30 @@ type configBuilder struct {
 	block *document.CodeBlock
 }
 
+func (b *configBuilder) Build() (*Config, error) {
+	cfg := &Config{
+		ProgramName: b.programPath(),
+		Directory:   b.dir(),
+		Interactive: b.block.Interactive(),
+	}
+
+	if isShellLanguage(filepath.Base(cfg.ProgramName)) {
+		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
+		cfg.Source = &runnerv2alpha1.ProgramConfig_Commands{
+			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Items: b.block.Lines(),
+			},
+		}
+	} else {
+		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_FILE
+		cfg.Source = &runnerv2alpha1.ProgramConfig_Script{
+			Script: prepareScriptFromLines(cfg.ProgramName, b.block.Lines()),
+		}
+	}
+
+	return cfg, nil
+}
+
 func (b *configBuilder) dir() string {
 	var dirs []string
 
@@ -53,30 +77,6 @@ func (b *configBuilder) programPath() string {
 	}
 
 	return interpreter
-}
-
-func (b *configBuilder) Build() (*Config, error) {
-	cfg := &Config{
-		ProgramName: b.programPath(),
-		Directory:   b.dir(),
-		Interactive: b.block.Interactive(),
-	}
-
-	if isShellLanguage(filepath.Base(cfg.ProgramName)) {
-		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
-		cfg.Source = &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
-				Items: b.block.Lines(),
-			},
-		}
-	} else {
-		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_FILE
-		cfg.Source = &runnerv2alpha1.ProgramConfig_Script{
-			Script: prepareScriptFromLines(cfg.ProgramName, b.block.Lines()),
-		}
-	}
-
-	return cfg, nil
 }
 
 func resolveDir(parentDir string, candidates []string) string {
