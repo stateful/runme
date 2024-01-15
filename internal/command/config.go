@@ -24,7 +24,7 @@ type ErrInterpretersNotFound struct {
 }
 
 func (e ErrInterpretersNotFound) Error() string {
-	return fmt.Sprintf("unable to loop up any of interpreters %q", e.interpreters)
+	return fmt.Sprintf("unable to look up any of interpreters %q", e.interpreters)
 }
 
 // Config contains a serializable configuration for a command.
