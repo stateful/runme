@@ -16,6 +16,23 @@ import (
 	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 )
 
+func TestVirtualCommand1(t *testing.T) {
+	logger, err := zap.NewDevelopment()
+	require.NoError(t, err)
+	defer logger.Sync()
+
+	stdout := bytes.NewBuffer(nil)
+	opts := &VirtualCommandOptions{
+		Stdout: stdout,
+		Logger: logger,
+	}
+	cmd, err := NewVirtual(testConfigBasicProgram, opts)
+	require.NoError(t, err)
+	require.NoError(t, cmd.Start(context.Background()))
+	require.NoError(t, cmd.Wait())
+	assert.Equal(t, "test", stdout.String())
+}
+
 func TestVirtualCommand(t *testing.T) {
 	t.Run("OptionsIsNil", func(t *testing.T) {
 		cmd, err := NewVirtual(testConfigBasicProgram, nil)
