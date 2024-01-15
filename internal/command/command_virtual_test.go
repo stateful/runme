@@ -18,8 +18,6 @@ import (
 
 func TestVirtualCommand(t *testing.T) {
 	t.Run("OptionsIsNil", func(t *testing.T) {
-		t.Parallel()
-
 		cmd, err := NewVirtual(testConfigBasicProgram, nil)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
@@ -27,8 +25,6 @@ func TestVirtualCommand(t *testing.T) {
 	})
 
 	t.Run("Output", func(t *testing.T) {
-		t.Parallel()
-
 		stdout := bytes.NewBuffer(nil)
 		opts := &VirtualCommandOptions{
 			Stdout: stdout,
@@ -41,8 +37,6 @@ func TestVirtualCommand(t *testing.T) {
 	})
 
 	t.Run("Getters", func(t *testing.T) {
-		t.Parallel()
-
 		cmd, err := NewVirtual(&Config{
 			ProgramName: "sleep",
 			Arguments:   []string{"1"},
@@ -56,8 +50,6 @@ func TestVirtualCommand(t *testing.T) {
 	})
 
 	t.Run("SetWinsize", func(t *testing.T) {
-		t.Parallel()
-
 		stdout := bytes.NewBuffer(nil)
 
 		cmd, err := NewVirtual(
@@ -88,10 +80,7 @@ func TestVirtualCommandFromCodeBlocksWithInputUsingPipe(t *testing.T) {
 	defer logger.Sync()
 
 	t.Run("Cat", func(t *testing.T) {
-		t.Parallel()
-
 		source := "```sh\ncat - | tr a-z A-Z\n```"
-
 		doc := document.New([]byte(source), idResolver)
 		node, err := doc.Root()
 		require.NoError(t, err)
@@ -128,10 +117,7 @@ func TestVirtualCommandFromCodeBlocksWithInputUsingPipe(t *testing.T) {
 	})
 
 	t.Run("Read", func(t *testing.T) {
-		t.Parallel()
-
 		source := "```sh\nread name\necho \"My name is $name\"\n```"
-
 		doc := document.New([]byte(source), idResolver)
 		node, err := doc.Root()
 		require.NoError(t, err)
@@ -166,8 +152,6 @@ func TestVirtualCommandFromCodeBlocksWithInputUsingPipe(t *testing.T) {
 	})
 
 	t.Run("SimulateCtrlC", func(t *testing.T) {
-		t.Parallel()
-
 		// Using sh start bash. We need to go deeper...
 		source := "```sh\nbash\n```"
 

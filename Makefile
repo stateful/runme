@@ -29,7 +29,7 @@ wasm:
 .PHONY: test/execute
 test/execute: PKGS ?= "./..."
 test/execute: build test/prep-git-project
-	@TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=30s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
+	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -timeout=60s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
 .PHONY: test/prep-git-project
 test/prep-git-project:
@@ -37,11 +37,14 @@ test/prep-git-project:
 	@cp -r -f internal/project/testdata/git-project/.gitignore.bkp internal/project/testdata/git-project/.gitignore
 	@cp -r -f internal/project/testdata/git-project/nested/.gitignore.bkp internal/project/testdata/git-project/nested/.gitignore
 
-.PHONY: test
-test: test/execute
+.PHONY: test/clean-git-project
+test/clean-git-project:
 	@rm -r -f internal/project/testdata/git-project/.git
 	@rm -r -f internal/project/testdata/git-project/.gitignore
 	@rm -r -f internal/project/testdata/git-project/nested/.gitignore
+
+.PHONY: test
+test: test/prep-git-project test/execute test/clean-git-project
 
 .PHONY: test/update-snapshots
 test/update-snapshots:

@@ -20,8 +20,6 @@ import (
 )
 
 func TestRunnerServiceServerExecute(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
@@ -134,8 +132,6 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_Input(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
@@ -258,8 +254,6 @@ func TestRunnerServiceServerExecute_Input(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
@@ -306,13 +300,13 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
 	t.Run("DefaultWinsize", func(t *testing.T) {
+		t.Parallel()
+
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
@@ -343,6 +337,8 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 	})
 
 	t.Run("SetWinsizeInInitialRequest", func(t *testing.T) {
+		t.Parallel()
+
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
