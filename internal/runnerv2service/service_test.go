@@ -235,7 +235,7 @@ func TestRunnerServiceServerExecute_Input(t *testing.T) {
 				Source: &runnerv2alpha1.ProgramConfig_Commands{
 					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
 						Items: []string{
-							"bash",
+							"sleep 30",
 						},
 					},
 				},
