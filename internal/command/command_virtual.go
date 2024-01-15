@@ -257,19 +257,19 @@ func (c *VirtualCommand) setErr(err error) {
 }
 
 func (c *VirtualCommand) closeIO() error {
-	if err := c.tty.Close(); err != nil {
-		return errors.WithMessage(err, "failed to close tty")
-	}
-
-	if err := c.pty.Close(); err != nil {
-		return errors.WithMessage(err, "failed to close pty")
-	}
-
 	if !isNil(c.stdin) {
 		if err := c.stdin.Close(); err != nil {
 			return errors.WithMessage(err, "failed to close stdin")
 		}
 	}
+
+	if err := c.tty.Close(); err != nil {
+		return errors.WithMessage(err, "failed to close tty")
+	}
+
+	// if err := c.pty.Close(); err != nil {
+	// 	return errors.WithMessage(err, "failed to close pty")
+	// }
 
 	return nil
 }
