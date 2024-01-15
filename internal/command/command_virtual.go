@@ -209,18 +209,6 @@ func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 func (c *VirtualCommand) StopWithSignal(sig os.Signal) error {
 	c.logger.Info("stopping the virtual command with signal", zap.String("signal", sig.String()))
 
-	if c.pty != nil {
-		c.logger.Info("closing pty due to the signal")
-
-		if sig == os.Interrupt {
-			_, _ = c.pty.Write([]byte{0x3})
-		}
-
-		if err := c.pty.Close(); err != nil {
-			c.logger.Info("failed to close pty; continuing")
-		}
-	}
-
 	// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
 	if err := signalPgid(c.cmd.Process.Pid, sig); err != nil {
 		c.logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))

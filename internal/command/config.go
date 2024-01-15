@@ -31,10 +31,6 @@ func (e ErrInterpretersNotFound) Error() string {
 // It's agnostic to the runtime or particular execution settings.
 type Config = runnerv2alpha1.ProgramConfig
 
-func NormalizeConfigForDryRun(cfg *Config) (*Config, error) {
-	return normalizeConfig(cfg, &argsNormalizer{})
-}
-
 // redactConfig returns a new Config instance and copies only fields considered safe.
 // Useful for logging.
 func redactConfig(cfg *Config) *Config {
