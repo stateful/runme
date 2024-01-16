@@ -364,7 +364,8 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 						},
 					},
 				},
-				Env: []string{"TERM=linux"},
+				Env:         []string{"TERM=linux"},
+				Interactive: true,
 			},
 		})
 		require.NoError(t, err)
