@@ -1,6 +1,6 @@
 //go:build windows
 
-package runner
+package command
 
 import (
 	"os"
@@ -13,8 +13,12 @@ func setSysProcAttrCtty(cmd *exec.Cmd) {}
 
 func setSysProcAttrPgid(cmd *exec.Cmd) {}
 
-func dup(fd int) (int, error) {
+func dup(fd uintptr) (uintptr, error) {
 	return fd, nil
+}
+
+func closeOnExec(uintptr) {
+	// noop
 }
 
 func disableEcho(fd uintptr) error {

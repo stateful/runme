@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -69,11 +68,11 @@ func (c *NativeCommand) Start(ctx context.Context) (err error) {
 
 	if f, ok := stdin.(*os.File); ok && f != nil {
 		// Duplicate /dev/stdin.
-		newStdinFd, err := dup(int(f.Fd()))
+		newStdinFd, err := dup(f.Fd())
 		if err != nil {
 			return errors.Wrap(err, "failed to dup stdin")
 		}
-		syscall.CloseOnExec(newStdinFd)
+		closeOnExec(newStdinFd)
 
 		// Setting stdin to the non-block mode fails on the simple "read" command.
 		// On the other hand, it allows to use SetReadDeadline().
