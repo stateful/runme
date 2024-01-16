@@ -30,6 +30,10 @@ func disableEcho(fd uintptr) error {
 	return errors.Wrap(err, "failed to set tty attr")
 }
 
+func dup(fd int) (int, error) {
+	return syscall.Dup(fd)
+}
+
 // func setSysProcAttrPgid(cmd *exec.Cmd) {
 // 	if cmd.SysProcAttr == nil {
 // 		cmd.SysProcAttr = &syscall.SysProcAttr{}

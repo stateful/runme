@@ -16,8 +16,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
+	"github.com/stateful/runme/internal/command"
 	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 )
+
+func init() {
+	// Set to false to disable sending signals to process groups in tests.
+	// This can be turned on if setSysProcAttrPgid() is called in Start().
+	command.SignalToProcessGroup = false
+}
 
 func TestRunnerServiceServerExecute(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
@@ -37,12 +44,27 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 				Source: &runnerv2alpha1.ProgramConfig_Commands{
 					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
 						Items: []string{
-							"echo -n test",
+							"echo test",
 						},
 					},
 				},
 			},
-			expectedOutput: "test",
+			expectedOutput: "test\n",
+		},
+		{
+			name: "BasicInteractive",
+			programConfig: &runnerv2alpha1.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2alpha1.ProgramConfig_Commands{
+					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+						Items: []string{
+							"echo test",
+						},
+					},
+				},
+				Interactive: true,
+			},
+			expectedOutput: "test\r\n",
 		},
 		{
 			name: "BasicSleep",
@@ -58,10 +80,27 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 					},
 				},
 			},
-			expectedOutput: "1\r\n2\r\n",
+			expectedOutput: "1\n2\n",
 		},
 		{
 			name: "BasicInput",
+			programConfig: &runnerv2alpha1.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2alpha1.ProgramConfig_Commands{
+					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+						Items: []string{
+							"read name",
+							"echo \"My name is $name\"",
+						},
+					},
+				},
+				Interactive: false,
+			},
+			inputData:      []byte("Frank\n"),
+			expectedOutput: "My name is Frank\n",
+		},
+		{
+			name: "BasicInputInteractive",
 			programConfig: &runnerv2alpha1.ProgramConfig{
 				ProgramName: "bash",
 				Source: &runnerv2alpha1.ProgramConfig_Commands{
@@ -84,6 +123,7 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 				Source: &runnerv2alpha1.ProgramConfig_Script{
 					Script: "print('test')",
 				},
+				Interactive: true,
 			},
 			expectedOutput: "test\r\n",
 		},
@@ -95,7 +135,7 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 					Script: "console.log('1');\nconsole.log('2');",
 				},
 			},
-			expectedOutput: "1\r\n2\r\n",
+			expectedOutput: "1\n2\n",
 		},
 	}
 

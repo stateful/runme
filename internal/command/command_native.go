@@ -10,8 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// signalToProcessGroup is used in tests to disable sending signals to a process group.
-var signalToProcessGroup = true
+// SignalToProcessGroup is used in tests to disable sending signals to a process group.
+var SignalToProcessGroup = true
 
 type NativeCommand struct {
 	cfg  *Config
@@ -31,6 +31,21 @@ func newNativeCommand(cfg *Config, opts *NativeCommandOptions) *NativeCommand {
 		opts:   opts,
 		logger: opts.Logger,
 	}
+}
+
+func (c *NativeCommand) Running() bool {
+	return c.cmd != nil && c.cmd.ProcessState == nil
+}
+
+func (c *NativeCommand) Pid() int {
+	if c.cmd == nil || c.cmd.Process == nil {
+		return 0
+	}
+	return c.cmd.Process.Pid
+}
+
+func (c *NativeCommand) SetWinsize(rows, cols, x, y uint16) error {
+	return errors.New("unsupported")
 }
 
 func (c *NativeCommand) Start(ctx context.Context) (err error) {
@@ -54,7 +69,7 @@ func (c *NativeCommand) Start(ctx context.Context) (err error) {
 
 	if f, ok := stdin.(*os.File); ok && f != nil {
 		// Duplicate /dev/stdin.
-		newStdinFd, err := syscall.Dup(int(f.Fd()))
+		newStdinFd, err := dup(int(f.Fd()))
 		if err != nil {
 			return errors.Wrap(err, "failed to dup stdin")
 		}
@@ -102,7 +117,7 @@ func (c *NativeCommand) Start(ctx context.Context) (err error) {
 }
 
 func (c *NativeCommand) StopWithSignal(sig os.Signal) error {
-	if signalToProcessGroup {
+	if SignalToProcessGroup {
 		// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
 		err := signalPgid(c.cmd.Process.Pid, sig)
 		if err == nil {

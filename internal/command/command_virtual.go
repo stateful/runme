@@ -94,11 +94,11 @@ func newVirtualCommand(cfg *Config, opts *VirtualCommandOptions) *VirtualCommand
 	}
 }
 
-func (c *VirtualCommand) IsRunning() bool {
+func (c *VirtualCommand) Running() bool {
 	return c.cmd != nil && c.cmd.ProcessState == nil
 }
 
-func (c *VirtualCommand) PID() int {
+func (c *VirtualCommand) Pid() int {
 	if c.cmd == nil || c.cmd.Process == nil {
 		return 0
 	}

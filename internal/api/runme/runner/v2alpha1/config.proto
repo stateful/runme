@@ -40,6 +40,7 @@ message ProgramConfig {
   }
 
   // interactive, if true, uses a pseudo-tty to execute the program.
+  // Otherwise, the program is executed using in-memory buffers for I/O.
   bool interactive = 7;
 
   // TODO(adamb): understand motivation for this. In theory, source

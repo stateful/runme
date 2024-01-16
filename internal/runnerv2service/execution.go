@@ -29,38 +29,59 @@ const (
 	msgBufferSize = 2048 << 10 // 2 MiB
 )
 
+type commandIface interface {
+	Pid() int
+	Running() bool
+	SetWinsize(uint16, uint16, uint16, uint16) error
+	Start(context.Context) error
+	StopWithSignal(os.Signal) error
+	Wait() error
+}
+
 type execution struct {
 	ID string
 
-	Cmd *command.VirtualCommand
+	Cmd commandIface
 
 	stdin       io.Reader
 	stdinWriter io.WriteCloser
 	stdout      *rbuffer.RingBuffer
+	stderr      *rbuffer.RingBuffer
 
 	logger *zap.Logger
 }
 
 func newExecution(id string, cfg *command.Config, logger *zap.Logger) (*execution, error) {
+	stdin, stdinWriter := io.Pipe()
+	stdout := rbuffer.NewRingBuffer(ringBufferSize)
+	stderr := rbuffer.NewRingBuffer(ringBufferSize)
+
 	var (
-		stdin       io.Reader
-		stdinWriter io.WriteCloser
+		cmd commandIface
+		err error
 	)
 
 	if cfg.Interactive {
-		stdin, stdinWriter = io.Pipe()
+		cmd, err = command.NewVirtual(
+			cfg,
+			&command.VirtualCommandOptions{
+				Stdin:  stdin,
+				Stdout: stdout,
+				Logger: logger,
+			},
+		)
+	} else {
+		cmd, err = command.NewNative(
+			cfg,
+			&command.NativeCommandOptions{
+				Stdin:  stdin,
+				Stdout: stdout,
+				Stderr: stderr,
+				Logger: logger,
+			},
+		)
 	}
 
-	stdout := rbuffer.NewRingBuffer(ringBufferSize)
-
-	cmd, err := command.NewVirtual(
-		cfg,
-		&command.VirtualCommandOptions{
-			Stdin:  stdin,
-			Stdout: stdout,
-			Logger: logger,
-		},
-	)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +93,7 @@ func newExecution(id string, cfg *command.Config, logger *zap.Logger) (*executio
 		stdin:       stdin,
 		stdinWriter: stdinWriter,
 		stdout:      stdout,
+		stderr:      stderr,
 
 		logger: logger,
 	}
@@ -84,9 +106,13 @@ func (e *execution) Start(ctx context.Context) error {
 }
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
-	errc := make(chan error, 1)
+	errc := make(chan error, 2)
+
 	go func() {
-		errc <- readSendLoop(e.stdout, sender)
+		errc <- readSendLoop(e.stdout, sender, func(b []byte) *runnerv2alpha1.ExecuteResponse { return &runnerv2alpha1.ExecuteResponse{StdoutData: b} })
+	}()
+	go func() {
+		errc <- readSendLoop(e.stderr, sender, func(b []byte) *runnerv2alpha1.ExecuteResponse { return &runnerv2alpha1.ExecuteResponse{StderrData: b} })
 	}()
 
 	waitErr := e.Cmd.Wait()
@@ -96,9 +122,17 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 
 	// If waitErr is not nil, only log the errors but return waitErr.
 	if waitErr != nil {
+		handlerErrors := 0
+
+	readSendHandlerForWaitErr:
 		select {
 		case err := <-errc:
+			handlerErrors++
 			e.logger.Info("readSendLoop finished; ignoring any errors because there was a wait error", zap.Error(err))
+			// Wait for both errors, or nils.
+			if handlerErrors < 2 {
+				goto readSendHandlerForWaitErr
+			}
 		case <-ctx.Done():
 			e.logger.Info("context canceled while waiting for the readSendLoop finish; ignoring any errors because there was a wait error")
 		}
@@ -108,8 +142,14 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 	// If waitErr is nil, wait for the readSendLoop to finish,
 	// or the context being canceled.
 	select {
-	case err := <-errc:
-		return exitCode, err
+	case err1 := <-errc:
+		// Wait for both errors, or nils.
+		select {
+		case err2 := <-errc:
+			e.logger.Info("another error from readSendLoop; won't be returned", zap.Error(err2))
+		case <-ctx.Done():
+		}
+		return exitCode, err1
 	case <-ctx.Done():
 		return exitCode, ctx.Err()
 	}
@@ -124,23 +164,32 @@ func (e *execution) SetWinsize(size *runnerv2alpha1.Winsize) error {
 	return e.Cmd.SetWinsize(uint16(size.Cols), uint16(size.Rows), uint16(size.X), uint16(size.Y))
 }
 
-func (e *execution) closeIO() {
-	var err error
-
-	if e.stdinWriter != nil {
-		err = e.stdinWriter.Close()
-		e.logger.Debug("closed stdin writer", zap.Error(err))
+func (e *execution) PostInitialRequest() {
+	// Close stdin writer for native commands after handling the initial request.
+	// Native commands do not support sending data continously.
+	if _, ok := e.Cmd.(*command.NativeCommand); ok {
+		if err := e.stdinWriter.Close(); err != nil {
+			e.logger.Info("failed to close stdin writer", zap.Error(err))
+		}
 	}
+}
+
+func (e *execution) closeIO() {
+	err := e.stdinWriter.Close()
+	e.logger.Info("closed stdin writer", zap.Error(err))
 
 	err = e.stdout.Close()
-	e.logger.Debug("closed stdout writer", zap.Error(err))
+	e.logger.Info("closed stdout writer", zap.Error(err))
+
+	err = e.stderr.Close()
+	e.logger.Info("closed stderr writer", zap.Error(err))
 }
 
 type sender interface {
 	Send(*runnerv2alpha1.ExecuteResponse) error
 }
 
-func readSendLoop(reader io.Reader, sender sender) error {
+func readSendLoop(reader io.Reader, sender sender, fn func([]byte) *runnerv2alpha1.ExecuteResponse) error {
 	limitedReader := io.LimitReader(reader, msgBufferSize)
 
 	for {
@@ -156,7 +205,7 @@ func readSendLoop(reader io.Reader, sender sender) error {
 			continue
 		}
 
-		err = sender.Send(&runnerv2alpha1.ExecuteResponse{StdoutData: buf[:n]})
+		err = sender.Send(fn(buf[:n]))
 		if err != nil {
 			return errors.WithStack(err)
 		}

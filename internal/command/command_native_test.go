@@ -14,7 +14,7 @@ import (
 func init() {
 	// Set to false to disable sending signals to process groups in tests.
 	// This can be turned on if setSysProcAttrPgid() is called in Start().
-	signalToProcessGroup = false
+	SignalToProcessGroup = false
 }
 
 func TestNativeCommand(t *testing.T) {
