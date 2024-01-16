@@ -61,8 +61,9 @@ func TestVirtualCommand(t *testing.T) {
 		}, nil)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
-		require.True(t, cmd.IsRunning())
-		require.Greater(t, cmd.PID(), 1)
+
+		require.True(t, cmd.Running())
+		require.Greater(t, cmd.Pid(), 1)
 		require.NoError(t, cmd.Wait())
 	})
 

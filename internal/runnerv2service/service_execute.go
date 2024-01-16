@@ -44,7 +44,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	}
 	if err := srv.Send(&runnerv2alpha1.ExecuteResponse{
 		Pid: &runnerv2alpha1.ProcessPID{
-			Pid: int64(exec.Cmd.PID()),
+			Pid: int64(exec.Cmd.Pid()),
 		},
 	}); err != nil {
 		return err
@@ -57,8 +57,8 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 		for {
 			var err error
 
-			if l := len(req.InputData); l > 0 {
-				logger.Info("received input data", zap.Int("len", l))
+			if req.InputData != nil {
+				logger.Info("received input data", zap.Int("len", len(req.InputData)))
 				_, err = exec.Write(req.InputData)
 				if err != nil {
 					logger.Info("failed to write to stdin; ignoring", zap.Error(err))
@@ -87,6 +87,8 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 				return
 			}
 
+			exec.PostInitialRequest()
+
 			req, err = srv.Recv()
 			logger.Info("received request", zap.Any("req", req), zap.Error(err))
 			switch {
@@ -99,7 +101,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 				}
 				return
 			case status.Convert(err).Code() == codes.Canceled || status.Convert(err).Code() == codes.DeadlineExceeded:
-				if !exec.Cmd.IsRunning() {
+				if !exec.Cmd.Running() {
 					logger.Info("stream canceled after the process finished; ignoring")
 				} else {
 					logger.Info("stream canceled while the process is still running; program will be stopped if non-background")
