@@ -1,0 +1,29 @@
+env SHELL=/bin/bash
+exec runme fmt --write
+cmp README-FORMATED.md README.md
+! stderr .
+
+-- README.md --
+---
+runme:
+  id: 01HMEC2Y9ZGB0EFGE6TT201V0N
+  version: v2.0
+---
+
+## Fenced codeblock without language
+
+``` {"name":"bash-echo-1"}
+echo 1
+```
+-- README-FORMATED.md --
+---
+runme:
+  id: 01HMEC2Y9ZGB0EFGE6TT201V0N
+  version: v2.2
+---
+
+## Fenced codeblock without language
+
+```{"name":"bash-echo-1"}
+echo 1
+```
