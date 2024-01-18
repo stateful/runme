@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HBDTRGQAQMGK1X49SF
-  version: v2.0
+  version: v2.2
 ---
 
 # dummy

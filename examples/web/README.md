@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HBDTRGQAQMGSTTGJC5
-  version: v2.0
+  version: v2.2
 ---
 
 # WASM example

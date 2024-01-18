@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HBDTRGQAQMHJP3J5SQ
-  version: v2.0
+  version: v2.2
 ---
 
 ```sh {"id":"01HF7BT3HBDTRGQAQMHFPKGXRH"}

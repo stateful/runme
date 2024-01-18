@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HF9WY615MNGVPCSFMV
-  version: v2.0
+  version: v2.2
 ---
 
 # Contributing to `runme`
