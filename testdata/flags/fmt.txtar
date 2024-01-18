@@ -15,6 +15,12 @@ runme:
 ``` {"name":"bash-echo-1"}
 echo 1
 ```
+
+## Fenced codeblock with valid JSON annotations but using spaces
+
+```{"name": "bash-echo-2"}
+echo 2
+```
 -- README-FORMATED.md --
 ---
 runme:
@@ -26,4 +32,10 @@ runme:
 
 ```{"name":"bash-echo-1"}
 echo 1
+```
+
+## Fenced codeblock with valid JSON annotations but using spaces
+
+```{"name":"bash-echo-2"}
+echo 2
 ```
