@@ -294,7 +294,7 @@ func getLanguage(node *ast.FencedCodeBlock, source []byte) string {
 
 	// If the language is the same as the raw attributes,
 	// it means Goldmark is not aware of our internal language segment usage.
-	if lang := string(node.Language(source)); lang != "" && rawAttrs != lang {
+	if lang := string(node.Language(source)); lang != "" && !strings.HasPrefix(rawAttrs, lang) {
 		return lang
 	}
 	return ""
