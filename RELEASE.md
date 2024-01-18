@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HEQBTBM9SSSRB5RCB8
-  version: v2.0
+  version: v2.2
 ---
 
 # Release

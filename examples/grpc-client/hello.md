@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HBDTRGQAQMH9BKRWW3
-  version: v2.0
+  version: v2.2
 shell: zsh
 ---
 

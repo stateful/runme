@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HCDS1X1WJJHK77GXH9
-  version: v2.0
+  version: v2.2
 shell: ksh
 ---
 

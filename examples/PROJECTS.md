@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HG9CJ12JXPWFTA90C2HT8ZX3
-  version: v2.0
+  version: v2.2
 ---
 
 ## gRPC runme.project.v1.ProjectService
