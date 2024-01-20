@@ -84,9 +84,9 @@ func ExtractDataFromLoadEvent[T any](event LoadEvent) T {
 
 type ProjectOption func(*Project)
 
-func WithRespectGitignore() ProjectOption {
+func WithRespectGitignore(value bool) ProjectOption {
 	return func(p *Project) {
-		p.respectGitignore = true
+		p.respectGitignore = value
 	}
 }
 

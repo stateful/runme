@@ -43,30 +43,16 @@ The --category option additionally filters the list of tasks to execute.`,
 			if err != nil {
 				return err
 			}
+			logger.Info("found tasks", zap.Int("count", len(tasks)))
 
-			logger.Debug("found tasks", zap.Int("count", len(tasks)))
+			tasks = filterTasksByCategory(tasks, category)
+			logger.Info("filtered tasks by category", zap.String("category", category), zap.Int("count", len(tasks)))
 
-			if category != "" {
-				tasks = filterTasksByCategory(tasks, category)
-				logger.Debug("filtered tasks by category", zap.String("category", category), zap.Int("count", len(tasks)))
+			tasks, err = filterTasksByGlobs(tasks, args)
+			if err != nil {
+				return err
 			}
-
-			if len(args) > 0 {
-				globs := make([]glob.Glob, 0, len(args))
-				for _, arg := range args {
-					g, err := glob.Compile(arg)
-					if err != nil {
-						return err
-					}
-					globs = append(globs, g)
-				}
-
-				tasks, err = filterTasksByGlobs(tasks, globs)
-				if err != nil {
-					return err
-				}
-				logger.Debug("filtered tasks by globs", zap.Strings("names", args), zap.Int("count", len(tasks)))
-			}
+			logger.Info("filtered tasks by globs", zap.Strings("globs", args), zap.Int("count", len(tasks)))
 
 			for _, t := range tasks {
 				err := runCommandNatively(cmd, t.CodeBlock, session, logger)
@@ -98,20 +84,23 @@ func runCommandNatively(cmd *cobra.Command, block *document.CodeBlock, sess *com
 		Logger:  logger,
 	}
 
-	nativeCmd, err := command.NewNative(cfg, opts)
+	nativeCommand, err := command.NewNative(cfg, opts)
 	if err != nil {
 		return err
 	}
 
-	err = nativeCmd.Start(cmd.Context())
+	err = nativeCommand.Start(cmd.Context())
 	if err != nil {
 		return err
 	}
 
-	return nativeCmd.Wait()
+	return nativeCommand.Wait()
 }
 
 func filterTasksByCategory(tasks []project.Task, category string) (result []project.Task) {
+	if category == "" {
+		return tasks
+	}
 	for _, t := range tasks {
 		if t.CodeBlock.Category() == category {
 			result = append(result, t)
@@ -120,7 +109,24 @@ func filterTasksByCategory(tasks []project.Task, category string) (result []proj
 	return
 }
 
-func filterTasksByGlobs(tasks []project.Task, globs []glob.Glob) (result []project.Task, _ error) {
+func parseGlobs(items []string) ([]glob.Glob, error) {
+	globs := make([]glob.Glob, 0, len(items))
+	for _, item := range items {
+		g, err := glob.Compile(item)
+		if err != nil {
+			return nil, err
+		}
+		globs = append(globs, g)
+	}
+	return globs, nil
+}
+
+func filterTasksByGlobs(tasks []project.Task, patterns []string) (result []project.Task, _ error) {
+	globs, err := parseGlobs(patterns)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, g := range globs {
 		match := false
 

@@ -59,6 +59,7 @@ func getProject() (*project.Project, error) {
 		opts = append(
 			opts,
 			project.WithIgnoreFilePatterns(fProjectIgnorePatterns...),
+			project.WithRespectGitignore(fRespectGitignore),
 		)
 
 		// By default, commands try to find repo upward unless project is non-empty.
@@ -67,10 +68,6 @@ func getProject() (*project.Project, error) {
 				opts,
 				project.WithFindRepoUpward(),
 			)
-		}
-
-		if fRespectGitignore {
-			opts = append(opts, project.WithRespectGitignore())
 		}
 
 		if fLoadEnv && fEnvOrder != nil {

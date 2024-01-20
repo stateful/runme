@@ -290,7 +290,7 @@ func TestProjectLoad(t *testing.T) {
 		p, err := NewDirProject(
 			gitProjectDir,
 			WithFindRepoUpward(),
-			WithRespectGitignore(),
+			WithRespectGitignore(true),
 			WithIgnoreFilePatterns(".git.bkp"),
 			WithIgnoreFilePatterns(".gitignore.bkp"),
 			WithIgnoreFilePatterns("ignored.md"),

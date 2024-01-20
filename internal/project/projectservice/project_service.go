@@ -81,14 +81,9 @@ func (s *projectServiceServer) Load(req *projectv1.LoadRequest, srv projectv1.Pr
 func projectFromReq(req *projectv1.LoadRequest) (*project.Project, error) {
 	switch v := req.GetKind().(type) {
 	case *projectv1.LoadRequest_Directory:
-		var opts []project.ProjectOption
-
-		if !v.Directory.SkipGitignore {
-			opts = append(opts, project.WithRespectGitignore())
-		}
-
-		if patterns := v.Directory.IgnoreFilePatterns; len(patterns) > 0 {
-			opts = append(opts, project.WithIgnoreFilePatterns(patterns...))
+		opts := []project.ProjectOption{
+			project.WithRespectGitignore(!v.Directory.SkipGitignore),
+			project.WithIgnoreFilePatterns(v.Directory.IgnoreFilePatterns...),
 		}
 
 		if !v.Directory.SkipRepoLookupUpward {
