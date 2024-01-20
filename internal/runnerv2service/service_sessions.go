@@ -6,16 +6,16 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/stateful/runme/internal/command"
 	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stateful/runme/internal/project"
-	"github.com/stateful/runme/internal/runner"
 )
 
-func toRunnerv2alpha1Session(sess *runner.Session) *runnerv2alpha1.Session {
+func toRunnerv2alpha1Session(sess *command.Session) *runnerv2alpha1.Session {
 	return &runnerv2alpha1.Session{
-		Id:       sess.ID,
-		Env:      sess.Envs(),
-		Metadata: sess.Metadata,
+		Id:  sess.ID,
+		Env: sess.GetEnv(),
+		// Metadata: sess.Metadata,
 	}
 }
 
@@ -52,12 +52,13 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2alpha1.C
 		env = append(env, projEnvs...)
 	}
 
-	sess, err := runner.NewSession(env, r.logger)
-	if err != nil {
+	sess := command.NewSession()
+
+	if err := sess.SetEnv(env...); err != nil {
 		return nil, err
 	}
 
-	r.sessions.AddSession(sess)
+	r.sessions.Add(sess)
 
 	return &runnerv2alpha1.CreateSessionResponse{
 		Session: toRunnerv2alpha1Session(sess),
@@ -67,8 +68,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2alpha1.C
 func (r *runnerService) GetSession(_ context.Context, req *runnerv2alpha1.GetSessionRequest) (*runnerv2alpha1.GetSessionResponse, error) {
 	r.logger.Info("running GetSession in runnerService")
 
-	sess, ok := r.sessions.GetSession(req.Id)
-
+	sess, ok := r.sessions.Get(req.Id)
 	if !ok {
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
@@ -81,10 +81,7 @@ func (r *runnerService) GetSession(_ context.Context, req *runnerv2alpha1.GetSes
 func (r *runnerService) ListSessions(_ context.Context, req *runnerv2alpha1.ListSessionsRequest) (*runnerv2alpha1.ListSessionsResponse, error) {
 	r.logger.Info("running ListSessions in runnerService")
 
-	sessions, err := r.sessions.ListSessions()
-	if err != nil {
-		return nil, err
-	}
+	sessions := r.sessions.List()
 
 	runnerSessions := make([]*runnerv2alpha1.Session, 0, len(sessions))
 	for _, s := range sessions {
@@ -97,7 +94,7 @@ func (r *runnerService) ListSessions(_ context.Context, req *runnerv2alpha1.List
 func (r *runnerService) DeleteSession(_ context.Context, req *runnerv2alpha1.DeleteSessionRequest) (*runnerv2alpha1.DeleteSessionResponse, error) {
 	r.logger.Info("running DeleteSession in runnerService")
 
-	deleted := r.sessions.DeleteSession(req.Id)
+	deleted := r.sessions.Delete(req.Id)
 
 	if !deleted {
 		return nil, status.Error(codes.NotFound, "session not found")

@@ -20,10 +20,10 @@ const (
 	envEndFileName   = ".env_end"
 )
 
-// envDumpCommand is a command that dumps the environment variables.
+// EnvDumpCommand is a command that dumps the environment variables.
 // It is declared as a var, because it must be replaced in tests.
 // Equivalent is `env -0`.
-var envDumpCommand = func() string {
+var EnvDumpCommand = func() string {
 	path, err := os.Executable()
 	if err != nil {
 		panic(errors.WithMessage(err, "failed to get the executable path"))
@@ -59,7 +59,7 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, error) {
 				if err := n.createTempDir(); err != nil {
 					return nil, err
 				}
-				_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", envDumpCommand, filepath.Join(n.tempDir, envStartFileName)))
+				_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", EnvDumpCommand, filepath.Join(n.tempDir, envStartFileName)))
 			}
 		}
 
@@ -74,7 +74,7 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, error) {
 
 		if isShellLanguage(filepath.Base(cfg.ProgramName)) {
 			if n.session != nil {
-				_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", envDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
+				_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
 
 				n.isEnvCollectable = true
 			}

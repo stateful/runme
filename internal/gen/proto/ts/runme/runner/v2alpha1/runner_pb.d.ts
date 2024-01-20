@@ -185,12 +185,6 @@ export interface ExecuteRequest {
      */
     winsize?: Winsize;
     /**
-     * background, if true, will send process' PID as a first response.
-     *
-     * @generated from protobuf field: bool background = 11;
-     */
-    background: boolean;
-    /**
      * session_id indicates in which Session the program should execute.
      * Executing in a Session might provide additional context like
      * environment variables.
@@ -211,33 +205,12 @@ export interface ExecuteRequest {
      */
     project?: Project;
     /**
-     * store_last_output, if true, will store the stdout of
+     * store_last_stdout, if true, will store the stdout of
      * the last ran block in the environment variable `__`.
      *
-     * @generated from protobuf field: bool store_last_output = 23;
+     * @generated from protobuf field: bool store_last_stdout = 23;
      */
-    storeLastOutput: boolean;
-    /**
-     * language_id indicates a language to exeucute scripts/commands.
-     *
-     * @generated from protobuf field: string language_id = 25;
-     */
-    languageId: string;
-    /**
-     * file_extension is associated with the script.
-     *
-     * @generated from protobuf field: string file_extension = 26;
-     */
-    fileExtension: string;
-}
-/**
- * @generated from protobuf message runme.runner.v2alpha1.ProcessPID
- */
-export interface ProcessPID {
-    /**
-     * @generated from protobuf field: int64 pid = 1;
-     */
-    pid: string;
+    storeLastStdout: boolean;
 }
 /**
  * @generated from protobuf message runme.runner.v2alpha1.ExecuteResponse
@@ -266,9 +239,9 @@ export interface ExecuteResponse {
      * This is only sent once in an initial response
      * for background processes.
      *
-     * @generated from protobuf field: runme.runner.v2alpha1.ProcessPID pid = 4;
+     * @generated from protobuf field: google.protobuf.UInt32Value pid = 4;
      */
-    pid?: ProcessPID;
+    pid?: UInt32Value;
 }
 /**
  * @generated from protobuf enum runme.runner.v2alpha1.ExecuteStop
@@ -393,13 +366,6 @@ declare class ExecuteRequest$Type extends MessageType<ExecuteRequest> {
  * @generated MessageType for protobuf message runme.runner.v2alpha1.ExecuteRequest
  */
 export declare const ExecuteRequest: ExecuteRequest$Type;
-declare class ProcessPID$Type extends MessageType<ProcessPID> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ProcessPID
- */
-export declare const ProcessPID: ProcessPID$Type;
 declare class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
     constructor();
 }

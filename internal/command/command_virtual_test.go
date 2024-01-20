@@ -86,7 +86,7 @@ func TestVirtualCommand(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.SetWinsize(24, 80, 0, 0))
+		require.NoError(t, SetWinsize(cmd, &Winsize{Rows: 24, Cols: 80, X: 0, Y: 0}))
 		require.NoError(t, cmd.Wait())
 		require.Equal(t, "80\r\n24\r\n", stdout.String())
 	})

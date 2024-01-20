@@ -23,11 +23,9 @@ import (
 )
 
 const (
-	MaxMsgSize = 4096 << 10 // 4 MiB
-
 	// ringBufferSize limits the size of the ring buffers
 	// that sit between a command and the handler.
-	ringBufferSize = 8192 << 10 // 8 MiB
+	ringBufferSize = 16 * 1000 * 1000 // 16 MB
 
 	// msgBufferSize limits the size of data chunks
 	// sent by the handler to clients. It's smaller
@@ -35,7 +33,7 @@ const (
 	// small.
 	// In the future, it might be worth to implement
 	// variable-sized buffers.
-	msgBufferSize = 32 << 10 // 32 KiB
+	msgBufferSize = 32 * 1000 // 32 KB
 )
 
 type runnerService struct {

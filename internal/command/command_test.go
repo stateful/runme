@@ -36,7 +36,7 @@ var (
 )
 
 func init() {
-	envDumpCommand = "env -0"
+	EnvDumpCommand = "env -0"
 }
 
 func TestExecutionCommandFromCodeBlocks(t *testing.T) {

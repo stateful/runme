@@ -32,8 +32,7 @@ func NewRingBuffer(size int) *RingBuffer {
 }
 
 func (b *RingBuffer) Close() error {
-	if !b.closed.Load() {
-		b.closed.Store(true)
+	if b.closed.CompareAndSwap(false, true) {
 		close(b.close)
 	}
 	return nil

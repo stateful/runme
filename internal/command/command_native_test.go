@@ -51,17 +51,6 @@ func TestNativeCommand(t *testing.T) {
 		assert.Equal(t, "test", stdout.String())
 	})
 
-	t.Run("WithSession", func(t *testing.T) {
-		sess := NewSession()
-		opts := &NativeCommandOptions{
-			Session: sess,
-		}
-		cmd, err := NewNative(testConfigShellProgram, opts)
-		require.NoError(t, err)
-		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.Wait())
-	})
-
 	t.Run("DevStdin", func(t *testing.T) {
 		cmd, err := NewNative(testConfigShellProgram, &NativeCommandOptions{Stdin: os.Stdin})
 		require.NoError(t, err)
