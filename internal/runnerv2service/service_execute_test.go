@@ -24,9 +24,62 @@ func init() {
 	// Set to false to disable sending signals to process groups in tests.
 	// This can be turned on if setSysProcAttrPgid() is called in Start().
 	command.SignalToProcessGroup = false
+
+	command.EnvDumpCommand = "env -0"
 }
 
 func TestRunnerServiceServerExecute(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	stream, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	req := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo test | tee >(cat >&2)",
+					},
+				},
+			},
+		},
+	}
+
+	err = stream.Send(req)
+	require.NoError(t, err)
+
+	// Assert first response.
+	resp, err := stream.Recv()
+	assert.NoError(t, err)
+	assert.Greater(t, resp.Pid.Value, uint32(1))
+	assert.Nil(t, resp.ExitCode)
+
+	// Assert second response.
+	resp, err = stream.Recv()
+	assert.NoError(t, err)
+	assert.Equal(t, "test\n", string(resp.StdoutData))
+	assert.Nil(t, resp.ExitCode)
+	assert.Nil(t, resp.Pid)
+
+	// Assert third response.
+	resp, err = stream.Recv()
+	assert.NoError(t, err)
+	assert.Equal(t, "test\n", string(resp.StderrData))
+	assert.Nil(t, resp.ExitCode)
+	assert.Nil(t, resp.Pid)
+
+	// Assert fourth response.
+	resp, err = stream.Recv()
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(0), resp.ExitCode.Value)
+	assert.Nil(t, resp.Pid)
+}
+
+func TestRunnerServiceServerExecuteConfigs(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
@@ -293,6 +346,72 @@ func TestRunnerServiceServerExecute_Input(t *testing.T) {
 	})
 }
 
+func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	t.Run("WithEnvAndMostRecentSessionStrategy", func(t *testing.T) {
+		{
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+
+			err = stream.Send(&runnerv2alpha1.ExecuteRequest{
+				Config: &runnerv2alpha1.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2alpha1.ProgramConfig_Commands{
+						Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+							Items: []string{
+								"echo -n \"$TEST_ENV\"",
+								"export TEST_ENV=hello-2",
+							},
+						},
+					},
+					Env: []string{"TEST_ENV=hello"},
+				},
+			})
+			require.NoError(t, err)
+
+			result := <-execResult
+
+			assert.NoError(t, result.Err)
+			assert.Equal(t, "hello", string(result.Stdout))
+		}
+
+		{
+			// Execute again with most recent session.
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+
+			err = stream.Send(&runnerv2alpha1.ExecuteRequest{
+				Config: &runnerv2alpha1.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2alpha1.ProgramConfig_Commands{
+						Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+							Items: []string{
+								"echo -n \"$TEST_ENV\"",
+							},
+						},
+					},
+				},
+				SessionStrategy: runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT,
+			})
+			require.NoError(t, err)
+
+			result := <-execResult
+
+			assert.NoError(t, result.Err)
+			assert.Equal(t, "hello-2", string(result.Stdout))
+		}
+	})
+}
+
 func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
@@ -410,7 +529,7 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		assert.Equal(t, "200\r\n64\r\n", string(result.Stdout))
+		assert.Equal(t, "64\r\n200\r\n", string(result.Stdout))
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 }

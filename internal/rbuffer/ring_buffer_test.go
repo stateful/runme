@@ -12,6 +12,8 @@ import (
 )
 
 func assertRead(t *testing.T, b *RingBuffer, expected []byte) {
+	t.Helper()
+
 	got := make([]byte, len(expected))
 	n, err := b.read(got)
 	assert.Nil(t, err)
@@ -20,6 +22,8 @@ func assertRead(t *testing.T, b *RingBuffer, expected []byte) {
 }
 
 func assertWrite(t *testing.T, b *RingBuffer, data []byte) {
+	t.Helper()
+
 	expected := len(data)
 	if expected > b.size {
 		expected = b.size
@@ -94,6 +98,33 @@ func TestRingBuffer(t *testing.T) {
 
 		assert.NoError(t, g.Wait())
 	})
+}
+
+func TestRingBuffer_Parallel(t *testing.T) {
+	buf := NewRingBuffer(10 * 1000 * 1000)
+
+	var g errgroup.Group
+
+	for i := 0; i < 100; i++ {
+		g.Go(func() error {
+			data := make([]byte, 1000)
+			if _, err := rand.Read(data); err != nil {
+				return err
+			}
+			_, err := buf.Write(data)
+			return err
+		})
+	}
+
+	for i := 0; i < 100; i++ {
+		g.Go(func() error {
+			data := make([]byte, 1000)
+			_, err := buf.Read(data)
+			return err
+		})
+	}
+
+	assert.NoError(t, g.Wait())
 }
 
 func TestRingBuffer_Close(t *testing.T) {

@@ -105,19 +105,6 @@ func (c *VirtualCommand) Pid() int {
 	return c.cmd.Process.Pid
 }
 
-func (c *VirtualCommand) SetWinsize(rows, cols, x, y uint16) error {
-	if c.pty == nil {
-		return nil
-	}
-	err := pty.Setsize(c.pty, &pty.Winsize{
-		Rows: rows,
-		Cols: cols,
-		X:    x,
-		Y:    y,
-	})
-	return errors.WithStack(err)
-}
-
 func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 	argsNormalizer := &argsNormalizer{
 		session: c.opts.Session,
@@ -278,6 +265,16 @@ func (c *VirtualCommand) cleanup() {
 	for _, fn := range c.cleanFuncs {
 		fn()
 	}
+}
+
+type Winsize pty.Winsize
+
+func SetWinsize(cmd *VirtualCommand, winsize *Winsize) error {
+	if cmd.pty == nil {
+		return nil
+	}
+	err := pty.Setsize(cmd.pty, (*pty.Winsize)(winsize))
+	return errors.WithStack(err)
 }
 
 func isNil(val any) bool {

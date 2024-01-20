@@ -1,6 +1,7 @@
 package runnerv2service
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -29,19 +30,21 @@ const (
 	msgBufferSize = 2048 << 10 // 2 MiB
 )
 
+// commandIface is an interface for virtual and native commands.
 type commandIface interface {
 	Pid() int
 	Running() bool
-	SetWinsize(uint16, uint16, uint16, uint16) error
 	Start(context.Context) error
 	StopWithSignal(os.Signal) error
 	Wait() error
 }
 
 type execution struct {
-	ID string
-
+	ID  string
 	Cmd commandIface
+
+	session         *command.Session
+	storeLastStdout bool
 
 	stdin       io.Reader
 	stdinWriter io.WriteCloser
@@ -51,7 +54,13 @@ type execution struct {
 	logger *zap.Logger
 }
 
-func newExecution(id string, cfg *command.Config, logger *zap.Logger) (*execution, error) {
+func newExecution(
+	id string,
+	cfg *command.Config,
+	session *command.Session,
+	storeLastStdout bool,
+	logger *zap.Logger,
+) (*execution, error) {
 	stdin, stdinWriter := io.Pipe()
 	stdout := rbuffer.NewRingBuffer(ringBufferSize)
 	stderr := rbuffer.NewRingBuffer(ringBufferSize)
@@ -65,19 +74,21 @@ func newExecution(id string, cfg *command.Config, logger *zap.Logger) (*executio
 		cmd, err = command.NewVirtual(
 			cfg,
 			&command.VirtualCommandOptions{
-				Stdin:  stdin,
-				Stdout: stdout,
-				Logger: logger,
+				Session: session,
+				Stdin:   stdin,
+				Stdout:  stdout,
+				Logger:  logger,
 			},
 		)
 	} else {
 		cmd, err = command.NewNative(
 			cfg,
 			&command.NativeCommandOptions{
-				Stdin:  stdin,
-				Stdout: stdout,
-				Stderr: stderr,
-				Logger: logger,
+				Session: session,
+				Stdin:   stdin,
+				Stdout:  stdout,
+				Stderr:  stderr,
+				Logger:  logger,
 			},
 		)
 	}
@@ -90,6 +101,9 @@ func newExecution(id string, cfg *command.Config, logger *zap.Logger) (*executio
 		ID:  id,
 		Cmd: cmd,
 
+		session:         session,
+		storeLastStdout: storeLastStdout,
+
 		stdin:       stdin,
 		stdinWriter: stdinWriter,
 		stdout:      stdout,
@@ -101,15 +115,21 @@ func newExecution(id string, cfg *command.Config, logger *zap.Logger) (*executio
 	return exec, nil
 }
 
-func (e *execution) Start(ctx context.Context) error {
-	return e.Cmd.Start(ctx)
-}
-
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
+	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizInBytes)
+	defer e.storeLastOutput(lastStdout)
+
 	errc := make(chan error, 2)
 
 	go func() {
-		errc <- readSendLoop(e.stdout, sender, func(b []byte) *runnerv2alpha1.ExecuteResponse { return &runnerv2alpha1.ExecuteResponse{StdoutData: b} })
+		errc <- readSendLoop(
+			e.stdout,
+			sender,
+			func(b []byte) *runnerv2alpha1.ExecuteResponse {
+				_, _ = lastStdout.Write(b)
+				return &runnerv2alpha1.ExecuteResponse{StdoutData: b}
+			},
+		)
 	}()
 	go func() {
 		errc <- readSendLoop(e.stderr, sender, func(b []byte) *runnerv2alpha1.ExecuteResponse { return &runnerv2alpha1.ExecuteResponse{StderrData: b} })
@@ -157,21 +177,59 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 
 func (e *execution) Write(p []byte) (int, error) {
 	n, err := e.stdinWriter.Write(p)
+
+	// Close stdin writer for native commands after handling the initial request.
+	// Native commands do not support sending data continously, as the native
+	// command must have stdin closed to finish.
+	// Alternatively, there should be a way to signal end of input.
+	if _, ok := e.Cmd.(*command.NativeCommand); ok {
+		if closeErr := e.stdinWriter.Close(); closeErr != nil {
+			e.logger.Info("failed to close stdin writer", zap.Error(closeErr))
+			if err == nil {
+				err = closeErr
+			}
+		}
+	}
+
 	return n, errors.WithStack(err)
 }
 
 func (e *execution) SetWinsize(size *runnerv2alpha1.Winsize) error {
-	return e.Cmd.SetWinsize(uint16(size.Cols), uint16(size.Rows), uint16(size.X), uint16(size.Y))
+	if size == nil {
+		return nil
+	}
+
+	switch cmd := e.Cmd.(type) {
+	case *command.VirtualCommand:
+		return command.SetWinsize(
+			cmd,
+			&command.Winsize{
+				Rows: uint16(size.Rows),
+				Cols: uint16(size.Cols),
+				X:    uint16(size.X),
+				Y:    uint16(size.Y),
+			},
+		)
+	case *command.NativeCommand:
+		e.logger.Info("winsize change is not supported for native commands")
+		return nil
+	default:
+		panic("invariant: unknown command type")
+	}
 }
 
-func (e *execution) PostInitialRequest() {
-	// Close stdin writer for native commands after handling the initial request.
-	// Native commands do not support sending data continously.
-	if _, ok := e.Cmd.(*command.NativeCommand); ok {
-		if err := e.stdinWriter.Close(); err != nil {
-			e.logger.Info("failed to close stdin writer", zap.Error(err))
-		}
+func (e *execution) Stop(stop runnerv2alpha1.ExecuteStop) (err error) {
+	switch stop {
+	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_UNSPECIFIED:
+		// continue
+	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_INTERRUPT:
+		err = e.Cmd.StopWithSignal(os.Interrupt)
+	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_KILL:
+		err = e.Cmd.StopWithSignal(os.Kill)
+	default:
+		err = errors.New("unknown stop signal")
 	}
+	return
 }
 
 func (e *execution) closeIO() {
@@ -183,6 +241,19 @@ func (e *execution) closeIO() {
 
 	err = e.stderr.Close()
 	e.logger.Info("closed stderr writer", zap.Error(err))
+}
+
+func (e *execution) storeLastOutput(r io.Reader) {
+	if !e.storeLastStdout {
+		return
+	}
+
+	b, _ := io.ReadAll(r)
+	sanitized := bytes.ReplaceAll(b, []byte{'\000'}, nil)
+
+	if err := e.session.SetEnv("__=" + string(sanitized)); err != nil {
+		e.logger.Info("failed to store last output", zap.Error(err))
+	}
 }
 
 type sender interface {

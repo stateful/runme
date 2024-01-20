@@ -94,6 +94,7 @@ type ProgramConfig struct {
 	//	*ProgramConfig_Script
 	Source isProgramConfig_Source `protobuf_oneof:"source"`
 	// interactive, if true, uses a pseudo-tty to execute the program.
+	// Otherwise, the program is executed using in-memory buffers for I/O.
 	Interactive bool `protobuf:"varint,7,opt,name=interactive,proto3" json:"interactive,omitempty"`
 	// TODO(adamb): understand motivation for this. In theory, source
 	// should tell whether to execute it inline or as a file.

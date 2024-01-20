@@ -1,21 +1,16 @@
 package command
 
 import (
-	"errors"
 	"strings"
 	"sync"
 
 	"golang.org/x/exp/slices"
 )
 
-// maxEnvironSize is a maximum limit of size of all env name and value pairs,
-// including equal sign and NUL in each pair.
-const maxEnvironSize = 32760
-
-func envPairSize(k, v string) int {
-	// +2 for the '=' and '\0' separators
-	return len(k) + len(v) + 2
-}
+// func envPairSize(k, v string) int {
+// 	// +2 for the '=' and '\0' separators
+// 	return len(k) + len(v) + 2
+// }
 
 type envStore struct {
 	mu    sync.RWMutex
@@ -39,18 +34,18 @@ func (s *envStore) Set(k, v string) (*envStore, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	environSize := envPairSize(k, v)
+	// environSize := envPairSize(k, v)
 
-	for key, value := range s.items {
-		if key == k {
-			continue
-		}
-		environSize += envPairSize(key, value)
-	}
+	// for key, value := range s.items {
+	// 	if key == k {
+	// 		continue
+	// 	}
+	// 	environSize += envPairSize(key, value)
+	// }
 
-	if environSize > maxEnvironSize {
-		return s, errors.New("could not set environment variable, environment size limit exceeded")
-	}
+	// if environSize > MaxEnvironSizInBytes {
+	// 	return s, errors.New("could not set environment variable, environment size limit exceeded")
+	// }
 
 	s.items[k] = v
 

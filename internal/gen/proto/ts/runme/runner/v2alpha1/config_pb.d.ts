@@ -65,6 +65,7 @@ export interface ProgramConfig {
     };
     /**
      * interactive, if true, uses a pseudo-tty to execute the program.
+     * Otherwise, the program is executed using in-memory buffers for I/O.
      *
      * @generated from protobuf field: bool interactive = 7;
      */

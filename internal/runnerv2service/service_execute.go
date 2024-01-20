@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/stateful/runme/internal/command"
 	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stateful/runme/internal/ulid"
 )
@@ -33,19 +34,28 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	}
 	logger.Info("received initial request", zap.Any("req", req))
 
-	exec, err := newExecution(id, req.Config, logger)
+	session, err := r.getOrCreateSessionFromExecuteRequest(req)
+	if err != nil {
+		return err
+	}
+
+	exec, err := newExecution(
+		id,
+		req.Config,
+		session,
+		req.StoreLastStdout,
+		logger,
+	)
 	if err != nil {
 		return err
 	}
 
 	// Start the command and send the initial response with PID.
-	if err := exec.Start(ctx); err != nil {
+	if err := exec.Cmd.Start(ctx); err != nil {
 		return err
 	}
 	if err := srv.Send(&runnerv2alpha1.ExecuteResponse{
-		Pid: &runnerv2alpha1.ProcessPID{
-			Pid: int64(exec.Cmd.Pid()),
-		},
+		Pid: &wrapperspb.UInt32Value{Value: uint32(exec.Cmd.Pid())},
 	}); err != nil {
 		return err
 	}
@@ -57,37 +67,18 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 		for {
 			var err error
 
-			if req.InputData != nil {
-				logger.Info("received input data", zap.Int("len", len(req.InputData)))
-				_, err = exec.Write(req.InputData)
-				if err != nil {
-					logger.Info("failed to write to stdin; ignoring", zap.Error(err))
-				}
-			}
-
-			if req.Winsize != nil {
-				logger.Info("received winsize change", zap.Any("winsize", req.Winsize))
-				if err := exec.SetWinsize(req.Winsize); err != nil {
-					logger.Info("failed to set winsize; ignoring", zap.Error(err))
-				}
-			}
-
-			switch req.Stop {
-			case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_UNSPECIFIED:
-				// continue
-			case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_INTERRUPT:
-				err = exec.Cmd.StopWithSignal(os.Interrupt)
-			case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_KILL:
-				err = exec.Cmd.StopWithSignal(os.Kill)
-			default:
-				err = errors.New("unknown stop signal")
-			}
+			_, err = exec.Write(req.InputData)
 			if err != nil {
-				logger.Info("failed to stop program", zap.Error(err))
-				return
+				logger.Info("failed to write to stdin; ignoring", zap.Error(err))
 			}
 
-			exec.PostInitialRequest()
+			if err := exec.SetWinsize(req.Winsize); err != nil {
+				logger.Info("failed to set winsize; ignoring", zap.Error(err))
+			}
+
+			if err := exec.Stop(req.Stop); err != nil {
+				logger.Info("failed to stop program; ignoring", zap.Error(err))
+			}
 
 			req, err = srv.Recv()
 			logger.Info("received request", zap.Any("req", req), zap.Error(err))
@@ -130,4 +121,38 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	}
 
 	return waitErr
+}
+
+func (r *runnerService) getOrCreateSessionFromExecuteRequest(req *runnerv2alpha1.ExecuteRequest) (*command.Session, error) {
+	var (
+		session *command.Session
+		ok      bool
+	)
+
+	switch req.SessionStrategy {
+	case runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
+		if req.SessionId != "" {
+			session, ok = r.sessions.Get(req.SessionId)
+			if !ok {
+				return nil, status.Errorf(codes.NotFound, "session %q not found", req.SessionId)
+			}
+		} else {
+			session = command.NewSession()
+		}
+	case runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
+		session, ok = r.sessions.Newest()
+		if !ok {
+			session = command.NewSession()
+		}
+	}
+
+	if err := session.SetEnv(req.Config.Env...); err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		r.sessions.Add(session)
+	}
+
+	return session, nil
 }

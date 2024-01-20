@@ -107,9 +107,6 @@ message ExecuteRequest {
   // has no effect in non-interactive mode
   optional Winsize winsize = 10;
 
-  // background, if true, will send process' PID as a first response.
-  bool background = 11;
-
   // session_id indicates in which Session the program should execute.
   // Executing in a Session might provide additional context like
   // environment variables.
@@ -121,19 +118,9 @@ message ExecuteRequest {
   // project used to load environment variables from .env files.
   optional Project project = 22;
 
-  // store_last_output, if true, will store the stdout of
+  // store_last_stdout, if true, will store the stdout of
   // the last ran block in the environment variable `__`.
-  bool store_last_output = 23;
-
-  // language_id indicates a language to exeucute scripts/commands.
-  string language_id = 25;
-
-  // file_extension is associated with the script.
-  string file_extension = 26;
-}
-
-message ProcessPID {
-  int64 pid = 1;
+  bool store_last_stdout = 23;
 }
 
 message ExecuteResponse {
@@ -149,7 +136,7 @@ message ExecuteResponse {
   // pid contains the process' PID.
   // This is only sent once in an initial response
   // for background processes.
-  ProcessPID pid = 4;
+  google.protobuf.UInt32Value pid = 4;
 }
 
 service RunnerService {
