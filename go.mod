@@ -6,7 +6,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/Microsoft/go-winio v0.6.1
 	github.com/atotto/clipboard v0.1.4
-	github.com/bufbuild/connect-go v1.10.0
 	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/cli/cli/v2 v2.42.1
