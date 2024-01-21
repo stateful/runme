@@ -6,9 +6,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/Microsoft/go-winio v0.6.1
 	github.com/atotto/clipboard v0.1.4
-	github.com/bufbuild/connect-go v1.10.0
-	github.com/bufbuild/connect-grpchealth-go v1.1.1
-	github.com/bufbuild/connect-grpcreflect-go v1.1.0
 	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/cli/cli/v2 v2.42.1
@@ -25,13 +22,11 @@ require (
 	github.com/muesli/cancelreader v0.2.2
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/rogpeppe/go-internal v1.12.0
-	github.com/rs/cors v1.10.1
 	github.com/rwtodd/Go.Sed v0.0.0-20230610052213-ba3e9c186f0a
 	github.com/vektah/gqlparser/v2 v2.5.10
 	github.com/yuin/goldmark v1.6.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3
-	golang.org/x/net v0.20.0
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/sys v0.16.0
 	golang.org/x/term v0.16.0
@@ -46,6 +41,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	golang.org/x/net v0.20.0 // indirect
 )
 
 require (
