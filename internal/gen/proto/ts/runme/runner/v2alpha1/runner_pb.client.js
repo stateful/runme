@@ -58,4 +58,11 @@ export class RunnerServiceClient {
         const method = this.methods[4], opt = this._transport.mergeOptions(options);
         return stackIntercept("duplex", this._transport, method, opt);
     }
+    /**
+     * @generated from protobuf rpc: ResolveEnv(runme.runner.v2alpha1.ResolveEnvRequest) returns (runme.runner.v2alpha1.ResolveEnvResponse);
+     */
+    resolveEnv(input, options) {
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        return stackIntercept("unary", this._transport, method, opt, input);
+    }
 }

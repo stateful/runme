@@ -13,6 +13,28 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 import { ProgramConfig } from "./config_pb";
 /**
+ * @generated from protobuf enum runme.runner.v2alpha1.ResolveEnvResponse.Source
+ */
+export var ResolveEnvResponse_Source;
+(function (ResolveEnvResponse_Source) {
+    /**
+     * @generated from protobuf enum value: SOURCE_UNSPECIFIED = 0;
+     */
+    ResolveEnvResponse_Source[ResolveEnvResponse_Source["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: SOURCE_ENV = 1;
+     */
+    ResolveEnvResponse_Source[ResolveEnvResponse_Source["ENV"] = 1] = "ENV";
+    /**
+     * @generated from protobuf enum value: SOURCE_SESSION = 2;
+     */
+    ResolveEnvResponse_Source[ResolveEnvResponse_Source["SESSION"] = 2] = "SESSION";
+    /**
+     * @generated from protobuf enum value: SOURCE_PROJECT = 3;
+     */
+    ResolveEnvResponse_Source[ResolveEnvResponse_Source["PROJECT"] = 3] = "PROJECT";
+})(ResolveEnvResponse_Source || (ResolveEnvResponse_Source = {}));
+/**
  * @generated from protobuf enum runme.runner.v2alpha1.ExecuteStop
  */
 export var ExecuteStop;
@@ -223,6 +245,75 @@ class ExecuteResponse$Type extends MessageType {
  * @generated MessageType for protobuf message runme.runner.v2alpha1.ExecuteResponse
  */
 export const ExecuteResponse = new ExecuteResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvRequest$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2alpha1.ResolveEnvRequest", [
+            { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveEnvRequest_CommandList },
+            { no: 2, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v2alpha1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
+            { no: 5, name: "project", kind: "message", T: () => Project }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvRequest
+ */
+export const ResolveEnvRequest = new ResolveEnvRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvRequest_CommandList$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2alpha1.ResolveEnvRequest.CommandList", [
+            { no: 1, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvRequest.CommandList
+ */
+export const ResolveEnvRequest_CommandList = new ResolveEnvRequest_CommandList$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvResponse$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2alpha1.ResolveEnvResponse", [
+            { no: 1, name: "resolved_env", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveEnvResponse_ResolvedEnv },
+            { no: 2, name: "unresolved_env", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveEnvResponse_UnresolvedEnv }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResponse
+ */
+export const ResolveEnvResponse = new ResolveEnvResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvResponse_ResolvedEnv$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2alpha1.ResolveEnvResponse.ResolvedEnv", [
+            { no: 1, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "source", kind: "enum", T: () => ["runme.runner.v2alpha1.ResolveEnvResponse.Source", ResolveEnvResponse_Source, "SOURCE_"] }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResponse.ResolvedEnv
+ */
+export const ResolveEnvResponse_ResolvedEnv = new ResolveEnvResponse_ResolvedEnv$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvResponse_UnresolvedEnv$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2alpha1.ResolveEnvResponse.UnresolvedEnv", [
+            { no: 1, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResponse.UnresolvedEnv
+ */
+export const ResolveEnvResponse_UnresolvedEnv = new ResolveEnvResponse_UnresolvedEnv$Type();
 /**
  * @generated ServiceType for protobuf service runme.runner.v2alpha1.RunnerService
  */
@@ -231,5 +322,6 @@ export const RunnerService = new ServiceType("runme.runner.v2alpha1.RunnerServic
     { name: "GetSession", options: {}, I: GetSessionRequest, O: GetSessionResponse },
     { name: "ListSessions", options: {}, I: ListSessionsRequest, O: ListSessionsResponse },
     { name: "DeleteSession", options: {}, I: DeleteSessionRequest, O: DeleteSessionResponse },
-    { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse }
+    { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse },
+    { name: "ResolveEnv", options: {}, I: ResolveEnvRequest, O: ResolveEnvResponse }
 ]);
