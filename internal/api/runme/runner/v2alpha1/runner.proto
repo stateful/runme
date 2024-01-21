@@ -139,6 +139,63 @@ message ExecuteResponse {
   google.protobuf.UInt32Value pid = 4;
 }
 
+message ResolveEnvRequest {
+  oneof source {
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    CommandList commands = 1;
+
+    // script is code to be executed by the program.
+    // Individual lines are joined with the new line character.
+    string script = 2;
+  }
+
+  // env is a list of additional environment variables
+  // that will be injected to the executed program.
+  repeated string env = 3;
+
+  // session_strategy is a strategy for selecting the session.
+  SessionStrategy session_strategy = 4;
+
+  // project used to load environment variables from .env files.
+  optional Project project = 5;
+
+  message CommandList {
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    // For example: ["echo 'Hello, World'", "ls -l /etc"].
+    repeated string items = 1;
+  }
+}
+
+message ResolveEnvResponse {
+  // resolved_env is a list of resolved environment variables.
+  repeated ResolvedEnv resolved_env = 1;
+
+  // unresolved_env is a list of environment variables
+  // that couldn't be resolved.
+  repeated UnresolvedEnv unresolved_env = 2;
+
+  message ResolvedEnv {
+    string key = 1;
+    string original_value = 2;
+    string resolved_value = 3;
+    Source source = 4;
+  }
+
+  message UnresolvedEnv {
+    string key = 1;
+    string original_value = 2;
+  }
+
+  enum Source {
+    SOURCE_UNSPECIFIED = 0;
+    SOURCE_ENV = 1;
+    SOURCE_SESSION = 2;
+    SOURCE_PROJECT = 3;
+  }
+}
+
 service RunnerService {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {}
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {}
@@ -153,4 +210,6 @@ service RunnerService {
   // Subsequent "ExecuteRequest" should only contain "input_data" as
   // other fields will be ignored.
   rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
+
+  rpc ResolveEnv(ResolveEnvRequest) returns (ResolveEnvResponse) {}
 }

@@ -5,6 +5,8 @@
 // @ts-nocheck
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
+import type { ResolveEnvResponse } from "./runner_pb";
+import type { ResolveEnvRequest } from "./runner_pb";
 import type { ExecuteResponse } from "./runner_pb";
 import type { ExecuteRequest } from "./runner_pb";
 import type { DuplexStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -50,6 +52,10 @@ export interface IRunnerServiceClient {
      * @generated from protobuf rpc: Execute(stream runme.runner.v2alpha1.ExecuteRequest) returns (stream runme.runner.v2alpha1.ExecuteResponse);
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
+    /**
+     * @generated from protobuf rpc: ResolveEnv(runme.runner.v2alpha1.ResolveEnvRequest) returns (runme.runner.v2alpha1.ResolveEnvResponse);
+     */
+    resolveEnv(input: ResolveEnvRequest, options?: RpcOptions): UnaryCall<ResolveEnvRequest, ResolveEnvResponse>;
 }
 /**
  * @generated from protobuf service runme.runner.v2alpha1.RunnerService
@@ -88,4 +94,8 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      * @generated from protobuf rpc: Execute(stream runme.runner.v2alpha1.ExecuteRequest) returns (stream runme.runner.v2alpha1.ExecuteResponse);
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
+    /**
+     * @generated from protobuf rpc: ResolveEnv(runme.runner.v2alpha1.ResolveEnvRequest) returns (runme.runner.v2alpha1.ResolveEnvResponse);
+     */
+    resolveEnv(input: ResolveEnvRequest, options?: RpcOptions): UnaryCall<ResolveEnvRequest, ResolveEnvResponse>;
 }
