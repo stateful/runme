@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/stateful/runme/internal/command"
 	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stateful/runme/internal/ulid"
 )
@@ -34,10 +33,19 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	}
 	logger.Info("received initial request", zap.Any("req", req))
 
-	session, err := r.getOrCreateSessionFromExecuteRequest(req)
+	// Manage the session.
+	session, existed, err := r.getOrCreateSessionFromRequest(req)
 	if err != nil {
 		return err
 	}
+	if err := session.SetEnv(req.Config.Env...); err != nil {
+		return err
+	}
+	if !existed {
+		r.sessions.Add(session)
+	}
+
+	// TODO: extend session with the project, if present.
 
 	exec, err := newExecution(
 		id,
@@ -121,38 +129,4 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	}
 
 	return waitErr
-}
-
-func (r *runnerService) getOrCreateSessionFromExecuteRequest(req *runnerv2alpha1.ExecuteRequest) (*command.Session, error) {
-	var (
-		session *command.Session
-		ok      bool
-	)
-
-	switch req.SessionStrategy {
-	case runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
-		if req.SessionId != "" {
-			session, ok = r.sessions.Get(req.SessionId)
-			if !ok {
-				return nil, status.Errorf(codes.NotFound, "session %q not found", req.SessionId)
-			}
-		} else {
-			session = command.NewSession()
-		}
-	case runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
-		session, ok = r.sessions.Newest()
-		if !ok {
-			session = command.NewSession()
-		}
-	}
-
-	if err := session.SetEnv(req.Config.Env...); err != nil {
-		return nil, err
-	}
-
-	if !ok {
-		r.sessions.Add(session)
-	}
-
-	return session, nil
 }

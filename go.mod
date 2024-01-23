@@ -33,6 +33,7 @@ require (
 	golang.org/x/term v0.16.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240116215550-a9fa1716bcac
 	google.golang.org/protobuf v1.32.0
+	mvdan.cc/sh/v3 v3.7.0
 )
 
 require (

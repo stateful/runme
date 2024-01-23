@@ -279,15 +279,23 @@ export interface ResolveEnvRequest {
      */
     env: string[];
     /**
+     * session_id indicates in which Session the program should execute.
+     * Executing in a Session might provide additional context like
+     * environment variables.
+     *
+     * @generated from protobuf field: string session_id = 4;
+     */
+    sessionId: string;
+    /**
      * session_strategy is a strategy for selecting the session.
      *
-     * @generated from protobuf field: runme.runner.v2alpha1.SessionStrategy session_strategy = 4;
+     * @generated from protobuf field: runme.runner.v2alpha1.SessionStrategy session_strategy = 5;
      */
     sessionStrategy: SessionStrategy;
     /**
      * project used to load environment variables from .env files.
      *
-     * @generated from protobuf field: optional runme.runner.v2alpha1.Project project = 5;
+     * @generated from protobuf field: optional runme.runner.v2alpha1.Project project = 6;
      */
     project?: Project;
 }
@@ -305,31 +313,36 @@ export interface ResolveEnvRequest_CommandList {
     items: string[];
 }
 /**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResponse
+ * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResult
  */
-export interface ResolveEnvResponse {
+export interface ResolveEnvResult {
     /**
-     * resolved_env is a list of resolved environment variables.
-     *
-     * @generated from protobuf field: repeated runme.runner.v2alpha1.ResolveEnvResponse.ResolvedEnv resolved_env = 1;
+     * @generated from protobuf oneof: result
      */
-    resolvedEnv: ResolveEnvResponse_ResolvedEnv[];
-    /**
-     * unresolved_env is a list of environment variables
-     * that couldn't be resolved.
-     *
-     * @generated from protobuf field: repeated runme.runner.v2alpha1.ResolveEnvResponse.UnresolvedEnv unresolved_env = 2;
-     */
-    unresolvedEnv: ResolveEnvResponse_UnresolvedEnv[];
+    result: {
+        oneofKind: "resolvedEnv";
+        /**
+         * @generated from protobuf field: runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnv resolved_env = 1;
+         */
+        resolvedEnv: ResolveEnvResult_ResolvedEnv;
+    } | {
+        oneofKind: "unresolvedEnv";
+        /**
+         * @generated from protobuf field: runme.runner.v2alpha1.ResolveEnvResult.UnresolvedEnv unresolved_env = 2;
+         */
+        unresolvedEnv: ResolveEnvResult_UnresolvedEnv;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResponse.ResolvedEnv
+ * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnv
  */
-export interface ResolveEnvResponse_ResolvedEnv {
+export interface ResolveEnvResult_ResolvedEnv {
     /**
-     * @generated from protobuf field: string key = 1;
+     * @generated from protobuf field: string name = 1;
      */
-    key: string;
+    name: string;
     /**
      * @generated from protobuf field: string original_value = 2;
      */
@@ -339,43 +352,52 @@ export interface ResolveEnvResponse_ResolvedEnv {
      */
     resolvedValue: string;
     /**
-     * @generated from protobuf field: runme.runner.v2alpha1.ResolveEnvResponse.Source source = 4;
+     * @generated from protobuf field: runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnvSource source = 4;
      */
-    source: ResolveEnvResponse_Source;
+    source: ResolveEnvResult_ResolvedEnvSource;
 }
 /**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResponse.UnresolvedEnv
+ * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResult.UnresolvedEnv
  */
-export interface ResolveEnvResponse_UnresolvedEnv {
+export interface ResolveEnvResult_UnresolvedEnv {
     /**
-     * @generated from protobuf field: string key = 1;
+     * @generated from protobuf field: string name = 1;
      */
-    key: string;
+    name: string;
     /**
      * @generated from protobuf field: string original_value = 2;
      */
     originalValue: string;
 }
 /**
- * @generated from protobuf enum runme.runner.v2alpha1.ResolveEnvResponse.Source
+ * @generated from protobuf enum runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnvSource
  */
-export declare enum ResolveEnvResponse_Source {
+export declare enum ResolveEnvResult_ResolvedEnvSource {
     /**
-     * @generated from protobuf enum value: SOURCE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: SOURCE_ENV = 1;
+     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_ENV = 1;
      */
     ENV = 1,
     /**
-     * @generated from protobuf enum value: SOURCE_SESSION = 2;
+     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_SESSION = 2;
      */
     SESSION = 2,
     /**
-     * @generated from protobuf enum value: SOURCE_PROJECT = 3;
+     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_PROJECT = 3;
      */
     PROJECT = 3
+}
+/**
+ * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResponse
+ */
+export interface ResolveEnvResponse {
+    /**
+     * @generated from protobuf field: repeated runme.runner.v2alpha1.ResolveEnvResult items = 1;
+     */
+    items: ResolveEnvResult[];
 }
 /**
  * @generated from protobuf enum runme.runner.v2alpha1.ExecuteStop
@@ -521,6 +543,27 @@ declare class ResolveEnvRequest_CommandList$Type extends MessageType<ResolveEnvR
  * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvRequest.CommandList
  */
 export declare const ResolveEnvRequest_CommandList: ResolveEnvRequest_CommandList$Type;
+declare class ResolveEnvResult$Type extends MessageType<ResolveEnvResult> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult
+ */
+export declare const ResolveEnvResult: ResolveEnvResult$Type;
+declare class ResolveEnvResult_ResolvedEnv$Type extends MessageType<ResolveEnvResult_ResolvedEnv> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnv
+ */
+export declare const ResolveEnvResult_ResolvedEnv: ResolveEnvResult_ResolvedEnv$Type;
+declare class ResolveEnvResult_UnresolvedEnv$Type extends MessageType<ResolveEnvResult_UnresolvedEnv> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult.UnresolvedEnv
+ */
+export declare const ResolveEnvResult_UnresolvedEnv: ResolveEnvResult_UnresolvedEnv$Type;
 declare class ResolveEnvResponse$Type extends MessageType<ResolveEnvResponse> {
     constructor();
 }
@@ -528,20 +571,6 @@ declare class ResolveEnvResponse$Type extends MessageType<ResolveEnvResponse> {
  * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResponse
  */
 export declare const ResolveEnvResponse: ResolveEnvResponse$Type;
-declare class ResolveEnvResponse_ResolvedEnv$Type extends MessageType<ResolveEnvResponse_ResolvedEnv> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResponse.ResolvedEnv
- */
-export declare const ResolveEnvResponse_ResolvedEnv: ResolveEnvResponse_ResolvedEnv$Type;
-declare class ResolveEnvResponse_UnresolvedEnv$Type extends MessageType<ResolveEnvResponse_UnresolvedEnv> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResponse.UnresolvedEnv
- */
-export declare const ResolveEnvResponse_UnresolvedEnv: ResolveEnvResponse_UnresolvedEnv$Type;
 /**
  * @generated ServiceType for protobuf service runme.runner.v2alpha1.RunnerService
  */

@@ -154,11 +154,16 @@ message ResolveEnvRequest {
   // that will be injected to the executed program.
   repeated string env = 3;
 
+  // session_id indicates in which Session the program should execute.
+  // Executing in a Session might provide additional context like
+  // environment variables.
+  string session_id = 4;
+
   // session_strategy is a strategy for selecting the session.
-  SessionStrategy session_strategy = 4;
+  SessionStrategy session_strategy = 5;
 
   // project used to load environment variables from .env files.
-  optional Project project = 5;
+  optional Project project = 6;
 
   message CommandList {
     // commands are commands to be executed by the program.
@@ -168,32 +173,34 @@ message ResolveEnvRequest {
   }
 }
 
-message ResolveEnvResponse {
-  // resolved_env is a list of resolved environment variables.
-  repeated ResolvedEnv resolved_env = 1;
-
-  // unresolved_env is a list of environment variables
-  // that couldn't be resolved.
-  repeated UnresolvedEnv unresolved_env = 2;
+message ResolveEnvResult {
+  oneof result {
+    ResolvedEnv resolved_env = 1;
+    UnresolvedEnv unresolved_env = 2;
+  }
 
   message ResolvedEnv {
-    string key = 1;
+    string name = 1;
     string original_value = 2;
     string resolved_value = 3;
-    Source source = 4;
+    ResolvedEnvSource source = 4;
   }
 
   message UnresolvedEnv {
-    string key = 1;
+    string name = 1;
     string original_value = 2;
   }
 
-  enum Source {
-    SOURCE_UNSPECIFIED = 0;
-    SOURCE_ENV = 1;
-    SOURCE_SESSION = 2;
-    SOURCE_PROJECT = 3;
+  enum ResolvedEnvSource {
+    RESOLVED_ENV_SOURCE_UNSPECIFIED = 0;
+    RESOLVED_ENV_SOURCE_ENV = 1;
+    RESOLVED_ENV_SOURCE_SESSION = 2;
+    RESOLVED_ENV_SOURCE_PROJECT = 3;
   }
+}
+
+message ResolveEnvResponse {
+  repeated ResolveEnvResult items = 1;
 }
 
 service RunnerService {
