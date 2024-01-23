@@ -286,7 +286,15 @@ func getAttributes(node *ast.FencedCodeBlock, source []byte, parser attributePar
 
 // TODO(mxs): use guesslang model
 func getLanguage(node *ast.FencedCodeBlock, source []byte) string {
-	if lang := string(node.Language(source)); lang != "" {
+	var rawAttrs string
+	if node.Info != nil {
+		codeBlockInfo := node.Info.Text(source)
+		rawAttrs = string(rawAttributes(codeBlockInfo))
+	}
+
+	// If the language is the same as the raw attributes,
+	// it means Goldmark is not aware of our internal language segment usage.
+	if lang := string(node.Language(source)); lang != "" && !strings.HasPrefix(rawAttrs, lang) {
 		return lang
 	}
 	return ""
