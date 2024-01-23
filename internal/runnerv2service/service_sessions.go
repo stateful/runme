@@ -19,6 +19,7 @@ func toRunnerv2alpha1Session(sess *command.Session) *runnerv2alpha1.Session {
 	}
 }
 
+// TODO(adamb): this function should not return nil project and nil error at the same time.
 func convertProtoProjectToProject(runnerProj *runnerv2alpha1.Project) (*project.Project, error) {
 	if runnerProj == nil {
 		return nil, nil

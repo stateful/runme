@@ -16,8 +16,6 @@ type NativeCommandOptions struct {
 	Logger *zap.Logger
 }
 
-func (o *NativeCommandOptions) GetEnv() []string { return o.Session.GetEnv() }
-
 func NewNative(cfg *Config, options *NativeCommandOptions) (*NativeCommand, error) {
 	if options == nil {
 		options = &NativeCommandOptions{}
@@ -38,8 +36,6 @@ type VirtualCommandOptions struct {
 
 	Logger *zap.Logger
 }
-
-func (o *VirtualCommandOptions) GetEnv() []string { return o.Session.GetEnv() }
 
 func NewVirtual(cfg *Config, options *VirtualCommandOptions) (*VirtualCommand, error) {
 	if options == nil {
