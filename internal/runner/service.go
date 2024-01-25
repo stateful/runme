@@ -226,7 +226,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	_, span = sess.Tracer.Start(sess.Context, "Execute")
 	defer span.End()
 
-	ridKey := attribute.Key("RunID")
+	ridKey := attribute.Key("runme.notebook.cell.run.id")
 	span.SetAttributes(ridKey.String(runID))
 
 	stdin, stdinWriter := io.Pipe()

@@ -9,6 +9,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	ulid "github.com/stateful/runme/internal/ulid"
+	"github.com/stateful/runme/internal/version"
 	"go.uber.org/zap"
 
 	"go.opentelemetry.io/otel"
@@ -16,7 +17,9 @@ import (
 	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -42,7 +45,30 @@ func traceProvider() {
 		log.Fatal("failed to initialize otlptracegrpc exporter", err)
 	}
 	grpcBsp := sdktrace.NewBatchSpanProcessor(grpcExp)
+	envR, err := resource.New(context.Background(),
+		resource.WithFromEnv(),   // pull attributes from OTEL_RESOURCE_ATTRIBUTES and OTEL_SERVICE_NAME environment variables
+		resource.WithProcess(),   // This option configures a set of Detectors that discover process information
+		resource.WithOS(),        // This option configures a set of Detectors that discover OS information
+		resource.WithContainer(), // This option configures a set of Detectors that discover container information
+		resource.WithHost(),      // This option configures a set of Detectors that discover host information
+	)
+	if err != nil {
+		log.Fatal("failed to initialize otel resource", err)
+	}
+	defaultR, err := resource.Merge(resource.Default(), envR)
+	if err != nil {
+		log.Fatal("failed to initialize otel resource", err)
+	}
+	r, err := resource.Merge(defaultR, resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String("runme"),
+		semconv.ServiceVersionKey.String(version.BaseVersion()),
+	))
+	if err != nil {
+		log.Fatal("failed to initialize otel resource", err)
+	}
 	tp = sdktrace.NewTracerProvider(
+		sdktrace.WithResource(r),
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithSpanProcessor(grpcBsp),
 		sdktrace.WithSpanProcessor(ppBsp),
