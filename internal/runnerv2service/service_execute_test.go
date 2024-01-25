@@ -230,8 +230,6 @@ func TestRunnerServiceServerExecute_Input(t *testing.T) {
 	_, client := testCreateRunnerServiceClient(t, lis)
 
 	t.Run("ContinuousInput", func(t *testing.T) {
-		t.Parallel()
-
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
@@ -268,8 +266,6 @@ func TestRunnerServiceServerExecute_Input(t *testing.T) {
 	})
 
 	t.Run("SimulateCtrlC", func(t *testing.T) {
-		t.Parallel()
-
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
@@ -314,8 +310,6 @@ func TestRunnerServiceServerExecute_Input(t *testing.T) {
 	})
 
 	t.Run("CloseSendDirection", func(t *testing.T) {
-		t.Parallel()
-
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
@@ -341,6 +335,7 @@ func TestRunnerServiceServerExecute_Input(t *testing.T) {
 
 		result := <-execResult
 		// TODO(adamb): This should be a specific gRPC error rather than Unknown.
+		require.NotNil(t, result.Err)
 		assert.Contains(t, result.Err.Error(), "signal: interrupt")
 		assert.Equal(t, 130, result.ExitCode)
 	})
