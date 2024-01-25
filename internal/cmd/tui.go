@@ -168,7 +168,7 @@ func tuiCmd() *cobra.Command {
 					return err
 				}
 
-				if !fmtr.SkipPrompts {
+				if fmtr != nil && !fmtr.SkipPrompts {
 					err = promptEnvVars(cmd, sessionEnvs, task)
 					if err != nil {
 						return err
