@@ -33,7 +33,7 @@
             "type": "go",
             "request": "attach",
             "mode": "remote",
-            "remotePath": "${workspaceFolder}",
+            "remotePath": "${workspaceFolder}/main.go",
             "port": 56379,
             "host": "127.0.0.1"
         },
