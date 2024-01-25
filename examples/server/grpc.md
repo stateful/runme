@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HBDTRGQAQMH51RDQEC
-  version: v2.0
+  version: v2.2
 ---
 
 # Daemon/kernel functionality

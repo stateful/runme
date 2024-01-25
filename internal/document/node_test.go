@@ -75,3 +75,60 @@ console.log("hello world!")
 	assert.Equal(t, "", blocks[0].Intro())
 	assert.Equal(t, "This is an intro", blocks[1].Intro())
 }
+
+func TestCodeBlockAttributes(t *testing.T) {
+	testCases := []struct {
+		data             string
+		expectedLanguage string
+	}{
+		{
+			data: `
+			` + "```" + `{"name":"foo"}
+			console.log("hello world!")
+			`,
+			expectedLanguage: "",
+		},
+		{
+			data: `
+			` + "```" + ` {"name":"foo"}
+			console.log("hello world!")
+			`,
+			expectedLanguage: "",
+		},
+		{
+			data: `
+			` + "```" + `js {"name":"foo"}
+			console.log("hello world!")
+			`,
+			expectedLanguage: "js",
+		},
+		{
+			data: `
+			` + "```" + `js {"name": "foo"}
+			console.log("hello world!")
+			`,
+			expectedLanguage: "js",
+		},
+		{
+			data: `
+			` + "```" + `{"name": "foo"}
+			console.log("hello world!")
+			`,
+			expectedLanguage: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		b := bytes.TrimSpace([]byte(tc.data))
+		doc := New(b, identityResolverNone)
+		node, err := doc.Root()
+		require.NoError(t, err)
+
+		blocks := CollectCodeBlocks(node)
+		require.Len(t, blocks, 1)
+
+		block := blocks[0]
+		assert.Len(t, block.attributes, 1)
+		assert.Equal(t, tc.expectedLanguage, block.language)
+	}
+}

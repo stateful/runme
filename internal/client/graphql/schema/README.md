@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HAZ32WVAFYJ4N5BF0X
-  version: v2.0
+  version: v2.2
 ---
 
 # GraphQL Schema

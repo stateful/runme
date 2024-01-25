@@ -36,7 +36,8 @@ it will be interpreted as multiple arguments.
 Disclaimer: This uses AI, so the suggestions may be biased, wrong,
 or just bad. Please use with discretion.
 `,
-		Args: cobra.MaximumNArgs(1),
+		Deprecated: "Please note this command will be removed with the next major release",
+		Args:       cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := graphql.ContextWithTrackInput(cmd.Context(), trackInputFromCmd(cmd, args))
 

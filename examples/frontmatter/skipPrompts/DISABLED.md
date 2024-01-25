@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HCDS1X1WJJHBQ8XQG0
-  version: v2.0
+  version: v2.2
 skipPrompts: false
 ---
 
