@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stateful/runme/internal/document/identity"
-	"github.com/stateful/runme/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/stateful/runme/internal/document/identity"
+	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
-var identityResolver = identity.NewResolver(identity.AllLifecycleIdentity)
+var testIdentityResolver = identity.NewResolver(identity.DefaultLifecycleIdentity)
 
 func TestDocument_Parse(t *testing.T) {
 	data := []byte(`# Examples
@@ -35,7 +36,7 @@ First paragraph.
 2. Item 2
 3. Item 3
 `)
-	doc := New(data, identityResolver)
+	doc := New(data, testIdentityResolver)
 	node, err := doc.Root()
 	require.NoError(t, err)
 	assert.Len(t, node.children, 4)
@@ -79,7 +80,7 @@ First paragraph
 `,
 		))
 
-		doc := New(data, identityResolver)
+		doc := New(data, testIdentityResolver)
 		err := doc.Parse()
 		require.NoError(t, err)
 		assert.Equal(t, []byte("First paragraph"), doc.Content())
@@ -87,7 +88,7 @@ First paragraph
 
 		frontmatter, err := doc.Frontmatter()
 		require.NoError(t, err)
-		marshaledFrontmatter, err := frontmatter.Marshal(identityResolver.DocumentEnabled())
+		marshaledFrontmatter, err := frontmatter.Marshal(testIdentityResolver.DocumentEnabled())
 		require.NoError(t, err)
 		assert.Regexp(t, `---\nkey: value\nrunme:\n  id: .*\n  version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+)\n---`, string(marshaledFrontmatter))
 	})
@@ -136,7 +137,7 @@ shell = "fish"
 
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
-				doc := New(tc.Data, identityResolver)
+				doc := New(tc.Data, testIdentityResolver)
 				_, err := doc.Root()
 				require.NoError(t, err)
 
@@ -157,7 +158,7 @@ shell = "fish"
 ---
 `,
 		))
-		doc := New(data, identityResolver)
+		doc := New(data, testIdentityResolver)
 		err := doc.Parse()
 		require.NoError(t, err)
 
@@ -171,7 +172,7 @@ func TestDocument_TrailingLineBreaks(t *testing.T) {
 	data := []byte(`This will test final line breaks`)
 
 	t.Run("No breaks", func(t *testing.T) {
-		doc := New(data, identityResolver)
+		doc := New(data, testIdentityResolver)
 		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
@@ -188,7 +189,7 @@ func TestDocument_TrailingLineBreaks(t *testing.T) {
 
 	t.Run("1 LF", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 1)...)
-		doc := New(withLineBreaks, identityResolver)
+		doc := New(withLineBreaks, testIdentityResolver)
 		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
@@ -205,7 +206,7 @@ func TestDocument_TrailingLineBreaks(t *testing.T) {
 
 	t.Run("1 CRLF", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\r', '\n'}, 1)...)
-		doc := New(withLineBreaks, identityResolver)
+		doc := New(withLineBreaks, testIdentityResolver)
 		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
@@ -222,7 +223,7 @@ func TestDocument_TrailingLineBreaks(t *testing.T) {
 
 	t.Run("7 LFs", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
-		doc := New(withLineBreaks, identityResolver)
+		doc := New(withLineBreaks, testIdentityResolver)
 		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 

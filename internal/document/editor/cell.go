@@ -12,9 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stateful/runme/internal/document"
-	ulid "github.com/stateful/runme/internal/ulid"
 	"github.com/yuin/goldmark/ast"
+
+	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/internal/ulid"
 )
 
 const (

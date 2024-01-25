@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/document"
 
+	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/constants"
 	"github.com/stateful/runme/internal/document/identity"
 )

@@ -12,7 +12,6 @@ import (
 	"github.com/yuin/goldmark/text"
 
 	"github.com/stateful/runme/internal/document/constants"
-	"github.com/stateful/runme/internal/document/identity"
 	"github.com/stateful/runme/internal/renderer/cmark"
 )
 
@@ -20,7 +19,7 @@ var DefaultRenderer = cmark.Render
 
 type Document struct {
 	source           []byte
-	identityResolver *identity.IdentityResolver
+	identityResolver identityResolver
 	nameResolver     *nameResolver
 	parser           parser.Parser
 	renderer         Renderer
@@ -41,7 +40,7 @@ type Document struct {
 	frontmatter          *Frontmatter
 }
 
-func New(source []byte, identityResolver *identity.IdentityResolver) *Document {
+func New(source []byte, identityResolver identityResolver) *Document {
 	return &Document{
 		source:           source,
 		identityResolver: identityResolver,

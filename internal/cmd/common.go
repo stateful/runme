@@ -31,16 +31,14 @@ func getIdentityResolver() *identity.IdentityResolver {
 }
 
 func getProject() (*project.Project, error) {
-	opts := []project.ProjectOption{
-		project.WithIdentityResolver(getIdentityResolver()),
-	}
-
 	logger, err := getLogger(false)
 	if err != nil {
 		return nil, err
 	}
 
-	opts = append(opts, project.WithLogger(logger))
+	opts := []project.ProjectOption{
+		project.WithLogger(logger),
+	}
 
 	var proj *project.Project
 
