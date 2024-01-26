@@ -96,8 +96,6 @@ func getExecuteResult(
 }
 
 func Test_runnerService(t *testing.T) {
-	t.Parallel()
-
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
