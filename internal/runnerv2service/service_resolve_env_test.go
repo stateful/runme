@@ -43,15 +43,8 @@ func TestRunnerServiceResolveEnv(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
-			resp, err := client.ResolveEnv(context.Background(), &runnerv2alpha1.ResolveEnvRequest{
-				Env: []string{"TEST_RESOLVED=value"},
-				Source: &runnerv2alpha1.ResolveEnvRequest_Script{
-					Script: "export TEST_RESOLVED=default\nexport TEST_UNRESOLVED",
-				},
-			})
+			resp, err := client.ResolveEnv(context.Background(), tc.request)
 			require.NoError(t, err)
 			require.Len(t, resp.Items, 2)
 			require.EqualValues(

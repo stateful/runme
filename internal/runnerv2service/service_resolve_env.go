@@ -5,25 +5,27 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/stateful/runme/internal/command"
-	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/stateful/runme/internal/command"
+	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 )
 
 func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv2alpha1.ResolveEnvRequest) (*runnerv2alpha1.ResolveEnvResponse, error) {
+	// Add explicitly passed env as a source.
 	sources := []command.EnvResolverSource{
 		command.EnvResolverSourceFunc(req.Env),
 	}
 
-	// Load project envs.
+	// Add project env as a source.
 	proj, err := convertProtoProjectToProject(req.GetProject())
 	if err != nil {
 		return nil, err
 	}
 	if proj != nil {
-		projEnvs, err := proj.LoadEnvs()
+		projEnvs, err := proj.LoadEnv()
 		if err != nil {
 			r.logger.Info("failed to load envs for project", zap.Error(err))
 		} else {
@@ -31,7 +33,7 @@ func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv2alpha1.Reso
 		}
 	}
 
-	// Load session envs.
+	// Add session env as a source.
 	session, found, err := r.getSessionFromRequest(req)
 	if err != nil {
 		return nil, err

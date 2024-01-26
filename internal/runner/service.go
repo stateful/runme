@@ -80,7 +80,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 	copy(envs, req.Envs)
 
 	if proj != nil {
-		projEnvs, err := proj.LoadEnvs()
+		projEnvs, err := proj.LoadEnv()
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +257,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			return err
 		}
 
-		projEnvs, err := proj.LoadEnvs()
+		projEnvs, err := proj.LoadEnv()
 		if err != nil {
 			return err
 		}

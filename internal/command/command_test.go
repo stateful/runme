@@ -112,8 +112,6 @@ func TestExecutionCommandFromCodeBlocks(t *testing.T) {
 		t.Run("NativeCommand", func(t *testing.T) {
 			t.Parallel()
 
-			tc := tc
-
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
@@ -130,8 +128,6 @@ func TestExecutionCommandFromCodeBlocks(t *testing.T) {
 		})
 
 		t.Run("VirtualCommand", func(t *testing.T) {
-			t.Parallel()
-
 			tc := tc
 
 			t.Run(tc.name, func(t *testing.T) {

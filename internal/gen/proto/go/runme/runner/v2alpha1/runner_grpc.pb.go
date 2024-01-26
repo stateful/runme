@@ -22,6 +22,7 @@ const (
 	RunnerService_CreateSession_FullMethodName = "/runme.runner.v2alpha1.RunnerService/CreateSession"
 	RunnerService_GetSession_FullMethodName    = "/runme.runner.v2alpha1.RunnerService/GetSession"
 	RunnerService_ListSessions_FullMethodName  = "/runme.runner.v2alpha1.RunnerService/ListSessions"
+	RunnerService_UpdateSession_FullMethodName = "/runme.runner.v2alpha1.RunnerService/UpdateSession"
 	RunnerService_DeleteSession_FullMethodName = "/runme.runner.v2alpha1.RunnerService/DeleteSession"
 	RunnerService_Execute_FullMethodName       = "/runme.runner.v2alpha1.RunnerService/Execute"
 	RunnerService_ResolveEnv_FullMethodName    = "/runme.runner.v2alpha1.RunnerService/ResolveEnv"
@@ -34,6 +35,7 @@ type RunnerServiceClient interface {
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
 	GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
+	UpdateSession(ctx context.Context, in *UpdateSessionRequest, opts ...grpc.CallOption) (*UpdateSessionResponse, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
 	// Execute executes a program. Examine "ExecuteRequest" to explore
 	// configuration options.
@@ -75,6 +77,15 @@ func (c *runnerServiceClient) GetSession(ctx context.Context, in *GetSessionRequ
 func (c *runnerServiceClient) ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error) {
 	out := new(ListSessionsResponse)
 	err := c.cc.Invoke(ctx, RunnerService_ListSessions_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runnerServiceClient) UpdateSession(ctx context.Context, in *UpdateSessionRequest, opts ...grpc.CallOption) (*UpdateSessionResponse, error) {
+	out := new(UpdateSessionResponse)
+	err := c.cc.Invoke(ctx, RunnerService_UpdateSession_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +148,7 @@ type RunnerServiceServer interface {
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
 	GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
+	UpdateSession(context.Context, *UpdateSessionRequest) (*UpdateSessionResponse, error)
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
 	// Execute executes a program. Examine "ExecuteRequest" to explore
 	// configuration options.
@@ -162,6 +174,9 @@ func (UnimplementedRunnerServiceServer) GetSession(context.Context, *GetSessionR
 }
 func (UnimplementedRunnerServiceServer) ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSessions not implemented")
+}
+func (UnimplementedRunnerServiceServer) UpdateSession(context.Context, *UpdateSessionRequest) (*UpdateSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateSession not implemented")
 }
 func (UnimplementedRunnerServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
@@ -235,6 +250,24 @@ func _RunnerService_ListSessions_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RunnerServiceServer).ListSessions(ctx, req.(*ListSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunnerService_UpdateSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerServiceServer).UpdateSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerService_UpdateSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerServiceServer).UpdateSession(ctx, req.(*UpdateSessionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -319,6 +352,10 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListSessions",
 			Handler:    _RunnerService_ListSessions_Handler,
+		},
+		{
+			MethodName: "UpdateSession",
+			Handler:    _RunnerService_UpdateSession_Handler,
 		},
 		{
 			MethodName: "DeleteSession",

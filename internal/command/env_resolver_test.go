@@ -94,8 +94,6 @@ func TestEnvResolver_Parsing(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			r := NewEnvResolver(tc.source...)
 			result, err := r.Resolve(strings.NewReader(tc.data))
