@@ -349,7 +349,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 				return
 			}
 			if err != nil && status.Convert(err).Code() == codes.Canceled {
-				if cmd.cmd.ProcessState != nil {
+				if cmd.ProcessFinished() {
 					logger.Info("stream canceled after the process finished; ignoring")
 				} else {
 					logger.Info("stream canceled while the process is still running; program will be stopped if non-background")

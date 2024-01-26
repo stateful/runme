@@ -29,8 +29,9 @@ wasm:
 .PHONY: test/execute
 test/execute: PKGS ?= "./..."
 test/execute: RUN ?= .*
+test/execute: RACE ?= false
 test/execute: build test/prep-git-project
-	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -timeout=60s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
+	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -timeout=60s -race=$(RACE) -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
 .PHONY: test/prep-git-project
 test/prep-git-project:

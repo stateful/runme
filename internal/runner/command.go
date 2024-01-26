@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/creack/pty"
@@ -39,7 +40,8 @@ type command struct {
 	PreEnv  []string
 	PostEnv []string
 
-	cmd *exec.Cmd
+	cmd     *exec.Cmd
+	cmdDone uint32
 
 	// pty and tty as pseud-terminal primary and secondary.
 	// Might be nil if not allocating a pseudo-terminal.
@@ -492,10 +494,16 @@ func (c *command) collectEnvs() {
 	c.Session.envStore = newEnvStore(c.cmd.Env...).Add(newOrUpdated...).Delete(deleted...)
 }
 
+func (c *command) ProcessFinished() bool {
+	return atomic.LoadUint32(&c.cmdDone) == 1
+}
+
 // ProcessWait waits only for the process to exit.
 // You rather want to use Wait().
 func (c *command) ProcessWait() error {
-	return errors.WithStack(c.cmd.Wait())
+	err := c.cmd.Wait()
+	atomic.StoreUint32(&c.cmdDone, 1)
+	return errors.WithStack(err)
 }
 
 // Finalize performs necessary actions and cleanups after the process exits.
