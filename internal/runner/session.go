@@ -19,7 +19,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -35,14 +35,14 @@ func traceProvider() {
 
 	ppExp, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
 	if err != nil {
-		log.Fatal("failed to initialize stdouttrace exporter", err)
+		log.Fatal("failed to initialize stdouttrace exporter: ", err)
 	}
 	ppBsp := sdktrace.NewBatchSpanProcessor(ppExp)
 	ctx := context.Background()
 
 	grpcExp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithInsecure())
 	if err != nil {
-		log.Fatal("failed to initialize otlptracegrpc exporter", err)
+		log.Fatal("failed to initialize otlptracegrpc exporter: ", err)
 	}
 	grpcBsp := sdktrace.NewBatchSpanProcessor(grpcExp)
 	envR, err := resource.New(context.Background(),
@@ -53,11 +53,11 @@ func traceProvider() {
 		resource.WithHost(),      // This option configures a set of Detectors that discover host information
 	)
 	if err != nil {
-		log.Fatal("failed to initialize otel resource", err)
+		log.Fatal("failed to initialize otel resource: ", err)
 	}
 	defaultR, err := resource.Merge(resource.Default(), envR)
 	if err != nil {
-		log.Fatal("failed to initialize otel resource", err)
+		log.Fatal("failed to initialize otel resource: ", err)
 	}
 	r, err := resource.Merge(defaultR, resource.NewWithAttributes(
 		semconv.SchemaURL,
@@ -65,7 +65,7 @@ func traceProvider() {
 		semconv.ServiceVersionKey.String(version.BaseVersion()),
 	))
 	if err != nil {
-		log.Fatal("failed to initialize otel resource", err)
+		log.Fatal("failed to initialize otel resource: ", err)
 	}
 	tp = sdktrace.NewTracerProvider(
 		sdktrace.WithResource(r),
