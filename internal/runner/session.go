@@ -12,7 +12,6 @@ import (
 	"github.com/stateful/runme/internal/version"
 	"go.uber.org/zap"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -23,14 +22,20 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tp *sdktrace.TracerProvider
+var (
+	runmeTp    *sdktrace.TracerProvider
+	notebookTp *sdktrace.TracerProvider
+	cellTp     *sdktrace.TracerProvider
+)
 
 // initTracer creates and registers trace provider instance.
 func init() {
-	traceProvider()
+	runmeTp = traceProvider("runme")
+	notebookTp = traceProvider("notebook")
+	cellTp = traceProvider("cell")
 }
 
-func traceProvider() {
+func traceProvider(serviceName string) *sdktrace.TracerProvider {
 	// stdr.SetVerbosity(5)
 
 	ppExp, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
@@ -45,7 +50,21 @@ func traceProvider() {
 		log.Fatal("failed to initialize otlptracegrpc exporter: ", err)
 	}
 	grpcBsp := sdktrace.NewBatchSpanProcessor(grpcExp)
-	envR, err := resource.New(context.Background(),
+	r, err := newResource(context.Background(), serviceName)
+	if err != nil {
+		log.Fatal("failed to initialize otel resource: ", err)
+	}
+	return sdktrace.NewTracerProvider(
+		sdktrace.WithResource(r),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSpanProcessor(grpcBsp),
+		sdktrace.WithSpanProcessor(ppBsp),
+	)
+	// otel.SetTracerProvider(tp)
+}
+
+func newResource(ctx context.Context, serviceName string) (*resource.Resource, error) {
+	envR, err := resource.New(ctx,
 		resource.WithFromEnv(),   // pull attributes from OTEL_RESOURCE_ATTRIBUTES and OTEL_SERVICE_NAME environment variables
 		resource.WithProcess(),   // This option configures a set of Detectors that discover process information
 		resource.WithOS(),        // This option configures a set of Detectors that discover OS information
@@ -61,19 +80,10 @@ func traceProvider() {
 	}
 	r, err := resource.Merge(defaultR, resource.NewWithAttributes(
 		semconv.SchemaURL,
-		semconv.ServiceNameKey.String("runme"),
+		semconv.ServiceNameKey.String(serviceName),
 		semconv.ServiceVersionKey.String(version.BaseVersion()),
 	))
-	if err != nil {
-		log.Fatal("failed to initialize otel resource: ", err)
-	}
-	tp = sdktrace.NewTracerProvider(
-		sdktrace.WithResource(r),
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithSpanProcessor(grpcBsp),
-		sdktrace.WithSpanProcessor(ppBsp),
-	)
-	otel.SetTracerProvider(tp)
+	return r, err
 }
 
 // Session is an abstract entity separate from
@@ -83,45 +93,60 @@ type Session struct {
 	ID       string
 	Metadata map[string]string
 
-	envStore *envStore
-	logger   *zap.Logger
-	Tracer   trace.Tracer
-	Span     trace.Span
-	Context  context.Context
+	envStore     *envStore
+	logger       *zap.Logger
+	Tracer       trace.Tracer
+	SessionSpan  trace.Span
+	NotebookSpan trace.Span
+	Context      context.Context
 }
 
 func NewSession(envs []string, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
 	ID := ulid.GenerateID()
-	tracer := tp.Tracer("session")
+	sessTracer := runmeTp.Tracer("session")
 
-	fileName := "session.md"
-	m0, _ := baggage.NewMember(string("SessionID"), ID)
-	m1, _ := baggage.NewMember(string("filename"), fileName)
-	b, _ := baggage.New(m0, m1)
+	sessKey := "runme.session.id"
+
+	m0, _ := baggage.NewMember(string(sessKey), ID)
+	b0, _ := baggage.New(m0)
+
+	sidKey := attribute.Key(sessKey)
+
 	ctx := context.Background()
-	ctx = baggage.ContextWithBaggage(ctx, b)
-	ctx, span := tracer.Start(ctx, "Session")
+	ctx = baggage.ContextWithBaggage(ctx, b0)
+	ctx, sessSpan := sessTracer.Start(ctx, "session")
+	sessSpan.SetAttributes(sidKey.String(ID))
 
-	sidKey := attribute.Key("SessionID")
-	fnKey := attribute.Key("Filename")
+	nbTracer := notebookTp.Tracer("session")
 
-	span.SetAttributes(sidKey.String(ID), fnKey.String(fileName))
+	fileKey := "runme.notebook.filename"
+	fileName := "shebang.md"
+	m1, _ := baggage.NewMember(string(fileKey), fileName)
+	b1, _ := baggage.New(m1)
+
+	fnKey := attribute.Key(fileKey)
+	ctx = baggage.ContextWithBaggage(ctx, b1)
+	ctx, nbSpan := nbTracer.Start(ctx, fileName)
+
+	nbSpan.SetAttributes(sidKey.String(ID), fnKey.String(fileName))
 
 	s := &Session{
 		ID: ID,
 
-		envStore: newEnvStore(sessionEnvs...),
-		logger:   logger,
-		Tracer:   tracer,
-		Span:     span,
-		Context:  ctx,
+		envStore:     newEnvStore(sessionEnvs...),
+		logger:       logger,
+		Tracer:       sessTracer,
+		SessionSpan:  sessSpan,
+		NotebookSpan: nbSpan,
+		Context:      ctx,
 	}
 	return s, nil
 }
 
 func (s *Session) EndSpan() {
-	s.Span.End(trace.WithTimestamp(time.Now()))
+	s.NotebookSpan.End(trace.WithTimestamp(time.Now()))
+	s.SessionSpan.End(trace.WithTimestamp(time.Now()))
 }
 
 func (s *Session) AddEnvs(envs []string) {

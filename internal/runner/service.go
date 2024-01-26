@@ -222,12 +222,13 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		}
 	}
 
-	var span trace.Span
-	_, span = sess.Tracer.Start(sess.Context, "Execute")
-	defer span.End()
+	var runSpan trace.Span
+	// _, span = sess.Tracer.Start(sess.Context, "Execute")
+	_, runSpan = cellTp.Tracer("cell").Start(sess.Context, "run")
+	defer runSpan.End()
 
 	ridKey := attribute.Key("runme.notebook.cell.run.id")
-	span.SetAttributes(ridKey.String(runID))
+	runSpan.SetAttributes(ridKey.String(runID))
 
 	stdin, stdinWriter := io.Pipe()
 	stdout := rbuffer.NewRingBuffer(ringBufferSize)
@@ -502,7 +503,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	exitCodeKey := attribute.Key("ExitCode")
 	if finalExitCode != nil {
-		span.SetAttributes(exitCodeKey.Int(int(finalExitCode.GetValue())))
+		runSpan.SetAttributes(exitCodeKey.Int(int(finalExitCode.GetValue())))
 	}
 
 	return werr
