@@ -12,6 +12,8 @@ import type { ExecuteRequest } from "./runner_pb";
 import type { DuplexStreamingCall } from "@protobuf-ts/runtime-rpc";
 import type { DeleteSessionResponse } from "./runner_pb";
 import type { DeleteSessionRequest } from "./runner_pb";
+import type { UpdateSessionResponse } from "./runner_pb";
+import type { UpdateSessionRequest } from "./runner_pb";
 import type { ListSessionsResponse } from "./runner_pb";
 import type { ListSessionsRequest } from "./runner_pb";
 import type { GetSessionResponse } from "./runner_pb";
@@ -36,6 +38,10 @@ export interface IRunnerServiceClient {
      * @generated from protobuf rpc: ListSessions(runme.runner.v2alpha1.ListSessionsRequest) returns (runme.runner.v2alpha1.ListSessionsResponse);
      */
     listSessions(input: ListSessionsRequest, options?: RpcOptions): UnaryCall<ListSessionsRequest, ListSessionsResponse>;
+    /**
+     * @generated from protobuf rpc: UpdateSession(runme.runner.v2alpha1.UpdateSessionRequest) returns (runme.runner.v2alpha1.UpdateSessionResponse);
+     */
+    updateSession(input: UpdateSessionRequest, options?: RpcOptions): UnaryCall<UpdateSessionRequest, UpdateSessionResponse>;
     /**
      * @generated from protobuf rpc: DeleteSession(runme.runner.v2alpha1.DeleteSessionRequest) returns (runme.runner.v2alpha1.DeleteSessionResponse);
      */
@@ -78,6 +84,10 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      * @generated from protobuf rpc: ListSessions(runme.runner.v2alpha1.ListSessionsRequest) returns (runme.runner.v2alpha1.ListSessionsResponse);
      */
     listSessions(input: ListSessionsRequest, options?: RpcOptions): UnaryCall<ListSessionsRequest, ListSessionsResponse>;
+    /**
+     * @generated from protobuf rpc: UpdateSession(runme.runner.v2alpha1.UpdateSessionRequest) returns (runme.runner.v2alpha1.UpdateSessionResponse);
+     */
+    updateSession(input: UpdateSessionRequest, options?: RpcOptions): UnaryCall<UpdateSessionRequest, UpdateSessionResponse>;
     /**
      * @generated from protobuf rpc: DeleteSession(runme.runner.v2alpha1.DeleteSessionRequest) returns (runme.runner.v2alpha1.DeleteSessionResponse);
      */

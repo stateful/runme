@@ -16,9 +16,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
+
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/identity"
-	"go.uber.org/zap"
 )
 
 type LoadEventType uint8
@@ -80,6 +81,13 @@ func ExtractDataFromLoadEvent[T any](event LoadEvent) T {
 	var data T
 	event.extractDataValue(&data)
 	return data
+}
+
+var DefaultProjectOptions = [...]ProjectOption{
+	WithFindRepoUpward(),
+	WithRespectGitignore(true),
+	WithEnvFilesReadOrder([]string{".env"}),
+	WithIgnoreFilePatterns("node_modules", ".venv", "vendor"),
 }
 
 type ProjectOption func(*Project)
@@ -510,8 +518,8 @@ func isMarkdown(filePath string) bool {
 	return ext == ".md" || ext == ".mdx" || ext == ".mdi" || ext == ".mdr" || ext == ".run" || ext == ".runme"
 }
 
-func (p *Project) LoadEnvs() ([]string, error) {
-	envs, err := p.LoadEnvsAsMap()
+func (p *Project) LoadEnv() ([]string, error) {
+	envs, err := p.LoadEnvAsMap()
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +533,7 @@ func (p *Project) LoadEnvs() ([]string, error) {
 	return result, nil
 }
 
-func (p *Project) LoadEnvsAsMap() (map[string]string, error) {
+func (p *Project) LoadEnvAsMap() (map[string]string, error) {
 	// For file-based projects, there are no envs to read.
 	if p.fs == nil {
 		return nil, nil

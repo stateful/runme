@@ -11,7 +11,7 @@ import (
 	"github.com/stateful/runme/internal/project"
 )
 
-func toRunnerv2alpha1Session(sess *command.Session) *runnerv2alpha1.Session {
+func convertSessionToRunnerv2alpha1Session(sess *command.Session) *runnerv2alpha1.Session {
 	return &runnerv2alpha1.Session{
 		Id:  sess.ID,
 		Env: sess.GetEnv(),
@@ -25,9 +25,10 @@ func convertProtoProjectToProject(runnerProj *runnerv2alpha1.Project) (*project.
 		return nil, nil
 	}
 
-	opts := []project.ProjectOption{
-		project.WithFindRepoUpward(),
-		project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder),
+	opts := project.DefaultProjectOptions[:]
+
+	if runnerProj.EnvLoadOrder != nil {
+		opts = append(opts, project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder))
 	}
 
 	return project.NewDirProject(runnerProj.Root, opts...)
@@ -36,33 +37,16 @@ func convertProtoProjectToProject(runnerProj *runnerv2alpha1.Project) (*project.
 func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2alpha1.CreateSessionRequest) (*runnerv2alpha1.CreateSessionResponse, error) {
 	r.logger.Info("running CreateSession in runnerService")
 
-	proj, err := convertProtoProjectToProject(req.Project)
-	if err != nil {
-		return nil, err
-	}
-
-	env := make([]string, len(req.Env))
-	copy(env, req.Env)
-
-	if proj != nil {
-		projEnvs, err := proj.LoadEnvs()
-		if err != nil {
-			return nil, err
-		}
-
-		env = append(env, projEnvs...)
-	}
-
 	sess := command.NewSession()
 
-	if err := sess.SetEnv(env...); err != nil {
+	if err := r.updateSession(sess, req); err != nil {
 		return nil, err
 	}
 
 	r.sessions.Add(sess)
 
 	return &runnerv2alpha1.CreateSessionResponse{
-		Session: toRunnerv2alpha1Session(sess),
+		Session: convertSessionToRunnerv2alpha1Session(sess),
 	}, nil
 }
 
@@ -75,7 +59,7 @@ func (r *runnerService) GetSession(_ context.Context, req *runnerv2alpha1.GetSes
 	}
 
 	return &runnerv2alpha1.GetSessionResponse{
-		Session: toRunnerv2alpha1Session(sess),
+		Session: convertSessionToRunnerv2alpha1Session(sess),
 	}, nil
 }
 
@@ -86,10 +70,25 @@ func (r *runnerService) ListSessions(_ context.Context, req *runnerv2alpha1.List
 
 	runnerSessions := make([]*runnerv2alpha1.Session, 0, len(sessions))
 	for _, s := range sessions {
-		runnerSessions = append(runnerSessions, toRunnerv2alpha1Session(s))
+		runnerSessions = append(runnerSessions, convertSessionToRunnerv2alpha1Session(s))
 	}
 
 	return &runnerv2alpha1.ListSessionsResponse{Sessions: runnerSessions}, nil
+}
+
+func (r *runnerService) UpdateSession(_ context.Context, req *runnerv2alpha1.UpdateSessionRequest) (*runnerv2alpha1.UpdateSessionResponse, error) {
+	r.logger.Info("running UpdateSession in runnerService")
+
+	sess, ok := r.sessions.Get(req.Id)
+	if !ok {
+		return nil, status.Error(codes.NotFound, "session not found")
+	}
+
+	if err := r.updateSession(sess, req); err != nil {
+		return nil, err
+	}
+
+	return &runnerv2alpha1.UpdateSessionResponse{Session: convertSessionToRunnerv2alpha1Session(sess)}, nil
 }
 
 func (r *runnerService) DeleteSession(_ context.Context, req *runnerv2alpha1.DeleteSessionRequest) (*runnerv2alpha1.DeleteSessionResponse, error) {
@@ -100,5 +99,37 @@ func (r *runnerService) DeleteSession(_ context.Context, req *runnerv2alpha1.Del
 	if !deleted {
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
+
 	return &runnerv2alpha1.DeleteSessionResponse{}, nil
+}
+
+type updateRequest interface {
+	GetEnv() []string
+	GetProject() *runnerv2alpha1.Project
+}
+
+func (r *runnerService) updateSession(sess *command.Session, req updateRequest) error {
+	// Explictly passed env has higher priority and should be set first.
+	if err := sess.SetEnv(req.GetEnv()...); err != nil {
+		return err
+	}
+
+	proj, err := convertProtoProjectToProject(req.GetProject())
+	if err != nil {
+		return err
+	}
+
+	if proj != nil {
+		projEnvs, err := proj.LoadEnv()
+		if err != nil {
+			return err
+		}
+
+		// Project envs have lower priority and should be set last.
+		if err := sess.SetEnv(projEnvs...); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

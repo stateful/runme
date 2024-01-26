@@ -134,7 +134,6 @@ func TestProjectLoad(t *testing.T) {
 	t.Run("GitProject", func(t *testing.T) {
 		p, err := NewDirProject(
 			gitProjectDir,
-			WithFindRepoUpward(),
 			WithIgnoreFilePatterns(".git.bkp"),
 			WithIgnoreFilePatterns(".gitignore.bkp"),
 		)
@@ -268,9 +267,16 @@ func TestProjectLoad(t *testing.T) {
 	gitProjectNestedDir := testdata.GitProjectNestedPath()
 
 	t.Run("GitProjectWithNested", func(t *testing.T) {
-		pRoot, err := NewDirProject(
+		pRoot1, err := NewDirProject(
 			gitProjectDir,
-			WithFindRepoUpward(),
+			WithFindRepoUpward(), // not needed, but let's check if it's noop in this case
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+		)
+		require.NoError(t, err)
+
+		pRoot2, err := NewDirProject(
+			gitProjectDir,
 			WithIgnoreFilePatterns(".git.bkp"),
 			WithIgnoreFilePatterns(".gitignore.bkp"),
 		)
@@ -283,13 +289,13 @@ func TestProjectLoad(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.EqualValues(t, pRoot.fs.Root(), pNested.fs.Root())
+		require.EqualValues(t, pRoot1.fs.Root(), pRoot2.fs.Root())
+		require.EqualValues(t, pRoot1.fs.Root(), pNested.fs.Root())
 	})
 
 	t.Run("DirProjectWithRespectGitignoreAndIgnorePatterns", func(t *testing.T) {
 		p, err := NewDirProject(
 			gitProjectDir,
-			WithFindRepoUpward(),
 			WithRespectGitignore(true),
 			WithIgnoreFilePatterns(".git.bkp"),
 			WithIgnoreFilePatterns(".gitignore.bkp"),
@@ -467,12 +473,23 @@ func TestProjectLoad(t *testing.T) {
 
 func TestLoadTasks(t *testing.T) {
 	gitProjectDir := testdata.GitProjectPath()
-	p, err := NewDirProject(gitProjectDir, WithFindRepoUpward(), WithIgnoreFilePatterns(".*.bkp"))
+	p, err := NewDirProject(gitProjectDir, WithIgnoreFilePatterns(".*.bkp"))
 	require.NoError(t, err)
 
 	tasks, err := LoadTasks(context.Background(), p)
 	require.NoError(t, err)
 	assert.Len(t, tasks, 5)
+}
+
+func TestLoadEnv(t *testing.T) {
+	gitProjectDir := testdata.GitProjectPath()
+	p, err := NewDirProject(gitProjectDir, WithIgnoreFilePatterns(".*.bkp"), WithEnvFilesReadOrder([]string{".env"}))
+	require.NoError(t, err)
+
+	env, err := p.LoadEnv()
+	require.NoError(t, err)
+	assert.Len(t, env, 1)
+	assert.Equal(t, "PROJECT_ENV_FROM_DOTFILE=1", env[0])
 }
 
 func mapLoadEvents[T any](events []LoadEvent, fn func(LoadEvent) T) []T {

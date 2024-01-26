@@ -37,10 +37,17 @@ export class RunnerServiceClient {
         return stackIntercept("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: UpdateSession(runme.runner.v2alpha1.UpdateSessionRequest) returns (runme.runner.v2alpha1.UpdateSessionResponse);
+     */
+    updateSession(input, options) {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: DeleteSession(runme.runner.v2alpha1.DeleteSessionRequest) returns (runme.runner.v2alpha1.DeleteSessionResponse);
      */
     deleteSession(input, options) {
-        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }
     /**
@@ -55,14 +62,14 @@ export class RunnerServiceClient {
      * @generated from protobuf rpc: Execute(stream runme.runner.v2alpha1.ExecuteRequest) returns (stream runme.runner.v2alpha1.ExecuteResponse);
      */
     execute(options) {
-        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
         return stackIntercept("duplex", this._transport, method, opt);
     }
     /**
      * @generated from protobuf rpc: ResolveEnv(runme.runner.v2alpha1.ResolveEnvRequest) returns (runme.runner.v2alpha1.ResolveEnvResponse);
      */
     resolveEnv(input, options) {
-        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }
 }

@@ -62,6 +62,26 @@ message ListSessionsResponse {
   repeated Session sessions = 1;
 }
 
+message UpdateSessionRequest {
+  string id = 1;
+
+  // metadata is a map of client specific metadata.
+  map<string, string> metadata = 2;
+
+  // env field provides an initial set of environment variables
+  // for a newly created session.
+  repeated string env = 3;
+
+  // project from which to load environment variables.
+  // They will be appended to the list from the env field.
+  // The env field has a higher priority.
+  optional Project project = 4;
+}
+
+message UpdateSessionResponse {
+  Session session = 1;
+}
+
 message DeleteSessionRequest {
   string id = 1;
 }
@@ -207,6 +227,7 @@ service RunnerService {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {}
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {}
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {}
+  rpc UpdateSession(UpdateSessionRequest) returns (UpdateSessionResponse) {}
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
 
   // Execute executes a program. Examine "ExecuteRequest" to explore

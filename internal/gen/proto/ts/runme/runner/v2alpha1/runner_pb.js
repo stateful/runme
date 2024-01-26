@@ -175,6 +175,33 @@ class ListSessionsResponse$Type extends MessageType {
  */
 export const ListSessionsResponse = new ListSessionsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class UpdateSessionRequest$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2alpha1.UpdateSessionRequest", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
+            { no: 3, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "project", kind: "message", T: () => Project }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.UpdateSessionRequest
+ */
+export const UpdateSessionRequest = new UpdateSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateSessionResponse$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2alpha1.UpdateSessionResponse", [
+            { no: 1, name: "session", kind: "message", T: () => Session }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.UpdateSessionResponse
+ */
+export const UpdateSessionResponse = new UpdateSessionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class DeleteSessionRequest$Type extends MessageType {
     constructor() {
         super("runme.runner.v2alpha1.DeleteSessionRequest", [
@@ -334,6 +361,7 @@ export const RunnerService = new ServiceType("runme.runner.v2alpha1.RunnerServic
     { name: "CreateSession", options: {}, I: CreateSessionRequest, O: CreateSessionResponse },
     { name: "GetSession", options: {}, I: GetSessionRequest, O: GetSessionResponse },
     { name: "ListSessions", options: {}, I: ListSessionsRequest, O: ListSessionsResponse },
+    { name: "UpdateSession", options: {}, I: UpdateSessionRequest, O: UpdateSessionResponse },
     { name: "DeleteSession", options: {}, I: DeleteSessionRequest, O: DeleteSessionResponse },
     { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse },
     { name: "ResolveEnv", options: {}, I: ResolveEnvRequest, O: ResolveEnvResponse }

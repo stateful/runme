@@ -196,8 +196,6 @@ func TestRunnerServiceServerExecuteConfigs(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			stream, err := client.Execute(context.Background())
 			require.NoError(t, err)
 

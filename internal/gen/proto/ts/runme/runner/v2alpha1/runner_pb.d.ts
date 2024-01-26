@@ -121,6 +121,47 @@ export interface ListSessionsResponse {
     sessions: Session[];
 }
 /**
+ * @generated from protobuf message runme.runner.v2alpha1.UpdateSessionRequest
+ */
+export interface UpdateSessionRequest {
+    /**
+     * @generated from protobuf field: string id = 1;
+     */
+    id: string;
+    /**
+     * metadata is a map of client specific metadata.
+     *
+     * @generated from protobuf field: map<string, string> metadata = 2;
+     */
+    metadata: {
+        [key: string]: string;
+    };
+    /**
+     * env field provides an initial set of environment variables
+     * for a newly created session.
+     *
+     * @generated from protobuf field: repeated string env = 3;
+     */
+    env: string[];
+    /**
+     * project from which to load environment variables.
+     * They will be appended to the list from the env field.
+     * The env field has a higher priority.
+     *
+     * @generated from protobuf field: optional runme.runner.v2alpha1.Project project = 4;
+     */
+    project?: Project;
+}
+/**
+ * @generated from protobuf message runme.runner.v2alpha1.UpdateSessionResponse
+ */
+export interface UpdateSessionResponse {
+    /**
+     * @generated from protobuf field: runme.runner.v2alpha1.Session session = 1;
+     */
+    session?: Session;
+}
+/**
  * @generated from protobuf message runme.runner.v2alpha1.DeleteSessionRequest
  */
 export interface DeleteSessionRequest {
@@ -494,6 +535,20 @@ declare class ListSessionsResponse$Type extends MessageType<ListSessionsResponse
  * @generated MessageType for protobuf message runme.runner.v2alpha1.ListSessionsResponse
  */
 export declare const ListSessionsResponse: ListSessionsResponse$Type;
+declare class UpdateSessionRequest$Type extends MessageType<UpdateSessionRequest> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.UpdateSessionRequest
+ */
+export declare const UpdateSessionRequest: UpdateSessionRequest$Type;
+declare class UpdateSessionResponse$Type extends MessageType<UpdateSessionResponse> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.UpdateSessionResponse
+ */
+export declare const UpdateSessionResponse: UpdateSessionResponse$Type;
 declare class DeleteSessionRequest$Type extends MessageType<DeleteSessionRequest> {
     constructor();
 }
