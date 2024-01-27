@@ -75,13 +75,13 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 		for {
 			var err error
 
+			if err := exec.SetWinsize(req.Winsize); err != nil {
+				logger.Info("failed to set winsize; ignoring", zap.Error(err))
+			}
+
 			_, err = exec.Write(req.InputData)
 			if err != nil {
 				logger.Info("failed to write to stdin; ignoring", zap.Error(err))
-			}
-
-			if err := exec.SetWinsize(req.Winsize); err != nil {
-				logger.Info("failed to set winsize; ignoring", zap.Error(err))
 			}
 
 			if err := exec.Stop(req.Stop); err != nil {
