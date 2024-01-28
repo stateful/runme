@@ -326,6 +326,111 @@ export interface ExecuteResponse {
     pid?: ProcessPID;
 }
 /**
+ * @generated from protobuf message runme.runner.v1.ResolveEnvRequest
+ */
+export interface ResolveEnvRequest {
+    /**
+     * @generated from protobuf oneof: source
+     */
+    source: {
+        oneofKind: "commands";
+        /**
+         * commands are commands to be executed by the program.
+         * The commands are joined and executed as a script.
+         *
+         * @generated from protobuf field: runme.runner.v1.ResolveEnvRequest.CommandList commands = 1;
+         */
+        commands: ResolveEnvRequest_CommandList;
+    } | {
+        oneofKind: "script";
+        /**
+         * script is code to be executed by the program.
+         * Individual lines are joined with the new line character.
+         *
+         * @generated from protobuf field: string script = 2;
+         */
+        script: string;
+    } | {
+        oneofKind: undefined;
+    };
+    /**
+     * env is a list of environment variables that will be used
+     * to resolve the environment variables found in the source.
+     *
+     * @generated from protobuf field: repeated string env = 3;
+     */
+    env: string[];
+    /**
+     * session_id indicates which session is the source of
+     * environment variables. If not provided, the most recent
+     * session can be used using session_strategy.
+     *
+     * @generated from protobuf field: string session_id = 4;
+     */
+    sessionId: string;
+    /**
+     * session_strategy is a strategy for selecting the session.
+     *
+     * @generated from protobuf field: runme.runner.v1.SessionStrategy session_strategy = 5;
+     */
+    sessionStrategy: SessionStrategy;
+    /**
+     * project used to load environment variables from .env files.
+     *
+     * @generated from protobuf field: optional runme.runner.v1.Project project = 6;
+     */
+    project?: Project;
+}
+/**
+ * @generated from protobuf message runme.runner.v1.ResolveEnvRequest.CommandList
+ */
+export interface ResolveEnvRequest_CommandList {
+    /**
+     * commands are commands to be executed by the program.
+     * The commands are joined and executed as a script.
+     * For example: ["echo 'Hello, World'", "ls -l /etc"].
+     *
+     * @generated from protobuf field: repeated string items = 1;
+     */
+    items: string[];
+}
+/**
+ * @generated from protobuf message runme.runner.v1.ResolveEnvResult
+ */
+export interface ResolveEnvResult {
+    /**
+     * name is the name of the environment variable.
+     *
+     * @generated from protobuf field: string name = 1;
+     */
+    name: string;
+    /**
+     * original_value is a default value of the environment variable.
+     * It might be a value that is assigned to the variable in the script,
+     * like FOO=bar or FOO=${FOO:-bar}.
+     * If the variable is not assigned, it is an empty string.
+     *
+     * @generated from protobuf field: string original_value = 2;
+     */
+    originalValue: string;
+    /**
+     * resolved_value is a value of the environment variable resolved from a source.
+     * If it is an empty string, it means that the environment variable is not resolved.
+     *
+     * @generated from protobuf field: string resolved_value = 3;
+     */
+    resolvedValue: string;
+}
+/**
+ * @generated from protobuf message runme.runner.v1.ResolveEnvResponse
+ */
+export interface ResolveEnvResponse {
+    /**
+     * @generated from protobuf field: repeated runme.runner.v1.ResolveEnvResult items = 1;
+     */
+    items: ResolveEnvResult[];
+}
+/**
  * @generated from protobuf enum runme.runner.v1.ExecuteStop
  */
 export declare enum ExecuteStop {
@@ -478,6 +583,34 @@ declare class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
  * @generated MessageType for protobuf message runme.runner.v1.ExecuteResponse
  */
 export declare const ExecuteResponse: ExecuteResponse$Type;
+declare class ResolveEnvRequest$Type extends MessageType<ResolveEnvRequest> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvRequest
+ */
+export declare const ResolveEnvRequest: ResolveEnvRequest$Type;
+declare class ResolveEnvRequest_CommandList$Type extends MessageType<ResolveEnvRequest_CommandList> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvRequest.CommandList
+ */
+export declare const ResolveEnvRequest_CommandList: ResolveEnvRequest_CommandList$Type;
+declare class ResolveEnvResult$Type extends MessageType<ResolveEnvResult> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvResult
+ */
+export declare const ResolveEnvResult: ResolveEnvResult$Type;
+declare class ResolveEnvResponse$Type extends MessageType<ResolveEnvResponse> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvResponse
+ */
+export declare const ResolveEnvResponse: ResolveEnvResponse$Type;
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */

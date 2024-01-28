@@ -24,6 +24,7 @@ const (
 	RunnerService_ListSessions_FullMethodName  = "/runme.runner.v1.RunnerService/ListSessions"
 	RunnerService_DeleteSession_FullMethodName = "/runme.runner.v1.RunnerService/DeleteSession"
 	RunnerService_Execute_FullMethodName       = "/runme.runner.v1.RunnerService/Execute"
+	RunnerService_ResolveEnv_FullMethodName    = "/runme.runner.v1.RunnerService/ResolveEnv"
 )
 
 // RunnerServiceClient is the client API for RunnerService service.
@@ -42,6 +43,12 @@ type RunnerServiceClient interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(ctx context.Context, opts ...grpc.CallOption) (RunnerService_ExecuteClient, error)
+	// ResolveEnv resolves environment variables from a script or a list of commands
+	// using the provided sources, which can be a list of environment variables,
+	// a session, or a project.
+	// The result contains all found environment variables. If the env is in any source,
+	// it is considered resolved. Otherwise, it is makred as unresolved.
+	ResolveEnv(ctx context.Context, in *ResolveEnvRequest, opts ...grpc.CallOption) (*ResolveEnvResponse, error)
 }
 
 type runnerServiceClient struct {
@@ -119,6 +126,15 @@ func (x *runnerServiceExecuteClient) Recv() (*ExecuteResponse, error) {
 	return m, nil
 }
 
+func (c *runnerServiceClient) ResolveEnv(ctx context.Context, in *ResolveEnvRequest, opts ...grpc.CallOption) (*ResolveEnvResponse, error) {
+	out := new(ResolveEnvResponse)
+	err := c.cc.Invoke(ctx, RunnerService_ResolveEnv_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RunnerServiceServer is the server API for RunnerService service.
 // All implementations must embed UnimplementedRunnerServiceServer
 // for forward compatibility
@@ -135,6 +151,12 @@ type RunnerServiceServer interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(RunnerService_ExecuteServer) error
+	// ResolveEnv resolves environment variables from a script or a list of commands
+	// using the provided sources, which can be a list of environment variables,
+	// a session, or a project.
+	// The result contains all found environment variables. If the env is in any source,
+	// it is considered resolved. Otherwise, it is makred as unresolved.
+	ResolveEnv(context.Context, *ResolveEnvRequest) (*ResolveEnvResponse, error)
 	mustEmbedUnimplementedRunnerServiceServer()
 }
 
@@ -156,6 +178,9 @@ func (UnimplementedRunnerServiceServer) DeleteSession(context.Context, *DeleteSe
 }
 func (UnimplementedRunnerServiceServer) Execute(RunnerService_ExecuteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (UnimplementedRunnerServiceServer) ResolveEnv(context.Context, *ResolveEnvRequest) (*ResolveEnvResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResolveEnv not implemented")
 }
 func (UnimplementedRunnerServiceServer) mustEmbedUnimplementedRunnerServiceServer() {}
 
@@ -268,6 +293,24 @@ func (x *runnerServiceExecuteServer) Recv() (*ExecuteRequest, error) {
 	return m, nil
 }
 
+func _RunnerService_ResolveEnv_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveEnvRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerServiceServer).ResolveEnv(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerService_ResolveEnv_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerServiceServer).ResolveEnv(ctx, req.(*ResolveEnvRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RunnerService_ServiceDesc is the grpc.ServiceDesc for RunnerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -290,6 +333,10 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSession",
 			Handler:    _RunnerService_DeleteSession_Handler,
+		},
+		{
+			MethodName: "ResolveEnv",
+			Handler:    _RunnerService_ResolveEnv_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -313,16 +313,16 @@ export interface ResolveEnvRequest {
         oneofKind: undefined;
     };
     /**
-     * env is a list of additional environment variables
-     * that will be injected to the executed program.
+     * env is a list of environment variables that will be used
+     * to resolve the environment variables found in the source.
      *
      * @generated from protobuf field: repeated string env = 3;
      */
     env: string[];
     /**
-     * session_id indicates in which Session the program should execute.
-     * Executing in a Session might provide additional context like
-     * environment variables.
+     * session_id indicates which session is the source of
+     * environment variables. If not provided, the most recent
+     * session can be used using session_strategy.
      *
      * @generated from protobuf field: string session_id = 4;
      */
@@ -358,78 +358,27 @@ export interface ResolveEnvRequest_CommandList {
  */
 export interface ResolveEnvResult {
     /**
-     * @generated from protobuf oneof: result
-     */
-    result: {
-        oneofKind: "resolvedEnv";
-        /**
-         * @generated from protobuf field: runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnv resolved_env = 1;
-         */
-        resolvedEnv: ResolveEnvResult_ResolvedEnv;
-    } | {
-        oneofKind: "unresolvedEnv";
-        /**
-         * @generated from protobuf field: runme.runner.v2alpha1.ResolveEnvResult.UnresolvedEnv unresolved_env = 2;
-         */
-        unresolvedEnv: ResolveEnvResult_UnresolvedEnv;
-    } | {
-        oneofKind: undefined;
-    };
-}
-/**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnv
- */
-export interface ResolveEnvResult_ResolvedEnv {
-    /**
+     * name is the name of the environment variable.
+     *
      * @generated from protobuf field: string name = 1;
      */
     name: string;
     /**
+     * original_value is a default value of the environment variable.
+     * It might be a value that is assigned to the variable in the script,
+     * like FOO=bar or FOO=${FOO:-bar}.
+     * If the variable is not assigned, it is an empty string.
+     *
      * @generated from protobuf field: string original_value = 2;
      */
     originalValue: string;
     /**
+     * resolved_value is a value of the environment variable resolved from a source.
+     * If it is an empty string, it means that the environment variable is not resolved.
+     *
      * @generated from protobuf field: string resolved_value = 3;
      */
     resolvedValue: string;
-    /**
-     * @generated from protobuf field: runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnvSource source = 4;
-     */
-    source: ResolveEnvResult_ResolvedEnvSource;
-}
-/**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResult.UnresolvedEnv
- */
-export interface ResolveEnvResult_UnresolvedEnv {
-    /**
-     * @generated from protobuf field: string name = 1;
-     */
-    name: string;
-    /**
-     * @generated from protobuf field: string original_value = 2;
-     */
-    originalValue: string;
-}
-/**
- * @generated from protobuf enum runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnvSource
- */
-export declare enum ResolveEnvResult_ResolvedEnvSource {
-    /**
-     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_ENV = 1;
-     */
-    ENV = 1,
-    /**
-     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_SESSION = 2;
-     */
-    SESSION = 2,
-    /**
-     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_PROJECT = 3;
-     */
-    PROJECT = 3
 }
 /**
  * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResponse
@@ -605,20 +554,6 @@ declare class ResolveEnvResult$Type extends MessageType<ResolveEnvResult> {
  * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult
  */
 export declare const ResolveEnvResult: ResolveEnvResult$Type;
-declare class ResolveEnvResult_ResolvedEnv$Type extends MessageType<ResolveEnvResult_ResolvedEnv> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnv
- */
-export declare const ResolveEnvResult_ResolvedEnv: ResolveEnvResult_ResolvedEnv$Type;
-declare class ResolveEnvResult_UnresolvedEnv$Type extends MessageType<ResolveEnvResult_UnresolvedEnv> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult.UnresolvedEnv
- */
-export declare const ResolveEnvResult_UnresolvedEnv: ResolveEnvResult_UnresolvedEnv$Type;
 declare class ResolveEnvResponse$Type extends MessageType<ResolveEnvResponse> {
     constructor();
 }

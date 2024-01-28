@@ -45,6 +45,11 @@ type RunnerServiceClient interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(ctx context.Context, opts ...grpc.CallOption) (RunnerService_ExecuteClient, error)
+	// ResolveEnv resolves environment variables from a script or a list of commands
+	// using the provided sources, which can be a list of environment variables,
+	// a session, or a project.
+	// The result contains all found environment variables. If the env is in any source,
+	// it is considered resolved. Otherwise, it is makred as unresolved.
 	ResolveEnv(ctx context.Context, in *ResolveEnvRequest, opts ...grpc.CallOption) (*ResolveEnvResponse, error)
 }
 
@@ -158,6 +163,11 @@ type RunnerServiceServer interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(RunnerService_ExecuteServer) error
+	// ResolveEnv resolves environment variables from a script or a list of commands
+	// using the provided sources, which can be a list of environment variables,
+	// a session, or a project.
+	// The result contains all found environment variables. If the env is in any source,
+	// it is considered resolved. Otherwise, it is makred as unresolved.
 	ResolveEnv(context.Context, *ResolveEnvRequest) (*ResolveEnvResponse, error)
 	mustEmbedUnimplementedRunnerServiceServer()
 }

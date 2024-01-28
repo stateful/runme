@@ -2,7 +2,6 @@ package runnerv2service
 
 import (
 	"context"
-	"slices"
 	"strings"
 
 	"go.uber.org/zap"
@@ -44,7 +43,7 @@ func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv2alpha1.Reso
 
 	resolver := command.NewEnvResolver(sources...)
 
-	var result []*runnerv2alpha1.ResolveEnvResult
+	var result []*command.EnvResolverResult
 
 	if script := req.GetScript(); script != "" {
 		result, err = resolver.Resolve(strings.NewReader(script))
@@ -57,16 +56,15 @@ func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv2alpha1.Reso
 		return nil, err
 	}
 
-	slices.SortStableFunc(result, func(a, b *runnerv2alpha1.ResolveEnvResult) int {
-		aResolved, bResolved := a.GetResolvedEnv(), b.GetResolvedEnv()
-		if aResolved != nil && bResolved != nil {
-			return strings.Compare(aResolved.Name, bResolved.Name)
-		}
-		if aResolved != nil {
-			return -1
-		}
-		return 1
-	})
+	response := &runnerv2alpha1.ResolveEnvResponse{}
 
-	return &runnerv2alpha1.ResolveEnvResponse{Items: result}, nil
+	for _, item := range result {
+		response.Items = append(response.Items, &runnerv2alpha1.ResolveEnvResult{
+			Name:          item.Name,
+			OriginalValue: item.OriginalValue,
+			ResolvedValue: item.Value,
+		})
+	}
+
+	return response, nil
 }
