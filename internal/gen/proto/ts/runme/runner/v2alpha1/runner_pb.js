@@ -13,28 +13,6 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 import { ProgramConfig } from "./config_pb";
 /**
- * @generated from protobuf enum runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnvSource
- */
-export var ResolveEnvResult_ResolvedEnvSource;
-(function (ResolveEnvResult_ResolvedEnvSource) {
-    /**
-     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_UNSPECIFIED = 0;
-     */
-    ResolveEnvResult_ResolvedEnvSource[ResolveEnvResult_ResolvedEnvSource["UNSPECIFIED"] = 0] = "UNSPECIFIED";
-    /**
-     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_ENV = 1;
-     */
-    ResolveEnvResult_ResolvedEnvSource[ResolveEnvResult_ResolvedEnvSource["ENV"] = 1] = "ENV";
-    /**
-     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_SESSION = 2;
-     */
-    ResolveEnvResult_ResolvedEnvSource[ResolveEnvResult_ResolvedEnvSource["SESSION"] = 2] = "SESSION";
-    /**
-     * @generated from protobuf enum value: RESOLVED_ENV_SOURCE_PROJECT = 3;
-     */
-    ResolveEnvResult_ResolvedEnvSource[ResolveEnvResult_ResolvedEnvSource["PROJECT"] = 3] = "PROJECT";
-})(ResolveEnvResult_ResolvedEnvSource || (ResolveEnvResult_ResolvedEnvSource = {}));
-/**
  * @generated from protobuf enum runme.runner.v2alpha1.ExecuteStop
  */
 export var ExecuteStop;
@@ -305,8 +283,9 @@ export const ResolveEnvRequest_CommandList = new ResolveEnvRequest_CommandList$T
 class ResolveEnvResult$Type extends MessageType {
     constructor() {
         super("runme.runner.v2alpha1.ResolveEnvResult", [
-            { no: 1, name: "resolved_env", kind: "message", oneof: "result", T: () => ResolveEnvResult_ResolvedEnv },
-            { no: 2, name: "unresolved_env", kind: "message", oneof: "result", T: () => ResolveEnvResult_UnresolvedEnv }
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
@@ -314,34 +293,6 @@ class ResolveEnvResult$Type extends MessageType {
  * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult
  */
 export const ResolveEnvResult = new ResolveEnvResult$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ResolveEnvResult_ResolvedEnv$Type extends MessageType {
-    constructor() {
-        super("runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnv", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "source", kind: "enum", T: () => ["runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnvSource", ResolveEnvResult_ResolvedEnvSource, "RESOLVED_ENV_SOURCE_"] }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult.ResolvedEnv
- */
-export const ResolveEnvResult_ResolvedEnv = new ResolveEnvResult_ResolvedEnv$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ResolveEnvResult_UnresolvedEnv$Type extends MessageType {
-    constructor() {
-        super("runme.runner.v2alpha1.ResolveEnvResult.UnresolvedEnv", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult.UnresolvedEnv
- */
-export const ResolveEnvResult_UnresolvedEnv = new ResolveEnvResult_UnresolvedEnv$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ResolveEnvResponse$Type extends MessageType {
     constructor() {

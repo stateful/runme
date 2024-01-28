@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
@@ -16,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	commandpkg "github.com/stateful/runme/internal/command"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/rbuffer"
@@ -572,5 +574,80 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 		Cols: uint16(winsize.Cols),
 		X:    uint16(winsize.X),
 		Y:    uint16(winsize.Y),
+	}
+}
+
+func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv1.ResolveEnvRequest) (*runnerv1.ResolveEnvResponse, error) {
+	// Add explicitly passed env as a source.
+	sources := []commandpkg.EnvResolverSource{
+		commandpkg.EnvResolverSourceFunc(req.Env),
+	}
+
+	// Add project env as a source.
+	proj, err := ConvertRunnerProject(req.Project)
+	if err != nil {
+		return nil, err
+	}
+	if err != nil {
+		return nil, err
+	}
+	if proj != nil {
+		projEnvs, err := proj.LoadEnv()
+		if err != nil {
+			r.logger.Info("failed to load envs for project", zap.Error(err))
+		} else {
+			sources = append(sources, commandpkg.EnvResolverSourceFunc(projEnvs))
+		}
+	}
+
+	// Add session env as a source.
+	session, found := r.getSessionFromRequest(req)
+	if found {
+		sources = append(sources, commandpkg.EnvResolverSourceFunc(session.Envs()))
+	}
+
+	resolver := commandpkg.NewEnvResolver(sources...)
+
+	var result []*commandpkg.EnvResolverResult
+
+	if script := req.GetScript(); script != "" {
+		result, err = resolver.Resolve(strings.NewReader(script))
+	} else if commands := req.GetCommands(); commands != nil && len(commands.Items) > 0 {
+		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")))
+	} else {
+		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	response := &runnerv1.ResolveEnvResponse{}
+
+	for _, item := range result {
+		response.Items = append(response.Items, &runnerv1.ResolveEnvResult{
+			Name:          item.Name,
+			OriginalValue: item.OriginalValue,
+			ResolvedValue: item.Value,
+		})
+	}
+
+	return response, nil
+}
+
+type requestWithSession interface {
+	GetSessionId() string
+	GetSessionStrategy() runnerv1.SessionStrategy
+}
+
+func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session, bool) {
+	switch req.GetSessionStrategy() {
+	case runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
+		return r.sessions.MostRecent()
+	default:
+		if sessID := req.GetSessionId(); sessID != "" {
+			sess := r.findSession(sessID)
+			return sess, sess != nil
+		}
+		return nil, false
 	}
 }

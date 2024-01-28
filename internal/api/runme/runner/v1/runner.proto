@@ -187,6 +187,59 @@ message ExecuteResponse {
   ProcessPID pid = 4;
 }
 
+message ResolveEnvRequest {
+  oneof source {
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    CommandList commands = 1;
+
+    // script is code to be executed by the program.
+    // Individual lines are joined with the new line character.
+    string script = 2;
+  }
+
+  // env is a list of environment variables that will be used
+  // to resolve the environment variables found in the source.
+  repeated string env = 3;
+
+  // session_id indicates which session is the source of
+  // environment variables. If not provided, the most recent
+  // session can be used using session_strategy.
+  string session_id = 4;
+
+  // session_strategy is a strategy for selecting the session.
+  SessionStrategy session_strategy = 5;
+
+  // project used to load environment variables from .env files.
+  optional Project project = 6;
+
+  message CommandList {
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    // For example: ["echo 'Hello, World'", "ls -l /etc"].
+    repeated string items = 1;
+  }
+}
+
+message ResolveEnvResult {
+  // name is the name of the environment variable.
+  string name = 1;
+
+  // original_value is a default value of the environment variable.
+  // It might be a value that is assigned to the variable in the script,
+  // like FOO=bar or FOO=${FOO:-bar}.
+  // If the variable is not assigned, it is an empty string.
+  string original_value = 2;
+
+  // resolved_value is a value of the environment variable resolved from a source.
+  // If it is an empty string, it means that the environment variable is not resolved.
+  string resolved_value = 3;
+}
+
+message ResolveEnvResponse {
+  repeated ResolveEnvResult items = 1;
+}
+
 service RunnerService {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {}
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {}
@@ -201,4 +254,11 @@ service RunnerService {
   // Subsequent "ExecuteRequest" should only contain "input_data" as
   // other fields will be ignored.
   rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
+
+  // ResolveEnv resolves environment variables from a script or a list of commands
+  // using the provided sources, which can be a list of environment variables,
+  // a session, or a project.
+  // The result contains all found environment variables. If the env is in any source,
+  // it is considered resolved. Otherwise, it is makred as unresolved.
+  rpc ResolveEnv(ResolveEnvRequest) returns (ResolveEnvResponse) {}
 }

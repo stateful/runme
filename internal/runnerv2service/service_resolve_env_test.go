@@ -50,24 +50,16 @@ func TestRunnerServiceResolveEnv(t *testing.T) {
 			require.EqualValues(
 				t,
 				&runnerv2alpha1.ResolveEnvResult{
-					Result: &runnerv2alpha1.ResolveEnvResult_ResolvedEnv_{
-						ResolvedEnv: &runnerv2alpha1.ResolveEnvResult_ResolvedEnv{
-							Name:          "TEST_RESOLVED",
-							OriginalValue: "default",
-							ResolvedValue: "value",
-						},
-					},
+					Name:          "TEST_RESOLVED",
+					OriginalValue: "default",
+					ResolvedValue: "value",
 				},
 				resp.Items[0],
 			)
 			require.EqualValues(
 				t,
 				&runnerv2alpha1.ResolveEnvResult{
-					Result: &runnerv2alpha1.ResolveEnvResult_UnresolvedEnv_{
-						UnresolvedEnv: &runnerv2alpha1.ResolveEnvResult_UnresolvedEnv{
-							Name: "TEST_UNRESOLVED",
-						},
-					},
+					Name: "TEST_UNRESOLVED",
 				},
 				resp.Items[1],
 			)

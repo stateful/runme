@@ -5,6 +5,8 @@
 // @ts-nocheck
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
+import type { ResolveEnvResponse } from "./runner_pb";
+import type { ResolveEnvRequest } from "./runner_pb";
 import type { ExecuteResponse } from "./runner_pb";
 import type { ExecuteRequest } from "./runner_pb";
 import type { DuplexStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -50,6 +52,16 @@ export interface IRunnerServiceClient {
      * @generated from protobuf rpc: Execute(stream runme.runner.v1.ExecuteRequest) returns (stream runme.runner.v1.ExecuteResponse);
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
+    /**
+     * ResolveEnv resolves environment variables from a script or a list of commands
+     * using the provided sources, which can be a list of environment variables,
+     * a session, or a project.
+     * The result contains all found environment variables. If the env is in any source,
+     * it is considered resolved. Otherwise, it is makred as unresolved.
+     *
+     * @generated from protobuf rpc: ResolveEnv(runme.runner.v1.ResolveEnvRequest) returns (runme.runner.v1.ResolveEnvResponse);
+     */
+    resolveEnv(input: ResolveEnvRequest, options?: RpcOptions): UnaryCall<ResolveEnvRequest, ResolveEnvResponse>;
 }
 /**
  * @generated from protobuf service runme.runner.v1.RunnerService
@@ -88,4 +100,14 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      * @generated from protobuf rpc: Execute(stream runme.runner.v1.ExecuteRequest) returns (stream runme.runner.v1.ExecuteResponse);
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
+    /**
+     * ResolveEnv resolves environment variables from a script or a list of commands
+     * using the provided sources, which can be a list of environment variables,
+     * a session, or a project.
+     * The result contains all found environment variables. If the env is in any source,
+     * it is considered resolved. Otherwise, it is makred as unresolved.
+     *
+     * @generated from protobuf rpc: ResolveEnv(runme.runner.v1.ResolveEnvRequest) returns (runme.runner.v1.ResolveEnvResponse);
+     */
+    resolveEnv(input: ResolveEnvRequest, options?: RpcOptions): UnaryCall<ResolveEnvRequest, ResolveEnvResponse>;
 }

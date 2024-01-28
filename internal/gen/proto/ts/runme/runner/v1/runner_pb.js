@@ -261,6 +261,61 @@ class ExecuteResponse$Type extends MessageType {
  * @generated MessageType for protobuf message runme.runner.v1.ExecuteResponse
  */
 export const ExecuteResponse = new ExecuteResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvRequest$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveEnvRequest", [
+            { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveEnvRequest_CommandList },
+            { no: 2, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
+            { no: 6, name: "project", kind: "message", T: () => Project }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvRequest
+ */
+export const ResolveEnvRequest = new ResolveEnvRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvRequest_CommandList$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveEnvRequest.CommandList", [
+            { no: 1, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvRequest.CommandList
+ */
+export const ResolveEnvRequest_CommandList = new ResolveEnvRequest_CommandList$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvResult$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveEnvResult", [
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvResult
+ */
+export const ResolveEnvResult = new ResolveEnvResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveEnvResponse$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveEnvResponse", [
+            { no: 1, name: "items", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveEnvResult }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvResponse
+ */
+export const ResolveEnvResponse = new ResolveEnvResponse$Type();
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */
@@ -269,5 +324,6 @@ export const RunnerService = new ServiceType("runme.runner.v1.RunnerService", [
     { name: "GetSession", options: {}, I: GetSessionRequest, O: GetSessionResponse },
     { name: "ListSessions", options: {}, I: ListSessionsRequest, O: ListSessionsResponse },
     { name: "DeleteSession", options: {}, I: DeleteSessionRequest, O: DeleteSessionResponse },
-    { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse }
+    { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse },
+    { name: "ResolveEnv", options: {}, I: ResolveEnvRequest, O: ResolveEnvResponse }
 ]);

@@ -6,89 +6,83 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 )
 
-func TestEnvResolver_Parsing(t *testing.T) {
-	createResultWithUnresolvedEnv := func(name string, originalValue string) *ResolveEnvResult {
-		return &ResolveEnvResult{
-			Result: &runnerv2alpha1.ResolveEnvResult_UnresolvedEnv_{
-				UnresolvedEnv: &runnerv2alpha1.ResolveEnvResult_UnresolvedEnv{
-					Name:          name,
-					OriginalValue: originalValue,
-				},
-			},
-		}
-	}
-
+func TestEnvResolverParsing(t *testing.T) {
 	testCases := []struct {
 		name   string
 		data   string
 		source []EnvResolverSource
-		result []*ResolveEnvResult
+		result []*EnvResolverResult
 	}{
 		{
 			name: "no value",
 			data: `export TEST_NO_VALUE`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_NO_VALUE", ""),
+			result: []*EnvResolverResult{
+				{Name: "TEST_NO_VALUE"},
 			},
 		},
 		{
 			name: "empty value",
 			data: `export TEST_EMPTY_VALUE=`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_EMPTY_VALUE", ""),
+			result: []*EnvResolverResult{
+				{Name: "TEST_EMPTY_VALUE"},
 			},
 		},
 		{
 			name: "string value",
 			data: `export TEST_STRING_VALUE=value`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_STRING_VALUE", "value"),
+			result: []*EnvResolverResult{
+				{Name: "TEST_STRING_VALUE", OriginalValue: "value"},
+			},
+		},
+		{
+			name: "string value with equal sign",
+			data: `export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2`,
+			result: []*EnvResolverResult{
+				{Name: "TEST_STRING_VALUE_WITH_EQUAL_SIGN", OriginalValue: "part1=part2"},
 			},
 		},
 		{
 			name: "string double quoted value empty",
 			data: `export TEST_STRING_DBL_QUOTED_VALUE_EMPTY=""`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_STRING_DBL_QUOTED_VALUE_EMPTY", ""),
+			result: []*EnvResolverResult{
+				{Name: "TEST_STRING_DBL_QUOTED_VALUE_EMPTY", OriginalValue: ""},
 			},
 		},
 		{
 			name: "string double quoted value",
 			data: `export TEST_STRING_DBL_QUOTED_VALUE="value"`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_STRING_DBL_QUOTED_VALUE", "value"),
+			result: []*EnvResolverResult{
+				{Name: "TEST_STRING_DBL_QUOTED_VALUE", OriginalValue: "value"},
 			},
 		},
 		{
 			name: "string single quoted value empty",
 			data: `export TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_STRING_SGL_QUOTED_VALUE_EMPTY", ""),
+			result: []*EnvResolverResult{
+				{Name: "TEST_STRING_SGL_QUOTED_VALUE_EMPTY", OriginalValue: ""},
 			},
 		},
 		{
 			name: "string single quoted value",
 			data: `export TEST_STRING_SGL_QUOTED_VALUE='value'`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_STRING_SGL_QUOTED_VALUE", "value"),
+			result: []*EnvResolverResult{
+				{Name: "TEST_STRING_SGL_QUOTED_VALUE", OriginalValue: "value"},
 			},
 		},
 		{
 			name: "value expression",
 			data: `export TEST_VALUE_EXPR=$(echo -n "value")`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_VALUE_EXPR", ""),
+			result: []*EnvResolverResult{
+				{Name: "TEST_VALUE_EXPR"},
 			},
 		},
 		{
 			name: "default value",
 			data: `export TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}`,
-			result: []*ResolveEnvResult{
-				createResultWithUnresolvedEnv("TEST_DEFAULT_VALUE", "value"),
+			result: []*EnvResolverResult{
+				{Name: "TEST_DEFAULT_VALUE", OriginalValue: "value"},
 			},
 		},
 	}
@@ -103,22 +97,9 @@ func TestEnvResolver_Parsing(t *testing.T) {
 	}
 }
 
-func TestEnvResolver(t *testing.T) {
-	createResultResolvedEnv := func(name, resolvedValue, originalValue string) *ResolveEnvResult {
-		return &ResolveEnvResult{
-			Result: &runnerv2alpha1.ResolveEnvResult_ResolvedEnv_{
-				ResolvedEnv: &runnerv2alpha1.ResolveEnvResult_ResolvedEnv{
-					Name:          name,
-					ResolvedValue: resolvedValue,
-					OriginalValue: originalValue,
-				},
-			},
-		}
-	}
-
+func TestEnvResolverResolve(t *testing.T) {
 	r := NewEnvResolver(EnvResolverSourceFunc([]string{"MY_ENV=resolved"}))
 	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`))
 	require.NoError(t, err)
-	require.Len(t, result, 1)
-	require.EqualValues(t, createResultResolvedEnv("MY_ENV", "resolved", "default"), result[0])
+	require.EqualValues(t, []*EnvResolverResult{{Name: "MY_ENV", OriginalValue: "default", Value: "resolved"}}, result)
 }

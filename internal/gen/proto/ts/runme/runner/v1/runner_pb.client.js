@@ -58,4 +58,17 @@ export class RunnerServiceClient {
         const method = this.methods[4], opt = this._transport.mergeOptions(options);
         return stackIntercept("duplex", this._transport, method, opt);
     }
+    /**
+     * ResolveEnv resolves environment variables from a script or a list of commands
+     * using the provided sources, which can be a list of environment variables,
+     * a session, or a project.
+     * The result contains all found environment variables. If the env is in any source,
+     * it is considered resolved. Otherwise, it is makred as unresolved.
+     *
+     * @generated from protobuf rpc: ResolveEnv(runme.runner.v1.ResolveEnvRequest) returns (runme.runner.v1.ResolveEnvResponse);
+     */
+    resolveEnv(input, options) {
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        return stackIntercept("unary", this._transport, method, opt, input);
+    }
 }

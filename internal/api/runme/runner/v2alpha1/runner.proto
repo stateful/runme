@@ -170,13 +170,13 @@ message ResolveEnvRequest {
     string script = 2;
   }
 
-  // env is a list of additional environment variables
-  // that will be injected to the executed program.
+  // env is a list of environment variables that will be used
+  // to resolve the environment variables found in the source.
   repeated string env = 3;
 
-  // session_id indicates in which Session the program should execute.
-  // Executing in a Session might provide additional context like
-  // environment variables.
+  // session_id indicates which session is the source of
+  // environment variables. If not provided, the most recent
+  // session can be used using session_strategy.
   string session_id = 4;
 
   // session_strategy is a strategy for selecting the session.
@@ -194,29 +194,18 @@ message ResolveEnvRequest {
 }
 
 message ResolveEnvResult {
-  oneof result {
-    ResolvedEnv resolved_env = 1;
-    UnresolvedEnv unresolved_env = 2;
-  }
+  // name is the name of the environment variable.
+  string name = 1;
 
-  message ResolvedEnv {
-    string name = 1;
-    string original_value = 2;
-    string resolved_value = 3;
-    ResolvedEnvSource source = 4;
-  }
+  // original_value is a default value of the environment variable.
+  // It might be a value that is assigned to the variable in the script,
+  // like FOO=bar or FOO=${FOO:-bar}.
+  // If the variable is not assigned, it is an empty string.
+  string original_value = 2;
 
-  message UnresolvedEnv {
-    string name = 1;
-    string original_value = 2;
-  }
-
-  enum ResolvedEnvSource {
-    RESOLVED_ENV_SOURCE_UNSPECIFIED = 0;
-    RESOLVED_ENV_SOURCE_ENV = 1;
-    RESOLVED_ENV_SOURCE_SESSION = 2;
-    RESOLVED_ENV_SOURCE_PROJECT = 3;
-  }
+  // resolved_value is a value of the environment variable resolved from a source.
+  // If it is an empty string, it means that the environment variable is not resolved.
+  string resolved_value = 3;
 }
 
 message ResolveEnvResponse {
@@ -239,5 +228,10 @@ service RunnerService {
   // other fields will be ignored.
   rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
 
+  // ResolveEnv resolves environment variables from a script or a list of commands
+  // using the provided sources, which can be a list of environment variables,
+  // a session, or a project.
+  // The result contains all found environment variables. If the env is in any source,
+  // it is considered resolved. Otherwise, it is makred as unresolved.
   rpc ResolveEnv(ResolveEnvRequest) returns (ResolveEnvResponse) {}
 }

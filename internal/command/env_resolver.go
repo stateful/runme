@@ -2,15 +2,10 @@ package command
 
 import (
 	"io"
+	"slices"
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
-
-	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
-)
-
-type (
-	ResolveEnvResult = runnerv2alpha1.ResolveEnvResult
 )
 
 type EnvResolverSource func() []string
@@ -34,13 +29,23 @@ func NewEnvResolver(sources ...EnvResolverSource) *EnvResolver {
 	return &EnvResolver{sources: sources, envCache: nil}
 }
 
-func (r *EnvResolver) Resolve(reader io.Reader) ([]*ResolveEnvResult, error) {
+type EnvResolverResult struct {
+	Name          string
+	OriginalValue string
+	Value         string
+}
+
+func (r *EnvResolverResult) IsResolved() bool {
+	return r.Value != ""
+}
+
+func (r *EnvResolver) Resolve(reader io.Reader) ([]*EnvResolverResult, error) {
 	decls, err := r.parse(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []*ResolveEnvResult
+	var result []*EnvResolverResult
 
 	for _, decl := range decls {
 		if len(decl.Args) != 1 {
@@ -51,29 +56,25 @@ func (r *EnvResolver) Resolve(reader io.Reader) ([]*ResolveEnvResult, error) {
 
 		name := arg.Name.Value
 		originalValue := r.findOriginalValue(decl)
+		value, _ := r.findEnvValue(name)
 
-		value, ok := r.findEnvValue(name)
-		if ok {
-			result = append(result, &ResolveEnvResult{
-				Result: &runnerv2alpha1.ResolveEnvResult_ResolvedEnv_{
-					ResolvedEnv: &runnerv2alpha1.ResolveEnvResult_ResolvedEnv{
-						Name:          name,
-						ResolvedValue: value,
-						OriginalValue: originalValue,
-					},
-				},
-			})
-		} else {
-			result = append(result, &ResolveEnvResult{
-				Result: &runnerv2alpha1.ResolveEnvResult_UnresolvedEnv_{
-					UnresolvedEnv: &runnerv2alpha1.ResolveEnvResult_UnresolvedEnv{
-						Name:          name,
-						OriginalValue: originalValue,
-					},
-				},
-			})
-		}
+		result = append(result, &EnvResolverResult{
+			Name:          name,
+			OriginalValue: originalValue,
+			Value:         value,
+		})
 	}
+
+	slices.SortStableFunc(result, func(a, b *EnvResolverResult) int {
+		aResolved, bResolved := a.IsResolved(), b.IsResolved()
+		if aResolved && bResolved {
+			return strings.Compare(a.Name, b.Name)
+		}
+		if aResolved {
+			return -1
+		}
+		return 1
+	})
 
 	return result, nil
 }
@@ -96,14 +97,18 @@ func (r *EnvResolver) findOriginalValue(decl *syntax.DeclClause) string {
 	}
 
 	switch part := parts[0].(type) {
+	// export FOO=bar
 	case *syntax.Lit:
 		return part.Value
+	// export FOO="bar"
 	case *syntax.DblQuoted:
 		if len(part.Parts) == 1 {
 			return part.Parts[0].(*syntax.Lit).Value
 		}
+	// export FOO='bar'
 	case *syntax.SglQuoted:
 		return part.Value
+	// export FOO=${FOO:-bar}
 	case *syntax.ParamExp:
 		if part.Exp.Op == syntax.DefaultUnsetOrNull {
 			return part.Exp.Word.Lit()
