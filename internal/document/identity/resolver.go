@@ -1,8 +1,9 @@
 package identity
 
 import (
-	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	ulid "github.com/stateful/runme/internal/ulid"
+	"sync"
+
+	"github.com/stateful/runme/internal/ulid"
 )
 
 type LifecycleIdentity int
@@ -22,12 +23,7 @@ const (
 	CellLifecycleIdentity
 )
 
-// LifecycleIdentities is a slice of LifecycleIdentity.
-type LifecycleIdentities []LifecycleIdentity
-
-const (
-	DefaultLifecycleIdentity = AllLifecycleIdentity
-)
+const DefaultLifecycleIdentity = AllLifecycleIdentity
 
 var documentIdentities = &LifecycleIdentities{
 	AllLifecycleIdentity,
@@ -39,9 +35,11 @@ var cellIdentities = &LifecycleIdentities{
 	CellLifecycleIdentity,
 }
 
+type LifecycleIdentities []LifecycleIdentity
+
 // Contains returns true if the required identity is contained in the provided identities.
-func (required *LifecycleIdentities) Contains(id LifecycleIdentity) bool {
-	for _, v := range *required {
+func (ids LifecycleIdentities) Contains(id LifecycleIdentity) bool {
+	for _, v := range ids {
 		if v == id {
 			return true
 		}
@@ -49,19 +47,17 @@ func (required *LifecycleIdentities) Contains(id LifecycleIdentity) bool {
 	return false
 }
 
-// IdentityResolver resolves object identities.
 type IdentityResolver struct {
 	documentIdentity bool
 	cellIdentity     bool
-	cache            map[interface{}]string
+	cache            *sync.Map
 }
 
-// NewResolver creates a new resolver.
 func NewResolver(required LifecycleIdentity) *IdentityResolver {
 	return &IdentityResolver{
 		documentIdentity: documentIdentities.Contains(required),
 		cellIdentity:     cellIdentities.Contains(required),
-		cache:            map[interface{}]string{},
+		cache:            &sync.Map{},
 	}
 }
 
@@ -76,7 +72,7 @@ func (ir *IdentityResolver) DocumentEnabled() bool {
 }
 
 // GetCellID returns a cell ID and a boolean indicating if it's new or from attributes.
-func (ir *IdentityResolver) GetCellID(obj interface{}, attributes map[string]string) (string, bool) {
+func (ir *IdentityResolver) GetCellID(obj any, attributes map[string]string) (string, bool) {
 	if !ir.cellIdentity {
 		return "", false
 	}
@@ -85,30 +81,16 @@ func (ir *IdentityResolver) GetCellID(obj interface{}, attributes map[string]str
 	// Check for a valid 'id' in attributes;
 	// if present and valid due to explicit cell identity cache and return it.
 	if n, ok := attributes["id"]; ok && ulid.ValidID(n) {
-		ir.cache[obj] = n
+		ir.cache.Store(obj, n)
 		return n, true
 	}
 
-	if v, ok := ir.cache[obj]; ok {
-		return v, false
+	if v, ok := ir.cache.Load(obj); ok {
+		return v.(string), false
 	}
 
 	id := ulid.GenerateID()
-	ir.cache[obj] = id
+	ir.cache.Store(obj, id)
 
 	return id, false
-}
-
-// ToLifecycleIdentity converts a parserv1.RunmeIdentity to a LifecycleIdentity.
-func ToLifecycleIdentity(idt parserv1.RunmeIdentity) LifecycleIdentity {
-	switch idt {
-	case parserv1.RunmeIdentity_RUNME_IDENTITY_ALL:
-		return AllLifecycleIdentity
-	case parserv1.RunmeIdentity_RUNME_IDENTITY_DOCUMENT:
-		return DocumentLifecycleIdentity
-	case parserv1.RunmeIdentity_RUNME_IDENTITY_CELL:
-		return CellLifecycleIdentity
-	default:
-		return UnspecifiedLifecycleIdentity
-	}
 }

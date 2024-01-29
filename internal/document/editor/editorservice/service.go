@@ -5,12 +5,12 @@ import (
 	"encoding/base64"
 	"strings"
 
+	"go.uber.org/zap"
+
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/document/editor"
 	"github.com/stateful/runme/internal/document/identity"
 	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	"go.uber.org/zap"
-	"golang.org/x/exp/constraints"
 )
 
 type parserServiceServer struct {
@@ -26,7 +26,7 @@ func NewParserServiceServer(logger *zap.Logger) parserv1.ParserServiceServer {
 func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.DeserializeRequest) (*parserv1.DeserializeResponse, error) {
 	s.logger.Info("Deserialize", zap.ByteString("source", req.Source[:min(len(req.Source), 64)]))
 
-	identityResolver := identity.NewResolver(identity.ToLifecycleIdentity(req.Options.Identity))
+	identityResolver := identity.NewResolver(fromProtoRunmeIdentityToLifecycleIdentity(req.Options.Identity))
 	notebook, err := editor.Deserialize(req.Source, identityResolver)
 	if err != nil {
 		s.logger.Info("failed to call Deserialize", zap.Error(err))
@@ -237,9 +237,15 @@ func (*parserServiceServer) serializeCellOutputs(cell *parserv1.Cell, options *p
 	return outputs
 }
 
-func min[T constraints.Ordered](a, b T) T {
-	if a < b {
-		return a
+func fromProtoRunmeIdentityToLifecycleIdentity(idt parserv1.RunmeIdentity) identity.LifecycleIdentity {
+	switch idt {
+	case parserv1.RunmeIdentity_RUNME_IDENTITY_ALL:
+		return identity.AllLifecycleIdentity
+	case parserv1.RunmeIdentity_RUNME_IDENTITY_DOCUMENT:
+		return identity.DocumentLifecycleIdentity
+	case parserv1.RunmeIdentity_RUNME_IDENTITY_CELL:
+		return identity.CellLifecycleIdentity
+	default:
+		return identity.UnspecifiedLifecycleIdentity
 	}
-	return b
 }

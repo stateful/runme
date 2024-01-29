@@ -106,12 +106,6 @@ func WithFindRepoUpward() ProjectOption {
 	}
 }
 
-func WithIdentityResolver(resolver *identity.IdentityResolver) ProjectOption {
-	return func(p *Project) {
-		p.identityResolver = resolver
-	}
-}
-
 func WithEnvFilesReadOrder(order []string) ProjectOption {
 	return func(p *Project) {
 		p.envFilesReadOrder = order
@@ -125,8 +119,6 @@ func WithLogger(logger *zap.Logger) ProjectOption {
 }
 
 type Project struct {
-	identityResolver *identity.IdentityResolver
-
 	// filePath is used for file-based projects.
 	filePath string
 

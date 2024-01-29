@@ -5,10 +5,10 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/stateful/runme/internal/document/identity"
+	"go.uber.org/zap"
+
 	projectv1 "github.com/stateful/runme/internal/gen/proto/go/runme/project/v1"
 	"github.com/stateful/runme/internal/project"
-	"go.uber.org/zap"
 )
 
 type projectServiceServer struct {
@@ -78,17 +78,10 @@ func (s *projectServiceServer) Load(req *projectv1.LoadRequest, srv projectv1.Pr
 	return <-errc
 }
 
-func identityFromReq(req *projectv1.LoadRequest) *identity.IdentityResolver {
-	ident := identity.ToLifecycleIdentity(req.Identity)
-	return identity.NewResolver(ident)
-}
-
 func projectFromReq(req *projectv1.LoadRequest) (*project.Project, error) {
 	switch v := req.GetKind().(type) {
 	case *projectv1.LoadRequest_Directory:
 		var opts []project.ProjectOption
-
-		opts = append(opts, project.WithIdentityResolver(identityFromReq(req)))
 
 		if !v.Directory.SkipGitignore {
 			opts = append(opts, project.WithRespectGitignore())
@@ -104,10 +97,7 @@ func projectFromReq(req *projectv1.LoadRequest) (*project.Project, error) {
 
 		return project.NewDirProject(v.Directory.Path, opts...)
 	case *projectv1.LoadRequest_File:
-		opts := []project.ProjectOption{
-			project.WithIdentityResolver(identityFromReq(req)),
-		}
-		return project.NewFileProject(v.File.Path, opts...)
+		return project.NewFileProject(v.File.Path)
 	default:
 		return nil, errors.New("unknown request kind")
 	}

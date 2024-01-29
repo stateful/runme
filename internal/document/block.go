@@ -8,10 +8,10 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/stateful/runme/internal/document/identity"
+	"github.com/yuin/goldmark/ast"
+
 	"github.com/stateful/runme/internal/executable"
 	"github.com/stateful/runme/internal/shell"
-	"github.com/yuin/goldmark/ast"
 )
 
 type BlockKind int
@@ -67,7 +67,7 @@ type CodeBlock struct {
 func newCodeBlock(
 	document *Document,
 	node *ast.FencedCodeBlock,
-	identityResolver *identity.IdentityResolver,
+	identityResolver identityResolver,
 	nameResolver *nameResolver,
 	source []byte,
 	render Renderer,
