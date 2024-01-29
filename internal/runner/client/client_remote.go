@@ -132,7 +132,7 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 	tty := block.Interactive()
 
 	customShell := r.customShell
-	if fmtr.Shell != "" {
+	if fmtr != nil && fmtr.Shell != "" {
 		customShell = fmtr.Shell
 	}
 
