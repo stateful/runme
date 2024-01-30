@@ -11,6 +11,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -24,14 +25,14 @@ type VirtualCommand struct {
 	// stdin is Opts.Stdin wrapped in readCloser.
 	stdin io.ReadCloser
 
-	cleanFuncs []func()
+	cleanFuncs []func() error
 
 	pty *os.File
 	tty *os.File
 
 	wg sync.WaitGroup
 
-	mx  sync.Mutex
+	mu  sync.Mutex
 	err error
 
 	logger *zap.Logger
@@ -207,64 +208,73 @@ func (c *VirtualCommand) StopWithSignal(sig os.Signal) error {
 	return nil
 }
 
-func (c *VirtualCommand) Wait() error {
+func (c *VirtualCommand) Wait() (err error) {
 	c.logger.Info("waiting for the virtual command to finish")
 
-	defer c.cleanup()
+	defer func() {
+		errC := errors.WithStack(c.cleanup())
+		c.logger.Info("cleaned up the virtual command", zap.Error(errC))
+		if err == nil && errC != nil {
+			err = errC
+		}
+	}()
 
-	waitErr := c.cmd.Wait()
-	c.logger.Info("the virtual command finished", zap.Error(waitErr))
+	err = errors.WithStack(c.cmd.Wait())
+	c.logger.Info("the virtual command finished", zap.Error(err))
 
-	if err := c.closeIO(); err != nil {
-		return err
+	errIO := c.closeIO()
+	c.logger.Info("closed IO of the virtual command", zap.Error(errIO))
+	if err == nil && errIO != nil {
+		err = errIO
 	}
 
 	c.wg.Wait()
 
-	if waitErr != nil {
-		return errors.WithStack(waitErr)
+	c.mu.Lock()
+	if err == nil && c.err != nil {
+		err = c.err
 	}
+	c.mu.Unlock()
 
-	c.mx.Lock()
-	err := c.err
-	c.mx.Unlock()
-
-	return err
+	return
 }
 
 func (c *VirtualCommand) setErr(err error) {
 	if err == nil {
 		return
 	}
-	c.mx.Lock()
+	c.mu.Lock()
 	if c.err == nil {
 		c.err = err
 	}
-	c.mx.Unlock()
+	c.mu.Unlock()
 }
 
-func (c *VirtualCommand) closeIO() error {
+func (c *VirtualCommand) closeIO() (err error) {
 	if !isNil(c.stdin) {
-		if err := c.stdin.Close(); err != nil {
-			return errors.WithMessage(err, "failed to close stdin")
+		if errClose := c.stdin.Close(); errClose != nil {
+			err = multierr.Append(err, errors.WithMessage(errClose, "failed to close stdin"))
 		}
 	}
 
-	if err := c.tty.Close(); err != nil {
-		return errors.WithMessage(err, "failed to close tty")
+	if errClose := c.tty.Close(); errClose != nil {
+		err = multierr.Append(err, errors.WithMessage(errClose, "failed to close tty"))
 	}
 
 	// if err := c.pty.Close(); err != nil {
 	// 	return errors.WithMessage(err, "failed to close pty")
 	// }
 
-	return nil
+	return
 }
 
-func (c *VirtualCommand) cleanup() {
+func (c *VirtualCommand) cleanup() (err error) {
 	for _, fn := range c.cleanFuncs {
-		fn()
+		if errFn := fn(); errFn != nil {
+			err = multierr.Append(err, errFn)
+		}
 	}
+	return
 }
 
 type Winsize pty.Winsize
