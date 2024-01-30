@@ -510,6 +510,7 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 				Source: &runnerv2alpha1.ProgramConfig_Commands{
 					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
 						Items: []string{
+							"sleep 3", // wait for the winsize to be set
 							"tput lines",
 							"tput cols",
 						},
