@@ -74,7 +74,7 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, error) {
 
 		if isShellLanguage(filepath.Base(cfg.ProgramName)) {
 			if n.session != nil {
-				_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
+				_, _ = buf.WriteString(fmt.Sprintf("trap \"%s > %s\" EXIT\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
 
 				n.isEnvCollectable = true
 			}
@@ -107,57 +107,59 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, error) {
 	return result, nil
 }
 
-func (n *argsNormalizer) Cleanup() {
+func (n *argsNormalizer) Cleanup() error {
 	if n.tempDir == "" {
-		return
+		return nil
 	}
 
 	n.logger.Info("cleaning up the temporary dir")
 
 	if err := os.RemoveAll(n.tempDir); err != nil {
-		n.logger.Info("failed to remove temporary dir", zap.Error(err))
+		return errors.WithMessage(err, "failed to remove the temporary dir")
 	}
+
+	return nil
 }
 
-func (n *argsNormalizer) CollectEnv() {
+func (n *argsNormalizer) CollectEnv() error {
 	if n.session == nil || !n.isEnvCollectable {
-		return
+		return nil
 	}
 
 	n.logger.Info("collecting env")
 
 	startEnv, err := n.readEnvFromFile(envStartFileName)
 	if err != nil {
-		n.logger.Info("failed to read the start env file", zap.Error(err))
-		return
+		return err
 	}
 
 	endEnv, err := n.readEnvFromFile(envEndFileName)
 	if err != nil {
-		n.logger.Info("failed to read the end env file", zap.Error(err))
-		return
+		return err
 	}
+
+	// Below, we diff the env collected before and after the script execution.
+	// Then, update the session with the new or updated env and delete the deleted env.
 
 	startEnvStore := newEnvStore()
 	if _, err := startEnvStore.Merge(startEnv...); err != nil {
-		n.logger.Info("failed to create the start env store", zap.Error(err))
-		return
+		return errors.WithMessage(err, "failed to create the start env store")
 	}
 
 	endEnvStore := newEnvStore()
 	if _, err := endEnvStore.Merge(endEnv...); err != nil {
-		n.logger.Info("failed to create the end env store", zap.Error(err))
-		return
+		return errors.WithMessage(err, "failed to create the end env store")
 	}
 
 	newOrUpdated, _, deleted := diffEnvStores(startEnvStore, endEnvStore)
 
 	if err := n.session.SetEnv(newOrUpdated...); err != nil {
-		n.logger.Info("failed to set the new or updated env", zap.Error(err))
-		return
+		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
 
 	n.session.DeleteEnv(deleted...)
+
+	return nil
 }
 
 func (n *argsNormalizer) createTempDir() (err error) {
@@ -182,7 +184,7 @@ func (n *argsNormalizer) writeScript(script []byte) error {
 func (n *argsNormalizer) readEnvFromFile(name string) (result []string, _ error) {
 	f, err := os.Open(filepath.Join(n.tempDir, name))
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.WithMessagef(err, "failed to open the env file %q", name)
 	}
 	defer func() { _ = f.Close() }()
 
@@ -194,10 +196,10 @@ func (n *argsNormalizer) readEnvFromFile(name string) (result []string, _ error)
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.WithMessagef(err, "failed to scan the env file %q", name)
 	}
 
-	return result, errors.WithStack(scanner.Err())
+	return result, nil
 }
 
 func splitNull(data []byte, atEOF bool) (advance int, token []byte, err error) {

@@ -166,7 +166,9 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 		// Wait for both errors, or nils.
 		select {
 		case err2 := <-errc:
-			e.logger.Info("another error from readSendLoop; won't be returned", zap.Error(err2))
+			if err2 != nil {
+				e.logger.Info("another error from readSendLoop; won't be returned", zap.Error(err2))
+			}
 		case <-ctx.Done():
 		}
 		return exitCode, err1

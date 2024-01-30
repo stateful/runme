@@ -3,6 +3,7 @@
 package runnerv2service
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net"
@@ -58,19 +59,24 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 	assert.Greater(t, resp.Pid.Value, uint32(1))
 	assert.Nil(t, resp.ExitCode)
 
-	// Assert second response.
-	resp, err = stream.Recv()
-	assert.NoError(t, err)
-	assert.Equal(t, "test\n", string(resp.StdoutData))
-	assert.Nil(t, resp.ExitCode)
-	assert.Nil(t, resp.Pid)
+	// Assert second and third responses.
+	var out bytes.Buffer
 
-	// Assert third response.
 	resp, err = stream.Recv()
 	assert.NoError(t, err)
-	assert.Equal(t, "test\n", string(resp.StderrData))
 	assert.Nil(t, resp.ExitCode)
 	assert.Nil(t, resp.Pid)
+	_, err = out.Write(resp.StdoutData)
+	assert.NoError(t, err)
+
+	resp, err = stream.Recv()
+	assert.NoError(t, err)
+	assert.Nil(t, resp.ExitCode)
+	assert.Nil(t, resp.Pid)
+	_, err = out.Write(resp.StderrData)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "test\ntest\n", out.String())
 
 	// Assert fourth response.
 	resp, err = stream.Recv()
@@ -222,7 +228,7 @@ func TestRunnerServiceServerExecuteConfigs(t *testing.T) {
 	}
 }
 
-func TestRunnerServiceServerExecute_Input(t *testing.T) {
+func TestRunnerServiceServerExecuteWithInput(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)

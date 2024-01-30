@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/pkg/errors"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +20,7 @@ type NativeCommand struct {
 	// cmd is populated when the command is started.
 	cmd *exec.Cmd
 
-	cleanFuncs []func()
+	cleanFuncs []func() error
 
 	logger *zap.Logger
 }
@@ -104,18 +105,20 @@ func (c *NativeCommand) Start(ctx context.Context) (err error) {
 	// like "python", hence, it's commented out.
 	// setSysProcAttrPgid(c.cmd)
 
-	c.logger.Info("starting a local command", zap.Any("config", redactConfig(cfg)))
+	c.logger.Info("starting a native command", zap.Any("config", redactConfig(cfg)))
 
 	if err := c.cmd.Start(); err != nil {
 		return errors.WithStack(err)
 	}
 
-	c.logger.Info("a local command started")
+	c.logger.Info("a native command started")
 
 	return nil
 }
 
 func (c *NativeCommand) StopWithSignal(sig os.Signal) error {
+	c.logger.Info("stopping the native command with a signal", zap.Stringer("signal", sig))
+
 	if SignalToProcessGroup {
 		// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
 		err := signalPgid(c.cmd.Process.Pid, sig)
@@ -133,14 +136,20 @@ func (c *NativeCommand) StopWithSignal(sig os.Signal) error {
 	return nil
 }
 
-func (c *NativeCommand) Wait() error {
-	c.logger.Info("waiting for the local command to finish")
+func (c *NativeCommand) Wait() (err error) {
+	c.logger.Info("waiting for the native command to finish")
 
-	defer c.cleanup()
+	defer func() {
+		errC := errors.WithStack(c.cleanup())
+		c.logger.Info("cleaned up the native command", zap.Error(errC))
+		if err == nil && errC != nil {
+			err = errC
+		}
+	}()
 
 	var stderr []byte
 
-	err := c.cmd.Wait()
+	err = errors.WithStack(c.cmd.Wait())
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -148,13 +157,16 @@ func (c *NativeCommand) Wait() error {
 		}
 	}
 
-	c.logger.Info("the local command finished", zap.Error(err), zap.ByteString("stderr", stderr))
+	c.logger.Info("the native command finished", zap.Error(err), zap.ByteString("stderr", stderr))
 
-	return errors.WithStack(err)
+	return
 }
 
-func (c *NativeCommand) cleanup() {
+func (c *NativeCommand) cleanup() (err error) {
 	for _, fn := range c.cleanFuncs {
-		fn()
+		if errFn := fn(); errFn != nil {
+			err = multierr.Append(err, errFn)
+		}
 	}
+	return
 }
