@@ -40,6 +40,17 @@ func TestRunnerServiceResolveEnv(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "WithAdditionalEnv",
+			request: &runnerv2alpha1.ResolveEnvRequest{
+				Env: []string{"TEST_RESOLVED=value", "TEST_EXTRA=value"},
+				Source: &runnerv2alpha1.ResolveEnvRequest_Commands{
+					Commands: &runnerv2alpha1.ResolveEnvRequest_CommandList{
+						Items: []string{"export TEST_RESOLVED=default", "export TEST_UNRESOLVED"},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

@@ -5,7 +5,7 @@ package runme.runner.v2alpha1;
 import "google/protobuf/wrappers.proto";
 import "runme/runner/v2alpha1/config.proto";
 
-option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1;runnerv1";
+option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1;runnerv2alpha1";
 
 message Project {
   // root is a root directory of the project.
@@ -232,6 +232,6 @@ service RunnerService {
   // using the provided sources, which can be a list of environment variables,
   // a session, or a project.
   // The result contains all found environment variables. If the env is in any source,
-  // it is considered resolved. Otherwise, it is makred as unresolved.
+  // it is considered resolved. Otherwise, it is marked as unresolved.
   rpc ResolveEnv(ResolveEnvRequest) returns (ResolveEnvResponse) {}
 }

@@ -42,13 +42,6 @@ func closeOnExec(fd uintptr) {
 	syscall.CloseOnExec(int(fd))
 }
 
-// func setSysProcAttrPgid(cmd *exec.Cmd) {
-// 	if cmd.SysProcAttr == nil {
-// 		cmd.SysProcAttr = &syscall.SysProcAttr{}
-// 	}
-// 	cmd.SysProcAttr.Setpgid = true
-// }
-
 func signalPgid(pid int, sig os.Signal) error {
 	pgid, err := syscall.Getpgid(pid)
 	if err != nil {

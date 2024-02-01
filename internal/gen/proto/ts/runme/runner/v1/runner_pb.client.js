@@ -63,7 +63,7 @@ export class RunnerServiceClient {
      * using the provided sources, which can be a list of environment variables,
      * a session, or a project.
      * The result contains all found environment variables. If the env is in any source,
-     * it is considered resolved. Otherwise, it is makred as unresolved.
+     * it is considered resolved. Otherwise, it is marked as unresolved.
      *
      * @generated from protobuf rpc: ResolveEnv(runme.runner.v1.ResolveEnvRequest) returns (runme.runner.v1.ResolveEnvResponse);
      */
