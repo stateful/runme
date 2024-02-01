@@ -18,7 +18,7 @@ func EnvResolverSourceFunc(env []string) EnvResolverSource {
 
 // EnvResolver uses a list of EnvResolverSource to resolve environment variables
 // found in a shell program. The result contains all found environment variables.
-// If the env is in any source, it is considered resolved. Otherwise, it is makred
+// If the env is in any source, it is considered resolved. Otherwise, it is marked
 // as unresolved.
 type EnvResolver struct {
 	sources  []EnvResolverSource

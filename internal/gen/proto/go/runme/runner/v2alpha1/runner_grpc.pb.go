@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: runme/runner/v2alpha1/runner.proto
 
-package runnerv1
+package runnerv2alpha1
 
 import (
 	context "context"
@@ -49,7 +49,7 @@ type RunnerServiceClient interface {
 	// using the provided sources, which can be a list of environment variables,
 	// a session, or a project.
 	// The result contains all found environment variables. If the env is in any source,
-	// it is considered resolved. Otherwise, it is makred as unresolved.
+	// it is considered resolved. Otherwise, it is marked as unresolved.
 	ResolveEnv(ctx context.Context, in *ResolveEnvRequest, opts ...grpc.CallOption) (*ResolveEnvResponse, error)
 }
 
@@ -167,7 +167,7 @@ type RunnerServiceServer interface {
 	// using the provided sources, which can be a list of environment variables,
 	// a session, or a project.
 	// The result contains all found environment variables. If the env is in any source,
-	// it is considered resolved. Otherwise, it is makred as unresolved.
+	// it is considered resolved. Otherwise, it is marked as unresolved.
 	ResolveEnv(context.Context, *ResolveEnvRequest) (*ResolveEnvResponse, error)
 	mustEmbedUnimplementedRunnerServiceServer()
 }
