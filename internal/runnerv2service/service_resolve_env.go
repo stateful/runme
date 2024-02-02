@@ -12,7 +12,7 @@ import (
 	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 )
 
-func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv2alpha1.ResolveEnvRequest) (*runnerv2alpha1.ResolveEnvResponse, error) {
+func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv2alpha1.ResolveVarsRequest) (*runnerv2alpha1.ResolveVarsResponse, error) {
 	// Add explicitly passed env as a source.
 	sources := []command.EnvResolverSource{
 		command.EnvResolverSourceFunc(req.Env),
@@ -56,10 +56,10 @@ func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv2alpha1.Reso
 		return nil, err
 	}
 
-	response := &runnerv2alpha1.ResolveEnvResponse{}
+	response := &runnerv2alpha1.ResolveVarsResponse{}
 
 	for _, item := range result {
-		response.Items = append(response.Items, &runnerv2alpha1.ResolveEnvResult{
+		response.Items = append(response.Items, &runnerv2alpha1.ResolveVarsResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,

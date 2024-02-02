@@ -577,7 +577,7 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 	}
 }
 
-func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv1.ResolveEnvRequest) (*runnerv1.ResolveEnvResponse, error) {
+func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVarsRequest) (*runnerv1.ResolveVarsResponse, error) {
 	// Add explicitly passed env as a source.
 	sources := []commandpkg.EnvResolverSource{
 		commandpkg.EnvResolverSourceFunc(req.Env),
@@ -621,10 +621,10 @@ func (r *runnerService) ResolveEnv(ctx context.Context, req *runnerv1.ResolveEnv
 		return nil, err
 	}
 
-	response := &runnerv1.ResolveEnvResponse{}
+	response := &runnerv1.ResolveVarsResponse{}
 
 	for _, item := range result {
-		response.Items = append(response.Items, &runnerv1.ResolveEnvResult{
+		response.Items = append(response.Items, &runnerv1.ResolveVarsResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
