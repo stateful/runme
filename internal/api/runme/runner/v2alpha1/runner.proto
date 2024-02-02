@@ -159,7 +159,7 @@ message ExecuteResponse {
   google.protobuf.UInt32Value pid = 4;
 }
 
-message ResolveEnvRequest {
+message ResolveVarsRequest {
   oneof source {
     // commands are commands to be executed by the program.
     // The commands are joined and executed as a script.
@@ -193,7 +193,7 @@ message ResolveEnvRequest {
   }
 }
 
-message ResolveEnvResult {
+message ResolveVarsResult {
   // name is the name of the environment variable.
   string name = 1;
 
@@ -208,8 +208,8 @@ message ResolveEnvResult {
   string resolved_value = 3;
 }
 
-message ResolveEnvResponse {
-  repeated ResolveEnvResult items = 1;
+message ResolveVarsResponse {
+  repeated ResolveVarsResult items = 1;
 }
 
 service RunnerService {
@@ -228,10 +228,9 @@ service RunnerService {
   // other fields will be ignored.
   rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
 
-  // ResolveEnv resolves environment variables from a script or a list of commands
+  // ResolveVars resolves variables from a script or a list of commands
   // using the provided sources, which can be a list of environment variables,
   // a session, or a project.
-  // The result contains all found environment variables. If the env is in any source,
-  // it is considered resolved. Otherwise, it is marked as unresolved.
-  rpc ResolveEnv(ResolveEnvRequest) returns (ResolveEnvResponse) {}
+  // For now, the resolved variables are only the exported ones using `export`.
+  rpc ResolveVars(ResolveVarsRequest) returns (ResolveVarsResponse) {}
 }

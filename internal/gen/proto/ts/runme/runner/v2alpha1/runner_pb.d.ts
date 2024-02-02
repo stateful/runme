@@ -285,9 +285,9 @@ export interface ExecuteResponse {
     pid?: UInt32Value;
 }
 /**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvRequest
+ * @generated from protobuf message runme.runner.v2alpha1.ResolveVarsRequest
  */
-export interface ResolveEnvRequest {
+export interface ResolveVarsRequest {
     /**
      * @generated from protobuf oneof: source
      */
@@ -297,9 +297,9 @@ export interface ResolveEnvRequest {
          * commands are commands to be executed by the program.
          * The commands are joined and executed as a script.
          *
-         * @generated from protobuf field: runme.runner.v2alpha1.ResolveEnvRequest.CommandList commands = 1;
+         * @generated from protobuf field: runme.runner.v2alpha1.ResolveVarsRequest.CommandList commands = 1;
          */
-        commands: ResolveEnvRequest_CommandList;
+        commands: ResolveVarsRequest_CommandList;
     } | {
         oneofKind: "script";
         /**
@@ -341,9 +341,9 @@ export interface ResolveEnvRequest {
     project?: Project;
 }
 /**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvRequest.CommandList
+ * @generated from protobuf message runme.runner.v2alpha1.ResolveVarsRequest.CommandList
  */
-export interface ResolveEnvRequest_CommandList {
+export interface ResolveVarsRequest_CommandList {
     /**
      * commands are commands to be executed by the program.
      * The commands are joined and executed as a script.
@@ -354,9 +354,9 @@ export interface ResolveEnvRequest_CommandList {
     items: string[];
 }
 /**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResult
+ * @generated from protobuf message runme.runner.v2alpha1.ResolveVarsResult
  */
-export interface ResolveEnvResult {
+export interface ResolveVarsResult {
     /**
      * name is the name of the environment variable.
      *
@@ -381,13 +381,13 @@ export interface ResolveEnvResult {
     resolvedValue: string;
 }
 /**
- * @generated from protobuf message runme.runner.v2alpha1.ResolveEnvResponse
+ * @generated from protobuf message runme.runner.v2alpha1.ResolveVarsResponse
  */
-export interface ResolveEnvResponse {
+export interface ResolveVarsResponse {
     /**
-     * @generated from protobuf field: repeated runme.runner.v2alpha1.ResolveEnvResult items = 1;
+     * @generated from protobuf field: repeated runme.runner.v2alpha1.ResolveVarsResult items = 1;
      */
-    items: ResolveEnvResult[];
+    items: ResolveVarsResult[];
 }
 /**
  * @generated from protobuf enum runme.runner.v2alpha1.ExecuteStop
@@ -533,34 +533,34 @@ declare class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
  * @generated MessageType for protobuf message runme.runner.v2alpha1.ExecuteResponse
  */
 export declare const ExecuteResponse: ExecuteResponse$Type;
-declare class ResolveEnvRequest$Type extends MessageType<ResolveEnvRequest> {
+declare class ResolveVarsRequest$Type extends MessageType<ResolveVarsRequest> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvRequest
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveVarsRequest
  */
-export declare const ResolveEnvRequest: ResolveEnvRequest$Type;
-declare class ResolveEnvRequest_CommandList$Type extends MessageType<ResolveEnvRequest_CommandList> {
+export declare const ResolveVarsRequest: ResolveVarsRequest$Type;
+declare class ResolveVarsRequest_CommandList$Type extends MessageType<ResolveVarsRequest_CommandList> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvRequest.CommandList
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveVarsRequest.CommandList
  */
-export declare const ResolveEnvRequest_CommandList: ResolveEnvRequest_CommandList$Type;
-declare class ResolveEnvResult$Type extends MessageType<ResolveEnvResult> {
+export declare const ResolveVarsRequest_CommandList: ResolveVarsRequest_CommandList$Type;
+declare class ResolveVarsResult$Type extends MessageType<ResolveVarsResult> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResult
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveVarsResult
  */
-export declare const ResolveEnvResult: ResolveEnvResult$Type;
-declare class ResolveEnvResponse$Type extends MessageType<ResolveEnvResponse> {
+export declare const ResolveVarsResult: ResolveVarsResult$Type;
+declare class ResolveVarsResponse$Type extends MessageType<ResolveVarsResponse> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveEnvResponse
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveVarsResponse
  */
-export declare const ResolveEnvResponse: ResolveEnvResponse$Type;
+export declare const ResolveVarsResponse: ResolveVarsResponse$Type;
 /**
  * @generated ServiceType for protobuf service runme.runner.v2alpha1.RunnerService
  */

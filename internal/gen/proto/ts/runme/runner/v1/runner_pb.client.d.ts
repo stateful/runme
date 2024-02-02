@@ -5,8 +5,8 @@
 // @ts-nocheck
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
-import type { ResolveEnvResponse } from "./runner_pb";
-import type { ResolveEnvRequest } from "./runner_pb";
+import type { ResolveVarsResponse } from "./runner_pb";
+import type { ResolveVarsRequest } from "./runner_pb";
 import type { ExecuteResponse } from "./runner_pb";
 import type { ExecuteRequest } from "./runner_pb";
 import type { DuplexStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -53,15 +53,14 @@ export interface IRunnerServiceClient {
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
     /**
-     * ResolveEnv resolves environment variables from a script or a list of commands
+     * ResolveVars resolves variables from a script or a list of commands
      * using the provided sources, which can be a list of environment variables,
      * a session, or a project.
-     * The result contains all found environment variables. If the env is in any source,
-     * it is considered resolved. Otherwise, it is marked as unresolved.
+     * For now, the resolved variables are only the exported ones using `export`.
      *
-     * @generated from protobuf rpc: ResolveEnv(runme.runner.v1.ResolveEnvRequest) returns (runme.runner.v1.ResolveEnvResponse);
+     * @generated from protobuf rpc: ResolveVars(runme.runner.v1.ResolveVarsRequest) returns (runme.runner.v1.ResolveVarsResponse);
      */
-    resolveEnv(input: ResolveEnvRequest, options?: RpcOptions): UnaryCall<ResolveEnvRequest, ResolveEnvResponse>;
+    resolveVars(input: ResolveVarsRequest, options?: RpcOptions): UnaryCall<ResolveVarsRequest, ResolveVarsResponse>;
 }
 /**
  * @generated from protobuf service runme.runner.v1.RunnerService
@@ -101,13 +100,12 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
     /**
-     * ResolveEnv resolves environment variables from a script or a list of commands
+     * ResolveVars resolves variables from a script or a list of commands
      * using the provided sources, which can be a list of environment variables,
      * a session, or a project.
-     * The result contains all found environment variables. If the env is in any source,
-     * it is considered resolved. Otherwise, it is marked as unresolved.
+     * For now, the resolved variables are only the exported ones using `export`.
      *
-     * @generated from protobuf rpc: ResolveEnv(runme.runner.v1.ResolveEnvRequest) returns (runme.runner.v1.ResolveEnvResponse);
+     * @generated from protobuf rpc: ResolveVars(runme.runner.v1.ResolveVarsRequest) returns (runme.runner.v1.ResolveVarsResponse);
      */
-    resolveEnv(input: ResolveEnvRequest, options?: RpcOptions): UnaryCall<ResolveEnvRequest, ResolveEnvResponse>;
+    resolveVars(input: ResolveVarsRequest, options?: RpcOptions): UnaryCall<ResolveVarsRequest, ResolveVarsResponse>;
 }

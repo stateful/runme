@@ -262,10 +262,10 @@ class ExecuteResponse$Type extends MessageType {
  */
 export const ExecuteResponse = new ExecuteResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveEnvRequest$Type extends MessageType {
+class ResolveVarsRequest$Type extends MessageType {
     constructor() {
-        super("runme.runner.v1.ResolveEnvRequest", [
-            { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveEnvRequest_CommandList },
+        super("runme.runner.v1.ResolveVarsRequest", [
+            { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveVarsRequest_CommandList },
             { no: 2, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -275,25 +275,25 @@ class ResolveEnvRequest$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvRequest
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsRequest
  */
-export const ResolveEnvRequest = new ResolveEnvRequest$Type();
+export const ResolveVarsRequest = new ResolveVarsRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveEnvRequest_CommandList$Type extends MessageType {
+class ResolveVarsRequest_CommandList$Type extends MessageType {
     constructor() {
-        super("runme.runner.v1.ResolveEnvRequest.CommandList", [
+        super("runme.runner.v1.ResolveVarsRequest.CommandList", [
             { no: 1, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvRequest.CommandList
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsRequest.CommandList
  */
-export const ResolveEnvRequest_CommandList = new ResolveEnvRequest_CommandList$Type();
+export const ResolveVarsRequest_CommandList = new ResolveVarsRequest_CommandList$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveEnvResult$Type extends MessageType {
+class ResolveVarsResult$Type extends MessageType {
     constructor() {
-        super("runme.runner.v1.ResolveEnvResult", [
+        super("runme.runner.v1.ResolveVarsResult", [
             { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -301,21 +301,21 @@ class ResolveEnvResult$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvResult
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsResult
  */
-export const ResolveEnvResult = new ResolveEnvResult$Type();
+export const ResolveVarsResult = new ResolveVarsResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveEnvResponse$Type extends MessageType {
+class ResolveVarsResponse$Type extends MessageType {
     constructor() {
-        super("runme.runner.v1.ResolveEnvResponse", [
-            { no: 1, name: "items", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveEnvResult }
+        super("runme.runner.v1.ResolveVarsResponse", [
+            { no: 1, name: "items", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveVarsResult }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveEnvResponse
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsResponse
  */
-export const ResolveEnvResponse = new ResolveEnvResponse$Type();
+export const ResolveVarsResponse = new ResolveVarsResponse$Type();
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */
@@ -325,5 +325,5 @@ export const RunnerService = new ServiceType("runme.runner.v1.RunnerService", [
     { name: "ListSessions", options: {}, I: ListSessionsRequest, O: ListSessionsResponse },
     { name: "DeleteSession", options: {}, I: DeleteSessionRequest, O: DeleteSessionResponse },
     { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse },
-    { name: "ResolveEnv", options: {}, I: ResolveEnvRequest, O: ResolveEnvResponse }
+    { name: "ResolveVars", options: {}, I: ResolveVarsRequest, O: ResolveVarsResponse }
 ]);
