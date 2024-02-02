@@ -4,7 +4,7 @@ runme:
   version: v2.2
 ---
 
-# Daemon/kernel functionality
+# GRPC Kernel
 
 Install system dependencies:
 
@@ -12,37 +12,23 @@ Install system dependencies:
 $ brew bundle --no-lock
 ```
 
-Let's build the project first and include working directory into `$PATH`:
-
-```sh {"id":"01HF7BT3HBDTRGQAQMGVG57QBE"}
-$ cd ../..
-$ make
-$ export CWD=$(cd ../.. && pwd | tr -d '\n')
-$ export PATH="$CWD:$PATH"
-```
-
 ## Exercise GRPC interface
-
-Bring up the server. It's gRPC based:
-
-```sh {"background":"true","id":"01HF7BT3HBDTRGQAQMGXCKJCAB"}
-$ ../../runme server --address /tmp/runme.sock
-```
 
 Issue a simple call to the deserialize API, first set markdown input data:
 
 ```sh {"id":"01HF7BT3HBDTRGQAQMH0ZYTWA9"}
-export mddata="# Ohai this is my cool headline"
+export MD="# Ohai this is my cool headline"
 ```
 
 Then issue RPC call and display the result:
 
-```sh {"closeTerminalOnSuccess":"false","id":"01HF7BT3HBDTRGQAQMH2K85BHG"}
-$ data="$(echo $mddata | openssl base64 | tr -d '\n')"
+```sh {"closeTerminalOnSuccess":"false","id":"01HF7BT3HBDTRGQAQMH2K85BHG","terminalRows":"15"}
+$ data="$(echo $MD | openssl base64 | tr -d '\n')"
 $ cd ../.. && grpcurl \
+    -cacert /tmp/runme/tls/cert.pem \
+    -cert /tmp/runme/tls/cert.pem \
+    -key /tmp/runme/tls/key.pem \
     -protoset <(buf build -o -) \
     -d "{\"source\": \"$data\"}" \
-    -plaintext \
-    -unix /tmp/runme.sock \
-    runme.parser.v1.ParserService/Deserialize
+    127.0.0.1:9999 runme.parser.v1.ParserService/Deserialize
 ```
