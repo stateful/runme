@@ -4,7 +4,7 @@ runme:
   version: v2.2
 ---
 
-# GRPC Kernel
+# GRPC Setup
 
 Install system dependencies:
 
