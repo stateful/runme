@@ -251,6 +251,8 @@ func fromProtoDeserializeReqOptionsToLifecycleIdentity(opt *parserv1.Deserialize
 		return identity.DocumentLifecycleIdentity
 	case parserv1.RunmeIdentity_RUNME_IDENTITY_CELL:
 		return identity.CellLifecycleIdentity
+	case parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED:
+		return identity.UnspecifiedLifecycleIdentity
 	default:
 		return identity.DefaultLifecycleIdentity
 	}
