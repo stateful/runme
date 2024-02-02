@@ -6,7 +6,7 @@ runme:
 
 ## ProjectService
 
-Flags match the launcher arguments in .vscode/launch.json.
+Flags match the launcher arguments in `.vscode/launch.json` for `Debug Server`. Be sure to complete [setup.md](setup.md).
 
 List available operations:
 
