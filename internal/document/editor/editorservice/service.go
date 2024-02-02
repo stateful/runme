@@ -26,7 +26,7 @@ func NewParserServiceServer(logger *zap.Logger) parserv1.ParserServiceServer {
 func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.DeserializeRequest) (*parserv1.DeserializeResponse, error) {
 	s.logger.Info("Deserialize", zap.ByteString("source", req.Source[:min(len(req.Source), 64)]))
 
-	identityResolver := identity.NewResolver(fromProtoRunmeIdentityToLifecycleIdentity(req.Options.Identity))
+	identityResolver := identity.NewResolver(fromProtoDeserializeReqOptionsToLifecycleIdentity(req.Options))
 	notebook, err := editor.Deserialize(req.Source, identityResolver)
 	if err != nil {
 		s.logger.Info("failed to call Deserialize", zap.Error(err))
@@ -237,7 +237,13 @@ func (*parserServiceServer) serializeCellOutputs(cell *parserv1.Cell, options *p
 	return outputs
 }
 
-func fromProtoRunmeIdentityToLifecycleIdentity(idt parserv1.RunmeIdentity) identity.LifecycleIdentity {
+func fromProtoDeserializeReqOptionsToLifecycleIdentity(opt *parserv1.DeserializeRequestOptions) identity.LifecycleIdentity {
+	var idt parserv1.RunmeIdentity
+
+	if opt != nil {
+		idt = opt.Identity
+	}
+
 	switch idt {
 	case parserv1.RunmeIdentity_RUNME_IDENTITY_ALL:
 		return identity.AllLifecycleIdentity
@@ -246,6 +252,6 @@ func fromProtoRunmeIdentityToLifecycleIdentity(idt parserv1.RunmeIdentity) ident
 	case parserv1.RunmeIdentity_RUNME_IDENTITY_CELL:
 		return identity.CellLifecycleIdentity
 	default:
-		return identity.UnspecifiedLifecycleIdentity
+		return identity.DefaultLifecycleIdentity
 	}
 }
