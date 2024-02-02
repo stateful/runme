@@ -55,11 +55,11 @@ $ grpcurl \
 
 Resolve variable inside cells:
 
-```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","promptEnv":"false"}
+```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","promptEnv":"false","terminalRows":"15"}
 $ grpcurl \
     -cacert /tmp/runme/tls/cert.pem \
     -cert /tmp/runme/tls/cert.pem \
     -key /tmp/runme/tls/key.pem \
-    -d "{\"script\":\"export NAME=Noname\", \"env\":[\"NAME=Sebastian\"]}" \
-    127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveEnv
+    -d @ \
+    127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveVars < resolve-vars.json
 ```
