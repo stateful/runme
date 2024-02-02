@@ -1,0 +1,6 @@
+{
+    "script": "export NAME=\"Noname\"\nexport LICENSE=$(cat ../LICENSE)\necho \"LICENSE: $LICENSE\"",
+    "env": [
+        "LICENSE="
+    ]
+}
