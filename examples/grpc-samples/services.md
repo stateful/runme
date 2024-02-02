@@ -53,7 +53,7 @@ $ grpcurl \
     127.0.0.1:9999 list runme.runner.$VERSION.RunnerService
 ```
 
-Resolve variable inside cells:
+Resolve variables inside cell:
 
 ```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","promptEnv":"false","terminalRows":"15"}
 $ grpcurl \
