@@ -4,9 +4,9 @@ runme:
   version: v2.2
 ---
 
-## gRPC runme.project.v1.ProjectService
+## ProjectService
 
-Flags matche the launcher arguments in .vscode/launch.json.
+Flags match the launcher arguments in .vscode/launch.json.
 
 List available operations:
 
@@ -38,4 +38,28 @@ $ grpcurl \
     -key /tmp/runme/tls/key.pem \
     -d "{\"directory\":{\"path\":\".\"}}" \
     127.0.0.1:9999 runme.project.v1.ProjectService/Load
+```
+
+## RunnerService
+
+List all runner services.
+
+```sh {"id":"01HNGQNYYWKP635FT8GHE67476","promptEnv":"false"}
+export VERSION="v1" # there's also v2alpha1
+$ grpcurl \
+    -cacert /tmp/runme/tls/cert.pem \
+    -cert /tmp/runme/tls/cert.pem \
+    -key /tmp/runme/tls/key.pem \
+    127.0.0.1:9999 list runme.runner.$VERSION.RunnerService
+```
+
+Resolve variable inside cells:
+
+```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","promptEnv":"false"}
+$ grpcurl \
+    -cacert /tmp/runme/tls/cert.pem \
+    -cert /tmp/runme/tls/cert.pem \
+    -key /tmp/runme/tls/key.pem \
+    -d "{\"script\":\"export NAME=Noname\", \"env\":[\"NAME=Sebastian\"]}" \
+    127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveEnv
 ```
