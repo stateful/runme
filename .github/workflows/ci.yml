@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
       - name: Install dependencies
@@ -28,7 +28,7 @@ jobs:
       # to make sure that `make lint` also works.
       - name: Run lint from Makefile
         run: make lint
-      - uses: pre-commit/action@v2.0.3
+      - uses: pre-commit/action@v3.0.0
       - name: pre-commit
         run: pre-commit run --files $(git diff-tree --no-commit-id --name-only -r HEAD)
 
@@ -46,13 +46,13 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
       - name: Setup Node version
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - name: Build
         run: |
           go build -o runme main.go
@@ -70,7 +70,7 @@ jobs:
           make test
         if: ${{ matrix.os == 'windows-latest' }}
       - name: Upload coverage
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: ${{github.actor != 'dependabot[bot]' && matrix.os == 'ubuntu-latest'}}
         with:
           name: coverage
@@ -86,11 +86,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup Node version
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ">=1.21"
       - name: Install dependencies
@@ -118,7 +118,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Retrieve saved coverage
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage
           path: .
