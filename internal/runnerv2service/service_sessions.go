@@ -109,7 +109,7 @@ type updateRequest interface {
 }
 
 func (r *runnerService) updateSession(sess *command.Session, req updateRequest) error {
-	// Explictly passed env has higher priority and should be set first.
+	// Explicitly passed env has higher priority and should be set first.
 	if err := sess.SetEnv(req.GetEnv()...); err != nil {
 		return err
 	}

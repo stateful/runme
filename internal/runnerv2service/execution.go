@@ -181,7 +181,7 @@ func (e *execution) Write(p []byte) (int, error) {
 	n, err := e.stdinWriter.Write(p)
 
 	// Close stdin writer for native commands after handling the initial request.
-	// Native commands do not support sending data continously, as the native
+	// Native commands do not support sending data continuously, as the native
 	// command must have stdin closed to finish.
 	// Alternatively, there should be a way to signal end of input.
 	if _, ok := e.Cmd.(*command.NativeCommand); ok {

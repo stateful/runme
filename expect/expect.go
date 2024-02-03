@@ -871,7 +871,7 @@ type GenOptions struct {
 	Wait func() error
 	// Close will be called as part of the expect Close, should normally include a Close of the In WriteCloser.
 	Close func() error
-	// Check is called everytime a Send or Expect function is called to makes sure the session is still running.
+	// Check is called every time a Send or Expect function is called to makes sure the session is still running.
 	Check func() bool
 }
 
