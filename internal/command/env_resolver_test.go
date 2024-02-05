@@ -80,7 +80,7 @@ func TestEnvResolverParsing(t *testing.T) {
 		},
 		{
 			name: "double quoted value expression",
-			data: `export TEST_DBL_QUOTE_VALUE_EXPR="$( echo -n 'value')"`,
+			data: `export TEST_DBL_QUOTE_VALUE_EXPR="$(echo -n 'value')"`,
 			result: []*EnvResolverResult{
 				{Name: "TEST_DBL_QUOTE_VALUE_EXPR"},
 			},
