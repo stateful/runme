@@ -55,11 +55,33 @@ $ grpcurl \
 
 Resolve variables inside cell:
 
-```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","promptEnv":"false","terminalRows":"15"}
+```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","promptEnv":"false","terminalRows":"20"}
 $ grpcurl \
     -cacert /tmp/runme/tls/cert.pem \
     -cert /tmp/runme/tls/cert.pem \
     -key /tmp/runme/tls/key.pem \
     -d @ \
     127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveVars < resolve-vars.json
+```
+
+### Complex script
+
+```javascript {"id":"01HNQWVXY92G9KC9VYB17EMNR4","interactive":"false"}
+const fs = require('node:fs')
+
+const bytes = fs.readFileSync('./deploy-helpers.sh')
+const payload = { script: bytes.toString('utf-8') }
+const serialized = JSON.stringify(payload)
+
+fs.writeFileSync('complex-script.json', serialized)
+console.log(serialized)
+```
+
+```sh {"id":"01HNQVQB1H16B9QNV49BR0EJYY","promptEnv":"false","terminalRows":"15"}
+grpcurl \
+    -cacert /tmp/runme/tls/cert.pem \
+    -cert /tmp/runme/tls/cert.pem \
+    -key /tmp/runme/tls/key.pem \
+    -d @ \
+    127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveVars < complex-script.json
 ```

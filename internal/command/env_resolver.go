@@ -103,7 +103,13 @@ func (r *EnvResolver) findOriginalValue(decl *syntax.DeclClause) string {
 	// export FOO="bar"
 	case *syntax.DblQuoted:
 		if len(part.Parts) == 1 {
-			return part.Parts[0].(*syntax.Lit).Value
+			p, ok := part.Parts[0].(*syntax.Lit)
+			// break for quoted stmt, ie non-literal
+			// export FOO="$( echo 'this is a test' )"
+			if !ok {
+				break
+			}
+			return p.Value
 		}
 	// export FOO='bar'
 	case *syntax.SglQuoted:

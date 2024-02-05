@@ -79,6 +79,13 @@ func TestEnvResolverParsing(t *testing.T) {
 			},
 		},
 		{
+			name: "double quoted value expression",
+			data: `export TEST_DBL_QUOTE_VALUE_EXPR="$(echo -n 'value')"`,
+			result: []*EnvResolverResult{
+				{Name: "TEST_DBL_QUOTE_VALUE_EXPR"},
+			},
+		},
+		{
 			name: "default value",
 			data: `export TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}`,
 			result: []*EnvResolverResult{
