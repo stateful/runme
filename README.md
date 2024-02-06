@@ -12,6 +12,8 @@ Runme achieves this by literally running markdown. More specifically, Runme runs
   <img src="./.github/images/hello-world.gif" />
 </p>
 
+Watch full video at [Runme](https://runme.dev).
+
 ## Installation
 
 To get started with Runme on MacOS, the recommended method of installation is using Homebrew, a popular package manager that simplifies the installation process. First, ensure your Homebrew is up to date to avoid any compatibility issues:
