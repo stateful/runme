@@ -21,3 +21,9 @@ func BaseVersion() string {
 
 	return fmt.Sprintf("v%d.%d", v.Major(), v.Minor())
 }
+
+func BaseVersionAuthoritative() (string, bool) {
+	_, err := semver.NewVersion(BuildVersion)
+	baseVersion := BaseVersion()
+	return baseVersion, err == nil && baseVersion != "v0.0" && baseVersion != "v99.9"
+}

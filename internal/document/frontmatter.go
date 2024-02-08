@@ -144,17 +144,11 @@ func (f *Frontmatter) ensureID() {
 		f.Runme.ID = ulid.GenerateID()
 	}
 
-	baseVersion := version.BaseVersion()
-	if baseVersion == "v99.9" || baseVersion == "v0.0" {
-		return
+	if v, ok := version.BaseVersionAuthoritative(); ok {
+		f.Runme.Version = v
 	}
-	f.Runme.Version = baseVersion
 }
 
-// TODO(adamb): Frontmatter can return (nil, nil) which indicates that
-// there is no error, but also that there is no FrontMatter. It is not
-// the best API. Consider adding HasFrontmatter() and returning an error
-// if there is none from this method.
 func (d *Document) Frontmatter() (*Frontmatter, error) {
 	d.splitSource()
 

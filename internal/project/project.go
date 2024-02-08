@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/go-git/go-billy/v5"
@@ -69,17 +68,11 @@ type LoadEvent struct {
 	Data any
 }
 
-// TODO(adamb): add more robust implementation.
-//
-// Consider switching away from reflection
-// as this method is used in hot code path.
-func (e LoadEvent) extractDataValue(val any) {
-	reflect.ValueOf(val).Elem().Set(reflect.ValueOf(e.Data))
-}
-
 func ExtractDataFromLoadEvent[T any](event LoadEvent) T {
-	var data T
-	event.extractDataValue(&data)
+	data, ok := event.Data.(T)
+	if !ok {
+		panic("invariant: incompatible types")
+	}
 	return data
 }
 
@@ -534,12 +527,12 @@ func (p *Project) LoadEnv() ([]string, error) {
 }
 
 func (p *Project) LoadEnvAsMap() (map[string]string, error) {
-	// For file-based projects, there are no envs to read.
+	// For file-based projects, there are no env to read.
 	if p.fs == nil {
 		return nil, nil
 	}
 
-	envs := make(map[string]string)
+	env := make(map[string]string)
 
 	for _, envFile := range p.envFilesReadOrder {
 		bytes, err := util.ReadFile(p.fs, envFile)
@@ -555,15 +548,13 @@ func (p *Project) LoadEnvAsMap() (map[string]string, error) {
 
 		parsed, err := godotenv.UnmarshalBytes(bytes)
 		if err != nil {
-			// silently fail for now
-			// TODO(mxs): come up with better solution
-			continue
+			return nil, errors.WithStack(err)
 		}
 
 		for k, v := range parsed {
-			envs[k] = v
+			env[k] = v
 		}
 	}
 
-	return envs, nil
+	return env, nil
 }

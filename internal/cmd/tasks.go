@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/tasks"
 )
 
@@ -24,7 +23,7 @@ func tasksCmd() *cobra.Command {
 
 			task, err := lookupTaskWithPrompt(cmd, args[0], projTasks)
 			if err != nil {
-				if project.IsTaskNotFoundError(err) && !fAllowUnnamed {
+				if isTaskNotFoundError(err) && !fAllowUnnamed {
 					fAllowUnnamed = true
 					goto generateBlocks
 				}
