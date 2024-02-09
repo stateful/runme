@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/muesli/cancelreader"
+	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
@@ -55,12 +56,9 @@ func (rs *RunnerSettings) ApplyProjectEnvs() error {
 	}
 
 	projEnvs, err := rs.project.LoadEnv()
-	if err != nil {
-		return err
-	}
 	rs.envs = append(rs.envs, projEnvs...)
 
-	return nil
+	return errors.Wrap(err, "failed applying project envs")
 }
 
 type Runner interface {
