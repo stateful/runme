@@ -187,6 +187,12 @@ message ExecuteResponse {
   ProcessPID pid = 4;
 }
 
+enum ResolveVarsMode {
+  RESOLVE_VARS_MODE_UNSPECIFIED = 0;
+  RESOLVE_VARS_MODE_PROMPT = 1;
+  RESOLVE_VARS_MODE_SKIP = 2;
+}
+
 message ResolveVarsRequest {
   oneof source {
     // commands are commands to be executed by the program.
@@ -198,20 +204,23 @@ message ResolveVarsRequest {
     string script = 2;
   }
 
+  // mode determines how to resolution will occur.
+  ResolveVarsMode mode = 3;
+
   // env is a list of environment variables that will be used
   // to resolve the environment variables found in the source.
-  repeated string env = 3;
+  repeated string env = 4;
 
   // session_id indicates which session is the source of
   // environment variables. If not provided, the most recent
   // session can be used using session_strategy.
-  string session_id = 4;
+  string session_id = 5;
 
   // session_strategy is a strategy for selecting the session.
-  SessionStrategy session_strategy = 5;
+  SessionStrategy session_strategy = 6;
 
   // project used to load environment variables from .env files.
-  optional Project project = 6;
+  optional Project project = 7;
 
   message CommandList {
     // commands are commands to be executed by the program.
@@ -221,19 +230,28 @@ message ResolveVarsRequest {
   }
 }
 
+enum ResolveVarsStatus {
+  RESOLVE_VARS_STATUS_UNSPECIFIED = 0;
+  RESOLVE_VARS_STATUS_RESOLVED = 1;
+  RESOLVE_VARS_STATUS_PROMPT = 2;
+}
+
 message ResolveVarsResult {
+  // status indicates the resolution status of the environment variable.
+  ResolveVarsStatus status = 1;
+
   // name is the name of the environment variable.
-  string name = 1;
+  string name = 2;
 
   // original_value is a default value of the environment variable.
   // It might be a value that is assigned to the variable in the script,
   // like FOO=bar or FOO=${FOO:-bar}.
   // If the variable is not assigned, it is an empty string.
-  string original_value = 2;
+  string original_value = 3;
 
   // resolved_value is a value of the environment variable resolved from a source.
   // If it is an empty string, it means that the environment variable is not resolved.
-  string resolved_value = 3;
+  string resolved_value = 4;
 }
 
 message ResolveVarsResponse {

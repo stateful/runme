@@ -1,6 +1,8 @@
 package command
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -165,6 +167,13 @@ func (r *EnvResolver) parse(reader io.Reader) ([]*syntax.DeclClause, error) {
 		}
 		return true
 	})
+
+	// f.Stmts = f.Stmts[0:3]
+
+	var buf bytes.Buffer
+	syntax.DebugPrint(&buf, f)
+	// syntax.NewPrinter().Print(&buf, f)
+	fmt.Println(buf.String())
 
 	return result, nil
 }
