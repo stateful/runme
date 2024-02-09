@@ -58,7 +58,7 @@ func (rs *RunnerSettings) ApplyProjectEnvs() error {
 	projEnvs, err := rs.project.LoadEnv()
 	rs.envs = append(rs.envs, projEnvs...)
 
-	return errors.Wrap(err, "failed applying project envs")
+	return errors.Wrap(err, "failed to apply project envs")
 }
 
 type Runner interface {
