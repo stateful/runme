@@ -47,10 +47,6 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		return nil, err
 	}
 
-	if err := r.ApplyProjectEnvs(); err != nil {
-		return nil, err
-	}
-
 	if r.logger == nil {
 		r.logger = zap.NewNop()
 	}

@@ -50,17 +50,6 @@ func (rs *RunnerSettings) Clone() *RunnerSettings {
 	return &newRs
 }
 
-func (rs *RunnerSettings) ApplyProjectEnvs() error {
-	if rs.project == nil {
-		return nil
-	}
-
-	projEnvs, err := rs.project.LoadEnv()
-	rs.envs = append(rs.envs, projEnvs...)
-
-	return errors.Wrap(err, "failed to apply project envs")
-}
-
 type Runner interface {
 	RunTask(ctx context.Context, task project.Task) error
 	DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error
@@ -100,8 +89,13 @@ func WithSessionID(id string) RunnerOption {
 }
 
 func WithProject(proj *project.Project) RunnerOption {
-	return withSettings(func(rs *RunnerSettings) {
+	return withSettingsErr(func(rs *RunnerSettings) error {
 		rs.project = proj
+
+		projEnvs, err := rs.project.LoadEnv()
+		rs.envs = append(rs.envs, projEnvs...)
+
+		return errors.Wrap(err, "failed to apply project envs")
 	})
 }
 

@@ -52,10 +52,6 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 		return nil, err
 	}
 
-	if err := r.ApplyProjectEnvs(); err != nil {
-		return nil, err
-	}
-
 	var creds credentials.TransportCredentials
 
 	if r.insecure {
