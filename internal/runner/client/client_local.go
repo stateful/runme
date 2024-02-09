@@ -47,6 +47,10 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		return nil, err
 	}
 
+	if err := r.ApplyProjectEnvs(); err != nil {
+		return nil, err
+	}
+
 	if r.logger == nil {
 		r.logger = zap.NewNop()
 	}
@@ -95,7 +99,6 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 		Logger:  r.logger,
 	}
 
-	// TODO(adamb): what about `r.envs`?
 	cfg.PreEnv, err = r.project.LoadEnv()
 	if err != nil {
 		return nil, err

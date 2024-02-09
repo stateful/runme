@@ -1,0 +1,15 @@
+exec runme run env1
+stdout 'SOMETHING=in-my-dot-env'
+! stderr .
+
+-- .env --
+SOMETHING="in-my-dot-env"
+
+-- README.md --
+---
+shell: bash
+---
+
+```sh {"name":"env1"}
+echo SOMETHING=${SOMETHING}
+```

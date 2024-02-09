@@ -49,6 +49,20 @@ func (rs *RunnerSettings) Clone() *RunnerSettings {
 	return &newRs
 }
 
+func (rs *RunnerSettings) ApplyProjectEnvs() error {
+	if rs.project == nil {
+		return nil
+	}
+
+	projEnvs, err := rs.project.LoadEnv()
+	if err != nil {
+		return err
+	}
+	rs.envs = append(rs.envs, projEnvs...)
+
+	return nil
+}
+
 type Runner interface {
 	RunTask(ctx context.Context, task project.Task) error
 	DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error
