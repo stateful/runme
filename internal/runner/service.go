@@ -253,20 +253,6 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		cfg.CommandMode = CommandModeTempFile
 	}
 
-	if req.Project != nil {
-		proj, err := ConvertRunnerProject(req.Project)
-		if err != nil {
-			return err
-		}
-
-		projEnvs, err := proj.LoadEnv()
-		if err != nil {
-			return err
-		}
-
-		cfg.PreEnv = append(cfg.PreEnv, projEnvs...)
-	}
-
 	logger.Debug("command config", zap.Any("cfg", cfg))
 	cmd, err := newCommand(cfg)
 	if err != nil {

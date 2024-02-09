@@ -32,9 +32,17 @@ The --category option additionally filters the list of tasks to execute.`,
 			}
 			defer logger.Sync()
 
-			session := command.NewSession()
-
 			proj, err := getProject()
+			if err != nil {
+				return err
+			}
+
+			projEnv, err := proj.LoadEnv()
+			if err != nil {
+				return err
+			}
+
+			session, err := command.NewSessionWithEnv(projEnv...)
 			if err != nil {
 				return err
 			}

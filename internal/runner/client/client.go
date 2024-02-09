@@ -191,7 +191,7 @@ func WithEnableBackgroundProcesses(enableBackground bool) RunnerOption {
 
 func WithEnvs(envs []string) RunnerOption {
 	return withSettings(func(rs *RunnerSettings) {
-		rs.envs = envs
+		rs.envs = append(rs.envs, envs...)
 	})
 }
 

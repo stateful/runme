@@ -57,8 +57,6 @@ func (s *Shell) Run(ctx context.Context) error {
 			Stdin:       s.Stdin,
 			Stdout:      s.Stdout,
 			Stderr:      s.Stderr,
-			PreEnv:      s.PreEnv,
-			PostEnv:     s.PostEnv,
 			CommandMode: CommandModeInlineShell,
 			Commands:    s.Cmds,
 			Script:      "",
