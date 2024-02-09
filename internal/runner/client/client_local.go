@@ -95,7 +95,6 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 		Logger:  r.logger,
 	}
 
-	// TODO(adamb): what about `r.envs`?
 	cfg.PreEnv, err = r.project.LoadEnv()
 	if err != nil {
 		return nil, err

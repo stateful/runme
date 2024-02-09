@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/muesli/cancelreader"
+	"github.com/pkg/errors"
 	"github.com/stateful/runme/internal/document"
 	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/internal/project"
@@ -88,8 +89,13 @@ func WithSessionID(id string) RunnerOption {
 }
 
 func WithProject(proj *project.Project) RunnerOption {
-	return withSettings(func(rs *RunnerSettings) {
+	return withSettingsErr(func(rs *RunnerSettings) error {
 		rs.project = proj
+
+		projEnvs, err := rs.project.LoadEnv()
+		rs.envs = append(rs.envs, projEnvs...)
+
+		return errors.Wrap(err, "failed to apply project envs")
 	})
 }
 
