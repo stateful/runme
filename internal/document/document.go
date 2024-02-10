@@ -122,11 +122,12 @@ func (d *Document) splitSource() {
 				d.content = item.Value(d.source)
 				d.contentOffset = item.start
 			case parsedItemError:
-				// TODO(adamb): handle this error somehow
-				if !errors.Is(item.err, errParseFrontmatter) {
+				if errors.Is(item.err, errParseRawFrontmatter) {
+					d.parseFrontmatterErr = item.err
+				} else {
 					d.splitSourceErr = item.err
-					return
 				}
+				return
 			}
 		}
 	})

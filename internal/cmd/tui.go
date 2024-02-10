@@ -266,7 +266,7 @@ func (m *tuiModel) filterCodeBlocks() {
 		oldSelection = m.tasks[m.cursor]
 	}
 
-	m.tasks, _ = project.FilterTasks(m.unfilteredTasks, func(t project.Task) (bool, error) {
+	m.tasks, _ = project.FilterTasksByFn(m.unfilteredTasks, func(t project.Task) (bool, error) {
 		if !m.allowUnknown && t.CodeBlock.IsUnknown() {
 			return false, nil
 		}

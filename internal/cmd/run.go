@@ -114,7 +114,7 @@ func runCmd() *cobra.Command {
 					for _, arg := range args {
 						task, err := lookupTaskWithPrompt(cmd, arg, tasks)
 						if err != nil {
-							if project.IsTaskNotFoundError(err) && !fAllowUnnamed {
+							if isTaskNotFoundError(err) && !fAllowUnnamed {
 								fAllowUnnamed = true
 								goto searchBlocks
 							}
@@ -461,13 +461,69 @@ func (p RunBlockPrompt) View() string {
 	return blockPromptAppStyle.Render(content)
 }
 
+type errTaskWithFilenameNotFound struct {
+	queryFile string
+}
+
+func (e errTaskWithFilenameNotFound) Error() string {
+	return fmt.Sprintf("unable to find file in project matching regex %q", e.queryFile)
+}
+
+type errTaskWithNameNotFound struct {
+	queryName string
+}
+
+func (e errTaskWithNameNotFound) Error() string {
+	return fmt.Sprintf("unable to find any script named %q", e.queryName)
+}
+
+func isTaskNotFoundError(err error) bool {
+	return errors.As(err, &errTaskWithFilenameNotFound{}) || errors.As(err, &errTaskWithNameNotFound{})
+}
+
+func filterTasksByFileAndTaskName(tasks []project.Task, queryFile, queryName string) ([]project.Task, error) {
+	fileMatcher, err := project.CompileRegex(queryFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []project.Task
+
+	foundFile := false
+
+	for _, task := range tasks {
+		if !fileMatcher.MatchString(task.DocumentPath) {
+			continue
+		}
+
+		foundFile = true
+
+		// This is expected that the task name query is
+		// matched exactly.
+		if queryName != task.CodeBlock.Name() {
+			continue
+		}
+
+		results = append(results, task)
+	}
+
+	if len(results) == 0 {
+		if !foundFile {
+			return nil, &errTaskWithFilenameNotFound{queryFile: queryFile}
+		}
+		return nil, &errTaskWithNameNotFound{queryName: queryName}
+	}
+
+	return results, nil
+}
+
 func lookupTaskWithPrompt(cmd *cobra.Command, query string, tasks []project.Task) (task project.Task, err error) {
 	queryFile, queryName, err := splitRunArgument(query)
 	if err != nil {
 		return task, err
 	}
 
-	filteredTasks, err := project.FilterTasksByFileAndTaskName(tasks, queryFile, queryName)
+	filteredTasks, err := filterTasksByFileAndTaskName(tasks, queryFile, queryName)
 	if err != nil {
 		return task, err
 	}

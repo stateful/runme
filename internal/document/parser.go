@@ -25,7 +25,7 @@ func ParseSections(source []byte) (result ParsedSections, _ error) {
 			result.ContentOffset = item.start
 			result.Content = item.Value(source)
 		case parsedItemError:
-			if errors.Is(item.err, errParseFrontmatter) {
+			if errors.Is(item.err, errParseRawFrontmatter) {
 				return ParsedSections{
 					Content: source,
 				}, nil
@@ -155,11 +155,11 @@ loop:
 
 		switch {
 		case r == '+':
-			return parseFrontMatter(l, byte(r))
+			return parseRawFrontmatter(l, byte(r))
 		case r == '-':
-			return parseFrontMatter(l, byte(r))
+			return parseRawFrontmatter(l, byte(r))
 		case r == '{':
-			return parseFrontMatterJSON
+			return parseRawFrontmatterJSON
 		case r == '\ufeff':
 			// skip
 		case !unicode.IsSpace(r) && !isEOL(r):

@@ -33,10 +33,6 @@ func (t Task) Format(s fmt.State, verb rune) {
 }
 
 // LoadFiles returns a list of file names found in the project.
-//
-// TODO(adamb): figure out a strategy for error handling. There are
-// two options: (1) stop and return the error immediately,
-// (2) continue and return first (or all) error and the list of file names.
 func LoadFiles(ctx context.Context, p *Project) ([]string, error) {
 	eventc := make(chan LoadEvent)
 
@@ -89,11 +85,28 @@ func LoadTasks(ctx context.Context, p *Project) ([]Task, error) {
 	return result, err
 }
 
+type Filter func(Task) (bool, error)
+
 var ErrReturnEarly = errors.New("return early")
 
-func FilterTasks(tasks []Task, fn func(Task) (bool, error)) (result []Task, err error) {
+func FilterTasksByFn(tasks []Task, fns ...Filter) (result []Task, err error) {
 	for _, task := range tasks {
-		include, errFn := fn(task)
+		var errFn error
+
+		include := true
+
+		for _, fn := range fns {
+			var ok bool
+
+			ok, errFn = fn(task)
+			if !ok {
+				include = false
+				break
+			}
+			if errFn != nil {
+				break
+			}
+		}
 
 		if include {
 			result = append(result, task)
@@ -103,11 +116,51 @@ func FilterTasks(tasks []Task, fn func(Task) (bool, error)) (result []Task, err 
 			if !errors.Is(errFn, ErrReturnEarly) {
 				err = errFn
 			}
-			break
+			return
 		}
 	}
 
 	return
+}
+
+func FilterTasksByID(tasks []Task, expr string) (result []Task, err error) {
+	matcher, err := compileRegex(expr)
+	if err != nil {
+		return nil, err
+	}
+
+	return FilterTasksByFn(tasks, func(task Task) (bool, error) {
+		return matcher.MatchString(task.ID()), nil
+	})
+}
+
+func FilterTasksByFilename(tasks []Task, expr string) (result []Task, err error) {
+	matcher, err := compileRegex(expr)
+	if err != nil {
+		return nil, err
+	}
+
+	return FilterTasksByFn(tasks, func(task Task) (bool, error) {
+		return matcher.MatchString(task.DocumentPath), nil
+	})
+}
+
+func FilterTasksByExactTaskName(tasks []Task, name string) (result []Task, err error) {
+	return FilterTasksByFn(tasks, func(task Task) (bool, error) {
+		return task.CodeBlock.Name() == name, nil
+	})
+}
+
+func CompileRegex(query string) (Matcher, error) {
+	return compileRegex(query)
+}
+
+func compileRegex(query string) (Matcher, error) {
+	if query == "" {
+		return &matchAll{}, nil
+	}
+	reg, err := regexp.Compile(query)
+	return reg, errors.Wrapf(err, "invalid regexp %q", query)
 }
 
 type Matcher interface {
@@ -117,86 +170,3 @@ type Matcher interface {
 type matchAll struct{}
 
 func (matchAll) MatchString(string) bool { return true }
-
-func compileQuery(query string) (Matcher, error) {
-	if query == "" {
-		return &matchAll{}, nil
-	}
-	reg, err := regexp.Compile(query)
-	return reg, errors.Wrapf(err, "invalid regexp %q", query)
-}
-
-func FilterTasksByID(tasks []Task, query string) ([]Task, error) {
-	queryMatcher, err := compileQuery(query)
-	if err != nil {
-		return nil, err
-	}
-
-	var results []Task
-
-	for _, task := range tasks {
-		if !queryMatcher.MatchString(task.ID()) {
-			continue
-		}
-
-		results = append(results, task)
-	}
-
-	return results, nil
-}
-
-func FilterTasksByFileAndTaskName(tasks []Task, queryFile string, queryName string) ([]Task, error) {
-	fileMatcher, err := compileQuery(queryFile)
-	if err != nil {
-		return nil, err
-	}
-
-	var results []Task
-
-	foundFile := false
-
-	for _, task := range tasks {
-		if !fileMatcher.MatchString(task.DocumentPath) {
-			continue
-		}
-
-		foundFile = true
-
-		// This is expected that the task name query is
-		// matched exactly.
-		if queryName != task.CodeBlock.Name() {
-			continue
-		}
-
-		results = append(results, task)
-	}
-
-	if len(results) == 0 {
-		if !foundFile {
-			return nil, &ErrTaskWithFilenameNotFound{queryFile: queryFile}
-		}
-		return nil, &ErrTaskWithNameNotFound{queryName: queryName}
-	}
-
-	return results, nil
-}
-
-type ErrTaskWithFilenameNotFound struct {
-	queryFile string
-}
-
-func (e ErrTaskWithFilenameNotFound) Error() string {
-	return fmt.Sprintf("unable to find file in project matching regex %q", e.queryFile)
-}
-
-type ErrTaskWithNameNotFound struct {
-	queryName string
-}
-
-func (e ErrTaskWithNameNotFound) Error() string {
-	return fmt.Sprintf("unable to find any script named %q", e.queryName)
-}
-
-func IsTaskNotFoundError(err error) bool {
-	return errors.As(err, &ErrTaskWithFilenameNotFound{}) || errors.As(err, &ErrTaskWithNameNotFound{})
-}

@@ -5,14 +5,14 @@ import (
 	"errors"
 )
 
-var errParseFrontmatter = errors.New("failed to parse frontmatter")
+var errParseRawFrontmatter = errors.New("failed to extract frontmatter")
 
-func parseFrontMatter(l *itemParser, delimiter byte) parserStateFunc {
-	// lexFrontMatter was trigger when a dilimiter was observer.
-	// According to the spec, there must be three delimiter characters.
+// parseRawFrontmatter is a parser state function that extracts the frontmatter with
+// "---" or "+++" delimiters. According to the spec, there must be three delimiter characters.
+func parseRawFrontmatter(l *itemParser, delimiter byte) parserStateFunc {
 	for i := 0; i < 2; i++ {
 		if r := l.next(); r != rune(delimiter) {
-			l.error(errParseFrontmatter)
+			l.error(errParseRawFrontmatter)
 			return nil
 		}
 	}
@@ -43,7 +43,7 @@ func parseFrontMatter(l *itemParser, delimiter byte) parserStateFunc {
 	return parseContent
 }
 
-func parseFrontMatterJSON(l *itemParser) parserStateFunc {
+func parseRawFrontmatterJSON(l *itemParser) parserStateFunc {
 	l.backup()
 
 	var (
