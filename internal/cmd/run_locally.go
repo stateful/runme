@@ -1,18 +1,23 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/internal/command"
+	"github.com/stateful/runme/internal/config"
+	"github.com/stateful/runme/internal/config/autoconfig"
 	"github.com/stateful/runme/internal/document"
 	"github.com/stateful/runme/internal/project"
 )
 
 func runLocally() *cobra.Command {
-	var category string
+	var categories []string
 
 	cmd := cobra.Command{
 		Use:    "run-locally [command1 command2 ...]",
@@ -22,59 +27,83 @@ func runLocally() *cobra.Command {
 The names are interpreted as glob patterns.
 
 The --category option additionally filters the list of tasks to execute.`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 && category == "" {
-				return errors.New("no commands and no --category provided")
-			}
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// TODO(adamb): this is an example of how to convert a flag to a ConfigFilter.
+			// The custom per-command flags should be reduced to minimum and runme.yaml should
+			// be the source of all configuration. In practice, some flags will still be needed
+			// for the convenience.
+			return autoconfig.Invoke(func(cfg *config.Config) error {
+				if len(categories) > 0 {
+					var cBuilder strings.Builder
 
-			logger, err := getLogger(true)
-			if err != nil {
-				return err
-			}
-			defer logger.Sync()
+					cLen := len(categories)
+					for i, c := range categories {
+						_, _ = cBuilder.WriteString("'")
+						_, _ = cBuilder.WriteString(c)
+						_, _ = cBuilder.WriteString("'")
 
-			proj, err := getProject()
-			if err != nil {
-				return err
-			}
+						if i < cLen-1 {
+							_, _ = cBuilder.WriteString(",")
+						}
+					}
 
-			projEnv, err := proj.LoadEnv()
-			if err != nil {
-				return err
-			}
-
-			session, err := command.NewSessionWithEnv(projEnv...)
-			if err != nil {
-				return err
-			}
-
-			tasks, err := project.LoadTasks(cmd.Context(), proj)
-			if err != nil {
-				return err
-			}
-			logger.Info("found tasks", zap.Int("count", len(tasks)))
-
-			tasks = filterTasksByCategory(tasks, category)
-			logger.Info("filtered tasks by category", zap.String("category", category), zap.Int("count", len(tasks)))
-
-			tasks, err = filterTasksByGlobs(tasks, args)
-			if err != nil {
-				return err
-			}
-			logger.Info("filtered tasks by globs", zap.Strings("globs", args), zap.Int("count", len(tasks)))
-
-			for _, t := range tasks {
-				err := runCommandNatively(cmd, t.CodeBlock, session, logger)
-				if err != nil {
-					return err
+					cfg.Filters = append(cfg.Filters, &config.Filter{
+						Type: "block_filter",
+						Condition: fmt.Sprintf(
+							// The predicate in `filter` can be read as follows:
+							//   * Assign the current processed block's category to `c`.
+							//   * Check if any provided category matches `c` using an inner predicate for `any`.
+							"len(filter(categories, { let c = #; any([%s], # == c) })) > 0",
+							cBuilder.String(),
+						),
+					})
 				}
-			}
 
-			return nil
+				return nil
+			})
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return autoconfig.Invoke(
+				func(
+					proj *project.Project,
+					filters []project.Filter,
+					logger *zap.Logger,
+					session *command.Session,
+				) error {
+					defer logger.Sync()
+
+					tasks, err := project.LoadTasks(cmd.Context(), proj)
+					if err != nil {
+						return err
+					}
+					logger.Info("found tasks", zap.Int("count", len(tasks)))
+
+					tasks, err = project.FilterTasksByFn(tasks, filters...)
+					if err != nil {
+						return err
+					}
+					logger.Info("filtered tasks by filters", zap.Int("count", len(tasks)))
+
+					tasks, err = filterTasksByGlobs(tasks, args)
+					if err != nil {
+						return err
+					}
+					logger.Info("filtered tasks by args", zap.Strings("args", args), zap.Int("count", len(tasks)))
+
+					for _, t := range tasks {
+						err := runCommandNatively(cmd, t.CodeBlock, session, logger)
+						if err != nil {
+							return err
+						}
+					}
+
+					return nil
+				},
+			)
 		},
 	}
 
-	cmd.Flags().StringVarP(&category, "category", "c", "", "Run from a specific category.")
+	cmd.Flags().StringSliceVar(&categories, "category", nil, "Run blocks only from listed categories.")
 
 	return &cmd
 }
@@ -104,22 +133,6 @@ func runCommandNatively(cmd *cobra.Command, block *document.CodeBlock, sess *com
 	}
 
 	return nativeCommand.Wait()
-}
-
-// todo: this is not right; reconcile with the way --category works in run
-func filterTasksByCategory(tasks []project.Task, category string) (result []project.Task) {
-	if category == "" {
-		return tasks
-	}
-	for _, t := range tasks {
-		for _, c := range t.CodeBlock.Categories() {
-			if c == category {
-				result = append(result, t)
-				break
-			}
-		}
-	}
-	return
 }
 
 func parseGlobs(items []string) ([]glob.Glob, error) {

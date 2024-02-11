@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package runme.config.v1alpha1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/config/v1alpha1;configv1alpha1";
+
+// TODO(adamb): add identity resolver options.
+message Config {
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    Project project = 1;
+
+    string filename = 2;
+  }
+
+  repeated string env_paths = 3 [json_name = "env"];
+
+  string chdir = 4;
+
+  repeated Filter filters = 5;
+
+  Server server = 6;
+
+  Log log = 7;
+
+  message Project {
+    string dir = 1;
+
+    bool find_repo_upward = 2;
+
+    repeated string ignore_paths = 3 [json_name = "ignore"];
+
+    bool disable_gitignore = 4;
+  }
+
+  message Filter {
+    FilterType type = 1 [(buf.validate.field).enum.defined_only = true];
+
+    string condition = 2 [
+      (buf.validate.field).string.min_len = 1,
+      (buf.validate.field).string.max_len = 1024
+    ];
+  }
+
+  message Server {
+    string address = 1;
+
+    string ssl_dir = 2;
+
+    bool insecure = 3;
+  }
+
+  message Log {
+    bool enable = 1;
+
+    string path = 2;
+
+    bool verbose = 3;
+  }
+
+  enum FilterType {
+    FILTER_TYPE_UNSPECIFIED = 0;
+    FILTER_TYPE_BLOCK = 1;
+    FILTER_TYPE_DOCUMENT = 2;
+  }
+}

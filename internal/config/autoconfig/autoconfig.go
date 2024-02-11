@@ -1,0 +1,206 @@
+// autoconfig provides a way to instantiate and configure objects like
+// logger, project, session, and others. It takes into account runme.yaml,
+// flags, and environment variables.
+//
+// For example, to instantiate a project.Project, you can use:
+//
+//	autoconfig.Invoke(func(p *project.Project) error {
+//	    ...
+//	})
+package autoconfig
+
+import (
+	"github.com/pkg/errors"
+	"github.com/spf13/afero"
+	"github.com/spf13/viper"
+	"go.uber.org/dig"
+	"go.uber.org/zap"
+
+	"github.com/stateful/runme/internal/command"
+	"github.com/stateful/runme/internal/config"
+	"github.com/stateful/runme/internal/project"
+)
+
+var (
+	container = dig.New()
+
+	// Invoke is used to invoke the function with the given dependencies.
+	// The package will automatically figure out how to instantiate them
+	// using the available configuration.
+	Invoke = container.Invoke
+)
+
+func mustProvide(err error) {
+	if err != nil {
+		panic("failed to provide: " + err.Error())
+	}
+}
+
+func init() {
+	// viper.Viper can be overridden by a decorator:
+	//   container.Decorate(func(v *viper.Viper) *viper.Viper { return nil })
+	mustProvide(container.Provide(getConfig))
+	mustProvide(container.Provide(getLogger))
+	mustProvide(container.Provide(getProject))
+	mustProvide(container.Provide(getProjectFilters))
+	mustProvide(container.Provide(getSession))
+	mustProvide(container.Provide(getViper))
+
+	if err := container.Invoke(func(viper *viper.Viper) {
+		viper.SetConfigName("runme")
+		viper.SetConfigType("yaml")
+
+		viper.AddConfigPath("/etc/runme/")
+		viper.AddConfigPath("$HOME/.runme/")
+		// TODO(adamb): change to "." when ready.
+		viper.AddConfigPath("experimental/")
+
+		viper.SetEnvPrefix("RUNME")
+		viper.AutomaticEnv()
+	}); err != nil {
+		panic("failed to setup configuration: " + err.Error())
+	}
+}
+
+func getConfig(viper *viper.Viper) (*config.Config, error) {
+	if err := viper.ReadInConfig(); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	// As viper does not offer writing config to a writer,
+	// the workaround is to create a memory file system,
+	// set it to viper, and write the config to it.
+	// Finally, a deferred cleanup function is called.
+	// Source: https://github.com/spf13/viper/issues/856
+	memFS := afero.NewMemMapFs()
+
+	viper.SetFs(memFS)
+	defer viper.SetFs(afero.NewOsFs())
+
+	if err := viper.WriteConfigAs("/config.yaml"); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	content, err := afero.ReadFile(memFS, "/config.yaml")
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return config.ParseYAML(content)
+}
+
+func getLogger(c *config.Config) (*zap.Logger, error) {
+	if c == nil || !c.LogEnable {
+		return zap.NewNop(), nil
+	}
+
+	zapConfig := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Development: false,
+		Sampling: &zap.SamplingConfig{
+			Initial:    100,
+			Thereafter: 100,
+		},
+		Encoding:         "json",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	if c.LogVerbose {
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		zapConfig.Development = true
+		zapConfig.Encoding = "console"
+		zapConfig.EncoderConfig = zap.NewDevelopmentEncoderConfig()
+	}
+
+	if c.LogPath != "" {
+		zapConfig.OutputPaths = []string{c.LogPath}
+		zapConfig.ErrorOutputPaths = []string{c.LogPath}
+	}
+
+	l, err := zapConfig.Build()
+	return l, errors.WithStack(err)
+}
+
+func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) {
+	opts := []project.ProjectOption{
+		project.WithLogger(logger),
+	}
+
+	if c.Filename != "" {
+		return project.NewFileProject(c.Filename, opts...)
+	}
+
+	projDir := c.ProjectDir
+	// If no project directory is specified, use the current directory.
+	if projDir == "" {
+		projDir = "."
+	}
+
+	opts = append(
+		opts,
+		project.WithIgnoreFilePatterns(c.IgnorePaths...),
+		project.WithRespectGitignore(!c.DisableGitignore),
+		project.WithEnvFilesReadOrder(c.EnvPaths),
+	)
+
+	if c.FindRepoUpward {
+		opts = append(opts, project.WithFindRepoUpward())
+	}
+
+	return project.NewDirProject(projDir, opts...)
+}
+
+func getProjectFilters(c *config.Config) ([]project.Filter, error) {
+	var filters []project.Filter
+
+	for _, filter := range c.Filters {
+		filter := filter
+
+		switch filter.Type {
+		case config.FilterTypeBlock:
+			filters = append(filters, project.Filter(func(t project.Task) (bool, error) {
+				env := config.FilterBlockEnv{
+					Language:    t.CodeBlock.Language(),
+					Name:        t.CodeBlock.Name(),
+					Cwd:         t.CodeBlock.Cwd(),
+					Interactive: t.CodeBlock.Interactive(),
+					Background:  t.CodeBlock.Background(),
+					PromptEnv:   t.CodeBlock.PromptEnv(),
+					// TODO(adamb): implement this in the code block.
+					// CloseTerminalOnSuccess: t.CodeBlock.CloseTerminalOnSuccess(),
+					ExcludeFromRunAll: t.CodeBlock.ExcludeFromRunAll(),
+					Categories:        t.CodeBlock.Categories(),
+				}
+				return filter.Evaluate(env)
+			}))
+		case config.FilterTypeDocument:
+			filters = append(filters, project.Filter(func(t project.Task) (bool, error) {
+				fmtr, err := t.CodeBlock.Document().Frontmatter()
+				if err != nil {
+					return false, err
+				}
+				if fmtr == nil {
+					return false, nil
+				}
+
+				env := config.FilterDocumentEnv{
+					Shell: fmtr.Shell,
+					Cwd:   fmtr.Cwd,
+				}
+				return filter.Evaluate(env)
+			}))
+		default:
+			return nil, errors.Errorf("unknown filter type: %s", filter.Type)
+		}
+	}
+
+	return filters, nil
+}
+
+func getSession() *command.Session {
+	return command.NewSession()
+}
+
+func getViper() *viper.Viper { return viper.GetViper() }
