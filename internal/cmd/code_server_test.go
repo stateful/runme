@@ -1,3 +1,5 @@
+//go:test !darwin
+
 package cmd
 
 import (
