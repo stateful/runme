@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	versionRegex = `version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+)`
+	versionRegex = `version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+|\d+)`
 	testMockID   = ulid.GenerateID()
 
 	client parserv1.ParserServiceClient
@@ -46,7 +46,7 @@ var (
 		"prop: value",
 		"runme:",
 		"  id: 123",
-		"  version: v99.9",
+		"  version: v99",
 		"---",
 		"",
 		documentWithoutFrontmatter,
@@ -100,7 +100,7 @@ func Test_IdentityUnspecified(t *testing.T) {
 			assert.Len(t, dResp.Notebook.Metadata, 2)
 			assert.Contains(t, rawFrontmatter, "prop: value\n")
 			assert.Contains(t, rawFrontmatter, "id: 123\n")
-			assert.Contains(t, rawFrontmatter, "version: v99.9\n")
+			assert.Contains(t, rawFrontmatter, "version: v99\n")
 		} else {
 			assert.False(t, ok)
 			assert.Len(t, dResp.Notebook.Metadata, 1)
@@ -239,7 +239,7 @@ func Test_IdentityCell(t *testing.T) {
 		if tt.hasExtraFrontmatter {
 			assert.Contains(t, content, "runme:\n")
 			assert.Contains(t, content, "id: 123\n")
-			assert.Contains(t, content, "version: v99.9\n")
+			assert.Contains(t, content, "version: v99\n")
 		} else {
 			assert.NotRegexp(t, "^---\n", content)
 			assert.NotRegexp(t, "^\n\n", content)

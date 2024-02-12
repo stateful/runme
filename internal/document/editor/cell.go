@@ -168,6 +168,13 @@ func toCellsRec(
 				metadata[PrefixAttributeName(InternalAttributePrefix, "id")] = cellID
 			}
 			metadata[PrefixAttributeName(InternalAttributePrefix, "name")] = block.Name()
+
+			nameGeneratedStr := "false"
+			if block.IsUnnamed() {
+				nameGeneratedStr = "true"
+			}
+			metadata[PrefixAttributeName(InternalAttributePrefix, "nameGenerated")] = nameGeneratedStr
+
 			*cells = append(*cells, &Cell{
 				Kind:       CodeKind,
 				Value:      string(block.Content()),

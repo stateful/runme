@@ -15,8 +15,9 @@ func runLocally() *cobra.Command {
 	var category string
 
 	cmd := cobra.Command{
-		Use:   "run-locally [command1 command2 ...]",
-		Short: "Run one or more commands.",
+		Use:    "run-locally [command1 command2 ...]",
+		Hidden: true,
+		Short:  "Run one or more commands.",
 		Long: `Run commands by providing their names delimited by space.
 The names are interpreted as glob patterns.
 

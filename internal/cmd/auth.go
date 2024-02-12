@@ -12,9 +12,10 @@ import (
 
 func loginCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "login",
-		Short: "Log in to Runme (optional)",
-		Long:  "Log in to Runme is not required for standalone functionality",
+		Use:    "login",
+		Hidden: true,
+		Short:  "Log in to Runme (optional)",
+		Long:   "Log in to Runme is not required for standalone functionality",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return newAuth().Login(cmd.Context())
 		},
@@ -25,8 +26,9 @@ func loginCmd() *cobra.Command {
 
 func logoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "logout",
-		Short: "Log out from Runme",
+		Use:    "logout",
+		Hidden: true,
+		Short:  "Log out from Runme",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return newAuth().Logout()
 		},

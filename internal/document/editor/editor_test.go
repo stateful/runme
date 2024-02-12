@@ -84,6 +84,11 @@ func TestEditor_CodeBlock(t *testing.T) {
 			cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "name")],
 			"echo-1",
 		)
+		assert.Equal(
+			t,
+			cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "nameGenerated")],
+			"true",
+		)
 		// "name" is empty because it was not included in the original snippet.
 		assert.Empty(
 			t,
@@ -103,6 +108,11 @@ func TestEditor_CodeBlock(t *testing.T) {
 			t,
 			cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "name")],
 			"name1",
+		)
+		assert.Equal(
+			t,
+			cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "nameGenerated")],
+			"false",
 		)
 		// "name" is not nil because it was included in the original snippet.
 		assert.Equal(

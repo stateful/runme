@@ -90,11 +90,6 @@ func Root() *cobra.Command {
 		}
 	})
 
-	branchCmd := branchCmd()
-	suggestCmd := suggestCmd()
-	suggestCmd.AddCommand(branchCmd)
-
-	cmd.AddCommand(branchCmd)
 	cmd.AddCommand(codeServerCmd())
 	cmd.AddCommand(environmentCmd())
 	cmd.AddCommand(fmtCmd())
@@ -107,7 +102,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(runLocally())
 	cmd.AddCommand(serverCmd())
 	cmd.AddCommand(shellCmd())
-	cmd.AddCommand(suggestCmd)
+	cmd.AddCommand(suggestCmd())
 	cmd.AddCommand(tasksCmd())
 	cmd.AddCommand(tokenCmd())
 	cmd.AddCommand(tuiCmd)
