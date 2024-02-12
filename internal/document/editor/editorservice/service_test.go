@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	versionRegex = `version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+)`
+	versionRegex = `version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+|\d+)`
 	testMockID   = ulid.GenerateID()
 
 	client parserv1.ParserServiceClient
