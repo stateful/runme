@@ -37,9 +37,6 @@ type command struct {
 	Stdout      io.Writer
 	Stderr      io.Writer
 
-	PreEnv  []string
-	PostEnv []string
-
 	cmd     *exec.Cmd
 	cmdDone uint32
 
@@ -93,9 +90,6 @@ type commandConfig struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
-
-	PreEnv  []string
-	PostEnv []string
 
 	Commands []string
 	Script   string
@@ -243,8 +237,6 @@ func newCommand(cfg *commandConfig) (*command, error) {
 		Stdin:          cfg.Stdin,
 		Stdout:         cfg.Stdout,
 		Stderr:         cfg.Stderr,
-		PreEnv:         cfg.PreEnv,
-		PostEnv:        cfg.PostEnv,
 		logger:         cfg.Logger,
 		tempScriptFile: tempScriptFile,
 		tmpEnvDir:      tmpEnvDir,

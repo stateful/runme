@@ -83,8 +83,6 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 
 	programName, _ := runner.GetCellProgram(block.Language(), customShell, block)
 
-	r.session.AddEnvs(r.envs)
-
 	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),
 		Dir:     r.dir,

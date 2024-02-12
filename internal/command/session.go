@@ -23,9 +23,17 @@ func NewSession() *Session {
 	}
 }
 
-func MustNewSessionWithEnv(env ...string) *Session {
+func NewSessionWithEnv(env ...string) (*Session, error) {
 	s := NewSession()
 	if err := s.SetEnv(env...); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func MustNewSessionWithEnv(env ...string) *Session {
+	s, err := NewSessionWithEnv(env...)
+	if err != nil {
 		panic(err)
 	}
 	return s

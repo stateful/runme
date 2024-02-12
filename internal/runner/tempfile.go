@@ -41,8 +41,6 @@ func (s *TempFile) Run(ctx context.Context) error {
 			Stdin:       s.Stdin,
 			Stdout:      s.Stdout,
 			Stderr:      s.Stderr,
-			PreEnv:      s.PreEnv,
-			PostEnv:     s.PostEnv,
 			CommandMode: CommandModeTempFile,
 			Script:      s.Script,
 			Logger:      s.Logger,
