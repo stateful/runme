@@ -19,7 +19,7 @@ func extensionCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "extension",
-		Short: "Check your Stateful VS Code extension status",
+		Short: "Check your Runme VS Code extension status",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			model := tui.NewModel(
 				newExtensionerModel(force),

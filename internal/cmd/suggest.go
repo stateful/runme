@@ -13,21 +13,12 @@ import (
 )
 
 func suggestCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "suggest",
-		Short: "Use our suggestion engine to give contextual advice",
-	}
-
-	return cmd
-}
-
-func branchCmd() *cobra.Command {
 	var repoUser string
 
 	cmd := &cobra.Command{
-		Use:     "branch DESCRIPTION",
-		Aliases: []string{"branchGPT", "branchgpt"},
-		Short:   "Suggest a branch name (aka branchGPT)",
+		Use:    "suggest DESCRIPTION",
+		Hidden: true,
+		Short:  "Suggest a branch name",
 		Long: `Suggest a branch name for a description.
 
 Remember to wrap the DESCRIPTION in double quotes as otherwise
@@ -36,7 +27,7 @@ it will be interpreted as multiple arguments.
 Disclaimer: This uses AI, so the suggestions may be biased, wrong,
 or just bad. Please use with discretion.
 `,
-		Deprecated: "Please note this command will be removed with the next major release",
+		Deprecated: "Please note this command does not receive updates and will be removed in the future.",
 		Args:       cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := graphql.ContextWithTrackInput(cmd.Context(), trackInputFromCmd(cmd, args))
