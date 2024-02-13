@@ -79,3 +79,16 @@ A paragraph
 	assert.Equal(t, "{\n    \"prop1\": \"val1\",\n    \"prop2\": \"val2\"\n}", string(sections.FrontMatter))
 	assert.Equal(t, "# Example\n\nA paragraph\n", string(sections.Content))
 }
+
+func TestParseSections_SkipIncludes(t *testing.T) {
+	data := []byte(`{% include "gradual-rollout-intro.md" %}
+
+## Procedure
+
+You can configure the rollout-duration parameter by modifying the config-network ConfigMap, or by using the Operator.
+`)
+	sections, err := ParseSections(data)
+	require.NoError(t, err)
+	assert.Equal(t, "", string(sections.FrontMatter))
+	assert.Equal(t, "{% include \"gradual-rollout-intro.md\" %}\n\n## Procedure\n\nYou can configure the rollout-duration parameter by modifying the config-network ConfigMap, or by using the Operator.\n", string(sections.Content))
+}
