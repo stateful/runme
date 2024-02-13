@@ -161,6 +161,10 @@ loop:
 			return parseRawFrontmatter(l, byte(r0))
 		case r0 == '-':
 			return parseRawFrontmatter(l, byte(r0))
+		case r0 == '{' && r1 == '{':
+			// skip markdown templates
+			l.backup()
+			break loop
 		case r0 == '{' && r1 == '%':
 			// skip markdown preprocessor includes
 			l.backup()
