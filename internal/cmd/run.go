@@ -21,7 +21,6 @@ import (
 	"github.com/stateful/runme/internal/project"
 	"github.com/stateful/runme/internal/runner/client"
 	"github.com/stateful/runme/internal/tui"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -45,7 +44,7 @@ func runCmd() *cobra.Command {
 		parallel              bool
 		replaceScripts        []string
 		serverAddr            string
-		category              string
+		categories            []string
 		getRunnerOpts         func() ([]client.RunnerOption, error)
 		runIndex              int
 	)
@@ -60,7 +59,7 @@ func runCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runWithIndex := fFileMode && runIndex >= 0
 
-			runMany := runAll || (category != "" && len(args) == 0)
+			runMany := runAll || (len(categories) > 0 && len(args) == 0)
 			if !runMany && len(args) == 0 && !runWithIndex {
 				return errors.New("must provide at least one command to run")
 			}
@@ -89,16 +88,26 @@ func runCmd() *cobra.Command {
 					for _, task := range tasks {
 						block := task.CodeBlock
 
-						if runAll && block.ExcludeFromRunAll() {
+						if runAll && len(categories) == 0 && block.ExcludeFromRunAll() {
 							continue
 						}
 
-						if category != "" {
+						if len(categories) > 0 {
 							if block.ExcludeFromRunAll() {
 								continue
 							}
 
-							if !slices.Contains(strings.Split(block.Category(), ","), category) {
+							bcats := strings.Split(block.Category(), ",")
+							match := false
+							for _, bcat := range bcats {
+								for _, cat := range categories {
+									if bcat == cat {
+										match = true
+									}
+								}
+							}
+
+							if !match {
 								continue
 							}
 						}
@@ -201,7 +210,7 @@ func runCmd() *cobra.Command {
 				}
 
 				if runMany {
-					err := confirmExecution(cmd, len(runTasks), parallel, category)
+					err := confirmExecution(cmd, len(runTasks), parallel, categories)
 					if err != nil {
 						return err
 					}
@@ -229,8 +238,8 @@ func runCmd() *cobra.Command {
 					if runMany && parallel {
 						scriptRunText = "Running"
 						blockNames = []string{blockColor.Sprint("all tasks")}
-						if category != "" {
-							blockNames = []string{blockColor.Sprintf("tasks for category %s", category)}
+						if len(categories) > 0 {
+							blockNames = []string{blockColor.Sprintf("tasks for category %s", categories)}
 						}
 					}
 
@@ -312,7 +321,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
 	cmd.Flags().BoolVar(&skipPrompts, "skip-prompts", false, "Skip prompting for variables.")
-	cmd.Flags().StringVarP(&category, "category", "c", "", "Run from a specific category.")
+	cmd.Flags().StringArrayVarP(&categories, "category", "c", nil, "Run from a specific category.")
 	cmd.Flags().IntVarP(&runIndex, "index", "i", -1, "Index of command to run, 0-based. (Ignored in project mode)")
 	cmd.PreRun = func(cmd *cobra.Command, args []string) {
 		skipPromptsExplicitly = cmd.Flags().Changed("skip-prompts")
@@ -589,10 +598,10 @@ func promptForRun(cmd *cobra.Command, tasks []project.Task) (project.Task, error
 	return *result.(blockPromptItem).task, nil
 }
 
-func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool, category string) error {
+func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool, categories []string) error {
 	text := fmt.Sprintf("Run all %d tasks", numTasks)
-	if category != "" {
-		text = fmt.Sprintf("Run %d tasks for category %s", numTasks, category)
+	if categories != nil {
+		text = fmt.Sprintf("Run %d tasks for categories: %s", numTasks, strings.Join(categories, ", "))
 	}
 	if parallel {
 		text += " (in parallel)"
