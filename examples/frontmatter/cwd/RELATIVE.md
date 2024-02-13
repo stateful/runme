@@ -2,7 +2,7 @@
 cwd: ../../../
 runme:
   id: 01HF7BT3HCDS1X1WJJHXFHR4ZG
-  version: v2.2
+  version: v3
 ---
 
 ```sh {"id":"01HF7BT3HCDS1X1WJJHS5YH0Y1","name":"relative-pwd"}

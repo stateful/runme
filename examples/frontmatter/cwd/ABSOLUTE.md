@@ -2,7 +2,7 @@
 cwd: /tmp
 runme:
   id: 01HF7BT3HCDS1X1WJJJCRQRAMX
-  version: v2.2
+  version: v3
 ---
 
 ```sh {"id":"01HF7BT3HCDS1X1WJJJ7Z64V8R","name":"absolute-pwd"}

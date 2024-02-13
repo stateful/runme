@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HBDTRGQAQMH51RDQEC
-  version: v2.2
+  version: v3
 ---
 
 # GRPC Setup

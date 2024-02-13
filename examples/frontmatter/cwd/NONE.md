@@ -1,7 +1,7 @@
 ---
 runme:
   id: 01HF7BT3HCDS1X1WJJJ7YPS2YB
-  version: v2.2
+  version: v3
 ---
 
 ```sh {"id":"01HF7BT3HCDS1X1WJJJ16KHGY9","name":"none-pwd"}
