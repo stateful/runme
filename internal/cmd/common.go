@@ -44,7 +44,14 @@ func getProject() (*project.Project, error) {
 
 	if fFileMode {
 		var err error
-		proj, err = project.NewFileProject(filepath.Join(fChdir, fFileName), opts...)
+
+		filePath := filepath.Join(fChdir, fFileName)
+		_, err = os.Stat(fFileName)
+		if filepath.IsAbs(fFileName) && !os.IsNotExist(err) {
+			filePath = fFileName
+		}
+
+		proj, err = project.NewFileProject(filePath, opts...)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
