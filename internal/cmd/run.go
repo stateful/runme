@@ -97,7 +97,7 @@ func runCmd() *cobra.Command {
 								continue
 							}
 
-							bcats := strings.Split(block.Category(), ",")
+							bcats := block.Categories()
 							match := false
 							for _, bcat := range bcats {
 								for _, cat := range categories {
