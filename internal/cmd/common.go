@@ -48,6 +48,7 @@ func getProject() (*project.Project, error) {
 		filePath := filepath.Join(fChdir, fFileName)
 		_, err = os.Stat(fFileName)
 		if filepath.IsAbs(fFileName) && !os.IsNotExist(err) {
+			// don't return error continue with NewFileProject
 			filePath = fFileName
 		}
 
