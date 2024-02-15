@@ -194,8 +194,12 @@ func (b *CodeBlock) SetLine(p int, v string) {
 	b.lines[p] = v
 }
 
-func (b *CodeBlock) Category() string {
-	return b.Attributes()["category"]
+func (b *CodeBlock) Categories() []string {
+	cat, ok := b.Attributes()["category"]
+	if !ok {
+		return nil
+	}
+	return strings.Split(cat, ",")
 }
 
 func (b *CodeBlock) Cwd() string {

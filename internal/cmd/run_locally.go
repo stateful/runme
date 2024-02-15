@@ -106,13 +106,17 @@ func runCommandNatively(cmd *cobra.Command, block *document.CodeBlock, sess *com
 	return nativeCommand.Wait()
 }
 
+// todo: this is not right; reconcile with the way --category works in run
 func filterTasksByCategory(tasks []project.Task, category string) (result []project.Task) {
 	if category == "" {
 		return tasks
 	}
 	for _, t := range tasks {
-		if t.CodeBlock.Category() == category {
-			result = append(result, t)
+		for _, c := range t.CodeBlock.Categories() {
+			if c == category {
+				result = append(result, t)
+				break
+			}
 		}
 	}
 	return
