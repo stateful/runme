@@ -148,21 +148,32 @@ type parserStateFunc func(*itemParser) parserStateFunc
 func parseInit(l *itemParser) parserStateFunc {
 loop:
 	for {
-		r := l.next()
-		if r == eof {
+		r0 := l.next()
+		if r0 == eof {
 			break
 		}
 
+		r1 := l.next()
+		l.backup()
+
 		switch {
-		case r == '+':
-			return parseRawFrontmatter(l, byte(r))
-		case r == '-':
-			return parseRawFrontmatter(l, byte(r))
-		case r == '{':
+		case r0 == '+':
+			return parseRawFrontmatter(l, byte(r0))
+		case r0 == '-':
+			return parseRawFrontmatter(l, byte(r0))
+		case r0 == '{' && r1 == '{':
+			// skip markdown templates
+			l.backup()
+			break loop
+		case r0 == '{' && r1 == '%':
+			// skip markdown preprocessor includes
+			l.backup()
+			break loop
+		case r0 == '{':
 			return parseRawFrontmatterJSON
-		case r == '\ufeff':
+		case r0 == '\ufeff':
 			// skip
-		case !unicode.IsSpace(r) && !isEOL(r):
+		case !unicode.IsSpace(r0) && !isEOL(r0):
 			l.backup()
 			break loop
 		}

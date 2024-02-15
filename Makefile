@@ -54,8 +54,7 @@ test/update-snapshots:
 
 .PHONY: test/robustness
 test/robustness:
-	@cd integration/subject && npm install --include=dev
-	find . -name "node_modules" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --project {} > /dev/null
+	find "$$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --project {} > /dev/null
 
 .PHONY: coverage/html
 test/coverage/html:
