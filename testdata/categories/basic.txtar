@@ -8,6 +8,11 @@ exec runme run --all --category=bar --filename=CATEGORIES.md
 cmp stdout bar-list.txt
 ! stderr .
 
+env SHELL=/bin/bash
+exec runme run -c buzz -c bar --filename=CATEGORIES.md
+cmp stdout buzz-bar-list.txt
+! stderr .
+
 -- CATEGORIES.md --
 
 ```bash {"category":"foo","name":"set-env"}
@@ -29,6 +34,11 @@ $ stty -opost
 $ echo "excluded!"
 ```
 
+```bash {"category":"buzz","name":"print-buzz"}
+$ stty -opost
+$ echo "buzz!"
+```
+
 -- foo-bar-list.txt --
  ►  Running task set-env...
  ►  ✓ Task set-env exited with code 0
@@ -40,3 +50,10 @@ bar!
  ►  ✓ Task print-bar exited with code 0
 -- bar-list.txt --
 bar!
+-- buzz-bar-list.txt --
+ ►  Running task print-bar...
+bar!
+ ►  ✓ Task print-bar exited with code 0
+ ►  Running task print-buzz...
+buzz!
+ ►  ✓ Task print-buzz exited with code 0
