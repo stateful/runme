@@ -335,11 +335,15 @@ func TestRunnerServiceServerExecuteWithInput(t *testing.T) {
 		require.NoError(t, err)
 
 		// Close the send direction.
+		//
+		// Delay is required to make sure that the command is being awaited
+		// before delivering the stop signal. This is not synchronized by
+		// either the service or the command package.
+		<-time.After(time.Second)
 		assert.NoError(t, stream.CloseSend())
 
 		result := <-execResult
 		// TODO(adamb): This should be a specific gRPC error rather than Unknown.
-		require.NotNil(t, result.Err)
 		assert.Contains(t, result.Err.Error(), "signal: interrupt")
 		assert.Equal(t, 130, result.ExitCode)
 	})
