@@ -322,28 +322,19 @@ func TestRunnerServiceServerExecuteWithInput(t *testing.T) {
 
 		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
 			Config: &runnerv2alpha1.ProgramConfig{
-				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
-						Items: []string{
-							"sleep 30",
-						},
-					},
-				},
+				ProgramName: "sleep",
+				Arguments:   []string{"30"},
+				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 			},
 		})
 		require.NoError(t, err)
 
 		// Close the send direction.
-		//
-		// Delay is required to make sure that the command is being awaited
-		// before delivering the stop signal. This is not synchronized by
-		// either the service or the command package.
-		<-time.After(time.Second)
 		assert.NoError(t, stream.CloseSend())
 
 		result := <-execResult
 		// TODO(adamb): This should be a specific gRPC error rather than Unknown.
+		require.NotNil(t, result.Err)
 		assert.Contains(t, result.Err.Error(), "signal: interrupt")
 		assert.Equal(t, 130, result.ExitCode)
 	})
