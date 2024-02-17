@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 
@@ -41,7 +40,7 @@ type argsNormalizer struct {
 	scriptFile       *os.File
 }
 
-func (n *argsNormalizer) Normalize(cfg *Config) (*Config, configNormalizerCleanupFunc, error) {
+func (n *argsNormalizer) Normalize(cfg *Config) (*Config, error) {
 	args := append([]string{}, cfg.Arguments...)
 
 	switch cfg.Mode {
@@ -52,7 +51,7 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, configNormalizerCleanu
 
 		if isShellLanguage(filepath.Base(cfg.ProgramName)) {
 			if err := n.inlineShell(cfg, &buf); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		} else {
 			// Write the script from the commands or the script.
@@ -66,22 +65,21 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, configNormalizerCleanu
 			}
 		}
 
-		// TODO(adamb): "-c" is not supported for all inline programs.
 		if val := buf.String(); val != "" {
 			args = append(args, "-c", val)
 		}
 
 	case *runnerv2alpha1.CommandMode_COMMAND_MODE_FILE.Enum():
 		if err := n.createTempDir(); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		if err := n.createScriptFile(); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		if err := n.writeScript([]byte(cfg.GetScript())); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// TODO(adamb): it's not always true that the script-based program
@@ -91,7 +89,7 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, configNormalizerCleanu
 
 	result := proto.Clone(cfg).(*Config)
 	result.Arguments = args
-	return result, n.cleanup, nil
+	return result, nil
 }
 
 func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {
@@ -127,17 +125,7 @@ func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {
 	return nil
 }
 
-func (n *argsNormalizer) cleanup() (result error) {
-	if err := n.collectEnv(); err != nil {
-		result = multierr.Append(result, err)
-	}
-	if err := n.removeTempDir(); err != nil {
-		result = multierr.Append(result, err)
-	}
-	return
-}
-
-func (n *argsNormalizer) removeTempDir() error {
+func (n *argsNormalizer) Cleanup() error {
 	if n.tempDir == "" {
 		return nil
 	}
@@ -151,7 +139,7 @@ func (n *argsNormalizer) removeTempDir() error {
 	return nil
 }
 
-func (n *argsNormalizer) collectEnv() error {
+func (n *argsNormalizer) CollectEnv() error {
 	if n.session == nil || !n.isEnvCollectable {
 		return nil
 	}
@@ -248,17 +236,23 @@ func splitNull(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	return 0, nil, nil
 }
 
-func shellOptionsFromProgram(programPath string) (res string) {
-	base := filepath.Base(programPath)
-	shell := base[:len(base)-len(filepath.Ext(base))]
+type envSource func() []string
 
-	// TODO(mxs): powershell and DOS are missing
-	switch shell {
-	case "zsh", "ksh", "bash":
-		res += "set -e -o pipefail"
-	case "sh":
-		res += "set -e"
+type envNormalizer struct {
+	sources []envSource
+}
+
+func (n *envNormalizer) Normalize(cfg *Config) (*Config, error) {
+	result := proto.Clone(cfg).(*Config)
+
+	env := os.Environ()
+	env = append(env, cfg.Env...)
+
+	for _, source := range n.sources {
+		env = append(env, source()...)
 	}
 
-	return
+	result.Env = env
+
+	return result, nil
 }

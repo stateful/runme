@@ -49,18 +49,21 @@ func (c *NativeCommand) SetWinsize(rows, cols, x, y uint16) error {
 }
 
 func (c *NativeCommand) Start(ctx context.Context) (err error) {
-	cfg, cleanups, err := normalizeConfig(
+	argsNormalizer := &argsNormalizer{
+		session: c.opts.Session,
+		logger:  c.logger,
+	}
+
+	cfg, err := normalizeConfig(
 		c.cfg,
-		pathNormalizer,
-		modeNormalizer,
-		(&argsNormalizer{session: c.opts.Session, logger: c.logger}).Normalize,
-		(&envNormalizer{sources: []envSource{c.opts.Session.GetEnv}}).Normalize,
+		argsNormalizer,
+		&envNormalizer{sources: []envSource{c.opts.Session.GetEnv}},
 	)
 	if err != nil {
 		return
 	}
 
-	c.cleanFuncs = append(c.cleanFuncs, cleanups...)
+	c.cleanFuncs = append(c.cleanFuncs, argsNormalizer.CollectEnv, argsNormalizer.Cleanup)
 
 	stdin := c.opts.Stdin
 
