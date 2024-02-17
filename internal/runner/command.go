@@ -172,7 +172,13 @@ func newCommand(cfg *commandConfig) (*command, error) {
 				)
 			}
 
-			_, _ = builder.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
+			// Capture the exist code from the script.
+			_, _ = builder.WriteString("\nexitStatus=$?\n")
+
+			_, _ = builder.WriteString(fmt.Sprintf("%s > %s || true\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
+
+			// Exit with the captured exit status.
+			_, _ = builder.WriteString("\nexit \"$exitStatus\" &> /dev/null\n")
 
 			extraArgs = []string{}
 

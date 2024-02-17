@@ -1,6 +1,6 @@
-exec runme run test-singleline
-stdout 'failhereplease: command not found'
-! stderr .
+! exec runme run test-singleline
+stdout 'sh: failhereplease: command not found'
+stderr 'could not execute command: failed to run command "test-singleline": exit code: 127'
 
 ! exec runme run test-multiline
 stdout 'failhereplease: command not found'

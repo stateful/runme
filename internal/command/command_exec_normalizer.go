@@ -122,12 +122,12 @@ func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {
 	// Here, we dump env after the script execution in order to do a diff later.
 	// It's done using a trap on exit, so it's always executed, even if the script fails.
 	if n.session != nil {
-		_, _ = buf.WriteString(fmt.Sprintf("trap \"%s > %s\" EXIT\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
+		_, _ = buf.WriteString(fmt.Sprintf("trap \"%s > %s || true\" EXIT\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
 		n.isEnvCollectable = true
 	}
 
 	// The final command is to exit with the captured exit status.
-	_, _ = buf.WriteString("exit $exitStatus\n")
+	_, _ = buf.WriteString("exit \"$exitStatus\" &> /dev/null\n")
 
 	return nil
 }
