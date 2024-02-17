@@ -128,7 +128,7 @@ func TestExecutionCommandFromCodeBlocks(t *testing.T) {
 		})
 
 		t.Run("VirtualCommand", func(t *testing.T) {
-			tc := tc
+			t.Parallel()
 
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()

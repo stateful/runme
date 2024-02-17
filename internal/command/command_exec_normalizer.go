@@ -50,33 +50,18 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, error) {
 		var buf strings.Builder
 
 		if isShellLanguage(filepath.Base(cfg.ProgramName)) {
-			if options := shellOptionsFromProgram(cfg.ProgramName); options != "" {
-				_, _ = buf.WriteString(options)
-				_, _ = buf.WriteString("\n\n")
+			if err := n.inlineShell(cfg, &buf); err != nil {
+				return nil, err
 			}
-
-			if n.session != nil {
-				if err := n.createTempDir(); err != nil {
-					return nil, err
+		} else {
+			// Write the script from the commands or the script.
+			if commands := cfg.GetCommands(); commands != nil {
+				for _, cmd := range commands.Items {
+					_, _ = buf.WriteString(cmd)
+					_, _ = buf.WriteRune('\n')
 				}
-				_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", EnvDumpCommand, filepath.Join(n.tempDir, envStartFileName)))
-			}
-		}
-
-		if commands := cfg.GetCommands(); commands != nil {
-			for _, cmd := range commands.Items {
-				_, _ = buf.WriteString(cmd)
-				_, _ = buf.WriteRune('\n')
-			}
-		} else if script := cfg.GetScript(); script != "" {
-			_, _ = buf.WriteString(script)
-		}
-
-		if isShellLanguage(filepath.Base(cfg.ProgramName)) {
-			if n.session != nil {
-				_, _ = buf.WriteString(fmt.Sprintf("trap \"%s > %s\" EXIT\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
-
-				n.isEnvCollectable = true
+			} else if script := cfg.GetScript(); script != "" {
+				_, _ = buf.WriteString(script)
 			}
 		}
 
@@ -105,6 +90,46 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, error) {
 	result := proto.Clone(cfg).(*Config)
 	result.Arguments = args
 	return result, nil
+}
+
+func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {
+	if options := shellOptionsFromProgram(cfg.ProgramName); options != "" {
+		_, _ = buf.WriteString(options)
+		_, _ = buf.WriteString("\n\n")
+	}
+
+	// If the session is provided, we need to collect the environment before and after the script execution.
+	// Here, we dump env before the script execution in order to do a diff later.
+	if n.session != nil {
+		if err := n.createTempDir(); err != nil {
+			return err
+		}
+		_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", EnvDumpCommand, filepath.Join(n.tempDir, envStartFileName)))
+	}
+
+	// Write the script from the commands or the script.
+	if commands := cfg.GetCommands(); commands != nil {
+		for _, cmd := range commands.Items {
+			_, _ = buf.WriteString(cmd)
+			_, _ = buf.WriteRune('\n')
+		}
+	} else if script := cfg.GetScript(); script != "" {
+		_, _ = buf.WriteString(script)
+	}
+
+	_, _ = buf.WriteString("\nexitStatus=$?\n")
+
+	// Here, we dump env after the script execution in order to do a diff later.
+	// It's done using a trap on exit, so it's always executed, even if the script fails.
+	if n.session != nil {
+		_, _ = buf.WriteString(fmt.Sprintf("trap \"%s > %s\" EXIT\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
+		n.isEnvCollectable = true
+	}
+
+	// The final command is to exit with the captured exit status.
+	_, _ = buf.WriteString("exit $exitStatus\n")
+
+	return nil
 }
 
 func (n *argsNormalizer) Cleanup() error {

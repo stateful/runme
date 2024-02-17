@@ -1,0 +1,25 @@
+exec runme run test-singleline
+stdout 'failhereplease: command not found'
+! stderr .
+
+! exec runme run test-multiline
+stdout 'failhereplease: command not found'
+stderr 'could not execute command: failed to run command "test-multiline": exit code: 127'
+
+! exec runme run-locally test-singleline
+! stdout .
+stderr '/bin/sh: line 3: failhereplease: command not found\ncould not execute command: exit status 127'
+
+! exec runme run-locally test-multiline
+! stdout .
+stderr '/bin/sh: line 3: failhereplease: command not found\ncould not execute command: exit status 127'
+
+-- README.md --
+```sh { "name": "test-singleline" }
+failhereplease && echo single
+```
+
+```sh { "name": "test-multiline" }
+failhereplease
+echo multi
+```
