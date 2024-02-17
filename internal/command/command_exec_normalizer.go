@@ -99,12 +99,17 @@ func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {
 	}
 
 	// If the session is provided, we need to collect the environment before and after the script execution.
-	// Here, we dump env before the script execution in order to do a diff later.
+	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
 	if n.session != nil {
 		if err := n.createTempDir(); err != nil {
 			return err
 		}
+
 		_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", EnvDumpCommand, filepath.Join(n.tempDir, envStartFileName)))
+		_, _ = buf.WriteString(fmt.Sprintf("__cleanup() {\nrv=$?\n%s > %s\nexit $rv\n}\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
+		_, _ = buf.WriteString("trap -- \"__cleanup\" EXIT\n")
+
+		n.isEnvCollectable = true
 	}
 
 	// Write the script from the commands or the script.
@@ -116,18 +121,6 @@ func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {
 	} else if script := cfg.GetScript(); script != "" {
 		_, _ = buf.WriteString(script)
 	}
-
-	_, _ = buf.WriteString("\nexitStatus=$?\n")
-
-	// Here, we dump env after the script execution in order to do a diff later.
-	// It's done using a trap on exit, so it's always executed, even if the script fails.
-	if n.session != nil {
-		_, _ = buf.WriteString(fmt.Sprintf("trap \"%s > %s || true\" EXIT\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
-		n.isEnvCollectable = true
-	}
-
-	// The final command is to exit with the captured exit status.
-	_, _ = buf.WriteString("exit \"$exitStatus\" &> /dev/null\n")
 
 	return nil
 }
