@@ -161,6 +161,8 @@ func newCommand(cfg *commandConfig) (*command, error) {
 			tmpEnvDir = envStorePath
 
 			_, _ = builder.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envStartFileName)))
+			_, _ = builder.WriteString(fmt.Sprintf("__cleanup() {\nrv=$?\n%s > %s\nexit $rv\n}\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
+			_, _ = builder.WriteString("trap -- \"__cleanup\" EXIT\n")
 
 			if len(cfg.Commands) > 0 {
 				_, _ = builder.WriteString(
@@ -171,8 +173,6 @@ func newCommand(cfg *commandConfig) (*command, error) {
 					prepareScript(cfg.Script, ShellFromShellPath(programPath)),
 				)
 			}
-
-			_, _ = builder.WriteString(fmt.Sprintf("%s > %s\n", dumpCmd, filepath.Join(envStorePath, envEndFileName)))
 
 			extraArgs = []string{}
 

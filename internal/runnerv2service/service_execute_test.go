@@ -322,14 +322,9 @@ func TestRunnerServiceServerExecuteWithInput(t *testing.T) {
 
 		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
 			Config: &runnerv2alpha1.ProgramConfig{
-				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
-						Items: []string{
-							"sleep 30",
-						},
-					},
-				},
+				ProgramName: "sleep",
+				Arguments:   []string{"30"},
+				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 			},
 		})
 		require.NoError(t, err)
