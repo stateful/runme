@@ -33,7 +33,7 @@ jobs:
         with:
           go-version: "1.21"
       - name: Auth to GCP
-        uses: google-github-actions/auth@v0
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
           create_credentials_file: true
@@ -44,7 +44,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v2
       - name: Release notes
         run: |
           owner="${{ vars.RELEASE_OWNER || github.actor }}"
