@@ -594,12 +594,17 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 
 	resolver := commandpkg.NewEnvResolver(sources...)
 
-	var result []*commandpkg.EnvResolverResult
+	var varRes []*commandpkg.EnvResolverResult
+	var scriptRes bytes.Buffer
 
-	if script := req.GetScript(); script != "" {
-		result, err = resolver.Resolve(strings.NewReader(script))
+	mode := req.GetMode()
+
+	if mode == runnerv1.ResolveVarsMode_RESOLVE_VARS_MODE_SKIP {
+		varRes = nil
+	} else if script := req.GetScript(); script != "" {
+		varRes, err = resolver.Resolve(strings.NewReader(script), &scriptRes)
 	} else if commands := req.GetCommands(); commands != nil && len(commands.Items) > 0 {
-		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")))
+		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")), &scriptRes)
 	} else {
 		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
 	}
@@ -607,14 +612,26 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 		return nil, err
 	}
 
-	response := &runnerv1.ResolveVarsResponse{}
+	response := &runnerv1.ResolveVarsResponse{
+		Commands: &runnerv1.ResolveVarsCommandList{
+			Items: strings.Split(scriptRes.String(), "\n"),
+		},
+	}
 
-	for _, item := range result {
-		response.Items = append(response.Items, &runnerv1.ResolveVarsResult{
+	for _, item := range varRes {
+		ritem := &runnerv1.ResolveVarsResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
-		})
+		}
+		if item.IsResolved() {
+			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_RESOLVED
+		} else if item.IsConfirm() {
+			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_MESSAGE
+		} else if item.IsPlaceholder() {
+			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_PLACEHOLDER
+		}
+		response.Items = append(response.Items, ritem)
 	}
 
 	return response, nil

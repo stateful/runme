@@ -69,6 +69,46 @@ export var SessionStrategy;
      */
     SessionStrategy[SessionStrategy["MOST_RECENT"] = 1] = "MOST_RECENT";
 })(SessionStrategy || (SessionStrategy = {}));
+/**
+ * @generated from protobuf enum runme.runner.v1.ResolveVarsMode
+ */
+export var ResolveVarsMode;
+(function (ResolveVarsMode) {
+    /**
+     * @generated from protobuf enum value: RESOLVE_VARS_MODE_UNSPECIFIED = 0;
+     */
+    ResolveVarsMode[ResolveVarsMode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: RESOLVE_VARS_MODE_PROMPT = 1;
+     */
+    ResolveVarsMode[ResolveVarsMode["PROMPT"] = 1] = "PROMPT";
+    /**
+     * @generated from protobuf enum value: RESOLVE_VARS_MODE_SKIP = 2;
+     */
+    ResolveVarsMode[ResolveVarsMode["SKIP"] = 2] = "SKIP";
+})(ResolveVarsMode || (ResolveVarsMode = {}));
+/**
+ * @generated from protobuf enum runme.runner.v1.ResolveVarsPrompt
+ */
+export var ResolveVarsPrompt;
+(function (ResolveVarsPrompt) {
+    /**
+     * @generated from protobuf enum value: RESOLVE_VARS_PROMPT_UNSPECIFIED = 0;
+     */
+    ResolveVarsPrompt[ResolveVarsPrompt["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: RESOLVE_VARS_PROMPT_RESOLVED = 1;
+     */
+    ResolveVarsPrompt[ResolveVarsPrompt["RESOLVED"] = 1] = "RESOLVED";
+    /**
+     * @generated from protobuf enum value: RESOLVE_VARS_PROMPT_MESSAGE = 2;
+     */
+    ResolveVarsPrompt[ResolveVarsPrompt["MESSAGE"] = 2] = "MESSAGE";
+    /**
+     * @generated from protobuf enum value: RESOLVE_VARS_PROMPT_PLACEHOLDER = 3;
+     */
+    ResolveVarsPrompt[ResolveVarsPrompt["PLACEHOLDER"] = 3] = "PLACEHOLDER";
+})(ResolveVarsPrompt || (ResolveVarsPrompt = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class Session$Type extends MessageType {
     constructor() {
@@ -262,15 +302,28 @@ class ExecuteResponse$Type extends MessageType {
  */
 export const ExecuteResponse = new ExecuteResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ResolveVarsCommandList$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveVarsCommandList", [
+            { no: 1, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsCommandList
+ */
+export const ResolveVarsCommandList = new ResolveVarsCommandList$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ResolveVarsRequest$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ResolveVarsRequest", [
-            { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveVarsRequest_CommandList },
+            { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveVarsCommandList },
             { no: 2, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
-            { no: 6, name: "project", kind: "message", T: () => Project }
+            { no: 3, name: "mode", kind: "enum", T: () => ["runme.runner.v1.ResolveVarsMode", ResolveVarsMode, "RESOLVE_VARS_MODE_"] },
+            { no: 4, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
+            { no: 7, name: "project", kind: "message", T: () => Project }
         ]);
     }
 }
@@ -279,24 +332,13 @@ class ResolveVarsRequest$Type extends MessageType {
  */
 export const ResolveVarsRequest = new ResolveVarsRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveVarsRequest_CommandList$Type extends MessageType {
-    constructor() {
-        super("runme.runner.v1.ResolveVarsRequest.CommandList", [
-            { no: 1, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsRequest.CommandList
- */
-export const ResolveVarsRequest_CommandList = new ResolveVarsRequest_CommandList$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class ResolveVarsResult$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ResolveVarsResult", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "prompt", kind: "enum", T: () => ["runme.runner.v1.ResolveVarsPrompt", ResolveVarsPrompt, "RESOLVE_VARS_PROMPT_"] },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
@@ -308,7 +350,8 @@ export const ResolveVarsResult = new ResolveVarsResult$Type();
 class ResolveVarsResponse$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ResolveVarsResponse", [
-            { no: 1, name: "items", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveVarsResult }
+            { no: 1, name: "commands", kind: "message", T: () => ResolveVarsCommandList },
+            { no: 2, name: "items", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveVarsResult }
         ]);
     }
 }
