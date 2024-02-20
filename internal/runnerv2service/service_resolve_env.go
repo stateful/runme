@@ -1,6 +1,7 @@
 package runnerv2service
 
 import (
+	"bytes"
 	"context"
 	"strings"
 
@@ -43,12 +44,13 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv2alpha1.Res
 
 	resolver := command.NewEnvResolver(sources...)
 
-	var result []*command.EnvResolverResult
+	var varRes []*command.EnvResolverResult
+	var scriptRes bytes.Buffer
 
 	if script := req.GetScript(); script != "" {
-		result, err = resolver.Resolve(strings.NewReader(script))
+		varRes, err = resolver.Resolve(strings.NewReader(script), &scriptRes)
 	} else if commands := req.GetCommands(); commands != nil && len(commands.Items) > 0 {
-		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")))
+		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")), &scriptRes)
 	} else {
 		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
 	}
@@ -58,7 +60,7 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv2alpha1.Res
 
 	response := &runnerv2alpha1.ResolveVarsResponse{}
 
-	for _, item := range result {
+	for _, item := range varRes {
 		response.Items = append(response.Items, &runnerv2alpha1.ResolveVarsResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,

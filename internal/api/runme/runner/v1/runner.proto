@@ -193,11 +193,18 @@ enum ResolveVarsMode {
   RESOLVE_VARS_MODE_SKIP = 2;
 }
 
+message ResolveVarsCommandList {
+  // commands are commands to be executed by the program.
+  // The commands are joined and executed as a script.
+  // For example: ["echo 'Hello, World'", "ls -l /etc"].
+  repeated string items = 1;
+}
+
 message ResolveVarsRequest {
   oneof source {
     // commands are commands to be executed by the program.
     // The commands are joined and executed as a script.
-    CommandList commands = 1;
+    ResolveVarsCommandList commands = 1;
 
     // script is code to be executed by the program.
     // Individual lines are joined with the new line character.
@@ -221,24 +228,18 @@ message ResolveVarsRequest {
 
   // project used to load environment variables from .env files.
   optional Project project = 7;
-
-  message CommandList {
-    // commands are commands to be executed by the program.
-    // The commands are joined and executed as a script.
-    // For example: ["echo 'Hello, World'", "ls -l /etc"].
-    repeated string items = 1;
-  }
 }
 
-enum ResolveVarsStatus {
-  RESOLVE_VARS_STATUS_UNSPECIFIED = 0;
-  RESOLVE_VARS_STATUS_RESOLVED = 1;
-  RESOLVE_VARS_STATUS_PROMPT = 2;
+enum ResolveVarsPrompt {
+  RESOLVE_VARS_PROMPT_UNSPECIFIED = 0;
+  RESOLVE_VARS_PROMPT_RESOLVED = 1;
+  RESOLVE_VARS_PROMPT_MESSAGE = 2;
+  RESOLVE_VARS_PROMPT_PLACEHOLDER = 3;
 }
 
 message ResolveVarsResult {
-  // status indicates the resolution status of the environment variable.
-  ResolveVarsStatus status = 1;
+  // prompt indicates the resolution status of the env variable.
+  ResolveVarsPrompt prompt = 1;
 
   // name is the name of the environment variable.
   string name = 2;
@@ -255,7 +256,9 @@ message ResolveVarsResult {
 }
 
 message ResolveVarsResponse {
-  repeated ResolveVarsResult items = 1;
+  ResolveVarsCommandList commands = 1;
+
+  repeated ResolveVarsResult items = 2;
 }
 
 service RunnerService {
