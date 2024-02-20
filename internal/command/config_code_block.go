@@ -3,6 +3,7 @@ package command
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/stateful/runme/internal/document"
 	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
@@ -106,4 +107,15 @@ func resolveDirUsingParentAndChild(parent, child string) string {
 	}
 
 	return child
+}
+
+func prepareScriptFromLines(programPath string, lines []string) string {
+	var buf strings.Builder
+
+	for _, cmd := range lines {
+		_, _ = buf.WriteString(cmd)
+		_, _ = buf.WriteRune('\n')
+	}
+
+	return buf.String()
 }

@@ -107,21 +107,18 @@ func (c *VirtualCommand) Pid() int {
 }
 
 func (c *VirtualCommand) Start(ctx context.Context) (err error) {
-	argsNormalizer := &argsNormalizer{
-		session: c.opts.Session,
-		logger:  c.logger,
-	}
-
-	cfg, err := normalizeConfig(
+	cfg, cleanups, err := normalizeConfig(
 		c.cfg,
-		argsNormalizer,
-		&envNormalizer{sources: []envSource{c.opts.Session.GetEnv}},
+		pathNormalizer,
+		modeNormalizer,
+		newArgsNormalizer(c.opts.Session, c.logger),
+		newEnvNormalizer(c.opts.Session.GetEnv),
 	)
 	if err != nil {
 		return
 	}
 
-	c.cleanFuncs = append(c.cleanFuncs, argsNormalizer.CollectEnv, argsNormalizer.Cleanup)
+	c.cleanFuncs = append(c.cleanFuncs, cleanups...)
 
 	c.pty, c.tty, err = pty.Open()
 	if err != nil {
