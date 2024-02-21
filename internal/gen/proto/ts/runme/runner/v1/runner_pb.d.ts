@@ -334,9 +334,9 @@ export interface ResolveVarsCommandList {
      * The commands are joined and executed as a script.
      * For example: ["echo 'Hello, World'", "ls -l /etc"].
      *
-     * @generated from protobuf field: repeated string items = 1;
+     * @generated from protobuf field: repeated string lines = 1;
      */
-    items: string[];
+    lines: string[];
 }
 /**
  * @generated from protobuf message runme.runner.v1.ResolveVarsRequest

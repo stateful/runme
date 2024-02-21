@@ -574,8 +574,8 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 
 	if script := req.GetScript(); script != "" {
 		varRes, err = resolver.Resolve(strings.NewReader(script), &scriptRes)
-	} else if commands := req.GetCommands(); commands != nil && len(commands.Items) > 0 {
-		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")), &scriptRes)
+	} else if commands := req.GetCommands(); commands != nil && len(commands.Lines) > 0 {
+		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &scriptRes)
 	} else {
 		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
 	}
@@ -585,7 +585,7 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 
 	response := &runnerv1.ResolveVarsResponse{
 		Commands: &runnerv1.ResolveVarsCommandList{
-			Items: strings.Split(scriptRes.String(), "\n"),
+			Lines: strings.Split(scriptRes.String(), "\n"),
 		},
 	}
 
