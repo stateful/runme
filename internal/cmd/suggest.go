@@ -49,7 +49,6 @@ or just bad. Please use with discretion.
 				_, err := client.GetUser(ctx, false)
 				return err
 			})
-
 			if err != nil {
 				return err
 			}

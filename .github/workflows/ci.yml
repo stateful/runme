@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ["1.21"]
+        go: ["1.22"]
     name: Lint with Go ${{ matrix.go }}
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go: ["1.21"]
+        go: ["1.22"]
         os: [ubuntu-latest, windows-latest]
     name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:
@@ -92,7 +92,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v5
         with:
-          go-version: ">=1.21"
+          go-version: ">=1.22"
       - name: Install dependencies
         run: make install/dev
       - name: Build

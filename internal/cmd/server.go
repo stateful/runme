@@ -65,7 +65,6 @@ The kernel is used to run long running processes like shells and interacting wit
 
 			if !fInsecure {
 				tlsConfig, err = runmetls.GenerateTLS(tlsDir, tlsFileMode, logger)
-
 				if err != nil {
 					return err
 				}

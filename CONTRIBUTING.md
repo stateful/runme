@@ -229,10 +229,10 @@ The requisite tools can be installed with:
 make install/goreleaser
 ```
 
-## Upgrading to go 1.21
+## Upgrading to go 1.22
 
-After upgrading go to version 1.21, you'll need to make sure to reinstall dev packages, as some may be outdated:
+After upgrading go to version 1.22, you'll need to make sure to reinstall dev packages, as some may be outdated:
 
-```sh {"id":"01HF7BT3HF9WY615MNGREVYKFG","name":"upgrade-go-120"}
+```sh {"id":"01HF7BT3HF9WY615MNGREVYKFG","name":"upgrade-go-1-22"}
 make install/dev
 ```

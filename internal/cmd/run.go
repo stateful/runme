@@ -304,7 +304,6 @@ func runCmd() *cobra.Command {
 
 				return runner.RunTask(ctx, runTasks[0]) // #nosec G602; runBlocks comes from the parent scope and is checked
 			})
-
 			if err != nil {
 				if err != nil && errors.Is(err, io.ErrClosedPipe) {
 					err = nil
