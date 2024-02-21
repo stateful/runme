@@ -243,7 +243,7 @@ enum ResolveVarsPrompt {
 
 message ResolveVarsResult {
   // prompt indicates the resolution status of the env variable.
-  ResolveVarsPrompt prompt = 1;
+  ResolveVarsPrompt status = 1;
 
   // name is the name of the environment variable.
   string name = 2;
@@ -262,7 +262,7 @@ message ResolveVarsResult {
 message ResolveVarsResponse {
   ResolveVarsCommandList commands = 1;
 
-  repeated ResolveVarsResult items = 2;
+  repeated ResolveVarsResult vars = 2;
 }
 
 service RunnerService {
