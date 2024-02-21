@@ -367,7 +367,8 @@ export interface ResolveVarsRequest {
         oneofKind: undefined;
     };
     /**
-     * mode determines how to resolution will occur.
+     * mode determines how resolution occurs.
+     * usually based on document or cell annotations.
      *
      * @generated from protobuf field: runme.runner.v1.ResolveVarsMode mode = 3;
      */
@@ -407,9 +408,9 @@ export interface ResolveVarsResult {
     /**
      * prompt indicates the resolution status of the env variable.
      *
-     * @generated from protobuf field: runme.runner.v1.ResolveVarsPrompt prompt = 1;
+     * @generated from protobuf field: runme.runner.v1.ResolveVarsPrompt status = 1;
      */
-    prompt: ResolveVarsPrompt;
+    status: ResolveVarsPrompt;
     /**
      * name is the name of the environment variable.
      *
@@ -442,9 +443,9 @@ export interface ResolveVarsResponse {
      */
     commands?: ResolveVarsCommandList;
     /**
-     * @generated from protobuf field: repeated runme.runner.v1.ResolveVarsResult items = 2;
+     * @generated from protobuf field: repeated runme.runner.v1.ResolveVarsResult vars = 2;
      */
-    items: ResolveVarsResult[];
+    vars: ResolveVarsResult[];
 }
 /**
  * @generated from protobuf enum runme.runner.v1.ExecuteStop
@@ -506,14 +507,20 @@ export declare enum SessionStrategy {
  */
 export declare enum ResolveVarsMode {
     /**
+     * aka auto; auto-decide whether to prompt or not
+     *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
+     * always prompt
+     *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_PROMPT = 1;
      */
     PROMPT = 1,
     /**
+     * never prompt
+     *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_SKIP = 2;
      */
     SKIP = 2

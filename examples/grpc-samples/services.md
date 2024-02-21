@@ -55,7 +55,7 @@ $ grpcurl \
 
 Resolve variables inside cell:
 
-```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","promptEnv":"false","terminalRows":"48"}
+```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","name":"resolve-vars","promptEnv":"false","terminalRows":"48"}
 $ grpcurl \
     -cacert /tmp/runme/tls/cert.pem \
     -cert /tmp/runme/tls/cert.pem \

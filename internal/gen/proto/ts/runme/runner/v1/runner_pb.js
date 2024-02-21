@@ -75,14 +75,20 @@ export var SessionStrategy;
 export var ResolveVarsMode;
 (function (ResolveVarsMode) {
     /**
+     * aka auto; auto-decide whether to prompt or not
+     *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_UNSPECIFIED = 0;
      */
     ResolveVarsMode[ResolveVarsMode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
+     * always prompt
+     *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_PROMPT = 1;
      */
     ResolveVarsMode[ResolveVarsMode["PROMPT"] = 1] = "PROMPT";
     /**
+     * never prompt
+     *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_SKIP = 2;
      */
     ResolveVarsMode[ResolveVarsMode["SKIP"] = 2] = "SKIP";
@@ -335,7 +341,7 @@ export const ResolveVarsRequest = new ResolveVarsRequest$Type();
 class ResolveVarsResult$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ResolveVarsResult", [
-            { no: 1, name: "prompt", kind: "enum", T: () => ["runme.runner.v1.ResolveVarsPrompt", ResolveVarsPrompt, "RESOLVE_VARS_PROMPT_"] },
+            { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v1.ResolveVarsPrompt", ResolveVarsPrompt, "RESOLVE_VARS_PROMPT_"] },
             { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -351,7 +357,7 @@ class ResolveVarsResponse$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ResolveVarsResponse", [
             { no: 1, name: "commands", kind: "message", T: () => ResolveVarsCommandList },
-            { no: 2, name: "items", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveVarsResult }
+            { no: 2, name: "vars", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveVarsResult }
         ]);
     }
 }

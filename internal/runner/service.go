@@ -595,14 +595,18 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
 		}
-		if item.IsResolved() {
-			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_RESOLVED
-		} else if item.IsMessage() {
-			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_MESSAGE
-		} else if item.IsPlaceholder() {
-			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_PLACEHOLDER
+		switch {
+		case item.IsResolved():
+			ritem.Status = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_RESOLVED
+		case item.IsMessage():
+			ritem.Status = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_MESSAGE
+		case item.IsPlaceholder():
+			ritem.Status = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_PLACEHOLDER
+		default:
+			ritem.Status = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_UNSPECIFIED
 		}
-		response.Items = append(response.Items, ritem)
+
+		response.Vars = append(response.Vars, ritem)
 	}
 
 	return response, nil

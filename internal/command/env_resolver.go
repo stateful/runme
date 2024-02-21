@@ -50,24 +50,32 @@ func NewEnvResolver(mode EnvResolverMode, sources ...EnvResolverSource) *EnvReso
 	}
 }
 
+type EnvResolverPrompt uint8
+
+const (
+	EnvResolverUnresolved EnvResolverPrompt = iota
+	EnvResolverResolved
+	EnvResolverMessage
+	EnvResolverPlaceholder
+)
+
 type EnvResolverResult struct {
+	Prompt        EnvResolverPrompt
 	Name          string
 	OriginalValue string
-	Placeholder   string
-	Message       string
 	Value         string
 }
 
 func (r *EnvResolverResult) IsResolved() bool {
-	return r.Value != ""
+	return r.Prompt == EnvResolverResolved
 }
 
 func (r *EnvResolverResult) IsPlaceholder() bool {
-	return r.Placeholder != ""
+	return r.Prompt == EnvResolverPlaceholder
 }
 
 func (r *EnvResolverResult) IsMessage() bool {
-	return r.Message != ""
+	return r.Prompt == EnvResolverMessage
 }
 
 func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolverResult, error) {
@@ -91,17 +99,38 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 
 		name := arg.Name.Value
 		originalValue, originalQuoted := r.findOriginalValue(decl)
-		value, _ := r.findEnvValue(name)
+		value, ok := r.findEnvValue(name)
+
+		prompt := EnvResolverUnresolved
+		switch r.mode {
+		case EnvResolverModePrompt:
+			if originalQuoted {
+				prompt = EnvResolverMessage
+			} else {
+				prompt = EnvResolverPlaceholder
+			}
+		case EnvResolverModeSkip:
+			if !ok {
+				value = originalValue
+			}
+			prompt = EnvResolverResolved
+		default:
+			if ok {
+				prompt = EnvResolverResolved
+				break
+			}
+			if originalQuoted {
+				prompt = EnvResolverMessage
+			} else {
+				prompt = EnvResolverPlaceholder
+			}
+		}
 
 		item := &EnvResolverResult{
+			Prompt:        prompt,
 			Name:          name,
 			OriginalValue: originalValue,
 			Value:         value,
-		}
-		if originalQuoted {
-			item.Placeholder = originalValue
-		} else {
-			item.Message = originalValue
 		}
 		result = append(result, item)
 	}
