@@ -624,9 +624,6 @@ func (r *runnerService) getEnvResolverFromReq(req *runnerv1.ResolveVarsRequest) 
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
 	if proj != nil {
 		projEnvs, err := proj.LoadEnv()
 		if err != nil {
