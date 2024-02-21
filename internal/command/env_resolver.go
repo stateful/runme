@@ -10,6 +10,17 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+type EnvResolverMode uint8
+
+const (
+	// automatically decide whether to prompt or not
+	EnvResolverModeAuto EnvResolverMode = iota
+	// always prompt
+	EnvResolverModePrompt
+	// never prompt
+	EnvResolverModeSkip
+)
+
 type EnvResolverSource func() []string
 
 func EnvResolverSourceFunc(env []string) EnvResolverSource {
@@ -23,14 +34,16 @@ func EnvResolverSourceFunc(env []string) EnvResolverSource {
 // If the env is in any source, it is considered resolved. Otherwise, it is marked
 // as unresolved.
 type EnvResolver struct {
+	mode           EnvResolverMode
 	sources        []EnvResolverSource
 	envCache       map[string]string
 	printer        *syntax.Printer
 	modifiedScript bool
 }
 
-func NewEnvResolver(sources ...EnvResolverSource) *EnvResolver {
+func NewEnvResolver(mode EnvResolverMode, sources ...EnvResolverSource) *EnvResolver {
 	return &EnvResolver{
+		mode:     mode,
 		sources:  sources,
 		envCache: nil,
 		printer:  syntax.NewPrinter(),
@@ -41,7 +54,7 @@ type EnvResolverResult struct {
 	Name          string
 	OriginalValue string
 	Placeholder   string
-	Prompt        string
+	Message       string
 	Value         string
 }
 
@@ -53,8 +66,8 @@ func (r *EnvResolverResult) IsPlaceholder() bool {
 	return r.Placeholder != ""
 }
 
-func (r *EnvResolverResult) IsConfirm() bool {
-	return r.Prompt != ""
+func (r *EnvResolverResult) IsMessage() bool {
+	return r.Message != ""
 }
 
 func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolverResult, error) {
@@ -88,7 +101,7 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 		if originalQuoted {
 			item.Placeholder = originalValue
 		} else {
-			item.Prompt = originalValue
+			item.Message = originalValue
 		}
 		result = append(result, item)
 	}

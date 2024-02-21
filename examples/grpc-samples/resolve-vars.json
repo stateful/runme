@@ -1,5 +1,5 @@
 {
-    "script": "export NAKED=this is a value\nexport TEST=$( (pwd) )\nexport NAME='Sebastian Mustermann'\nexport PWD=`pwd`\necho \"Hello World, $NAME!\"\necho $TEST\n\ntest() {\n    export INNER=\"nested\"\n}\n\ntest",
+    "script": "export MSG=\"Hello!\"\nexport NAKED=this is a value\nexport TEST=$( (pwd) )\nexport NAME='Sebastian Mustermann'\nexport PWD=`pwd`\necho \"Hello World, $NAME!\"\necho $TEST\n\ntest() {\n    export INNER=\"nested\"\n}\n\ntest",
     "mode": 0,
     "env": [
         "RUNME_ID=01HF7B0KK32HBQ9X4AAD3Z5V14",

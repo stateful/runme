@@ -188,8 +188,11 @@ message ExecuteResponse {
 }
 
 enum ResolveVarsMode {
+  // aka auto; auto-decide whether to prompt or not
   RESOLVE_VARS_MODE_UNSPECIFIED = 0;
+  // always prompt
   RESOLVE_VARS_MODE_PROMPT = 1;
+  // never prompt
   RESOLVE_VARS_MODE_SKIP = 2;
 }
 
@@ -211,7 +214,8 @@ message ResolveVarsRequest {
     string script = 2;
   }
 
-  // mode determines how to resolution will occur.
+  // mode determines how resolution occurs.
+  // usually based on document or cell annotations.
   ResolveVarsMode mode = 3;
 
   // env is a list of environment variables that will be used
