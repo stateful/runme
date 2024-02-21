@@ -200,7 +200,7 @@ message ResolveVarsCommandList {
   // commands are commands to be executed by the program.
   // The commands are joined and executed as a script.
   // For example: ["echo 'Hello, World'", "ls -l /etc"].
-  repeated string items = 1;
+  repeated string lines = 1;
 }
 
 message ResolveVarsRequest {

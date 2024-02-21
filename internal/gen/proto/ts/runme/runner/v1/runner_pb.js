@@ -311,7 +311,7 @@ export const ExecuteResponse = new ExecuteResponse$Type();
 class ResolveVarsCommandList$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ResolveVarsCommandList", [
-            { no: 1, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "lines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
