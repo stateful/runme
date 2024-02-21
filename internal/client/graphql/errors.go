@@ -82,19 +82,20 @@ func convertUserErrors(uErrs interface{}) (result []query.UserError) {
 
 	userErrorType := reflect.TypeOf((*query.UserError)(nil)).Elem()
 
-	if typ := reflect.TypeOf(uErrs); typ.Kind() == reflect.Slice {
-		s := reflect.ValueOf(uErrs)
-		for i := 0; i < s.Len(); i++ {
-			v := s.Index(i)
-			if v.Type().Kind() != reflect.Ptr {
-				v = v.Addr()
-			}
-			if v.Type().Implements(userErrorType) {
-				result = append(result, v.Interface().(query.UserError))
-			}
-		}
-	} else {
+	if typ := reflect.TypeOf(uErrs); typ.Kind() != reflect.Slice {
 		panic("uErrs is not a slice")
 	}
+
+	s := reflect.ValueOf(uErrs)
+	for i := 0; i < s.Len(); i++ {
+		v := s.Index(i)
+		if v.Type().Kind() != reflect.Ptr {
+			v = v.Addr()
+		}
+		if v.Type().Implements(userErrorType) {
+			result = append(result, v.Interface().(query.UserError))
+		}
+	}
+
 	return result
 }

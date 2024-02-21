@@ -214,16 +214,15 @@ func parseFrontmatter(raw []byte) (*Frontmatter, error) {
 
 	for idx, parser := range parsers {
 		err := parser(raw, &f)
-		if err != nil {
-			errorsCount++
-
-			if firstError == nil {
-				firstError = errors.Wrap(err, "failed to parse frontmatter content")
-			}
-		} else {
+		if err == nil {
 			f.format = parsersNames[idx]
 			f.raw = string(raw)
 			break
+		}
+
+		errorsCount++
+		if firstError == nil {
+			firstError = errors.Wrap(err, "failed to parse frontmatter content")
 		}
 	}
 
