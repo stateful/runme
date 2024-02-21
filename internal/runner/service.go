@@ -564,6 +564,56 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 }
 
 func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVarsRequest) (*runnerv1.ResolveVarsResponse, error) {
+	resolver, err := r.getEnvResolverFromReq(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var varRes []*commandpkg.EnvResolverResult
+	var scriptRes bytes.Buffer
+
+	if script := req.GetScript(); script != "" {
+		varRes, err = resolver.Resolve(strings.NewReader(script), &scriptRes)
+	} else if commands := req.GetCommands(); commands != nil && len(commands.Items) > 0 {
+		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")), &scriptRes)
+	} else {
+		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	response := &runnerv1.ResolveVarsResponse{
+		Commands: &runnerv1.ResolveVarsCommandList{
+			Items: strings.Split(scriptRes.String(), "\n"),
+		},
+	}
+
+	for _, item := range varRes {
+		ritem := &runnerv1.ResolveVarsResult{
+			Name:          item.Name,
+			OriginalValue: item.OriginalValue,
+			ResolvedValue: item.Value,
+		}
+		if item.IsResolved() {
+			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_RESOLVED
+		} else if item.IsMessage() {
+			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_MESSAGE
+		} else if item.IsPlaceholder() {
+			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_PLACEHOLDER
+		}
+		response.Items = append(response.Items, ritem)
+	}
+
+	return response, nil
+}
+
+type requestWithSession interface {
+	GetSessionId() string
+	GetSessionStrategy() runnerv1.SessionStrategy
+}
+
+func (r *runnerService) getEnvResolverFromReq(req *runnerv1.ResolveVarsRequest) (*commandpkg.EnvResolver, error) {
 	// Add explicitly passed env as a source.
 	sources := []commandpkg.EnvResolverSource{
 		commandpkg.EnvResolverSourceFunc(req.Env),
@@ -592,54 +642,16 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 		sources = append(sources, commandpkg.EnvResolverSourceFunc(session.Envs()))
 	}
 
-	resolver := commandpkg.NewEnvResolver(sources...)
+	mode := commandpkg.EnvResolverModeAuto
 
-	var varRes []*commandpkg.EnvResolverResult
-	var scriptRes bytes.Buffer
-
-	mode := req.GetMode()
-
-	if mode == runnerv1.ResolveVarsMode_RESOLVE_VARS_MODE_SKIP {
-		varRes = nil
-	} else if script := req.GetScript(); script != "" {
-		varRes, err = resolver.Resolve(strings.NewReader(script), &scriptRes)
-	} else if commands := req.GetCommands(); commands != nil && len(commands.Items) > 0 {
-		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")), &scriptRes)
-	} else {
-		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
-	}
-	if err != nil {
-		return nil, err
+	switch req.GetMode() {
+	case runnerv1.ResolveVarsMode_RESOLVE_VARS_MODE_PROMPT:
+		mode = commandpkg.EnvResolverModePrompt
+	case runnerv1.ResolveVarsMode_RESOLVE_VARS_MODE_SKIP:
+		mode = commandpkg.EnvResolverModeSkip
 	}
 
-	response := &runnerv1.ResolveVarsResponse{
-		Commands: &runnerv1.ResolveVarsCommandList{
-			Items: strings.Split(scriptRes.String(), "\n"),
-		},
-	}
-
-	for _, item := range varRes {
-		ritem := &runnerv1.ResolveVarsResult{
-			Name:          item.Name,
-			OriginalValue: item.OriginalValue,
-			ResolvedValue: item.Value,
-		}
-		if item.IsResolved() {
-			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_RESOLVED
-		} else if item.IsConfirm() {
-			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_MESSAGE
-		} else if item.IsPlaceholder() {
-			ritem.Prompt = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_PLACEHOLDER
-		}
-		response.Items = append(response.Items, ritem)
-	}
-
-	return response, nil
-}
-
-type requestWithSession interface {
-	GetSessionId() string
-	GetSessionStrategy() runnerv1.SessionStrategy
+	return commandpkg.NewEnvResolver(mode, sources...), err
 }
 
 func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session, bool) {

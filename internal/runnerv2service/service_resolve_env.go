@@ -42,7 +42,7 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv2alpha1.Res
 		sources = append(sources, command.EnvResolverSourceFunc(session.GetEnv()))
 	}
 
-	resolver := command.NewEnvResolver(sources...)
+	resolver := command.NewEnvResolver(command.EnvResolverModeAuto, sources...)
 
 	var varRes []*command.EnvResolverResult
 	var scriptRes bytes.Buffer
