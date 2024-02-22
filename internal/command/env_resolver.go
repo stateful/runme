@@ -280,7 +280,7 @@ func (r *EnvResolver) resolveExportStmt(stmt *syntax.Stmt) ([]*syntax.DeclClause
 		stmt.Comments = append(stmt.Comments,
 			syntax.Comment{Text: "\n"},
 			syntax.Comment{Text: fmt.Sprintf(" %s set in smart env store", x.Args[0].Name.Value)},
-			syntax.Comment{Text: fmt.Sprintf(" %s", exportStmt.String())},
+			syntax.Comment{Text: fmt.Sprintf(" %q", exportStmt.String())},
 		)
 		stmt.Cmd = nil
 		r.modifiedScript = true
