@@ -98,6 +98,16 @@ func TestEnvResolverParsing(t *testing.T) {
 			},
 		},
 		{
+			name:   "parameter expression",
+			data:   `export TEST_PARAM_EXPR=${TEST:7:0}`,
+			result: nil,
+		},
+		{
+			name:   "arithmetic expression",
+			data:   `export TEST_ARITHM_EXPR=$(($z+3))`,
+			result: nil,
+		},
+		{
 			name:   "value expression",
 			data:   `export TEST_VALUE_EXPR=$(echo -n "value")`,
 			result: nil,
@@ -134,10 +144,12 @@ func TestEnvResolverResolve(t *testing.T) {
 	var script bytes.Buffer
 	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), &script)
 	require.NoError(t, err)
-	require.EqualValues(t, &EnvResolverResult{
-		Name:          "MY_ENV",
-		OriginalValue: "default",
-		Value:         "resolved",
-		Prompt:        EnvResolverResolved,
+	require.EqualValues(t, []*EnvResolverResult{
+		{
+			Name:          "MY_ENV",
+			OriginalValue: "default",
+			Value:         "resolved",
+			Prompt:        EnvResolverResolved,
+		},
 	}, result)
 }
