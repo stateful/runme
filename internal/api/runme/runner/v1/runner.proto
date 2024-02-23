@@ -237,13 +237,6 @@ message ResolveProgramRequest {
   }
 }
 
-enum ResolveProgramPrompt {
-  RESOLVE_PROGRAM_PROMPT_UNSPECIFIED = 0;
-  RESOLVE_PROGRAM_PROMPT_RESOLVED = 1;
-  RESOLVE_PROGRAM_PROMPT_MESSAGE = 2;
-  RESOLVE_PROGRAM_PROMPT_PLACEHOLDER = 3;
-}
-
 message ResolveProgramResponse {
   ResolveProgramCommandList commands = 1;
 
@@ -251,7 +244,7 @@ message ResolveProgramResponse {
 
   message VarsResult {
     // prompt indicates the resolution status of the env variable.
-    ResolveProgramPrompt status = 1;
+    VarsPrompt status = 1;
 
     // name is the name of the environment variable.
     string name = 2;
@@ -265,6 +258,13 @@ message ResolveProgramResponse {
     // resolved_value is a value of the environment variable resolved from a source.
     // If it is an empty string, it means that the environment variable is not resolved.
     string resolved_value = 4;
+  }
+
+  enum VarsPrompt {
+    VARS_PROMPT_UNSPECIFIED = 0;
+    VARS_PROMPT_RESOLVED = 1;
+    VARS_PROMPT_MESSAGE = 2;
+    VARS_PROMPT_PLACEHOLDER = 3;
   }
 }
 

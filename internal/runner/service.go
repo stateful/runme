@@ -563,8 +563,8 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 	}
 }
 
-func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVarsRequest) (*runnerv1.ResolveVarsResponse, error) {
-	r.logger.Info("running ResolveVars in runnerService")
+func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.ResolveProgramRequest) (*runnerv1.ResolveProgramResponse, error) {
+	r.logger.Info("running ResolveProgram in runnerService")
 	resolver, err := r.getEnvResolverFromReq(req)
 	if err != nil {
 		return nil, err
@@ -584,27 +584,27 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 		return nil, err
 	}
 
-	response := &runnerv1.ResolveVarsResponse{
-		Commands: &runnerv1.ResolveVarsCommandList{
+	response := &runnerv1.ResolveProgramResponse{
+		Commands: &runnerv1.ResolveProgramCommandList{
 			Lines: strings.Split(scriptRes.String(), "\n"),
 		},
 	}
 
 	for _, item := range varRes {
-		ritem := &runnerv1.ResolveVarsResult{
+		ritem := &runnerv1.ResolveProgramResponse_VarsResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
 		}
 		switch {
 		case item.IsResolved():
-			ritem.Status = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_RESOLVED
+			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_RESOLVED
 		case item.IsMessage():
-			ritem.Status = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_MESSAGE
+			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_MESSAGE
 		case item.IsPlaceholder():
-			ritem.Status = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_PLACEHOLDER
+			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_PLACEHOLDER
 		default:
-			ritem.Status = runnerv1.ResolveVarsPrompt_RESOLVE_VARS_PROMPT_UNSPECIFIED
+			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_UNSPECIFIED
 		}
 
 		response.Vars = append(response.Vars, ritem)
@@ -618,7 +618,7 @@ type requestWithSession interface {
 	GetSessionStrategy() runnerv1.SessionStrategy
 }
 
-func (r *runnerService) getEnvResolverFromReq(req *runnerv1.ResolveVarsRequest) (*commandpkg.EnvResolver, error) {
+func (r *runnerService) getEnvResolverFromReq(req *runnerv1.ResolveProgramRequest) (*commandpkg.EnvResolver, error) {
 	// Add explicitly passed env as a source.
 	sources := []commandpkg.EnvResolverSource{
 		commandpkg.EnvResolverSourceFunc(req.Env),
@@ -646,10 +646,11 @@ func (r *runnerService) getEnvResolverFromReq(req *runnerv1.ResolveVarsRequest) 
 
 	mode := commandpkg.EnvResolverModeAuto
 
-	switch req.GetMode() {
-	case runnerv1.ResolveVarsMode_RESOLVE_VARS_MODE_PROMPT:
+	switch req.GetVarsMode() {
+
+	case runnerv1.ResolveProgramRequest_VARS_MODE_PROMPT:
 		mode = commandpkg.EnvResolverModePrompt
-	case runnerv1.ResolveVarsMode_RESOLVE_VARS_MODE_SKIP:
+	case runnerv1.ResolveProgramRequest_VARS_MODE_SKIP:
 		mode = commandpkg.EnvResolverModeSkip
 	}
 

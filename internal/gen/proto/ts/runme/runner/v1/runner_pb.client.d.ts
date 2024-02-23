@@ -5,8 +5,8 @@
 // @ts-nocheck
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
-import type { ResolveVarsResponse } from "./runner_pb";
-import type { ResolveVarsRequest } from "./runner_pb";
+import type { ResolveProgramResponse } from "./runner_pb";
+import type { ResolveProgramRequest } from "./runner_pb";
 import type { ExecuteResponse } from "./runner_pb";
 import type { ExecuteRequest } from "./runner_pb";
 import type { DuplexStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -53,14 +53,14 @@ export interface IRunnerServiceClient {
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
     /**
-     * ResolveVars resolves variables from a script or a list of commands
+     * ResolveProgram resolves variables from a script or a list of commands
      * using the provided sources, which can be a list of environment variables,
      * a session, or a project.
      * For now, the resolved variables are only the exported ones using `export`.
      *
-     * @generated from protobuf rpc: ResolveVars(runme.runner.v1.ResolveVarsRequest) returns (runme.runner.v1.ResolveVarsResponse);
+     * @generated from protobuf rpc: ResolveProgram(runme.runner.v1.ResolveProgramRequest) returns (runme.runner.v1.ResolveProgramResponse);
      */
-    resolveVars(input: ResolveVarsRequest, options?: RpcOptions): UnaryCall<ResolveVarsRequest, ResolveVarsResponse>;
+    resolveProgram(input: ResolveProgramRequest, options?: RpcOptions): UnaryCall<ResolveProgramRequest, ResolveProgramResponse>;
 }
 /**
  * @generated from protobuf service runme.runner.v1.RunnerService
@@ -100,12 +100,12 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
     /**
-     * ResolveVars resolves variables from a script or a list of commands
+     * ResolveProgram resolves variables from a script or a list of commands
      * using the provided sources, which can be a list of environment variables,
      * a session, or a project.
      * For now, the resolved variables are only the exported ones using `export`.
      *
-     * @generated from protobuf rpc: ResolveVars(runme.runner.v1.ResolveVarsRequest) returns (runme.runner.v1.ResolveVarsResponse);
+     * @generated from protobuf rpc: ResolveProgram(runme.runner.v1.ResolveProgramRequest) returns (runme.runner.v1.ResolveProgramResponse);
      */
-    resolveVars(input: ResolveVarsRequest, options?: RpcOptions): UnaryCall<ResolveVarsRequest, ResolveVarsResponse>;
+    resolveProgram(input: ResolveProgramRequest, options?: RpcOptions): UnaryCall<ResolveProgramRequest, ResolveProgramResponse>;
 }

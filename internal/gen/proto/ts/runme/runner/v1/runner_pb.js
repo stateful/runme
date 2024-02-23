@@ -12,6 +12,53 @@ import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 /**
+ * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.VarsMode
+ */
+export var ResolveProgramRequest_VarsMode;
+(function (ResolveProgramRequest_VarsMode) {
+    /**
+     * unspecified is auto (default) which prompts for all unresolved
+     * subsequent runs will likely resolve via session
+     *
+     * @generated from protobuf enum value: VARS_MODE_UNSPECIFIED = 0;
+     */
+    ResolveProgramRequest_VarsMode[ResolveProgramRequest_VarsMode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * always prompt even if resolved
+     *
+     * @generated from protobuf enum value: VARS_MODE_PROMPT = 1;
+     */
+    ResolveProgramRequest_VarsMode[ResolveProgramRequest_VarsMode["PROMPT"] = 1] = "PROMPT";
+    /**
+     * don't prompt whatsover even unresolved is resolved
+     *
+     * @generated from protobuf enum value: VARS_MODE_SKIP = 2;
+     */
+    ResolveProgramRequest_VarsMode[ResolveProgramRequest_VarsMode["SKIP"] = 2] = "SKIP";
+})(ResolveProgramRequest_VarsMode || (ResolveProgramRequest_VarsMode = {}));
+/**
+ * @generated from protobuf enum runme.runner.v1.ResolveProgramResponse.VarsPrompt
+ */
+export var ResolveProgramResponse_VarsPrompt;
+(function (ResolveProgramResponse_VarsPrompt) {
+    /**
+     * @generated from protobuf enum value: VARS_PROMPT_UNSPECIFIED = 0;
+     */
+    ResolveProgramResponse_VarsPrompt[ResolveProgramResponse_VarsPrompt["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: VARS_PROMPT_RESOLVED = 1;
+     */
+    ResolveProgramResponse_VarsPrompt[ResolveProgramResponse_VarsPrompt["RESOLVED"] = 1] = "RESOLVED";
+    /**
+     * @generated from protobuf enum value: VARS_PROMPT_MESSAGE = 2;
+     */
+    ResolveProgramResponse_VarsPrompt[ResolveProgramResponse_VarsPrompt["MESSAGE"] = 2] = "MESSAGE";
+    /**
+     * @generated from protobuf enum value: VARS_PROMPT_PLACEHOLDER = 3;
+     */
+    ResolveProgramResponse_VarsPrompt[ResolveProgramResponse_VarsPrompt["PLACEHOLDER"] = 3] = "PLACEHOLDER";
+})(ResolveProgramResponse_VarsPrompt || (ResolveProgramResponse_VarsPrompt = {}));
+/**
  * @generated from protobuf enum runme.runner.v1.ExecuteStop
  */
 export var ExecuteStop;
@@ -69,53 +116,6 @@ export var SessionStrategy;
      */
     SessionStrategy[SessionStrategy["MOST_RECENT"] = 1] = "MOST_RECENT";
 })(SessionStrategy || (SessionStrategy = {}));
-/**
- * @generated from protobuf enum runme.runner.v1.ResolveVarsMode
- */
-export var ResolveVarsMode;
-(function (ResolveVarsMode) {
-    /**
-     * unspecified is auto (default) which prompts for all unresolved
-     * subsequent runs will likely resolve via session
-     *
-     * @generated from protobuf enum value: RESOLVE_VARS_MODE_UNSPECIFIED = 0;
-     */
-    ResolveVarsMode[ResolveVarsMode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
-    /**
-     * always prompt even if resolved
-     *
-     * @generated from protobuf enum value: RESOLVE_VARS_MODE_PROMPT = 1;
-     */
-    ResolveVarsMode[ResolveVarsMode["PROMPT"] = 1] = "PROMPT";
-    /**
-     * don't prompt whatsover even unresolved is resolved
-     *
-     * @generated from protobuf enum value: RESOLVE_VARS_MODE_SKIP = 2;
-     */
-    ResolveVarsMode[ResolveVarsMode["SKIP"] = 2] = "SKIP";
-})(ResolveVarsMode || (ResolveVarsMode = {}));
-/**
- * @generated from protobuf enum runme.runner.v1.ResolveVarsPrompt
- */
-export var ResolveVarsPrompt;
-(function (ResolveVarsPrompt) {
-    /**
-     * @generated from protobuf enum value: RESOLVE_VARS_PROMPT_UNSPECIFIED = 0;
-     */
-    ResolveVarsPrompt[ResolveVarsPrompt["UNSPECIFIED"] = 0] = "UNSPECIFIED";
-    /**
-     * @generated from protobuf enum value: RESOLVE_VARS_PROMPT_RESOLVED = 1;
-     */
-    ResolveVarsPrompt[ResolveVarsPrompt["RESOLVED"] = 1] = "RESOLVED";
-    /**
-     * @generated from protobuf enum value: RESOLVE_VARS_PROMPT_MESSAGE = 2;
-     */
-    ResolveVarsPrompt[ResolveVarsPrompt["MESSAGE"] = 2] = "MESSAGE";
-    /**
-     * @generated from protobuf enum value: RESOLVE_VARS_PROMPT_PLACEHOLDER = 3;
-     */
-    ResolveVarsPrompt[ResolveVarsPrompt["PLACEHOLDER"] = 3] = "PLACEHOLDER";
-})(ResolveVarsPrompt || (ResolveVarsPrompt = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class Session$Type extends MessageType {
     constructor() {
@@ -309,24 +309,24 @@ class ExecuteResponse$Type extends MessageType {
  */
 export const ExecuteResponse = new ExecuteResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveVarsCommandList$Type extends MessageType {
+class ResolveProgramCommandList$Type extends MessageType {
     constructor() {
-        super("runme.runner.v1.ResolveVarsCommandList", [
+        super("runme.runner.v1.ResolveProgramCommandList", [
             { no: 1, name: "lines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsCommandList
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramCommandList
  */
-export const ResolveVarsCommandList = new ResolveVarsCommandList$Type();
+export const ResolveProgramCommandList = new ResolveProgramCommandList$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveVarsRequest$Type extends MessageType {
+class ResolveProgramRequest$Type extends MessageType {
     constructor() {
-        super("runme.runner.v1.ResolveVarsRequest", [
-            { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveVarsCommandList },
+        super("runme.runner.v1.ResolveProgramRequest", [
+            { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveProgramCommandList },
             { no: 2, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "mode", kind: "enum", T: () => ["runme.runner.v1.ResolveVarsMode", ResolveVarsMode, "RESOLVE_VARS_MODE_"] },
+            { no: 3, name: "vars_mode", kind: "enum", T: () => ["runme.runner.v1.ResolveProgramRequest.VarsMode", ResolveProgramRequest_VarsMode, "VARS_MODE_"] },
             { no: 4, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
@@ -335,14 +335,27 @@ class ResolveVarsRequest$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsRequest
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramRequest
  */
-export const ResolveVarsRequest = new ResolveVarsRequest$Type();
+export const ResolveProgramRequest = new ResolveProgramRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveVarsResult$Type extends MessageType {
+class ResolveProgramResponse$Type extends MessageType {
     constructor() {
-        super("runme.runner.v1.ResolveVarsResult", [
-            { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v1.ResolveVarsPrompt", ResolveVarsPrompt, "RESOLVE_VARS_PROMPT_"] },
+        super("runme.runner.v1.ResolveProgramResponse", [
+            { no: 1, name: "commands", kind: "message", T: () => ResolveProgramCommandList },
+            { no: 2, name: "vars", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveProgramResponse_VarsResult }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramResponse
+ */
+export const ResolveProgramResponse = new ResolveProgramResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveProgramResponse_VarsResult$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveProgramResponse.VarsResult", [
+            { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v1.ResolveProgramResponse.VarsPrompt", ResolveProgramResponse_VarsPrompt, "VARS_PROMPT_"] },
             { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -350,22 +363,9 @@ class ResolveVarsResult$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsResult
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramResponse.VarsResult
  */
-export const ResolveVarsResult = new ResolveVarsResult$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ResolveVarsResponse$Type extends MessageType {
-    constructor() {
-        super("runme.runner.v1.ResolveVarsResponse", [
-            { no: 1, name: "commands", kind: "message", T: () => ResolveVarsCommandList },
-            { no: 2, name: "vars", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveVarsResult }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveVarsResponse
- */
-export const ResolveVarsResponse = new ResolveVarsResponse$Type();
+export const ResolveProgramResponse_VarsResult = new ResolveProgramResponse_VarsResult$Type();
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */
@@ -375,5 +375,5 @@ export const RunnerService = new ServiceType("runme.runner.v1.RunnerService", [
     { name: "ListSessions", options: {}, I: ListSessionsRequest, O: ListSessionsResponse },
     { name: "DeleteSession", options: {}, I: DeleteSessionRequest, O: DeleteSessionResponse },
     { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse },
-    { name: "ResolveVars", options: {}, I: ResolveVarsRequest, O: ResolveVarsResponse }
+    { name: "ResolveProgram", options: {}, I: ResolveProgramRequest, O: ResolveProgramResponse }
 ]);
