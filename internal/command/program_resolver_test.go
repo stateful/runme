@@ -13,17 +13,17 @@ import (
 type parsingFixture struct {
 	name   string
 	data   string
-	source []EnvResolverSource
-	result *EnvResolverResult
+	source []ProgramResolverSource
+	result *ProgramResolverResult
 	script string
 }
 
-func runEnvResolverFixtureTestCase(tc parsingFixture, mode EnvResolverMode) func(t *testing.T) {
+func runProgramResolverFixtureTestCase(tc parsingFixture, mode ProgramResolverMode) func(t *testing.T) {
 	return func(t *testing.T) {
-		r := NewEnvResolver(mode, tc.source...)
+		r := NewProgramResolver(mode, tc.source...)
 
-		if mode != EnvResolverModeAuto && tc.result != nil {
-			tc.result.Prompt = EnvResolverResolved
+		if mode != ProgramResolverModeAuto && tc.result != nil {
+			tc.result.Prompt = ProgramResolverResolved
 			tc.result.Value = tc.result.OriginalValue
 		}
 
@@ -32,7 +32,7 @@ func runEnvResolverFixtureTestCase(tc parsingFixture, mode EnvResolverMode) func
 		assert.NoError(t, err)
 		assert.EqualValues(t, []byte(tc.script), script.Bytes())
 
-		var tcres []*EnvResolverResult
+		var tcres []*ProgramResolverResult
 		if tc.result != nil {
 			tcres = append(tcres, tc.result)
 		}
@@ -41,69 +41,69 @@ func runEnvResolverFixtureTestCase(tc parsingFixture, mode EnvResolverMode) func
 	}
 }
 
-func TestEnvResolverAutoAndSkip(t *testing.T) {
+func TestProgramResolverAutoAndSkip(t *testing.T) {
 	fixtures := []parsingFixture{
 		{
 			name: "no value",
 			data: `export TEST_NO_VALUE`,
-			result: &EnvResolverResult{
-				Name: "TEST_NO_VALUE", Prompt: EnvResolverMessage,
+			result: &ProgramResolverResult{
+				Name: "TEST_NO_VALUE", Prompt: ProgramResolverMessage,
 			},
 			script: "#\n# TEST_NO_VALUE set in smart env store\n# \"export TEST_NO_VALUE\"\n\n",
 		},
 		{
 			name: "empty value",
 			data: `export TEST_EMPTY_VALUE=`,
-			result: &EnvResolverResult{
-				Name: "TEST_EMPTY_VALUE", Prompt: EnvResolverMessage,
+			result: &ProgramResolverResult{
+				Name: "TEST_EMPTY_VALUE", Prompt: ProgramResolverMessage,
 			},
 			script: "#\n# TEST_EMPTY_VALUE set in smart env store\n# \"export TEST_EMPTY_VALUE=\"\n\n",
 		},
 		{
 			name: "string value",
 			data: `export TEST_STRING_VALUE=value`,
-			result: &EnvResolverResult{
-				Name: "TEST_STRING_VALUE", OriginalValue: "value", Prompt: EnvResolverMessage,
+			result: &ProgramResolverResult{
+				Name: "TEST_STRING_VALUE", OriginalValue: "value", Prompt: ProgramResolverMessage,
 			},
 			script: "#\n# TEST_STRING_VALUE set in smart env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
 		},
 		{
 			name: "string value with equal sign",
 			data: `export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2`,
-			result: &EnvResolverResult{
-				Name: "TEST_STRING_VALUE_WITH_EQUAL_SIGN", OriginalValue: "part1=part2", Prompt: EnvResolverMessage,
+			result: &ProgramResolverResult{
+				Name: "TEST_STRING_VALUE_WITH_EQUAL_SIGN", OriginalValue: "part1=part2", Prompt: ProgramResolverMessage,
 			},
 			script: "#\n# TEST_STRING_VALUE_WITH_EQUAL_SIGN set in smart env store\n# \"export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2\"\n\n",
 		},
 		{
 			name: "string double quoted value empty",
 			data: `export TEST_STRING_DBL_QUOTED_VALUE_EMPTY=""`,
-			result: &EnvResolverResult{
-				Name: "TEST_STRING_DBL_QUOTED_VALUE_EMPTY", OriginalValue: "", Prompt: EnvResolverMessage,
+			result: &ProgramResolverResult{
+				Name: "TEST_STRING_DBL_QUOTED_VALUE_EMPTY", OriginalValue: "", Prompt: ProgramResolverMessage,
 			},
 			script: "#\n# TEST_STRING_DBL_QUOTED_VALUE_EMPTY set in smart env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE_EMPTY=\\\"\\\"\"\n\n",
 		},
 		{
 			name: "string double quoted value",
 			data: `export TEST_STRING_DBL_QUOTED_VALUE="value"`,
-			result: &EnvResolverResult{
-				Name: "TEST_STRING_DBL_QUOTED_VALUE", OriginalValue: "value", Prompt: EnvResolverPlaceholder,
+			result: &ProgramResolverResult{
+				Name: "TEST_STRING_DBL_QUOTED_VALUE", OriginalValue: "value", Prompt: ProgramResolverPlaceholder,
 			},
 			script: "#\n# TEST_STRING_DBL_QUOTED_VALUE set in smart env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE=\\\"value\\\"\"\n\n",
 		},
 		{
 			name: "string single quoted value empty",
 			data: `export TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''`,
-			result: &EnvResolverResult{
-				Name: "TEST_STRING_SGL_QUOTED_VALUE_EMPTY", OriginalValue: "", Prompt: EnvResolverPlaceholder,
+			result: &ProgramResolverResult{
+				Name: "TEST_STRING_SGL_QUOTED_VALUE_EMPTY", OriginalValue: "", Prompt: ProgramResolverPlaceholder,
 			},
 			script: "#\n# TEST_STRING_SGL_QUOTED_VALUE_EMPTY set in smart env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''\"\n\n",
 		},
 		{
 			name: "string single quoted value",
 			data: `export TEST_STRING_SGL_QUOTED_VALUE='value'`,
-			result: &EnvResolverResult{
-				Name: "TEST_STRING_SGL_QUOTED_VALUE", OriginalValue: "value", Prompt: EnvResolverPlaceholder,
+			result: &ProgramResolverResult{
+				Name: "TEST_STRING_SGL_QUOTED_VALUE", OriginalValue: "value", Prompt: ProgramResolverPlaceholder,
 			},
 			script: "#\n# TEST_STRING_SGL_QUOTED_VALUE set in smart env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE='value'\"\n\n",
 		},
@@ -142,45 +142,45 @@ func TestEnvResolverAutoAndSkip(t *testing.T) {
 	for _, tc := range fixtures {
 		t.Run(
 			fmt.Sprintf("Auto_resolve %s", tc.name),
-			runEnvResolverFixtureTestCase(tc, EnvResolverModeAuto),
+			runProgramResolverFixtureTestCase(tc, ProgramResolverModeAuto),
 		)
 	}
 
 	for _, tc := range fixtures {
 		t.Run(
 			fmt.Sprintf("Skip_resolve %s", tc.name),
-			runEnvResolverFixtureTestCase(tc, EnvResolverModeSkip),
+			runProgramResolverFixtureTestCase(tc, ProgramResolverModeSkip),
 		)
 	}
 }
 
-func TestEnvResolverAutoResolve(t *testing.T) {
-	r := NewEnvResolver(EnvResolverModeAuto, EnvResolverSourceFunc([]string{"MY_ENV=resolved"}))
+func TestProgramResolverAutoResolve(t *testing.T) {
+	r := NewProgramResolver(ProgramResolverModeAuto, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
 	var script bytes.Buffer
 	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), &script)
 	require.NoError(t, err)
-	require.EqualValues(t, []*EnvResolverResult{
+	require.EqualValues(t, []*ProgramResolverResult{
 		{
 			Name:          "MY_ENV",
 			OriginalValue: "default",
 			Value:         "resolved",
-			Prompt:        EnvResolverResolved,
+			Prompt:        ProgramResolverResolved,
 		},
 	}, result)
 }
 
-func TestEnvResolverPrompt(t *testing.T) {
+func TestProgramResolverPrompt(t *testing.T) {
 	t.Run("Prompt with message", func(t *testing.T) {
-		r := NewEnvResolver(EnvResolverModePrompt, EnvResolverSourceFunc([]string{"MY_ENV=resolved"}))
+		r := NewProgramResolver(ProgramResolverModePrompt, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
 		var script bytes.Buffer
 		result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), &script)
 		require.NoError(t, err)
-		require.EqualValues(t, []*EnvResolverResult{
+		require.EqualValues(t, []*ProgramResolverResult{
 			{
 				Name:          "MY_ENV",
 				OriginalValue: "default",
 				Value:         "resolved",
-				Prompt:        EnvResolverMessage,
+				Prompt:        ProgramResolverMessage,
 			},
 		}, result)
 		fmt.Printf("script: %q\n", script.String())
@@ -188,16 +188,16 @@ func TestEnvResolverPrompt(t *testing.T) {
 	})
 
 	t.Run("Prompt with placeholder", func(t *testing.T) {
-		r := NewEnvResolver(EnvResolverModePrompt, EnvResolverSourceFunc([]string{"MY_ENV=resolved"}))
+		r := NewProgramResolver(ProgramResolverModePrompt, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
 		var script bytes.Buffer
 		result, err := r.Resolve(strings.NewReader(`export MY_ENV="placeholder value"`), &script)
 		require.NoError(t, err)
-		require.EqualValues(t, []*EnvResolverResult{
+		require.EqualValues(t, []*ProgramResolverResult{
 			{
 				Name:          "MY_ENV",
 				OriginalValue: "placeholder value",
 				Value:         "resolved",
-				Prompt:        EnvResolverPlaceholder,
+				Prompt:        ProgramResolverPlaceholder,
 			},
 		}, result)
 		fmt.Printf("script: %q\n", script.String())

@@ -565,12 +565,12 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.ResolveProgramRequest) (*runnerv1.ResolveProgramResponse, error) {
 	r.logger.Info("running ResolveProgram in runnerService")
-	resolver, err := r.getEnvResolverFromReq(req)
+	resolver, err := r.getProgramResolverFromReq(req)
 	if err != nil {
 		return nil, err
 	}
 
-	var varRes []*commandpkg.EnvResolverResult
+	var varRes []*commandpkg.ProgramResolverResult
 	var scriptRes bytes.Buffer
 
 	if script := req.GetScript(); script != "" {
@@ -618,10 +618,10 @@ type requestWithSession interface {
 	GetSessionStrategy() runnerv1.SessionStrategy
 }
 
-func (r *runnerService) getEnvResolverFromReq(req *runnerv1.ResolveProgramRequest) (*commandpkg.EnvResolver, error) {
+func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRequest) (*commandpkg.ProgramResolver, error) {
 	// Add explicitly passed env as a source.
-	sources := []commandpkg.EnvResolverSource{
-		commandpkg.EnvResolverSourceFunc(req.Env),
+	sources := []commandpkg.ProgramResolverSource{
+		commandpkg.ProgramResolverSourceFunc(req.Env),
 	}
 
 	// Add project env as a source.
@@ -634,27 +634,27 @@ func (r *runnerService) getEnvResolverFromReq(req *runnerv1.ResolveProgramReques
 		if err != nil {
 			r.logger.Info("failed to load envs for project", zap.Error(err))
 		} else {
-			sources = append(sources, commandpkg.EnvResolverSourceFunc(projEnvs))
+			sources = append(sources, commandpkg.ProgramResolverSourceFunc(projEnvs))
 		}
 	}
 
 	// Add session env as a source.
 	session, found := r.getSessionFromRequest(req)
 	if found {
-		sources = append(sources, commandpkg.EnvResolverSourceFunc(session.Envs()))
+		sources = append(sources, commandpkg.ProgramResolverSourceFunc(session.Envs()))
 	}
 
-	mode := commandpkg.EnvResolverModeAuto
+	mode := commandpkg.ProgramResolverModeAuto
 
 	switch req.GetVarsMode() {
 
 	case runnerv1.ResolveProgramRequest_VARS_MODE_PROMPT:
-		mode = commandpkg.EnvResolverModePrompt
+		mode = commandpkg.ProgramResolverModePrompt
 	case runnerv1.ResolveProgramRequest_VARS_MODE_SKIP:
-		mode = commandpkg.EnvResolverModeSkip
+		mode = commandpkg.ProgramResolverModeSkip
 	}
 
-	return commandpkg.NewEnvResolver(mode, sources...), err
+	return commandpkg.NewProgramResolver(mode, sources...), err
 }
 
 func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session, bool) {
