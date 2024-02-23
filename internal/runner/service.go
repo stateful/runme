@@ -564,6 +564,7 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 }
 
 func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVarsRequest) (*runnerv1.ResolveVarsResponse, error) {
+	r.logger.Info("running ResolveVars in runnerService")
 	resolver, err := r.getEnvResolverFromReq(req)
 	if err != nil {
 		return nil, err
