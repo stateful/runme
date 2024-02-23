@@ -75,19 +75,20 @@ export var SessionStrategy;
 export var ResolveVarsMode;
 (function (ResolveVarsMode) {
     /**
-     * aka auto; auto-decide whether to prompt or not
+     * unspecified is auto (default) which prompts for all unresolved
+     * subsequent runs will likely resolve via session
      *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_UNSPECIFIED = 0;
      */
     ResolveVarsMode[ResolveVarsMode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
-     * always prompt
+     * always prompt even if resolved
      *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_PROMPT = 1;
      */
     ResolveVarsMode[ResolveVarsMode["PROMPT"] = 1] = "PROMPT";
     /**
-     * never prompt
+     * don't prompt whatsover even unresolved is resolved
      *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_SKIP = 2;
      */

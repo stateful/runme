@@ -188,11 +188,12 @@ message ExecuteResponse {
 }
 
 enum ResolveVarsMode {
-  // aka auto; auto-decide whether to prompt or not
+  // unspecified is auto (default) which prompts for all unresolved
+  // subsequent runs will likely resolve via session
   RESOLVE_VARS_MODE_UNSPECIFIED = 0;
-  // always prompt
+  // always prompt even if resolved
   RESOLVE_VARS_MODE_PROMPT = 1;
-  // never prompt
+  // don't prompt whatsover even unresolved is resolved
   RESOLVE_VARS_MODE_SKIP = 2;
 }
 

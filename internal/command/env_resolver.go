@@ -13,11 +13,12 @@ import (
 type EnvResolverMode uint8
 
 const (
-	// automatically decide whether to prompt or not
+	// unspecified is auto (default) which prompts for all unresolved
+	// subsequent runs will likely resolve via session
 	EnvResolverModeAuto EnvResolverMode = iota
-	// always prompt
+	// always prompt even if resolved
 	EnvResolverModePrompt
-	// never prompt
+	// don't prompt whatsover even unresolved is resolved
 	EnvResolverModeSkip
 )
 
@@ -104,6 +105,7 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 		prompt := EnvResolverUnresolved
 		switch r.mode {
 		case EnvResolverModePrompt:
+			// todo(sebastian): perhaps always placeholder?
 			if originalQuoted {
 				prompt = EnvResolverPlaceholder
 			} else {
