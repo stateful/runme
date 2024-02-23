@@ -15,8 +15,8 @@ import (
 
 func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv2alpha1.ResolveVarsRequest) (*runnerv2alpha1.ResolveVarsResponse, error) {
 	// Add explicitly passed env as a source.
-	sources := []command.EnvResolverSource{
-		command.EnvResolverSourceFunc(req.Env),
+	sources := []command.ProgramResolverSource{
+		command.ProgramResolverSourceFunc(req.Env),
 	}
 
 	// Add project env as a source.
@@ -29,7 +29,7 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv2alpha1.Res
 		if err != nil {
 			r.logger.Info("failed to load envs for project", zap.Error(err))
 		} else {
-			sources = append(sources, command.EnvResolverSourceFunc(projEnvs))
+			sources = append(sources, command.ProgramResolverSourceFunc(projEnvs))
 		}
 	}
 
@@ -39,12 +39,12 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv2alpha1.Res
 		return nil, err
 	}
 	if found {
-		sources = append(sources, command.EnvResolverSourceFunc(session.GetEnv()))
+		sources = append(sources, command.ProgramResolverSourceFunc(session.GetEnv()))
 	}
 
-	resolver := command.NewEnvResolver(command.EnvResolverModeAuto, sources...)
+	resolver := command.NewProgramResolver(command.ProgramResolverModeAuto, sources...)
 
-	var varRes []*command.EnvResolverResult
+	var varRes []*command.ProgramResolverResult
 	var scriptRes bytes.Buffer
 
 	if script := req.GetScript(); script != "" {

@@ -10,40 +10,40 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-type EnvResolverMode uint8
+type ProgramResolverMode uint8
 
 const (
 	// unspecified is auto (default) which prompts for all unresolved
 	// subsequent runs will likely resolve via session
-	EnvResolverModeAuto EnvResolverMode = iota
+	ProgramResolverModeAuto ProgramResolverMode = iota
 	// always prompt even if resolved
-	EnvResolverModePrompt
+	ProgramResolverModePrompt
 	// don't prompt whatsover even unresolved is resolved
-	EnvResolverModeSkip
+	ProgramResolverModeSkip
 )
 
-type EnvResolverSource func() []string
+type ProgramResolverSource func() []string
 
-func EnvResolverSourceFunc(env []string) EnvResolverSource {
+func ProgramResolverSourceFunc(env []string) ProgramResolverSource {
 	return func() []string {
 		return env
 	}
 }
 
-// EnvResolver uses a list of EnvResolverSource to resolve environment variables
+// ProgramResolver uses a list of ProgramResolverSource to resolve environment variables
 // found in a shell program. The result contains all found environment variables.
 // If the env is in any source, it is considered resolved. Otherwise, it is marked
 // as unresolved.
-type EnvResolver struct {
-	mode           EnvResolverMode
-	sources        []EnvResolverSource
+type ProgramResolver struct {
+	mode           ProgramResolverMode
+	sources        []ProgramResolverSource
 	envCache       map[string]string
 	printer        *syntax.Printer
 	modifiedScript bool
 }
 
-func NewEnvResolver(mode EnvResolverMode, sources ...EnvResolverSource) *EnvResolver {
-	return &EnvResolver{
+func NewProgramResolver(mode ProgramResolverMode, sources ...ProgramResolverSource) *ProgramResolver {
+	return &ProgramResolver{
 		mode:     mode,
 		sources:  sources,
 		envCache: nil,
@@ -51,35 +51,35 @@ func NewEnvResolver(mode EnvResolverMode, sources ...EnvResolverSource) *EnvReso
 	}
 }
 
-type EnvResolverPrompt uint8
+type ProgramResolverPrompt uint8
 
 const (
-	EnvResolverUnresolved EnvResolverPrompt = iota
-	EnvResolverResolved
-	EnvResolverMessage
-	EnvResolverPlaceholder
+	ProgramResolverUnresolved ProgramResolverPrompt = iota
+	ProgramResolverResolved
+	ProgramResolverMessage
+	ProgramResolverPlaceholder
 )
 
-type EnvResolverResult struct {
-	Prompt        EnvResolverPrompt
+type ProgramResolverResult struct {
+	Prompt        ProgramResolverPrompt
 	Name          string
 	OriginalValue string
 	Value         string
 }
 
-func (r *EnvResolverResult) IsResolved() bool {
-	return r.Prompt == EnvResolverResolved
+func (r *ProgramResolverResult) IsResolved() bool {
+	return r.Prompt == ProgramResolverResolved
 }
 
-func (r *EnvResolverResult) IsPlaceholder() bool {
-	return r.Prompt == EnvResolverPlaceholder
+func (r *ProgramResolverResult) IsPlaceholder() bool {
+	return r.Prompt == ProgramResolverPlaceholder
 }
 
-func (r *EnvResolverResult) IsMessage() bool {
-	return r.Prompt == EnvResolverMessage
+func (r *ProgramResolverResult) IsMessage() bool {
+	return r.Prompt == ProgramResolverMessage
 }
 
-func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolverResult, error) {
+func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) ([]*ProgramResolverResult, error) {
 	f, err := syntax.NewParser().Parse(reader, "")
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 		return nil, err
 	}
 
-	var result []*EnvResolverResult
+	var result []*ProgramResolverResult
 	for _, decl := range decls {
 		if len(decl.Args) < 1 {
 			continue
@@ -102,33 +102,33 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 		originalValue, originalQuoted := r.findOriginalValue(decl)
 		value, ok := r.findEnvValue(name)
 
-		prompt := EnvResolverUnresolved
+		prompt := ProgramResolverUnresolved
 		switch r.mode {
-		case EnvResolverModePrompt:
+		case ProgramResolverModePrompt:
 			// todo(sebastian): perhaps always placeholder?
 			if originalQuoted {
-				prompt = EnvResolverPlaceholder
+				prompt = ProgramResolverPlaceholder
 			} else {
-				prompt = EnvResolverMessage
+				prompt = ProgramResolverMessage
 			}
-		case EnvResolverModeSkip:
+		case ProgramResolverModeSkip:
 			if !ok {
 				value = originalValue
 			}
-			prompt = EnvResolverResolved
+			prompt = ProgramResolverResolved
 		default:
 			if ok {
-				prompt = EnvResolverResolved
+				prompt = ProgramResolverResolved
 				break
 			}
 			if originalQuoted {
-				prompt = EnvResolverPlaceholder
+				prompt = ProgramResolverPlaceholder
 			} else {
-				prompt = EnvResolverMessage
+				prompt = ProgramResolverMessage
 			}
 		}
 
-		item := &EnvResolverResult{
+		item := &ProgramResolverResult{
 			Prompt:        prompt,
 			Name:          name,
 			OriginalValue: originalValue,
@@ -137,7 +137,7 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 		result = append(result, item)
 	}
 
-	slices.SortStableFunc(result, func(a, b *EnvResolverResult) int {
+	slices.SortStableFunc(result, func(a, b *ProgramResolverResult) int {
 		aResolved, bResolved := a.IsResolved(), b.IsResolved()
 		if aResolved && bResolved {
 			return strings.Compare(a.Name, b.Name)
@@ -156,7 +156,7 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 	return result, nil
 }
 
-func (r *EnvResolver) findOriginalValue(decl *syntax.DeclClause) (string, bool) {
+func (r *ProgramResolver) findOriginalValue(decl *syntax.DeclClause) (string, bool) {
 	var vals []string
 	quoted := false
 
@@ -211,7 +211,7 @@ func (r *EnvResolver) findOriginalValue(decl *syntax.DeclClause) (string, bool) 
 	return strings.Join(vals, " "), quoted
 }
 
-func (r *EnvResolver) findEnvValue(name string) (string, bool) {
+func (r *ProgramResolver) findEnvValue(name string) (string, bool) {
 	if r.envCache == nil {
 		r.envCache = make(map[string]string)
 		r.collectEnvFromSources()
@@ -220,7 +220,7 @@ func (r *EnvResolver) findEnvValue(name string) (string, bool) {
 	return val, ok
 }
 
-func (r *EnvResolver) collectEnvFromSources() {
+func (r *ProgramResolver) collectEnvFromSources() {
 	for _, source := range r.sources {
 		env := source()
 		for _, e := range env {
@@ -232,7 +232,7 @@ func (r *EnvResolver) collectEnvFromSources() {
 	}
 }
 
-func (r *EnvResolver) walk(f *syntax.File) (result []*syntax.DeclClause, err error) {
+func (r *ProgramResolver) walk(f *syntax.File) (result []*syntax.DeclClause, err error) {
 	syntax.Walk(f, func(node syntax.Node) bool {
 		if err != nil {
 			return false
@@ -253,18 +253,15 @@ func (r *EnvResolver) walk(f *syntax.File) (result []*syntax.DeclClause, err err
 			// noop
 		}
 
-		// unless stmt is top level, we don't want to go deeper
+		// unless stmt is at top level bail
+		// we don't want to go deeper
 		return false
 	})
 
-	// var buf bytes.Buffer
-	// syntax.DebugPrint(&buf, f)
-	// syntax.NewPrinter().Print(&buf, f)
-	// fmt.Println(buf.String())
 	return
 }
 
-func (r *EnvResolver) resolveExportStmt(stmt *syntax.Stmt) ([]*syntax.DeclClause, error) {
+func (r *ProgramResolver) resolveExportStmt(stmt *syntax.Stmt) ([]*syntax.DeclClause, error) {
 	var result []*syntax.DeclClause
 	if x, ok := stmt.Cmd.(*syntax.DeclClause); ok {
 		if x.Variant.Value != "export" && len(x.Args) != 1 {
@@ -294,7 +291,7 @@ func (r *EnvResolver) resolveExportStmt(stmt *syntax.Stmt) ([]*syntax.DeclClause
 }
 
 // walk AST to check for expression nodes
-func (r *EnvResolver) hasExpr(node syntax.Node) bool {
+func (r *ProgramResolver) hasExpr(node syntax.Node) bool {
 	hasSubshell := false
 	syntax.Walk(node, func(x syntax.Node) bool {
 		switch x.(type) {
