@@ -146,7 +146,10 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 		return 1
 	})
 
-	syntax.NewPrinter().Print(writer, f)
+	err = syntax.NewPrinter().Print(writer, f)
+	if err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }
@@ -252,17 +255,16 @@ func (r *EnvResolver) walk(f *syntax.File) (result []*syntax.DeclClause, err err
 		return false
 	})
 
-	var buf bytes.Buffer
+	// var buf bytes.Buffer
 	// syntax.DebugPrint(&buf, f)
 	// syntax.NewPrinter().Print(&buf, f)
-	fmt.Println(buf.String())
+	// fmt.Println(buf.String())
 	return
 }
 
 func (r *EnvResolver) resolveExportStmt(stmt *syntax.Stmt) ([]*syntax.DeclClause, error) {
 	var result []*syntax.DeclClause
-	switch x := stmt.Cmd.(type) {
-	case *syntax.DeclClause:
+	if x, ok := stmt.Cmd.(*syntax.DeclClause); ok {
 		if x.Variant.Value != "export" && len(x.Args) != 1 {
 			return result, nil
 		}
