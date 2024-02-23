@@ -56,12 +56,14 @@ $ grpcurl \
 Resolve variables inside cell:
 
 ```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","name":"resolve-vars","promptEnv":"false","terminalRows":"48"}
+$ cat resolve-program.json | jq .
+$ echo "👆 request and 👇 response"
 $ grpcurl \
     -cacert /tmp/runme/tls/cert.pem \
     -cert /tmp/runme/tls/cert.pem \
     -key /tmp/runme/tls/key.pem \
     -d @ \
-    127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveProgram < resolve-program.json
+    127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveProgram < resolve-program.json | jq .
 ```
 
 ### Complex script
