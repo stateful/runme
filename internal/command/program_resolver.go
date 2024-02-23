@@ -105,12 +105,8 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) ([]*Progra
 		prompt := ProgramResolverUnresolved
 		switch r.mode {
 		case ProgramResolverModePrompt:
-			// todo(sebastian): perhaps always placeholder?
-			if originalQuoted {
-				prompt = ProgramResolverPlaceholder
-			} else {
-				prompt = ProgramResolverMessage
-			}
+			// once a value is resolved, it's a placeholder
+			prompt = ProgramResolverPlaceholder
 		case ProgramResolverModeSkip:
 			if !ok {
 				value = originalValue

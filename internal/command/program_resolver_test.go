@@ -180,7 +180,7 @@ func TestProgramResolverPrompt(t *testing.T) {
 				Name:          "MY_ENV",
 				OriginalValue: "default",
 				Value:         "resolved",
-				Prompt:        ProgramResolverMessage,
+				Prompt:        ProgramResolverPlaceholder,
 			},
 		}, result)
 		fmt.Printf("script: %q\n", script.String())
