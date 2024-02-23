@@ -17,7 +17,7 @@ type parsingFixture struct {
 	result *EnvResolverResult
 }
 
-func runEnvResolverParsingTestCase(tc parsingFixture, mode EnvResolverMode) func(t *testing.T) {
+func runEnvResolverFixtureTestCase(tc parsingFixture, mode EnvResolverMode) func(t *testing.T) {
 	return func(t *testing.T) {
 		r := NewEnvResolver(mode, tc.source...)
 
@@ -39,7 +39,7 @@ func runEnvResolverParsingTestCase(tc parsingFixture, mode EnvResolverMode) func
 	}
 }
 
-func TestEnvResolverParsing(t *testing.T) {
+func TestEnvResolverAutoAndSkip(t *testing.T) {
 	fixtures := []parsingFixture{
 		{
 			name: "no value",
@@ -127,19 +127,19 @@ func TestEnvResolverParsing(t *testing.T) {
 	for _, tc := range fixtures {
 		t.Run(
 			fmt.Sprintf("Auto_resolve %s", tc.name),
-			runEnvResolverParsingTestCase(tc, EnvResolverModeAuto),
+			runEnvResolverFixtureTestCase(tc, EnvResolverModeAuto),
 		)
 	}
 
 	for _, tc := range fixtures {
 		t.Run(
 			fmt.Sprintf("Skip_resolve %s", tc.name),
-			runEnvResolverParsingTestCase(tc, EnvResolverModeSkip),
+			runEnvResolverFixtureTestCase(tc, EnvResolverModeSkip),
 		)
 	}
 }
 
-func TestEnvResolverResolve(t *testing.T) {
+func TestEnvResolverAutoResolve(t *testing.T) {
 	r := NewEnvResolver(EnvResolverModeAuto, EnvResolverSourceFunc([]string{"MY_ENV=resolved"}))
 	var script bytes.Buffer
 	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), &script)
@@ -152,4 +152,36 @@ func TestEnvResolverResolve(t *testing.T) {
 			Prompt:        EnvResolverResolved,
 		},
 	}, result)
+}
+
+func TestEnvResolverPrompt(t *testing.T) {
+	t.Run("Prompt with message", func(t *testing.T) {
+		r := NewEnvResolver(EnvResolverModePrompt, EnvResolverSourceFunc([]string{"MY_ENV=resolved"}))
+		var script bytes.Buffer
+		result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), &script)
+		require.NoError(t, err)
+		require.EqualValues(t, []*EnvResolverResult{
+			{
+				Name:          "MY_ENV",
+				OriginalValue: "default",
+				Value:         "resolved",
+				Prompt:        EnvResolverMessage,
+			},
+		}, result)
+	})
+
+	t.Run("Prompt with placeholder", func(t *testing.T) {
+		r := NewEnvResolver(EnvResolverModePrompt, EnvResolverSourceFunc([]string{"MY_ENV=resolved"}))
+		var script bytes.Buffer
+		result, err := r.Resolve(strings.NewReader(`export MY_ENV="placeholder value"`), &script)
+		require.NoError(t, err)
+		require.EqualValues(t, []*EnvResolverResult{
+			{
+				Name:          "MY_ENV",
+				OriginalValue: "placeholder value",
+				Value:         "resolved",
+				Prompt:        EnvResolverPlaceholder,
+			},
+		}, result)
+	})
 }
