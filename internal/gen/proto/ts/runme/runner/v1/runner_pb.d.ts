@@ -507,19 +507,20 @@ export declare enum SessionStrategy {
  */
 export declare enum ResolveVarsMode {
     /**
-     * aka auto; auto-decide whether to prompt or not
+     * unspecified is auto (default) which prompts for all unresolved
+     * subsequent runs will likely resolve via session
      *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * always prompt
+     * always prompt even if resolved
      *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_PROMPT = 1;
      */
     PROMPT = 1,
     /**
-     * never prompt
+     * don't prompt whatsover even unresolved is resolved
      *
      * @generated from protobuf enum value: RESOLVE_VARS_MODE_SKIP = 2;
      */

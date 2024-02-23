@@ -104,6 +104,7 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 		prompt := EnvResolverUnresolved
 		switch r.mode {
 		case EnvResolverModePrompt:
+			// todo(sebastian): perhaps always placeholder?
 			if originalQuoted {
 				prompt = EnvResolverPlaceholder
 			} else {

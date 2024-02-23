@@ -173,11 +173,12 @@ func (SessionStrategy) EnumDescriptor() ([]byte, []int) {
 type ResolveVarsMode int32
 
 const (
-	// aka auto; auto-decide whether to prompt or not
+	// unspecified is auto (default) which prompts for all unresolved
+	// subsequent runs will likely resolve via session
 	ResolveVarsMode_RESOLVE_VARS_MODE_UNSPECIFIED ResolveVarsMode = 0
-	// always prompt
+	// always prompt even if resolved
 	ResolveVarsMode_RESOLVE_VARS_MODE_PROMPT ResolveVarsMode = 1
-	// never prompt
+	// don't prompt whatsover even unresolved is resolved
 	ResolveVarsMode_RESOLVE_VARS_MODE_SKIP ResolveVarsMode = 2
 )
 
