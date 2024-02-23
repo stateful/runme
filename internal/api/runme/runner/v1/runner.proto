@@ -187,37 +187,29 @@ message ExecuteResponse {
   ProcessPID pid = 4;
 }
 
-enum ResolveVarsMode {
-  // unspecified is auto (default) which prompts for all unresolved
-  // subsequent runs will likely resolve via session
-  RESOLVE_VARS_MODE_UNSPECIFIED = 0;
-  // always prompt even if resolved
-  RESOLVE_VARS_MODE_PROMPT = 1;
-  // don't prompt whatsover even unresolved is resolved
-  RESOLVE_VARS_MODE_SKIP = 2;
-}
-
-message ResolveVarsCommandList {
+message ResolveProgramCommandList {
   // commands are commands to be executed by the program.
   // The commands are joined and executed as a script.
   // For example: ["echo 'Hello, World'", "ls -l /etc"].
   repeated string lines = 1;
 }
 
-message ResolveVarsRequest {
+message ResolveProgramRequest {
+  // use script for unnormalized cell content
+  // whereas commands is for normalized shell commands
   oneof source {
     // commands are commands to be executed by the program.
     // The commands are joined and executed as a script.
-    ResolveVarsCommandList commands = 1;
+    ResolveProgramCommandList commands = 1;
 
     // script is code to be executed by the program.
     // Individual lines are joined with the new line character.
     string script = 2;
   }
 
-  // mode determines how resolution occurs.
-  // usually based on document or cell annotations.
-  ResolveVarsMode mode = 3;
+  // mode determines how variables resolution occurs.
+  // usually based on document or cell annotation config.
+  VarsMode vars_mode = 3;
 
   // env is a list of environment variables that will be used
   // to resolve the environment variables found in the source.
@@ -233,37 +225,47 @@ message ResolveVarsRequest {
 
   // project used to load environment variables from .env files.
   optional Project project = 7;
+
+  enum VarsMode {
+    // unspecified is auto (default) which prompts for all unresolved
+    // subsequent runs will likely resolve via session
+    VARS_MODE_UNSPECIFIED = 0;
+    // always prompt even if resolved
+    VARS_MODE_PROMPT = 1;
+    // don't prompt whatsover even unresolved is resolved
+    VARS_MODE_SKIP = 2;
+  }
 }
 
-enum ResolveVarsPrompt {
-  RESOLVE_VARS_PROMPT_UNSPECIFIED = 0;
-  RESOLVE_VARS_PROMPT_RESOLVED = 1;
-  RESOLVE_VARS_PROMPT_MESSAGE = 2;
-  RESOLVE_VARS_PROMPT_PLACEHOLDER = 3;
-}
+message ResolveProgramResponse {
+  ResolveProgramCommandList commands = 1;
 
-message ResolveVarsResult {
-  // prompt indicates the resolution status of the env variable.
-  ResolveVarsPrompt status = 1;
+  repeated VarsResult vars = 2;
 
-  // name is the name of the environment variable.
-  string name = 2;
+  message VarsResult {
+    // prompt indicates the resolution status of the env variable.
+    VarsPrompt status = 1;
 
-  // original_value is a default value of the environment variable.
-  // It might be a value that is assigned to the variable in the script,
-  // like FOO=bar or FOO=${FOO:-bar}.
-  // If the variable is not assigned, it is an empty string.
-  string original_value = 3;
+    // name is the name of the environment variable.
+    string name = 2;
 
-  // resolved_value is a value of the environment variable resolved from a source.
-  // If it is an empty string, it means that the environment variable is not resolved.
-  string resolved_value = 4;
-}
+    // original_value is a default value of the environment variable.
+    // It might be a value that is assigned to the variable in the script,
+    // like FOO=bar or FOO=${FOO:-bar}.
+    // If the variable is not assigned, it is an empty string.
+    string original_value = 3;
 
-message ResolveVarsResponse {
-  ResolveVarsCommandList commands = 1;
+    // resolved_value is a value of the environment variable resolved from a source.
+    // If it is an empty string, it means that the environment variable is not resolved.
+    string resolved_value = 4;
+  }
 
-  repeated ResolveVarsResult vars = 2;
+  enum VarsPrompt {
+    VARS_PROMPT_UNSPECIFIED = 0;
+    VARS_PROMPT_RESOLVED = 1;
+    VARS_PROMPT_MESSAGE = 2;
+    VARS_PROMPT_PLACEHOLDER = 3;
+  }
 }
 
 service RunnerService {
@@ -281,9 +283,9 @@ service RunnerService {
   // other fields will be ignored.
   rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
 
-  // ResolveVars resolves variables from a script or a list of commands
+  // ResolveProgram resolves variables from a script or a list of commands
   // using the provided sources, which can be a list of environment variables,
   // a session, or a project.
   // For now, the resolved variables are only the exported ones using `export`.
-  rpc ResolveVars(ResolveVarsRequest) returns (ResolveVarsResponse) {}
+  rpc ResolveProgram(ResolveProgramRequest) returns (ResolveProgramResponse) {}
 }
