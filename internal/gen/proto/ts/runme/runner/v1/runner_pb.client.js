@@ -59,14 +59,14 @@ export class RunnerServiceClient {
         return stackIntercept("duplex", this._transport, method, opt);
     }
     /**
-     * ResolveVars resolves variables from a script or a list of commands
+     * ResolveProgram resolves variables from a script or a list of commands
      * using the provided sources, which can be a list of environment variables,
      * a session, or a project.
      * For now, the resolved variables are only the exported ones using `export`.
      *
-     * @generated from protobuf rpc: ResolveVars(runme.runner.v1.ResolveVarsRequest) returns (runme.runner.v1.ResolveVarsResponse);
+     * @generated from protobuf rpc: ResolveProgram(runme.runner.v1.ResolveProgramRequest) returns (runme.runner.v1.ResolveProgramResponse);
      */
-    resolveVars(input, options) {
+    resolveProgram(input, options) {
         const method = this.methods[5], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }

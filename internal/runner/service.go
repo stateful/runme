@@ -563,43 +563,20 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 	}
 }
 
-func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVarsRequest) (*runnerv1.ResolveVarsResponse, error) {
-	// Add explicitly passed env as a source.
-	sources := []commandpkg.EnvResolverSource{
-		commandpkg.EnvResolverSourceFunc(req.Env),
-	}
-
-	// Add project env as a source.
-	proj, err := ConvertRunnerProject(req.Project)
+func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.ResolveProgramRequest) (*runnerv1.ResolveProgramResponse, error) {
+	r.logger.Info("running ResolveProgram in runnerService")
+	resolver, err := r.getProgramResolverFromReq(req)
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
-	if proj != nil {
-		projEnvs, err := proj.LoadEnv()
-		if err != nil {
-			r.logger.Info("failed to load envs for project", zap.Error(err))
-		} else {
-			sources = append(sources, commandpkg.EnvResolverSourceFunc(projEnvs))
-		}
-	}
 
-	// Add session env as a source.
-	session, found := r.getSessionFromRequest(req)
-	if found {
-		sources = append(sources, commandpkg.EnvResolverSourceFunc(session.Envs()))
-	}
-
-	resolver := commandpkg.NewEnvResolver(sources...)
-
-	var result []*commandpkg.EnvResolverResult
+	var varRes []*commandpkg.ProgramResolverResult
+	var scriptRes bytes.Buffer
 
 	if script := req.GetScript(); script != "" {
-		result, err = resolver.Resolve(strings.NewReader(script))
-	} else if commands := req.GetCommands(); commands != nil && len(commands.Items) > 0 {
-		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Items, "\n")))
+		varRes, err = resolver.Resolve(strings.NewReader(script), &scriptRes)
+	} else if commands := req.GetCommands(); commands != nil && len(commands.Lines) > 0 {
+		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &scriptRes)
 	} else {
 		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
 	}
@@ -607,14 +584,30 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 		return nil, err
 	}
 
-	response := &runnerv1.ResolveVarsResponse{}
+	response := &runnerv1.ResolveProgramResponse{
+		Commands: &runnerv1.ResolveProgramCommandList{
+			Lines: strings.Split(scriptRes.String(), "\n"),
+		},
+	}
 
-	for _, item := range result {
-		response.Items = append(response.Items, &runnerv1.ResolveVarsResult{
+	for _, item := range varRes {
+		ritem := &runnerv1.ResolveProgramResponse_VarsResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
-		})
+		}
+		switch {
+		case item.IsResolved():
+			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_RESOLVED
+		case item.IsMessage():
+			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_MESSAGE
+		case item.IsPlaceholder():
+			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_PLACEHOLDER
+		default:
+			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_UNSPECIFIED
+		}
+
+		response.Vars = append(response.Vars, ritem)
 	}
 
 	return response, nil
@@ -623,6 +616,45 @@ func (r *runnerService) ResolveVars(ctx context.Context, req *runnerv1.ResolveVa
 type requestWithSession interface {
 	GetSessionId() string
 	GetSessionStrategy() runnerv1.SessionStrategy
+}
+
+func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRequest) (*commandpkg.ProgramResolver, error) {
+	// Add explicitly passed env as a source.
+	sources := []commandpkg.ProgramResolverSource{
+		commandpkg.ProgramResolverSourceFunc(req.Env),
+	}
+
+	// Add project env as a source.
+	proj, err := ConvertRunnerProject(req.Project)
+	if err != nil {
+		return nil, err
+	}
+	if proj != nil {
+		projEnvs, err := proj.LoadEnv()
+		if err != nil {
+			r.logger.Info("failed to load envs for project", zap.Error(err))
+		} else {
+			sources = append(sources, commandpkg.ProgramResolverSourceFunc(projEnvs))
+		}
+	}
+
+	// Add session env as a source.
+	session, found := r.getSessionFromRequest(req)
+	if found {
+		sources = append(sources, commandpkg.ProgramResolverSourceFunc(session.Envs()))
+	}
+
+	mode := commandpkg.ProgramResolverModeAuto
+
+	switch req.GetVarsMode() {
+
+	case runnerv1.ResolveProgramRequest_VARS_MODE_PROMPT:
+		mode = commandpkg.ProgramResolverModePrompt
+	case runnerv1.ResolveProgramRequest_VARS_MODE_SKIP:
+		mode = commandpkg.ProgramResolverModeSkip
+	}
+
+	return commandpkg.NewProgramResolver(mode, sources...), err
 }
 
 func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session, bool) {
