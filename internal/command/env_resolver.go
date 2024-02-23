@@ -105,9 +105,9 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 		switch r.mode {
 		case EnvResolverModePrompt:
 			if originalQuoted {
-				prompt = EnvResolverMessage
-			} else {
 				prompt = EnvResolverPlaceholder
+			} else {
+				prompt = EnvResolverMessage
 			}
 		case EnvResolverModeSkip:
 			if !ok {
@@ -120,9 +120,9 @@ func (r *EnvResolver) Resolve(reader io.Reader, writer io.Writer) ([]*EnvResolve
 				break
 			}
 			if originalQuoted {
-				prompt = EnvResolverMessage
-			} else {
 				prompt = EnvResolverPlaceholder
+			} else {
+				prompt = EnvResolverMessage
 			}
 		}
 
@@ -155,7 +155,7 @@ func (r *EnvResolver) findOriginalValue(decl *syntax.DeclClause) (string, bool) 
 	var vals []string
 	quoted := false
 
-	if len(decl.Args) < 1 {
+	if len(decl.Args) < 1 || decl.Args[0].Value == nil {
 		return "", quoted
 	}
 
@@ -267,7 +267,7 @@ func (r *EnvResolver) resolveExportStmt(stmt *syntax.Stmt) ([]*syntax.DeclClause
 			return result, nil
 		}
 
-		if r.hasSubshell(x.Args[0]) {
+		if r.hasExpr(x.Args[0]) {
 			return result, nil
 		}
 
@@ -289,8 +289,8 @@ func (r *EnvResolver) resolveExportStmt(stmt *syntax.Stmt) ([]*syntax.DeclClause
 	return result, nil
 }
 
-// walk AST to check for subshell nodes
-func (r *EnvResolver) hasSubshell(node syntax.Node) bool {
+// walk AST to check for expression nodes
+func (r *EnvResolver) hasExpr(node syntax.Node) bool {
 	hasSubshell := false
 	syntax.Walk(node, func(x syntax.Node) bool {
 		switch x.(type) {
@@ -298,6 +298,21 @@ func (r *EnvResolver) hasSubshell(node syntax.Node) bool {
 			hasSubshell = true
 			return false
 		case *syntax.Subshell:
+			hasSubshell = true
+			return false
+		case *syntax.ParamExp:
+			hasSubshell = true
+			return false
+		case *syntax.ArithmExp:
+			hasSubshell = true
+			return false
+		case *syntax.ProcSubst:
+			hasSubshell = true
+			return false
+		case *syntax.ExtGlob:
+			hasSubshell = true
+			return false
+		case *syntax.BraceExp:
 			hasSubshell = true
 			return false
 		}
