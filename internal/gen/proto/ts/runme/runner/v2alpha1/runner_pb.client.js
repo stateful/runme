@@ -71,9 +71,9 @@ export class RunnerServiceClient {
      * a session, or a project.
      * For now, the resolved variables are only the exported ones using `export`.
      *
-     * @generated from protobuf rpc: ResolveVars(runme.runner.v2alpha1.ResolveVarsRequest) returns (runme.runner.v2alpha1.ResolveVarsResponse);
+     * @generated from protobuf rpc: ResolveProgram(runme.runner.v2alpha1.ResolveProgramRequest) returns (runme.runner.v2alpha1.ResolveProgramResponse);
      */
-    resolveVars(input, options) {
+    resolveProgram(input, options) {
         const method = this.methods[6], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }
