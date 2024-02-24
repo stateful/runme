@@ -15,18 +15,21 @@ import (
 
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.ResolveProgramRequest) (*runnerv2alpha1.ResolveProgramResponse, error) {
 	r.logger.Info("running ResolveProgram in runnerService")
+
 	resolver, err := r.getProgramResolverFromReq(req)
 	if err != nil {
 		return nil, err
 	}
 
-	var varRes []*command.ProgramResolverResult
-	var scriptRes bytes.Buffer
+	var (
+		result         *command.ProgramResolverResult
+		modifiedScript bytes.Buffer
+	)
 
 	if script := req.GetScript(); script != "" {
-		varRes, err = resolver.Resolve(strings.NewReader(script), &scriptRes)
+		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScript)
 	} else if commands := req.GetCommands(); commands != nil && len(commands.Lines) > 0 {
-		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &scriptRes)
+		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &modifiedScript)
 	} else {
 		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
 	}
@@ -36,22 +39,23 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 
 	response := &runnerv2alpha1.ResolveProgramResponse{
 		Commands: &runnerv2alpha1.ResolveProgramCommandList{
-			Lines: strings.Split(scriptRes.String(), "\n"),
+			Lines: strings.Split(modifiedScript.String(), "\n"),
 		},
 	}
 
-	for _, item := range varRes {
+	for _, item := range result.Variables {
 		ritem := &runnerv2alpha1.ResolveProgramResponse_VarsResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
 		}
-		switch {
-		case item.IsResolved():
+
+		switch item.Status {
+		case command.ProgramResolverStatusResolved:
 			ritem.Status = runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_RESOLVED
-		case item.IsMessage():
+		case command.ProgramResolverStatusUnresolvedWithMessage:
 			ritem.Status = runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_MESSAGE
-		case item.IsPlaceholder():
+		case command.ProgramResolverStatusUnresolvedWithPlaceholder:
 			ritem.Status = runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_PLACEHOLDER
 		default:
 			ritem.Status = runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_UNSPECIFIED

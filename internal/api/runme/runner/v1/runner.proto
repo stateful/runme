@@ -188,8 +188,7 @@ message ExecuteResponse {
 }
 
 message ResolveProgramCommandList {
-  // commands are commands to be executed by the program.
-  // The commands are joined and executed as a script.
+  // lines are joined and executed as a script.
   // For example: ["echo 'Hello, World'", "ls -l /etc"].
   repeated string lines = 1;
 }
@@ -199,7 +198,6 @@ message ResolveProgramRequest {
   // whereas commands is for normalized shell commands
   oneof source {
     // commands are commands to be executed by the program.
-    // The commands are joined and executed as a script.
     ResolveProgramCommandList commands = 1;
 
     // script is code to be executed by the program.
@@ -207,8 +205,8 @@ message ResolveProgramRequest {
     string script = 2;
   }
 
-  // mode determines how variables resolution occurs.
-  // usually based on document or cell annotation config.
+  // vars_mode determines how variables resolution occurs.
+  // Usually based on the document or cell annotation config.
   VarsMode vars_mode = 3;
 
   // env is a list of environment variables that will be used
@@ -227,19 +225,22 @@ message ResolveProgramRequest {
   optional Project project = 7;
 
   enum VarsMode {
-    // unspecified is auto (default) which prompts for all unresolved
-    // subsequent runs will likely resolve via session
+    // Unspecified is auto (default) which prompts for all unresolved variables.
+    // Subsequent runs will likely resolve via a session.
     VARS_MODE_UNSPECIFIED = 0;
-    // always prompt even if resolved
+    // Always prompt even if variables are resolved.
     VARS_MODE_PROMPT = 1;
-    // don't prompt whatsover even unresolved is resolved
+    // Don't prompt whatsover even if variables are unresolved.
     VARS_MODE_SKIP = 2;
   }
 }
 
 message ResolveProgramResponse {
+  // commands are commands to be executed by the program.
+  // Variables are resolved and replaced with their values.
   ResolveProgramCommandList commands = 1;
 
+  // vars are the resolved environment variables.
   repeated VarsResult vars = 2;
 
   message VarsResult {
