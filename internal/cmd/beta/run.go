@@ -86,6 +86,16 @@ Run all blocks from the "setup" and "teardown" categories:
 				) error {
 					defer logger.Sync()
 
+					// Load environment variables from the project to the session.
+					// TODO(adamb): consider moving this to autoconfig.
+					env, err := proj.LoadEnv()
+					if err != nil {
+						return err
+					}
+					if err := session.SetEnv(env...); err != nil {
+						return err
+					}
+
 					tasks, err := project.LoadTasks(cmd.Context(), proj)
 					if err != nil {
 						return err

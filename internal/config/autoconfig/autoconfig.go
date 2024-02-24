@@ -130,6 +130,7 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 	}
 
 	if c.Filename != "" {
+		opts = append(opts, project.WithEnvFilesReadOrder(c.EnvPaths))
 		return project.NewFileProject(c.Filename, opts...)
 	}
 
@@ -201,6 +202,7 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 }
 
 func getSession() *command.Session {
+	// TODO: this should be configurable.
 	return command.NewSession()
 }
 

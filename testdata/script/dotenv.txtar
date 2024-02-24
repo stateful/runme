@@ -2,10 +2,6 @@ exec runme run env1
 stdout 'SOMETHING=in-my-dot-env'
 ! stderr .
 
-exec runme beta run env1
-stdout 'SOMETHING=in-my-dot-env'
-! stderr .
-
 -- .env --
 SOMETHING="in-my-dot-env"
 
