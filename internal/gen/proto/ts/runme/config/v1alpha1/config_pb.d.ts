@@ -5,7 +5,7 @@
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
 /**
- * TODO(adamb): add identity resolver options.
+ * Config describes the configuration of the runme tools, including CLI, server, and clients like VS Code extension.
  *
  * @generated from protobuf message runme.config.v1alpha1.Config
  */
@@ -16,12 +16,16 @@ export interface Config {
     source: {
         oneofKind: "project";
         /**
+         * project indicates a dir-based source typically including multiple Markdown files.
+         *
          * @generated from protobuf field: runme.config.v1alpha1.Config.Project project = 1;
          */
         project: Config_Project;
     } | {
         oneofKind: "filename";
         /**
+         * filename indicates a single Markdown file.
+         *
          * @generated from protobuf field: string filename = 2;
          */
         filename: string;
@@ -29,22 +33,22 @@ export interface Config {
         oneofKind: undefined;
     };
     /**
-     * @generated from protobuf field: repeated string env_paths = 3 [json_name = "env"];
+     * env_paths is a list of paths to look for environment files.
+     *
+     * @generated from protobuf field: repeated string env_paths = 4 [json_name = "env"];
      */
     envPaths: string[];
     /**
-     * @generated from protobuf field: string chdir = 4;
-     */
-    chdir: string;
-    /**
+     * filters is a list of filters to apply.
+     * Filters can be applied to documents or
+     * individual code blocks.
+     *
      * @generated from protobuf field: repeated runme.config.v1alpha1.Config.Filter filters = 5;
      */
     filters: Config_Filter[];
     /**
-     * @generated from protobuf field: runme.config.v1alpha1.Config.Server server = 6;
-     */
-    server?: Config_Server;
-    /**
+     * log contains the log configuration.
+     *
      * @generated from protobuf field: runme.config.v1alpha1.Config.Log log = 7;
      */
     log?: Config_Log;
@@ -54,18 +58,27 @@ export interface Config {
  */
 export interface Config_Project {
     /**
+     * dir is the directory to look for Markdown files.
+     *
      * @generated from protobuf field: string dir = 1;
      */
     dir: string;
     /**
+     * find_repo_upward indicates whether to find the nearest Git repository upward.
+     * This is useful to, for example, recognize .gitignore files.
+     *
      * @generated from protobuf field: bool find_repo_upward = 2;
      */
     findRepoUpward: boolean;
     /**
+     * ignore_paths is a list of paths to ignore relative to dir.
+     *
      * @generated from protobuf field: repeated string ignore_paths = 3 [json_name = "ignore"];
      */
     ignorePaths: string[];
     /**
+     * disable_gitignore indicates whether to disable the .gitignore file.
+     *
      * @generated from protobuf field: bool disable_gitignore = 4;
      */
     disableGitignore: boolean;
@@ -75,44 +88,41 @@ export interface Config_Project {
  */
 export interface Config_Filter {
     /**
+     * type is the type of the filter.
+     *
      * @generated from protobuf field: runme.config.v1alpha1.Config.FilterType type = 1;
      */
     type: Config_FilterType;
     /**
+     * condition is the filter program to execute for each document or block,
+     * depending on the filter type.
+     *
+     * The condition should be a valid Expr expression and it should return a boolean value.
+     * You can read more about the Expr syntax on https://expr-lang.org/.
+     *
      * @generated from protobuf field: string condition = 2;
      */
     condition: string;
-}
-/**
- * @generated from protobuf message runme.config.v1alpha1.Config.Server
- */
-export interface Config_Server {
-    /**
-     * @generated from protobuf field: string address = 1;
-     */
-    address: string;
-    /**
-     * @generated from protobuf field: string ssl_dir = 2;
-     */
-    sslDir: string;
-    /**
-     * @generated from protobuf field: bool insecure = 3;
-     */
-    insecure: boolean;
 }
 /**
  * @generated from protobuf message runme.config.v1alpha1.Config.Log
  */
 export interface Config_Log {
     /**
+     * enable indicates whether to enable logging.
+     *
      * @generated from protobuf field: bool enable = 1;
      */
     enable: boolean;
     /**
+     * path is the path to the log output file.
+     *
      * @generated from protobuf field: string path = 2;
      */
     path: string;
     /**
+     * verbose is the verbosity level of the log.
+     *
      * @generated from protobuf field: bool verbose = 3;
      */
     verbose: boolean;
@@ -155,13 +165,6 @@ declare class Config_Filter$Type extends MessageType<Config_Filter> {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Filter
  */
 export declare const Config_Filter: Config_Filter$Type;
-declare class Config_Server$Type extends MessageType<Config_Server> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server
- */
-export declare const Config_Server: Config_Server$Type;
 declare class Config_Log$Type extends MessageType<Config_Log> {
     constructor();
 }

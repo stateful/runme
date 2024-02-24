@@ -1,4 +1,4 @@
-package cmd
+package beta
 
 import (
 	"fmt"
@@ -16,17 +16,24 @@ import (
 	"github.com/stateful/runme/internal/project"
 )
 
-func runLocally() *cobra.Command {
+func runLocallyCmd() *cobra.Command {
 	var categories []string
 
 	cmd := cobra.Command{
-		Use:    "run-locally [command1 command2 ...]",
-		Hidden: true,
-		Short:  "Run one or more commands.",
+		Use:   "run [command1 command2 ...]",
+		Short: "Run one or more commands.",
 		Long: `Run commands by providing their names delimited by space.
 The names are interpreted as glob patterns.
 
-The --category option additionally filters the list of tasks to execute.`,
+In the case of multiple commands, they are executed in the order they appear in the document.
+
+The --category option additionally filters the list of tasks to execute by category.`,
+		Example: `Run all blocks starting with the "generate-" prefix:
+  runme beta run "generate-*"
+
+Run all blocks from the "setup" and "teardown" categories:
+  runme beta run --category=setup,teardown
+`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// TODO(adamb): this is an example of how to convert a flag to a ConfigFilter.
 			// The custom per-command flags should be reduced to minimum and runme.yaml should

@@ -33,10 +33,8 @@ class Config$Type extends MessageType {
         super("runme.config.v1alpha1.Config", [
             { no: 1, name: "project", kind: "message", oneof: "source", T: () => Config_Project },
             { no: 2, name: "filename", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "env_paths", kind: "scalar", jsonName: "env", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "chdir", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "env_paths", kind: "scalar", jsonName: "env", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "filters", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => Config_Filter },
-            { no: 6, name: "server", kind: "message", T: () => Config_Server },
             { no: 7, name: "log", kind: "message", T: () => Config_Log }
         ]);
     }
@@ -73,20 +71,6 @@ class Config_Filter$Type extends MessageType {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Filter
  */
 export const Config_Filter = new Config_Filter$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class Config_Server$Type extends MessageType {
-    constructor() {
-        super("runme.config.v1alpha1.Config.Server", [
-            { no: 1, name: "address", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "ssl_dir", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "insecure", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server
- */
-export const Config_Server = new Config_Server$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Config_Log$Type extends MessageType {
     constructor() {

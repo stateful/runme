@@ -29,14 +29,7 @@ type Config struct {
 
 	EnvPaths []string
 
-	Chdir string
-
 	Filters []*Filter
-
-	// Server related fields.
-	ServerAddr string
-	SslDir     string
-	Insecure   bool
 
 	// Log related fields.
 	LogEnable  bool
@@ -112,7 +105,6 @@ func parseYAMLv1alpha1(data []byte) (*configv1alpha1.Config, error) {
 
 func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 	project := c.GetProject()
-	server := c.GetServer()
 	log := c.GetLog()
 
 	var filters []*Filter
@@ -133,13 +125,7 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 
 		EnvPaths: c.GetEnvPaths(),
 
-		Chdir: c.GetChdir(),
-
 		Filters: filters,
-
-		ServerAddr: server.GetAddress(),
-		SslDir:     server.GetSslDir(),
-		Insecure:   server.GetInsecure(),
 
 		LogEnable:  log.GetEnable(),
 		LogPath:    log.GetPath(),

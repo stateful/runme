@@ -58,15 +58,9 @@ project:
 env:
   - ".env"
 
-chdir: "."
-
 filters:
   - type: "FILTER_TYPE_BLOCK"
     condition: "name != ''"
-
-server:
-  address: "localhost:7863"
-  insecure: false
 
 log:
   enable: true
@@ -82,16 +76,12 @@ log:
 
 		EnvPaths: []string{".env"},
 
-		Chdir: ".",
-
 		Filters: []*Filter{
 			{
 				Type:      "FILTER_TYPE_BLOCK",
 				Condition: "name != ''",
 			},
 		},
-
-		ServerAddr: "localhost:7863",
 
 		LogEnable:  true,
 		LogPath:    "/var/tmp/runme.log",
