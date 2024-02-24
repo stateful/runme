@@ -166,15 +166,6 @@ func validateConfig(cfg *Config) error {
 		}
 	}
 
-	// Validate filters.
-	{
-		for _, f := range cfg.Filters {
-			if err := validateFilter(f); err != nil {
-				return errors.Wrap(err, "failed to validate filter")
-			}
-		}
-	}
-
 	return nil
 }
 

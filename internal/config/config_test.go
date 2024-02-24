@@ -13,6 +13,7 @@ func TestParseYAML(t *testing.T) {
 		name           string
 		rawConfig      string
 		expectedConfig *Config
+		errorSubstring string
 	}{
 		{
 			name:           "full config v1alpha1",
@@ -24,12 +25,28 @@ func TestParseYAML(t *testing.T) {
 			rawConfig:      "version: v1alpha1\nfilename: REAEDME.md\n",
 			expectedConfig: &Config{Filename: "REAEDME.md"},
 		},
-		// TODO(adamb): test validation
+		{
+			name:           "validate source",
+			rawConfig:      "version: v1alpha1",
+			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - source: exactly one field is required",
+		},
+		{
+			name:           "validate filter type",
+			rawConfig:      "version: v1alpha1\nfilename: README.md\nfilters:\n  - type: 3\n    condition: \"name != ''\"\n",
+			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - filters[0].type: value must be one of the defined enum values",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			config, err := ParseYAML([]byte(tc.rawConfig))
+
+			if tc.errorSubstring != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.errorSubstring)
+				return
+			}
+
 			require.NoError(t, err)
 			require.True(
 				t,
@@ -63,7 +80,7 @@ filters:
     condition: "name != ''"
 
 log:
-  enable: true
+  enabled: true
   path: "/var/tmp/runme.log"
   verbose: true
 `

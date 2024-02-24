@@ -68,18 +68,3 @@ func (f *Filter) Evaluate(env interface{}) (bool, error) {
 	}
 	return result.(bool), nil
 }
-
-func validateFilter(f *Filter) error {
-	switch f.Type {
-	case FilterTypeBlock, FilterTypeDocument:
-	// no-op
-	default:
-		return errors.Errorf("unknown filter type: %s", f.Type)
-	}
-
-	if f.Condition == "" {
-		return errors.New("filter condition is required")
-	}
-
-	return nil
-}

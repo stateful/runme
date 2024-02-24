@@ -8,16 +8,46 @@ import (
 )
 
 func TestConfigFilter(t *testing.T) {
-	filter := Filter{
-		Type:      FilterTypeBlock,
-		Condition: "name != ''",
+	testCases := []struct {
+		name           string
+		typ            string
+		condition      string
+		env            interface{}
+		expectedResult bool
+	}{
+		{
+			name:           "empty block env",
+			typ:            FilterTypeBlock,
+			condition:      "name != ''",
+			env:            FilterBlockEnv{},
+			expectedResult: false,
+		},
+		{
+			name:           "empty document env",
+			typ:            FilterTypeDocument,
+			condition:      "shell != ''",
+			env:            FilterDocumentEnv{},
+			expectedResult: false,
+		},
+		{
+			name:           "valid name",
+			typ:            FilterTypeBlock,
+			condition:      "name != ''",
+			env:            FilterBlockEnv{Name: "test"},
+			expectedResult: true,
+		},
 	}
 
-	result, err := filter.Evaluate(FilterBlockEnv{})
-	require.NoError(t, err)
-	assert.False(t, result)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			filter := Filter{
+				Type:      tc.typ,
+				Condition: tc.condition,
+			}
 
-	result, err = filter.Evaluate(FilterBlockEnv{Name: "test"})
-	require.NoError(t, err)
-	assert.True(t, result)
+			result, err := filter.Evaluate(tc.env)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
 }
