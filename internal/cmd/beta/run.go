@@ -17,7 +17,10 @@ import (
 )
 
 func runLocallyCmd() *cobra.Command {
-	var categories []string
+	var (
+		categories []string
+		filename   string
+	)
 
 	cmd := cobra.Command{
 		Use:   "run [command1 command2 ...]",
@@ -38,8 +41,12 @@ Run all blocks from the "setup" and "teardown" categories:
 			// TODO(adamb): this is an example of how to convert a flag to a ConfigFilter.
 			// The custom per-command flags should be reduced to minimum and runme.yaml should
 			// be the source of all configuration. In practice, some flags will still be needed
-			// for the convenience.
+			// for the convenience. Move the implementation to appropriate place.
 			return autoconfig.Invoke(func(cfg *config.Config) error {
+				if filename != "" {
+					cfg.Filename = filename
+				}
+
 				if len(categories) > 0 {
 					var cBuilder strings.Builder
 
@@ -55,7 +62,7 @@ Run all blocks from the "setup" and "teardown" categories:
 					}
 
 					cfg.Filters = append(cfg.Filters, &config.Filter{
-						Type: "block_filter",
+						Type: config.FilterTypeBlock,
 						Condition: fmt.Sprintf(
 							// The predicate in `filter` can be read as follows:
 							//   * Assign the current processed block's category to `c`.
@@ -110,6 +117,7 @@ Run all blocks from the "setup" and "teardown" categories:
 		},
 	}
 
+	cmd.Flags().StringVar(&filename, "filename", "", "Name of the Markdown file to run blocks from.")
 	cmd.Flags().StringSliceVar(&categories, "category", nil, "Run blocks only from listed categories.")
 
 	return &cmd
@@ -155,6 +163,10 @@ func parseGlobs(items []string) ([]glob.Glob, error) {
 }
 
 func filterTasksByGlobs(tasks []project.Task, patterns []string) (result []project.Task, _ error) {
+	if len(patterns) == 0 {
+		return tasks, nil
+	}
+
 	globs, err := parseGlobs(patterns)
 	if err != nil {
 		return nil, err

@@ -1,0 +1,25 @@
+! exec runme beta run not-found-singleline
+! stdout .
+stderr 'failhereplease: (command )?not found'
+
+! exec runme beta run not-found-multiline
+! stdout .
+stderr 'failhereplease: (command )?not found'
+
+! exec runme beta --filename=unknown.md run cmd1
+! stdout .
+stderr '^could not execute command: failed to open file-based project ".*/unknown.md": file does not exist$'
+
+-- experimental/runme.yaml --
+version: v1alpha1
+filename: README.md
+
+-- README.md --
+```sh { "name": "not-found-singleline" }
+failhereplease && echo single
+```
+
+```sh { "name": "not-found-multiline" }
+failhereplease
+echo multi
+```

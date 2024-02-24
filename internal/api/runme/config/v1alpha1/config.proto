@@ -67,8 +67,8 @@ message Config {
   }
 
   message Log {
-    // enable indicates whether to enable logging.
-    bool enable = 1;
+    // enabled indicates whether to enable logging.
+    bool enabled = 1;
 
     // path is the path to the log output file.
     string path = 2;

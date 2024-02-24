@@ -1,0 +1,22 @@
+exec runme beta run hello
+stdout '^hello[\s]+$'
+! stderr .
+
+exec runme beta run 'hello*'
+stdout '^hello[\s]+hello-world[\s]+$'
+! stderr .
+
+-- experimental/runme.yaml --
+version: v1alpha1
+filename: README.md
+# log:
+#   enable: true
+
+-- README.md --
+```sh {"name": "hello"}
+echo hello
+```
+
+```sh {"name": "hello-world"}
+echo hello-world
+```

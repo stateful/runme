@@ -21,14 +21,15 @@ import (
 	"github.com/stateful/runme/internal/project"
 )
 
-var (
-	container = dig.New()
+var container = dig.New()
 
-	// Invoke is used to invoke the function with the given dependencies.
-	// The package will automatically figure out how to instantiate them
-	// using the available configuration.
-	Invoke = container.Invoke
-)
+// Invoke is used to invoke the function with the given dependencies.
+// The package will automatically figure out how to instantiate them
+// using the available configuration.
+func Invoke(function interface{}, opts ...dig.InvokeOption) error {
+	err := container.Invoke(function, opts...)
+	return dig.RootCause(err)
+}
 
 func mustProvide(err error) {
 	if err != nil {
@@ -90,7 +91,7 @@ func getConfig(viper *viper.Viper) (*config.Config, error) {
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {
-	if c == nil || !c.LogEnable {
+	if c == nil || !c.LogEnabled {
 		return zap.NewNop(), nil
 	}
 

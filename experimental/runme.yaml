@@ -2,6 +2,8 @@
 # The idea behind runme.yaml is to provide a way to define consistent
 # configuration per project, regardless whether blocks from Markdown
 # are executed in VS Code or using the runme CLI.
+#
+# You can test it with the "runme beta" commands.
 version: v1alpha1
 
 # Indicate the root of the runme project. "." means that
@@ -21,9 +23,6 @@ project:
 env:
   - ".env"
 
-# All code blocks will be executed in the project root directory.
-chdir: "."
-
 # The list of filters to apply to blocks.
 # "condition" must return a boolean value.
 # You can learn about the syntax at https://expr-lang.org/docs/language-definition.
@@ -38,11 +37,7 @@ filters:
   - type: "FILTER_TYPE_BLOCK"
     condition: "!hasPrefix(name, 'test')"
 
-server:
-  address: "localhost:7863"
-  insecure: false
-
 log:
-  enable: true
+  enabled: true
   path: "/var/tmp/runme.log"
   verbose: true

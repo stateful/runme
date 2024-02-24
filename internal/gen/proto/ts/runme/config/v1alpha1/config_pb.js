@@ -75,7 +75,7 @@ export const Config_Filter = new Config_Filter$Type();
 class Config_Log$Type extends MessageType {
     constructor() {
         super("runme.config.v1alpha1.Config.Log", [
-            { no: 1, name: "enable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 2, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "verbose", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);

@@ -109,11 +109,11 @@ export interface Config_Filter {
  */
 export interface Config_Log {
     /**
-     * enable indicates whether to enable logging.
+     * enabled indicates whether to enable logging.
      *
-     * @generated from protobuf field: bool enable = 1;
+     * @generated from protobuf field: bool enabled = 1;
      */
-    enable: boolean;
+    enabled: boolean;
     /**
      * path is the path to the log output file.
      *

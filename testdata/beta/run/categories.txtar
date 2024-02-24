@@ -1,0 +1,26 @@
+exec runme beta run --category=foo
+stdout '^foo[\s]+$'
+! stderr .
+
+exec runme beta run --category=bar,baz
+stdout '^bar[\s]+bar-baz[\s]+$'
+! stderr .
+
+-- experimental/runme.yaml --
+version: v1alpha1
+filename: README.md
+# log:
+#   enable: true
+
+-- README.md --
+```sh {"category": "foo", "name": "foo"}
+echo foo
+```
+
+```sh {"category": "bar", "name": "bar"}
+echo bar
+```
+
+```sh {"category": "bar,baz", "name":"bar-baz"}
+echo bar-baz
+```

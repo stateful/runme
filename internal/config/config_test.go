@@ -83,7 +83,7 @@ log:
 			},
 		},
 
-		LogEnable:  true,
+		LogEnabled: true,
 		LogPath:    "/var/tmp/runme.log",
 		LogVerbose: true,
 	}

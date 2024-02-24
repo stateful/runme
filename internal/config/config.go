@@ -32,7 +32,7 @@ type Config struct {
 	Filters []*Filter
 
 	// Log related fields.
-	LogEnable  bool
+	LogEnabled bool
 	LogPath    string
 	LogVerbose bool
 }
@@ -127,7 +127,7 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 
 		Filters: filters,
 
-		LogEnable:  log.GetEnable(),
+		LogEnabled: log.GetEnabled(),
 		LogPath:    log.GetPath(),
 		LogVerbose: log.GetVerbose(),
 	}
