@@ -96,7 +96,6 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2alpha1.ResolvePro
 	mode := command.ProgramResolverModeAuto
 
 	switch req.GetVarsMode() {
-
 	case runnerv2alpha1.ResolveProgramRequest_VARS_MODE_PROMPT:
 		mode = command.ProgramResolverModePrompt
 	case runnerv2alpha1.ResolveProgramRequest_VARS_MODE_SKIP:

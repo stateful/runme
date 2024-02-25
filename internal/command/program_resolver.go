@@ -89,6 +89,7 @@ type ProgramResolverVarResult struct {
 }
 
 // Resolve resolves the environment variables found in a shell program.
+// It might modify the program and write it provided writer.
 func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramResolverResult, error) {
 	f, err := syntax.NewParser().Parse(reader, "")
 	if err != nil {

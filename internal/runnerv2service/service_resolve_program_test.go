@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
 )
@@ -79,4 +80,52 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 			)
 		})
 	}
+}
+
+func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	request := &runnerv2alpha1.ResolveProgramRequest{
+		Env: []string{"FILE_NAME=my-file.txt"},
+		Source: &runnerv2alpha1.ResolveProgramRequest_Commands{
+			Commands: &runnerv2alpha1.ResolveProgramCommandList{
+				Lines: []string{
+					"export FILE_NAME=default.txt",
+					"cat >\"$FILE_NAME\" <<EOF",
+					"Some content with\nnew line",
+					"EOF",
+				},
+			},
+		},
+	}
+
+	resp, err := client.ResolveProgram(context.Background(), request)
+	require.NoError(t, err)
+	require.Len(t, resp.Vars, 1)
+	require.True(
+		t,
+		proto.Equal(
+			&runnerv2alpha1.ResolveProgramResponse_VarsResult{
+				Name:          "FILE_NAME",
+				Status:        runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_RESOLVED,
+				OriginalValue: "default.txt",
+				ResolvedValue: "my-file.txt",
+			},
+			resp.Vars[0],
+		),
+	)
+	require.EqualValues(
+		t,
+		[]string{
+			"## FILE_NAME set in smart env store",
+			"# \"export FILE_NAME=default.txt\"",
+			"",
+			"cat >\"$FILE_NAME\" <<EOF",
+			"Some content with\nnew line",
+			"EOF",
+		},
+		resp.Commands.Lines,
+	)
 }
