@@ -33,11 +33,11 @@ export interface Config {
         oneofKind: undefined;
     };
     /**
-     * env_paths is a list of paths to look for environment files.
+     * env is the environment variables configuration.
      *
-     * @generated from protobuf field: repeated string env_paths = 4 [json_name = "env"];
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Env env = 3;
      */
-    envPaths: string[];
+    env?: Config_Env;
     /**
      * filters is a list of filters to apply.
      * Filters can be applied to documents or
@@ -105,6 +105,23 @@ export interface Config_Filter {
     condition: string;
 }
 /**
+ * @generated from protobuf message runme.config.v1alpha1.Config.Env
+ */
+export interface Config_Env {
+    /**
+     * use_system_env indicates whether to use the system environment variables.
+     *
+     * @generated from protobuf field: bool use_system_env = 1;
+     */
+    useSystemEnv: boolean;
+    /**
+     * sources is a list of files with env.
+     *
+     * @generated from protobuf field: repeated string sources = 2;
+     */
+    sources: string[];
+}
+/**
  * @generated from protobuf message runme.config.v1alpha1.Config.Log
  */
 export interface Config_Log {
@@ -165,6 +182,13 @@ declare class Config_Filter$Type extends MessageType<Config_Filter> {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Filter
  */
 export declare const Config_Filter: Config_Filter$Type;
+declare class Config_Env$Type extends MessageType<Config_Env> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Env
+ */
+export declare const Config_Env: Config_Env$Type;
 declare class Config_Log$Type extends MessageType<Config_Log> {
     constructor();
 }

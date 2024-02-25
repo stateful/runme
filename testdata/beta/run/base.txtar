@@ -15,7 +15,8 @@ version: v1alpha1
 project:
   dir: "."
 env:
-  - .env
+  sources:
+    - .env
 # log:
 #   enable: true
 

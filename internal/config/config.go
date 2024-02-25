@@ -27,7 +27,9 @@ type Config struct {
 	// Filemode fields.
 	Filename string
 
-	EnvPaths []string
+	// Environment variable fields.
+	UseSystemEnv   bool
+	EnvSourceFiles []string
 
 	Filters []*Filter
 
@@ -123,7 +125,8 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 
 		Filename: c.GetFilename(),
 
-		EnvPaths: c.GetEnvPaths(),
+		UseSystemEnv:   c.GetEnv().GetUseSystemEnv(),
+		EnvSourceFiles: c.GetEnv().GetSources(),
 
 		Filters: filters,
 

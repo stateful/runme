@@ -10,6 +10,8 @@
 package autoconfig
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
@@ -130,7 +132,6 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 	}
 
 	if c.Filename != "" {
-		opts = append(opts, project.WithEnvFilesReadOrder(c.EnvPaths))
 		return project.NewFileProject(c.Filename, opts...)
 	}
 
@@ -144,7 +145,7 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 		opts,
 		project.WithIgnoreFilePatterns(c.IgnorePaths...),
 		project.WithRespectGitignore(!c.DisableGitignore),
-		project.WithEnvFilesReadOrder(c.EnvPaths),
+		project.WithEnvFilesReadOrder(c.EnvSourceFiles),
 	)
 
 	if c.FindRepoUpward {
@@ -201,9 +202,27 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 	return filters, nil
 }
 
-func getSession() *command.Session {
-	// TODO: this should be configurable.
-	return command.NewSession()
+func getSession(cfg *config.Config, proj *project.Project) (*command.Session, error) {
+	sess := command.NewSession()
+
+	if cfg.UseSystemEnv {
+		if err := sess.SetEnv(os.Environ()...); err != nil {
+			return nil, err
+		}
+	}
+
+	if proj != nil {
+		projEnv, err := proj.LoadEnv()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := sess.SetEnv(projEnv...); err != nil {
+			return nil, err
+		}
+	}
+
+	return sess, nil
 }
 
 func getViper() *viper.Viper { return viper.GetViper() }

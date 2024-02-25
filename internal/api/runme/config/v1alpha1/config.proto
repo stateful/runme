@@ -19,8 +19,8 @@ message Config {
     string filename = 2;
   }
 
-  // env_paths is a list of paths to look for environment files.
-  repeated string env_paths = 4 [json_name = "env"];
+  // env is the environment variables configuration.
+  Env env = 3;
 
   // filters is a list of filters to apply.
   // Filters can be applied to documents or
@@ -64,6 +64,14 @@ message Config {
     FILTER_TYPE_UNSPECIFIED = 0;
     FILTER_TYPE_BLOCK = 1;
     FILTER_TYPE_DOCUMENT = 2;
+  }
+
+  message Env {
+    // use_system_env indicates whether to use the system environment variables.
+    bool use_system_env = 1;
+
+    // sources is a list of files with env.
+    repeated string sources = 2;
   }
 
   message Log {

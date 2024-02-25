@@ -21,7 +21,10 @@ project:
 
 # List of dotenv files to load.
 env:
-  - ".env"
+  use_system_env: true
+  sources:
+    - ".env"
+    - ".env.local"
 
 # The list of filters to apply to blocks.
 # "condition" must return a boolean value.

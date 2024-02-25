@@ -1,9 +1,6 @@
 package beta
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -38,38 +35,18 @@ Run all blocks from the "setup" and "teardown" categories:
   runme beta run --category=setup,teardown
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			// TODO(adamb): this is an example of how to convert a flag to a ConfigFilter.
-			// The custom per-command flags should be reduced to minimum and runme.yaml should
-			// be the source of all configuration. In practice, some flags will still be needed
-			// for the convenience. Move the implementation to appropriate place.
 			return autoconfig.Invoke(func(cfg *config.Config) error {
+				// Override the filename if provided.
 				if filename != "" {
 					cfg.Filename = filename
 				}
 
+				// Add a filter to run only tasks from the specified categories.
 				if len(categories) > 0 {
-					var cBuilder strings.Builder
-
-					cLen := len(categories)
-					for i, c := range categories {
-						_, _ = cBuilder.WriteString("'")
-						_, _ = cBuilder.WriteString(c)
-						_, _ = cBuilder.WriteString("'")
-
-						if i < cLen-1 {
-							_, _ = cBuilder.WriteString(",")
-						}
-					}
-
 					cfg.Filters = append(cfg.Filters, &config.Filter{
-						Type: config.FilterTypeBlock,
-						Condition: fmt.Sprintf(
-							// The predicate in `filter` can be read as follows:
-							//   * Assign the current processed block's category to `c`.
-							//   * Check if any provided category matches `c` using an inner predicate for `any`.
-							"len(filter(categories, { let c = #; any([%s], # == c) })) > 0",
-							cBuilder.String(),
-						),
+						Type:      config.FilterTypeBlock,
+						Condition: `len(intersection(categories, extra.categories)) > 0`,
+						Extra:     map[string]interface{}{"categories": categories},
 					})
 				}
 
@@ -85,16 +62,6 @@ Run all blocks from the "setup" and "teardown" categories:
 					session *command.Session,
 				) error {
 					defer logger.Sync()
-
-					// Load environment variables from the project to the session.
-					// TODO(adamb): consider moving this to autoconfig.
-					env, err := proj.LoadEnv()
-					if err != nil {
-						return err
-					}
-					if err := session.SetEnv(env...); err != nil {
-						return err
-					}
 
 					tasks, err := project.LoadTasks(cmd.Context(), proj)
 					if err != nil {

@@ -73,7 +73,8 @@ project:
   disable_gitignore: false
 
 env:
-  - ".env"
+  sources:
+    - ".env"
 
 filters:
   - type: "FILTER_TYPE_BLOCK"
@@ -91,7 +92,7 @@ log:
 		IgnorePaths:      []string{"node_modules", ".venv"},
 		DisableGitignore: false,
 
-		EnvPaths: []string{".env"},
+		EnvSourceFiles: []string{".env"},
 
 		Filters: []*Filter{
 			{

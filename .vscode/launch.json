@@ -16,6 +16,21 @@
             ]
         },
         {
+            "name": "Debug CLI beta run",
+            "type": "go",
+            "mode": "auto",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.go",
+            "buildFlags": "-ldflags=-X=github.com/stateful/runme/internal/version.BuildVersion=99.9.9",
+            "args": [
+                "--filename=test.md",
+                "beta",
+                "run",
+                "echo-env",
+                "--category=echo",
+            ]
+        },
+        {
             "name": "Debug server",
             "type": "go",
             "mode": "auto",

@@ -11,6 +11,7 @@ func TestConfigFilter(t *testing.T) {
 	testCases := []struct {
 		name           string
 		typ            string
+		extra          map[string]interface{}
 		condition      string
 		env            interface{}
 		expectedResult bool
@@ -36,6 +37,16 @@ func TestConfigFilter(t *testing.T) {
 			env:            FilterBlockEnv{Name: "test"},
 			expectedResult: true,
 		},
+		{
+			name:      "intersection function in block env",
+			typ:       FilterTypeBlock,
+			extra:     map[string]interface{}{"categories": []string{"test"}},
+			condition: "len(intersection(categories, extra.categories)) > 0",
+			env: FilterBlockEnv{
+				Categories: []string{"test", "test1", "test2"},
+			},
+			expectedResult: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -43,6 +54,7 @@ func TestConfigFilter(t *testing.T) {
 			filter := Filter{
 				Type:      tc.typ,
 				Condition: tc.condition,
+				Extra:     tc.extra,
 			}
 
 			result, err := filter.Evaluate(tc.env)
