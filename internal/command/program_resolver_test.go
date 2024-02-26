@@ -177,7 +177,7 @@ func TestProgramResolverResolve(t *testing.T) {
 
 		t.Run("ProgramResolverModeSkip", func(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
-				r := NewProgramResolver(ProgramResolverModeSkip)
+				r := NewProgramResolver(ProgramResolverModeSkipAll)
 				buf := bytes.NewBuffer(nil)
 				got, err := r.Resolve(strings.NewReader(tc.program), buf)
 				require.NoError(t, err)
@@ -218,7 +218,7 @@ func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
 
 func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 	t.Run("Prompt with message", func(t *testing.T) {
-		r := NewProgramResolver(ProgramResolverModePrompt, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
+		r := NewProgramResolver(ProgramResolverModePromptAll, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
 		buf := bytes.NewBuffer(nil)
 		result, err := r.Resolve(strings.NewReader(`export MY_ENV=message value`), buf)
 		require.NoError(t, err)
@@ -241,7 +241,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 	})
 
 	t.Run("Prompt with placeholder", func(t *testing.T) {
-		r := NewProgramResolver(ProgramResolverModePrompt, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
+		r := NewProgramResolver(ProgramResolverModePromptAll, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
 		buf := bytes.NewBuffer(nil)
 		result, err := r.Resolve(strings.NewReader(`export MY_ENV="placeholder value"`), buf)
 		require.NoError(t, err)

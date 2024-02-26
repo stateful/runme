@@ -594,7 +594,7 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.Resolv
 	}
 
 	for _, item := range result.Variables {
-		ritem := &runnerv1.ResolveProgramResponse_VarsResult{
+		ritem := &runnerv1.ResolveProgramResponse_VarResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
@@ -602,13 +602,13 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.Resolv
 
 		switch item.Status {
 		case commandpkg.ProgramResolverStatusResolved:
-			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_RESOLVED
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_RESOLVED
 		case commandpkg.ProgramResolverStatusUnresolvedWithMessage:
-			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_MESSAGE
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE
 		case commandpkg.ProgramResolverStatusUnresolvedWithPlaceholder:
-			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_PLACEHOLDER
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER
 		default:
-			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_UNSPECIFIED
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNSPECIFIED
 		}
 
 		response.Vars = append(response.Vars, ritem)
@@ -650,12 +650,11 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 
 	mode := commandpkg.ProgramResolverModeAuto
 
-	switch req.GetVarsMode() {
-
-	case runnerv1.ResolveProgramRequest_VARS_MODE_PROMPT:
-		mode = commandpkg.ProgramResolverModePrompt
-	case runnerv1.ResolveProgramRequest_VARS_MODE_SKIP:
-		mode = commandpkg.ProgramResolverModeSkip
+	switch req.GetMode() {
+	case runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL:
+		mode = commandpkg.ProgramResolverModePromptAll
+	case runnerv1.ResolveProgramRequest_MODE_SKIP_ALL:
+		mode = commandpkg.ProgramResolverModeSkipAll
 	}
 
 	return commandpkg.NewProgramResolver(mode, sources...), err

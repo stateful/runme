@@ -17,10 +17,10 @@ type ProgramResolverMode uint8
 const (
 	// ProgramResolverModeAuto is a default which prompts for all unresolved variables.
 	ProgramResolverModeAuto ProgramResolverMode = iota
-	// ProgramResolverModePrompt always prompts even if variables are resolved.
-	ProgramResolverModePrompt
-	// ProgramResolverModeSkip does not prompt even if variables are unresolved.
-	ProgramResolverModeSkip
+	// ProgramResolverModePromptAll always prompts even if variables are resolved.
+	ProgramResolverModePromptAll
+	// ProgramResolverModeSkipAll does not prompt even if variables are unresolved.
+	ProgramResolverModeSkipAll
 )
 
 type ProgramResolverSource func() []string
@@ -121,10 +121,10 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 		}
 
 		switch r.mode {
-		case ProgramResolverModePrompt:
+		case ProgramResolverModePromptAll:
 			// For ProgramResolverModePrompt the status is awalys ProgramResolverStatusUnresolvedWithPlaceholder.
 			varResult.Status = ProgramResolverStatusUnresolvedWithPlaceholder
-		case ProgramResolverModeSkip:
+		case ProgramResolverModeSkipAll:
 			// For ProgramResolverModeSkip the status is awalys ProgramResolverStatusResolved.
 			varResult.Status = ProgramResolverStatusResolved
 			if !hasResolvedValue {

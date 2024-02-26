@@ -188,7 +188,8 @@ message ExecuteResponse {
 }
 
 message ResolveProgramCommandList {
-  // lines are joined and executed as a script.
+  // commands are commands to be executed by the program.
+  // The commands are joined and executed as a script.
   // For example: ["echo 'Hello, World'", "ls -l /etc"].
   repeated string lines = 1;
 }
@@ -198,6 +199,7 @@ message ResolveProgramRequest {
   // whereas commands is for normalized shell commands
   oneof source {
     // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
     ResolveProgramCommandList commands = 1;
 
     // script is code to be executed by the program.
@@ -205,11 +207,11 @@ message ResolveProgramRequest {
     string script = 2;
   }
 
-  // vars_mode determines how variables resolution occurs.
-  // Usually based on the document or cell annotation config.
-  VarsMode vars_mode = 3;
+  // mode determines how variables resolution occurs.
+  // It is usually based on document or cell annotation config.
+  Mode mode = 3;
 
-  // env is a list of environment variables that will be used
+  // env is a list of explicit environment variables that will be used
   // to resolve the environment variables found in the source.
   repeated string env = 4;
 
@@ -224,28 +226,26 @@ message ResolveProgramRequest {
   // project used to load environment variables from .env files.
   optional Project project = 7;
 
-  enum VarsMode {
-    // Unspecified is auto (default) which prompts for all unresolved variables.
-    // Subsequent runs will likely resolve via a session.
-    VARS_MODE_UNSPECIFIED = 0;
-    // Always prompt even if variables are resolved.
-    VARS_MODE_PROMPT = 1;
-    // Don't prompt whatsover even if variables are unresolved.
-    VARS_MODE_SKIP = 2;
+  enum Mode {
+    // unspecified is auto (default) which prompts for all
+    // unresolved environment variables.
+    // Subsequent runs will likely resolve via the session.
+    MODE_UNSPECIFIED = 0;
+    // prompt always means to prompt for all environment variables.
+    MODE_PROMPT_ALL = 1;
+    // skip means to not prompt for any environment variables.
+    MODE_SKIP_ALL = 2;
   }
 }
 
 message ResolveProgramResponse {
-  // commands are commands to be executed by the program.
-  // Variables are resolved and replaced with their values.
   ResolveProgramCommandList commands = 1;
 
-  // vars are the resolved environment variables.
-  repeated VarsResult vars = 2;
+  repeated VarResult vars = 2;
 
-  message VarsResult {
+  message VarResult {
     // prompt indicates the resolution status of the env variable.
-    VarsPrompt status = 1;
+    Status status = 1;
 
     // name is the name of the environment variable.
     string name = 2;
@@ -261,11 +261,17 @@ message ResolveProgramResponse {
     string resolved_value = 4;
   }
 
-  enum VarsPrompt {
-    VARS_PROMPT_UNSPECIFIED = 0;
-    VARS_PROMPT_RESOLVED = 1;
-    VARS_PROMPT_MESSAGE = 2;
-    VARS_PROMPT_PLACEHOLDER = 3;
+  enum Status {
+    // unspecified is the default value and it means unresolved.
+    STATUS_UNSPECIFIED = 0;
+    // unresolved with message means that the variable is unresolved
+    // but it contains a message. E.g. FOO=this is message
+    STATUS_UNRESOLVED_WITH_MESSAGE = 1;
+    // unresolved with placeholder means that the variable is unresolved
+    // but it contains a placeholder. E.g. FOO="this is placeholder"
+    STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
+    // resolved means that the variable is resolved.
+    STATUS_RESOLVED = 3;
   }
 }
 

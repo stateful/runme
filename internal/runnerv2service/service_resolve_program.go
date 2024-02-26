@@ -22,14 +22,15 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 	}
 
 	var (
-		result         *command.ProgramResolverResult
-		modifiedScript bytes.Buffer
+		result            *command.ProgramResolverResult
+		modifiedScriptBuf bytes.Buffer
 	)
 
 	if script := req.GetScript(); script != "" {
-		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScript)
+		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf)
 	} else if commands := req.GetCommands(); commands != nil && len(commands.Lines) > 0 {
-		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &modifiedScript)
+		script := strings.Join(commands.Lines, "\n")
+		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf)
 	} else {
 		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
 	}
@@ -37,14 +38,16 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 		return nil, err
 	}
 
+	modifiedScript := modifiedScriptBuf.String()
+
 	response := &runnerv2alpha1.ResolveProgramResponse{
 		Commands: &runnerv2alpha1.ResolveProgramCommandList{
-			Lines: strings.Split(modifiedScript.String(), "\n"),
+			Lines: strings.Split(modifiedScript, "\n"),
 		},
 	}
 
 	for _, item := range result.Variables {
-		ritem := &runnerv2alpha1.ResolveProgramResponse_VarsResult{
+		ritem := &runnerv2alpha1.ResolveProgramResponse_VarResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
@@ -52,13 +55,13 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 
 		switch item.Status {
 		case command.ProgramResolverStatusResolved:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_RESOLVED
+			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_RESOLVED
 		case command.ProgramResolverStatusUnresolvedWithMessage:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_MESSAGE
+			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE
 		case command.ProgramResolverStatusUnresolvedWithPlaceholder:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_PLACEHOLDER
+			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER
 		default:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_VARS_PROMPT_UNSPECIFIED
+			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNSPECIFIED
 		}
 
 		response.Vars = append(response.Vars, ritem)
@@ -95,11 +98,11 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2alpha1.ResolvePro
 
 	mode := command.ProgramResolverModeAuto
 
-	switch req.GetVarsMode() {
-	case runnerv2alpha1.ResolveProgramRequest_VARS_MODE_PROMPT:
-		mode = command.ProgramResolverModePrompt
-	case runnerv2alpha1.ResolveProgramRequest_VARS_MODE_SKIP:
-		mode = command.ProgramResolverModeSkip
+	switch req.GetMode() {
+	case runnerv2alpha1.ResolveProgramRequest_MODE_PROMPT_ALL:
+		mode = command.ProgramResolverModePromptAll
+	case runnerv2alpha1.ResolveProgramRequest_MODE_SKIP_ALL:
+		mode = command.ProgramResolverModeSkipAll
 	}
 
 	return command.NewProgramResolver(mode, sources...), err
