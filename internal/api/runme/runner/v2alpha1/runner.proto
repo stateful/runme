@@ -180,10 +180,10 @@ message ResolveProgramRequest {
   }
 
   // mode determines how variables resolution occurs.
-  // usually based on document or cell annotation config.
-  VarsMode vars_mode = 3;
+  // It is usually based on document or cell annotation config.
+  Mode mode = 3;
 
-  // env is a list of environment variables that will be used
+  // env is a list of explicit environment variables that will be used
   // to resolve the environment variables found in the source.
   repeated string env = 4;
 
@@ -198,25 +198,27 @@ message ResolveProgramRequest {
   // project used to load environment variables from .env files.
   optional Project project = 7;
 
-  enum VarsMode {
-    // unspecified is auto (default) which prompts for all unresolved
-    // subsequent runs will likely resolve via session
-    VARS_MODE_UNSPECIFIED = 0;
-    // always prompt even if resolved
-    VARS_MODE_PROMPT = 1;
-    // don't prompt whatsover even unresolved is resolved
-    VARS_MODE_SKIP = 2;
+  enum Mode {
+    // unspecified is auto (default) which prompts for all
+    // unresolved environment variables.
+    // Subsequent runs will likely resolve via the session.
+    MODE_UNSPECIFIED = 0;
+    // prompt always means to prompt for all environment variables.
+    MODE_PROMPT_ALL = 1;
+    // skip means to not prompt for any environment variables.
+    // All variables will be marked as resolved.
+    MODE_SKIP_ALL = 2;
   }
 }
 
 message ResolveProgramResponse {
   ResolveProgramCommandList commands = 1;
 
-  repeated VarsResult vars = 2;
+  repeated VarResult vars = 2;
 
-  message VarsResult {
+  message VarResult {
     // prompt indicates the resolution status of the env variable.
-    VarsPrompt status = 1;
+    Status status = 1;
 
     // name is the name of the environment variable.
     string name = 2;
@@ -232,11 +234,17 @@ message ResolveProgramResponse {
     string resolved_value = 4;
   }
 
-  enum VarsPrompt {
-    VARS_PROMPT_UNSPECIFIED = 0;
-    VARS_PROMPT_RESOLVED = 1;
-    VARS_PROMPT_MESSAGE = 2;
-    VARS_PROMPT_PLACEHOLDER = 3;
+  enum Status {
+    // unspecified is the default value and it means unresolved.
+    STATUS_UNSPECIFIED = 0;
+    // unresolved with message means that the variable is unresolved
+    // but it contains a message. E.g. FOO=this is message
+    STATUS_UNRESOLVED_WITH_MESSAGE = 1;
+    // unresolved with placeholder means that the variable is unresolved
+    // but it contains a placeholder. E.g. FOO="this is placeholder"
+    STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
+    // resolved means that the variable is resolved.
+    STATUS_RESOLVED = 3;
   }
 }
 
