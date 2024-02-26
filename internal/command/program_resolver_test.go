@@ -23,7 +23,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status: ProgramResolverStatusUnresolvedWithMessage,
+						Status: ProgramResolverStatusUnresolved,
 						Name:   "TEST_NO_VALUE",
 					},
 				},
@@ -81,7 +81,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status: ProgramResolverStatusUnresolvedWithMessage,
+						Status: ProgramResolverStatusUnresolved,
 						Name:   "TEST_STRING_DBL_QUOTED_VALUE_EMPTY",
 					},
 				},
@@ -95,7 +95,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status:        ProgramResolverStatusUnresolvedWithMessage,
+						Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
 						Name:          "TEST_STRING_DBL_QUOTED_VALUE",
 						OriginalValue: "value",
 					},
@@ -110,7 +110,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status: ProgramResolverStatusUnresolvedWithPlaceholder,
+						Status: ProgramResolverStatusUnresolved,
 						Name:   "TEST_STRING_SGL_QUOTED_VALUE_EMPTY",
 					},
 				},
@@ -121,6 +121,7 @@ func TestProgramResolverResolve(t *testing.T) {
 			name:    "string single quoted value",
 			program: `export TEST_STRING_SGL_QUOTED_VALUE='value'`,
 			result: &ProgramResolverResult{
+				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
 						Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
@@ -134,61 +135,60 @@ func TestProgramResolverResolve(t *testing.T) {
 		{
 			name:            "parameter expression",
 			program:         `export TEST_PARAM_EXPR=${TEST:7:0}`,
-			result:          nil,
+			result:          &ProgramResolverResult{},
 			modifiedProgram: "export TEST_PARAM_EXPR=${TEST:7:0}\n",
 		},
 		{
 			name:            "arithmetic expression",
 			program:         `export TEST_ARITHM_EXPR=$(($z+3))`,
-			result:          nil,
+			result:          &ProgramResolverResult{},
 			modifiedProgram: "export TEST_ARITHM_EXPR=$(($z + 3))\n",
 		},
 		{
 			name:            "value expression",
 			program:         `export TEST_VALUE_EXPR=$(echo -n "value")`,
-			result:          nil,
+			result:          &ProgramResolverResult{},
 			modifiedProgram: "export TEST_VALUE_EXPR=$(echo -n \"value\")\n",
 		},
 		{
 			name:            "double quoted value expression",
 			program:         `export TEST_DBL_QUOTE_VALUE_EXPR="$(echo -n 'value')"`,
-			result:          nil,
+			result:          &ProgramResolverResult{},
 			modifiedProgram: "export TEST_DBL_QUOTE_VALUE_EXPR=\"$(echo -n 'value')\"\n",
 		},
 		{
 			name:            "default value",
 			program:         `export TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}`,
-			result:          nil,
+			result:          &ProgramResolverResult{},
 			modifiedProgram: "export TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}\n",
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run("ProgramResolverModeAuto", func(t *testing.T) {
-			t.Run(tc.name, func(t *testing.T) {
-				r := NewProgramResolver(ProgramResolverModeAuto)
-				buf := bytes.NewBuffer(nil)
-				got, err := r.Resolve(strings.NewReader(tc.program), buf)
-				require.NoError(t, err)
-				assert.EqualValues(t, tc.modifiedProgram, buf.String())
-				assert.EqualValues(t, tc.result, got)
-			})
+		t.Run("ProgramResolverModeAuto_"+tc.name, func(t *testing.T) {
+			r := NewProgramResolver(ProgramResolverModeAuto)
+			buf := bytes.NewBuffer(nil)
+			got, err := r.Resolve(strings.NewReader(tc.program), buf)
+			require.NoError(t, err)
+			assert.EqualValues(t, tc.modifiedProgram, buf.String())
+			assert.EqualValues(t, tc.result, got)
 		})
 
-		t.Run("ProgramResolverModeSkip", func(t *testing.T) {
-			t.Run(tc.name, func(t *testing.T) {
-				r := NewProgramResolver(ProgramResolverModeSkipAll)
-				buf := bytes.NewBuffer(nil)
-				got, err := r.Resolve(strings.NewReader(tc.program), buf)
-				require.NoError(t, err)
-				assert.EqualValues(t, tc.modifiedProgram, buf.String())
-				// In skip mode, all variables will be resolved.
+		t.Run("ProgramResolverModeSkip_"+tc.name, func(t *testing.T) {
+			r := NewProgramResolver(ProgramResolverModeSkipAll)
+			buf := bytes.NewBuffer(nil)
+			got, err := r.Resolve(strings.NewReader(tc.program), buf)
+			require.NoError(t, err)
+			assert.EqualValues(t, tc.modifiedProgram, buf.String())
+			// In skip mode, all variables will be resolved.
+			if tc.result != nil {
 				for i, v := range tc.result.Variables {
 					v.Status = ProgramResolverStatusResolved
+					v.Value = v.OriginalValue
 					tc.result.Variables[i] = v
 				}
 				assert.EqualValues(t, tc.result, got)
-			})
+			}
 		})
 	}
 }

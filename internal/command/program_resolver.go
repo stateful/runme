@@ -20,6 +20,7 @@ const (
 	// ProgramResolverModePromptAll always prompts even if variables are resolved.
 	ProgramResolverModePromptAll
 	// ProgramResolverModeSkipAll does not prompt even if variables are unresolved.
+	// All variables will be marked as resolved.
 	ProgramResolverModeSkipAll
 )
 
@@ -115,6 +116,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 		resolvedValue, hasResolvedValue := r.findEnvValue(name)
 
 		varResult := ProgramResolverVarResult{
+			Status:        ProgramResolverStatusUnresolved,
 			Name:          name,
 			OriginalValue: originalValue,
 			Value:         resolvedValue,
@@ -122,8 +124,11 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 
 		switch r.mode {
 		case ProgramResolverModePromptAll:
-			// For ProgramResolverModePrompt the status is awalys ProgramResolverStatusUnresolvedWithPlaceholder.
-			varResult.Status = ProgramResolverStatusUnresolvedWithPlaceholder
+			if isPlaceholder {
+				varResult.Status = ProgramResolverStatusUnresolvedWithPlaceholder
+			} else {
+				varResult.Status = ProgramResolverStatusUnresolvedWithMessage
+			}
 		case ProgramResolverModeSkipAll:
 			// For ProgramResolverModeSkip the status is awalys ProgramResolverStatusResolved.
 			varResult.Status = ProgramResolverStatusResolved
@@ -135,8 +140,10 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 				varResult.Status = ProgramResolverStatusResolved
 			} else if isPlaceholder {
 				varResult.Status = ProgramResolverStatusUnresolvedWithPlaceholder
-			} else {
+			} else if originalValue != "" {
 				varResult.Status = ProgramResolverStatusUnresolvedWithMessage
+			} else {
+				varResult.Status = ProgramResolverStatusUnresolved
 			}
 		}
 
@@ -163,14 +170,15 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 
 // findOriginalValue walks the AST to find the original value of the variable.
 // This method is called only for the value of "export" statement.
-func (r *ProgramResolver) findOriginalValue(decl *syntax.DeclClause) (value string, isPlaceholder bool) {
+func (r *ProgramResolver) findOriginalValue(decl *syntax.DeclClause) (string, bool) {
 	if len(decl.Args) < 1 || decl.Args[0].Value == nil {
-		return value, false
+		return "", false
 	}
 
 	var fragments []string
 
-	processingVarName := true
+	isPlaceholder := false
+	processingVarName := false
 
 	syntax.Walk(decl, func(node syntax.Node) bool {
 		switch node := node.(type) {
@@ -202,16 +210,20 @@ func (r *ProgramResolver) findOriginalValue(decl *syntax.DeclClause) (value stri
 					break
 				}
 
-				isPlaceholder = true
-				fragments = append(fragments, p.Value)
+				if p.Value != "" {
+					isPlaceholder = true
+					fragments = append(fragments, p.Value)
+				}
 
 				return false
 			}
 
 		// export FOO='bar'
 		case *syntax.SglQuoted:
-			isPlaceholder = true
-			fragments = append(fragments, node.Value)
+			if node.Value != "" {
+				isPlaceholder = true
+				fragments = append(fragments, node.Value)
+			}
 			return false
 
 		// export FOO=${FOO:-bar}
@@ -225,7 +237,7 @@ func (r *ProgramResolver) findOriginalValue(decl *syntax.DeclClause) (value stri
 		return true
 	})
 
-	return strings.Join(fragments, " "), true
+	return strings.Join(fragments, " "), isPlaceholder
 }
 
 func (r *ProgramResolver) findEnvValue(name string) (string, bool) {

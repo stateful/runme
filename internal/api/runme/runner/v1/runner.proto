@@ -234,6 +234,7 @@ message ResolveProgramRequest {
     // prompt always means to prompt for all environment variables.
     MODE_PROMPT_ALL = 1;
     // skip means to not prompt for any environment variables.
+    // All variables will be marked as resolved.
     MODE_SKIP_ALL = 2;
   }
 }
