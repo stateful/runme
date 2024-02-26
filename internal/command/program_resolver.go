@@ -124,6 +124,10 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 
 		switch r.mode {
 		case ProgramResolverModePromptAll:
+			if hasResolvedValue {
+				varResult.Status = ProgramResolverStatusUnresolvedWithPlaceholder
+				break
+			}
 			if isPlaceholder {
 				varResult.Status = ProgramResolverStatusUnresolvedWithPlaceholder
 			} else {
