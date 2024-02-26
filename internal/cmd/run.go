@@ -88,56 +88,60 @@ func runCmd() *cobra.Command {
 					for _, task := range tasks {
 						block := task.CodeBlock
 
+						// Check if to run all and if the block should be excluded
 						if runAll && len(categories) == 0 && block.ExcludeFromRunAll() {
+							// Skip the task if it should be excluded from run all
 							continue
 						}
 
-						if len(categories) > 0 {
-							if block.ExcludeFromRunAll() {
-								continue
-							}
+						// Check if categories are specified and if the block should be excluded
+						if len(categories) > 0 && block.ExcludeFromRunAll() {
+							// Skip the task if it should be excluded based on categories
+							continue
+						}
 
+						// Check if the block matches any of the specified categories
+						if len(categories) > 0 {
 							bcats := block.Categories()
 							fm, _ := block.Document().Frontmatter()
 							match := false
 
 							if fm != nil && fm.Category != "" {
-								if len(bcats) > 0 {
-									for _, bcat := range bcats {
-										if fm.Category == bcat {
+								// Check if the frontmatter category matches any block category
+								for _, bcat := range bcats {
+									if fm.Category == bcat {
+										match = true
+										break
+									}
+								}
+								if !match {
+									// Check if the frontmatter category matches any specified category
+									for _, cat := range categories {
+										if fm.Category == cat {
 											match = true
+											break
 										}
 									}
-									if !match {
-										continue
-									}
 								}
-
-								for _, cat := range categories {
-									if fm.Category == cat {
-										match = true
-									}
-								}
-
-								if !match {
-									continue
-								}
-
 							} else {
+								// Check if any block category matches any specified category
 								for _, bcat := range bcats {
 									for _, cat := range categories {
 										if bcat == cat {
 											match = true
+											break
 										}
 									}
 								}
-								if !match {
-									continue
-								}
 							}
 
+							if !match {
+								// Skip the task if it doesn't match any specified category
+								continue
+							}
 						}
 
+						// If none of the exclusion conditions met, add the task to runTasks
 						runTasks = append(runTasks, task)
 					}
 
