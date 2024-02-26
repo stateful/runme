@@ -98,18 +98,44 @@ func runCmd() *cobra.Command {
 							}
 
 							bcats := block.Categories()
+							fm, _ := block.Document().Frontmatter()
 							match := false
-							for _, bcat := range bcats {
+
+							if fm != nil && fm.Category != "" {
+								if len(bcats) > 0 {
+									for _, bcat := range bcats {
+										if fm.Category == bcat {
+											match = true
+										}
+									}
+									if !match {
+										continue
+									}
+								}
+
 								for _, cat := range categories {
-									if bcat == cat {
+									if fm.Category == cat {
 										match = true
 									}
 								}
+
+								if !match {
+									continue
+								}
+
+							} else {
+								for _, bcat := range bcats {
+									for _, cat := range categories {
+										if bcat == cat {
+											match = true
+										}
+									}
+								}
+								if !match {
+									continue
+								}
 							}
 
-							if !match {
-								continue
-							}
 						}
 
 						runTasks = append(runTasks, task)
