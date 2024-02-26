@@ -74,7 +74,7 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 				t,
 				&runnerv2alpha1.ResolveProgramResponse_VarResult{
 					Name:   "TEST_UNRESOLVED",
-					Status: runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
+					Status: runnerv2alpha1.ResolveProgramResponse_STATUS_UNSPECIFIED,
 				},
 				resp.Vars[1],
 			)
@@ -83,6 +83,7 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 }
 
 func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
+	// TODO(adamb): enable it when we find a solution for merging commands and splitting them back.
 	t.Skip("the problem is unknown and needs to be fixed")
 
 	lis, stop := testStartRunnerServiceServer(t)

@@ -228,7 +228,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
+						Status:        ProgramResolverStatusUnresolvedWithMessage,
 						Name:          "MY_ENV",
 						OriginalValue: "message value",
 						Value:         "resolved",
