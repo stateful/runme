@@ -8,6 +8,7 @@
             "name": "Debug CLI",
             "type": "go",
             "mode": "auto",
+            "debugAdapter": "dlv-dap",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "buildFlags": "-ldflags=-X=github.com/stateful/runme/internal/version.BuildVersion=99.9.9",
@@ -19,6 +20,7 @@
             "name": "Debug server",
             "type": "go",
             "mode": "auto",
+            "debugAdapter": "dlv-dap",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "buildFlags": "-ldflags=-X=github.com/stateful/runme/internal/version.BuildVersion=99.9.9",
@@ -36,6 +38,7 @@
             "type": "go",
             "request": "attach",
             "mode": "remote",
+            "debugAdapter": "dlv-dap",
             "remotePath": "${workspaceFolder}/main.go",
             "port": 56379,
             "host": "127.0.0.1"
