@@ -2,15 +2,9 @@ FROM alpine:latest as build
 LABEL maintainer="StatefulHQ <mail@stateful.com>"
 
 RUN apk --no-cache add ca-certificates
-RUN mkdir /newtmp && chown 1777 /newtmp
+
 RUN mkdir -p /opt/var/runme /opt/bin
-
-FROM scratch
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=build /newtmp /tmp
-COPY --from=build /opt /opt
-
-COPY runme /opt/bin/
+COPY runme /opt/bin/runme
 WORKDIR /opt/var/runme
 
 ENTRYPOINT ["/opt/bin/runme"]
