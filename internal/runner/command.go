@@ -16,7 +16,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	ulid "github.com/stateful/runme/internal/ulid"
+	ulid "github.com/stateful/runme/v3/internal/ulid"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )

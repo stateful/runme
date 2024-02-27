@@ -421,6 +421,7 @@ export declare enum ResolveProgramRequest_Mode {
     PROMPT_ALL = 1,
     /**
      * skip means to not prompt for any environment variables.
+     * All variables will be marked as resolved.
      *
      * @generated from protobuf enum value: MODE_SKIP_ALL = 2;
      */

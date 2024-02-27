@@ -17,11 +17,11 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	commandpkg "github.com/stateful/runme/internal/command"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/project"
-	"github.com/stateful/runme/internal/rbuffer"
-	ulid "github.com/stateful/runme/internal/ulid"
+	commandpkg "github.com/stateful/runme/v3/internal/command"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/project"
+	"github.com/stateful/runme/v3/internal/rbuffer"
+	ulid "github.com/stateful/runme/v3/internal/ulid"
 )
 
 const (

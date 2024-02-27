@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

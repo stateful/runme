@@ -16,10 +16,10 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/stateful/runme/internal/client/graphql"
-	"github.com/stateful/runme/internal/client/graphql/query"
-	"github.com/stateful/runme/internal/gitrepo"
-	"github.com/stateful/runme/internal/log"
+	"github.com/stateful/runme/v3/internal/client/graphql"
+	"github.com/stateful/runme/v3/internal/client/graphql/query"
+	"github.com/stateful/runme/v3/internal/gitrepo"
+	"github.com/stateful/runme/v3/internal/log"
 	"go.uber.org/zap"
 )
 

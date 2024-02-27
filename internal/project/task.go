@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/v3/internal/document"
 )
 
 // Task is a project-specific struct.

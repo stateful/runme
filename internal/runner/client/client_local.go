@@ -11,9 +11,9 @@ import (
 
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/project"
-	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/v3/internal/document"
+	"github.com/stateful/runme/v3/internal/project"
+	"github.com/stateful/runme/v3/internal/runner"
 	"go.uber.org/zap"
 )
 

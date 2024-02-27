@@ -3,7 +3,7 @@ package identity
 import (
 	"sync"
 
-	"github.com/stateful/runme/internal/ulid"
+	"github.com/stateful/runme/v3/internal/ulid"
 )
 
 type LifecycleIdentity int

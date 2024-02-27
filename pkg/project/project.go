@@ -15,7 +15,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/v3/internal/document"
 )
 
 type CodeBlock struct {

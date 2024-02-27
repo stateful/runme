@@ -8,8 +8,8 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	xpty "github.com/stateful/runme/internal/pty"
-	ulid "github.com/stateful/runme/internal/ulid"
+	xpty "github.com/stateful/runme/v3/internal/pty"
+	ulid "github.com/stateful/runme/v3/internal/ulid"
 	"golang.org/x/term"
 )
 

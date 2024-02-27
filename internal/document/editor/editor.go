@@ -7,9 +7,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/document/constants"
-	"github.com/stateful/runme/internal/document/identity"
+	"github.com/stateful/runme/v3/internal/document"
+	"github.com/stateful/runme/v3/internal/document/constants"
+	"github.com/stateful/runme/v3/internal/document/identity"
 )
 
 const FrontmatterKey = "frontmatter"

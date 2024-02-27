@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/stateful/runme/internal/ulid"
+	"github.com/stateful/runme/v3/internal/ulid"
 )
 
 func TestLifecycleIdentities(t *testing.T) {
