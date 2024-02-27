@@ -391,11 +391,17 @@ export declare enum ResolveProgramRequest_Mode {
  */
 export interface ResolveProgramResponse {
     /**
-     * @generated from protobuf field: runme.runner.v2alpha1.ResolveProgramCommandList commands = 1;
+     * @generated from protobuf field: string script = 1;
+     */
+    script: string;
+    /**
+     * use script until commands normalization is implemented
+     *
+     * @generated from protobuf field: runme.runner.v2alpha1.ResolveProgramCommandList commands = 2;
      */
     commands?: ResolveProgramCommandList;
     /**
-     * @generated from protobuf field: repeated runme.runner.v2alpha1.ResolveProgramResponse.VarResult vars = 2;
+     * @generated from protobuf field: repeated runme.runner.v2alpha1.ResolveProgramResponse.VarResult vars = 3;
      */
     vars: ResolveProgramResponse_VarResult[];
 }

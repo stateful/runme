@@ -240,9 +240,12 @@ message ResolveProgramRequest {
 }
 
 message ResolveProgramResponse {
-  ResolveProgramCommandList commands = 1;
+  string script = 1;
 
-  repeated VarResult vars = 2;
+  // use script until commands normalization is implemented
+  ResolveProgramCommandList commands = 2;
+
+  repeated VarResult vars = 3;
 
   message VarResult {
     // prompt indicates the resolution status of the env variable.

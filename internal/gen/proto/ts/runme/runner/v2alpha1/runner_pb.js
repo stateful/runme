@@ -343,8 +343,9 @@ export const ResolveProgramRequest = new ResolveProgramRequest$Type();
 class ResolveProgramResponse$Type extends MessageType {
     constructor() {
         super("runme.runner.v2alpha1.ResolveProgramResponse", [
-            { no: 1, name: "commands", kind: "message", T: () => ResolveProgramCommandList },
-            { no: 2, name: "vars", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveProgramResponse_VarResult }
+            { no: 1, name: "script", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "commands", kind: "message", T: () => ResolveProgramCommandList },
+            { no: 3, name: "vars", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveProgramResponse_VarResult }
         ]);
     }
 }

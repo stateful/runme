@@ -60,6 +60,8 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 			resp, err := client.ResolveProgram(context.Background(), tc.request)
 			require.NoError(t, err)
 			require.Len(t, resp.Vars, 2)
+			require.Equal(t, resp.Commands, (*runnerv2alpha1.ResolveProgramCommandList)(nil))
+			require.Greater(t, len(resp.Script), 0)
 			require.EqualValues(
 				t,
 				&runnerv2alpha1.ResolveProgramResponse_VarResult{
@@ -107,6 +109,8 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 	resp, err := client.ResolveProgram(context.Background(), request)
 	require.NoError(t, err)
 	require.Len(t, resp.Vars, 1)
+	require.Equal(t, resp.Commands, (*runnerv2alpha1.ResolveProgramCommandList)(nil))
+	require.Greater(t, len(resp.Script), 0)
 	require.True(
 		t,
 		proto.Equal(

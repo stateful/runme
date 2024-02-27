@@ -572,14 +572,14 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.Resolv
 	}
 
 	var (
-		result         *commandpkg.ProgramResolverResult
-		modifiedScript bytes.Buffer
+		result            *commandpkg.ProgramResolverResult
+		modifiedScriptBuf bytes.Buffer
 	)
 
 	if script := req.GetScript(); script != "" {
-		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScript)
+		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf)
 	} else if commands := req.GetCommands(); commands != nil && len(commands.Lines) > 0 {
-		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &modifiedScript)
+		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &modifiedScriptBuf)
 	} else {
 		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
 	}
@@ -587,10 +587,11 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.Resolv
 		return nil, err
 	}
 
+	modifiedScript := modifiedScriptBuf.String()
+
+	// todo(sebastian): figure out how to return commands
 	response := &runnerv1.ResolveProgramResponse{
-		Commands: &runnerv1.ResolveProgramCommandList{
-			Lines: strings.Split(modifiedScript.String(), "\n"),
-		},
+		Script: modifiedScript,
 	}
 
 	for _, item := range result.Variables {

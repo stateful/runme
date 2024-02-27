@@ -40,10 +40,9 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 
 	modifiedScript := modifiedScriptBuf.String()
 
+	// todo(sebastian): figure out how to return commands
 	response := &runnerv2alpha1.ResolveProgramResponse{
-		Commands: &runnerv2alpha1.ResolveProgramCommandList{
-			Lines: strings.Split(modifiedScript, "\n"),
-		},
+		Script: modifiedScript,
 	}
 
 	for _, item := range result.Variables {
