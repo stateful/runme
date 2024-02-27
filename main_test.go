@@ -52,6 +52,12 @@ func TestRunmeRunAll(t *testing.T) {
 	})
 }
 
+func TestRunmeBetaRun(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir: "testdata/beta/run",
+	})
+}
+
 func TestSkipPromptsWithinAPty(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()

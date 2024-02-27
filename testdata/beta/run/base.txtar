@@ -1,0 +1,37 @@
+exec runme beta run hello
+stdout '^hello[\s]+$'
+! stderr .
+
+exec runme beta run 'hello*'
+stdout '^hello[\s]+hello-world[\s]+$'
+! stderr .
+
+exec runme beta run echo-env
+stdout '^ENV_IN_ENV=env_in_env[\s]+$'
+! stderr .
+
+-- experimental/runme.yaml --
+version: v1alpha1
+project:
+  dir: "."
+env:
+  sources:
+    - .env
+# log:
+#   enable: true
+
+-- .env --
+ENV_IN_ENV="env_in_env"
+
+-- README.md --
+```sh {"name": "hello"}
+echo hello
+```
+
+```sh {"name": "hello-world"}
+echo hello-world
+```
+
+```bash {"name": "echo-env"}
+echo "ENV_IN_ENV=${ENV_IN_ENV}"
+```

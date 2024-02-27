@@ -8,6 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.com/stateful/runme/v3/internal/cmd/beta"
 )
 
 var (
@@ -99,7 +101,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(printCmd())
 	cmd.AddCommand(extensionCmd())
 	cmd.AddCommand(runCmd())
-	cmd.AddCommand(runLocally())
+	cmd.AddCommand(beta.BetaCmd())
 	cmd.AddCommand(serverCmd())
 	cmd.AddCommand(shellCmd())
 	cmd.AddCommand(suggestCmd())

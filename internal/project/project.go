@@ -228,7 +228,7 @@ func NewFileProject(
 
 	path, err = normalizeAndValidatePath(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open file-based project %q", path)
+		return nil, err
 	}
 
 	p.filePath = path

@@ -1,0 +1,46 @@
+# EXPERIMENTAL: This is a work in progress and may change at any time.
+# The idea behind runme.yaml is to provide a way to define consistent
+# configuration per project, regardless whether blocks from Markdown
+# are executed in VS Code or using the runme CLI.
+#
+# You can test it with the "runme beta" commands.
+version: v1alpha1
+
+# Indicate the root of the runme project. "." means that
+# the project root directory will be used.
+project:
+  dir: "."
+  find_repo_upward: true
+  ignore:
+    - "node_modules"
+    - ".venv"
+  disable_gitignore: false
+
+# It's possible to point at a single file.
+# filename: "README.md"
+
+# List of dotenv files to load.
+env:
+  use_system_env: true
+  sources:
+    - ".env"
+    - ".env.local"
+
+# The list of filters to apply to blocks.
+# "condition" must return a boolean value.
+# You can learn about the syntax at https://expr-lang.org/docs/language-definition.
+filters:
+  # Do not allow unnamed code blocks.
+  - type: "FILTER_TYPE_BLOCK"
+    condition: "name != ''"
+  # Do not allow code blocks without a language.
+  - type: "FILTER_TYPE_BLOCK"
+    condition: "language != ''"
+  # Do not allow code blocks starting with "test".
+  - type: "FILTER_TYPE_BLOCK"
+    condition: "!hasPrefix(name, 'test')"
+
+log:
+  enabled: true
+  path: "/var/tmp/runme.log"
+  verbose: true
