@@ -17,11 +17,11 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	commandpkg "github.com/stateful/runme/internal/command"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/project"
-	"github.com/stateful/runme/internal/rbuffer"
-	ulid "github.com/stateful/runme/internal/ulid"
+	commandpkg "github.com/stateful/runme/v3/internal/command"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/project"
+	"github.com/stateful/runme/v3/internal/rbuffer"
+	"github.com/stateful/runme/v3/internal/ulid"
 )
 
 const (
@@ -565,18 +565,21 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.ResolveProgramRequest) (*runnerv1.ResolveProgramResponse, error) {
 	r.logger.Info("running ResolveProgram in runnerService")
+
 	resolver, err := r.getProgramResolverFromReq(req)
 	if err != nil {
 		return nil, err
 	}
 
-	var varRes []*commandpkg.ProgramResolverResult
-	var scriptRes bytes.Buffer
+	var (
+		result         *commandpkg.ProgramResolverResult
+		modifiedScript bytes.Buffer
+	)
 
 	if script := req.GetScript(); script != "" {
-		varRes, err = resolver.Resolve(strings.NewReader(script), &scriptRes)
+		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScript)
 	} else if commands := req.GetCommands(); commands != nil && len(commands.Lines) > 0 {
-		varRes, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &scriptRes)
+		result, err = resolver.Resolve(strings.NewReader(strings.Join(commands.Lines, "\n")), &modifiedScript)
 	} else {
 		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
 	}
@@ -586,25 +589,26 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.Resolv
 
 	response := &runnerv1.ResolveProgramResponse{
 		Commands: &runnerv1.ResolveProgramCommandList{
-			Lines: strings.Split(scriptRes.String(), "\n"),
+			Lines: strings.Split(modifiedScript.String(), "\n"),
 		},
 	}
 
-	for _, item := range varRes {
-		ritem := &runnerv1.ResolveProgramResponse_VarsResult{
+	for _, item := range result.Variables {
+		ritem := &runnerv1.ResolveProgramResponse_VarResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
 		}
-		switch {
-		case item.IsResolved():
-			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_RESOLVED
-		case item.IsMessage():
-			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_MESSAGE
-		case item.IsPlaceholder():
-			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_PLACEHOLDER
+
+		switch item.Status {
+		case commandpkg.ProgramResolverStatusResolved:
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_RESOLVED
+		case commandpkg.ProgramResolverStatusUnresolvedWithMessage:
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE
+		case commandpkg.ProgramResolverStatusUnresolvedWithPlaceholder:
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER
 		default:
-			ritem.Status = runnerv1.ResolveProgramResponse_VARS_PROMPT_UNSPECIFIED
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNSPECIFIED
 		}
 
 		response.Vars = append(response.Vars, ritem)
@@ -646,12 +650,11 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 
 	mode := commandpkg.ProgramResolverModeAuto
 
-	switch req.GetVarsMode() {
-
-	case runnerv1.ResolveProgramRequest_VARS_MODE_PROMPT:
-		mode = commandpkg.ProgramResolverModePrompt
-	case runnerv1.ResolveProgramRequest_VARS_MODE_SKIP:
-		mode = commandpkg.ProgramResolverModeSkip
+	switch req.GetMode() {
+	case runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL:
+		mode = commandpkg.ProgramResolverModePromptAll
+	case runnerv1.ResolveProgramRequest_MODE_SKIP_ALL:
+		mode = commandpkg.ProgramResolverModeSkipAll
 	}
 
 	return commandpkg.NewProgramResolver(mode, sources...), err

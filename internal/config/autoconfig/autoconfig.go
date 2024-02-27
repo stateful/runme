@@ -18,9 +18,9 @@ import (
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/internal/command"
-	"github.com/stateful/runme/internal/config"
-	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/config"
+	"github.com/stateful/runme/v3/internal/project"
 )
 
 var container = dig.New()

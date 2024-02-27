@@ -13,52 +13,64 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 import { ProgramConfig } from "./config_pb";
 /**
- * @generated from protobuf enum runme.runner.v2alpha1.ResolveProgramRequest.VarsMode
+ * @generated from protobuf enum runme.runner.v2alpha1.ResolveProgramRequest.Mode
  */
-export var ResolveProgramRequest_VarsMode;
-(function (ResolveProgramRequest_VarsMode) {
+export var ResolveProgramRequest_Mode;
+(function (ResolveProgramRequest_Mode) {
     /**
-     * unspecified is auto (default) which prompts for all unresolved
-     * subsequent runs will likely resolve via session
+     * unspecified is auto (default) which prompts for all
+     * unresolved environment variables.
+     * Subsequent runs will likely resolve via the session.
      *
-     * @generated from protobuf enum value: VARS_MODE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: MODE_UNSPECIFIED = 0;
      */
-    ResolveProgramRequest_VarsMode[ResolveProgramRequest_VarsMode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    ResolveProgramRequest_Mode[ResolveProgramRequest_Mode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
-     * always prompt even if resolved
+     * prompt always means to prompt for all environment variables.
      *
-     * @generated from protobuf enum value: VARS_MODE_PROMPT = 1;
+     * @generated from protobuf enum value: MODE_PROMPT_ALL = 1;
      */
-    ResolveProgramRequest_VarsMode[ResolveProgramRequest_VarsMode["PROMPT"] = 1] = "PROMPT";
+    ResolveProgramRequest_Mode[ResolveProgramRequest_Mode["PROMPT_ALL"] = 1] = "PROMPT_ALL";
     /**
-     * don't prompt whatsover even unresolved is resolved
+     * skip means to not prompt for any environment variables.
+     * All variables will be marked as resolved.
      *
-     * @generated from protobuf enum value: VARS_MODE_SKIP = 2;
+     * @generated from protobuf enum value: MODE_SKIP_ALL = 2;
      */
-    ResolveProgramRequest_VarsMode[ResolveProgramRequest_VarsMode["SKIP"] = 2] = "SKIP";
-})(ResolveProgramRequest_VarsMode || (ResolveProgramRequest_VarsMode = {}));
+    ResolveProgramRequest_Mode[ResolveProgramRequest_Mode["SKIP_ALL"] = 2] = "SKIP_ALL";
+})(ResolveProgramRequest_Mode || (ResolveProgramRequest_Mode = {}));
 /**
- * @generated from protobuf enum runme.runner.v2alpha1.ResolveProgramResponse.VarsPrompt
+ * @generated from protobuf enum runme.runner.v2alpha1.ResolveProgramResponse.Status
  */
-export var ResolveProgramResponse_VarsPrompt;
-(function (ResolveProgramResponse_VarsPrompt) {
+export var ResolveProgramResponse_Status;
+(function (ResolveProgramResponse_Status) {
     /**
-     * @generated from protobuf enum value: VARS_PROMPT_UNSPECIFIED = 0;
+     * unspecified is the default value and it means unresolved.
+     *
+     * @generated from protobuf enum value: STATUS_UNSPECIFIED = 0;
      */
-    ResolveProgramResponse_VarsPrompt[ResolveProgramResponse_VarsPrompt["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    ResolveProgramResponse_Status[ResolveProgramResponse_Status["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
-     * @generated from protobuf enum value: VARS_PROMPT_RESOLVED = 1;
+     * unresolved with message means that the variable is unresolved
+     * but it contains a message. E.g. FOO=this is message
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_MESSAGE = 1;
      */
-    ResolveProgramResponse_VarsPrompt[ResolveProgramResponse_VarsPrompt["RESOLVED"] = 1] = "RESOLVED";
+    ResolveProgramResponse_Status[ResolveProgramResponse_Status["UNRESOLVED_WITH_MESSAGE"] = 1] = "UNRESOLVED_WITH_MESSAGE";
     /**
-     * @generated from protobuf enum value: VARS_PROMPT_MESSAGE = 2;
+     * unresolved with placeholder means that the variable is unresolved
+     * but it contains a placeholder. E.g. FOO="this is placeholder"
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
      */
-    ResolveProgramResponse_VarsPrompt[ResolveProgramResponse_VarsPrompt["MESSAGE"] = 2] = "MESSAGE";
+    ResolveProgramResponse_Status[ResolveProgramResponse_Status["UNRESOLVED_WITH_PLACEHOLDER"] = 2] = "UNRESOLVED_WITH_PLACEHOLDER";
     /**
-     * @generated from protobuf enum value: VARS_PROMPT_PLACEHOLDER = 3;
+     * resolved means that the variable is resolved.
+     *
+     * @generated from protobuf enum value: STATUS_RESOLVED = 3;
      */
-    ResolveProgramResponse_VarsPrompt[ResolveProgramResponse_VarsPrompt["PLACEHOLDER"] = 3] = "PLACEHOLDER";
-})(ResolveProgramResponse_VarsPrompt || (ResolveProgramResponse_VarsPrompt = {}));
+    ResolveProgramResponse_Status[ResolveProgramResponse_Status["RESOLVED"] = 3] = "RESOLVED";
+})(ResolveProgramResponse_Status || (ResolveProgramResponse_Status = {}));
 /**
  * @generated from protobuf enum runme.runner.v2alpha1.ExecuteStop
  */
@@ -315,7 +327,7 @@ class ResolveProgramRequest$Type extends MessageType {
         super("runme.runner.v2alpha1.ResolveProgramRequest", [
             { no: 1, name: "commands", kind: "message", oneof: "source", T: () => ResolveProgramCommandList },
             { no: 2, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "vars_mode", kind: "enum", T: () => ["runme.runner.v2alpha1.ResolveProgramRequest.VarsMode", ResolveProgramRequest_VarsMode, "VARS_MODE_"] },
+            { no: 3, name: "mode", kind: "enum", T: () => ["runme.runner.v2alpha1.ResolveProgramRequest.Mode", ResolveProgramRequest_Mode, "MODE_"] },
             { no: 4, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v2alpha1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
@@ -332,7 +344,7 @@ class ResolveProgramResponse$Type extends MessageType {
     constructor() {
         super("runme.runner.v2alpha1.ResolveProgramResponse", [
             { no: 1, name: "commands", kind: "message", T: () => ResolveProgramCommandList },
-            { no: 2, name: "vars", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveProgramResponse_VarsResult }
+            { no: 2, name: "vars", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveProgramResponse_VarResult }
         ]);
     }
 }
@@ -341,10 +353,10 @@ class ResolveProgramResponse$Type extends MessageType {
  */
 export const ResolveProgramResponse = new ResolveProgramResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ResolveProgramResponse_VarsResult$Type extends MessageType {
+class ResolveProgramResponse_VarResult$Type extends MessageType {
     constructor() {
-        super("runme.runner.v2alpha1.ResolveProgramResponse.VarsResult", [
-            { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v2alpha1.ResolveProgramResponse.VarsPrompt", ResolveProgramResponse_VarsPrompt, "VARS_PROMPT_"] },
+        super("runme.runner.v2alpha1.ResolveProgramResponse.VarResult", [
+            { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v2alpha1.ResolveProgramResponse.Status", ResolveProgramResponse_Status, "STATUS_"] },
             { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -352,9 +364,9 @@ class ResolveProgramResponse_VarsResult$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveProgramResponse.VarsResult
+ * @generated MessageType for protobuf message runme.runner.v2alpha1.ResolveProgramResponse.VarResult
  */
-export const ResolveProgramResponse_VarsResult = new ResolveProgramResponse_VarsResult$Type();
+export const ResolveProgramResponse_VarResult = new ResolveProgramResponse_VarResult$Type();
 /**
  * @generated ServiceType for protobuf service runme.runner.v2alpha1.RunnerService
  */

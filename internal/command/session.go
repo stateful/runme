@@ -5,7 +5,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 
-	"github.com/stateful/runme/internal/ulid"
+	"github.com/stateful/runme/v3/internal/ulid"
 )
 
 // Session is an object which lifespan contains multiple executions.

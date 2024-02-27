@@ -20,7 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/stateful/runme/internal/log"
+	"github.com/stateful/runme/v3/internal/log"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"

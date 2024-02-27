@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/Khan/genqlient/graphql"
-	"github.com/stateful/runme/internal/client/graphql/schema/model"
+	"github.com/stateful/runme/v3/internal/client/graphql/schema/model"
 )
 
 // AddNoteCreateUserAnnotationCreateUserAnnotationPayload includes the requested fields of the GraphQL type CreateUserAnnotationPayload.

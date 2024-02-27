@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/internal/project/testdata"
+	"github.com/stateful/runme/v3/internal/project/testdata"
 )
 
 func TestExtractDataFromLoadEvent(t *testing.T) {

@@ -14,13 +14,13 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/document/identity"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/project"
-	"github.com/stateful/runme/internal/runner/client"
-	"github.com/stateful/runme/internal/tui"
-	"github.com/stateful/runme/internal/tui/prompt"
+	"github.com/stateful/runme/v3/internal/document"
+	"github.com/stateful/runme/v3/internal/document/identity"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/project"
+	"github.com/stateful/runme/v3/internal/runner/client"
+	"github.com/stateful/runme/v3/internal/tui"
+	"github.com/stateful/runme/v3/internal/tui/prompt"
 	"golang.org/x/exp/slices"
 )
 

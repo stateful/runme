@@ -14,7 +14,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/v3/internal/document"
 )
 
 type Shell struct {

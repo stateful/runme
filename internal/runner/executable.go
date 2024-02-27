@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/stateful/runme/internal/executable"
+	"github.com/stateful/runme/v3/internal/executable"
 	"go.uber.org/zap"
 )
 

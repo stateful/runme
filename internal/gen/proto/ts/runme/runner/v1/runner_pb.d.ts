@@ -368,13 +368,13 @@ export interface ResolveProgramRequest {
     };
     /**
      * mode determines how variables resolution occurs.
-     * usually based on document or cell annotation config.
+     * It is usually based on document or cell annotation config.
      *
-     * @generated from protobuf field: runme.runner.v1.ResolveProgramRequest.VarsMode vars_mode = 3;
+     * @generated from protobuf field: runme.runner.v1.ResolveProgramRequest.Mode mode = 3;
      */
-    varsMode: ResolveProgramRequest_VarsMode;
+    mode: ResolveProgramRequest_Mode;
     /**
-     * env is a list of environment variables that will be used
+     * env is a list of explicit environment variables that will be used
      * to resolve the environment variables found in the source.
      *
      * @generated from protobuf field: repeated string env = 4;
@@ -402,28 +402,30 @@ export interface ResolveProgramRequest {
     project?: Project;
 }
 /**
- * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.VarsMode
+ * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.Mode
  */
-export declare enum ResolveProgramRequest_VarsMode {
+export declare enum ResolveProgramRequest_Mode {
     /**
-     * unspecified is auto (default) which prompts for all unresolved
-     * subsequent runs will likely resolve via session
+     * unspecified is auto (default) which prompts for all
+     * unresolved environment variables.
+     * Subsequent runs will likely resolve via the session.
      *
-     * @generated from protobuf enum value: VARS_MODE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: MODE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * always prompt even if resolved
+     * prompt always means to prompt for all environment variables.
      *
-     * @generated from protobuf enum value: VARS_MODE_PROMPT = 1;
+     * @generated from protobuf enum value: MODE_PROMPT_ALL = 1;
      */
-    PROMPT = 1,
+    PROMPT_ALL = 1,
     /**
-     * don't prompt whatsover even unresolved is resolved
+     * skip means to not prompt for any environment variables.
+     * All variables will be marked as resolved.
      *
-     * @generated from protobuf enum value: VARS_MODE_SKIP = 2;
+     * @generated from protobuf enum value: MODE_SKIP_ALL = 2;
      */
-    SKIP = 2
+    SKIP_ALL = 2
 }
 /**
  * @generated from protobuf message runme.runner.v1.ResolveProgramResponse
@@ -434,20 +436,20 @@ export interface ResolveProgramResponse {
      */
     commands?: ResolveProgramCommandList;
     /**
-     * @generated from protobuf field: repeated runme.runner.v1.ResolveProgramResponse.VarsResult vars = 2;
+     * @generated from protobuf field: repeated runme.runner.v1.ResolveProgramResponse.VarResult vars = 2;
      */
-    vars: ResolveProgramResponse_VarsResult[];
+    vars: ResolveProgramResponse_VarResult[];
 }
 /**
- * @generated from protobuf message runme.runner.v1.ResolveProgramResponse.VarsResult
+ * @generated from protobuf message runme.runner.v1.ResolveProgramResponse.VarResult
  */
-export interface ResolveProgramResponse_VarsResult {
+export interface ResolveProgramResponse_VarResult {
     /**
      * prompt indicates the resolution status of the env variable.
      *
-     * @generated from protobuf field: runme.runner.v1.ResolveProgramResponse.VarsPrompt status = 1;
+     * @generated from protobuf field: runme.runner.v1.ResolveProgramResponse.Status status = 1;
      */
-    status: ResolveProgramResponse_VarsPrompt;
+    status: ResolveProgramResponse_Status;
     /**
      * name is the name of the environment variable.
      *
@@ -472,25 +474,35 @@ export interface ResolveProgramResponse_VarsResult {
     resolvedValue: string;
 }
 /**
- * @generated from protobuf enum runme.runner.v1.ResolveProgramResponse.VarsPrompt
+ * @generated from protobuf enum runme.runner.v1.ResolveProgramResponse.Status
  */
-export declare enum ResolveProgramResponse_VarsPrompt {
+export declare enum ResolveProgramResponse_Status {
     /**
-     * @generated from protobuf enum value: VARS_PROMPT_UNSPECIFIED = 0;
+     * unspecified is the default value and it means unresolved.
+     *
+     * @generated from protobuf enum value: STATUS_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: VARS_PROMPT_RESOLVED = 1;
+     * unresolved with message means that the variable is unresolved
+     * but it contains a message. E.g. FOO=this is message
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_MESSAGE = 1;
      */
-    RESOLVED = 1,
+    UNRESOLVED_WITH_MESSAGE = 1,
     /**
-     * @generated from protobuf enum value: VARS_PROMPT_MESSAGE = 2;
+     * unresolved with placeholder means that the variable is unresolved
+     * but it contains a placeholder. E.g. FOO="this is placeholder"
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
      */
-    MESSAGE = 2,
+    UNRESOLVED_WITH_PLACEHOLDER = 2,
     /**
-     * @generated from protobuf enum value: VARS_PROMPT_PLACEHOLDER = 3;
+     * resolved means that the variable is resolved.
+     *
+     * @generated from protobuf enum value: STATUS_RESOLVED = 3;
      */
-    PLACEHOLDER = 3
+    RESOLVED = 3
 }
 /**
  * @generated from protobuf enum runme.runner.v1.ExecuteStop
@@ -666,13 +678,13 @@ declare class ResolveProgramResponse$Type extends MessageType<ResolveProgramResp
  * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramResponse
  */
 export declare const ResolveProgramResponse: ResolveProgramResponse$Type;
-declare class ResolveProgramResponse_VarsResult$Type extends MessageType<ResolveProgramResponse_VarsResult> {
+declare class ResolveProgramResponse_VarResult$Type extends MessageType<ResolveProgramResponse_VarResult> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramResponse.VarsResult
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramResponse.VarResult
  */
-export declare const ResolveProgramResponse_VarsResult: ResolveProgramResponse_VarsResult$Type;
+export declare const ResolveProgramResponse_VarResult: ResolveProgramResponse_VarResult$Type;
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */

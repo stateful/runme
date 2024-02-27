@@ -10,8 +10,8 @@ import (
 
 	"github.com/yuin/goldmark/ast"
 
-	"github.com/stateful/runme/internal/executable"
-	"github.com/stateful/runme/internal/shell"
+	"github.com/stateful/runme/v3/internal/executable"
+	"github.com/stateful/runme/v3/internal/shell"
 )
 
 type BlockKind int

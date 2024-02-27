@@ -10,9 +10,9 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	parserv1 "github.com/stateful/runme/internal/gen/proto/go/runme/parser/v1"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	runmetls "github.com/stateful/runme/internal/tls"
+	parserv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/parser/v1"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	runmetls "github.com/stateful/runme/v3/internal/tls"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

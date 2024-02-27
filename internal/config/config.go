@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"gopkg.in/yaml.v3"
 
-	configv1alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/config/v1alpha1"
+	configv1alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/config/v1alpha1"
 )
 
 // Config is a uniform configuration structure for runme.

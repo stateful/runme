@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"github.com/stateful/runme/internal/cmd"
-	"github.com/stateful/runme/internal/version"
+	"github.com/stateful/runme/v3/internal/cmd"
+	"github.com/stateful/runme/v3/internal/version"
 )
 
 func main() {

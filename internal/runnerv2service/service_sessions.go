@@ -6,9 +6,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/stateful/runme/internal/command"
-	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
-	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/v3/internal/command"
+	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
+	"github.com/stateful/runme/v3/internal/project"
 )
 
 func convertSessionToRunnerv2alpha1Session(sess *command.Session) *runnerv2alpha1.Session {

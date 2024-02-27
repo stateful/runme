@@ -6,11 +6,11 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/internal/command"
-	"github.com/stateful/runme/internal/config"
-	"github.com/stateful/runme/internal/config/autoconfig"
-	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/project"
+	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/config"
+	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	"github.com/stateful/runme/v3/internal/document"
+	"github.com/stateful/runme/v3/internal/project"
 )
 
 func runLocallyCmd() *cobra.Command {

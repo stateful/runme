@@ -6,11 +6,11 @@ GIT_SHA_SHORT := $(shell git rev-parse --short HEAD)
 DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 VERSION := $(shell git describe --tags)-$(GIT_SHA_SHORT)
 LDFLAGS := -s -w \
-	-X 'github.com/stateful/runme/internal/version.BuildDate=$(DATE)' \
-	-X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))' \
-	-X 'github.com/stateful/runme/internal/version.Commit=$(GIT_SHA)'
+	-X 'github.com/stateful/runme/v3/internal/version.BuildDate=$(DATE)' \
+	-X 'github.com/stateful/runme/v3/internal/version.BuildVersion=$(subst v,,$(VERSION))' \
+	-X 'github.com/stateful/runme/v3/internal/version.Commit=$(GIT_SHA)'
 
-LDTESTFLAGS := -X 'github.com/stateful/runme/internal/version.BuildVersion=$(subst v,,$(VERSION))'
+LDTESTFLAGS := -X 'github.com/stateful/runme/v3/internal/version.BuildVersion=$(subst v,,$(VERSION))'
 
 ifeq ($(RUNME_EXT_BASE),)
 RUNME_EXT_BASE := "../vscode-runme"
@@ -131,3 +131,9 @@ update-gql-schema:
 .PHONY: generate
 generate:
 	go generate ./...
+
+.PHONY: docker
+docker:
+	CGO_ENABLED=0 make build
+	docker build -f Dockerfile.alpine . -t runme:alpine
+	docker build -f Dockerfile.ubuntu . -t runme:ubuntu

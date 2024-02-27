@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/stateful/runme/internal/cmd/beta"
+	"github.com/stateful/runme/v3/internal/cmd/beta"
 )
 
 var (

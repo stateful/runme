@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
