@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	parserv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/parser/v1"
-	ulid "github.com/stateful/runme/v3/internal/ulid"
+	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/internal/version"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"

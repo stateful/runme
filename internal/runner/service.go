@@ -21,7 +21,7 @@ import (
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/rbuffer"
-	ulid "github.com/stateful/runme/v3/internal/ulid"
+	"github.com/stateful/runme/v3/internal/ulid"
 )
 
 const (

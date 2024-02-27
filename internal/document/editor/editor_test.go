@@ -13,7 +13,7 @@ import (
 	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/document/constants"
 	"github.com/stateful/runme/v3/internal/document/identity"
-	ulid "github.com/stateful/runme/v3/internal/ulid"
+	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/internal/version"
 )
 

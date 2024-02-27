@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
-	ulid "github.com/stateful/runme/v3/internal/ulid"
+	"github.com/stateful/runme/v3/internal/ulid"
 	"go.uber.org/zap"
 )
 
