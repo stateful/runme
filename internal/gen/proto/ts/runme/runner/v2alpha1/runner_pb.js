@@ -33,6 +33,7 @@ export var ResolveProgramRequest_Mode;
     ResolveProgramRequest_Mode[ResolveProgramRequest_Mode["PROMPT_ALL"] = 1] = "PROMPT_ALL";
     /**
      * skip means to not prompt for any environment variables.
+     * All variables will be marked as resolved.
      *
      * @generated from protobuf enum value: MODE_SKIP_ALL = 2;
      */

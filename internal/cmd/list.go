@@ -10,8 +10,8 @@ import (
 	"github.com/cli/go-gh/pkg/tableprinter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/project"
-	"github.com/stateful/runme/internal/shell"
+	"github.com/stateful/runme/v3/internal/project"
+	"github.com/stateful/runme/v3/internal/shell"
 )
 
 type row struct {

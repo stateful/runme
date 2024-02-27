@@ -7,10 +7,10 @@ import (
 	"log" // revive:disable-line
 	"os"
 
-	"github.com/stateful/runme/internal/auth"
-	"github.com/stateful/runme/internal/client"
-	"github.com/stateful/runme/internal/client/graphql"
-	"github.com/stateful/runme/internal/cmd"
+	"github.com/stateful/runme/v3/internal/auth"
+	"github.com/stateful/runme/v3/internal/client"
+	"github.com/stateful/runme/v3/internal/client/graphql"
+	"github.com/stateful/runme/v3/internal/cmd"
 	"golang.org/x/oauth2"
 )
 

@@ -8,8 +8,8 @@ import (
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/document"
-	"github.com/stateful/runme/internal/document/identity"
+	"github.com/stateful/runme/v3/internal/document"
+	"github.com/stateful/runme/v3/internal/document/identity"
 )
 
 func ReadMarkdownFile(filepath string, fs billy.Basic) ([]byte, error) {

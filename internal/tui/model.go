@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/elliotchance/orderedmap"
-	"github.com/stateful/runme/internal/log"
+	"github.com/stateful/runme/v3/internal/log"
 	"go.uber.org/zap"
 )
 

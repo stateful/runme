@@ -9,10 +9,10 @@ import (
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/internal/document"
-	runnerv1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/internal/project"
-	"github.com/stateful/runme/internal/runner"
+	"github.com/stateful/runme/v3/internal/document"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/project"
+	"github.com/stateful/runme/v3/internal/runner"
 	"go.uber.org/zap"
 )
 

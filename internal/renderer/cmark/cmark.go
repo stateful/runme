@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yuin/goldmark/ast"
 
-	"github.com/stateful/runme/internal/document/constants"
+	"github.com/stateful/runme/v3/internal/document/constants"
 )
 
 type NodeSourceProvider func(ast.Node) ([]byte, bool)

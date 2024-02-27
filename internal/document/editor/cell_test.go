@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/internal/document"
+	"github.com/stateful/runme/v3/internal/document"
 )
 
 var (

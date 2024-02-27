@@ -6,10 +6,10 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/extension"
-	"github.com/stateful/runme/internal/log"
-	"github.com/stateful/runme/internal/tui"
-	"github.com/stateful/runme/internal/tui/prompt"
+	"github.com/stateful/runme/v3/internal/extension"
+	"github.com/stateful/runme/v3/internal/log"
+	"github.com/stateful/runme/v3/internal/tui"
+	"github.com/stateful/runme/v3/internal/tui/prompt"
 
 	"go.uber.org/zap"
 )

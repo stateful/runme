@@ -18,8 +18,8 @@ import (
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stateful/runme/internal/runner"
-	"github.com/stateful/runme/internal/tui"
+	"github.com/stateful/runme/v3/internal/runner"
+	"github.com/stateful/runme/v3/internal/tui"
 	"go.uber.org/zap"
 )
 

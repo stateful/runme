@@ -3,7 +3,7 @@ package command
 import (
 	"strings"
 
-	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
 )
 
 // Config contains a serializable configuration for a command.

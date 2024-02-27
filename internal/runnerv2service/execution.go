@@ -11,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/internal/command"
-	runnerv2alpha1 "github.com/stateful/runme/internal/gen/proto/go/runme/runner/v2alpha1"
-	"github.com/stateful/runme/internal/rbuffer"
+	"github.com/stateful/runme/v3/internal/command"
+	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
+	"github.com/stateful/runme/v3/internal/rbuffer"
 )
 
 const (
