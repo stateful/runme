@@ -211,12 +211,20 @@ func (b *CodeBlock) Interpreter() string {
 }
 
 func (b *CodeBlock) PromptEnv() bool {
-	val, err := strconv.ParseBool(b.Attributes()["promptEnv"])
-	if err != nil {
+	val, ok := b.Attributes()["promptEnv"]
+	if !ok {
 		return true
 	}
 
-	return val
+	// todo(sebastian): integration with ResolveProgram
+	switch strings.ToLower(val) {
+	case "false", "no", "0":
+		return false
+	default:
+		// use default return
+	}
+
+	return true
 }
 
 func (b *CodeBlock) ExcludeFromRunAll() bool {
