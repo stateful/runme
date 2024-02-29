@@ -13,6 +13,11 @@ exec runme run -c buzz -c bar --filename=CATEGORIES.md
 cmp stdout buzz-bar-list.txt
 ! stderr .
 
+env SHELL=/bin/bash
+exec runme run --all --skip-prompts --category solution-2
+cmp stdout doc-category.txt
+! stderr .
+
 -- CATEGORIES.md --
 
 ```bash {"category":"foo","name":"set-env"}
@@ -39,6 +44,56 @@ $ stty -opost
 $ echo "buzz!"
 ```
 
+-- install-manual-solution-1.md --
+---
+shell: bash
+cwd: /tmp
+category: solution-1
+---
+
+Installation steps for Solution 1:
+
+```sh {"name":"install-solution1"}
+$ stty -opost
+$ echo "Install solution1"
+```
+
+Deployment steps for Solution 1:
+
+```sh {"name":"deploy-solution1"}
+$ stty -opost
+$ echo "Deploy solution1"
+```
+
+```sh {"category":"delete-solution"}
+echo "Delete solution"
+```
+
+-- install-manual-solution-2.md --
+---
+shell: bash
+cwd: /tmp
+category: solution-2
+---
+
+Installation steps for Solution 2:
+
+```sh {"name":"install-solution2"}
+$ stty -opost
+$ echo "Install solution2"
+```
+
+Deployment steps for Solution 2:
+
+```sh {"name":"deploy-solution2"}
+$ stty -opost
+$ echo "Deploy solution2"
+```
+
+```sh {"category":"delete-solution"}
+$ echo "Delete solution"
+```
+
 -- foo-bar-list.txt --
  ►  Running task set-env...
  ►  ✓ Task set-env exited with code 0
@@ -57,3 +112,10 @@ bar!
  ►  Running task print-buzz...
 buzz!
  ►  ✓ Task print-buzz exited with code 0
+-- doc-category.txt --
+ ►  Running task install-solution2...
+Install solution2
+ ►  ✓ Task install-solution2 exited with code 0
+ ►  Running task deploy-solution2...
+Deploy solution2
+ ►  ✓ Task deploy-solution2 exited with code 0
