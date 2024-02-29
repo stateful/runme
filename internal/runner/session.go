@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"go.uber.org/zap"
 )
@@ -17,16 +18,23 @@ type Session struct {
 	Metadata map[string]string
 
 	envStore *envStore
+	owlStore *owl.Store
 	logger   *zap.Logger
 }
 
 func NewSession(envs []string, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
 
+	store, err := owl.NewStore(owl.WithEnvs(envs...))
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Session{
 		ID: ulid.GenerateID(),
 
 		envStore: newEnvStore(sessionEnvs...),
+		owlStore: store,
 		logger:   logger,
 	}
 	return s, nil
