@@ -48,8 +48,8 @@ func Test_Store(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, snapshot, 3)
 
-		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Literal)
-		require.EqualValues(t, "secret2", snapshot[1].Value.Literal)
-		require.EqualValues(t, "secret3", snapshot[2].Value.Literal)
+		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "secret2", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "secret3", snapshot[2].Value.Resolved)
 	})
 }

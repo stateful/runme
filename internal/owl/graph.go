@@ -43,8 +43,9 @@ type setVarOperation struct {
 
 type setVarValue struct {
 	// Type    string `json:"type"`
-	Literal string `json:"literal"`
-	// Success bool   `json:"success"`
+	Original string `json:"original"`
+	Resolved string `json:"resolved"`
+	Status   string `json:"status"`
 	// ValidationErrors validator.ValidationErrors `json:"-"`
 }
 
@@ -123,7 +124,7 @@ func (s *operationSet) addRaw(raw []byte) error {
 		s.items[k] = &setVar{
 			Key:      k,
 			Raw:      string(line),
-			Value:    &setVarValue{Literal: val},
+			Value:    &setVarValue{Resolved: val},
 			Spec:     &setVarSpec{Name: spec, Checked: false},
 			Required: required,
 			Created:  &created,
@@ -155,7 +156,13 @@ func init() {
 							// "type": &graphql.Field{
 							// 	Type: graphql.String,
 							// },
-							"literal": &graphql.Field{
+							"original": &graphql.Field{
+								Type: graphql.String,
+							},
+							"resolved": &graphql.Field{
+								Type: graphql.String,
+							},
+							"status": &graphql.Field{
 								Type: graphql.String,
 							},
 							// "success": &graphql.Field{
@@ -227,7 +234,13 @@ func init() {
 						// "type": &graphql.InputObjectFieldConfig{
 						// 	Type: graphql.String,
 						// },
-						"literal": &graphql.InputObjectFieldConfig{
+						"original": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"resolved": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"status": &graphql.InputObjectFieldConfig{
 							Type: graphql.String,
 						},
 						// "success": &graphql.InputObjectFieldConfig{
@@ -554,7 +567,7 @@ func addSnapshotQueryNode(selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 						// }),
 						ast.NewField(&ast.Field{
 							Name: ast.NewName(&ast.Name{
-								Value: "literal",
+								Value: "resolved",
 							}),
 						}),
 					},
