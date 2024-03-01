@@ -558,3 +558,14 @@ func (p *Project) LoadEnvAsMap() (map[string]string, error) {
 
 	return env, nil
 }
+
+func (p *Project) LoadRawEnv(file string) ([]byte, error) {
+	raw, err := util.ReadFile(p.fs, file)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		// not an error if file does not exist
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return raw, nil
+}

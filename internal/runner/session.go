@@ -6,6 +6,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/stateful/runme/v3/internal/owl"
+	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"go.uber.org/zap"
 )
@@ -22,10 +23,23 @@ type Session struct {
 	logger   *zap.Logger
 }
 
-func NewSession(envs []string, logger *zap.Logger) (*Session, error) {
+func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
 
-	store, err := owl.NewStore(owl.WithEnvs(envs...))
+	opts := []owl.StoreOption{owl.WithEnvs(envs...)}
+	if proj != nil {
+		specFilesOrder := proj.EnvFilesReadOrder()
+		specFilesOrder = append(specFilesOrder, ".env.example")
+		for _, specFile := range specFilesOrder {
+			raw, _ := proj.LoadRawEnv(specFile)
+			if raw == nil {
+				continue
+			}
+			opts = append(opts, owl.WithSpecFile(specFile, raw))
+		}
+	}
+
+	store, err := owl.NewStore(opts...)
 	if err != nil {
 		return nil, err
 	}

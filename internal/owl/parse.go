@@ -5,7 +5,7 @@ import (
 )
 
 // todo(sebastian): replace with robust impl
-func parseRawSpec(single []byte) (k, v, s string, m bool) {
+func ParseRawSpec(single []byte) (k, v, s string, m bool) {
 	v, s, m = "", "", false
 
 	eqIdx := bytes.Index(single, []byte{'='})

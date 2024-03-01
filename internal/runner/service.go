@@ -90,7 +90,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		envs = append(envs, projEnvs...)
 	}
 
-	sess, err := NewSession(envs, r.logger)
+	sess, err := NewSession(envs, proj, r.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,9 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 		return nil, nil
 	}
 
-	opts := []project.ProjectOption{project.WithFindRepoUpward()}
+	// todo(sebastian): this is not right for IDE projects
+	// opts := []project.ProjectOption{project.WithFindRepoUpward()}
+	opts := []project.ProjectOption{}
 
 	if len(runnerProj.EnvLoadOrder) > 0 {
 		opts = append(opts, project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder))
@@ -188,7 +190,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	logger.Debug("received initial request", zap.Any("req", req))
 
 	createSession := func(envs []string) (*Session, error) {
-		return NewSession(envs, r.logger)
+		return NewSession(envs, nil, r.logger)
 	}
 
 	var stdoutMem []byte
