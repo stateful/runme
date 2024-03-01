@@ -2,7 +2,6 @@ package project
 
 import (
 	"context"
-	"fmt"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -16,20 +15,13 @@ import (
 // Instance of `Document` can be retrieved
 // from `document.CodeBlock`.
 type Task struct {
-	CodeBlock    *document.CodeBlock
-	DocumentPath string
+	CodeBlock       *document.CodeBlock `json:"code_block"`
+	DocumentPath    string              `json:"document_path"`
+	RelDocumentPath string              `json:"rel_document_path"`
 }
 
 func (t Task) ID() string {
 	return t.DocumentPath + ":" + t.CodeBlock.Name()
-}
-
-func (t Task) String() string {
-	return t.ID()
-}
-
-func (t Task) Format(s fmt.State, verb rune) {
-	_, _ = s.Write([]byte("project.Task#" + t.ID()))
 }
 
 // LoadFiles returns a list of file names found in the project.

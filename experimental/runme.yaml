@@ -32,7 +32,7 @@ env:
 filters:
   # Do not allow unnamed code blocks.
   - type: "FILTER_TYPE_BLOCK"
-    condition: "name != ''"
+    condition: "is_named"
   # Do not allow code blocks without a language.
   - type: "FILTER_TYPE_BLOCK"
     condition: "language != ''"

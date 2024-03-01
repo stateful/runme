@@ -2,6 +2,7 @@ package document
 
 import (
 	"bytes"
+	"encoding/json"
 	"math"
 	"regexp"
 	"strconv"
@@ -124,6 +125,20 @@ func (b *CodeBlock) Clone() *CodeBlock {
 		nameGenerated: b.nameGenerated,
 		value:         value,
 	}
+}
+
+func (b *CodeBlock) MarshalJSON() ([]byte, error) {
+	s := struct {
+		Name         string `json:"name"`
+		FirstCommand string `json:"first_command"`
+		Description  string `json:"description"`
+	}{
+		Name:         b.Name(),
+		FirstCommand: b.Lines()[0],
+		Description:  b.Intro(),
+	}
+
+	return json.Marshal(s)
 }
 
 func (b *CodeBlock) Attributes() map[string]string { return b.attributes }

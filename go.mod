@@ -11,6 +11,7 @@ require (
 	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/lipgloss v0.10.0
 	github.com/cli/cli/v2 v2.45.0
+	github.com/cli/go-gh/v2 v2.6.0
 	github.com/containerd/console v1.0.4
 	github.com/creack/pty v1.1.21
 	github.com/expr-lang/expr v1.16.1
@@ -46,7 +47,6 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/cli/go-gh/v2 v2.6.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
