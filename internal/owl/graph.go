@@ -8,13 +8,14 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
-	"github.com/graphql-go/graphql/language/printer"
 )
 
 var (
-	Schema     graphql.Schema
-	Operations map[setOperationKind]string
+	schema graphql.Schema
+	// reducer map[setOperationKind][]QueryNodeReducer
 )
+
+type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
 func init() {
 	var VariableType = graphql.NewObject(
@@ -297,7 +298,7 @@ func init() {
 	})
 
 	var err error
-	Schema, err = graphql.NewSchema(graphql.SchemaConfig{
+	schema, err = graphql.NewSchema(graphql.SchemaConfig{
 		Query: graphql.NewObject(
 			graphql.ObjectConfig{Name: "Query",
 				Fields: graphql.Fields{
@@ -318,225 +319,167 @@ func init() {
 	}
 }
 
-func (s *Store) addLoadQueryNode(opDef *ast.OperationDefinition, vars io.StringWriter) (*ast.SelectionSet, error) {
-	selSet := ast.NewSelectionSet(&ast.SelectionSet{})
-	opDef.SelectionSet.Selections[0].(*ast.Field).SelectionSet = selSet
-	opSetData := make(map[string]setVarResult, len(s.opSets))
+func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		opSetData := make(map[string]setVarResult, len(store.opSets))
 
-	for i, opSet := range s.opSets {
-		nvars := fmt.Sprintf("load_%d", i)
+		for i, opSet := range store.opSets {
+			nvars := fmt.Sprintf("load_%d", i)
 
-		for _, v := range opSet.items {
-			opSetData[nvars] = append(opSetData[nvars], v)
-		}
+			for _, v := range opSet.items {
+				opSetData[nvars] = append(opSetData[nvars], v)
+			}
 
-		opDef.VariableDefinitions = append(opDef.VariableDefinitions, ast.NewVariableDefinition(&ast.VariableDefinition{
-			Variable: ast.NewVariable(&ast.Variable{
-				Name: ast.NewName(&ast.Name{
-					Value: nvars,
-				}),
-			}),
-			Type: ast.NewNamed(&ast.Named{
-				Name: ast.NewName(&ast.Name{
-					Value: "[VariableInput]!",
-				}),
-			}),
-		}))
-
-		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-		nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
-			Name: ast.NewName(&ast.Name{
-				Value: "location",
-			}),
-		}))
-		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
-			Name: ast.NewName(&ast.Name{
-				Value: "load",
-			}),
-			Arguments: []*ast.Argument{
-				ast.NewArgument(&ast.Argument{
-					Name: ast.NewName(&ast.Name{
-						Value: "vars",
-					}),
-					Value: ast.NewVariable(&ast.Variable{
-						Name: ast.NewName(&ast.Name{
-							Value: nvars,
-						}),
-					}),
-				}),
-				ast.NewArgument(&ast.Argument{
-					Name: ast.NewName(&ast.Name{
-						Value: "hasSpecs",
-					}),
-					Value: ast.NewBooleanValue(&ast.BooleanValue{
-						Value: opSet.hasSpecs,
-					}),
-				}),
-			},
-			Directives:   []*ast.Directive{},
-			SelectionSet: nextSelSet,
-		}))
-		selSet = nextSelSet
-	}
-
-	opSetJson, err := json.MarshalIndent(opSetData, "", " ")
-	if err != nil {
-		return nil, err
-	}
-	vars.WriteString(string(opSetJson))
-
-	return selSet, nil
-}
-
-func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
-	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
-		Operation: "query",
-		Name: ast.NewName(&ast.Name{
-			Value: "ResolveEnvSnapshot",
-		}),
-		Directives: []*ast.Directive{},
-		SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
-			Selections: []ast.Selection{
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "environment",
-					}),
-					Arguments:  []*ast.Argument{},
-					Directives: []*ast.Directive{},
-				}),
-			},
-		}),
-		VariableDefinitions: []*ast.VariableDefinition{
-			ast.NewVariableDefinition(&ast.VariableDefinition{
+			opDef.VariableDefinitions = append(opDef.VariableDefinitions, ast.NewVariableDefinition(&ast.VariableDefinition{
 				Variable: ast.NewVariable(&ast.Variable{
 					Name: ast.NewName(&ast.Name{
-						Value: "insecure",
+						Value: nvars,
 					}),
 				}),
 				Type: ast.NewNamed(&ast.Named{
 					Name: ast.NewName(&ast.Name{
-						Value: "Boolean",
+						Value: "[VariableInput]!",
 					}),
 				}),
-				DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
-					Value: false,
+			}))
+
+			nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
+			nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
+				Name: ast.NewName(&ast.Name{
+					Value: "location",
 				}),
-			}),
-		},
-	})
+			}))
+			selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
+				Name: ast.NewName(&ast.Name{
+					Value: "load",
+				}),
+				Arguments: []*ast.Argument{
+					ast.NewArgument(&ast.Argument{
+						Name: ast.NewName(&ast.Name{
+							Value: "vars",
+						}),
+						Value: ast.NewVariable(&ast.Variable{
+							Name: ast.NewName(&ast.Name{
+								Value: nvars,
+							}),
+						}),
+					}),
+					ast.NewArgument(&ast.Argument{
+						Name: ast.NewName(&ast.Name{
+							Value: "hasSpecs",
+						}),
+						Value: ast.NewBooleanValue(&ast.BooleanValue{
+							Value: opSet.hasSpecs,
+						}),
+					}),
+				},
+				Directives:   []*ast.Directive{},
+				SelectionSet: nextSelSet,
+			}))
+			selSet = nextSelSet
+		}
 
-	selSet, err := s.addLoadQueryNode(opDef, vars)
-	if err != nil {
-		return err
+		opSetJson, err := json.MarshalIndent(opSetData, "", " ")
+		if err != nil {
+			return nil, err
+		}
+		vars.WriteString(string(opSetJson))
+
+		return selSet, nil
 	}
-
-	_, err = addSnapshotQueryNode(selSet)
-	if err != nil {
-		return err
-	}
-
-	doc := ast.NewDocument(&ast.Document{
-		Definitions: []ast.Node{opDef},
-	})
-	res := printer.Print(doc)
-
-	text, ok := res.(string)
-	if !ok {
-		return errors.New("ast printer returned unknown type")
-	}
-	query.WriteString(text)
-
-	return nil
 }
 
-func addSnapshotQueryNode(selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-	nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
-		Selections: []ast.Selection{
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "key",
-				}),
-			}),
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "value",
-				}),
-				SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
-					Selections: []ast.Selection{
-						// ast.NewField(&ast.Field{
-						// 	Name: ast.NewName(&ast.Name{
-						// 		Value: "type",
-						// 	}),
-						// }),
-						ast.NewField(&ast.Field{
-							Name: ast.NewName(&ast.Name{
-								Value: "original",
-							}),
-						}),
-						ast.NewField(&ast.Field{
-							Name: ast.NewName(&ast.Name{
-								Value: "resolved",
-							}),
-						}),
-						ast.NewField(&ast.Field{
-							Name: ast.NewName(&ast.Name{
-								Value: "status",
-							}),
-						}),
-					},
-				}),
-			}),
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "spec",
-				}),
-				SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
-					Selections: []ast.Selection{
-						ast.NewField(&ast.Field{
-							Name: ast.NewName(&ast.Name{
-								Value: "name",
-							}),
-						}),
-					},
-				}),
-			}),
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "required",
-				}),
-			}),
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "created",
-				}),
-			}),
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "updated",
-				}),
-			}),
-		},
-	})
-
-	selSet.Selections = append(selSet.Selections,
-		ast.NewField(&ast.Field{
-			Name: ast.NewName(&ast.Name{
-				Value: "snapshot",
-			}),
-			Arguments: []*ast.Argument{
-				ast.NewArgument(&ast.Argument{
+func reduceSnapshot() QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
+			Selections: []ast.Selection{
+				ast.NewField(&ast.Field{
 					Name: ast.NewName(&ast.Name{
-						Value: "insecure",
+						Value: "key",
 					}),
-					Value: ast.NewVariable(&ast.Variable{
-						Name: ast.NewName(&ast.Name{
-							Value: "insecure",
-						}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "value",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							// ast.NewField(&ast.Field{
+							// 	Name: ast.NewName(&ast.Name{
+							// 		Value: "type",
+							// 	}),
+							// }),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "original",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "resolved",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "status",
+								}),
+							}),
+						},
+					}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "spec",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "name",
+								}),
+							}),
+						},
+					}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "required",
+					}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "created",
+					}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "updated",
 					}),
 				}),
 			},
-			SelectionSet: nextSelSet,
-		}),
-	)
-	return nextSelSet, nil
+		})
+
+		selSet.Selections = append(selSet.Selections,
+			ast.NewField(&ast.Field{
+				Name: ast.NewName(&ast.Name{
+					Value: "snapshot",
+				}),
+				Arguments: []*ast.Argument{
+					ast.NewArgument(&ast.Argument{
+						Name: ast.NewName(&ast.Name{
+							Value: "insecure",
+						}),
+						Value: ast.NewVariable(&ast.Variable{
+							Name: ast.NewName(&ast.Name{
+								Value: "insecure",
+							}),
+						}),
+					}),
+				},
+				SelectionSet: nextSelSet,
+			}),
+		)
+		return nextSelSet, nil
+	}
+
 }

@@ -14,7 +14,7 @@ func Test_Graph(t *testing.T) {
 
 	t.Run("introspect schema", func(t *testing.T) {
 		result := graphql.Do(graphql.Params{
-			Schema:        Schema,
+			Schema:        schema,
 			RequestString: testutil.IntrospectionQuery,
 		})
 		require.False(t, result.HasErrors())

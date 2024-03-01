@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/graphql/language/ast"
 	"gopkg.in/yaml.v3"
 )
 
@@ -232,7 +234,7 @@ func (s *Store) snapshot(insecure bool) (setVarResult, error) {
 	varValues["insecure"] = insecure
 
 	result := graphql.Do(graphql.Params{
-		Schema:         Schema,
+		Schema:         schema,
 		RequestString:  query.String(),
 		VariableValues: varValues,
 	})
@@ -262,6 +264,49 @@ func (s *Store) snapshot(insecure bool) (setVarResult, error) {
 	_ = json.Unmarshal(j, &snapshot)
 
 	return snapshot, nil
+}
+
+func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
+	varDefs := []*ast.VariableDefinition{
+		ast.NewVariableDefinition(&ast.VariableDefinition{
+			Variable: ast.NewVariable(&ast.Variable{
+				Name: ast.NewName(&ast.Name{
+					Value: "insecure",
+				}),
+			}),
+			Type: ast.NewNamed(&ast.Named{
+				Name: ast.NewName(&ast.Name{
+					Value: "Boolean",
+				}),
+			}),
+			DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
+				Value: false,
+			}),
+		}),
+	}
+
+	q, err := NewQuery("Snapshot", varDefs,
+		[]QueryNodeReducer{
+			reduceSetOperations(s, vars),
+			reduceSnapshot(),
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	text, err := q.Print()
+	if err != nil {
+		return err
+	}
+
+	_, err = query.WriteString(text)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func extractKey(data interface{}, key string) (interface{}, error) {
