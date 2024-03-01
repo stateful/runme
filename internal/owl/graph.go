@@ -10,15 +10,14 @@ import (
 	"github.com/graphql-go/graphql/language/ast"
 )
 
-var (
-	schema graphql.Schema
-	// reducer map[setOperationKind][]QueryNodeReducer
-)
+var schema graphql.Schema
+
+// reducer map[setOperationKind][]QueryNodeReducer
 
 type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
 func init() {
-	var VariableType = graphql.NewObject(
+	VariableType := graphql.NewObject(
 		graphql.ObjectConfig{
 			Name: "Variable",
 			Fields: graphql.Fields{
@@ -194,12 +193,12 @@ func init() {
 						}
 						hasSpecs := p.Args["hasSpecs"].(bool)
 
-						var flatOpSet *operationSet
+						var flatOpSet *OperationSet
 						var err error
 
 						switch p.Source.(type) {
-						case *operationSet:
-							flatOpSet = p.Source.(*operationSet)
+						case *OperationSet:
+							flatOpSet = p.Source.(*OperationSet)
 						default:
 							flatOpSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "query"))
 							if err != nil {
@@ -218,7 +217,8 @@ func init() {
 							return nil, err
 						}
 
-						for _, v := range revive {
+						for i := range revive {
+							v := revive[i]
 							old, ok := flatOpSet.items[v.Key]
 							if hasSpecs && ok {
 								old.Spec = v.Spec
@@ -239,8 +239,8 @@ func init() {
 					Type: graphql.NewNonNull(graphql.String),
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						switch p.Source.(type) {
-						case *operationSet:
-							opSet := p.Source.(*operationSet)
+						case *OperationSet:
+							opSet := p.Source.(*OperationSet)
 							return opSet.operation.location, nil
 						default:
 							// noop
@@ -259,12 +259,12 @@ func init() {
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						insecure := p.Args["insecure"].(bool)
-						opSet, ok := p.Source.(*operationSet)
+						opSet, ok := p.Source.(*OperationSet)
 						if !ok {
 							return nil, errors.New("source is not an OperationSet")
 						}
 
-						var snapshot setVarResult
+						var snapshot SetVarResult
 						for _, v := range opSet.items {
 							if !insecure {
 								// todo: move "masking" into to "type system"
@@ -300,7 +300,8 @@ func init() {
 	var err error
 	schema, err = graphql.NewSchema(graphql.SchemaConfig{
 		Query: graphql.NewObject(
-			graphql.ObjectConfig{Name: "Query",
+			graphql.ObjectConfig{
+				Name: "Query",
 				Fields: graphql.Fields{
 					"environment": &graphql.Field{
 						Type: EnvironmentType,
@@ -312,7 +313,6 @@ func init() {
 			},
 		),
 	})
-
 	if err != nil {
 		// inconsistent schema is bad
 		panic(err)
@@ -321,7 +321,7 @@ func init() {
 
 func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		opSetData := make(map[string]setVarResult, len(store.opSets))
+		opSetData := make(map[string]SetVarResult, len(store.opSets))
 
 		for i, opSet := range store.opSets {
 			nvars := fmt.Sprintf("load_%d", i)
@@ -379,11 +379,14 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 			selSet = nextSelSet
 		}
 
-		opSetJson, err := json.MarshalIndent(opSetData, "", " ")
+		opSetJSON, err := json.MarshalIndent(opSetData, "", " ")
 		if err != nil {
 			return nil, err
 		}
-		vars.WriteString(string(opSetJson))
+		_, err = vars.WriteString(string(opSetJSON))
+		if err != nil {
+			return nil, err
+		}
 
 		return selSet, nil
 	}
@@ -481,5 +484,4 @@ func reduceSnapshot() QueryNodeReducer {
 		)
 		return nextSelSet, nil
 	}
-
 }

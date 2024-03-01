@@ -30,7 +30,7 @@ type Operation struct {
 	location string
 }
 
-type operationSet struct {
+type OperationSet struct {
 	operation Operation
 	hasSpecs  bool
 	items     map[string]*setVar
@@ -66,9 +66,9 @@ type setVar struct {
 	Updated   *time.Time       `json:"updated,omitempty"`
 }
 
-type setVarResult []*setVar
+type SetVarResult []*setVar
 
-func (res setVarResult) sort() {
+func (res SetVarResult) sort() {
 	slices.SortStableFunc(res, func(i, j *setVar) int {
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
 			return 0
@@ -81,13 +81,12 @@ func (res setVarResult) sort() {
 		}
 		return strings.Compare(i.Key, j.Key)
 	})
-
 }
 
-type operationSetOption func(*operationSet) error
+type OperationSetOption func(*OperationSet) error
 
-func NewOperationSet(opts ...operationSetOption) (*operationSet, error) {
-	opSet := &operationSet{
+func NewOperationSet(opts ...OperationSetOption) (*OperationSet, error) {
+	opSet := &OperationSet{
 		hasSpecs: false,
 		items:    make(map[string]*setVar),
 	}
@@ -100,8 +99,8 @@ func NewOperationSet(opts ...operationSetOption) (*operationSet, error) {
 	return opSet, nil
 }
 
-func WithOperation(operation setOperationKind, location string) operationSetOption {
-	return func(opSet *operationSet) error {
+func WithOperation(operation setOperationKind, location string) OperationSetOption {
+	return func(opSet *OperationSet) error {
 		opSet.operation = Operation{
 			kind:     operation,
 			location: location,
@@ -110,21 +109,21 @@ func WithOperation(operation setOperationKind, location string) operationSetOpti
 	}
 }
 
-func WithSpecs(included bool) operationSetOption {
-	return func(opSet *operationSet) error {
+func WithSpecs(included bool) OperationSetOption {
+	return func(opSet *OperationSet) error {
 		opSet.hasSpecs = included
 		return nil
 	}
 }
 
-func (s *operationSet) addEnvs(envs ...string) (err error) {
+func (s *OperationSet) addEnvs(envs ...string) (err error) {
 	for _, env := range envs {
 		err = s.addRaw([]byte(env))
 	}
 	return err
 }
 
-func (s *operationSet) addRaw(raw []byte) error {
+func (s *OperationSet) addRaw(raw []byte) error {
 	lines := bytes.Split(raw, []byte{'\n'})
 	for _, rawLine := range lines {
 		line := bytes.Trim(rawLine, " \r")
@@ -154,7 +153,7 @@ func (s *operationSet) addRaw(raw []byte) error {
 
 type Store struct {
 	// mu     sync.RWMutex
-	opSets []*operationSet
+	opSets []*OperationSet
 }
 
 type StoreOption func(*Store) error
@@ -212,18 +211,21 @@ func WithEnvs(envs ...string) StoreOption {
 	}
 }
 
-func (s *Store) Snapshot() (setVarResult, error) {
+func (s *Store) Snapshot() (SetVarResult, error) {
 	return s.snapshot(false)
 }
 
-func (s *Store) snapshot(insecure bool) (setVarResult, error) {
+func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	var query, vars bytes.Buffer
 	err := s.snapshotQuery(&query, &vars)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Fprintf(os.Stderr, "%s", query.String())
+	_, err = fmt.Fprintf(os.Stderr, "%s", query.String())
+	if err != nil {
+		return nil, err
+	}
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
@@ -258,9 +260,12 @@ func (s *Store) snapshot(insecure bool) (setVarResult, error) {
 		return nil, err
 	}
 
-	fmt.Println(string(y))
+	_, err = fmt.Println(string(y))
+	if err != nil {
+		return nil, err
+	}
 
-	var snapshot setVarResult
+	var snapshot SetVarResult
 	_ = json.Unmarshal(j, &snapshot)
 
 	return snapshot, nil
@@ -291,7 +296,6 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 			reduceSnapshot(),
 		},
 	)
-
 	if err != nil {
 		return err
 	}
@@ -322,11 +326,12 @@ func extractKey(data interface{}, key string) (interface{}, error) {
 		}
 		switch v.(type) {
 		case map[string]interface{}:
-			// depth-only search
 			found, err = extractKey(v, key)
 			if err == nil {
 				break
 			}
+		default:
+			continue
 		}
 		if found != nil {
 			break
