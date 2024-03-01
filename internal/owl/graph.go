@@ -43,8 +43,8 @@ type setVarOperation struct {
 
 type setVarValue struct {
 	// Type    string `json:"type"`
-	Original string `json:"original"`
-	Resolved string `json:"resolved"`
+	Original string `json:"original,omitempty"`
+	Resolved string `json:"resolved,omitempty"`
 	Status   string `json:"status"`
 	// ValidationErrors validator.ValidationErrors `json:"-"`
 }
@@ -63,6 +63,24 @@ type setVar struct {
 	Operation *setVarOperation `json:"operation"`
 	Created   *time.Time       `json:"created,omitempty"`
 	Updated   *time.Time       `json:"updated,omitempty"`
+}
+
+type setVarResult []*setVar
+
+func (res setVarResult) sort() {
+	slices.SortStableFunc(res, func(i, j *setVar) int {
+		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
+			return 0
+		}
+		if i.Spec.Name != "Opaque" {
+			return -1
+		}
+		if j.Spec.Name != "Opaque" {
+			return 1
+		}
+		return strings.Compare(i.Key, j.Key)
+	})
+
 }
 
 type operationSetOption func(*operationSet) error
@@ -343,6 +361,7 @@ func init() {
 							old, ok := flatOpSet.items[v.Key]
 							if hasSpecs && ok {
 								old.Spec = v.Spec
+								old.Required = v.Required
 								continue
 							}
 							if ok {
@@ -378,28 +397,36 @@ func init() {
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						insecure := p.Args["insecure"].(bool)
 						opSet, ok := p.Source.(*operationSet)
 						if !ok {
 							return nil, errors.New("source is not an OperationSet")
 						}
 
-						var snapshot []*setVar
+						var snapshot setVarResult
 						for _, v := range opSet.items {
+							if !insecure {
+								// todo: move "masking" into to "type system"
+								switch v.Spec.Name {
+								case "Plain", "Path":
+									v.Value.Status = "LITERAL"
+								case "Secret", "Password":
+									v.Value.Status = "MASKED"
+									if len(v.Value.Resolved) > 24 {
+										v.Value.Resolved = v.Value.Resolved[:3] + "..." + v.Value.Resolved[len(v.Value.Resolved)-3:]
+										break
+									}
+									v.Value.Resolved = ""
+								default:
+									v.Value.Status = "HIDDEN"
+									v.Value.Original = v.Value.Resolved
+									v.Value.Resolved = ""
+								}
+							}
+
 							snapshot = append(snapshot, v)
 						}
-
-						slices.SortStableFunc(snapshot, func(i, j *setVar) int {
-							if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
-								return 0
-							}
-							if i.Spec.Name != "Opaque" {
-								return -1
-							}
-							if j.Spec.Name != "Opaque" {
-								return 1
-							}
-							return strings.Compare(i.Key, j.Key)
-						})
+						snapshot.sort()
 
 						return snapshot, nil
 					},
@@ -434,8 +461,8 @@ func init() {
 func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWriter) (*ast.SelectionSet, error) {
 	selSet := ast.NewSelectionSet(&ast.SelectionSet{})
 	opDef.SelectionSet.Selections[0].(*ast.Field).SelectionSet = selSet
-	var opsVarDefs []*ast.VariableDefinition
-	opSetData := make(map[string][]*setVar, len(s.opSets))
+	opSetData := make(map[string]setVarResult, len(s.opSets))
+
 	for i, opSet := range s.opSets {
 		nvars := fmt.Sprintf("load_%d", i)
 
@@ -443,7 +470,7 @@ func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWr
 			opSetData[nvars] = append(opSetData[nvars], v)
 		}
 
-		opsVarDefs = append(opsVarDefs, ast.NewVariableDefinition(&ast.VariableDefinition{
+		opDef.VariableDefinitions = append(opDef.VariableDefinitions, ast.NewVariableDefinition(&ast.VariableDefinition{
 			Variable: ast.NewVariable(&ast.Variable{
 				Name: ast.NewName(&ast.Name{
 					Value: nvars,
@@ -451,7 +478,7 @@ func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWr
 			}),
 			Type: ast.NewNamed(&ast.Named{
 				Name: ast.NewName(&ast.Name{
-					Value: "[VariableInput]",
+					Value: "[VariableInput]!",
 				}),
 			}),
 		}))
@@ -492,7 +519,6 @@ func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWr
 		selSet = nextSelSet
 	}
 
-	opDef.VariableDefinitions = opsVarDefs
 	opSetJson, err := json.MarshalIndent(opSetData, "", " ")
 	if err != nil {
 		return nil, err
@@ -503,7 +529,7 @@ func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWr
 }
 
 func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
-	opsDef := ast.NewOperationDefinition(&ast.OperationDefinition{
+	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
 		Operation: "query",
 		Name: ast.NewName(&ast.Name{
 			Value: "ResolveEnv",
@@ -520,9 +546,26 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 				}),
 			},
 		}),
+		VariableDefinitions: []*ast.VariableDefinition{
+			ast.NewVariableDefinition(&ast.VariableDefinition{
+				Variable: ast.NewVariable(&ast.Variable{
+					Name: ast.NewName(&ast.Name{
+						Value: "insecure",
+					}),
+				}),
+				Type: ast.NewNamed(&ast.Named{
+					Name: ast.NewName(&ast.Name{
+						Value: "Boolean",
+					}),
+				}),
+				DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
+					Value: false,
+				}),
+			}),
+		},
 	})
 
-	selSet, err := s.addLoadVarsNode(opsDef, vars)
+	selSet, err := s.addLoadVarsNode(opDef, vars)
 	if err != nil {
 		return err
 	}
@@ -533,7 +576,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	}
 
 	doc := ast.NewDocument(&ast.Document{
-		Definitions: []ast.Node{opsDef},
+		Definitions: []ast.Node{opDef},
 	})
 	res := printer.Print(doc)
 
@@ -567,7 +610,17 @@ func addSnapshotQueryNode(selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 						// }),
 						ast.NewField(&ast.Field{
 							Name: ast.NewName(&ast.Name{
+								Value: "original",
+							}),
+						}),
+						ast.NewField(&ast.Field{
+							Name: ast.NewName(&ast.Name{
 								Value: "resolved",
+							}),
+						}),
+						ast.NewField(&ast.Field{
+							Name: ast.NewName(&ast.Name{
+								Value: "status",
 							}),
 						}),
 					},
@@ -615,18 +668,12 @@ func addSnapshotQueryNode(selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 					Name: ast.NewName(&ast.Name{
 						Value: "insecure",
 					}),
-					Value: ast.NewBooleanValue(&ast.BooleanValue{
-						Value: false,
+					Value: ast.NewVariable(&ast.Variable{
+						Name: ast.NewName(&ast.Name{
+							Value: "insecure",
+						}),
 					}),
 				}),
-				// ast.NewArgument(&ast.Argument{
-				// 	Name: ast.NewName(&ast.Name{
-				// 		Value: "specsOnly",
-				// 	}),
-				// 	Value: ast.NewBooleanValue(&ast.BooleanValue{
-				// 		Value: false,
-				// 	}),
-				// }),
 			},
 			SelectionSet: nextSelSet,
 		}),

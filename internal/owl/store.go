@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/graphql-go/graphql"
+	"gopkg.in/yaml.v3"
 )
 
 type Store struct {
@@ -70,7 +71,11 @@ func WithEnvs(envs ...string) StoreOption {
 	}
 }
 
-func (s *Store) Snapshot() ([]*setVar, error) {
+func (s *Store) Snapshot() (setVarResult, error) {
+	return s.snapshot(false)
+}
+
+func (s *Store) snapshot(insecure bool) (setVarResult, error) {
 	var query, vars bytes.Buffer
 	err := s.snapshotQuery(&query, &vars)
 	if err != nil {
@@ -84,6 +89,8 @@ func (s *Store) Snapshot() ([]*setVar, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	varValues["insecure"] = insecure
 
 	result := graphql.Do(graphql.Params{
 		Schema:         Schema,
@@ -105,9 +112,14 @@ func (s *Store) Snapshot() ([]*setVar, error) {
 		return nil, err
 	}
 
-	fmt.Println(string(j))
+	y, err := yaml.Marshal(val)
+	if err != nil {
+		return nil, err
+	}
 
-	var snapshot []*setVar
+	fmt.Println(string(y))
+
+	var snapshot setVarResult
 	_ = json.Unmarshal(j, &snapshot)
 
 	return snapshot, nil
@@ -124,6 +136,7 @@ func traverse(data interface{}, segment string) (interface{}, error) {
 		}
 		switch v.(type) {
 		case map[string]interface{}:
+			// depth-only search
 			return traverse(v, segment)
 		}
 	}

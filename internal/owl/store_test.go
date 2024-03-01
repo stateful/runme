@@ -10,7 +10,7 @@ import (
 func Test_Store(t *testing.T) {
 	t.Parallel()
 
-	t.Run("overlay", func(t *testing.T) {
+	t.Run("Snapshot", func(t *testing.T) {
 		envs := os.Environ()
 
 		raw := []byte(`WASI_SDK_PATH=The path to the wasi-sdk directory # Path!`)
@@ -44,7 +44,7 @@ func Test_Store(t *testing.T) {
 		require.Len(t, store.opSets[0].items, 2)
 		require.Len(t, store.opSets[1].items, 2)
 
-		snapshot, err := store.Snapshot()
+		snapshot, err := store.snapshot(true)
 		require.NoError(t, err)
 		require.Len(t, snapshot, 3)
 
