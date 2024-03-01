@@ -26,7 +26,7 @@ func Test_Store(t *testing.T) {
 		require.EqualValues(t, "Path", snapshot[0].Spec.Name)
 	})
 
-	t.Run("load raw env", func(t *testing.T) {
+	t.Run("LoadEnv", func(t *testing.T) {
 		// todo(sebastian): needs better solution
 		rawEnvLocal, err := os.ReadFile("../../pkg/project/test_project/.env.local")
 		require.NoError(t, err)
