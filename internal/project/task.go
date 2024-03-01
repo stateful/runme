@@ -5,15 +5,13 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
+
 	"github.com/stateful/runme/v3/internal/document"
 )
 
-// Task is a project-specific struct.
-// It's a `document.CodeBlock` with a path
-// to the document it belongs to.
-//
-// Instance of `Document` can be retrieved
-// from `document.CodeBlock`.
+// Task is struct representing a [document.CodeBlock] within the context of a project.
+// Instance of [document.Document] can be retrieved from [Task]'s code block.
+// [Task] contains absolute and relative path to the document.
 type Task struct {
 	CodeBlock       *document.CodeBlock `json:"code_block"`
 	DocumentPath    string              `json:"document_path"`
@@ -21,7 +19,7 @@ type Task struct {
 }
 
 func (t Task) ID() string {
-	return t.DocumentPath + ":" + t.CodeBlock.Name()
+	return t.RelDocumentPath + ":" + t.CodeBlock.Name()
 }
 
 // LoadFiles returns a list of file names found in the project.

@@ -19,17 +19,17 @@ import (
 // It should unify all past, current, and future config proto versions.
 type Config struct {
 	// Dir- or git-based project fields.
-	ProjectDir       string
-	FindRepoUpward   bool
-	IgnorePaths      []string
 	DisableGitignore bool
+	IgnorePaths      []string
+	FindRepoUpward   bool
+	ProjectDir       string
 
 	// Filemode fields.
 	Filename string
 
 	// Environment variable fields.
-	UseSystemEnv   bool
 	EnvSourceFiles []string
+	UseSystemEnv   bool
 
 	Filters []*Filter
 
@@ -37,6 +37,12 @@ type Config struct {
 	LogEnabled bool
 	LogPath    string
 	LogVerbose bool
+
+	// Server related fields.
+	ServerAddress     string
+	ServerTLSEnabled  bool
+	ServerTLSCertFile string
+	ServerTLSKeyFile  string
 }
 
 func ParseYAML(data []byte) (*Config, error) {
@@ -133,6 +139,11 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 		LogEnabled: log.GetEnabled(),
 		LogPath:    log.GetPath(),
 		LogVerbose: log.GetVerbose(),
+
+		ServerAddress:     c.GetServer().GetAddress(),
+		ServerTLSEnabled:  c.GetServer().GetTls().GetEnabled(),
+		ServerTLSCertFile: c.GetServer().GetTls().GetCertFile(),
+		ServerTLSKeyFile:  c.GetServer().GetTls().GetKeyFile(),
 	}
 }
 

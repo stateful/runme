@@ -15,14 +15,22 @@ import (
 	"github.com/stateful/runme/v3/internal/renderer/cmark"
 )
 
-var DefaultRenderer = cmark.Render
+var DefaultAttributeParser = newFailoverAttributeParser(
+	[]attributeParser{
+		&jsonParser{},
+		&babikMLParser{},
+	},
+	&jsonParser{},
+)
+
+var defaultRenderer = cmark.Render
 
 type Document struct {
 	source           []byte
 	identityResolver identityResolver
 	nameResolver     *nameResolver
 	parser           parser.Parser
-	renderer         Renderer
+	renderer         renderer
 
 	onceParse               sync.Once
 	parseErr                error
@@ -49,7 +57,7 @@ func New(source []byte, identityResolver identityResolver) *Document {
 			cache:        map[interface{}]string{},
 		},
 		parser:               goldmark.DefaultParser(),
-		renderer:             DefaultRenderer,
+		renderer:             defaultRenderer,
 		onceParse:            sync.Once{},
 		onceSplitSource:      sync.Once{},
 		onceParseFrontmatter: sync.Once{},
@@ -70,12 +78,15 @@ func (d *Document) ContentOffset() int {
 	return d.contentOffset
 }
 
-func (d *Document) TrailingLineBreaksCount() int {
-	return d.trailingLineBreaksCount
-}
-
 func (d *Document) Parse() error {
 	return d.splitAndParse()
+}
+
+func (d *Document) Root() (*Node, error) {
+	if err := d.splitAndParse(); err != nil {
+		return nil, err
+	}
+	return d.rootNode, nil
 }
 
 func (d *Document) RootAST() (ast.Node, error) {
@@ -85,11 +96,8 @@ func (d *Document) RootAST() (ast.Node, error) {
 	return d.rootASTNode, nil
 }
 
-func (d *Document) Root() (*Node, error) {
-	if err := d.splitAndParse(); err != nil {
-		return nil, err
-	}
-	return d.rootNode, nil
+func (d *Document) TrailingLineBreaksCount() int {
+	return d.trailingLineBreaksCount
 }
 
 func (d *Document) splitAndParse() error {
@@ -108,6 +116,9 @@ func (d *Document) splitAndParse() error {
 	return nil
 }
 
+// splitSource splits source into FrontMatter and content.
+// TODO(adamb): replace it with an extension to goldmark.
+// Example: https://github.com/abhinav/goldmark-frontmatter
 func (d *Document) splitSource() {
 	d.onceSplitSource.Do(func() {
 		l := &itemParser{input: d.source}

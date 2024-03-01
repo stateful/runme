@@ -40,6 +40,14 @@ filters:
   - type: "FILTER_TYPE_BLOCK"
     condition: "!hasPrefix(name, 'test')"
 
+server:
+  # Also unix:///path/to/file.sock is supported.
+  address: localhost:7890
+  tls:
+    enabled: true
+    # cert_file: "/path/to/cert.pem"
+    # key_file: "/path/to/key.pem"
+
 log:
   enabled: true
   path: "/var/tmp/runme.log"

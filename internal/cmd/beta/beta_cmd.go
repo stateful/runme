@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/stateful/runme/v3/internal/cmd/beta/server"
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
 )
@@ -66,6 +67,7 @@ All commands use the runme.yaml configuration file.`,
 
 	cmd.AddCommand(listCmd(cFlags))
 	cmd.AddCommand(printCmd(cFlags))
+	cmd.AddCommand(server.Cmd())
 	cmd.AddCommand(runCmd(cFlags))
 
 	return &cmd

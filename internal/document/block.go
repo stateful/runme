@@ -33,15 +33,6 @@ type Blocks []Block
 
 type CodeBlocks []*CodeBlock
 
-func (b CodeBlocks) Lookup(name string) *CodeBlock {
-	for _, block := range b {
-		if block.Name() == name {
-			return block
-		}
-	}
-	return nil
-}
-
 func (b CodeBlocks) Names() (result []string) {
 	for _, block := range b {
 		result = append(result, block.Name())
@@ -49,7 +40,7 @@ func (b CodeBlocks) Names() (result []string) {
 	return result
 }
 
-type Renderer func(ast.Node, []byte) ([]byte, error)
+type renderer func(ast.Node, []byte) ([]byte, error)
 
 type CodeBlock struct {
 	id            string
@@ -57,13 +48,15 @@ type CodeBlock struct {
 	attributes    map[string]string
 	document      *Document
 	inner         *ast.FencedCodeBlock
-	intro         string
+	intro         string // paragraph immediately before the code block
 	language      string
-	lines         []string
+	lines         []string // actual code lines
 	name          string
 	nameGenerated bool
-	value         []byte
+	value         []byte // markdown source
 }
+
+var _ Block = (*CodeBlock)(nil)
 
 func newCodeBlock(
 	document *Document,
@@ -71,9 +64,9 @@ func newCodeBlock(
 	identityResolver identityResolver,
 	nameResolver *nameResolver,
 	source []byte,
-	render Renderer,
+	render renderer,
 ) (*CodeBlock, error) {
-	attributes, err := getAttributes(node, source, DefaultDocumentParser)
+	attributes, err := getAttributes(node, source, DefaultAttributeParser)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +95,21 @@ func newCodeBlock(
 	}, nil
 }
 
+func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
+
+func (b *CodeBlock) Background() bool {
+	val, _ := strconv.ParseBool(b.Attributes()["background"])
+	return val
+}
+
+func (b *CodeBlock) Categories() []string {
+	cat, ok := b.Attributes()["category"]
+	if !ok {
+		return nil
+	}
+	return strings.Split(cat, ",")
+}
+
 func (b *CodeBlock) Clone() *CodeBlock {
 	attributes := make(map[string]string, len(b.attributes))
 	for key, value := range b.attributes {
@@ -127,39 +135,6 @@ func (b *CodeBlock) Clone() *CodeBlock {
 	}
 }
 
-func (b *CodeBlock) MarshalJSON() ([]byte, error) {
-	s := struct {
-		Name         string `json:"name"`
-		FirstCommand string `json:"first_command"`
-		Description  string `json:"description"`
-	}{
-		Name:         b.Name(),
-		FirstCommand: b.Lines()[0],
-		Description:  b.Intro(),
-	}
-
-	return json.Marshal(s)
-}
-
-func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
-
-func (b *CodeBlock) Document() *Document { return b.document }
-
-func (b *CodeBlock) Interactive() bool {
-	val, err := strconv.ParseBool(b.Attributes()["interactive"])
-	if err != nil {
-		return true
-	}
-	return val
-}
-
-func (b *CodeBlock) Background() bool {
-	val, _ := strconv.ParseBool(b.Attributes()["background"])
-	return val
-}
-
-func (CodeBlock) Kind() BlockKind { return CodeBlockKind }
-
 func (b *CodeBlock) Content() []byte {
 	value := bytes.Trim(b.value, "\n")
 	lines := bytes.Split(value, []byte{'\n'})
@@ -169,60 +144,68 @@ func (b *CodeBlock) Content() []byte {
 	return bytes.Join(lines[1:len(lines)-1], []byte{'\n'})
 }
 
-func (b *CodeBlock) Intro() string {
-	return b.intro
+func (b *CodeBlock) Cwd() string {
+	return b.Attributes()["cwd"]
 }
 
-func (b *CodeBlock) Language() string {
-	return b.language
+func (b *CodeBlock) Document() *Document { return b.document }
+
+func (b *CodeBlock) ExcludeFromRunAll() bool {
+	val, err := strconv.ParseBool(b.Attributes()["excludeFromRunAll"])
+	if err != nil {
+		return false
+	}
+	return val
 }
 
-func (b *CodeBlock) Lines() []string {
-	return b.lines
+func (b *CodeBlock) FirstLine() string {
+	if len(b.lines) > 0 {
+		return b.lines[0]
+	}
+	return ""
 }
 
-func (b *CodeBlock) ID() string {
-	return b.id
+func (b *CodeBlock) ID() string { return b.id }
+
+func (b *CodeBlock) Interactive() bool {
+	val, err := strconv.ParseBool(b.Attributes()["interactive"])
+	if err != nil {
+		return true
+	}
+	return val
 }
 
-func (b *CodeBlock) Name() string {
-	return b.name
+func (b *CodeBlock) Interpreter() string {
+	return b.Attributes()["interpreter"]
 }
 
-func (b *CodeBlock) IsUnnamed() bool {
-	return b.nameGenerated
-}
+func (b *CodeBlock) Intro() string { return b.intro }
 
 func (b *CodeBlock) IsUnknown() bool {
 	return b.Language() == "" || !executable.IsSupported(b.Language())
 }
 
-func (b *CodeBlock) Unwrap() ast.Node {
-	return b.inner
-}
+func (b *CodeBlock) IsUnnamed() bool { return b.nameGenerated }
 
-func (b *CodeBlock) Value() []byte {
-	return b.value
-}
+func (CodeBlock) Kind() BlockKind { return CodeBlockKind }
 
-func (b *CodeBlock) SetLine(p int, v string) {
-	b.lines[p] = v
-}
+func (b *CodeBlock) Language() string { return b.language }
 
-func (b *CodeBlock) Categories() []string {
-	cat, ok := b.Attributes()["category"]
-	if !ok {
-		return nil
+func (b *CodeBlock) Lines() []string { return b.lines }
+
+func (b *CodeBlock) Name() string { return b.name }
+
+func (b *CodeBlock) MarshalJSON() ([]byte, error) {
+	s := struct {
+		Description  string `json:"description"`
+		FirstCommand string `json:"first_command"`
+		Name         string `json:"name"`
+	}{
+		Description:  b.Intro(),
+		FirstCommand: b.FirstLine(),
+		Name:         b.Name(),
 	}
-	return strings.Split(cat, ",")
-}
-
-func (b *CodeBlock) Cwd() string {
-	return b.Attributes()["cwd"]
-}
-
-func (b *CodeBlock) Interpreter() string {
-	return b.Attributes()["interpreter"]
+	return json.Marshal(s)
 }
 
 func (b *CodeBlock) PromptEnv() bool {
@@ -236,19 +219,12 @@ func (b *CodeBlock) PromptEnv() bool {
 	case "false", "no", "0":
 		return false
 	default:
-		// use default return
+		return true
 	}
-
-	return true
 }
 
-func (b *CodeBlock) ExcludeFromRunAll() bool {
-	val, err := strconv.ParseBool(b.Attributes()["excludeFromRunAll"])
-	if err != nil {
-		return false
-	}
-
-	return val
+func (b *CodeBlock) SetLine(p int, v string) {
+	b.lines[p] = v
 }
 
 type TextRange struct {
@@ -271,43 +247,12 @@ func (b *CodeBlock) TextRange() (textRange TextRange) {
 	return
 }
 
-func rawAttributes(source []byte) []byte {
-	start, stop := -1, -1
-
-	for i := 0; i < len(source); i++ {
-		if start == -1 && source[i] == '{' && i+1 < len(source) && source[i+1] != '}' {
-			start = i + 1
-		}
-		if stop == -1 && source[i] == '}' {
-			stop = i
-			break
-		}
-	}
-
-	if start >= 0 && stop >= 0 {
-		return bytes.TrimSpace(source[start-1 : stop+1])
-	}
-
-	return nil
+func (b *CodeBlock) Unwrap() ast.Node {
+	return b.inner
 }
 
-func getAttributes(node *ast.FencedCodeBlock, source []byte, parser attributeParser) (Attributes, error) {
-	attributes := make(map[string]string)
-
-	if node.Info != nil {
-		codeBlockInfo := node.Info.Text(source)
-		rawAttrs := rawAttributes(codeBlockInfo)
-
-		if len(bytes.TrimSpace(rawAttrs)) > 0 {
-			attr, err := parser.Parse(rawAttrs)
-			if err != nil {
-				return nil, err
-			}
-
-			attributes = attr
-		}
-	}
-	return attributes, nil
+func (b *CodeBlock) Value() []byte {
+	return b.value
 }
 
 // TODO(mxs): use guesslang model
@@ -315,7 +260,7 @@ func getLanguage(node *ast.FencedCodeBlock, source []byte) string {
 	var rawAttrs string
 	if node.Info != nil {
 		codeBlockInfo := node.Info.Text(source)
-		rawAttrs = string(rawAttributes(codeBlockInfo))
+		rawAttrs = string(getRawAttributes(codeBlockInfo))
 	}
 
 	// If the language is the same as the raw attributes,
@@ -404,10 +349,12 @@ type MarkdownBlock struct {
 	value []byte
 }
 
+var _ Block = (*MarkdownBlock)(nil)
+
 func newMarkdownBlock(
 	node ast.Node,
 	source []byte,
-	render Renderer,
+	render renderer,
 ) (*MarkdownBlock, error) {
 	value, err := render(node, source)
 	if err != nil {
@@ -437,10 +384,12 @@ type InnerBlock struct {
 	value []byte
 }
 
+var _ Block = (*InnerBlock)(nil)
+
 func newInnerBlock(
 	node ast.Node,
 	source []byte,
-	render Renderer,
+	render renderer,
 ) (*InnerBlock, error) {
 	value, err := render(node, source)
 	if err != nil {
@@ -454,26 +403,6 @@ func newInnerBlock(
 
 func (InnerBlock) Kind() BlockKind { return InnerBlockKind }
 
-func (b *InnerBlock) Unwrap() ast.Node {
-	return b.inner
-}
+func (b *InnerBlock) Unwrap() ast.Node { return b.inner }
 
-func (b *InnerBlock) Value() []byte {
-	return b.value
-}
-
-func (b *CodeBlock) GetBlock() *CodeBlock {
-	return b
-}
-
-func (b *CodeBlock) GetFileRel() string {
-	return ""
-}
-
-func (b *CodeBlock) GetFile() string {
-	return ""
-}
-
-func (b *CodeBlock) GetFrontmatter() Frontmatter {
-	return Frontmatter{}
-}
+func (b *InnerBlock) Value() []byte { return b.value }

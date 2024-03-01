@@ -16,12 +16,14 @@ require (
 	github.com/creack/pty v1.1.21
 	github.com/expr-lang/expr v1.16.1
 	github.com/fatih/color v1.16.0
+	github.com/fullstorydev/grpcurl v1.8.9
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/gobwas/glob v0.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/graphql-go/graphql v0.8.1
+	github.com/jhump/protoreflect v1.15.3
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
@@ -47,6 +49,7 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/bufbuild/protocompile v0.6.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
