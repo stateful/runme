@@ -532,7 +532,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
 		Operation: "query",
 		Name: ast.NewName(&ast.Name{
-			Value: "ResolveEnv",
+			Value: "ResolveEnvSnapshot",
 		}),
 		Directives: []*ast.Directive{},
 		SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
