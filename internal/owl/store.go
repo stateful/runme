@@ -3,11 +3,11 @@ package owl
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/graphql-go/graphql"
-	"gopkg.in/yaml.v3"
 )
 
 type Store struct {
@@ -29,8 +29,16 @@ func NewStore(opts ...StoreOption) (*Store, error) {
 }
 
 func WithSpecFile(specFile string, raw []byte) StoreOption {
+	return withSpecsFile(specFile, raw, true)
+}
+
+func WithEnvFile(specFile string, raw []byte) StoreOption {
+	return withSpecsFile(specFile, raw, false)
+}
+
+func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 	return func(s *Store) error {
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, specFile), WithSpecs(true))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, specFile), WithSpecs(hasSpecs))
 		if err != nil {
 			return err
 		}
@@ -62,11 +70,11 @@ func WithEnvs(envs ...string) StoreOption {
 	}
 }
 
-func (s *Store) Snapshot() error {
+func (s *Store) Snapshot() ([]*setVar, error) {
 	var query, vars bytes.Buffer
 	err := s.snapshotQuery(&query, &vars)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Fprintf(os.Stderr, "%s", query.String())
@@ -74,7 +82,7 @@ func (s *Store) Snapshot() error {
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	result := graphql.Do(graphql.Params{
@@ -84,11 +92,40 @@ func (s *Store) Snapshot() error {
 	})
 
 	if result.HasErrors() {
-		return fmt.Errorf("graphql errors %s", result.Errors)
+		return nil, fmt.Errorf("graphql errors %s", result.Errors)
 	}
 
-	rYaml, _ := yaml.Marshal(result.Data)
-	fmt.Println(string(rYaml))
+	val, err := traverse(result.Data, "snapshot")
+	if err != nil {
+		return nil, err
+	}
 
-	return nil
+	j, err := json.MarshalIndent(val, "", " ")
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(string(j))
+
+	var snapshot []*setVar
+	_ = json.Unmarshal(j, &snapshot)
+
+	return snapshot, nil
+}
+
+func traverse(data interface{}, segment string) (interface{}, error) {
+	m, ok := data.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("not a map")
+	}
+	for k, v := range m {
+		if k == segment {
+			return v, nil
+		}
+		switch v.(type) {
+		case map[string]interface{}:
+			return traverse(v, segment)
+		}
+	}
+	return nil, nil
 }

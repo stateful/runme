@@ -302,14 +302,14 @@ func init() {
 						}
 						hasSpecs := p.Args["hasSpecs"].(bool)
 
-						var opSet *operationSet
+						var flatOpSet *operationSet
 						var err error
 
 						switch p.Source.(type) {
 						case *operationSet:
-							opSet = p.Source.(*operationSet)
+							flatOpSet = p.Source.(*operationSet)
 						default:
-							opSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "query"))
+							flatOpSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "query"))
 							if err != nil {
 								return nil, err
 							}
@@ -327,23 +327,19 @@ func init() {
 						}
 
 						for _, v := range revive {
-							old, ok := opSet.items[v.Key]
-							if hasSpecs {
-								if !ok {
-									break
-								}
+							old, ok := flatOpSet.items[v.Key]
+							if hasSpecs && ok {
 								old.Spec = v.Spec
 								continue
 							}
 							if ok {
 								v.Created = old.Created
-								continue
 							}
 							v.Updated = v.Created
-							opSet.items[v.Key] = &v
+							flatOpSet.items[v.Key] = &v
 						}
 
-						return opSet, nil
+						return flatOpSet, nil
 					},
 				},
 				"location": &graphql.Field{
@@ -379,9 +375,15 @@ func init() {
 							snapshot = append(snapshot, v)
 						}
 
-						slices.SortFunc(snapshot, func(i, j *setVar) int {
-							if i.Spec.Name != j.Spec.Name {
-								return strings.Compare(i.Spec.Name, j.Spec.Name)
+						slices.SortStableFunc(snapshot, func(i, j *setVar) int {
+							if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
+								return 0
+							}
+							if i.Spec.Name != "Opaque" {
+								return -1
+							}
+							if j.Spec.Name != "Opaque" {
+								return 1
 							}
 							return strings.Compare(i.Key, j.Key)
 						})

@@ -8,7 +8,7 @@ import (
 )
 
 func Test_Store(t *testing.T) {
-	// t.Parallel()
+	t.Parallel()
 
 	t.Run("overlay", func(t *testing.T) {
 		envs := os.Environ()
@@ -21,19 +21,22 @@ func Test_Store(t *testing.T) {
 		require.Len(t, store.opSets[0].items, len(envs))
 		require.Len(t, store.opSets[1].items, 1)
 
-		err = store.Snapshot()
+		snapshot, err := store.Snapshot()
 		require.NoError(t, err)
+		require.EqualValues(t, "Path", snapshot[0].Spec.Name)
 	})
 
 	t.Run("load raw env", func(t *testing.T) {
-		rawEnv, err := os.ReadFile("../../pkg/project/test_project/.env")
-		require.NoError(t, err)
+		// todo(sebastian): needs better solution
 		rawEnvLocal, err := os.ReadFile("../../pkg/project/test_project/.env.local")
+		require.NoError(t, err)
+		rawEnv, err := os.ReadFile("../../pkg/project/test_project/.env")
 		require.NoError(t, err)
 
 		store, err := NewStore(
-			WithSpecFile(".env", rawEnv),
-			WithSpecFile(".env.local", rawEnvLocal),
+			// order matters
+			WithEnvFile(".env.local", rawEnvLocal),
+			WithEnvFile(".env", rawEnv),
 		)
 		require.NoError(t, err)
 
@@ -41,7 +44,12 @@ func Test_Store(t *testing.T) {
 		require.Len(t, store.opSets[0].items, 2)
 		require.Len(t, store.opSets[1].items, 2)
 
-		err = store.Snapshot()
+		snapshot, err := store.Snapshot()
 		require.NoError(t, err)
+		require.Len(t, snapshot, 3)
+
+		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Literal)
+		require.EqualValues(t, "secret2", snapshot[1].Value.Literal)
+		require.EqualValues(t, "secret3", snapshot[2].Value.Literal)
 	})
 }

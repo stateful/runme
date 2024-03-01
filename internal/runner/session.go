@@ -35,7 +35,11 @@ func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Sess
 			if raw == nil {
 				continue
 			}
-			opts = append(opts, owl.WithSpecFile(specFile, raw))
+			opt := owl.WithEnvFile(specFile, raw)
+			if specFile == ".env.example" {
+				opt = owl.WithSpecFile(specFile, raw)
+			}
+			opts = append(opts, opt)
 		}
 	}
 
@@ -63,7 +67,11 @@ func (s *Session) Envs() []string {
 }
 
 func (s *Session) Snapshot() {
-	s.owlStore.Snapshot()
+	_, err := s.owlStore.Snapshot()
+	if err != nil {
+		s.logger.Error("failed to run snapshot", zap.Error(err))
+		return
+	}
 }
 
 // thread-safe session list
