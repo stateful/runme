@@ -1,155 +1,15 @@
 package owl
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"slices"
-	"strings"
-	"time"
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
 	"github.com/graphql-go/graphql/language/printer"
 )
-
-type setOperationKind int
-
-const (
-	LoadSetOperation setOperationKind = iota
-	UpdateSetOperation
-	DeleteSetOperation
-	SnapshotSetOperation
-)
-
-type Operation struct {
-	kind     setOperationKind
-	location string
-}
-
-type operationSet struct {
-	operation Operation
-	hasSpecs  bool
-	items     map[string]*setVar
-}
-
-type setVarOperation struct {
-	Order    uint             `json:"order"`
-	Kind     setOperationKind `json:"kind"`
-	Location string           `json:"location"`
-}
-
-type setVarValue struct {
-	// Type    string `json:"type"`
-	Original string `json:"original,omitempty"`
-	Resolved string `json:"resolved,omitempty"`
-	Status   string `json:"status"`
-	// ValidationErrors validator.ValidationErrors `json:"-"`
-}
-
-type setVarSpec struct {
-	Name    string `json:"name"`
-	Checked bool   `json:"checked"`
-}
-
-type setVar struct {
-	Key       string           `json:"key"`
-	Raw       string           `json:"raw"`
-	Value     *setVarValue     `json:"value,omitempty"`
-	Spec      *setVarSpec      `json:"spec,omitempty"`
-	Required  bool             `json:"required"`
-	Operation *setVarOperation `json:"operation"`
-	Created   *time.Time       `json:"created,omitempty"`
-	Updated   *time.Time       `json:"updated,omitempty"`
-}
-
-type setVarResult []*setVar
-
-func (res setVarResult) sort() {
-	slices.SortStableFunc(res, func(i, j *setVar) int {
-		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
-			return 0
-		}
-		if i.Spec.Name != "Opaque" {
-			return -1
-		}
-		if j.Spec.Name != "Opaque" {
-			return 1
-		}
-		return strings.Compare(i.Key, j.Key)
-	})
-
-}
-
-type operationSetOption func(*operationSet) error
-
-func NewOperationSet(opts ...operationSetOption) (*operationSet, error) {
-	opSet := &operationSet{
-		hasSpecs: false,
-		items:    make(map[string]*setVar),
-	}
-
-	for _, opt := range opts {
-		if err := opt(opSet); err != nil {
-			return nil, err
-		}
-	}
-	return opSet, nil
-}
-
-func WithOperation(operation setOperationKind, location string) operationSetOption {
-	return func(opSet *operationSet) error {
-		opSet.operation = Operation{
-			kind:     operation,
-			location: location,
-		}
-		return nil
-	}
-}
-
-func WithSpecs(included bool) operationSetOption {
-	return func(opSet *operationSet) error {
-		opSet.hasSpecs = included
-		return nil
-	}
-}
-
-func (s *operationSet) addEnvs(envs ...string) (err error) {
-	for _, env := range envs {
-		err = s.addRaw([]byte(env))
-	}
-	return err
-}
-
-func (s *operationSet) addRaw(raw []byte) error {
-	lines := bytes.Split(raw, []byte{'\n'})
-	for _, rawLine := range lines {
-		line := bytes.Trim(rawLine, " \r")
-		if len(line) > 0 && line[0] == '#' {
-			continue
-		}
-		if len(bytes.Trim(line, " \r\n")) <= 0 {
-			continue
-		}
-
-		created := time.Now()
-		k, val, spec, required := ParseRawSpec(line)
-		if len(spec) == 0 {
-			spec = "Opaque"
-		}
-		s.items[k] = &setVar{
-			Key:      k,
-			Raw:      string(line),
-			Value:    &setVarValue{Resolved: val},
-			Spec:     &setVarSpec{Name: spec, Checked: false},
-			Required: required,
-			Created:  &created,
-		}
-	}
-	return nil
-}
 
 var (
 	Schema     graphql.Schema
