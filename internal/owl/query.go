@@ -17,7 +17,7 @@ func NewQuery(name string, varDefs []*ast.VariableDefinition, reducers []QueryNo
 	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
 		Operation: "query",
 		Name: ast.NewName(&ast.Name{
-			Value: fmt.Sprintf("ResolveEnv_%s", name),
+			Value: fmt.Sprintf("ResolveOwl%s", name),
 		}),
 		Directives: []*ast.Directive{},
 		SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
