@@ -12,7 +12,7 @@ import (
 
 type Store struct {
 	// mu     sync.RWMutex
-	opSets []*OperationSet
+	opSets []*operationSet
 }
 
 type StoreOption func(*Store) error
@@ -30,8 +30,12 @@ func NewStore(opts ...StoreOption) (*Store, error) {
 
 func WithSpecFile(specFile string, raw []byte) StoreOption {
 	return func(s *Store) error {
-		opSet := NewOperationSet(LoadSetOperation, specFile)
-		err := opSet.addRaw(raw)
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, specFile), WithSpecs(true))
+		if err != nil {
+			return err
+		}
+
+		err = opSet.addRaw(raw)
 		if err != nil {
 			return err
 		}
@@ -43,8 +47,12 @@ func WithSpecFile(specFile string, raw []byte) StoreOption {
 
 func WithEnvs(envs ...string) StoreOption {
 	return func(s *Store) error {
-		opSet := NewOperationSet(LoadSetOperation, "process")
-		err := opSet.addEnvs(envs...)
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "process"), WithSpecs(false))
+		if err != nil {
+			return err
+		}
+
+		err = opSet.addEnvs(envs...)
 		if err != nil {
 			return err
 		}

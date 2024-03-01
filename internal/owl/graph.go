@@ -29,9 +29,10 @@ type Operation struct {
 	location string
 }
 
-type OperationSet struct {
+type operationSet struct {
 	operation Operation
-	items     map[string]setVar
+	hasSpecs  bool
+	items     map[string]*setVar
 }
 
 type setVarOperation struct {
@@ -63,24 +64,47 @@ type setVar struct {
 	Updated   *time.Time       `json:"updated,omitempty"`
 }
 
-func NewOperationSet(operation setOperationKind, location string) *OperationSet {
-	return &OperationSet{
-		operation: Operation{
+type operationSetOption func(*operationSet) error
+
+func NewOperationSet(opts ...operationSetOption) (*operationSet, error) {
+	opSet := &operationSet{
+		hasSpecs: false,
+		items:    make(map[string]*setVar),
+	}
+
+	for _, opt := range opts {
+		if err := opt(opSet); err != nil {
+			return nil, err
+		}
+	}
+	return opSet, nil
+}
+
+func WithOperation(operation setOperationKind, location string) operationSetOption {
+	return func(opSet *operationSet) error {
+		opSet.operation = Operation{
 			kind:     operation,
 			location: location,
-		},
-		items: make(map[string]setVar),
+		}
+		return nil
 	}
 }
 
-func (s *OperationSet) addEnvs(envs ...string) (err error) {
+func WithSpecs(included bool) operationSetOption {
+	return func(opSet *operationSet) error {
+		opSet.hasSpecs = included
+		return nil
+	}
+}
+
+func (s *operationSet) addEnvs(envs ...string) (err error) {
 	for _, env := range envs {
 		err = s.addRaw([]byte(env))
 	}
 	return err
 }
 
-func (s *OperationSet) addRaw(raw []byte) error {
+func (s *operationSet) addRaw(raw []byte) error {
 	lines := bytes.Split(raw, []byte{'\n'})
 	for _, rawLine := range lines {
 		line := bytes.Trim(rawLine, " \r")
@@ -96,7 +120,7 @@ func (s *OperationSet) addRaw(raw []byte) error {
 		if len(spec) == 0 {
 			spec = "Opaque"
 		}
-		s.items[k] = setVar{
+		s.items[k] = &setVar{
 			Key:      k,
 			Raw:      string(line),
 			Value:    &setVarValue{Literal: val},
@@ -266,21 +290,29 @@ func init() {
 						"vars": &graphql.ArgumentConfig{
 							Type: graphql.NewList(VariableInputType),
 						},
+						"hasSpecs": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						vars, ok := p.Args["vars"]
 						if !ok {
 							return p.Source, nil
 						}
+						hasSpecs := p.Args["hasSpecs"].(bool)
 
-						var opSet *OperationSet
+						var opSet *operationSet
+						var err error
 
 						switch p.Source.(type) {
-						case *OperationSet:
-							opSet = p.Source.(*OperationSet)
+						case *operationSet:
+							opSet = p.Source.(*operationSet)
 						default:
-							opSet = NewOperationSet(SnapshotSetOperation, "query")
-							opSet.items = make(map[string]setVar)
+							opSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "query"))
+							if err != nil {
+								return nil, err
+							}
 						}
 
 						buf, err := json.Marshal(vars)
@@ -296,11 +328,19 @@ func init() {
 
 						for _, v := range revive {
 							old, ok := opSet.items[v.Key]
+							if hasSpecs {
+								if !ok {
+									break
+								}
+								old.Spec = v.Spec
+								continue
+							}
 							if ok {
 								v.Created = old.Created
+								continue
 							}
 							v.Updated = v.Created
-							opSet.items[v.Key] = v
+							opSet.items[v.Key] = &v
 						}
 
 						return opSet, nil
@@ -310,8 +350,8 @@ func init() {
 					Type: graphql.NewNonNull(graphql.String),
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						switch p.Source.(type) {
-						case *OperationSet:
-							opSet := p.Source.(*OperationSet)
+						case *operationSet:
+							opSet := p.Source.(*operationSet)
 							return opSet.operation.location, nil
 						default:
 							// noop
@@ -329,18 +369,21 @@ func init() {
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						opSet, ok := p.Source.(*OperationSet)
+						opSet, ok := p.Source.(*operationSet)
 						if !ok {
 							return nil, errors.New("source is not an OperationSet")
 						}
 
-						var snapshot []setVar
+						var snapshot []*setVar
 						for _, v := range opSet.items {
 							snapshot = append(snapshot, v)
 						}
 
-						slices.SortFunc(snapshot, func(i, j setVar) int {
-							return strings.Compare(i.Spec.Name, j.Spec.Name)
+						slices.SortFunc(snapshot, func(i, j *setVar) int {
+							if i.Spec.Name != j.Spec.Name {
+								return strings.Compare(i.Spec.Name, j.Spec.Name)
+							}
+							return strings.Compare(i.Key, j.Key)
 						})
 
 						return snapshot, nil
@@ -377,11 +420,11 @@ func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWr
 	selSet := ast.NewSelectionSet(&ast.SelectionSet{})
 	opDef.SelectionSet.Selections[0].(*ast.Field).SelectionSet = selSet
 	var opsVarDefs []*ast.VariableDefinition
-	opSetData := make(map[string][]setVar, len(s.opSets))
-	for i := range s.opSets {
+	opSetData := make(map[string][]*setVar, len(s.opSets))
+	for i, opSet := range s.opSets {
 		nvars := fmt.Sprintf("load_%d", i)
 
-		for _, v := range s.opSets[i].items {
+		for _, v := range opSet.items {
 			opSetData[nvars] = append(opSetData[nvars], v)
 		}
 
@@ -417,6 +460,14 @@ func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWr
 						Name: ast.NewName(&ast.Name{
 							Value: nvars,
 						}),
+					}),
+				}),
+				ast.NewArgument(&ast.Argument{
+					Name: ast.NewName(&ast.Name{
+						Value: "hasSpecs",
+					}),
+					Value: ast.NewBooleanValue(&ast.BooleanValue{
+						Value: opSet.hasSpecs,
 					}),
 				}),
 			},

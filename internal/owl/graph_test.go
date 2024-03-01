@@ -6,8 +6,27 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_OperationSet(t *testing.T) {
+	t.Parallel()
+
+	t.Run("withOperation", func(t *testing.T) {
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "process"))
+		require.NoError(t, err)
+
+		assert.EqualValues(t, LoadSetOperation, opSet.operation.kind)
+	})
+
+	t.Run("withSpecs", func(t *testing.T) {
+		opSet, err := NewOperationSet(WithSpecs(true))
+		require.NoError(t, err)
+
+		require.True(t, opSet.hasSpecs)
+	})
+}
 
 func Test_Graph(t *testing.T) {
 	t.Parallel()
