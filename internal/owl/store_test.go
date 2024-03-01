@@ -4,8 +4,27 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_OperationSet(t *testing.T) {
+	t.Parallel()
+
+	t.Run("withOperation", func(t *testing.T) {
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "process"))
+		require.NoError(t, err)
+
+		assert.EqualValues(t, LoadSetOperation, opSet.operation.kind)
+	})
+
+	t.Run("withSpecs", func(t *testing.T) {
+		opSet, err := NewOperationSet(WithSpecs(true))
+		require.NoError(t, err)
+
+		require.True(t, opSet.hasSpecs)
+	})
+}
 
 func Test_Store(t *testing.T) {
 	t.Parallel()
@@ -23,6 +42,8 @@ func Test_Store(t *testing.T) {
 
 		snapshot, err := store.Snapshot()
 		require.NoError(t, err)
+		require.EqualValues(t, "/Users/sourishkrout/Projects/stateful/2022Q4/wasi-sdk/dist/wasi-sdk-16.5ga0a342ac182c", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "", snapshot[0].Value.Original)
 		require.EqualValues(t, "Path", snapshot[0].Spec.Name)
 	})
 
@@ -49,7 +70,15 @@ func Test_Store(t *testing.T) {
 		require.Len(t, snapshot, 3)
 
 		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "", snapshot[0].Value.Original)
+		require.EqualValues(t, "Opaque", snapshot[0].Spec.Name)
+
 		require.EqualValues(t, "secret2", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "", snapshot[1].Value.Original)
+		require.EqualValues(t, "Opaque", snapshot[1].Spec.Name)
+
 		require.EqualValues(t, "secret3", snapshot[2].Value.Resolved)
+		require.EqualValues(t, "", snapshot[2].Value.Original)
+		require.EqualValues(t, "Opaque", snapshot[2].Spec.Name)
 	})
 }

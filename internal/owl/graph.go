@@ -318,7 +318,7 @@ func init() {
 	}
 }
 
-func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWriter) (*ast.SelectionSet, error) {
+func (s *Store) addLoadQueryNode(opDef *ast.OperationDefinition, vars io.StringWriter) (*ast.SelectionSet, error) {
 	selSet := ast.NewSelectionSet(&ast.SelectionSet{})
 	opDef.SelectionSet.Selections[0].(*ast.Field).SelectionSet = selSet
 	opSetData := make(map[string]setVarResult, len(s.opSets))
@@ -425,7 +425,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 		},
 	})
 
-	selSet, err := s.addLoadVarsNode(opDef, vars)
+	selSet, err := s.addLoadQueryNode(opDef, vars)
 	if err != nil {
 		return err
 	}

@@ -241,7 +241,7 @@ func (s *Store) snapshot(insecure bool) (setVarResult, error) {
 		return nil, fmt.Errorf("graphql errors %s", result.Errors)
 	}
 
-	val, err := traverse(result.Data, "snapshot")
+	val, err := extractKey(result.Data, "snapshot")
 	if err != nil {
 		return nil, err
 	}
@@ -264,20 +264,28 @@ func (s *Store) snapshot(insecure bool) (setVarResult, error) {
 	return snapshot, nil
 }
 
-func traverse(data interface{}, segment string) (interface{}, error) {
+func extractKey(data interface{}, key string) (interface{}, error) {
 	m, ok := data.(map[string]interface{})
 	if !ok {
 		return nil, errors.New("not a map")
 	}
+	var found interface{}
+	var err error
 	for k, v := range m {
-		if k == segment {
+		if k == key {
 			return v, nil
 		}
 		switch v.(type) {
 		case map[string]interface{}:
 			// depth-only search
-			return traverse(v, segment)
+			found, err = extractKey(v, key)
+			if err == nil {
+				break
+			}
+		}
+		if found != nil {
+			break
 		}
 	}
-	return nil, nil
+	return found, nil
 }
