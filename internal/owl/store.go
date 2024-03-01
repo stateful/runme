@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/graphql-go/graphql"
+	"gopkg.in/yaml.v3"
 )
 
 type Store struct {
@@ -59,7 +61,7 @@ func (s *Store) Snapshot() error {
 		return err
 	}
 
-	fmt.Println(query.String())
+	fmt.Fprintf(os.Stderr, "%s", query.String())
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
@@ -71,14 +73,14 @@ func (s *Store) Snapshot() error {
 		Schema:         Schema,
 		RequestString:  query.String(),
 		VariableValues: varValues,
-		RootObject:     varValues,
 	})
 
 	if result.HasErrors() {
-		return fmt.Errorf("%v", result.Errors)
+		return fmt.Errorf("graphql errors %s", result.Errors)
 	}
 
-	fmt.Printf("%+v\n", result.Data)
+	rYaml, _ := yaml.Marshal(result.Data)
+	fmt.Println(string(rYaml))
 
 	return nil
 }

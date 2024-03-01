@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/graphql-go/graphql"
@@ -19,6 +21,7 @@ const (
 	LoadSetOperation setOperationKind = iota
 	UpdateSetOperation
 	DeleteSetOperation
+	SnapshotSetOperation
 )
 
 type Operation struct {
@@ -264,23 +267,58 @@ func init() {
 							Type: graphql.NewList(VariableInputType),
 						},
 					},
-					// Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					// 	vars, ok := p.Args["vars"]
-					// 	if !ok {
-					// 		return p.Source, nil
-					// 	}
-					// 	fmt.Println("vars: ", vars)
-					// 	return vars, nil
-					// 	// jvars, _ := json.Marshal(vars)
-					// 	// nStore := newEnvStore()
-					// 	// err := json.Unmarshal(jvars, &nStore.vars)
-					// 	// store, storeOk := p.Source.(*envStore)
-					// 	// if !storeOk {
-					// 	// 	return nStore, nil
-					// 	// }
-					// 	// store.vars = append(store.vars, nStore.vars...)
-					// 	// return store, errors.Wrap(err, "unmarshaling json failed")
-					// },
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						vars, ok := p.Args["vars"]
+						if !ok {
+							return p.Source, nil
+						}
+
+						var opSet *OperationSet
+
+						switch p.Source.(type) {
+						case *OperationSet:
+							opSet = p.Source.(*OperationSet)
+						default:
+							opSet = NewOperationSet(SnapshotSetOperation, "query")
+							opSet.items = make(map[string]setVar)
+						}
+
+						buf, err := json.Marshal(vars)
+						if err != nil {
+							return nil, err
+						}
+
+						var revive []setVar
+						err = json.Unmarshal(buf, &revive)
+						if err != nil {
+							return nil, err
+						}
+
+						for _, v := range revive {
+							old, ok := opSet.items[v.Key]
+							if ok {
+								v.Created = old.Created
+							}
+							v.Updated = v.Created
+							opSet.items[v.Key] = v
+						}
+
+						return opSet, nil
+					},
+				},
+				"location": &graphql.Field{
+					Type: graphql.NewNonNull(graphql.String),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						switch p.Source.(type) {
+						case *OperationSet:
+							opSet := p.Source.(*OperationSet)
+							return opSet.operation.location, nil
+						default:
+							// noop
+						}
+
+						return nil, nil
+					},
 				},
 				"snapshot": &graphql.Field{
 					Type: graphql.NewNonNull(graphql.NewList(VariableType)),
@@ -290,20 +328,23 @@ func init() {
 							DefaultValue: false,
 						},
 					},
-					// Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					// 	store, ok := p.Source.(*envStore)
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						opSet, ok := p.Source.(*OperationSet)
+						if !ok {
+							return nil, errors.New("source is not an OperationSet")
+						}
 
-					// 	if !ok {
-					// 		return nil, errors.New("env store required")
-					// 	}
-					// 	specsOnly := p.Args["specsOnly"].(bool)
-					// 	filtered := store.OnlySpecs(specsOnly)
+						var snapshot []setVar
+						for _, v := range opSet.items {
+							snapshot = append(snapshot, v)
+						}
 
-					// 	insecure := p.Args["insecure"].(bool)
-					// 	redacted := filtered.RedactSecrets(insecure)
+						slices.SortFunc(snapshot, func(i, j setVar) int {
+							return strings.Compare(i.Spec.Name, j.Spec.Name)
+						})
 
-					// 	return redacted.vars, nil
-					// },
+						return snapshot, nil
+					},
 				},
 				// "renderVars": newRender(),
 			}
@@ -318,15 +359,7 @@ func init() {
 					"environment": &graphql.Field{
 						Type: EnvironmentType,
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-							_, ok := p.Args["spec"].(string)
-							if !ok {
-								// return nil, errors.New("spec not provided but required")
-								return nil, nil
-							}
-							// // specs := newEnvStore(bytes.NewBufferString(rawSpecs).Bytes())
-							// specs := newEnvStore()
-							// return specs, nil
-							return nil, nil
+							return p.Info.FieldName, nil
 						},
 					},
 				},
@@ -366,6 +399,11 @@ func (s *Store) addLoadVarsNode(opDef *ast.OperationDefinition, vars io.StringWr
 		}))
 
 		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
+		nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
+			Name: ast.NewName(&ast.Name{
+				Value: "location",
+			}),
+		}))
 		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
 			Name: ast.NewName(&ast.Name{
 				Value: "load",
@@ -423,7 +461,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 		return err
 	}
 
-	_, err = addSnapshotNode(selSet)
+	_, err = addSnapshotQueryNode(selSet)
 	if err != nil {
 		return err
 	}
@@ -442,7 +480,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	return nil
 }
 
-func addSnapshotNode(selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+func addSnapshotQueryNode(selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 	nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
 		Selections: []ast.Selection{
 			ast.NewField(&ast.Field{

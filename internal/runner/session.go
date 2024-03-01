@@ -29,7 +29,7 @@ func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Sess
 	opts := []owl.StoreOption{owl.WithEnvs(envs...)}
 	if proj != nil {
 		specFilesOrder := proj.EnvFilesReadOrder()
-		specFilesOrder = append(specFilesOrder, ".env.example")
+		specFilesOrder = append([]string{".env.example"}, specFilesOrder...)
 		for _, specFile := range specFilesOrder {
 			raw, _ := proj.LoadRawEnv(specFile)
 			if raw == nil {
@@ -60,6 +60,10 @@ func (s *Session) AddEnvs(envs []string) {
 
 func (s *Session) Envs() []string {
 	return s.envStore.Values()
+}
+
+func (s *Session) Snapshot() {
+	s.owlStore.Snapshot()
 }
 
 // thread-safe session list
