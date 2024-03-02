@@ -297,6 +297,61 @@ func init() {
 		}),
 	})
 
+	SpecType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "Spec",
+		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
+			return graphql.Fields{
+				"list": &graphql.Field{
+					Type: graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
+						Name: "SpecList",
+						Fields: graphql.Fields{
+							"name": &graphql.Field{
+								Type: graphql.String,
+							},
+							// todo(sebastian): should be enum
+							"sensitive": &graphql.Field{
+								Type: graphql.Boolean,
+							},
+							"mask": &graphql.Field{
+								Type: graphql.Boolean,
+							},
+						},
+					})),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						specs := []struct {
+							Name      string `json:"name"`
+							Sensitive bool   `json:"sensitive"`
+							Mask      bool   `json:"mask"`
+						}{
+							{
+								Name:      "Opaque",
+								Sensitive: true,
+								Mask:      false,
+							},
+							{
+								Name:      "Secret",
+								Sensitive: true,
+								Mask:      true,
+							},
+							{
+								Name:      "Password",
+								Sensitive: true,
+								Mask:      true,
+							},
+							{
+								Name:      "Plain",
+								Sensitive: false,
+								Mask:      false,
+							},
+						}
+
+						return specs, nil
+					},
+				},
+			}
+		}),
+	})
+
 	var err error
 	schema, err = graphql.NewSchema(graphql.SchemaConfig{
 		Query: graphql.NewObject(
@@ -305,6 +360,12 @@ func init() {
 				Fields: graphql.Fields{
 					"environment": &graphql.Field{
 						Type: EnvironmentType,
+						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+							return p.Info.FieldName, nil
+						},
+					},
+					"specs": &graphql.Field{
+						Type: SpecType,
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 							return p.Info.FieldName, nil
 						},

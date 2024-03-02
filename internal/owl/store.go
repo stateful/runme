@@ -234,6 +234,11 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	}
 
 	varValues["insecure"] = insecure
+	// j, err := json.MarshalIndent(varValues, "", " ")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// fmt.Println(string(j))
 
 	result := graphql.Do(graphql.Params{
 		Schema:         schema,
@@ -245,7 +250,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, fmt.Errorf("graphql errors %s", result.Errors)
 	}
 
-	val, err := extractKey(result.Data, "snapshot")
+	val, err := extractDataKey(result.Data, "snapshot")
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +318,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	return nil
 }
 
-func extractKey(data interface{}, key string) (interface{}, error) {
+func extractDataKey(data interface{}, key string) (interface{}, error) {
 	m, ok := data.(map[string]interface{})
 	if !ok {
 		return nil, errors.New("not a map")
@@ -326,7 +331,7 @@ func extractKey(data interface{}, key string) (interface{}, error) {
 		}
 		switch v.(type) {
 		case map[string]interface{}:
-			found, err = extractKey(v, key)
+			found, err = extractDataKey(v, key)
 			if err == nil {
 				break
 			}
