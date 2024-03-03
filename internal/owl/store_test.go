@@ -37,7 +37,7 @@ func Test_Store(t *testing.T) {
 		require.Len(t, store.opSets, 1)
 		require.Len(t, store.opSets[0].items, 0)
 
-		snapshot, err := store.Snapshot()
+		snapshot, err := store.snapshot(false)
 		require.NoError(t, err)
 		require.NotNil(t, snapshot)
 	})
@@ -53,7 +53,7 @@ func Test_Store(t *testing.T) {
 		require.Len(t, store.opSets[0].items, len(envs))
 		require.Len(t, store.opSets[1].items, 1)
 
-		snapshot, err := store.Snapshot()
+		snapshot, err := store.snapshot(false)
 		require.NoError(t, err)
 		require.EqualValues(t, "/Users/sourishkrout/Projects/stateful/2022Q4/wasi-sdk/dist/wasi-sdk-16.5ga0a342ac182c", snapshot[0].Value.Resolved)
 		require.EqualValues(t, "", snapshot[0].Value.Original)

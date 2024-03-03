@@ -9,6 +9,10 @@ func ParseRawSpec(single []byte) (k, v, s string, m bool) {
 	v, s, m = "", "", false
 
 	eqIdx := bytes.Index(single, []byte{'='})
+	if eqIdx == -1 {
+		return string(single), v, s, m
+	}
+
 	k = string(single[0:eqIdx])
 	remainder := bytes.Split(single[eqIdx+1:], []byte{'#'})
 

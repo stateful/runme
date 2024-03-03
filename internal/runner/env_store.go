@@ -70,7 +70,7 @@ func (s *envStore) Delete(envs ...string) *envStore {
 	return s
 }
 
-func (s *envStore) Values() []string {
+func (s *envStore) Values() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -79,7 +79,7 @@ func (s *envStore) Values() []string {
 		result = append(result, k+"="+v)
 	}
 	slices.Sort(result)
-	return result
+	return result, nil
 }
 
 func diffEnvStores(store, updated *envStore) (newOrUpdated, unchanged, deleted []string) {

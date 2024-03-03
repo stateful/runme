@@ -483,7 +483,9 @@ func (c *command) collectEnvs() {
 		newEnvStore(endEnvs...),
 	)
 
-	c.Session.envStore = newEnvStore(c.cmd.Env...).Add(newOrUpdated...).Delete(deleted...)
+	// c.Session.envStore = newEnvStore(c.cmd.Env...).Add(newOrUpdated...).Delete(deleted...)
+	err = c.Session.UpdateStore(c.cmd.Env, newOrUpdated, deleted)
+	c.seterr(err)
 }
 
 func (c *command) ProcessFinished() bool {

@@ -9,11 +9,11 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
-	"gopkg.in/yaml.v3"
 )
 
 type setOperationKind int
@@ -152,7 +152,7 @@ func (s *OperationSet) addRaw(raw []byte) error {
 }
 
 type Store struct {
-	// mu     sync.RWMutex
+	mu     sync.RWMutex
 	opSets []*OperationSet
 }
 
@@ -211,8 +211,50 @@ func WithEnvs(envs ...string) StoreOption {
 	}
 }
 
-func (s *Store) Snapshot() (SetVarResult, error) {
-	return s.snapshot(false)
+func (s *Store) Values() ([]string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	items, err := s.snapshot(true)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		result = append(result, item.Key+"="+item.Value.Resolved)
+	}
+
+	return result, nil
+}
+
+func (s *Store) Update(newOrUpdated, deleted []string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation, "exec"), WithSpecs(false))
+	if err != nil {
+		return err
+	}
+
+	err = updateOpSet.addEnvs(newOrUpdated...)
+	if err != nil {
+		return err
+	}
+
+	deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation, "exec"), WithSpecs(false))
+	if err != nil {
+		return err
+	}
+
+	err = deleteOpSet.addEnvs(deleted...)
+	if err != nil {
+		return err
+	}
+
+	s.opSets = append(s.opSets, updateOpSet)
+
+	return nil
 }
 
 func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
@@ -234,14 +276,14 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	}
 
 	varValues["insecure"] = insecure
-	j, err := json.MarshalIndent(varValues, "", " ")
-	if err != nil {
-		return nil, err
-	}
-	_, err = fmt.Println(string(j))
-	if err != nil {
-		return nil, err
-	}
+	// j, err := json.MarshalIndent(varValues, "", " ")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// _, err = fmt.Println(string(j))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	result := graphql.Do(graphql.Params{
 		Schema:         schema,
@@ -258,20 +300,20 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, err
 	}
 
-	j, err = json.MarshalIndent(val, "", " ")
+	j, err := json.MarshalIndent(val, "", " ")
 	if err != nil {
 		return nil, err
 	}
 
-	y, err := yaml.Marshal(val)
-	if err != nil {
-		return nil, err
-	}
+	// y, err := yaml.Marshal(val)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	_, err = fmt.Println(string(y))
-	if err != nil {
-		return nil, err
-	}
+	// _, err = fmt.Println(string(y))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	var snapshot SetVarResult
 	_ = json.Unmarshal(j, &snapshot)

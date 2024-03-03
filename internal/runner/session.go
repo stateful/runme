@@ -24,8 +24,6 @@ type Session struct {
 }
 
 func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Session, error) {
-	sessionEnvs := []string(envs)
-
 	opts := []owl.StoreOption{owl.WithEnvs(envs...)}
 	if proj != nil {
 		specFilesOrder := proj.EnvFilesReadOrder()
@@ -43,19 +41,26 @@ func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Sess
 		}
 	}
 
-	store, err := owl.NewStore(opts...)
+	owlStore, err := owl.NewStore(opts...)
 	if err != nil {
 		return nil, err
 	}
+	sessionEnvs := []string(envs)
+	envStore := newEnvStore(sessionEnvs...)
 
 	s := &Session{
 		ID: ulid.GenerateID(),
 
-		envStore: newEnvStore(sessionEnvs...),
-		owlStore: store,
+		envStore: envStore,
+		owlStore: owlStore,
 		logger:   logger,
 	}
 	return s, nil
+}
+
+func (s *Session) UpdateStore(envs []string, newOrUpdated []string, deleted []string) error {
+	s.envStore = newEnvStore(envs...).Add(newOrUpdated...).Delete(deleted...)
+	return s.owlStore.Update(newOrUpdated, deleted)
 }
 
 func (s *Session) AddEnvs(envs []string) {
@@ -63,16 +68,32 @@ func (s *Session) AddEnvs(envs []string) {
 }
 
 func (s *Session) Envs() []string {
-	return s.envStore.Values()
+	vals, err := s.owlStore.Values()
+	if err != nil {
+		s.logger.Error("failed to get vals", zap.Error(err))
+		return nil
+	}
+	_, err = fmt.Printf("%+v\n", vals)
+	if err != nil {
+		s.logger.Error("failed to print vals", zap.Error(err))
+		return nil
+	}
+
+	envs, err := s.envStore.Values()
+	if err != nil {
+		s.logger.Error("failed to get envs", zap.Error(err))
+		return nil
+	}
+	return envs
 }
 
-func (s *Session) Snapshot() {
-	_, err := s.owlStore.Snapshot()
-	if err != nil {
-		s.logger.Error("failed to run snapshot", zap.Error(err))
-		return
-	}
-}
+// func (s *Session) Snapshot() {
+// 	_, err := s.owlStore.Snapshot()
+// 	if err != nil {
+// 		s.logger.Error("failed to run snapshot", zap.Error(err))
+// 		return
+// 	}
+// }
 
 // thread-safe session list
 type SessionList struct {

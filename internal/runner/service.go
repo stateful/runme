@@ -97,8 +97,6 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 
 	r.sessions.AddSession(sess)
 
-	sess.Snapshot()
-
 	return &runnerv1.CreateSessionResponse{
 		Session: toRunnerv1Session(sess),
 	}, nil
