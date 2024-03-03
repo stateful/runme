@@ -24,7 +24,10 @@ type Session struct {
 }
 
 func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Session, error) {
-	opts := []owl.StoreOption{owl.WithEnvs(envs...)}
+	opts := []owl.StoreOption{
+		owl.WithLogger(logger),
+		owl.WithEnvs(envs...),
+	}
 	if proj != nil {
 		specFilesOrder := proj.EnvFilesReadOrder()
 		specFilesOrder = append([]string{".env.example"}, specFilesOrder...)
@@ -79,7 +82,7 @@ func (s *Session) SetEnv(k string, v string) error {
 }
 
 func (s *Session) Envs() []string {
-	vals, err := s.owlStore.Values()
+	vals, err := s.owlStore.InsecureValues()
 	if err != nil {
 		s.logger.Error("failed to get vals", zap.Error(err))
 		return nil
@@ -97,14 +100,6 @@ func (s *Session) Envs() []string {
 	// }
 	return vals
 }
-
-// func (s *Session) Snapshot() {
-// 	_, err := s.owlStore.Snapshot()
-// 	if err != nil {
-// 		s.logger.Error("failed to run snapshot", zap.Error(err))
-// 		return
-// 	}
-// }
 
 // thread-safe session list
 type SessionList struct {

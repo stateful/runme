@@ -13,6 +13,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
+	"go.uber.org/zap"
 )
 
 type setOperationKind int
@@ -190,6 +191,8 @@ func resolveDelete(vars SetVarResult, resolverOpSet *OperationSet, _ bool) error
 type Store struct {
 	mu     sync.RWMutex
 	opSets []*OperationSet
+
+	logger *zap.Logger
 }
 
 type StoreOption func(*Store) error
@@ -247,7 +250,14 @@ func WithEnvs(envs ...string) StoreOption {
 	}
 }
 
-func (s *Store) Values() ([]string, error) {
+func WithLogger(logger *zap.Logger) StoreOption {
+	return func(s *Store) error {
+		s.logger = logger
+		return nil
+	}
+}
+
+func (s *Store) InsecureValues() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -302,10 +312,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, err
 	}
 
-	// _, err = fmt.Fprintf(os.Stderr, "%s", query.String())
-	// if err != nil {
-	// 	return nil, err
-	// }
+	s.logger.Debug("snapshot query", zap.String("query", query.String()))
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
@@ -313,15 +320,12 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, err
 	}
 
-	varValues["insecure"] = insecure
+	// varValues["insecure"] = insecure
 	// j, err := json.MarshalIndent(varValues, "", " ")
 	// if err != nil {
 	// 	return nil, err
 	// }
-	// _, err = fmt.Println(string(j))
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// s.logger.Debug("snapshot vars", zap.String("vars", string(j)))
 
 	result := graphql.Do(graphql.Params{
 		Schema:         schema,
@@ -342,16 +346,6 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// y, err := yaml.Marshal(val)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// _, err = fmt.Println(string(y))
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	var snapshot SetVarResult
 	_ = json.Unmarshal(j, &snapshot)
