@@ -319,8 +319,8 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	varValues["insecure"] = insecure
 
-	// varValues["insecure"] = insecure
 	// j, err := json.MarshalIndent(varValues, "", " ")
 	// if err != nil {
 	// 	return nil, err
