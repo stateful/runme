@@ -11,23 +11,125 @@ import (
 	"go.uber.org/zap"
 )
 
+var owlStore = true
+
+type envStorer interface {
+	envs() []string
+	addEnvs(envs []string) error
+	updateStore(envs []string, newOrUpdated []string, deleted []string) error
+	setEnv(k string, v string) error
+}
+
 // Session is an abstract entity separate from
 // an execution. Currently, its main role is to
 // keep track of environment variables.
 type Session struct {
-	ID       string
-	Metadata map[string]string
+	ID        string
+	Metadata  map[string]string
+	envStorer envStorer
 
-	envStore *envStore
-	owlStore *owl.Store
-	logger   *zap.Logger
+	logger *zap.Logger
 }
 
 func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Session, error) {
+	sessionEnvs := []string(envs)
+
+	var storer envStorer
+	if !owlStore {
+		storer = newRunnerStorer(sessionEnvs...)
+	} else {
+		var err error
+		storer, err = newOwlStorer(sessionEnvs, proj, logger)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	s := &Session{
+		ID:        ulid.GenerateID(),
+		envStorer: storer,
+
+		logger: logger,
+	}
+	return s, nil
+}
+
+func (s *Session) UpdateStore(envs []string, newOrUpdated []string, deleted []string) error {
+	return s.envStorer.updateStore(envs, newOrUpdated, deleted)
+}
+
+func (s *Session) AddEnvs(envs []string) error {
+	return s.envStorer.addEnvs(envs)
+}
+
+func (s *Session) SetEnv(k string, v string) error {
+	return s.envStorer.setEnv(k, v)
+}
+
+func (s *Session) Envs() []string {
+	vals := s.envStorer.envs()
+	return vals
+}
+
+// thread-safe session list
+type SessionList struct {
+	// WARNING: this mutex is created to prevent race conditions on certain
+	// operations, like finding the most recent element of store, which are not
+	// supported by golang-lru
+	//
+	// this is not really ideal since this introduces a chance of deadlocks.
+	// please make sure that this mutex is never locked within the critical
+	// section of the inner lock (belonging to store)
+	mu    sync.RWMutex
+	store *lru.Cache[string, *Session]
+}
+
+type runnerEnvStorer struct {
+	logger   *zap.Logger
+	envStore *envStore
+}
+
+func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
+	return &runnerEnvStorer{
+		envStore: newEnvStore(sessionEnvs...),
+	}
+}
+
+func (es *runnerEnvStorer) addEnvs(envs []string) error {
+	es.envStore.Add(envs...)
+	return nil
+}
+
+func (es *runnerEnvStorer) envs() []string {
+	envs, err := es.envStore.Values()
+	if err != nil {
+		es.logger.Error("failed to get envs", zap.Error(err))
+		return nil
+	}
+	return envs
+}
+
+func (es *runnerEnvStorer) setEnv(k string, v string) error {
+	_, err := es.envStore.Set(k, v)
+	return err
+}
+
+func (es *runnerEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {
+	es.envStore = newEnvStore(envs...).Add(newOrUpdated...).Delete(deleted...)
+	return nil
+}
+
+type owlEnvStorer struct {
+	logger   *zap.Logger
+	owlStore *owl.Store
+}
+
+func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*owlEnvStorer, error) {
 	opts := []owl.StoreOption{
 		owl.WithLogger(logger),
 		owl.WithEnvs(envs...),
 	}
+
 	if proj != nil {
 		specFilesOrder := proj.EnvFilesReadOrder()
 		specFilesOrder = append([]string{".env.example"}, specFilesOrder...)
@@ -48,70 +150,37 @@ func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Sess
 	if err != nil {
 		return nil, err
 	}
-	sessionEnvs := []string(envs)
-	envStore := newEnvStore(sessionEnvs...)
 
-	s := &Session{
-		ID: ulid.GenerateID(),
-
-		envStore: envStore,
-		owlStore: owlStore,
+	return &owlEnvStorer{
 		logger:   logger,
-	}
-	return s, nil
+		owlStore: owlStore,
+	}, nil
 }
 
-func (s *Session) UpdateStore(envs []string, newOrUpdated []string, deleted []string) error {
-	s.envStore = newEnvStore(envs...).Add(newOrUpdated...).Delete(deleted...)
-	return s.owlStore.Update(newOrUpdated, deleted)
+func (es *owlEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {
+	return es.owlStore.Update(newOrUpdated, deleted)
 }
 
-func (s *Session) AddEnvs(envs []string) error {
-	s.envStore.Add(envs...)
-	return s.owlStore.Update(envs, nil)
+func (es *owlEnvStorer) addEnvs(envs []string) error {
+	return es.owlStore.Update(envs, nil)
 }
 
-func (s *Session) SetEnv(k string, v string) error {
+func (es *owlEnvStorer) setEnv(k string, v string) error {
 	// todo(sebastian): add checking env length inside Update
-	err := s.owlStore.Update([]string{fmt.Sprintf("%s=%s", k, v)}, nil)
+	err := es.owlStore.Update([]string{fmt.Sprintf("%s=%s", k, v)}, nil)
 	if err != nil {
 		return err
 	}
-	_, err = s.envStore.Set(k, v)
 	return err
 }
 
-func (s *Session) Envs() []string {
-	vals, err := s.owlStore.InsecureValues()
+func (es *owlEnvStorer) envs() []string {
+	vals, err := es.owlStore.InsecureValues()
 	if err != nil {
-		s.logger.Error("failed to get vals", zap.Error(err))
+		es.logger.Error("failed to get vals", zap.Error(err))
 		return nil
 	}
-	// _, err = fmt.Printf("%+v\n", vals)
-	// if err != nil {
-	// 	s.logger.Error("failed to print vals", zap.Error(err))
-	// 	return nil
-	// }
-
-	// envs, err := s.envStore.Values()
-	// if err != nil {
-	// 	s.logger.Error("failed to get envs", zap.Error(err))
-	// 	return nil
-	// }
 	return vals
-}
-
-// thread-safe session list
-type SessionList struct {
-	// WARNING: this mutex is created to prevent race conditions on certain
-	// operations, like finding the most recent element of store, which are not
-	// supported by golang-lru
-	//
-	// this is not really ideal since this introduces a chance of deadlocks.
-	// please make sure that this mutex is never locked within the critical
-	// section of the inner lock (belonging to store)
-	mu    sync.RWMutex
-	store *lru.Cache[string, *Session]
 }
 
 func NewSessionList() (*SessionList, error) {
