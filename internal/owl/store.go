@@ -198,7 +198,7 @@ type Store struct {
 type StoreOption func(*Store) error
 
 func NewStore(opts ...StoreOption) (*Store, error) {
-	s := &Store{}
+	s := &Store{logger: zap.NewNop()}
 
 	for _, opt := range opts {
 		if err := opt(s); err != nil {
