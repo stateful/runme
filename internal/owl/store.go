@@ -234,11 +234,14 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	}
 
 	varValues["insecure"] = insecure
-	// j, err := json.MarshalIndent(varValues, "", " ")
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// fmt.Println(string(j))
+	j, err := json.MarshalIndent(varValues, "", " ")
+	if err != nil {
+		return nil, err
+	}
+	_, err = fmt.Println(string(j))
+	if err != nil {
+		return nil, err
+	}
 
 	result := graphql.Do(graphql.Params{
 		Schema:         schema,
@@ -255,7 +258,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, err
 	}
 
-	j, err := json.MarshalIndent(val, "", " ")
+	j, err = json.MarshalIndent(val, "", " ")
 	if err != nil {
 		return nil, err
 	}

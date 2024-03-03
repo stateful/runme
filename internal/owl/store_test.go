@@ -29,7 +29,20 @@ func Test_OperationSet(t *testing.T) {
 func Test_Store(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Snapshot", func(t *testing.T) {
+	t.Run("Snapshot with empty env", func(t *testing.T) {
+		raw := []byte(``)
+		store, err := NewStore(WithSpecFile("empty", raw))
+		require.NoError(t, err)
+
+		require.Len(t, store.opSets, 1)
+		require.Len(t, store.opSets[0].items, 0)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+		require.NotNil(t, snapshot)
+	})
+
+	t.Run("Snapshot with fake env", func(t *testing.T) {
 		envs := os.Environ()
 
 		raw := []byte(`WASI_SDK_PATH=The path to the wasi-sdk directory # Path!`)

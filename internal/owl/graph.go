@@ -193,14 +193,14 @@ func init() {
 						}
 						hasSpecs := p.Args["hasSpecs"].(bool)
 
-						var flatOpSet *OperationSet
+						var snapshotOpSet *OperationSet
 						var err error
 
 						switch p.Source.(type) {
 						case *OperationSet:
-							flatOpSet = p.Source.(*OperationSet)
+							snapshotOpSet = p.Source.(*OperationSet)
 						default:
-							flatOpSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "query"))
+							snapshotOpSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "snapshot"))
 							if err != nil {
 								return nil, err
 							}
@@ -219,7 +219,7 @@ func init() {
 
 						for i := range revive {
 							v := revive[i]
-							old, ok := flatOpSet.items[v.Key]
+							old, ok := snapshotOpSet.items[v.Key]
 							if hasSpecs && ok {
 								old.Spec = v.Spec
 								old.Required = v.Required
@@ -229,10 +229,10 @@ func init() {
 								v.Created = old.Created
 							}
 							v.Updated = v.Created
-							flatOpSet.items[v.Key] = &v
+							snapshotOpSet.items[v.Key] = &v
 						}
 
-						return flatOpSet, nil
+						return snapshotOpSet, nil
 					},
 				},
 				"location": &graphql.Field{
@@ -259,12 +259,19 @@ func init() {
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						insecure := p.Args["insecure"].(bool)
-						opSet, ok := p.Source.(*OperationSet)
-						if !ok {
+						snapshot := SetVarResult{}
+						var opSet *OperationSet
+
+						switch p.Source.(type) {
+						case nil, string:
+							// root passes string
+							return snapshot, nil
+						case *OperationSet:
+							opSet = p.Source.(*OperationSet)
+						default:
 							return nil, errors.New("source is not an OperationSet")
 						}
 
-						var snapshot SetVarResult
 						for _, v := range opSet.items {
 							if !insecure {
 								// todo: move "masking" into to "type system"
@@ -292,7 +299,6 @@ func init() {
 						return snapshot, nil
 					},
 				},
-				// "renderVars": newRender(),
 			}
 		}),
 	})
@@ -318,6 +324,7 @@ func init() {
 						},
 					})),
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						// todo(sebastian): pending moving this to discret types
 						specs := []struct {
 							Name      string `json:"name"`
 							Sensitive bool   `json:"sensitive"`
@@ -385,6 +392,10 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 		opSetData := make(map[string]SetVarResult, len(store.opSets))
 
 		for i, opSet := range store.opSets {
+			if len(opSet.items) == 0 {
+				continue
+			}
+
 			nvars := fmt.Sprintf("load_%d", i)
 
 			for _, v := range opSet.items {
