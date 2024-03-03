@@ -212,7 +212,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		}
 
 		if len(req.Envs) > 0 {
-			sess.AddEnvs(req.Envs)
+			err := sess.AddEnvs(req.Envs)
+			if err != nil {
+				return err
+			}
 		}
 	case runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
 		sess, err = r.sessions.MostRecentOrCreate(func() (*Session, error) { return createSession(req.Envs) })
@@ -455,7 +458,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if storeStdout {
-		_, err := sess.envStore.Set("__", string(stdoutMem))
+		err := sess.SetEnv("__", string(stdoutMem))
 		if err != nil {
 			logger.Sugar().Errorf("%v", err)
 		}

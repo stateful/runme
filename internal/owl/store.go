@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -118,20 +117,28 @@ func WithSpecs(included bool) OperationSetOption {
 
 func (s *OperationSet) addEnvs(envs ...string) (err error) {
 	for _, env := range envs {
-		err = s.addRaw([]byte(env))
+		err = s.addRaw([]byte(env), false)
 	}
 	return err
 }
 
-func (s *OperationSet) addRaw(raw []byte) error {
-	lines := bytes.Split(raw, []byte{'\n'})
+func (s *OperationSet) addRaw(raw []byte, fromFile bool) error {
+	lines := [][]byte{raw}
+
+	if fromFile {
+		lines = bytes.Split(raw, []byte{'\n'})
+	}
+
 	for _, rawLine := range lines {
-		line := bytes.Trim(rawLine, " \r")
-		if len(line) > 0 && line[0] == '#' {
-			continue
-		}
-		if len(bytes.Trim(line, " \r\n")) <= 0 {
-			continue
+		line := rawLine
+		if fromFile {
+			line := bytes.Trim(rawLine, " \r")
+			if len(line) > 0 && line[0] == '#' {
+				continue
+			}
+			if len(bytes.Trim(line, " \r\n")) <= 0 {
+				continue
+			}
 		}
 
 		created := time.Now()
@@ -147,6 +154,35 @@ func (s *OperationSet) addRaw(raw []byte) error {
 			Required: required,
 			Created:  &created,
 		}
+	}
+
+	return nil
+}
+
+func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, hasSpecs bool) error {
+	for _, v := range vars {
+		old, ok := resolverOpSet.items[v.Key]
+		if hasSpecs && ok {
+			old.Spec = v.Spec
+			old.Required = v.Required
+			continue
+		}
+		if ok {
+			v.Created = old.Created
+		}
+		v.Updated = v.Created
+		resolverOpSet.items[v.Key] = v
+	}
+	return nil
+}
+
+func resolveDelete(vars SetVarResult, resolverOpSet *OperationSet, _ bool) error {
+	for _, v := range vars {
+		_, ok := resolverOpSet.items[v.Key]
+		if !ok {
+			continue
+		}
+		delete(resolverOpSet.items, v.Key)
 	}
 	return nil
 }
@@ -184,7 +220,7 @@ func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 			return err
 		}
 
-		err = opSet.addRaw(raw)
+		err = opSet.addRaw(raw, true)
 		if err != nil {
 			return err
 		}
@@ -196,7 +232,7 @@ func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 
 func WithEnvs(envs ...string) StoreOption {
 	return func(s *Store) error {
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "process"), WithSpecs(false))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "session"), WithSpecs(false))
 		if err != nil {
 			return err
 		}
@@ -242,6 +278,8 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 		return err
 	}
 
+	s.opSets = append(s.opSets, updateOpSet)
+
 	deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation, "exec"), WithSpecs(false))
 	if err != nil {
 		return err
@@ -252,7 +290,7 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 		return err
 	}
 
-	s.opSets = append(s.opSets, updateOpSet)
+	s.opSets = append(s.opSets, deleteOpSet)
 
 	return nil
 }
@@ -264,10 +302,10 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, err
 	}
 
-	_, err = fmt.Fprintf(os.Stderr, "%s", query.String())
-	if err != nil {
-		return nil, err
-	}
+	// _, err = fmt.Fprintf(os.Stderr, "%s", query.String())
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)

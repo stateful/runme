@@ -63,8 +63,19 @@ func (s *Session) UpdateStore(envs []string, newOrUpdated []string, deleted []st
 	return s.owlStore.Update(newOrUpdated, deleted)
 }
 
-func (s *Session) AddEnvs(envs []string) {
+func (s *Session) AddEnvs(envs []string) error {
 	s.envStore.Add(envs...)
+	return s.owlStore.Update(envs, nil)
+}
+
+func (s *Session) SetEnv(k string, v string) error {
+	// todo(sebastian): add checking env length inside Update
+	err := s.owlStore.Update([]string{fmt.Sprintf("%s=%s", k, v)}, nil)
+	if err != nil {
+		return err
+	}
+	_, err = s.envStore.Set(k, v)
+	return err
 }
 
 func (s *Session) Envs() []string {
@@ -73,18 +84,18 @@ func (s *Session) Envs() []string {
 		s.logger.Error("failed to get vals", zap.Error(err))
 		return nil
 	}
-	_, err = fmt.Printf("%+v\n", vals)
-	if err != nil {
-		s.logger.Error("failed to print vals", zap.Error(err))
-		return nil
-	}
+	// _, err = fmt.Printf("%+v\n", vals)
+	// if err != nil {
+	// 	s.logger.Error("failed to print vals", zap.Error(err))
+	// 	return nil
+	// }
 
-	envs, err := s.envStore.Values()
-	if err != nil {
-		s.logger.Error("failed to get envs", zap.Error(err))
-		return nil
-	}
-	return envs
+	// envs, err := s.envStore.Values()
+	// if err != nil {
+	// 	s.logger.Error("failed to get envs", zap.Error(err))
+	// 	return nil
+	// }
+	return vals
 }
 
 // func (s *Session) Snapshot() {
