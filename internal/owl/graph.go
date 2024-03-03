@@ -170,6 +170,55 @@ func init() {
 		},
 	})
 
+	resolveOperation := func(p graphql.ResolveParams) (interface{}, error) {
+		vars, ok := p.Args["vars"]
+		if !ok {
+			return p.Source, nil
+		}
+		hasSpecs := p.Args["hasSpecs"].(bool)
+
+		var snapshotOpSet *OperationSet
+		var err error
+
+		switch p.Source.(type) {
+		case *OperationSet:
+			snapshotOpSet = p.Source.(*OperationSet)
+		default:
+			snapshotOpSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "snapshot"))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		buf, err := json.Marshal(vars)
+		if err != nil {
+			return nil, err
+		}
+
+		var revive []setVar
+		err = json.Unmarshal(buf, &revive)
+		if err != nil {
+			return nil, err
+		}
+
+		for i := range revive {
+			v := revive[i]
+			old, ok := snapshotOpSet.items[v.Key]
+			if hasSpecs && ok {
+				old.Spec = v.Spec
+				old.Required = v.Required
+				continue
+			}
+			if ok {
+				v.Created = old.Created
+			}
+			v.Updated = v.Created
+			snapshotOpSet.items[v.Key] = &v
+		}
+
+		return snapshotOpSet, nil
+	}
+
 	var EnvironmentType *graphql.Object
 	EnvironmentType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "Environment",
@@ -186,54 +235,20 @@ func init() {
 							DefaultValue: false,
 						},
 					},
-					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						vars, ok := p.Args["vars"]
-						if !ok {
-							return p.Source, nil
-						}
-						hasSpecs := p.Args["hasSpecs"].(bool)
-
-						var snapshotOpSet *OperationSet
-						var err error
-
-						switch p.Source.(type) {
-						case *OperationSet:
-							snapshotOpSet = p.Source.(*OperationSet)
-						default:
-							snapshotOpSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "snapshot"))
-							if err != nil {
-								return nil, err
-							}
-						}
-
-						buf, err := json.Marshal(vars)
-						if err != nil {
-							return nil, err
-						}
-
-						var revive []setVar
-						err = json.Unmarshal(buf, &revive)
-						if err != nil {
-							return nil, err
-						}
-
-						for i := range revive {
-							v := revive[i]
-							old, ok := snapshotOpSet.items[v.Key]
-							if hasSpecs && ok {
-								old.Spec = v.Spec
-								old.Required = v.Required
-								continue
-							}
-							if ok {
-								v.Created = old.Created
-							}
-							v.Updated = v.Created
-							snapshotOpSet.items[v.Key] = &v
-						}
-
-						return snapshotOpSet, nil
+					Resolve: resolveOperation,
+				},
+				"update": &graphql.Field{
+					Type: EnvironmentType,
+					Args: graphql.FieldConfigArgument{
+						"vars": &graphql.ArgumentConfig{
+							Type: graphql.NewList(VariableInputType),
+						},
+						"hasSpecs": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
 					},
+					Resolve: resolveOperation,
 				},
 				"location": &graphql.Field{
 					Type: graphql.NewNonNull(graphql.String),
@@ -396,7 +411,11 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 				continue
 			}
 
-			nvars := fmt.Sprintf("load_%d", i)
+			opName := "load"
+			if opSet.operation.kind == UpdateSetOperation {
+				opName = "update"
+			}
+			nvars := fmt.Sprintf("%s_%d", opName, i)
 
 			for _, v := range opSet.items {
 				opSetData[nvars] = append(opSetData[nvars], v)
@@ -423,7 +442,7 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 			}))
 			selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
 				Name: ast.NewName(&ast.Name{
-					Value: "load",
+					Value: opName,
 				}),
 				Arguments: []*ast.Argument{
 					ast.NewArgument(&ast.Argument{
