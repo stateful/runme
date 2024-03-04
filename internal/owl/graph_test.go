@@ -2,7 +2,6 @@ package owl
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/graphql-go/graphql"
@@ -105,11 +104,14 @@ func Test_Graph(t *testing.T) {
 		})
 		require.False(t, result.HasErrors())
 
-		b, err := json.MarshalIndent(result, "", " ")
-		require.NoError(t, err)
-		fmt.Println(string(b))
+		// b, err := json.MarshalIndent(result, "", " ")
+		// require.NoError(t, err)
+		// fmt.Println(string(b))
+		// require.NotNil(t, b)
 
-		require.NotNil(t, b)
+		snapshot := result.Data.(map[string]interface{})["environment"].(map[string]interface{})["load"].(map[string]interface{})["snapshot"]
+		require.NoError(t, err)
+		require.Len(t, snapshot, 3)
 	})
 
 	t.Run("query specs", func(t *testing.T) {
@@ -121,7 +123,7 @@ func Test_Graph(t *testing.T) {
 
 		b, err := json.MarshalIndent(result, "", " ")
 		require.NoError(t, err)
-		fmt.Println(string(b))
+		// fmt.Println(string(b))
 
 		require.NotNil(t, b)
 	})
