@@ -546,10 +546,13 @@ func (p *Project) LoadEnvAsMap() (map[string]string, error) {
 			continue
 		}
 
-		parsed, err := godotenv.UnmarshalBytes(bytes)
+		parsed, comments, err := godotenv.UnmarshalBytesWithComments(bytes)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
+		//revive:disable:unhandled-error
+		fmt.Printf("%v\n", comments)
 
 		for k, v := range parsed {
 			env[k] = v

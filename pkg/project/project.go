@@ -440,12 +440,15 @@ func (p *DirectoryProject) LoadEnvs() (map[string]string, error) {
 			continue
 		}
 
-		parsed, err := godotenv.UnmarshalBytes(bytes)
+		parsed, comments, err := godotenv.UnmarshalBytesWithComments(bytes)
 		if err != nil {
 			// silently fail for now
 			// TODO(mxs): come up with better solution
 			continue
 		}
+
+		//revive:disable:unhandled-error
+		fmt.Printf("%v\n", comments)
 
 		for k, v := range parsed {
 			envs[k] = v

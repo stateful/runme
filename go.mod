@@ -2,6 +2,8 @@ module github.com/stateful/runme/v3
 
 go 1.22
 
+replace github.com/joho/godotenv v1.5.1 => github.com/stateful/godotenv v0.0.0-20240304143212-ec0304dc300f
+
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.32.0-20240212200630-3014d81c3a48.1
 	github.com/Masterminds/semver/v3 v3.2.1
