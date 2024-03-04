@@ -22,7 +22,7 @@ const (
 	LoadSetOperation setOperationKind = iota
 	UpdateSetOperation
 	DeleteSetOperation
-	SnapshotSetOperation
+	TransientSetOperation
 )
 
 type Operation struct {
@@ -328,7 +328,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	// s.logger.Debug("snapshot vars", zap.String("vars", string(j)))
 
 	result := graphql.Do(graphql.Params{
-		Schema:         schema,
+		Schema:         Schema,
 		RequestString:  query.String(),
 		VariableValues: varValues,
 	})
@@ -375,6 +375,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	q, err := NewQuery("Snapshot", varDefs,
 		[]QueryNodeReducer{
 			reduceSetOperations(s, vars),
+			reduceSepcs(),
 			reduceSnapshot(),
 		},
 	)

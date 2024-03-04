@@ -10,16 +10,118 @@ import (
 	"github.com/graphql-go/graphql/language/ast"
 )
 
-var schema graphql.Schema
+type specType struct {
+	typ     *graphql.Object
+	resolve graphql.FieldResolveFn
+}
 
-// reducer map[setOperationKind][]QueryNodeReducer
+var (
+	Schema                        graphql.Schema
+	EnvironmentType, ValidateType *graphql.Object
+	SpecTypes                     map[string]*specType
+)
 
 type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
+func registerSpecFields(fields graphql.Fields) {
+	for k, v := range SpecTypes {
+		fields[k] = &graphql.Field{
+			Type:    v.typ,
+			Resolve: v.resolve,
+			Args: graphql.FieldConfigArgument{
+				"name": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+			},
+		}
+	}
+}
+
+func registerSpec(spec string, sensitive, mask bool) *specType {
+	typ := graphql.NewObject(graphql.ObjectConfig{
+		Name: fmt.Sprintf("%sSpecType", spec),
+		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
+			fields := graphql.Fields{
+				"spec": &graphql.Field{
+					Type: graphql.String,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return spec, nil
+					},
+				},
+				"sensitive": &graphql.Field{
+					Type: graphql.Boolean,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return sensitive, nil
+					},
+				},
+				"mask": &graphql.Field{
+					Type: graphql.Boolean,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return mask, nil
+					},
+				},
+				"errors": &graphql.Field{
+					Type: graphql.NewList(graphql.String),
+				},
+				"done": &graphql.Field{
+					Type: EnvironmentType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
+					},
+				},
+			}
+
+			registerSpecFields(fields)
+
+			return fields
+		}),
+	})
+
+	resolve := func(p graphql.ResolveParams) (interface{}, error) {
+		return p.Source, nil
+	}
+
+	return &specType{
+		typ:     typ,
+		resolve: resolve,
+	}
+}
+
 func init() {
+	SpecTypes = make(map[string]*specType)
+	SpecTypes["Secret"] = registerSpec("Secret", true, true)
+	SpecTypes["Password"] = registerSpec("Password", true, true)
+	SpecTypes["Opaque"] = registerSpec("Opaque", true, false)
+	SpecTypes["Plain"] = registerSpec("Plain", false, false)
+
+	ValidateType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "ValidateType",
+		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
+			fields := graphql.Fields{
+				"name": &graphql.Field{
+					Type: graphql.String,
+				},
+				"sensitive": &graphql.Field{
+					Type: graphql.Boolean,
+				},
+				"mask": &graphql.Field{
+					Type: graphql.Boolean,
+				},
+				"errors": &graphql.Field{
+					Type: graphql.NewList(graphql.String),
+				},
+				"done": &graphql.Field{
+					Type: EnvironmentType,
+				},
+			}
+			registerSpecFields(fields)
+			return fields
+		}),
+	})
+
 	VariableType := graphql.NewObject(
 		graphql.ObjectConfig{
-			Name: "Variable",
+			Name: "VariableType",
 			Fields: graphql.Fields{
 				"key": &graphql.Field{
 					Type: graphql.String,
@@ -29,7 +131,7 @@ func init() {
 				// },
 				"value": &graphql.Field{
 					Type: graphql.NewObject(graphql.ObjectConfig{
-						Name: "VariableValue",
+						Name: "VariableValueType",
 						Fields: graphql.Fields{
 							// "type": &graphql.Field{
 							// 	Type: graphql.String,
@@ -54,7 +156,7 @@ func init() {
 				},
 				"spec": &graphql.Field{
 					Type: graphql.NewObject(graphql.ObjectConfig{
-						Name: "VariableSpec",
+						Name: "VariableSpecType",
 						Fields: graphql.Fields{
 							"name": &graphql.Field{
 								Type: graphql.String,
@@ -70,7 +172,7 @@ func init() {
 				},
 				"operation": &graphql.Field{
 					Type: graphql.NewObject(graphql.ObjectConfig{
-						Name: "VariableOperation",
+						Name: "VariableOperationType",
 						Fields: graphql.Fields{
 							"order": &graphql.Field{
 								Type: graphql.Int,
@@ -170,9 +272,8 @@ func init() {
 		},
 	})
 
-	var EnvironmentType *graphql.Object
 	EnvironmentType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "Environment",
+		Name: "EnvironmentType",
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			return graphql.Fields{
 				"load": &graphql.Field{
@@ -213,6 +314,12 @@ func init() {
 						},
 					},
 					Resolve: resolveOperation(resolveDelete),
+				},
+				"validate": &graphql.Field{
+					Type: ValidateType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
+					},
 				},
 				"location": &graphql.Field{
 					Type: graphql.NewNonNull(graphql.String),
@@ -283,13 +390,13 @@ func init() {
 		}),
 	})
 
-	SpecType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "Spec",
+	SpecsType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "SpecsType",
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			return graphql.Fields{
 				"list": &graphql.Field{
 					Type: graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
-						Name: "SpecList",
+						Name: "SpecListType",
 						Fields: graphql.Fields{
 							"name": &graphql.Field{
 								Type: graphql.String,
@@ -304,35 +411,12 @@ func init() {
 						},
 					})),
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						// todo(sebastian): pending moving this to discret types
-						specs := []struct {
-							Name      string `json:"name"`
-							Sensitive bool   `json:"sensitive"`
-							Mask      bool   `json:"mask"`
-						}{
-							{
-								Name:      "Opaque",
-								Sensitive: true,
-								Mask:      false,
-							},
-							{
-								Name:      "Secret",
-								Sensitive: true,
-								Mask:      true,
-							},
-							{
-								Name:      "Password",
-								Sensitive: true,
-								Mask:      true,
-							},
-							{
-								Name:      "Plain",
-								Sensitive: false,
-								Mask:      false,
-							},
+						var names []map[string]string
+						for k := range SpecTypes {
+							names = append(names, map[string]string{"name": k})
 						}
 
-						return specs, nil
+						return names, nil
 					},
 				},
 			}
@@ -340,7 +424,7 @@ func init() {
 	})
 
 	var err error
-	schema, err = graphql.NewSchema(graphql.SchemaConfig{
+	Schema, err = graphql.NewSchema(graphql.SchemaConfig{
 		Query: graphql.NewObject(
 			graphql.ObjectConfig{
 				Name: "Query",
@@ -352,7 +436,7 @@ func init() {
 						},
 					},
 					"specs": &graphql.Field{
-						Type: SpecType,
+						Type: SpecsType,
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 							return p.Info.FieldName, nil
 						},
@@ -382,7 +466,7 @@ func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, bool) err
 		case *OperationSet:
 			resolverOpSet = p.Source.(*OperationSet)
 		default:
-			resolverOpSet, err = NewOperationSet(WithOperation(SnapshotSetOperation, "snapshot"))
+			resolverOpSet, err = NewOperationSet(WithOperation(TransientSetOperation, "resolver"))
 			if err != nil {
 				return nil, err
 			}
@@ -587,5 +671,99 @@ func reduceSnapshot() QueryNodeReducer {
 			}),
 		)
 		return nextSelSet, nil
+	}
+}
+
+func reduceSepcs() QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		// nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
+		// 	Selections: []ast.Selection{
+		// 		ast.NewField(&ast.Field{
+		// 			Name: ast.NewName(&ast.Name{
+		// 				Value: "key",
+		// 			}),
+		// 		}),
+		// 		ast.NewField(&ast.Field{
+		// 			Name: ast.NewName(&ast.Name{
+		// 				Value: "value",
+		// 			}),
+		// 			SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+		// 				Selections: []ast.Selection{
+		// 					// ast.NewField(&ast.Field{
+		// 					// 	Name: ast.NewName(&ast.Name{
+		// 					// 		Value: "type",
+		// 					// 	}),
+		// 					// }),
+		// 					ast.NewField(&ast.Field{
+		// 						Name: ast.NewName(&ast.Name{
+		// 							Value: "original",
+		// 						}),
+		// 					}),
+		// 					ast.NewField(&ast.Field{
+		// 						Name: ast.NewName(&ast.Name{
+		// 							Value: "resolved",
+		// 						}),
+		// 					}),
+		// 					ast.NewField(&ast.Field{
+		// 						Name: ast.NewName(&ast.Name{
+		// 							Value: "status",
+		// 						}),
+		// 					}),
+		// 				},
+		// 			}),
+		// 		}),
+		// 		ast.NewField(&ast.Field{
+		// 			Name: ast.NewName(&ast.Name{
+		// 				Value: "spec",
+		// 			}),
+		// 			SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+		// 				Selections: []ast.Selection{
+		// 					ast.NewField(&ast.Field{
+		// 						Name: ast.NewName(&ast.Name{
+		// 							Value: "name",
+		// 						}),
+		// 					}),
+		// 				},
+		// 			}),
+		// 		}),
+		// 		ast.NewField(&ast.Field{
+		// 			Name: ast.NewName(&ast.Name{
+		// 				Value: "required",
+		// 			}),
+		// 		}),
+		// 		ast.NewField(&ast.Field{
+		// 			Name: ast.NewName(&ast.Name{
+		// 				Value: "created",
+		// 			}),
+		// 		}),
+		// 		ast.NewField(&ast.Field{
+		// 			Name: ast.NewName(&ast.Name{
+		// 				Value: "updated",
+		// 			}),
+		// 		}),
+		// 	},
+		// })
+
+		// selSet.Selections = append(selSet.Selections,
+		// 	ast.NewField(&ast.Field{
+		// 		Name: ast.NewName(&ast.Name{
+		// 			Value: "snapshot",
+		// 		}),
+		// 		Arguments: []*ast.Argument{
+		// 			ast.NewArgument(&ast.Argument{
+		// 				Name: ast.NewName(&ast.Name{
+		// 					Value: "insecure",
+		// 				}),
+		// 				Value: ast.NewVariable(&ast.Variable{
+		// 					Name: ast.NewName(&ast.Name{
+		// 						Value: "insecure",
+		// 					}),
+		// 				}),
+		// 			}),
+		// 		},
+		// 		SelectionSet: nextSelSet,
+		// 	}),
+		// )
+		return selSet, nil
 	}
 }
