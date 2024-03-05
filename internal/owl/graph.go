@@ -738,6 +738,14 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 			nextSelSet = nextVarSpec(v, nextSelSet)
 		}
 
+		doneSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
+		topSelSet.Selections = append(topSelSet.Selections, ast.NewField(&ast.Field{
+			Name: ast.NewName(&ast.Name{
+				Value: "done",
+			}),
+			SelectionSet: doneSelSet,
+		}))
+
 		selSet.Selections = append(selSet.Selections,
 			ast.NewField(&ast.Field{
 				Name: ast.NewName(&ast.Name{
@@ -759,6 +767,6 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 			}),
 		)
 
-		return topSelSet, nil
+		return doneSelSet, nil
 	}
 }
