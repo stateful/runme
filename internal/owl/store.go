@@ -312,7 +312,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, err
 	}
 
-	s.logger.Debug("snapshot query", zap.String("query", query.String()))
+	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
@@ -371,6 +371,23 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 			}),
 		}),
 	}
+
+	loaded, updated, deleted := 0, 0, 0
+	for _, opSet := range s.opSets {
+		if len(opSet.items) == 0 {
+			continue
+		}
+		switch opSet.operation.kind {
+		case LoadSetOperation:
+			loaded++
+		case UpdateSetOperation:
+			updated++
+		case DeleteSetOperation:
+			deleted++
+		}
+
+	}
+	s.logger.Debug("snapshot opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted))
 
 	q, err := NewQuery("Snapshot", varDefs,
 		[]QueryNodeReducer{
