@@ -1,6 +1,8 @@
 package owl
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"testing"
 
@@ -28,6 +30,27 @@ func Test_OperationSet(t *testing.T) {
 
 func Test_Store(t *testing.T) {
 	t.Parallel()
+
+	t.Run("Valildate query", func(t *testing.T) {
+		raw := []byte(`GOPATH=/Users/sourishkrout/go
+HOME=/Users/sourishkrout # Secret!
+HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
+
+		store, err := NewStore(withSpecsFile(".env", raw, true))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		var query, vars bytes.Buffer
+		err = store.validateQuery(&query, &vars)
+		require.NoError(t, err)
+
+		fmt.Println(query.String())
+
+		// j, err := json.MarshalIndent(vars, "", " ")
+		// require.NoError(t, err)
+
+		// fmt.Println(string(j))
+	})
 
 	t.Run("Snapshot with empty env", func(t *testing.T) {
 		raw := []byte(``)

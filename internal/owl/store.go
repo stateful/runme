@@ -305,6 +305,49 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 	return nil
 }
 
+func (s *Store) validateQuery(query, vars io.StringWriter) error {
+	varDefs := []*ast.VariableDefinition{
+		// ast.NewVariableDefinition(&ast.VariableDefinition{
+		// 	Variable: ast.NewVariable(&ast.Variable{
+		// 		Name: ast.NewName(&ast.Name{
+		// 			Value: "insecure",
+		// 		}),
+		// 	}),
+		// 	Type: ast.NewNamed(&ast.Named{
+		// 		Name: ast.NewName(&ast.Name{
+		// 			Value: "Boolean",
+		// 		}),
+		// 	}),
+		// 	DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
+		// 		Value: false,
+		// 	}),
+		// }),
+	}
+
+	q, err := NewQuery("Validate", varDefs,
+		[]QueryNodeReducer{
+			reduceSetOperations(s, vars),
+			reduceSepcs(s),
+			reduceSnapshot(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	text, err := q.Print()
+	if err != nil {
+		return err
+	}
+
+	_, err = query.WriteString(text)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	var query, vars bytes.Buffer
 	err := s.snapshotQuery(&query, &vars)
@@ -392,7 +435,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	q, err := NewQuery("Snapshot", varDefs,
 		[]QueryNodeReducer{
 			reduceSetOperations(s, vars),
-			reduceSepcs(),
+			// reduceSepcs(s),
 			reduceSnapshot(),
 		},
 	)

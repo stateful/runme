@@ -674,96 +674,91 @@ func reduceSnapshot() QueryNodeReducer {
 	}
 }
 
-func reduceSepcs() QueryNodeReducer {
+func reduceSepcs(store *Store) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		// nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
-		// 	Selections: []ast.Selection{
-		// 		ast.NewField(&ast.Field{
-		// 			Name: ast.NewName(&ast.Name{
-		// 				Value: "key",
-		// 			}),
-		// 		}),
-		// 		ast.NewField(&ast.Field{
-		// 			Name: ast.NewName(&ast.Name{
-		// 				Value: "value",
-		// 			}),
-		// 			SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
-		// 				Selections: []ast.Selection{
-		// 					// ast.NewField(&ast.Field{
-		// 					// 	Name: ast.NewName(&ast.Name{
-		// 					// 		Value: "type",
-		// 					// 	}),
-		// 					// }),
-		// 					ast.NewField(&ast.Field{
-		// 						Name: ast.NewName(&ast.Name{
-		// 							Value: "original",
-		// 						}),
-		// 					}),
-		// 					ast.NewField(&ast.Field{
-		// 						Name: ast.NewName(&ast.Name{
-		// 							Value: "resolved",
-		// 						}),
-		// 					}),
-		// 					ast.NewField(&ast.Field{
-		// 						Name: ast.NewName(&ast.Name{
-		// 							Value: "status",
-		// 						}),
-		// 					}),
-		// 				},
-		// 			}),
-		// 		}),
-		// 		ast.NewField(&ast.Field{
-		// 			Name: ast.NewName(&ast.Name{
-		// 				Value: "spec",
-		// 			}),
-		// 			SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
-		// 				Selections: []ast.Selection{
-		// 					ast.NewField(&ast.Field{
-		// 						Name: ast.NewName(&ast.Name{
-		// 							Value: "name",
-		// 						}),
-		// 					}),
-		// 				},
-		// 			}),
-		// 		}),
-		// 		ast.NewField(&ast.Field{
-		// 			Name: ast.NewName(&ast.Name{
-		// 				Value: "required",
-		// 			}),
-		// 		}),
-		// 		ast.NewField(&ast.Field{
-		// 			Name: ast.NewName(&ast.Name{
-		// 				Value: "created",
-		// 			}),
-		// 		}),
-		// 		ast.NewField(&ast.Field{
-		// 			Name: ast.NewName(&ast.Name{
-		// 				Value: "updated",
-		// 			}),
-		// 		}),
-		// 	},
-		// })
+		varSpecs := make(map[string]*setVar)
+		for _, opSet := range store.opSets {
+			if len(opSet.items) == 0 {
+				continue
+			}
+			for _, v := range opSet.items {
+				varSpecs[v.Key] = v
+			}
+		}
 
-		// selSet.Selections = append(selSet.Selections,
-		// 	ast.NewField(&ast.Field{
-		// 		Name: ast.NewName(&ast.Name{
-		// 			Value: "snapshot",
-		// 		}),
-		// 		Arguments: []*ast.Argument{
-		// 			ast.NewArgument(&ast.Argument{
-		// 				Name: ast.NewName(&ast.Name{
-		// 					Value: "insecure",
-		// 				}),
-		// 				Value: ast.NewVariable(&ast.Variable{
-		// 					Name: ast.NewName(&ast.Name{
-		// 						Value: "insecure",
-		// 					}),
-		// 				}),
-		// 			}),
-		// 		},
-		// 		SelectionSet: nextSelSet,
-		// 	}),
-		// )
-		return selSet, nil
+		nextVarSpec := func(varSpec *setVar, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+			nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
+				Selections: []ast.Selection{
+					ast.NewField(&ast.Field{
+						Name: ast.NewName(&ast.Name{
+							Value: "spec",
+						}),
+					}),
+					ast.NewField(&ast.Field{
+						Name: ast.NewName(&ast.Name{
+							Value: "sensitive",
+						}),
+					}),
+					ast.NewField(&ast.Field{
+						Name: ast.NewName(&ast.Name{
+							Value: "mask",
+						}),
+					}),
+					ast.NewField(&ast.Field{
+						Name: ast.NewName(&ast.Name{
+							Value: "errors",
+						}),
+					}),
+				},
+			})
+			prevSelSet.Selections = append(prevSelSet.Selections,
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: varSpec.Spec.Name,
+					}),
+					Arguments: []*ast.Argument{
+						ast.NewArgument(&ast.Argument{
+							Name: ast.NewName(&ast.Name{
+								Value: "name",
+							}),
+							Value: ast.NewStringValue(&ast.StringValue{
+								Value: varSpec.Key,
+							}),
+						}),
+					},
+					SelectionSet: nextSelSet,
+				}))
+
+			return nextSelSet
+		}
+
+		topSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
+		nextSelSet := topSelSet
+		for _, v := range varSpecs {
+			nextSelSet = nextVarSpec(v, nextSelSet)
+		}
+
+		selSet.Selections = append(selSet.Selections,
+			ast.NewField(&ast.Field{
+				Name: ast.NewName(&ast.Name{
+					Value: "validate",
+				}),
+				// Arguments: []*ast.Argument{
+				// 	ast.NewArgument(&ast.Argument{
+				// 		Name: ast.NewName(&ast.Name{
+				// 			Value: "insecure",
+				// 		}),
+				// 		Value: ast.NewVariable(&ast.Variable{
+				// 			Name: ast.NewName(&ast.Name{
+				// 				Value: "insecure",
+				// 			}),
+				// 		}),
+				// 	}),
+				// },
+				SelectionSet: topSelSet,
+			}),
+		)
+
+		return topSelSet, nil
 	}
 }
