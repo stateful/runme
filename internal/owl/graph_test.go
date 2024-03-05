@@ -88,7 +88,7 @@ func Test_Graph(t *testing.T) {
 
 	t.Run("query specs for real", func(t *testing.T) {
 		var vars map[string]interface{}
-		err := json.Unmarshal([]byte(`{"load_0":[{"created":"2024-03-02T13:25:01.270468-05:00","key":"GOPATH","operation":null,"raw":"GOPATH=/Users/sourishkrout/go","required":false,"spec":{"checked":false,"name":"Opaque"},"value":{"resolved":"/Users/sourishkrout/go","status":""}},{"created":"2024-03-02T13:25:01.270469-05:00","key":"HOME","operation":null,"raw":"HOME=/Users/sourishkrout","required":false,"spec":{"checked":false,"name":"Secret"},"value":{"resolved":"/Users/sourishkrout","status":""}},{"created":"2024-03-02T13:25:01.270471-05:00","key":"HOMEBREW_REPOSITORY","operation":null,"raw":"HOMEBREW_REPOSITORY=/opt/homebrew","required":false,"spec":{"checked":false,"name":"Plain"},"value":{"resolved":"/opt/homebrew","status":""}}]}`), &vars)
+		err := json.Unmarshal([]byte(`{"load_0":[{"created":"2024-03-02T13:25:01.270468-05:00","key":"GOPATH","operation":null,"raw":"GOPATH=/Users/sourishkrout/go","required":false,"spec":{"checked":false,"name":"Opaque"},"value":{"resolved":"/Users/sourishkrout/go","status":""}},{"created":"2024-03-02T13:25:01.270469-05:00","key":"HOME","operation":null,"raw":"HOME=/Users/sourishkrout","required":true,"spec":{"checked":false,"name":"Secret"},"value":{"resolved":"/Users/sourishkrout","status":""}},{"created":"2024-03-02T13:25:01.270471-05:00","key":"HOMEBREW_REPOSITORY","operation":null,"raw":"HOMEBREW_REPOSITORY=/opt/homebrew","required":false,"spec":{"checked":false,"name":"Plain"},"value":{"resolved":"/opt/homebrew","status":""}}]}`), &vars)
 		require.NoError(t, err)
 
 		result := graphql.Do(graphql.Params{
@@ -140,7 +140,7 @@ func Test_Graph(t *testing.T) {
 }`,
 			VariableValues: vars,
 		})
-		// require.False(t, result.HasErrors())
+		require.False(t, result.HasErrors())
 		fmt.Println(result.Errors)
 
 		b, err := json.MarshalIndent(result, "", " ")
