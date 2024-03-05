@@ -2,54 +2,90 @@ package owl
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func Test_RawParsing(t *testing.T) {
-	t.Parallel()
+func TestMapSpec(t *testing.T) {
+	testCases := map[string]struct {
+		Values   map[string]string
+		Comments map[string]string
+		Expected Specs
+	}{
+		"EmptyComments": {
+			Comments: map[string]string{},
+			Expected: Specs{},
+		},
+		"WithSpecs": {
+			Values: map[string]string{
+				"KEY1": "KEY1",
+				"KEY2": "KEY2",
+				"KEY3": "KEY3",
+				"KEY4": "KEY4",
+			},
+			Comments: map[string]string{
+				"KEY1": "",
+				"KEY2": "Plain",
+				"KEY3": "Password",
+				"KEY4": "Secret",
+			},
+			Expected: Specs{
+				"KEY1": {Name: SpecNameOpaque, Valid: false},
+				"KEY2": {Name: SpecNamePlain, Valid: true},
+				"KEY3": {Name: SpecNamePassword, Valid: true},
+				"KEY4": {Name: SpecNameSecret, Valid: true},
+			},
+		},
+		"WithRequiredSpecs": {
+			Values: map[string]string{
+				"KEY1": "KEY1",
+				"KEY2": "KEY2",
+				"KEY3": "KEY3",
+				"KEY4": "KEY4",
+			},
+			Comments: map[string]string{
+				"KEY1": "!",
+				"KEY2": "Plain!",
+				"KEY3": "Password!",
+				"KEY4": "Secret!",
+			},
+			Expected: Specs{
+				"KEY1": {Name: SpecNameOpaque, Valid: true, Required: true},
+				"KEY2": {Name: SpecNamePlain, Valid: true, Required: true},
+				"KEY3": {Name: SpecNamePassword, Valid: true, Required: true},
+				"KEY4": {Name: SpecNameSecret, Valid: true, Required: true},
+			},
+		},
+		"WithParams": {
+			Values: map[string]string{
+				"KEY1": "1234567890",
+				"KEY2": "1234567890",
+			},
+			Comments: map[string]string{
+				"KEY1": `Password!:{"length":10}`,
+				"KEY2": `Password!:{"length":9}`,
+			},
+			Expected: Specs{
+				"KEY1": {Name: SpecNamePassword, Required: true, Valid: true},
+				"KEY2": {Name: SpecNamePassword, Required: true},
+			},
+		},
+	}
 
-	t.Run("required with spec", func(t *testing.T) {
-		raw := []byte(`OPENAI_API_KEY=OpenAI API key matching the org # Password!`)
-		k, v, s, m := ParseRawSpec(raw)
-		assert.EqualValues(t, k, "OPENAI_API_KEY")
-		assert.EqualValues(t, v, "OpenAI API key matching the org")
-		assert.EqualValues(t, s, "Password")
-		assert.EqualValues(t, m, true)
-	})
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			specs := ParseRawSpec(tc.Values, tc.Comments)
 
-	t.Run("required without spec", func(t *testing.T) {
-		raw := []byte(`FRONTEND_URL=http://localhost:4001 #!`)
-		k, v, s, m := ParseRawSpec(raw)
-		assert.EqualValues(t, k, "FRONTEND_URL")
-		assert.EqualValues(t, v, "http://localhost:4001")
-		assert.EqualValues(t, s, "")
-		assert.EqualValues(t, m, true)
-	})
+			if len(specs) != len(tc.Expected) {
+				t.Errorf("%s Unexpected number of specs. Expected %d, got %d", name, len(tc.Expected), len(specs))
+			}
 
-	t.Run("optional with sepc", func(t *testing.T) {
-		raw := []byte(`CRYPTOGRAPHY_KEY= # Secret`)
-		k, v, s, m := ParseRawSpec(raw)
-		assert.EqualValues(t, k, "CRYPTOGRAPHY_KEY")
-		assert.EqualValues(t, v, "")
-		assert.EqualValues(t, s, "Secret")
-		assert.EqualValues(t, m, false)
-	})
-
-	t.Run("optional without spec", func(t *testing.T) {
-		raw := []byte(`VECTOR_DB_COLLECTION=internal11`)
-		k, v, s, m := ParseRawSpec(raw)
-		assert.EqualValues(t, k, "VECTOR_DB_COLLECTION")
-		assert.EqualValues(t, v, "internal11")
-		assert.EqualValues(t, s, "")
-		assert.EqualValues(t, m, false)
-	})
-
-	// t.Run("dot env", func(t *testing.T) {
-	// 	raw, err := os.ReadFile("../../pkg/project/test_project/.env")
-	// 	require.NoError(t, err)
-
-	// 	err = parseEnvSpecs(raw)
-	// 	require.NoError(t, err)
-	// })
+			for key, expectedSpec := range tc.Expected {
+				actualSpec, ok := specs[key]
+				if !ok {
+					t.Errorf("%s Key %s missing in returned specs", name, key)
+				} else if actualSpec != expectedSpec {
+					t.Errorf("%s Unexpected spec for key %s. Expected %+v, got %+v", name, key, expectedSpec, actualSpec)
+				}
+			}
+		})
+	}
 }
