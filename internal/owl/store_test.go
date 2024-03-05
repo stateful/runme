@@ -68,7 +68,7 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 	t.Run("Snapshot with fake env", func(t *testing.T) {
 		envs := os.Environ()
 
-		raw := []byte(`WASI_SDK_PATH=The path to the wasi-sdk directory # Path!`)
+		raw := []byte(`WASI_SDK_PATH=The path to the wasi-sdk directory # Plain!`)
 		store, err := NewStore(WithEnvs(envs...), WithSpecFile(".env.example", raw))
 		require.NoError(t, err)
 
@@ -80,7 +80,7 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 		require.NoError(t, err)
 		require.EqualValues(t, "/Users/sourishkrout/Projects/stateful/2022Q4/wasi-sdk/dist/wasi-sdk-16.5ga0a342ac182c", snapshot[0].Value.Resolved)
 		require.EqualValues(t, "", snapshot[0].Value.Original)
-		require.EqualValues(t, "Path", snapshot[0].Spec.Name)
+		require.EqualValues(t, "Plain", snapshot[0].Spec.Name)
 	})
 
 	t.Run("LoadEnv", func(t *testing.T) {

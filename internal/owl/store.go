@@ -435,7 +435,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	q, err := NewQuery("Snapshot", varDefs,
 		[]QueryNodeReducer{
 			reduceSetOperations(s, vars),
-			// reduceSepcs(s),
+			reduceSepcs(s),
 			reduceSnapshot(),
 		},
 	)

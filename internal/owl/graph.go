@@ -735,11 +735,14 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 		topSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
 		nextSelSet := topSelSet
 		for _, v := range varSpecs {
+			if _, ok := SpecTypes[v.Spec.Name]; !ok {
+				return nil, fmt.Errorf("unknown spec type: %s", v.Spec.Name)
+			}
 			nextSelSet = nextVarSpec(v, nextSelSet)
 		}
 
 		doneSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-		topSelSet.Selections = append(topSelSet.Selections, ast.NewField(&ast.Field{
+		nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
 			Name: ast.NewName(&ast.Name{
 				Value: "done",
 			}),
