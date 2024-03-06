@@ -71,8 +71,8 @@ func Test_OperationSet_Valueless(t *testing.T) {
 func Test_Store(t *testing.T) {
 	t.Parallel()
 	fake := []byte(`GOPATH=/Users/sourishkrout/go
-INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Password!
-HOME=/Users/sourishkrout # Secret!
+INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Secret!
+PGPASS=secret-fake-password # Password!
 HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 
 	t.Run("Valildate query", func(t *testing.T) {
@@ -105,23 +105,23 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 		require.EqualValues(t, "HIDDEN", vars[0].Value.Status)
 		require.EqualValues(t, false, vars[0].Required)
 
-		require.EqualValues(t, "HOME", vars[1].Key)
-		require.EqualValues(t, "Secret", vars[1].Spec.Name)
-		require.EqualValues(t, "", vars[1].Value.Resolved)
-		require.EqualValues(t, "", vars[1].Value.Original)
-		require.EqualValues(t, "MASKED", vars[1].Value.Status)
-		require.EqualValues(t, true, vars[1].Required)
+		require.EqualValues(t, "HOMEBREW_REPOSITORY", vars[1].Key)
+		require.EqualValues(t, "Plain", vars[1].Spec.Name)
+		require.EqualValues(t, "/opt/homebrew", vars[1].Value.Resolved)
+		require.EqualValues(t, "/opt/homebrew", vars[1].Value.Original)
+		require.EqualValues(t, "LITERAL", vars[1].Value.Status)
+		require.EqualValues(t, false, vars[1].Required)
 
-		require.EqualValues(t, "HOMEBREW_REPOSITORY", vars[2].Key)
-		require.EqualValues(t, "Plain", vars[2].Spec.Name)
-		require.EqualValues(t, "/opt/homebrew", vars[2].Value.Resolved)
+		require.EqualValues(t, "INSTRUMENTATION_KEY", vars[2].Key)
+		require.EqualValues(t, "Secret", vars[2].Spec.Name)
+		require.EqualValues(t, "05a...972", vars[2].Value.Resolved)
 		require.EqualValues(t, "", vars[2].Value.Original)
-		require.EqualValues(t, "LITERAL", vars[2].Value.Status)
-		require.EqualValues(t, false, vars[2].Required)
+		require.EqualValues(t, "MASKED", vars[2].Value.Status)
+		require.EqualValues(t, true, vars[2].Required)
 
-		require.EqualValues(t, "INSTRUMENTATION_KEY", vars[3].Key)
+		require.EqualValues(t, "PGPASS", vars[3].Key)
 		require.EqualValues(t, "Password", vars[3].Spec.Name)
-		require.EqualValues(t, "05a...972", vars[3].Value.Resolved)
+		require.EqualValues(t, "********************", vars[3].Value.Resolved)
 		require.EqualValues(t, "", vars[3].Value.Original)
 		require.EqualValues(t, "MASKED", vars[3].Value.Status)
 		require.EqualValues(t, true, vars[3].Required)

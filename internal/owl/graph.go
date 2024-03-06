@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strings"
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
@@ -111,26 +112,34 @@ func specResolver(mutator func(*setVar)) graphql.FieldResolveFn {
 func init() {
 	SpecTypes = make(map[string]*specType)
 
-	sensitiveResolver := specResolver(func(v *setVar) {
-		v.Value.Status = "MASKED"
-		if len(v.Value.Resolved) > 24 {
-			v.Value.Resolved = v.Value.Resolved[:3] + "..." + v.Value.Resolved[len(v.Value.Resolved)-3:]
-			return
-		}
-		v.Value.Resolved = ""
-	})
+	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true,
+		specResolver(func(v *setVar) {
+			v.Value.Status = "MASKED"
+			original := v.Value.Original
+			v.Value.Original = ""
+			if len(original) > 24 {
+				v.Value.Resolved = original[:3] + "..." + original[len(original)-3:]
+			}
+		}),
+	)
 
-	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true, sensitiveResolver)
-	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true, sensitiveResolver)
+	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true,
+		specResolver(func(v *setVar) {
+			v.Value.Status = "MASKED"
+			original := v.Value.Original
+			v.Value.Original = ""
+			v.Value.Resolved = strings.Repeat("*", max(8, len(original)))
+		}),
+	)
 	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
 		specResolver(func(v *setVar) {
 			v.Value.Status = "HIDDEN"
-			v.Value.Original = v.Value.Resolved
 			v.Value.Resolved = ""
 		}),
 	)
 	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
 		specResolver(func(v *setVar) {
+			v.Value.Resolved = v.Value.Original
 			v.Value.Status = "LITERAL"
 		}),
 	)

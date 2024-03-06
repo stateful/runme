@@ -144,7 +144,7 @@ func (s *OperationSet) addRaw(raw []byte) error {
 
 		s.items[key] = &setVar{
 			Key:      key,
-			Value:    &setVarValue{Resolved: values[key]},
+			Value:    &setVarValue{Original: values[key]},
 			Spec:     &setVarSpec{Name: string(spec.Name), Checked: false},
 			Required: spec.Required,
 			Created:  &created,
