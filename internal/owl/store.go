@@ -68,6 +68,12 @@ type setVar struct {
 
 type SetVarResult []*setVar
 
+func (res SetVarResult) sortbyKey() {
+	slices.SortStableFunc(res, func(i, j *setVar) int {
+		return strings.Compare(i.Key, j.Key)
+	})
+}
+
 func (res SetVarResult) sort() {
 	slices.SortStableFunc(res, func(i, j *setVar) int {
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
@@ -307,21 +313,21 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 
 func (s *Store) validateQuery(query, vars io.StringWriter) error {
 	varDefs := []*ast.VariableDefinition{
-		// ast.NewVariableDefinition(&ast.VariableDefinition{
-		// 	Variable: ast.NewVariable(&ast.Variable{
-		// 		Name: ast.NewName(&ast.Name{
-		// 			Value: "insecure",
-		// 		}),
-		// 	}),
-		// 	Type: ast.NewNamed(&ast.Named{
-		// 		Name: ast.NewName(&ast.Name{
-		// 			Value: "Boolean",
-		// 		}),
-		// 	}),
-		// 	DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
-		// 		Value: false,
-		// 	}),
-		// }),
+		ast.NewVariableDefinition(&ast.VariableDefinition{
+			Variable: ast.NewVariable(&ast.Variable{
+				Name: ast.NewName(&ast.Name{
+					Value: "insecure",
+				}),
+			}),
+			Type: ast.NewNamed(&ast.Named{
+				Name: ast.NewName(&ast.Name{
+					Value: "Boolean",
+				}),
+			}),
+			DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
+				Value: false,
+			}),
+		}),
 	}
 
 	q, err := NewQuery("Validate", varDefs,
@@ -356,6 +362,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	}
 
 	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
+	// fmt.Println(query.String())
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)

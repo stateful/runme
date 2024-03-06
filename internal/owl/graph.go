@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
@@ -23,21 +24,22 @@ var (
 
 type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
+// todo(sebastian): use gql interface?
 func registerSpecFields(fields graphql.Fields) {
 	for k, v := range SpecTypes {
 		fields[k] = &graphql.Field{
 			Type:    v.typ,
 			Resolve: v.resolve,
 			Args: graphql.FieldConfigArgument{
-				"name": &graphql.ArgumentConfig{
-					Type: graphql.String,
+				"names": &graphql.ArgumentConfig{
+					Type: graphql.NewList(graphql.String),
 				},
 			},
 		}
 	}
 }
 
-func registerSpec(spec string, sensitive, mask bool) *specType {
+func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResolveFn) *specType {
 	typ := graphql.NewObject(graphql.ObjectConfig{
 		Name: fmt.Sprintf("%sSpecType", spec),
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
@@ -77,39 +79,48 @@ func registerSpec(spec string, sensitive, mask bool) *specType {
 		}),
 	})
 
-	resolve := func(p graphql.ResolveParams) (interface{}, error) {
-		return p.Source, nil
-	}
-
 	return &specType{
 		typ:     typ,
-		resolve: resolve,
+		resolve: resolver,
 	}
 }
 
 func init() {
 	SpecTypes = make(map[string]*specType)
-	SpecTypes["Secret"] = registerSpec("Secret", true, true)
-	SpecTypes["Password"] = registerSpec("Password", true, true)
-	SpecTypes["Opaque"] = registerSpec("Opaque", true, false)
-	SpecTypes["Plain"] = registerSpec("Plain", false, false)
+
+	SpecTypes["Secret"] = registerSpec("Secret",
+		true,
+		true,
+		func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Source, nil
+		},
+	)
+	SpecTypes["Password"] = registerSpec("Password",
+		true,
+		true,
+		func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Source, nil
+		},
+	)
+	SpecTypes["Opaque"] = registerSpec("Opaque",
+		true,
+		false,
+		func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Source, nil
+		},
+	)
+	SpecTypes["Plain"] = registerSpec("Plain",
+		false,
+		false,
+		func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Source, nil
+		},
+	)
 
 	ValidateType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "ValidateType",
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			fields := graphql.Fields{
-				"name": &graphql.Field{
-					Type: graphql.String,
-				},
-				"sensitive": &graphql.Field{
-					Type: graphql.Boolean,
-				},
-				"mask": &graphql.Field{
-					Type: graphql.Boolean,
-				},
-				"errors": &graphql.Field{
-					Type: graphql.NewList(graphql.String),
-				},
 				"done": &graphql.Field{
 					Type: EnvironmentType,
 				},
@@ -676,17 +687,33 @@ func reduceSnapshot() QueryNodeReducer {
 
 func reduceSepcs(store *Store) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		var specKeys []string
 		varSpecs := make(map[string]*setVar)
 		for _, opSet := range store.opSets {
 			if len(opSet.items) == 0 {
 				continue
 			}
 			for _, v := range opSet.items {
+				if _, ok := SpecTypes[v.Spec.Name]; !ok {
+					return nil, fmt.Errorf("unknown spec type: %s on %s", v.Spec.Name, v.Key)
+				}
 				varSpecs[v.Key] = v
+				specKeys = append(specKeys, v.Spec.Name)
 			}
 		}
 
-		nextVarSpec := func(varSpec *setVar, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+		nextVarSpecs := func(varSpecs map[string]*setVar, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+			var names []string
+			for _, v := range varSpecs {
+				if v.Spec.Name != spec {
+					continue
+				}
+				names = append(names, v.Key)
+			}
+			if len(names) == 0 {
+				return prevSelSet
+			}
+
 			nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
 				Selections: []ast.Selection{
 					ast.NewField(&ast.Field{
@@ -711,19 +738,25 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 					}),
 				},
 			})
+
+			valueNames := ast.NewListValue(&ast.ListValue{})
+			for _, name := range names {
+				valueNames.Values = append(valueNames.Values, ast.NewStringValue(&ast.StringValue{
+					Value: name,
+				}))
+			}
+
 			prevSelSet.Selections = append(prevSelSet.Selections,
 				ast.NewField(&ast.Field{
 					Name: ast.NewName(&ast.Name{
-						Value: varSpec.Spec.Name,
+						Value: spec,
 					}),
 					Arguments: []*ast.Argument{
 						ast.NewArgument(&ast.Argument{
 							Name: ast.NewName(&ast.Name{
-								Value: "name",
+								Value: "names",
 							}),
-							Value: ast.NewStringValue(&ast.StringValue{
-								Value: varSpec.Key,
-							}),
+							Value: valueNames,
 						}),
 					},
 					SelectionSet: nextSelSet,
@@ -734,11 +767,16 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 
 		topSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
 		nextSelSet := topSelSet
-		for _, v := range varSpecs {
-			if _, ok := SpecTypes[v.Spec.Name]; !ok {
-				return nil, fmt.Errorf("unknown spec type: %s", v.Spec.Name)
+
+		// todo: poor Sebastian's deduplication
+		slices.Sort(specKeys)
+		prev := ""
+		for _, specKey := range specKeys {
+			if prev == specKey {
+				continue
 			}
-			nextSelSet = nextVarSpec(v, nextSelSet)
+			prev = specKey
+			nextSelSet = nextVarSpecs(varSpecs, specKey, nextSelSet)
 		}
 
 		doneSelSet := ast.NewSelectionSet(&ast.SelectionSet{})

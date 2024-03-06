@@ -2,6 +2,7 @@ package owl
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -30,13 +31,13 @@ func Test_OperationSet(t *testing.T) {
 
 func Test_Store(t *testing.T) {
 	t.Parallel()
-
-	t.Run("Valildate query", func(t *testing.T) {
-		raw := []byte(`GOPATH=/Users/sourishkrout/go
+	fake := []byte(`GOPATH=/Users/sourishkrout/go
+INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Password!
 HOME=/Users/sourishkrout # Secret!
 HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 
-		store, err := NewStore(withSpecsFile(".env", raw, true))
+	t.Run("Valildate query", func(t *testing.T) {
+		store, err := NewStore(withSpecsFile(".env", fake, true))
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
@@ -45,11 +46,68 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 		require.NoError(t, err)
 
 		fmt.Println(query.String())
+	})
 
-		// j, err := json.MarshalIndent(vars, "", " ")
-		// require.NoError(t, err)
+	t.Run("Valildate specs", func(t *testing.T) {
+		store, err := NewStore(withSpecsFile(".env", fake, true))
+		require.NoError(t, err)
+		require.NotNil(t, store)
 
-		// fmt.Println(string(j))
+		vars, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.NotNil(t, vars)
+
+		vars.sortbyKey()
+
+		require.EqualValues(t, "GOPATH", vars[0].Key)
+		require.EqualValues(t, "Opaque", vars[0].Spec.Name)
+		require.EqualValues(t, "", vars[0].Value.Resolved)
+		require.EqualValues(t, "/Users/sourishkrout/go", vars[0].Value.Original)
+		require.EqualValues(t, "HIDDEN", vars[0].Value.Status)
+		require.EqualValues(t, false, vars[0].Required)
+
+		require.EqualValues(t, "HOME", vars[1].Key)
+		require.EqualValues(t, "Secret", vars[1].Spec.Name)
+		require.EqualValues(t, "", vars[1].Value.Resolved)
+		require.EqualValues(t, "", vars[1].Value.Original)
+		require.EqualValues(t, "MASKED", vars[1].Value.Status)
+		require.EqualValues(t, true, vars[1].Required)
+
+		require.EqualValues(t, "HOMEBREW_REPOSITORY", vars[2].Key)
+		require.EqualValues(t, "Plain", vars[2].Spec.Name)
+		require.EqualValues(t, "/opt/homebrew", vars[2].Value.Resolved)
+		require.EqualValues(t, "", vars[2].Value.Original)
+		require.EqualValues(t, "LITERAL", vars[2].Value.Status)
+		require.EqualValues(t, false, vars[2].Required)
+
+		require.EqualValues(t, "INSTRUMENTATION_KEY", vars[3].Key)
+		require.EqualValues(t, "Password", vars[3].Spec.Name)
+		require.EqualValues(t, "05a...972", vars[3].Value.Resolved)
+		require.EqualValues(t, "", vars[3].Value.Original)
+		require.EqualValues(t, "MASKED", vars[3].Value.Status)
+		require.EqualValues(t, true, vars[3].Required)
+	})
+
+	t.Run("Validate with process envs", func(t *testing.T) {
+		raw := []byte(`COMMAND_MODE=not-really-secret # Secret
+INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Password!
+HOME=fake-secret # Secret!
+HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
+		envs := os.Environ()
+
+		store, err := NewStore(WithEnvs(envs...), WithSpecFile(".env.example", raw))
+		require.NoError(t, err)
+
+		require.Len(t, store.opSets, 2)
+		require.Len(t, store.opSets[0].items, len(envs))
+
+		vars, err := store.snapshot(true)
+		require.NoError(t, err)
+
+		j, err := json.MarshalIndent(vars, "", " ")
+		require.NoError(t, err)
+
+		fmt.Println(string(j))
 	})
 
 	t.Run("Snapshot with empty env", func(t *testing.T) {
@@ -62,7 +120,7 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 
 		snapshot, err := store.snapshot(false)
 		require.NoError(t, err)
-		require.NotNil(t, snapshot)
+		require.Len(t, snapshot, 0)
 	})
 
 	t.Run("Snapshot with fake env", func(t *testing.T) {
