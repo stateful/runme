@@ -38,7 +38,7 @@ message CreateSessionRequest {
   optional Project project = 3;
 
   // optional selection of which env store implementation to sue
-  optional SessionEnvStoreType env_store_type = 4;
+  SessionEnvStoreType env_store_type = 4;
 }
 
 message CreateSessionResponse {

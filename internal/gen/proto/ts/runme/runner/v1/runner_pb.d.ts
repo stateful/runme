@@ -58,9 +58,9 @@ export interface CreateSessionRequest {
     /**
      * optional selection of which env store implementation to sue
      *
-     * @generated from protobuf field: optional runme.runner.v1.SessionEnvStoreType env_store_type = 4;
+     * @generated from protobuf field: runme.runner.v1.SessionEnvStoreType env_store_type = 4;
      */
-    envStoreType?: SessionEnvStoreType;
+    envStoreType: SessionEnvStoreType;
 }
 /**
  * @generated from protobuf message runme.runner.v1.CreateSessionResponse

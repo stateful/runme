@@ -208,7 +208,7 @@ class CreateSessionRequest$Type extends MessageType {
             { no: 1, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 2, name: "envs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "project", kind: "message", T: () => Project },
-            { no: 4, name: "env_store_type", kind: "enum", opt: true, T: () => ["runme.runner.v1.SessionEnvStoreType", SessionEnvStoreType, "SESSION_ENV_STORE_TYPE_"] }
+            { no: 4, name: "env_store_type", kind: "enum", T: () => ["runme.runner.v1.SessionEnvStoreType", SessionEnvStoreType, "SESSION_ENV_STORE_TYPE_"] }
         ]);
     }
 }
