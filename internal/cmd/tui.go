@@ -346,7 +346,7 @@ func (m tuiModel) View() string {
 				name += " (unnamed)"
 			}
 
-			filename := ansi.Color(getRelativePath(getCwd(), task.DocumentPath), "white+d")
+			filename := ansi.Color(task.RelDocumentPath, "white+d")
 
 			if active {
 				name = ansi.Color(name, "white+b")
