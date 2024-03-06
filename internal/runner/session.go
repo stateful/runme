@@ -173,7 +173,7 @@ func (es *owlEnvStorer) addEnvs(envs []string) error {
 
 func (es *owlEnvStorer) setEnv(k string, v string) error {
 	// todo(sebastian): add checking env length inside Update
-	err := es.owlStore.Update([]string{fmt.Sprintf("%s=%s", k, v)}, nil)
+	err := es.owlStore.Update([]string{fmt.Sprintf("%s=%q", k, v)}, nil)
 	if err != nil {
 		return err
 	}
