@@ -160,23 +160,24 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.Len(t, snapshot, 0)
 	})
 
-	t.Run("Snapshot with fake env", func(t *testing.T) {
-		envs := os.Environ()
+	// todo: this test-cases needs refactoring to run in CI
+	// t.Run("Snapshot with fake env", func(t *testing.T) {
+	// 	envs := os.Environ()
 
-		raw := []byte(`WASI_SDK_PATH=The path to the wasi-sdk directory # Plain!`)
-		store, err := NewStore(WithEnvs(envs...), WithSpecFile(".env.example", raw))
-		require.NoError(t, err)
+	// 	raw := []byte(`WASI_SDK_PATH=The path to the wasi-sdk directory # Plain!`)
+	// 	store, err := NewStore(WithEnvs(envs...), WithSpecFile(".env.example", raw))
+	// 	require.NoError(t, err)
 
-		require.Len(t, store.opSets, 2)
-		require.Len(t, store.opSets[0].items, len(envs))
-		require.Len(t, store.opSets[1].items, 1)
+	// 	require.Len(t, store.opSets, 2)
+	// 	require.Len(t, store.opSets[0].items, len(envs))
+	// 	require.Len(t, store.opSets[1].items, 1)
 
-		snapshot, err := store.snapshot(false)
-		require.NoError(t, err)
-		require.EqualValues(t, "/Users/sourishkrout/Projects/stateful/2022Q4/wasi-sdk/dist/wasi-sdk-16.5ga0a342ac182c", snapshot[0].Value.Resolved)
-		require.EqualValues(t, "", snapshot[0].Value.Original)
-		require.EqualValues(t, "Plain", snapshot[0].Spec.Name)
-	})
+	// 	snapshot, err := store.snapshot(false)
+	// 	require.NoError(t, err)
+	// 	require.EqualValues(t, "/Users/sourishkrout/Projects/stateful/2022Q4/wasi-sdk/dist/wasi-sdk-16.5ga0a342ac182c", snapshot[0].Value.Resolved)
+	// 	require.EqualValues(t, "", snapshot[0].Value.Original)
+	// 	require.EqualValues(t, "Plain", snapshot[0].Spec.Name)
+	// })
 
 	t.Run("LoadEnv", func(t *testing.T) {
 		// todo(sebastian): needs better solution
