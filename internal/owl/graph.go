@@ -31,8 +31,12 @@ func registerSpecFields(fields graphql.Fields) {
 			Type:    v.typ,
 			Resolve: v.resolve,
 			Args: graphql.FieldConfigArgument{
-				"names": &graphql.ArgumentConfig{
+				"keys": &graphql.ArgumentConfig{
 					Type: graphql.NewList(graphql.String),
+				},
+				"insecure": &graphql.ArgumentConfig{
+					Type:         graphql.Boolean,
+					DefaultValue: false,
 				},
 			},
 		}
@@ -85,36 +89,50 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
+func specResolver(mutator func(*setVar)) graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		insecure := p.Args["insecure"].(bool)
+		keysArg := p.Args["keys"].([]interface{})
+
+		opSet := p.Source.(*OperationSet)
+		for _, kArg := range keysArg {
+			if insecure {
+				continue
+			}
+			k := kArg.(string)
+			v := opSet.items[k]
+			mutator(v)
+		}
+
+		return p.Source, nil
+	}
+}
+
 func init() {
 	SpecTypes = make(map[string]*specType)
 
-	SpecTypes["Secret"] = registerSpec("Secret",
-		true,
-		true,
-		func(p graphql.ResolveParams) (interface{}, error) {
-			return p.Source, nil
-		},
+	sensitiveResolver := specResolver(func(v *setVar) {
+		v.Value.Status = "MASKED"
+		if len(v.Value.Resolved) > 24 {
+			v.Value.Resolved = v.Value.Resolved[:3] + "..." + v.Value.Resolved[len(v.Value.Resolved)-3:]
+			return
+		}
+		v.Value.Resolved = ""
+	})
+
+	SpecTypes["Secret"] = registerSpec("Secret", true, true, sensitiveResolver)
+	SpecTypes["Password"] = registerSpec("Password", true, true, sensitiveResolver)
+	SpecTypes["Opaque"] = registerSpec("Opaque", true, false,
+		specResolver(func(v *setVar) {
+			v.Value.Status = "HIDDEN"
+			v.Value.Original = v.Value.Resolved
+			v.Value.Resolved = ""
+		}),
 	)
-	SpecTypes["Password"] = registerSpec("Password",
-		true,
-		true,
-		func(p graphql.ResolveParams) (interface{}, error) {
-			return p.Source, nil
-		},
-	)
-	SpecTypes["Opaque"] = registerSpec("Opaque",
-		true,
-		false,
-		func(p graphql.ResolveParams) (interface{}, error) {
-			return p.Source, nil
-		},
-	)
-	SpecTypes["Plain"] = registerSpec("Plain",
-		false,
-		false,
-		func(p graphql.ResolveParams) (interface{}, error) {
-			return p.Source, nil
-		},
+	SpecTypes["Plain"] = registerSpec("Plain", false, false,
+		specResolver(func(v *setVar) {
+			v.Value.Status = "LITERAL"
+		}),
 	)
 
 	ValidateType = graphql.NewObject(graphql.ObjectConfig{
@@ -356,7 +374,6 @@ func init() {
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						insecure := p.Args["insecure"].(bool)
 						snapshot := SetVarResult{}
 						var opSet *OperationSet
 
@@ -371,29 +388,9 @@ func init() {
 						}
 
 						for _, v := range opSet.items {
-							if !insecure {
-								// todo: move "masking" into to "type system"
-								switch v.Spec.Name {
-								case "Plain", "Path":
-									v.Value.Status = "LITERAL"
-								case "Secret", "Password":
-									v.Value.Status = "MASKED"
-									if len(v.Value.Resolved) > 24 {
-										v.Value.Resolved = v.Value.Resolved[:3] + "..." + v.Value.Resolved[len(v.Value.Resolved)-3:]
-										break
-									}
-									v.Value.Resolved = ""
-								default:
-									v.Value.Status = "HIDDEN"
-									v.Value.Original = v.Value.Resolved
-									v.Value.Resolved = ""
-								}
-							}
-
 							snapshot = append(snapshot, v)
 						}
 						snapshot.sort()
-
 						return snapshot, nil
 					},
 				},
@@ -422,12 +419,12 @@ func init() {
 						},
 					})),
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						var names []map[string]string
+						var keys []map[string]string
 						for k := range SpecTypes {
-							names = append(names, map[string]string{"name": k})
+							keys = append(keys, map[string]string{"name": k})
 						}
 
-						return names, nil
+						return keys, nil
 					},
 				},
 			}
@@ -703,14 +700,14 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 		}
 
 		nextVarSpecs := func(varSpecs map[string]*setVar, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
-			var names []string
+			var keys []string
 			for _, v := range varSpecs {
 				if v.Spec.Name != spec {
 					continue
 				}
-				names = append(names, v.Key)
+				keys = append(keys, v.Key)
 			}
-			if len(names) == 0 {
+			if len(keys) == 0 {
 				return prevSelSet
 			}
 
@@ -739,9 +736,9 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 				},
 			})
 
-			valueNames := ast.NewListValue(&ast.ListValue{})
-			for _, name := range names {
-				valueNames.Values = append(valueNames.Values, ast.NewStringValue(&ast.StringValue{
+			valuekeys := ast.NewListValue(&ast.ListValue{})
+			for _, name := range keys {
+				valuekeys.Values = append(valuekeys.Values, ast.NewStringValue(&ast.StringValue{
 					Value: name,
 				}))
 			}
@@ -754,9 +751,19 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 					Arguments: []*ast.Argument{
 						ast.NewArgument(&ast.Argument{
 							Name: ast.NewName(&ast.Name{
-								Value: "names",
+								Value: "insecure",
 							}),
-							Value: valueNames,
+							Value: ast.NewVariable(&ast.Variable{
+								Name: ast.NewName(&ast.Name{
+									Value: "insecure",
+								}),
+							}),
+						}),
+						ast.NewArgument(&ast.Argument{
+							Name: ast.NewName(&ast.Name{
+								Value: "keys",
+							}),
+							Value: valuekeys,
 						}),
 					},
 					SelectionSet: nextSelSet,

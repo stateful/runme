@@ -2,8 +2,6 @@ package owl
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 
@@ -45,7 +43,7 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 		err = store.validateQuery(&query, &vars)
 		require.NoError(t, err)
 
-		fmt.Println(query.String())
+		// fmt.Println(query.String())
 	})
 
 	t.Run("Valildate specs", func(t *testing.T) {
@@ -101,13 +99,13 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.Len(t, store.opSets, 2)
 		require.Len(t, store.opSets[0].items, len(envs))
 
-		vars, err := store.snapshot(true)
+		_, err = store.snapshot(true)
 		require.NoError(t, err)
 
-		j, err := json.MarshalIndent(vars, "", " ")
-		require.NoError(t, err)
+		// j, err := json.MarshalIndent(vars, "", " ")
+		// require.NoError(t, err)
 
-		fmt.Println(string(j))
+		// fmt.Println(string(j))
 	})
 
 	t.Run("Snapshot with empty env", func(t *testing.T) {

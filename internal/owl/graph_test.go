@@ -100,17 +100,17 @@ func Test_Graph(t *testing.T) {
   environment {
     load(vars: $load_0, hasSpecs: false) {
       validate {
-        Opaque(names: ["GOPATH"]) {
+        Opaque(keys: ["GOPATH"]) {
           spec
           sensitive
           mask
           errors
-          Secret(names: ["HOME"]) {
+          Secret(keys: ["HOME"]) {
             spec
             sensitive
             mask
             errors
-            Plain(names: ["HOMEBREW_REPOSITORY"]) {
+            Plain(keys: ["HOMEBREW_REPOSITORY"]) {
               spec
               sensitive
               mask
