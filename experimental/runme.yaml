@@ -29,6 +29,7 @@ env:
 # The list of filters to apply to blocks.
 # "condition" must return a boolean value.
 # You can learn about the syntax at https://expr-lang.org/docs/language-definition.
+# Available fields are defined in internal/config/config_filter.go.
 filters:
   # Do not allow unnamed code blocks.
   - type: "FILTER_TYPE_BLOCK"

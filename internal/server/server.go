@@ -53,7 +53,7 @@ func New(c *Config, logger *zap.Logger) (_ *Server, err error) {
 
 	if c.TLSEnabled {
 		// TODO(adamb): redesign runmetls API.
-		tlsConfig, err = runmetls.GenerateTLS(defaultTLSDir, tlsFileMode, logger)
+		tlsConfig, err = runmetls.LoadOrGenerateConfig(c.CertFile, c.KeyFile, logger)
 		if err != nil {
 			return nil, err
 		}

@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/stateful/runme/v3/internal/config"
-	"github.com/stateful/runme/v3/internal/server"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
@@ -25,10 +24,11 @@ func getDescSource(ctx context.Context, cfg *config.Config) (grpcurl.DescriptorS
 }
 
 func dialServer(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, error) {
-	tlsConf, err := runmetls.LoadTLSConfig(server.GetDefaultTLSDir(), false)
+	tlsConf, err := runmetls.LoadServerConfig(cfg.ServerTLSCertFile, cfg.ServerTLSKeyFile)
 	if err != nil {
 		return nil, err
 	}
+	// TODO(adamb): remove insecure skip verify
 	tlsConf.InsecureSkipVerify = true
 
 	creds := credentials.NewTLS(tlsConf)
