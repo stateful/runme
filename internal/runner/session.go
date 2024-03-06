@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var owlStore = false // default off to bring it into mainline
+var owlStore = true
 
 type envStorer interface {
 	envs() []string
