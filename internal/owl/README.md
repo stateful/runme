@@ -6,8 +6,8 @@ version = 'v3'
 
 # The Owl Store 🦉
 
-...aka smart ENV store. A better solution to specify, validate, and resolve a user's or workload's environment. Because:
+### ...aka smart ENV store. A better solution to specify, validate, and resolve a user's or workload's environment. Because:
 
 ![Owl Store](owl.png)
 
-Environment variables aren't just for workloads they are for humans.
+### The owl 🦉 is wise and knows environment variables aren't just for workloads they are for humans, too.
