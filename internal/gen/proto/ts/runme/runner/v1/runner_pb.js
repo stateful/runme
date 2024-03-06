@@ -95,23 +95,23 @@ export var MonitorEnvResponseSnapshot_Status;
 /**
  * env store implementation
  *
- * @generated from protobuf enum runme.runner.v1.SessionEnvStore
+ * @generated from protobuf enum runme.runner.v1.SessionEnvStoreType
  */
-export var SessionEnvStore;
-(function (SessionEnvStore) {
+export var SessionEnvStoreType;
+(function (SessionEnvStoreType) {
     /**
      * uses default env store
      *
-     * @generated from protobuf enum value: SESSION_ENV_STORE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
      */
-    SessionEnvStore[SessionEnvStore["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    SessionEnvStoreType[SessionEnvStoreType["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
      * uses owl store
      *
-     * @generated from protobuf enum value: SESSION_ENV_STORE_OWL = 1;
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_OWL = 1;
      */
-    SessionEnvStore[SessionEnvStore["OWL"] = 1] = "OWL";
-})(SessionEnvStore || (SessionEnvStore = {}));
+    SessionEnvStoreType[SessionEnvStoreType["OWL"] = 1] = "OWL";
+})(SessionEnvStoreType || (SessionEnvStoreType = {}));
 /**
  * @generated from protobuf enum runme.runner.v1.ExecuteStop
  */
@@ -180,6 +180,9 @@ export var MonitorEnvType;
      */
     MonitorEnvType[MonitorEnvType["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
+     * possible expansion to have a "timeline" view
+     * MONITOR_ENV_TYPE_TIMELINE = 2;
+     *
      * @generated from protobuf enum value: MONITOR_ENV_TYPE_SNAPSHOT = 1;
      */
     MonitorEnvType[MonitorEnvType["SNAPSHOT"] = 1] = "SNAPSHOT";
@@ -205,7 +208,7 @@ class CreateSessionRequest$Type extends MessageType {
             { no: 1, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 2, name: "envs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "project", kind: "message", T: () => Project },
-            { no: 4, name: "env_store", kind: "enum", opt: true, T: () => ["runme.runner.v1.SessionEnvStore", SessionEnvStore, "SESSION_ENV_STORE_"] }
+            { no: 4, name: "env_store_type", kind: "enum", opt: true, T: () => ["runme.runner.v1.SessionEnvStoreType", SessionEnvStoreType, "SESSION_ENV_STORE_TYPE_"] }
         ]);
     }
 }

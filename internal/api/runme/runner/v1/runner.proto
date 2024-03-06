@@ -19,11 +19,11 @@ message Session {
 }
 
 // env store implementation
-enum SessionEnvStore {
+enum SessionEnvStoreType {
   // uses default env store
-  SESSION_ENV_STORE_UNSPECIFIED = 0;
+  SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
   // uses owl store
-  SESSION_ENV_STORE_OWL = 1;
+  SESSION_ENV_STORE_TYPE_OWL = 1;
 }
 
 message CreateSessionRequest {
@@ -38,7 +38,7 @@ message CreateSessionRequest {
   optional Project project = 3;
 
   // optional selection of which env store implementation to sue
-  optional SessionEnvStore env_store = 4;
+  optional SessionEnvStoreType env_store_type = 4;
 }
 
 message CreateSessionResponse {

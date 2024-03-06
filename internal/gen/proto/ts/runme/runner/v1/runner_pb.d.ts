@@ -58,9 +58,9 @@ export interface CreateSessionRequest {
     /**
      * optional selection of which env store implementation to sue
      *
-     * @generated from protobuf field: optional runme.runner.v1.SessionEnvStore env_store = 4;
+     * @generated from protobuf field: optional runme.runner.v1.SessionEnvStoreType env_store_type = 4;
      */
-    envStore?: SessionEnvStore;
+    envStoreType?: SessionEnvStoreType;
 }
 /**
  * @generated from protobuf message runme.runner.v1.CreateSessionResponse
@@ -604,19 +604,19 @@ export interface MonitorEnvResponse {
 /**
  * env store implementation
  *
- * @generated from protobuf enum runme.runner.v1.SessionEnvStore
+ * @generated from protobuf enum runme.runner.v1.SessionEnvStoreType
  */
-export declare enum SessionEnvStore {
+export declare enum SessionEnvStoreType {
     /**
      * uses default env store
      *
-     * @generated from protobuf enum value: SESSION_ENV_STORE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
      * uses owl store
      *
-     * @generated from protobuf enum value: SESSION_ENV_STORE_OWL = 1;
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_OWL = 1;
      */
     OWL = 1
 }
@@ -684,6 +684,9 @@ export declare enum MonitorEnvType {
      */
     UNSPECIFIED = 0,
     /**
+     * possible expansion to have a "timeline" view
+     * MONITOR_ENV_TYPE_TIMELINE = 2;
+     *
      * @generated from protobuf enum value: MONITOR_ENV_TYPE_SNAPSHOT = 1;
      */
     SNAPSHOT = 1
