@@ -124,13 +124,8 @@ func WithSpecs(included bool) OperationSetOption {
 
 func (s *OperationSet) addEnvs(envs ...string) (err error) {
 	for _, env := range envs {
-		switch len(strings.Split(env, "=")) {
-		case 1:
+		if len(strings.Split(env, "=")) == 1 {
 			env = env + "="
-		case 2:
-			// noop thanks to expected key=value
-		default:
-			return fmt.Errorf("invalid env format %s", env)
 		}
 		err = s.addRaw([]byte(env), false)
 	}
