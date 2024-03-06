@@ -25,6 +25,16 @@ func Test_OperationSet(t *testing.T) {
 
 		require.True(t, opSet.hasSpecs)
 	})
+
+	t.Run("Invalid specs", func(t *testing.T) {
+		naked := []string{"FOO"}
+
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "naked"))
+		require.NoError(t, err)
+
+		err = opSet.addEnvs(naked...)
+		require.NoError(t, err)
+	})
 }
 
 func Test_Store(t *testing.T) {
