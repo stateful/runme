@@ -23,6 +23,7 @@ const (
 	RunnerService_GetSession_FullMethodName     = "/runme.runner.v1.RunnerService/GetSession"
 	RunnerService_ListSessions_FullMethodName   = "/runme.runner.v1.RunnerService/ListSessions"
 	RunnerService_DeleteSession_FullMethodName  = "/runme.runner.v1.RunnerService/DeleteSession"
+	RunnerService_MonitorEnv_FullMethodName     = "/runme.runner.v1.RunnerService/MonitorEnv"
 	RunnerService_Execute_FullMethodName        = "/runme.runner.v1.RunnerService/Execute"
 	RunnerService_ResolveProgram_FullMethodName = "/runme.runner.v1.RunnerService/ResolveProgram"
 )
@@ -35,6 +36,7 @@ type RunnerServiceClient interface {
 	GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
+	MonitorEnv(ctx context.Context, in *MonitorEnvRequest, opts ...grpc.CallOption) (RunnerService_MonitorEnvClient, error)
 	// Execute executes a program. Examine "ExecuteRequest" to explore
 	// configuration options.
 	//
@@ -94,8 +96,40 @@ func (c *runnerServiceClient) DeleteSession(ctx context.Context, in *DeleteSessi
 	return out, nil
 }
 
+func (c *runnerServiceClient) MonitorEnv(ctx context.Context, in *MonitorEnvRequest, opts ...grpc.CallOption) (RunnerService_MonitorEnvClient, error) {
+	stream, err := c.cc.NewStream(ctx, &RunnerService_ServiceDesc.Streams[0], RunnerService_MonitorEnv_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &runnerServiceMonitorEnvClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RunnerService_MonitorEnvClient interface {
+	Recv() (*MonitorEnvResponse, error)
+	grpc.ClientStream
+}
+
+type runnerServiceMonitorEnvClient struct {
+	grpc.ClientStream
+}
+
+func (x *runnerServiceMonitorEnvClient) Recv() (*MonitorEnvResponse, error) {
+	m := new(MonitorEnvResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *runnerServiceClient) Execute(ctx context.Context, opts ...grpc.CallOption) (RunnerService_ExecuteClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RunnerService_ServiceDesc.Streams[0], RunnerService_Execute_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &RunnerService_ServiceDesc.Streams[1], RunnerService_Execute_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +176,7 @@ type RunnerServiceServer interface {
 	GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
+	MonitorEnv(*MonitorEnvRequest, RunnerService_MonitorEnvServer) error
 	// Execute executes a program. Examine "ExecuteRequest" to explore
 	// configuration options.
 	//
@@ -173,6 +208,9 @@ func (UnimplementedRunnerServiceServer) ListSessions(context.Context, *ListSessi
 }
 func (UnimplementedRunnerServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
+}
+func (UnimplementedRunnerServiceServer) MonitorEnv(*MonitorEnvRequest, RunnerService_MonitorEnvServer) error {
+	return status.Errorf(codes.Unimplemented, "method MonitorEnv not implemented")
 }
 func (UnimplementedRunnerServiceServer) Execute(RunnerService_ExecuteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
@@ -265,6 +303,27 @@ func _RunnerService_DeleteSession_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunnerService_MonitorEnv_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(MonitorEnvRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RunnerServiceServer).MonitorEnv(m, &runnerServiceMonitorEnvServer{stream})
+}
+
+type RunnerService_MonitorEnvServer interface {
+	Send(*MonitorEnvResponse) error
+	grpc.ServerStream
+}
+
+type runnerServiceMonitorEnvServer struct {
+	grpc.ServerStream
+}
+
+func (x *runnerServiceMonitorEnvServer) Send(m *MonitorEnvResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _RunnerService_Execute_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(RunnerServiceServer).Execute(&runnerServiceExecuteServer{stream})
 }
@@ -338,6 +397,11 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "MonitorEnv",
+			Handler:       _RunnerService_MonitorEnv_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "Execute",
 			Handler:       _RunnerService_Execute_Handler,

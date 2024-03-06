@@ -18,6 +18,14 @@ message Session {
   map<string, string> metadata = 3;
 }
 
+// env store implementation
+enum SessionEnvStore {
+  // uses default env store
+  SESSION_ENV_STORE_UNSPECIFIED = 0;
+  // uses owl store
+  SESSION_ENV_STORE_OWL = 1;
+}
+
 message CreateSessionRequest {
   // metadata is a map of client specific metadata.
   map<string, string> metadata = 1;
@@ -28,6 +36,9 @@ message CreateSessionRequest {
 
   // optional project from which to immediately load environment variables
   optional Project project = 3;
+
+  // optional selection of which env store implementation to sue
+  optional SessionEnvStore env_store = 4;
 }
 
 message CreateSessionResponse {
@@ -279,11 +290,56 @@ message ResolveProgramResponse {
   }
 }
 
+enum MonitorEnvType {
+  MONITOR_ENV_TYPE_UNSPECIFIED = 0;
+  MONITOR_ENV_TYPE_SNAPSHOT = 1;
+}
+
+message MonitorEnvRequest {
+  Session session = 1;
+}
+
+message MonitorEnvResponseSnapshot {
+  repeated SnapshotEnv envs = 1;
+
+  message SnapshotEnv {
+    Status status = 1;
+
+    string name = 2;
+
+    string spec = 3;
+
+    string original_value = 4;
+
+    string resolved_value = 5;
+  }
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+
+    STATUS_LITERAL = 1;
+
+    STATUS_HIDDEN = 2;
+
+    STATUS_MASKED = 3;
+  }
+}
+
+message MonitorEnvResponse {
+  MonitorEnvType type = 1;
+
+  oneof data {
+    MonitorEnvResponseSnapshot snapshot = 2;
+  }
+}
+
 service RunnerService {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {}
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {}
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {}
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
+
+  rpc MonitorEnv(MonitorEnvRequest) returns (stream MonitorEnvResponse) {}
 
   // Execute executes a program. Examine "ExecuteRequest" to explore
   // configuration options.

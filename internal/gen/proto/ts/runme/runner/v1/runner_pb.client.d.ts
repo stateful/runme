@@ -10,6 +10,9 @@ import type { ResolveProgramRequest } from "./runner_pb";
 import type { ExecuteResponse } from "./runner_pb";
 import type { ExecuteRequest } from "./runner_pb";
 import type { DuplexStreamingCall } from "@protobuf-ts/runtime-rpc";
+import type { MonitorEnvResponse } from "./runner_pb";
+import type { MonitorEnvRequest } from "./runner_pb";
+import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
 import type { DeleteSessionResponse } from "./runner_pb";
 import type { DeleteSessionRequest } from "./runner_pb";
 import type { ListSessionsResponse } from "./runner_pb";
@@ -40,6 +43,10 @@ export interface IRunnerServiceClient {
      * @generated from protobuf rpc: DeleteSession(runme.runner.v1.DeleteSessionRequest) returns (runme.runner.v1.DeleteSessionResponse);
      */
     deleteSession(input: DeleteSessionRequest, options?: RpcOptions): UnaryCall<DeleteSessionRequest, DeleteSessionResponse>;
+    /**
+     * @generated from protobuf rpc: MonitorEnv(runme.runner.v1.MonitorEnvRequest) returns (stream runme.runner.v1.MonitorEnvResponse);
+     */
+    monitorEnv(input: MonitorEnvRequest, options?: RpcOptions): ServerStreamingCall<MonitorEnvRequest, MonitorEnvResponse>;
     /**
      * Execute executes a program. Examine "ExecuteRequest" to explore
      * configuration options.
@@ -87,6 +94,10 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      * @generated from protobuf rpc: DeleteSession(runme.runner.v1.DeleteSessionRequest) returns (runme.runner.v1.DeleteSessionResponse);
      */
     deleteSession(input: DeleteSessionRequest, options?: RpcOptions): UnaryCall<DeleteSessionRequest, DeleteSessionResponse>;
+    /**
+     * @generated from protobuf rpc: MonitorEnv(runme.runner.v1.MonitorEnvRequest) returns (stream runme.runner.v1.MonitorEnvResponse);
+     */
+    monitorEnv(input: MonitorEnvRequest, options?: RpcOptions): ServerStreamingCall<MonitorEnvRequest, MonitorEnvResponse>;
     /**
      * Execute executes a program. Examine "ExecuteRequest" to explore
      * configuration options.
