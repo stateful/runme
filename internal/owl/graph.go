@@ -120,16 +120,16 @@ func init() {
 		v.Value.Resolved = ""
 	})
 
-	SpecTypes["Secret"] = registerSpec("Secret", true, true, sensitiveResolver)
-	SpecTypes["Password"] = registerSpec("Password", true, true, sensitiveResolver)
-	SpecTypes["Opaque"] = registerSpec("Opaque", true, false,
+	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true, sensitiveResolver)
+	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true, sensitiveResolver)
+	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
 		specResolver(func(v *setVar) {
 			v.Value.Status = "HIDDEN"
 			v.Value.Original = v.Value.Resolved
 			v.Value.Resolved = ""
 		}),
 	)
-	SpecTypes["Plain"] = registerSpec("Plain", false, false,
+	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
 		specResolver(func(v *setVar) {
 			v.Value.Status = "LITERAL"
 		}),

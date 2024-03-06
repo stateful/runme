@@ -13,6 +13,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
+	"github.com/stateful/godotenv"
 	"go.uber.org/zap"
 )
 
@@ -127,41 +128,27 @@ func (s *OperationSet) addEnvs(envs ...string) (err error) {
 		if len(strings.Split(env, "=")) == 1 {
 			env = env + "="
 		}
-		err = s.addRaw([]byte(env), false)
+		err = s.addRaw([]byte(env))
 	}
 	return err
 }
 
-func (s *OperationSet) addRaw(raw []byte, fromFile bool) error {
-	lines := [][]byte{raw}
-
-	if fromFile {
-		lines = bytes.Split(raw, []byte{'\n'})
+func (s *OperationSet) addRaw(raw []byte) error {
+	values, comments, err := godotenv.UnmarshalBytesWithComments(raw)
+	if err != nil {
+		return err
 	}
 
-	for _, rawLine := range lines {
-		line := rawLine
-		if fromFile {
-			line := bytes.Trim(rawLine, " \r")
-			if len(line) > 0 && line[0] == '#' {
-				continue
-			}
-			if len(bytes.Trim(line, " \r\n")) <= 0 {
-				continue
-			}
-		}
-
+	specs := ParseRawSpec(values, comments)
+	for key, spec := range specs {
 		created := time.Now()
-		k, val, spec, required := ParseRawSpec(line)
-		if len(spec) == 0 {
-			spec = "Opaque"
-		}
-		s.items[k] = &setVar{
-			Key:      k,
-			Raw:      string(line),
-			Value:    &setVarValue{Resolved: val},
-			Spec:     &setVarSpec{Name: spec, Checked: false},
-			Required: required,
+
+		s.items[key] = &setVar{
+			Key:      key,
+			Raw:      "", // TODO: Raw value is not supported yet
+			Value:    &setVarValue{Resolved: values[key]},
+			Spec:     &setVarSpec{Name: string(spec.Name), Checked: false},
+			Required: spec.Required,
 			Created:  &created,
 		}
 	}
@@ -232,7 +219,7 @@ func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 			return err
 		}
 
-		err = opSet.addRaw(raw, true)
+		err = opSet.addRaw(raw)
 		if err != nil {
 			return err
 		}
