@@ -204,15 +204,18 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.Len(t, snapshot, 3)
 
 		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Resolved)
-		require.EqualValues(t, "", snapshot[0].Value.Original)
+		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[0].Value.Status)
 		require.EqualValues(t, "Opaque", snapshot[0].Spec.Name)
 
 		require.EqualValues(t, "secret2", snapshot[1].Value.Resolved)
-		require.EqualValues(t, "", snapshot[1].Value.Original)
+		require.EqualValues(t, "secret2", snapshot[1].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[1].Value.Status)
 		require.EqualValues(t, "Opaque", snapshot[1].Spec.Name)
 
 		require.EqualValues(t, "secret3", snapshot[2].Value.Resolved)
-		require.EqualValues(t, "", snapshot[2].Value.Original)
+		require.EqualValues(t, "secret3", snapshot[2].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[2].Value.Status)
 		require.EqualValues(t, "Opaque", snapshot[2].Spec.Name)
 	})
 }

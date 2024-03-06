@@ -97,12 +97,15 @@ func specResolver(mutator func(*setVar)) graphql.FieldResolveFn {
 
 		opSet := p.Source.(*OperationSet)
 		for _, kArg := range keysArg {
-			if insecure {
-				continue
-			}
 			k := kArg.(string)
 			v := opSet.items[k]
-			mutator(v)
+			original := v.Value.Original
+			if !insecure {
+				mutator(v)
+			} else {
+				v.Value.Resolved = original
+				v.Value.Status = "LITERAL"
+			}
 		}
 
 		return p.Source, nil
