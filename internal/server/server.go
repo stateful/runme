@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -24,16 +23,8 @@ import (
 )
 
 const (
-	maxMsgSize  = 4 * 1024 * 1024 // 4 MiB
-	tlsFileMode = os.FileMode(0o700)
+	maxMsgSize = 4 * 1024 * 1024 // 4 MiB
 )
-
-// TODO(adamb): this should not be here...
-var defaultTLSDir = filepath.Join(getDefaultConfigHome(), "tls")
-
-func GetDefaultTLSDir() string {
-	return defaultTLSDir
-}
 
 type Config struct {
 	Address    string
@@ -114,26 +105,14 @@ func New(c *Config, logger *zap.Logger) (_ *Server, err error) {
 	}, nil
 }
 
+func (s *Server) Addr() string {
+	return s.lis.Addr().String()
+}
+
 func (s *Server) Serve() error {
 	return s.grpcServer.Serve(s.lis)
 }
 
-func (s *Server) Shutdown() error {
+func (s *Server) Shutdown() {
 	s.grpcServer.GracefulStop()
-	return errors.WithStack(s.lis.Close())
-}
-
-func getDefaultConfigHome() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		dir = os.TempDir()
-	}
-	_, fErr := os.Stat(dir)
-	if os.IsNotExist(fErr) {
-		mkdErr := os.MkdirAll(dir, 0o700)
-		if mkdErr != nil {
-			dir = os.TempDir()
-		}
-	}
-	return filepath.Join(dir, "runme")
 }

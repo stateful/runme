@@ -82,9 +82,8 @@ List all blocks from the "setup" and "teardown" categories:
 	return &cmd
 }
 
-func renderTasksAsTableForCmd(_ *cobra.Command, tasks []project.Task) error {
-	// TODO(adamb): it should be taken from cobra.Command.
-	term := term.System()
+func renderTasksAsTableForCmd(cmd *cobra.Command, tasks []project.Task) error {
+	term := term.FromIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 
 	// Detect width. For non-TTY, use a default width of 80.
 	// Max width is 120.

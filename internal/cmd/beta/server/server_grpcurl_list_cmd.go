@@ -42,6 +42,10 @@ func serverGRPCurlListCmd() *cobra.Command {
 					}
 
 					_, err = cmd.OutOrStdout().Write([]byte(strings.Join(result, "\n")))
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					_, err = cmd.OutOrStdout().Write([]byte("\n"))
 					return errors.WithStack(err)
 				},
 			)

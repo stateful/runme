@@ -21,8 +21,8 @@ import (
 
 const (
 	tlsFileMode = 0o600
-	certPEMFile = "cert.pem"
-	keyPEMFile  = "key.pem"
+	certPEMFile = "cert.pem" // deprecated
+	keyPEMFile  = "key.pem"  // deprecated
 )
 
 var nowFn = time.Now
@@ -95,6 +95,8 @@ func LoadOrGenerateConfig(certFile, keyFile string, logger *zap.Logger) (*tls.Co
 			return config, nil
 		}
 		logger.Warn("failed to validate TLS config; generating new cartificate", zap.Error(err))
+	} else {
+		logger.Info("certificate not found; generating new certificate")
 	}
 
 	return generateCertificate(certFile, keyFile)
@@ -201,5 +203,5 @@ func validateTLSConfig(config *tls.Config) (ttl time.Duration, _ error) {
 		return ttl, errors.New("certificate will expire soon")
 	}
 
-	return nowFn().Sub(cert.NotAfter), nil
+	return cert.NotAfter.Sub(nowFn()), nil
 }

@@ -16,6 +16,7 @@ package autoconfig
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -52,6 +53,7 @@ func init() {
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
 	mustProvide(container.Provide(getSession))
+	mustProvide(container.Provide(getUserConfigDir))
 	mustProvide(container.Provide(getViper))
 
 	if err := container.Invoke(func(viper *viper.Viper) {
@@ -70,7 +72,7 @@ func init() {
 	}
 }
 
-func getConfig(viper *viper.Viper) (*config.Config, error) {
+func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, error) {
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -95,7 +97,21 @@ func getConfig(viper *viper.Viper) (*config.Config, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	return config.ParseYAML(content)
+	cfg, err := config.ParseYAML(content)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.ServerTLSEnabled {
+		if cfg.ServerTLSCertFile == "" {
+			cfg.ServerTLSCertFile = filepath.Join(string(userCfgDir), "cert.pem")
+		}
+		if cfg.ServerTLSKeyFile == "" {
+			cfg.ServerTLSKeyFile = filepath.Join(string(userCfgDir), "key.pem")
+		}
+	}
+
+	return cfg, nil
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {
@@ -230,6 +246,13 @@ func getSession(cfg *config.Config, proj *project.Project) (*command.Session, er
 	}
 
 	return sess, nil
+}
+
+type UserConfigDir string
+
+func getUserConfigDir() (UserConfigDir, error) {
+	dir, err := os.UserConfigDir()
+	return UserConfigDir(dir), errors.WithStack(err)
 }
 
 func getViper() *viper.Viper { return viper.GetViper() }

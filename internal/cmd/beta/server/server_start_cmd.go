@@ -22,14 +22,16 @@ func serverStartCmd() *cobra.Command {
 				) error {
 					defer logger.Sync()
 
-					serverCfg := server.Config{
+					serverCfg := &server.Config{
 						Address:    cfg.ServerAddress,
 						CertFile:   cfg.ServerTLSCertFile,
 						KeyFile:    cfg.ServerTLSKeyFile,
 						TLSEnabled: cfg.ServerTLSEnabled,
 					}
 
-					s, err := server.New(&serverCfg, logger)
+					logger.Debug("server config", zap.Any("config", serverCfg))
+
+					s, err := server.New(serverCfg, logger)
 					if err != nil {
 						return err
 					}

@@ -22,18 +22,15 @@ func getDescriptorSource(ctx context.Context, cfg *config.Config) (grpcurl.Descr
 	if err != nil {
 		return nil, err
 	}
-	defer cc.Close()
 	client := grpcreflect.NewClientAuto(ctx, cc)
 	return grpcurl.DescriptorSourceFromServer(ctx, client), nil
 }
 
 func dialServer(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, error) {
-	tlsConf, err := runmetls.LoadServerConfig(cfg.ServerTLSCertFile, cfg.ServerTLSKeyFile)
+	tlsConf, err := runmetls.LoadClientConfig(cfg.ServerTLSCertFile, cfg.ServerTLSKeyFile)
 	if err != nil {
 		return nil, err
 	}
-	// TODO(adamb): remove insecure skip verify
-	tlsConf.InsecureSkipVerify = true
 
 	creds := credentials.NewTLS(tlsConf)
 
@@ -42,8 +39,6 @@ func dialServer(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, erro
 		network, addr = "unix", strings.TrimPrefix(addr, "unix://")
 	}
 
-	var opts []grpc.DialOption
-
-	cc, err := grpcurl.BlockingDial(ctx, network, addr, creds, opts...)
+	cc, err := grpcurl.BlockingDial(ctx, network, addr, creds)
 	return cc, errors.WithStack(err)
 }

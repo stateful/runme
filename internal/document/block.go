@@ -111,28 +111,23 @@ func (b *CodeBlock) Categories() []string {
 }
 
 func (b *CodeBlock) Clone() *CodeBlock {
+	clone := *b
+
 	attributes := make(map[string]string, len(b.attributes))
 	for key, value := range b.attributes {
 		attributes[key] = value
 	}
+	clone.attributes = attributes
 
 	lines := make([]string, len(b.lines))
 	copy(lines, b.lines)
+	clone.lines = lines
 
 	value := make([]byte, len(b.value))
 	copy(value, b.value)
+	clone.value = value
 
-	return &CodeBlock{
-		id:            b.id,
-		idGenerated:   b.idGenerated,
-		attributes:    attributes,
-		intro:         b.intro,
-		language:      b.language,
-		lines:         lines,
-		name:          b.name,
-		nameGenerated: b.nameGenerated,
-		value:         value,
-	}
+	return &clone
 }
 
 func (b *CodeBlock) Content() []byte {

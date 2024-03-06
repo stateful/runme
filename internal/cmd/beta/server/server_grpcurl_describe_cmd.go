@@ -35,6 +35,10 @@ func serverGRPCurlDescribeCmd() *cobra.Command {
 					}
 
 					_, err = cmd.OutOrStdout().Write([]byte(strings.Join(result, "\n")))
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					_, err = cmd.OutOrStdout().Write([]byte("\n"))
 					return errors.WithStack(err)
 				},
 			)
@@ -133,7 +137,7 @@ func describeSymbols(ctx context.Context, cfg *config.Config, symbols ...string)
 			options := grpcurl.FormatOptions{EmitJSONDefaultFields: true}
 			_, formatter, err := grpcurl.RequestParserAndFormatter(defaultGRPCurlFormat, descSource, nil, options)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to construct formatter")
+				return nil, errors.Wrap(err, "failed to construct json formatter")
 			}
 			str, err := formatter(tmpl)
 			if err != nil {
