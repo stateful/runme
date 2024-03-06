@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -75,7 +77,11 @@ func TestServer(t *testing.T) {
 		tlsConfig, err := runmetls.LoadClientConfig(cfg.CertFile, cfg.KeyFile)
 		require.NoError(t, err)
 
-		testConnectivity(t, s.Addr(), credentials.NewTLS(tlsConfig))
+		addr := s.Addr()
+		if runtime.GOOS == "windows" {
+			addr = strings.TrimPrefix(addr, "unix://")
+		}
+		testConnectivity(t, addr, credentials.NewTLS(tlsConfig))
 
 		s.Shutdown()
 		require.NoError(t, <-errc)

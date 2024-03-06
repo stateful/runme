@@ -86,12 +86,10 @@ func renderTasksAsTableForCmd(cmd *cobra.Command, tasks []project.Task) error {
 	term := term.FromIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 
 	// Detect width. For non-TTY, use a default width of 80.
-	// Max width is 120.
 	width, _, err := term.Size()
 	if err != nil {
 		width = 80
 	}
-	width = min(width, 120)
 
 	table := tableprinter.New(term.Out(), term.IsTTY(), width)
 
