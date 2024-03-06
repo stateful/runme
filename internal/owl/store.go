@@ -58,7 +58,6 @@ type setVarSpec struct {
 
 type setVar struct {
 	Key       string           `json:"key"`
-	Raw       string           `json:"raw"`
 	Value     *setVarValue     `json:"value,omitempty"`
 	Spec      *setVarSpec      `json:"spec,omitempty"`
 	Required  bool             `json:"required"`
@@ -145,7 +144,6 @@ func (s *OperationSet) addRaw(raw []byte) error {
 
 		s.items[key] = &setVar{
 			Key:      key,
-			Raw:      "", // TODO: Raw value is not supported yet
 			Value:    &setVarValue{Resolved: values[key]},
 			Spec:     &setVarSpec{Name: string(spec.Name), Checked: false},
 			Required: spec.Required,

@@ -155,9 +155,6 @@ func init() {
 				"key": &graphql.Field{
 					Type: graphql.String,
 				},
-				// "raw": &graphql.Field{
-				// 	Type: graphql.String,
-				// },
 				"value": &graphql.Field{
 					Type: graphql.NewObject(graphql.ObjectConfig{
 						Name: "VariableValueType",
@@ -231,9 +228,6 @@ func init() {
 		Name: "VariableInput",
 		Fields: graphql.InputObjectConfigFieldMap{
 			"key": &graphql.InputObjectFieldConfig{
-				Type: graphql.String,
-			},
-			"raw": &graphql.InputObjectFieldConfig{
 				Type: graphql.String,
 			},
 			"value": &graphql.InputObjectFieldConfig{
