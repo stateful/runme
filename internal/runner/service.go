@@ -156,7 +156,7 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 		return nil, nil
 	}
 
-	// todo(sebastian): this is not right for IDE projects
+	// todo(sebastian): this is not right for IDE projects - does it matter for others?
 	// opts := []project.ProjectOption{project.WithFindRepoUpward()}
 	opts := []project.ProjectOption{}
 
