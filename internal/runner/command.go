@@ -221,6 +221,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 
 	session := cfg.Session
 	if session == nil {
+		// todo(sebastian): owl store?
 		session, err = NewSession(nil, nil, cfg.Logger)
 		if err != nil {
 			return nil, err

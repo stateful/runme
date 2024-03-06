@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var owlStore = true
+var owlStoreDefault = false
 
 type envStorer interface {
 	envs() []string
@@ -32,12 +32,18 @@ type Session struct {
 }
 
 func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Session, error) {
+	return NewSessionWithStore(envs, proj, owlStoreDefault, logger)
+}
+
+func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
 
 	var storer envStorer
 	if !owlStore {
+		logger.Debug("using simple env store")
 		storer = newRunnerStorer(sessionEnvs...)
 	} else {
+		logger.Info("using owl store")
 		var err error
 		storer, err = newOwlStorer(sessionEnvs, proj, logger)
 		if err != nil {

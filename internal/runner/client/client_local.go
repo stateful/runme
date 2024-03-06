@@ -59,6 +59,7 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 
 	envs := append(os.Environ(), r.envs...)
 
+	// todo(sebastian): owl store?
 	sess, err := runner.NewSession(envs, nil, r.logger)
 	if err != nil {
 		return nil, err

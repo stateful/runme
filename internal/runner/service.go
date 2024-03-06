@@ -90,7 +90,9 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		envs = append(envs, projEnvs...)
 	}
 
-	sess, err := NewSession(envs, proj, r.logger)
+	owlStore := req.EnvStoreType == runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL
+
+	sess, err := NewSessionWithStore(envs, proj, owlStore, r.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +192,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	logger.Debug("received initial request", zap.Any("req", req))
 
 	createSession := func(envs []string) (*Session, error) {
+		// todo(sebastian): owl store?
 		return NewSession(envs, nil, r.logger)
 	}
 
