@@ -293,6 +293,8 @@ message ResolveProgramResponse {
 enum MonitorEnvType {
   MONITOR_ENV_TYPE_UNSPECIFIED = 0;
   MONITOR_ENV_TYPE_SNAPSHOT = 1;
+  // possible expansion to have a "timeline" view
+  // MONITOR_ENV_TYPE_TIMELINE = 2;
 }
 
 message MonitorEnvRequest {
