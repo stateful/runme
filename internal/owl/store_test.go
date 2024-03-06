@@ -25,8 +25,12 @@ func Test_OperationSet(t *testing.T) {
 
 		require.True(t, opSet.hasSpecs)
 	})
+}
 
-	t.Run("Invalid specs", func(t *testing.T) {
+// this suite is guarding against dotenv impl idiosyncrasies
+func Test_OperationSet_Valueless(t *testing.T) {
+	// interestingly dotenv impl return a value keyless
+	t.Run("Naked spec parse valueless", func(t *testing.T) {
 		naked := []string{"FOO"}
 
 		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "naked"))
@@ -34,6 +38,31 @@ func Test_OperationSet(t *testing.T) {
 
 		err = opSet.addEnvs(naked...)
 		require.NoError(t, err)
+
+		require.Len(t, opSet.items, 1)
+		require.EqualValues(t, "FOO", opSet.items["FOO"].Key)
+		require.EqualValues(t, "", opSet.items["FOO"].Value.Resolved)
+	})
+
+	// interestingly dotenv impl return an empty map for standalone values
+	t.Run("Naked specs parsed valueless", func(t *testing.T) {
+		naked := []string{"BAR", "FOO", "BAZ"}
+
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "naked"))
+		require.NoError(t, err)
+
+		err = opSet.addEnvs(naked...)
+		require.NoError(t, err)
+
+		require.Len(t, opSet.items, 3)
+		require.EqualValues(t, "BAR", opSet.items["BAR"].Key)
+		require.EqualValues(t, "", opSet.items["BAR"].Value.Resolved)
+
+		require.EqualValues(t, "FOO", opSet.items["FOO"].Key)
+		require.EqualValues(t, "", opSet.items["FOO"].Value.Resolved)
+
+		require.EqualValues(t, "BAZ", opSet.items["BAZ"].Key)
+		require.EqualValues(t, "", opSet.items["BAZ"].Value.Resolved)
 	})
 }
 
