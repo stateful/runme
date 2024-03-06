@@ -57,9 +57,10 @@ func listCmd() *cobra.Command {
 			for _, task := range tasks {
 				block := task.CodeBlock
 				lines := block.Lines()
+				relPath := getRelativePath(getCwd(), task.DocumentPath)
 				r := row{
 					Name:         block.Name(),
-					File:         task.RelDocumentPath,
+					File:         relPath,
 					FirstCommand: shell.TryGetNonCommentLine(lines),
 					Description:  block.Intro(),
 					Named:        !block.IsUnnamed(),
