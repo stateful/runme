@@ -3,7 +3,6 @@ package owl
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/graphql-go/graphql"
@@ -24,8 +23,8 @@ func Test_Graph(t *testing.T) {
 		b, err := json.MarshalIndent(result, "", " ")
 		require.NoError(t, err)
 
-		err = os.WriteFile("../../schema.json", b, 0o644)
-		require.NoError(t, err)
+		// err = os.WriteFile("../../schema.json", b, 0o644)
+		// require.NoError(t, err)
 
 		require.NotNil(t, b)
 	})
