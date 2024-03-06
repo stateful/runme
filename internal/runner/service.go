@@ -90,7 +90,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		envs = append(envs, projEnvs...)
 	}
 
-	sess, err := NewSession(envs, r.logger)
+	sess, err := NewSession(envs, proj, r.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,9 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 		return nil, nil
 	}
 
-	opts := []project.ProjectOption{project.WithFindRepoUpward()}
+	// todo(sebastian): this is not right for IDE projects - does it matter for others?
+	// opts := []project.ProjectOption{project.WithFindRepoUpward()}
+	opts := []project.ProjectOption{}
 
 	if len(runnerProj.EnvLoadOrder) > 0 {
 		opts = append(opts, project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder))
@@ -188,7 +190,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	logger.Debug("received initial request", zap.Any("req", req))
 
 	createSession := func(envs []string) (*Session, error) {
-		return NewSession(envs, r.logger)
+		return NewSession(envs, nil, r.logger)
 	}
 
 	var stdoutMem []byte
@@ -210,7 +212,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		}
 
 		if len(req.Envs) > 0 {
-			sess.AddEnvs(req.Envs)
+			err := sess.AddEnvs(req.Envs)
+			if err != nil {
+				return err
+			}
 		}
 	case runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
 		sess, err = r.sessions.MostRecentOrCreate(func() (*Session, error) { return createSession(req.Envs) })
@@ -453,7 +458,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if storeStdout {
-		_, err := sess.envStore.Set("__", string(stdoutMem))
+		err := sess.SetEnv("__", string(stdoutMem))
 		if err != nil {
 			logger.Sugar().Errorf("%v", err)
 		}

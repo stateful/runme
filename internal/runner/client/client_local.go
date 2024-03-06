@@ -59,7 +59,7 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 
 	envs := append(os.Environ(), r.envs...)
 
-	sess, err := runner.NewSession(envs, r.logger)
+	sess, err := runner.NewSession(envs, nil, r.logger)
 	if err != nil {
 		return nil, err
 	}

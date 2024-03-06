@@ -5,39 +5,70 @@ import (
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/stateful/runme/v3/internal/owl"
+	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"go.uber.org/zap"
 )
+
+var owlStore = false // default off to bring it into mainline
+
+type envStorer interface {
+	envs() []string
+	addEnvs(envs []string) error
+	updateStore(envs []string, newOrUpdated []string, deleted []string) error
+	setEnv(k string, v string) error
+}
 
 // Session is an abstract entity separate from
 // an execution. Currently, its main role is to
 // keep track of environment variables.
 type Session struct {
-	ID       string
-	Metadata map[string]string
+	ID        string
+	Metadata  map[string]string
+	envStorer envStorer
 
-	envStore *envStore
-	logger   *zap.Logger
+	logger *zap.Logger
 }
 
-func NewSession(envs []string, logger *zap.Logger) (*Session, error) {
+func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
 
-	s := &Session{
-		ID: ulid.GenerateID(),
+	var storer envStorer
+	if !owlStore {
+		storer = newRunnerStorer(sessionEnvs...)
+	} else {
+		var err error
+		storer, err = newOwlStorer(sessionEnvs, proj, logger)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-		envStore: newEnvStore(sessionEnvs...),
-		logger:   logger,
+	s := &Session{
+		ID:        ulid.GenerateID(),
+		envStorer: storer,
+
+		logger: logger,
 	}
 	return s, nil
 }
 
-func (s *Session) AddEnvs(envs []string) {
-	s.envStore.Add(envs...)
+func (s *Session) UpdateStore(envs []string, newOrUpdated []string, deleted []string) error {
+	return s.envStorer.updateStore(envs, newOrUpdated, deleted)
+}
+
+func (s *Session) AddEnvs(envs []string) error {
+	return s.envStorer.addEnvs(envs)
+}
+
+func (s *Session) SetEnv(k string, v string) error {
+	return s.envStorer.setEnv(k, v)
 }
 
 func (s *Session) Envs() []string {
-	return s.envStore.Values()
+	vals := s.envStorer.envs()
+	return vals
 }
 
 // thread-safe session list
@@ -51,6 +82,105 @@ type SessionList struct {
 	// section of the inner lock (belonging to store)
 	mu    sync.RWMutex
 	store *lru.Cache[string, *Session]
+}
+
+type runnerEnvStorer struct {
+	logger   *zap.Logger
+	envStore *envStore
+}
+
+func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
+	return &runnerEnvStorer{
+		envStore: newEnvStore(sessionEnvs...),
+	}
+}
+
+func (es *runnerEnvStorer) addEnvs(envs []string) error {
+	es.envStore.Add(envs...)
+	return nil
+}
+
+func (es *runnerEnvStorer) envs() []string {
+	envs, err := es.envStore.Values()
+	if err != nil {
+		es.logger.Error("failed to get envs", zap.Error(err))
+		return nil
+	}
+	return envs
+}
+
+func (es *runnerEnvStorer) setEnv(k string, v string) error {
+	_, err := es.envStore.Set(k, v)
+	return err
+}
+
+func (es *runnerEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {
+	es.envStore = newEnvStore(envs...).Add(newOrUpdated...).Delete(deleted...)
+	return nil
+}
+
+type owlEnvStorer struct {
+	logger   *zap.Logger
+	owlStore *owl.Store
+}
+
+func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*owlEnvStorer, error) {
+	opts := []owl.StoreOption{
+		owl.WithLogger(logger),
+		owl.WithEnvs(envs...),
+	}
+
+	if proj != nil {
+		specFilesOrder := proj.EnvFilesReadOrder()
+		specFilesOrder = append([]string{".env.example"}, specFilesOrder...)
+		for _, specFile := range specFilesOrder {
+			raw, _ := proj.LoadRawEnv(specFile)
+			if raw == nil {
+				continue
+			}
+			opt := owl.WithEnvFile(specFile, raw)
+			if specFile == ".env.example" {
+				opt = owl.WithSpecFile(specFile, raw)
+			}
+			opts = append(opts, opt)
+		}
+	}
+
+	owlStore, err := owl.NewStore(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &owlEnvStorer{
+		logger:   logger,
+		owlStore: owlStore,
+	}, nil
+}
+
+func (es *owlEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {
+	return es.owlStore.Update(newOrUpdated, deleted)
+}
+
+func (es *owlEnvStorer) addEnvs(envs []string) error {
+	return es.owlStore.Update(envs, nil)
+}
+
+func (es *owlEnvStorer) setEnv(k string, v string) error {
+	// todo(sebastian): add checking env length inside Update
+	err := es.owlStore.Update([]string{fmt.Sprintf("%s=%s", k, v)}, nil)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func (es *owlEnvStorer) envs() []string {
+	vals, err := es.owlStore.InsecureValues()
+	if err != nil {
+		es.logger.Error("failed to get vals", zap.Error(err))
+		return nil
+	}
+	return vals
 }
 
 func NewSessionList() (*SessionList, error) {

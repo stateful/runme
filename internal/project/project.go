@@ -13,8 +13,8 @@ import (
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
+	"github.com/stateful/godotenv"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/document"
@@ -557,4 +557,15 @@ func (p *Project) LoadEnvAsMap() (map[string]string, error) {
 	}
 
 	return env, nil
+}
+
+func (p *Project) LoadRawEnv(file string) ([]byte, error) {
+	raw, err := util.ReadFile(p.fs, file)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		// not an error if file does not exist
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return raw, nil
 }

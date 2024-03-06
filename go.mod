@@ -20,7 +20,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
-	github.com/joho/godotenv v1.5.1
+	github.com/graphql-go/graphql v0.8.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
@@ -28,6 +28,7 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/rwtodd/Go.Sed v0.0.0-20230610052213-ba3e9c186f0a
 	github.com/spf13/afero v1.11.0
+	github.com/stateful/godotenv v0.0.0-20240306155359-0ea300a1049d
 	github.com/vektah/gqlparser/v2 v2.5.11
 	github.com/yuin/goldmark v1.7.0
 	go.uber.org/dig v1.17.0

@@ -13,8 +13,8 @@ import (
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
+	"github.com/stateful/godotenv"
 	"github.com/stateful/runme/v3/internal/document"
 )
 
