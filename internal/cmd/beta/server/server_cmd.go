@@ -10,7 +10,7 @@ import (
 func Cmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:    "server",
-		Short:  "Commands to manage and call servers.",
+		Short:  "Commands to manage and call a runme server.",
 		Hidden: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.Invoke(

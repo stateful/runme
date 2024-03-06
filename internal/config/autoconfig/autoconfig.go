@@ -1,12 +1,17 @@
-// autoconfig provides a way to instantiate and configure objects like
-// logger, project, session, and others. It takes into account runme.yaml,
-// flags, and environment variables.
+// autoconfig provides a way to create various instances from the [config.Config] like
+// [project.Project], [command.Session], [zap.Logger].
 //
-// For example, to instantiate a project.Project, you can use:
+// For example, to instantiate [project.Project], you can write:
 //
 //	autoconfig.Invoke(func(p *project.Project) error {
 //	    ...
 //	})
+//
+// Treat it as a dependency injection mechanism.
+//
+// autoconfig relies on [viper.Viper] which has a set of limitations. The most important one
+// is the fact that it does not support hierarchical configuration per folder. We might consider
+// switchig from [viper.Viper] to something else in the future.
 package autoconfig
 
 import (
@@ -40,7 +45,7 @@ func mustProvide(err error) {
 }
 
 func init() {
-	// viper.Viper can be overridden by a decorator:
+	// [viper.Viper] can be overridden by a decorator:
 	//   container.Decorate(func(v *viper.Viper) *viper.Viper { return nil })
 	mustProvide(container.Provide(getConfig))
 	mustProvide(container.Provide(getLogger))
@@ -71,9 +76,10 @@ func getConfig(viper *viper.Viper) (*config.Config, error) {
 	}
 
 	// As viper does not offer writing config to a writer,
-	// the workaround is to create a memory file system,
-	// set it to viper, and write the config to it.
-	// Finally, a deferred cleanup function is called.
+	// the workaround is to create a in-memory file system,
+	// set it in viper, and write the config to it.
+	// Finally, a deferred cleanup function is called
+	// which brings back the OS file system.
 	// Source: https://github.com/spf13/viper/issues/856
 	memFS := afero.NewMemMapFs()
 

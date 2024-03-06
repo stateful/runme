@@ -47,6 +47,10 @@ All commands use the runme.yaml configuration file.`,
 		},
 	}
 
+	// The idea for persistent flags on the "beta" command is to
+	// interpret them in PersistentPreRunE() and merge with [config.Config].
+	// Use them sparingly and only for the cases when it does not make sense
+	// to alter the configuration file.
 	pFlags := cmd.PersistentFlags()
 	pFlags.StringVar(&cFlags.filename, "filename", "", "Name of the Markdown file to run blocks from.")
 	pFlags.StringSliceVar(&cFlags.categories, "category", nil, "Run blocks only from listed categories.")

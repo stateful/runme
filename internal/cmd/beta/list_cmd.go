@@ -22,8 +22,9 @@ func listCmd(_ *commonFlags) *cobra.Command {
 	var format string
 
 	cmd := cobra.Command{
-		Use:   "list [command1 command2 ...]",
-		Short: "List commands.",
+		Use:     "list [command1 command2 ...]",
+		Aliases: []string{"ls"},
+		Short:   "List commands.",
 		Long: `List commands by optionally providing their names delimited by space.
 The names are interpreted as glob patterns.
 
@@ -120,6 +121,9 @@ func renderTasksAsTableForCmd(_ *cobra.Command, tasks []project.Task) error {
 	return errors.WithStack(table.Render())
 }
 
+// TODO(adamb): output should be well-defined. It's questionable whether
+// using [project.Task] is a good idea, as it comes from a different domain/layer.
+// A person changing the [project.Task] structure may not be aware of the consequences.
 func renderTasksAsJSONForCmd(cmd *cobra.Command, tasks []project.Task) error {
 	raw, err := json.Marshal(tasks)
 	if err != nil {

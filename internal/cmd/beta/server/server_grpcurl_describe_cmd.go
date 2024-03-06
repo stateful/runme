@@ -45,6 +45,7 @@ func serverGRPCurlDescribeCmd() *cobra.Command {
 }
 
 func describeSymbols(ctx context.Context, cfg *config.Config, symbols ...string) ([]string, error) {
+	// If there are no symbols, we get all services.
 	if len(symbols) == 0 {
 		var err error
 		symbols, err = listServices(ctx, cfg)
@@ -53,7 +54,7 @@ func describeSymbols(ctx context.Context, cfg *config.Config, symbols ...string)
 		}
 	}
 
-	descSource, err := getDescSource(ctx, cfg)
+	descSource, err := getDescriptorSource(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +70,6 @@ func describeSymbols(ctx context.Context, cfg *config.Config, symbols ...string)
 		if err != nil {
 			return nil, err
 		}
-
-		fqn := dsc.GetFullyQualifiedName()
 
 		var elementType string
 		switch d := dsc.(type) {
@@ -125,16 +124,16 @@ func describeSymbols(ctx context.Context, cfg *config.Config, symbols ...string)
 			return nil, errors.Wrapf(err, "descriptor has unrecognized type %T", dsc)
 		}
 
-		result = append(result, fmt.Sprintf("%s is %s:\n%s", fqn, elementType, txt))
+		result = append(result, fmt.Sprintf("%s is %s:\n%s", dsc.GetFullyQualifiedName(), elementType, txt))
 
 		if dsc, ok := dsc.(*desc.MessageDescriptor); ok {
 			// for messages, also show a template in JSON, to make it easier to
 			// create a request to invoke an RPC
 			tmpl := grpcurl.MakeTemplate(dsc)
 			options := grpcurl.FormatOptions{EmitJSONDefaultFields: true}
-			_, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.Format("json"), descSource, nil, options)
+			_, formatter, err := grpcurl.RequestParserAndFormatter(defaultGRPCurlFormat, descSource, nil, options)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to construct formatter for json")
+				return nil, errors.Wrap(err, "failed to construct formatter")
 			}
 			str, err := formatter(tmpl)
 			if err != nil {

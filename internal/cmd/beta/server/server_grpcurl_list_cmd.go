@@ -52,7 +52,7 @@ func serverGRPCurlListCmd() *cobra.Command {
 }
 
 func listMethods(ctx context.Context, cfg *config.Config, symbol string) ([]string, error) {
-	descSource, err := getDescSource(ctx, cfg)
+	descSource, err := getDescriptorSource(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +61,10 @@ func listMethods(ctx context.Context, cfg *config.Config, symbol string) ([]stri
 }
 
 func listServices(ctx context.Context, cfg *config.Config) ([]string, error) {
-	descSource, err := getDescSource(ctx, cfg)
+	descSource, err := getDescriptorSource(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
-	svc, err := grpcurl.ListServices(descSource)
-	return svc, errors.WithStack(err)
+	services, err := grpcurl.ListServices(descSource)
+	return services, errors.WithStack(err)
 }

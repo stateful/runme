@@ -69,6 +69,8 @@ func printTasksContent(w io.Writer, tasks []project.Task) error {
 		if err != nil {
 			return errors.WithStack(err)
 		}
+		// TODO(adamb): this is not well-formatted output. It should go through some normalizer/formatter.
+		// This does not look great especially for snippets that start with "$".
 		_, err = w.Write([]byte(strings.Join(t.CodeBlock.Lines(), "\n")))
 		if err != nil {
 			return errors.WithStack(err)

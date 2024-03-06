@@ -1,6 +1,7 @@
 package beta
 
 import (
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -12,12 +13,13 @@ import (
 
 func runCmd(_ *commonFlags) *cobra.Command {
 	cmd := cobra.Command{
-		Use:   "run [command1 command2 ...]",
-		Short: "Run one or more commands.",
+		Use:     "run [command1 command2 ...]",
+		Aliases: []string{"exec"},
+		Short:   "Run one or more commands.",
 		Long: `Run commands by providing their names delimited by space.
 The names are interpreted as glob patterns.
 
-In the case of multiple commands, they are executed in the order they appear in the document.
+In the case of multiple commands, they are executed one-by-one in the order they appear in the document.
 
 The --category option additionally filters the list of tasks to execute by category.`,
 		Example: `Run all blocks starting with the "generate-" prefix:
@@ -54,6 +56,11 @@ Run all blocks from the "setup" and "teardown" categories:
 						return err
 					}
 					logger.Info("filtered tasks by filters", zap.Int("count", len(tasks)))
+
+					if len(tasks) == 0 {
+						_, err := cmd.ErrOrStderr().Write([]byte("no tasks to run\n"))
+						return errors.WithStack(err)
+					}
 
 					for _, t := range tasks {
 						err := runCommandNatively(cmd, t.CodeBlock, session, logger)

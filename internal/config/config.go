@@ -15,8 +15,8 @@ import (
 	configv1alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/config/v1alpha1"
 )
 
-// Config is a uniform configuration structure for runme.
-// It should unify all past, current, and future config proto versions.
+// Config is a flatten configuration of runme.yaml. The purpose of it is to
+// unify all the different configuration versions into a single struct.
 type Config struct {
 	// Dir- or git-based project fields.
 	DisableGitignore bool

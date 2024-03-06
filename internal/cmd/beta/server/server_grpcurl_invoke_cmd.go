@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/fullstorydev/grpcurl"
+	"github.com/jhump/protoreflect/grpcreflect"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -39,7 +40,7 @@ func serverGRPCurlInvokeCmd() *cobra.Command {
 						in = strings.NewReader(data)
 					}
 
-					return invokeRPC(cmd.Context(), cfg, in, cmd.OutOrStdout(), args[0])
+					return invokeRPCAndPrintResult(cmd.Context(), cfg, in, cmd.OutOrStdout(), args[0])
 				},
 			)
 		},
@@ -50,59 +51,57 @@ func serverGRPCurlInvokeCmd() *cobra.Command {
 	return &cmd
 }
 
-func invokeRPC(ctx context.Context, cfg *config.Config, in io.Reader, out io.Writer, symbol string) error {
+func invokeRPCAndPrintResult(ctx context.Context, cfg *config.Config, in io.Reader, out io.Writer, symbol string) error {
 	cc, err := dialServer(ctx, cfg)
 	if err != nil {
 		return err
 	}
+	defer cc.Close()
 
-	descSource, err := getDescSource(ctx, cfg)
-	if err != nil {
-		return err
-	}
+	client := grpcreflect.NewClientAuto(ctx, cc)
+	descSource := grpcurl.DescriptorSourceFromServer(ctx, client)
 
 	options := grpcurl.FormatOptions{
 		EmitJSONDefaultFields: true,
-		IncludeTextSeparator:  true,
 		AllowUnknownFields:    true,
 	}
-
-	rf, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.Format("json"), descSource, in, options)
+	parser, formatter, err := grpcurl.RequestParserAndFormatter(defaultGRPCurlFormat, descSource, in, options)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	h := &grpcurl.DefaultEventHandler{
+	var headers []string
+
+	eventHandler := &grpcurl.DefaultEventHandler{
 		Out:            out,
 		Formatter:      formatter,
 		VerbosityLevel: 0,
 	}
-
-	err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, nil, h, rf.Next)
+	err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, headers, eventHandler, parser.Next)
 	if err != nil {
 		errStatus, ok := status.FromError(err)
 		if !ok {
-			return errors.Wrapf(err, "error invoking method %q", symbol)
+			return errors.Wrapf(err, "error invoking method %q; failed to extract status", symbol)
 		}
-		h.Status = errStatus
+		eventHandler.Status = errStatus
 	}
 
-	reqSuffix := ""
-	respSuffix := ""
-	reqCount := rf.NumRequests()
+	reqSuffix, respSuffix := "", ""
+	reqCount := parser.NumRequests()
 	if reqCount != 1 {
 		reqSuffix = "s"
 	}
-	if h.NumResponses != 1 {
+	respCount := eventHandler.NumResponses
+	if respCount != 1 {
 		respSuffix = "s"
 	}
-	_, err = fmt.Fprintf(out, "Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, h.NumResponses, respSuffix)
+	_, err = fmt.Fprintf(out, "Sent %d request%s and received %d response%s\n", reqCount, reqSuffix, respCount, respSuffix)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	if h.Status.Code() != codes.OK {
-		grpcurl.PrintStatus(out, h.Status, formatter)
+	if eventHandler.Status.Code() != codes.OK {
+		grpcurl.PrintStatus(out, eventHandler.Status, formatter)
 	}
 
 	return nil

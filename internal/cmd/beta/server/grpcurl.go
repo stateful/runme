@@ -14,11 +14,15 @@ import (
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
-func getDescSource(ctx context.Context, cfg *config.Config) (grpcurl.DescriptorSource, error) {
+// defaultGRPCurlFormat indicates the default format for the grpcurl commands.
+var defaultGRPCurlFormat = grpcurl.Format("json")
+
+func getDescriptorSource(ctx context.Context, cfg *config.Config) (grpcurl.DescriptorSource, error) {
 	cc, err := dialServer(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
+	defer cc.Close()
 	client := grpcreflect.NewClientAuto(ctx, cc)
 	return grpcurl.DescriptorSourceFromServer(ctx, client), nil
 }
@@ -33,11 +37,9 @@ func dialServer(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, erro
 
 	creds := credentials.NewTLS(tlsConf)
 
-	addr := cfg.ServerAddress
-	network := "tcp"
+	network, addr := "tcp", cfg.ServerAddress
 	if strings.HasPrefix(addr, "unix://") {
-		network = "unix"
-		addr = strings.TrimPrefix(addr, "unix://")
+		network, addr = "unix", strings.TrimPrefix(addr, "unix://")
 	}
 
 	var opts []grpc.DialOption
