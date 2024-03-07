@@ -697,12 +697,12 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 	ctx, cancel := context.WithCancel(srv.Context())
 	snapshotc := make(chan owl.SetVarResult)
 	errc := make(chan error, 1)
+	defer close(errc)
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer close(errc)
 		for snapshot := range snapshotc {
 			msg := &runnerv1.MonitorEnvResponse{
 				Type: runnerv1.MonitorEnvType_MONITOR_ENV_TYPE_SNAPSHOT,
@@ -737,7 +737,9 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		sess.Subscribe(ctx, snapshotc)
+		if err := sess.Subscribe(ctx, snapshotc); err != nil {
+			errc <- err
+		}
 	}()
 
 	wg.Wait()

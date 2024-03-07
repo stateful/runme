@@ -20,7 +20,7 @@ type envStorer interface {
 	addEnvs(envs []string) error
 	updateStore(envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(k string, v string) error
-	subscribe(ctx context.Context, resc chan<- owl.SetVarResult)
+	subscribe(ctx context.Context, resc chan<- owl.SetVarResult) error
 }
 
 // Session is an abstract entity separate from
@@ -80,8 +80,8 @@ func (s *Session) Envs() []string {
 	return vals
 }
 
-func (s *Session) Subscribe(ctx context.Context, resc chan<- owl.SetVarResult) {
-	s.envStorer.subscribe(ctx, resc)
+func (s *Session) Subscribe(ctx context.Context, resc chan<- owl.SetVarResult) error {
+	return s.envStorer.subscribe(ctx, resc)
 }
 
 // thread-safe session list
@@ -108,8 +108,9 @@ func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
 	}
 }
 
-func (es *runnerEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarResult) {
-	// todo(sebastian): noop?
+func (es *runnerEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarResult) error {
+	defer close(resc)
+	return fmt.Errorf("not available for runner env store")
 }
 
 func (es *runnerEnvStorer) addEnvs(envs []string) error {
@@ -174,7 +175,7 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	}, nil
 }
 
-func (es *owlEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarResult) {
+func (es *owlEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarResult) error {
 	es.logger.Debug("subscribed to owl store")
 	go func() {
 		for {
@@ -186,6 +187,7 @@ func (es *owlEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarRes
 			time.Sleep(5 * time.Second)
 		}
 	}()
+	return nil
 }
 
 func (es *owlEnvStorer) send(ctx context.Context, resc chan<- owl.SetVarResult, snapshot owl.SetVarResult) bool {

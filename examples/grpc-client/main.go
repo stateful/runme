@@ -135,7 +135,7 @@ func run() error {
 				if msgData, ok := msg.Data.(*runnerv1.MonitorEnvResponse_Snapshot); ok {
 					_, _ = fmt.Printf("%s %d items in snapshot\n", time.Now(), len(msgData.Snapshot.Envs))
 					// for _, env := range msgData.Snapshot.Envs {
-					// 	fmt.Printf("%+v\n", env)
+					// 	_, _ = fmt.Printf("%+v\n", env)
 					// }
 				}
 			}
