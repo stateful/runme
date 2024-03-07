@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
@@ -19,6 +20,7 @@ import (
 
 	commandpkg "github.com/stateful/runme/v3/internal/command"
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/rbuffer"
 	"github.com/stateful/runme/v3/internal/ulid"
@@ -680,4 +682,99 @@ func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session,
 		}
 		return nil, false
 	}
+}
+
+func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1.RunnerService_MonitorEnvServer) error {
+	if req.Session == nil {
+		return status.Error(codes.InvalidArgument, "session is required")
+	}
+
+	sess, ok := r.sessions.GetSession(req.Session.Id)
+	if !ok {
+		return status.Error(codes.NotFound, "session not found")
+	}
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	snapshotc := make(chan owl.SetVarResult)
+	errc := make(chan error, 1)
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer close(errc)
+		for snapshot := range snapshotc {
+			msg := &runnerv1.MonitorEnvResponse{
+				Type: runnerv1.MonitorEnvType_MONITOR_ENV_TYPE_SNAPSHOT,
+			}
+
+			if err := convertToMonitorEnvResponse(msg, snapshot); err != nil {
+				errc <- err
+				goto errhandler
+			}
+
+			if err := srv.Send(msg); err != nil {
+				errc <- err
+				goto errhandler
+			}
+
+			continue
+
+		errhandler:
+			cancel()
+			// Project.Load() should be notified that it should exit early
+			// via cancel(). snapshotc will be closed, but it should be drained too
+			// in order to clean up any in-flight events.
+			// In theory, this is not necessary provided that all sends to snapshotc
+			// are wrapped in selects which observe ctx.Done().
+			//revive:disable:empty-block
+			for range snapshotc {
+			}
+			//revive:enable:empty-block
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		sess.Subscribe(ctx, snapshotc)
+	}()
+
+	wg.Wait()
+
+	return <-errc
+}
+
+func convertToMonitorEnvResponse(msg *runnerv1.MonitorEnvResponse, snapshot owl.SetVarResult) error {
+	envsSnapshot := []*runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv{}
+
+	for _, item := range snapshot {
+		status := runnerv1.MonitorEnvResponseSnapshot_STATUS_UNSPECIFIED
+		// todo(sebastian): once more final use enums in SetVarResult
+		switch item.Value.Status {
+		case "HIDDEN":
+			status = runnerv1.MonitorEnvResponseSnapshot_STATUS_HIDDEN
+		case "MASKED":
+			status = runnerv1.MonitorEnvResponseSnapshot_STATUS_MASKED
+		case "LITERAL":
+			status = runnerv1.MonitorEnvResponseSnapshot_STATUS_LITERAL
+		default:
+			return errors.Errorf("unknown status: %s", item.Value.Status)
+		}
+		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv{
+			Name:          item.Key,
+			Spec:          item.Spec.Name,
+			OriginalValue: item.Value.Original,
+			ResolvedValue: item.Value.Resolved,
+			Status:        status,
+		})
+	}
+
+	msg.Data = &runnerv1.MonitorEnvResponse_Snapshot{
+		Snapshot: &runnerv1.MonitorEnvResponseSnapshot{
+			Envs: envsSnapshot,
+		},
+	}
+
+	return nil
 }

@@ -1,8 +1,10 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/stateful/runme/v3/internal/owl"
@@ -18,6 +20,7 @@ type envStorer interface {
 	addEnvs(envs []string) error
 	updateStore(envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(k string, v string) error
+	subscribe(ctx context.Context, resc chan<- owl.SetVarResult)
 }
 
 // Session is an abstract entity separate from
@@ -77,6 +80,10 @@ func (s *Session) Envs() []string {
 	return vals
 }
 
+func (s *Session) Subscribe(ctx context.Context, resc chan<- owl.SetVarResult) {
+	s.envStorer.subscribe(ctx, resc)
+}
+
 // thread-safe session list
 type SessionList struct {
 	// WARNING: this mutex is created to prevent race conditions on certain
@@ -99,6 +106,10 @@ func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
 	return &runnerEnvStorer{
 		envStore: newEnvStore(sessionEnvs...),
 	}
+}
+
+func (es *runnerEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarResult) {
+	// todo(sebastian): noop?
 }
 
 func (es *runnerEnvStorer) addEnvs(envs []string) error {
@@ -161,6 +172,29 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 		logger:   logger,
 		owlStore: owlStore,
 	}, nil
+}
+
+func (es *owlEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarResult) {
+	es.logger.Debug("subscribed to owl store")
+	go func() {
+		for {
+			snapshot, _ := es.owlStore.Snapshot()
+			if !es.send(ctx, resc, snapshot) {
+				es.logger.Debug("context cancelled, stopping subscription")
+				return
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}()
+}
+
+func (es *owlEnvStorer) send(ctx context.Context, resc chan<- owl.SetVarResult, snapshot owl.SetVarResult) bool {
+	select {
+	case resc <- snapshot:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 func (es *owlEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {

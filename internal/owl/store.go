@@ -251,6 +251,18 @@ func WithLogger(logger *zap.Logger) StoreOption {
 	}
 }
 
+func (s *Store) Snapshot() (SetVarResult, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	items, err := s.snapshot(false)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
 func (s *Store) InsecureValues() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
