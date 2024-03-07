@@ -746,7 +746,7 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 }
 
 func convertToMonitorEnvResponse(msg *runnerv1.MonitorEnvResponse, snapshot owl.SetVarResult) error {
-	envsSnapshot := []*runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv{}
+	envsSnapshot := make([]*runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv, 0, len(snapshot))
 
 	for _, item := range snapshot {
 		status := runnerv1.MonitorEnvResponseSnapshot_STATUS_UNSPECIFIED
