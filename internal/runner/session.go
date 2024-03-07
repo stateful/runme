@@ -20,7 +20,7 @@ type envStorer interface {
 	addEnvs(envs []string) error
 	updateStore(envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(k string, v string) error
-	subscribe(ctx context.Context, resc chan<- owl.SetVarResult) error
+	subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error
 }
 
 // Session is an abstract entity separate from
@@ -80,8 +80,8 @@ func (s *Session) Envs() []string {
 	return vals
 }
 
-func (s *Session) Subscribe(ctx context.Context, resc chan<- owl.SetVarResult) error {
-	return s.envStorer.subscribe(ctx, resc)
+func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error {
+	return s.envStorer.subscribe(ctx, snapshotc)
 }
 
 // thread-safe session list
@@ -108,8 +108,8 @@ func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
 	}
 }
 
-func (es *runnerEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarResult) error {
-	defer close(resc)
+func (es *runnerEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error {
+	defer close(snapshotc)
 	return fmt.Errorf("not available for runner env store")
 }
 
@@ -175,12 +175,12 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	}, nil
 }
 
-func (es *owlEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarResult) error {
+func (es *owlEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error {
 	es.logger.Debug("subscribed to owl store")
 	go func() {
 		for {
 			snapshot, _ := es.owlStore.Snapshot()
-			if !es.send(ctx, resc, snapshot) {
+			if !es.send(ctx, snapshotc, snapshot) {
 				es.logger.Debug("context cancelled, stopping subscription")
 				return
 			}
@@ -190,9 +190,9 @@ func (es *owlEnvStorer) subscribe(ctx context.Context, resc chan<- owl.SetVarRes
 	return nil
 }
 
-func (es *owlEnvStorer) send(ctx context.Context, resc chan<- owl.SetVarResult, snapshot owl.SetVarResult) bool {
+func (es *owlEnvStorer) send(ctx context.Context, snapshotc chan<- owl.SetVarResult, snapshot owl.SetVarResult) bool {
 	select {
-	case resc <- snapshot:
+	case snapshotc <- snapshot:
 		return true
 	case <-ctx.Done():
 		return false
