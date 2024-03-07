@@ -122,14 +122,23 @@ func WithSpecs(included bool) OperationSetOption {
 	}
 }
 
-func (s *OperationSet) addEnvs(envs ...string) (err error) {
+func (s *OperationSet) addEnvs(envs ...string) error {
 	for _, env := range envs {
-		if len(strings.Split(env, "=")) == 1 {
-			env = env + "="
+		parts := strings.Split(env, "=")
+		k, v := parts[0], ""
+		if len(parts) > 1 {
+			v = strings.Join(parts[1:], "=")
 		}
-		err = s.addRaw([]byte(env))
+
+		created := time.Now()
+		s.items[k] = &setVar{
+			Key:     k,
+			Value:   &setVarValue{Original: v},
+			Spec:    &setVarSpec{Name: SpecNameOpaque},
+			Created: &created,
+		}
 	}
-	return err
+	return nil
 }
 
 func (s *OperationSet) addRaw(raw []byte) error {
