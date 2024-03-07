@@ -101,6 +101,8 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 
 	r.sessions.AddSession(sess)
 
+	r.logger.Debug("created session", zap.String("id", sess.ID))
+
 	return &runnerv1.CreateSessionResponse{
 		Session: toRunnerv1Session(sess),
 	}, nil
@@ -697,12 +699,12 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 	ctx, cancel := context.WithCancel(srv.Context())
 	snapshotc := make(chan owl.SetVarResult)
 	errc := make(chan error, 1)
-	defer close(errc)
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		defer close(errc)
 		for snapshot := range snapshotc {
 			msg := &runnerv1.MonitorEnvResponse{
 				Type: runnerv1.MonitorEnvType_MONITOR_ENV_TYPE_SNAPSHOT,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/stateful/runme/v3/internal/owl"
@@ -21,6 +20,7 @@ type envStorer interface {
 	updateStore(envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(k string, v string) error
 	subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error
+	complete()
 }
 
 // Session is an abstract entity separate from
@@ -84,6 +84,10 @@ func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResu
 	return s.envStorer.subscribe(ctx, snapshotc)
 }
 
+func (s *Session) Complete() {
+	s.envStorer.complete()
+}
+
 // thread-safe session list
 type SessionList struct {
 	// WARNING: this mutex is created to prevent race conditions on certain
@@ -113,6 +117,10 @@ func (es *runnerEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.S
 	return fmt.Errorf("not available for runner env store")
 }
 
+func (es *runnerEnvStorer) complete() {
+	// noop
+}
+
 func (es *runnerEnvStorer) addEnvs(envs []string) error {
 	es.envStore.Add(envs...)
 	return nil
@@ -137,9 +145,14 @@ func (es *runnerEnvStorer) updateStore(envs []string, newOrUpdated []string, del
 	return nil
 }
 
+type owlEnvStorerSubscriber chan<- owl.SetVarResult
+
 type owlEnvStorer struct {
 	logger   *zap.Logger
 	owlStore *owl.Store
+
+	mu          sync.RWMutex
+	subscribers []owlEnvStorerSubscriber
 }
 
 func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*owlEnvStorer, error) {
@@ -176,35 +189,90 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 }
 
 func (es *owlEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error {
+	defer es.mu.Unlock()
+	es.mu.Lock()
 	es.logger.Debug("subscribed to owl store")
+
+	es.subscribers = append(es.subscribers, snapshotc)
+
 	go func() {
-		for {
-			snapshot, _ := es.owlStore.Snapshot()
-			if !es.send(ctx, snapshotc, snapshot) {
-				es.logger.Debug("context cancelled, stopping subscription")
-				return
-			}
-			time.Sleep(5 * time.Second)
+		<-ctx.Done()
+		err := es.unsubscribe(snapshotc)
+		if err != nil {
+			es.logger.Error("unsubscribe from owl store failed", zap.Error(err))
 		}
 	}()
+
+	// avoid deadlock
+	go func() {
+		es.notifySubscribers()
+	}()
+
 	return nil
 }
 
-func (es *owlEnvStorer) send(ctx context.Context, snapshotc chan<- owl.SetVarResult, snapshot owl.SetVarResult) bool {
-	select {
-	case snapshotc <- snapshot:
-		return true
-	case <-ctx.Done():
-		return false
+func (es *owlEnvStorer) complete() {
+	defer es.mu.Unlock()
+	es.mu.Lock()
+
+	for _, sub := range es.subscribers {
+		err := es.unsubscribeUnsafe(sub)
+		if err != nil {
+			es.logger.Error("unsubscribe from owl store failed", zap.Error(err))
+		}
+	}
+}
+
+func (es *owlEnvStorer) unsubscribe(snapshotc chan<- owl.SetVarResult) error {
+	defer es.mu.Unlock()
+	es.mu.Lock()
+
+	return es.unsubscribeUnsafe(snapshotc)
+}
+
+func (es *owlEnvStorer) unsubscribeUnsafe(snapshotc chan<- owl.SetVarResult) error {
+	es.logger.Debug("unsubscribed from owl store")
+
+	for i, sub := range es.subscribers {
+		if sub == snapshotc {
+			es.subscribers = append(es.subscribers[:i], es.subscribers[i+1:]...)
+			close(sub)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("unknown subscriber")
+}
+
+func (es *owlEnvStorer) notifySubscribers() {
+	defer es.mu.RUnlock()
+	es.mu.RLock()
+
+	snapshot, err := es.owlStore.Snapshot()
+	if err != nil {
+		es.logger.Error("failed to get snapshot", zap.Error(err))
+		return
+	}
+
+	for _, sub := range es.subscribers {
+		sub <- snapshot
 	}
 }
 
 func (es *owlEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {
-	return es.owlStore.Update(newOrUpdated, deleted)
+	if err := es.owlStore.Update(newOrUpdated, deleted); err != nil {
+		return err
+	}
+	es.notifySubscribers()
+	return nil
 }
 
 func (es *owlEnvStorer) addEnvs(envs []string) error {
-	return es.owlStore.Update(envs, nil)
+	if err := es.owlStore.Update(envs, nil); err != nil {
+		return err
+	}
+	es.notifySubscribers()
+	return nil
 }
 
 func (es *owlEnvStorer) setEnv(k string, v string) error {
@@ -213,6 +281,7 @@ func (es *owlEnvStorer) setEnv(k string, v string) error {
 	if err != nil {
 		return err
 	}
+	es.notifySubscribers()
 	return err
 }
 
@@ -258,6 +327,14 @@ func (sl *SessionList) GetSession(id string) (*Session, bool) {
 }
 
 func (sl *SessionList) DeleteSession(id string) (present bool) {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+
+	sess, found := sl.GetSession(id)
+	if found {
+		sess.Complete()
+	}
+
 	return sl.store.Remove(id)
 }
 
