@@ -724,7 +724,7 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 			cancel()
 			// Project.Load() should be notified that it should exit early
 			// via cancel(). snapshotc will be closed, but it should be drained too
-			// in order to clean up any in-flight events.
+			// in order to clean up any in-flight results.
 			// In theory, this is not necessary provided that all sends to snapshotc
 			// are wrapped in selects which observe ctx.Done().
 			//revive:disable:empty-block
