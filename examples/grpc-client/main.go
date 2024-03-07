@@ -25,7 +25,7 @@ var (
 	file           = flag.String("file", "hello.md", "file with content to upper case")
 	resultFile     = flag.String("write-result", "-", "path to a result file (default: stdout)")
 	createSession  = flag.Bool("create-session", false, "create a new session")
-	subscribeToEnv = flag.Bool("subscribe-env", false, "create a new session")
+	subscribeToEnv = flag.String("subscribe-env", "-", "create a new session")
 	parseDocument  = flag.Bool("parse-document", false, "parse a dummy document")
 	deleteSession  = flag.String("delete-session", "", "delete the given session")
 	tlsDir         = flag.String("tls", "", "path to tls files")
@@ -102,9 +102,9 @@ func run() error {
 
 	client := runnerv1.NewRunnerServiceClient(conn)
 
-	if *createSession {
+	if *createSession || *subscribeToEnv == "-" {
 		envType := runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_UNSPECIFIED
-		if *subscribeToEnv {
+		if subscribeToEnv != nil {
 			envType = runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL
 		}
 		resp, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{
@@ -115,10 +115,13 @@ func run() error {
 			return err
 		}
 
-		_, _ = fmt.Println(resp.Session.Id)
+		subscribeToEnv = &resp.Session.Id
+		_, _ = fmt.Println(*subscribeToEnv)
+	}
 
+	if subscribeToEnv != nil {
 		meClient, err := client.MonitorEnv(context.Background(), &runnerv1.MonitorEnvRequest{
-			Session: &runnerv1.Session{Id: resp.Session.Id},
+			Session: &runnerv1.Session{Id: *subscribeToEnv},
 		})
 		if err != nil {
 			return err
@@ -141,7 +144,7 @@ func run() error {
 			}
 		}
 
-		if *subscribeToEnv {
+		if subscribeToEnv != nil {
 			g.Go(subscribeEnv)
 			return g.Wait()
 		}
