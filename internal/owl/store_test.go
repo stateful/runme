@@ -88,7 +88,9 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 	})
 
 	t.Run("Valildate specs", func(t *testing.T) {
-		store, err := NewStore(withSpecsFile(".env", fake, true))
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		// todo(sebastian): test the unresolved case (line below)
+		// store, err := NewStore(withSpecsFile(".env", fake, true))
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
@@ -202,6 +204,8 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		snapshot, err := store.snapshot(true)
 		require.NoError(t, err)
 		require.Len(t, snapshot, 3)
+
+		snapshot.sortbyKey()
 
 		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Resolved)
 		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Original)

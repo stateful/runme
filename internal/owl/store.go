@@ -52,8 +52,9 @@ type setVarValue struct {
 }
 
 type setVarSpec struct {
-	Name    string `json:"name"`
-	Checked bool   `json:"checked"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Checked     bool   `json:"checked"`
 }
 
 type setVar struct {
@@ -141,7 +142,7 @@ func (s *OperationSet) addEnvs(envs ...string) error {
 	return nil
 }
 
-func (s *OperationSet) addRaw(raw []byte) error {
+func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 	values, comments, err := godotenv.UnmarshalBytesWithComments(raw)
 	if err != nil {
 		return err
@@ -151,10 +152,25 @@ func (s *OperationSet) addRaw(raw []byte) error {
 	for key, spec := range specs {
 		created := time.Now()
 
+		valueStatus := "UNRESOLVED"
+		originalValue := values[key]
+		specDescription := ""
+		if hasSpecs {
+			specDescription = originalValue
+			originalValue = ""
+		}
+
 		s.items[key] = &setVar{
-			Key:      key,
-			Value:    &setVarValue{Original: values[key]},
-			Spec:     &setVarSpec{Name: string(spec.Name), Checked: false},
+			Key: key,
+			Value: &setVarValue{
+				Original: originalValue,
+				Status:   valueStatus,
+			},
+			Spec: &setVarSpec{
+				Name:        string(spec.Name),
+				Description: specDescription,
+				Checked:     false,
+			},
 			Required: spec.Required,
 			Created:  &created,
 		}
@@ -163,24 +179,35 @@ func (s *OperationSet) addRaw(raw []byte) error {
 	return nil
 }
 
-func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, location string, hasSpecs bool) error {
+func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, location string, isSpecs bool) error {
+	specsInResults := resolverOpSet.hasSpecs
 	for _, v := range vars {
-		old, ok := resolverOpSet.items[v.Key]
-		if hasSpecs && ok {
+		old, oldFound := resolverOpSet.items[v.Key]
+		if isSpecs && oldFound {
+			// we already have a value, assign spec
 			old.Spec = v.Spec
 			old.Required = v.Required
 			continue
 		}
-		if ok {
+
+		if oldFound {
+			// already have a value, assign new value
+			v.Value.Resolved = old.Value.Original
+			v.Value.Status = "LITERAL"
 			v.Created = old.Created
 		}
+
+		if !oldFound && !specsInResults {
+			// handle spec-less stores
+			v.Value.Resolved = v.Value.Original
+			v.Value.Status = "LITERAL"
+		}
+
 		v.Updated = v.Created
 		v.Operation = &setVarOperation{
-			// Kind:     resolverOpSet.operation.kind,
 			Location: location,
 		}
 		resolverOpSet.items[v.Key] = v
-
 	}
 	return nil
 }
@@ -231,7 +258,7 @@ func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 			return err
 		}
 
-		err = opSet.addRaw(raw)
+		err = opSet.addRaw(raw, hasSpecs)
 		if err != nil {
 			return err
 		}
@@ -376,7 +403,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	}
 
 	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
-	// fmt.Println(query.String())
+	// _, _ := fmt.Println(query.String())
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
@@ -385,10 +412,11 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	}
 	varValues["insecure"] = insecure
 
-	// j, err := json.MarshalIndent(varValues, "", " ")
+	// j, err := json.Marshal(varValues)
 	// if err != nil {
 	// 	return nil, err
 	// }
+	// fmt.Println(string(j))
 	// s.logger.Debug("snapshot vars", zap.String("vars", string(j)))
 
 	result := graphql.Do(graphql.Params{

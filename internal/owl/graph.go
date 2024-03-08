@@ -90,7 +90,7 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
-func specResolver(mutator func(*setVar)) graphql.FieldResolveFn {
+func specResolver(mutator func(*setVar, bool)) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
 		keysArg := p.Args["keys"].([]interface{})
@@ -104,13 +104,12 @@ func specResolver(mutator func(*setVar)) graphql.FieldResolveFn {
 				continue
 			}
 
-			original := v.Value.Original
-			if !insecure {
-				mutator(v)
-			} else {
-				v.Value.Resolved = original
-				v.Value.Status = "LITERAL"
+			if v.Value.Status == "UNRESOLVED" {
+				// todo(sebastian): most obvious validation error?
+				continue
 			}
+
+			mutator(v, insecure)
 		}
 
 		return p.Source, nil
@@ -121,7 +120,14 @@ func init() {
 	SpecTypes = make(map[string]*specType)
 
 	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true,
-		specResolver(func(v *setVar) {
+		specResolver(func(v *setVar, insecure bool) {
+			if insecure {
+				original := v.Value.Original
+				v.Value.Resolved = original
+				v.Value.Status = "LITERAL"
+				return
+			}
+
 			v.Value.Status = "MASKED"
 			original := v.Value.Original
 			v.Value.Original = ""
@@ -132,7 +138,14 @@ func init() {
 	)
 
 	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true,
-		specResolver(func(v *setVar) {
+		specResolver(func(v *setVar, insecure bool) {
+			if insecure {
+				original := v.Value.Original
+				v.Value.Resolved = original
+				v.Value.Status = "LITERAL"
+				return
+			}
+
 			v.Value.Status = "MASKED"
 			original := v.Value.Original
 			v.Value.Original = ""
@@ -140,13 +153,27 @@ func init() {
 		}),
 	)
 	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
-		specResolver(func(v *setVar) {
+		specResolver(func(v *setVar, insecure bool) {
+			if insecure {
+				original := v.Value.Original
+				v.Value.Resolved = original
+				v.Value.Status = "LITERAL"
+				return
+			}
+
 			v.Value.Status = "HIDDEN"
 			v.Value.Resolved = ""
 		}),
 	)
 	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
-		specResolver(func(v *setVar) {
+		specResolver(func(v *setVar, insecure bool) {
+			if insecure {
+				original := v.Value.Original
+				v.Value.Resolved = original
+				v.Value.Status = "LITERAL"
+				return
+			}
+
 			v.Value.Resolved = v.Value.Original
 			v.Value.Status = "LITERAL"
 		}),
@@ -202,6 +229,9 @@ func init() {
 						Name: "VariableSpecType",
 						Fields: graphql.Fields{
 							"name": &graphql.Field{
+								Type: graphql.String,
+							},
+							"description": &graphql.Field{
 								Type: graphql.String,
 							},
 							"checked": &graphql.Field{
@@ -274,6 +304,9 @@ func init() {
 					Name: "VariableSpecInput",
 					Fields: graphql.InputObjectConfigFieldMap{
 						"name": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"description": &graphql.InputObjectFieldConfig{
 							Type: graphql.String,
 						},
 						"checked": &graphql.InputObjectFieldConfig{
@@ -499,6 +532,7 @@ func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, string, b
 			resolverOpSet = p.Source.(*OperationSet)
 		default:
 			resolverOpSet, err = NewOperationSet(WithOperation(TransientSetOperation, "resolver"))
+			resolverOpSet.hasSpecs = resolverOpSet.hasSpecs || hasSpecs
 			if err != nil {
 				return nil, err
 			}
@@ -564,11 +598,11 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 			}))
 
 			nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-			nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "location",
-				}),
-			}))
+			// nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
+			// 	Name: ast.NewName(&ast.Name{
+			// 		Value: "location",
+			// 	}),
+			// }))
 			selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
 				Name: ast.NewName(&ast.Name{
 					Value: opName,
