@@ -699,12 +699,12 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 	ctx, cancel := context.WithCancel(srv.Context())
 	snapshotc := make(chan owl.SetVarResult)
 	errc := make(chan error, 1)
+	defer close(errc)
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer close(errc)
 		for snapshot := range snapshotc {
 			msg := &runnerv1.MonitorEnvResponse{
 				Type: runnerv1.MonitorEnvType_MONITOR_ENV_TYPE_SNAPSHOT,
@@ -724,7 +724,7 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 
 		errhandler:
 			cancel()
-			// Project.Load() should be notified that it should exit early
+			// subscribers should be notified that they should exit early
 			// via cancel(). snapshotc will be closed, but it should be drained too
 			// in order to clean up any in-flight results.
 			// In theory, this is not necessary provided that all sends to snapshotc
@@ -734,6 +734,8 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 			}
 			//revive:enable:empty-block
 		}
+
+		errc <- nil
 	}()
 
 	wg.Add(1)
