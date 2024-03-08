@@ -75,9 +75,9 @@ func (res SetVarResult) sortbyKey() {
 }
 
 func (res SetVarResult) sort() {
-	slices.SortStableFunc(res, func(i, j *setVar) int {
+	slices.SortFunc(res, func(i, j *setVar) int {
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
-			return 0
+			return int(i.Updated.Unix() - j.Updated.Unix())
 		}
 		if i.Spec.Name != "Opaque" {
 			return -1
