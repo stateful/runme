@@ -530,9 +530,10 @@ func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, string, b
 		switch p.Source.(type) {
 		case *OperationSet:
 			resolverOpSet = p.Source.(*OperationSet)
+			resolverOpSet.hasSpecs = resolverOpSet.hasSpecs || hasSpecs
 		default:
 			resolverOpSet, err = NewOperationSet(WithOperation(TransientSetOperation, "resolver"))
-			resolverOpSet.hasSpecs = resolverOpSet.hasSpecs || hasSpecs
+			resolverOpSet.hasSpecs = hasSpecs
 			if err != nil {
 				return nil, err
 			}
