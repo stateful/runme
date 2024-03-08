@@ -161,20 +161,28 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 		owl.WithEnvs(envs...),
 	}
 
+	specSourceFiles := []string{}
+	envFilesOrder := []string{}
 	if proj != nil {
-		specFilesOrder := proj.EnvFilesReadOrder()
-		specFilesOrder = append([]string{".env.example"}, specFilesOrder...)
-		for _, specFile := range specFilesOrder {
-			raw, _ := proj.LoadRawEnv(specFile)
-			if raw == nil {
-				continue
-			}
-			opt := owl.WithEnvFile(specFile, raw)
-			if specFile == ".env.example" {
-				opt = owl.WithSpecFile(specFile, raw)
-			}
-			opts = append(opts, opt)
+		// todo(sebastian): specs loading should be independent of project
+		specSourceFiles = []string{".env.spec", ".env.example"}
+		envFilesOrder = proj.EnvFilesReadOrder()
+	}
+
+	specFilesOrder := append(specSourceFiles, envFilesOrder...)
+	for _, specFile := range specFilesOrder {
+		raw, _ := proj.LoadRawEnv(specFile)
+		if raw == nil {
+			continue
 		}
+		opt := owl.WithEnvFile(specFile, raw)
+		for _, ssf := range specSourceFiles {
+			if specFile == ssf {
+				opt = owl.WithSpecFile(specFile, raw)
+				break
+			}
+		}
+		opts = append(opts, opt)
 	}
 
 	owlStore, err := owl.NewStore(opts...)
