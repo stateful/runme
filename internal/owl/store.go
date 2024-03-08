@@ -243,7 +243,7 @@ func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 
 func WithEnvs(envs ...string) StoreOption {
 	return func(s *Store) error {
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "session"), WithSpecs(false))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "[system]"), WithSpecs(false))
 		if err != nil {
 			return err
 		}

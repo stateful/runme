@@ -90,6 +90,9 @@ func Test_Graph(t *testing.T) {
               done {
                 snapshot(insecure: $insecure) {
                   key
+                  operation {
+                    location
+                  }
                   value {
                     original
                     resolved
