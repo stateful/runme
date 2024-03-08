@@ -163,7 +163,7 @@ func (s *OperationSet) addRaw(raw []byte) error {
 	return nil
 }
 
-func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, hasSpecs bool) error {
+func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, location string, hasSpecs bool) error {
 	for _, v := range vars {
 		old, ok := resolverOpSet.items[v.Key]
 		if hasSpecs && ok {
@@ -175,12 +175,17 @@ func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, hasSpec
 			v.Created = old.Created
 		}
 		v.Updated = v.Created
+		v.Operation = &setVarOperation{
+			// Kind:     resolverOpSet.operation.kind,
+			Location: location,
+		}
 		resolverOpSet.items[v.Key] = v
+
 	}
 	return nil
 }
 
-func resolveDelete(vars SetVarResult, resolverOpSet *OperationSet, _ bool) error {
+func resolveDelete(vars SetVarResult, resolverOpSet *OperationSet, _ string, _ bool) error {
 	for _, v := range vars {
 		_, ok := resolverOpSet.items[v.Key]
 		if !ok {

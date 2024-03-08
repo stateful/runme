@@ -326,6 +326,10 @@ func init() {
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
+						"location": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "",
+						},
 					},
 					Resolve: resolveOperation(resolveLoadOrUpdate),
 				},
@@ -334,6 +338,10 @@ func init() {
 					Args: graphql.FieldConfigArgument{
 						"vars": &graphql.ArgumentConfig{
 							Type: graphql.NewList(VariableInputType),
+						},
+						"location": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "",
 						},
 						"hasSpecs": &graphql.ArgumentConfig{
 							Type:         graphql.Boolean,
@@ -347,6 +355,10 @@ func init() {
 					Args: graphql.FieldConfigArgument{
 						"vars": &graphql.ArgumentConfig{
 							Type: graphql.NewList(VariableInputType),
+						},
+						"location": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "",
 						},
 						"hasSpecs": &graphql.ArgumentConfig{
 							Type:         graphql.Boolean,
@@ -470,12 +482,13 @@ func init() {
 	}
 }
 
-func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, bool) error) graphql.FieldResolveFn {
+func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, string, bool) error) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		vars, ok := p.Args["vars"]
 		if !ok {
 			return p.Source, nil
 		}
+		location := p.Args["location"].(string)
 		hasSpecs := p.Args["hasSpecs"].(bool)
 
 		var resolverOpSet *OperationSet
@@ -502,7 +515,7 @@ func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, bool) err
 			return nil, err
 		}
 
-		err = resolveMutator(revive, resolverOpSet, hasSpecs)
+		err = resolveMutator(revive, resolverOpSet, location, hasSpecs)
 		if err != nil {
 			return nil, err
 		}
@@ -573,6 +586,14 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 					}),
 					ast.NewArgument(&ast.Argument{
 						Name: ast.NewName(&ast.Name{
+							Value: "location",
+						}),
+						Value: ast.NewStringValue(&ast.StringValue{
+							Value: opSet.operation.location,
+						}),
+					}),
+					ast.NewArgument(&ast.Argument{
+						Name: ast.NewName(&ast.Name{
 							Value: "hasSpecs",
 						}),
 						Value: ast.NewBooleanValue(&ast.BooleanValue{
@@ -606,6 +627,20 @@ func reduceSnapshot() QueryNodeReducer {
 				ast.NewField(&ast.Field{
 					Name: ast.NewName(&ast.Name{
 						Value: "key",
+					}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "operation",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "location",
+								}),
+							}),
+						},
 					}),
 				}),
 				ast.NewField(&ast.Field{

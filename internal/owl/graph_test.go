@@ -71,6 +71,62 @@ func Test_Graph(t *testing.T) {
 		require.Len(t, snapshot, 3)
 	})
 
+	t.Run("query complex environment", func(t *testing.T) {
+		jsonVars := `{"delete_2":[{"created":"2024-03-08T11:09:07.125844-05:00","key":"TEST_OLD_UNSET","operation":null,"required":false,"spec":{"checked":false,"name":"Opaque"},"value":{"status":""}}],"insecure":true,"load_0":[{"created":"2024-03-08T11:09:07.106634-05:00","key":"TEST_OLD","operation":null,"required":false,"spec":{"checked":false,"name":"Opaque"},"value":{"original":"value1","status":""}},{"created":"2024-03-08T11:09:07.106634-05:00","key":"TEST_OLD_CHANGED","operation":null,"required":false,"spec":{"checked":false,"name":"Opaque"},"value":{"original":"value1","status":""}},{"created":"2024-03-08T11:09:07.106635-05:00","key":"TEST_OLD_UNSET","operation":null,"required":false,"spec":{"checked":false,"name":"Opaque"},"value":{"original":"value1","status":""}}],"update_1":[{"created":"2024-03-08T11:09:07.125842-05:00","key":"TEST_OLD_CHANGED","operation":null,"required":false,"spec":{"checked":false,"name":"Opaque"},"value":{"original":"value2","status":""}},{"created":"2024-03-08T11:09:07.125843-05:00","key":"TEST_NEW","operation":null,"required":false,"spec":{"checked":false,"name":"Opaque"},"value":{"original":"value2","status":""}}]}`
+		query := `query ResolveOwlSnapshot($insecure: Boolean = false, $load_0: [VariableInput]!, $update_1: [VariableInput]!, $delete_2: [VariableInput]!) {
+  environment {
+    load(vars: $load_0, location: ".env", hasSpecs: false) {
+      location
+      update(vars: $update_1, location: "cell#01HQQZ60MHZEDTXWG70PMXZNHH", hasSpecs: false) {
+        location
+        delete(vars: $delete_2, location: "cell#01HQQZ7AYPP87D1MB6D06G9BTX", hasSpecs: false) {
+          location
+          validate {
+            Opaque(insecure: $insecure, keys: ["TEST_OLD_CHANGED", "TEST_OLD_UNSET", "TEST_OLD", "TEST_NEW"]) {
+              spec
+              sensitive
+              mask
+              errors
+              done {
+                snapshot(insecure: $insecure) {
+                  key
+                  value {
+                    original
+                    resolved
+                    status
+                  }
+                  spec {
+                    name
+                  }
+                  required
+                  created
+                  updated
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+		var vars map[string]interface{}
+		err := json.Unmarshal([]byte(jsonVars), &vars)
+		require.NoError(t, err)
+
+		result := graphql.Do(graphql.Params{
+			Schema:         Schema,
+			RequestString:  query,
+			VariableValues: vars,
+		})
+
+		fmt.Println(result.Errors)
+		require.False(t, result.HasErrors())
+
+		b, _ := json.MarshalIndent(result, "", " ")
+		fmt.Println(string(b))
+	})
+
 	t.Run("query specs list", func(t *testing.T) {
 		result := graphql.Do(graphql.Params{
 			Schema:        Schema,

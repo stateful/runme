@@ -470,8 +470,11 @@ class MonitorEnvResponseSnapshot_SnapshotEnv$Type extends MessageType {
             { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v1.MonitorEnvResponseSnapshot.Status", MonitorEnvResponseSnapshot_Status, "STATUS_"] },
             { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "spec", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "origin", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "create_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "update_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }

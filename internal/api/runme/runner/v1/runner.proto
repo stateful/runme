@@ -311,9 +311,15 @@ message MonitorEnvResponseSnapshot {
 
     string spec = 3;
 
-    string original_value = 4;
+    string origin = 4;
 
-    string resolved_value = 5;
+    string original_value = 5;
+
+    string resolved_value = 6;
+
+    string create_time = 7;
+
+    string update_time = 8;
   }
 
   enum Status {

@@ -551,13 +551,25 @@ export interface MonitorEnvResponseSnapshot_SnapshotEnv {
      */
     spec: string;
     /**
-     * @generated from protobuf field: string original_value = 4;
+     * @generated from protobuf field: string origin = 4;
+     */
+    origin: string;
+    /**
+     * @generated from protobuf field: string original_value = 5;
      */
     originalValue: string;
     /**
-     * @generated from protobuf field: string resolved_value = 5;
+     * @generated from protobuf field: string resolved_value = 6;
      */
     resolvedValue: string;
+    /**
+     * @generated from protobuf field: string create_time = 7;
+     */
+    createTime: string;
+    /**
+     * @generated from protobuf field: string update_time = 8;
+     */
+    updateTime: string;
 }
 /**
  * @generated from protobuf enum runme.runner.v1.MonitorEnvResponseSnapshot.Status
