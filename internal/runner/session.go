@@ -19,7 +19,7 @@ type envStorer interface {
 	addEnvs(envs []string) error
 	updateStore(envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(k string, v string) error
-	subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error
+	subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error
 	complete()
 }
 
@@ -80,7 +80,7 @@ func (s *Session) Envs() []string {
 	return vals
 }
 
-func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error {
+func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
 	return s.envStorer.subscribe(ctx, snapshotc)
 }
 
@@ -112,7 +112,7 @@ func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
 	}
 }
 
-func (es *runnerEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error {
+func (es *runnerEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
 	defer close(snapshotc)
 	return fmt.Errorf("not available for runner env store")
 }
@@ -145,7 +145,7 @@ func (es *runnerEnvStorer) updateStore(envs []string, newOrUpdated []string, del
 	return nil
 }
 
-type owlEnvStorerSubscriber chan<- owl.SetVarResult
+type owlEnvStorerSubscriber chan<- owl.SetVarItems
 
 type owlEnvStorer struct {
 	logger   *zap.Logger
@@ -196,7 +196,7 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	}, nil
 }
 
-func (es *owlEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarResult) error {
+func (es *owlEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
 	defer es.mu.Unlock()
 	es.mu.Lock()
 	es.logger.Debug("subscribed to owl store")
@@ -231,14 +231,14 @@ func (es *owlEnvStorer) complete() {
 	}
 }
 
-func (es *owlEnvStorer) unsubscribe(snapshotc chan<- owl.SetVarResult) error {
+func (es *owlEnvStorer) unsubscribe(snapshotc chan<- owl.SetVarItems) error {
 	defer es.mu.Unlock()
 	es.mu.Lock()
 
 	return es.unsubscribeUnsafe(snapshotc)
 }
 
-func (es *owlEnvStorer) unsubscribeUnsafe(snapshotc chan<- owl.SetVarResult) error {
+func (es *owlEnvStorer) unsubscribeUnsafe(snapshotc chan<- owl.SetVarItems) error {
 	es.logger.Debug("unsubscribed from owl store")
 
 	for i, sub := range es.subscribers {

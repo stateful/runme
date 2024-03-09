@@ -67,15 +67,15 @@ type setVar struct {
 	Updated   *time.Time       `json:"updated,omitempty"`
 }
 
-type SetVarResult []*setVar
+type SetVarItems []*setVar
 
-func (res SetVarResult) sortbyKey() {
+func (res SetVarItems) sortbyKey() {
 	slices.SortStableFunc(res, func(i, j *setVar) int {
 		return strings.Compare(i.Key, j.Key)
 	})
 }
 
-func (res SetVarResult) sort() {
+func (res SetVarItems) sort() {
 	slices.SortFunc(res, func(i, j *setVar) int {
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
 			return int(i.Updated.Unix() - j.Updated.Unix())
@@ -179,7 +179,7 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 	return nil
 }
 
-func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, location string, isSpecs bool) error {
+func resolveLoadOrUpdate(vars SetVarItems, resolverOpSet *OperationSet, location string, isSpecs bool) error {
 	specsInResults := resolverOpSet.hasSpecs
 	for _, v := range vars {
 		old, oldFound := resolverOpSet.items[v.Key]
@@ -212,7 +212,7 @@ func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, locatio
 	return nil
 }
 
-func resolveDelete(vars SetVarResult, resolverOpSet *OperationSet, _ string, _ bool) error {
+func resolveDelete(vars SetVarItems, resolverOpSet *OperationSet, _ string, _ bool) error {
 	for _, v := range vars {
 		_, ok := resolverOpSet.items[v.Key]
 		if !ok {
@@ -292,7 +292,7 @@ func WithLogger(logger *zap.Logger) StoreOption {
 	}
 }
 
-func (s *Store) Snapshot() (SetVarResult, error) {
+func (s *Store) Snapshot() (SetVarItems, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -395,7 +395,7 @@ func (s *Store) validateQuery(query, vars io.StringWriter) error {
 	return nil
 }
 
-func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
+func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
 	var query, vars bytes.Buffer
 	err := s.snapshotQuery(&query, &vars)
 	if err != nil {
@@ -439,7 +439,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, err
 	}
 
-	var snapshot SetVarResult
+	var snapshot SetVarItems
 	_ = json.Unmarshal(j, &snapshot)
 
 	return snapshot, nil

@@ -430,7 +430,7 @@ func init() {
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						snapshot := SetVarResult{}
+						snapshot := SetVarItems{}
 						var opSet *OperationSet
 
 						switch p.Source.(type) {
@@ -515,7 +515,7 @@ func init() {
 	}
 }
 
-func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, string, bool) error) graphql.FieldResolveFn {
+func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, string, bool) error) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		vars, ok := p.Args["vars"]
 		if !ok {
@@ -544,7 +544,7 @@ func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, string, b
 			return nil, err
 		}
 
-		var revive SetVarResult
+		var revive SetVarItems
 		err = json.Unmarshal(buf, &revive)
 		if err != nil {
 			return nil, err
@@ -561,7 +561,7 @@ func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, string, b
 
 func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		opSetData := make(map[string]SetVarResult, len(store.opSets))
+		opSetData := make(map[string]SetVarItems, len(store.opSets))
 
 		for i, opSet := range store.opSets {
 			if len(opSet.items) == 0 {

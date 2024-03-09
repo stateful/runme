@@ -697,7 +697,7 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 	}
 
 	ctx, cancel := context.WithCancel(srv.Context())
-	snapshotc := make(chan owl.SetVarResult)
+	snapshotc := make(chan owl.SetVarItems)
 	errc := make(chan error, 1)
 	defer close(errc)
 	wg := sync.WaitGroup{}
@@ -751,7 +751,7 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 	return <-errc
 }
 
-func convertToMonitorEnvResponse(msg *runnerv1.MonitorEnvResponse, snapshot owl.SetVarResult) error {
+func convertToMonitorEnvResponse(msg *runnerv1.MonitorEnvResponse, snapshot owl.SetVarItems) error {
 	envsSnapshot := make([]*runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv, 0, len(snapshot))
 
 	for _, item := range snapshot {
