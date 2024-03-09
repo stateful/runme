@@ -34,7 +34,7 @@ type Operation struct {
 type OperationSet struct {
 	operation Operation
 	hasSpecs  bool
-	items     map[string]*setVar
+	items     map[string]*setVarItem
 }
 
 type setVarOperation struct {
@@ -44,39 +44,37 @@ type setVarOperation struct {
 }
 
 type setVarValue struct {
-	// Type    string `json:"type"`
 	Original string `json:"original,omitempty"`
 	Resolved string `json:"resolved,omitempty"`
 	Status   string `json:"status"`
-	// ValidationErrors validator.ValidationErrors `json:"-"`
 }
 
 type setVarSpec struct {
 	Name        string `json:"name"`
+	Required    bool   `json:"required"`
 	Description string `json:"description"`
 	Checked     bool   `json:"checked"`
 }
 
-type setVar struct {
+type setVarItem struct {
 	Key       string           `json:"key"`
 	Value     *setVarValue     `json:"value,omitempty"`
 	Spec      *setVarSpec      `json:"spec,omitempty"`
-	Required  bool             `json:"required"`
 	Operation *setVarOperation `json:"operation"`
 	Created   *time.Time       `json:"created,omitempty"`
 	Updated   *time.Time       `json:"updated,omitempty"`
 }
 
-type SetVarItems []*setVar
+type SetVarItems []*setVarItem
 
 func (res SetVarItems) sortbyKey() {
-	slices.SortStableFunc(res, func(i, j *setVar) int {
+	slices.SortStableFunc(res, func(i, j *setVarItem) int {
 		return strings.Compare(i.Key, j.Key)
 	})
 }
 
 func (res SetVarItems) sort() {
-	slices.SortFunc(res, func(i, j *setVar) int {
+	slices.SortFunc(res, func(i, j *setVarItem) int {
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
 			return int(i.Updated.Unix() - j.Updated.Unix())
 		}
@@ -95,7 +93,7 @@ type OperationSetOption func(*OperationSet) error
 func NewOperationSet(opts ...OperationSetOption) (*OperationSet, error) {
 	opSet := &OperationSet{
 		hasSpecs: false,
-		items:    make(map[string]*setVar),
+		items:    make(map[string]*setVarItem),
 	}
 
 	for _, opt := range opts {
@@ -132,7 +130,7 @@ func (s *OperationSet) addEnvs(envs ...string) error {
 		}
 
 		created := time.Now()
-		s.items[k] = &setVar{
+		s.items[k] = &setVarItem{
 			Key:     k,
 			Value:   &setVarValue{Original: v},
 			Spec:    &setVarSpec{Name: SpecNameOpaque},
@@ -160,7 +158,7 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 			originalValue = ""
 		}
 
-		s.items[key] = &setVar{
+		s.items[key] = &setVarItem{
 			Key: key,
 			Value: &setVarValue{
 				Original: originalValue,
@@ -168,11 +166,11 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 			},
 			Spec: &setVarSpec{
 				Name:        string(spec.Name),
+				Required:    spec.Required,
 				Description: specDescription,
 				Checked:     false,
 			},
-			Required: spec.Required,
-			Created:  &created,
+			Created: &created,
 		}
 	}
 
@@ -186,7 +184,7 @@ func resolveLoadOrUpdate(vars SetVarItems, resolverOpSet *OperationSet, location
 		if isSpecs && oldFound {
 			// we already have a value, assign spec
 			old.Spec = v.Spec
-			old.Required = v.Required
+			old.Spec.Required = v.Spec.Required
 			continue
 		}
 

@@ -90,7 +90,7 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
-func specResolver(mutator func(*setVar, bool)) graphql.FieldResolveFn {
+func specResolver(mutator func(*setVarItem, bool)) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
 		keysArg := p.Args["keys"].([]interface{})
@@ -120,7 +120,7 @@ func init() {
 	SpecTypes = make(map[string]*specType)
 
 	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true,
-		specResolver(func(v *setVar, insecure bool) {
+		specResolver(func(v *setVarItem, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -138,7 +138,7 @@ func init() {
 	)
 
 	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true,
-		specResolver(func(v *setVar, insecure bool) {
+		specResolver(func(v *setVarItem, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -153,7 +153,7 @@ func init() {
 		}),
 	)
 	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
-		specResolver(func(v *setVar, insecure bool) {
+		specResolver(func(v *setVarItem, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -166,7 +166,7 @@ func init() {
 		}),
 	)
 	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
-		specResolver(func(v *setVar, insecure bool) {
+		specResolver(func(v *setVarItem, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -234,14 +234,14 @@ func init() {
 							"description": &graphql.Field{
 								Type: graphql.String,
 							},
+							"required": &graphql.Field{
+								Type: graphql.Boolean,
+							},
 							"checked": &graphql.Field{
 								Type: graphql.Boolean,
 							},
 						},
 					}),
-				},
-				"required": &graphql.Field{
-					Type: graphql.Boolean,
 				},
 				"operation": &graphql.Field{
 					Type: graphql.NewObject(graphql.ObjectConfig{
@@ -309,16 +309,16 @@ func init() {
 						"description": &graphql.InputObjectFieldConfig{
 							Type: graphql.String,
 						},
+						"required": &graphql.InputObjectFieldConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
 						"checked": &graphql.InputObjectFieldConfig{
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
 					},
 				}),
-			},
-			"required": &graphql.InputObjectFieldConfig{
-				Type:         graphql.Boolean,
-				DefaultValue: false,
 			},
 			"operation": &graphql.InputObjectFieldConfig{
 				Type: graphql.NewInputObject(graphql.InputObjectConfig{
@@ -718,12 +718,12 @@ func reduceSnapshot() QueryNodeReducer {
 									Value: "name",
 								}),
 							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "required",
+								}),
+							}),
 						},
-					}),
-				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "required",
 					}),
 				}),
 				ast.NewField(&ast.Field{
@@ -766,7 +766,7 @@ func reduceSnapshot() QueryNodeReducer {
 func reduceSepcs(store *Store) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var specKeys []string
-		varSpecs := make(map[string]*setVar)
+		varSpecs := make(map[string]*setVarItem)
 		for _, opSet := range store.opSets {
 			if len(opSet.items) == 0 {
 				continue
@@ -780,7 +780,7 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 			}
 		}
 
-		nextVarSpecs := func(varSpecs map[string]*setVar, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+		nextVarSpecs := func(varSpecs map[string]*setVarItem, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
 			var keys []string
 			for _, v := range varSpecs {
 				if v.Spec.Name != spec {
