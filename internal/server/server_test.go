@@ -106,10 +106,7 @@ func testConnectivity(t *testing.T, addr string, creds credentials.TransportCred
 		}
 
 		resp, err = healthv1.NewHealthClient(conn).Check(ctx, &healthv1.HealthCheckRequest{})
-		if err != nil {
-			goto wait
-		}
-		if resp.Status != healthv1.HealthCheckResponse_SERVING {
+		if err != nil || resp.Status != healthv1.HealthCheckResponse_SERVING {
 			goto wait
 		}
 
@@ -118,7 +115,7 @@ func testConnectivity(t *testing.T, addr string, creds credentials.TransportCred
 
 	wait:
 		cancel()
-		<-time.After(time.Second)
+		<-time.After(time.Millisecond * 100)
 	}
 
 	require.NoError(t, err)

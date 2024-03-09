@@ -1,0 +1,32 @@
+exec runme beta ls
+cmp stdout result-ls.txt
+! stderr .
+
+exec runme beta print
+cmp stdout result-print.txt
+! stderr .
+
+-- experimental/runme.yaml --
+version: v1alpha1
+project:
+  dir: "./nested"
+env:
+  sources:
+    - .env
+
+-- README.md --
+```sh {"name": "root-hello"}
+echo root-hello
+```
+
+-- nested/README.md --
+```sh {"name": "nested-hello"}
+echo nested-hello
+```
+
+-- result-ls.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+nested-hello	nested/README.md	echo nested-hello		Yes
+-- result-print.txt --
+# nested/README.md:nested-hello
+echo nested-hello

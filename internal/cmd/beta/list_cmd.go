@@ -108,7 +108,7 @@ func renderTasksAsTableForCmd(cmd *cobra.Command, tasks []project.Task) error {
 		}
 
 		table.AddField(task.CodeBlock.Name())
-		table.AddField(task.RelDocumentPath)
+		table.AddField(relativePathToCwd(task.DocumentPath))
 		table.AddField(renderLineFromLines(task.CodeBlock.Lines()))
 		table.AddField(task.CodeBlock.Intro())
 		table.AddField(named)

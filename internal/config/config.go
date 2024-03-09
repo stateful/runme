@@ -148,36 +148,41 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 }
 
 func validateConfig(cfg *Config) error {
-	// Validate project directory and filename to be in the current working directory.
-	{
-		if cfg.ProjectDir == "" || cfg.ProjectDir == "." {
-			return nil
-		}
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = "."
+	}
 
-		cwd, err := os.Getwd()
-		if err != nil {
-			return errors.WithStack(err)
-		}
+	if err := validateProjectDir(cfg, cwd); err != nil {
+		return errors.Wrap(err, "failed to validate project dir")
+	}
 
-		rel, err := filepath.Rel(cwd, cfg.ProjectDir)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if strings.HasPrefix(rel, "..") {
-			return errors.New("project dir is outside of current working directory")
-		}
+	if err := validateFilename(cfg, cwd); err != nil {
+		return errors.Wrap(err, "failed to validate filename")
+	}
 
-		if cfg.Filename == "" || cfg.Filename == "." {
-			return nil
-		}
+	return nil
+}
 
-		rel, err = filepath.Rel(cwd, cfg.Filename)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if strings.HasPrefix(rel, "..") {
-			return errors.New("filename is outside of current working directory")
-		}
+func validateProjectDir(cfg *Config, cwd string) error {
+	rel, err := filepath.Rel(cwd, filepath.Join(cwd, cfg.ProjectDir))
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if strings.HasPrefix(rel, "..") {
+		return errors.New("outside of current working directory")
+	}
+
+	return nil
+}
+
+func validateFilename(cfg *Config, cwd string) error {
+	rel, err := filepath.Rel(cwd, filepath.Join(cwd, cfg.Filename))
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if strings.HasPrefix(rel, "..") {
+		return errors.New("outside of current working directory")
 	}
 
 	return nil
