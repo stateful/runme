@@ -90,7 +90,7 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
-func specResolver(mutator func(*setVarItem, bool)) graphql.FieldResolveFn {
+func specResolver(mutator func(*SetVarItem, bool)) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
 		keysArg := p.Args["keys"].([]interface{})
@@ -120,7 +120,7 @@ func init() {
 	SpecTypes = make(map[string]*specType)
 
 	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true,
-		specResolver(func(v *setVarItem, insecure bool) {
+		specResolver(func(v *SetVarItem, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -138,7 +138,7 @@ func init() {
 	)
 
 	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true,
-		specResolver(func(v *setVarItem, insecure bool) {
+		specResolver(func(v *SetVarItem, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -153,7 +153,7 @@ func init() {
 		}),
 	)
 	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
-		specResolver(func(v *setVarItem, insecure bool) {
+		specResolver(func(v *SetVarItem, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -166,7 +166,7 @@ func init() {
 		}),
 	)
 	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
-		specResolver(func(v *setVarItem, insecure bool) {
+		specResolver(func(v *SetVarItem, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -196,8 +196,39 @@ func init() {
 		graphql.ObjectConfig{
 			Name: "VariableType",
 			Fields: graphql.Fields{
-				"key": &graphql.Field{
-					Type: graphql.String,
+				"var": &graphql.Field{
+					Type: graphql.NewObject(graphql.ObjectConfig{
+						Name: "VariableVarType",
+						Fields: graphql.Fields{
+							"key": &graphql.Field{
+								Type: graphql.String,
+							},
+							"created": &graphql.Field{
+								Type: graphql.DateTime,
+							},
+							"updated": &graphql.Field{
+								Type: graphql.DateTime,
+							},
+							"operation": &graphql.Field{
+								Type: graphql.NewObject(graphql.ObjectConfig{
+									Name: "VariableOperationType",
+									Fields: graphql.Fields{
+										"order": &graphql.Field{
+											Type: graphql.Int,
+										},
+										// todo(sebastian): should be enum
+										"kind": &graphql.Field{
+											Type: graphql.String,
+										},
+										// todo(sebastian): likely abstract
+										"location": &graphql.Field{
+											Type: graphql.String,
+										},
+									},
+								}),
+							},
+						},
+					}),
 				},
 				"value": &graphql.Field{
 					Type: graphql.NewObject(graphql.ObjectConfig{
@@ -243,30 +274,6 @@ func init() {
 						},
 					}),
 				},
-				"operation": &graphql.Field{
-					Type: graphql.NewObject(graphql.ObjectConfig{
-						Name: "VariableOperationType",
-						Fields: graphql.Fields{
-							"order": &graphql.Field{
-								Type: graphql.Int,
-							},
-							// todo(sebastian): should be enum
-							"kind": &graphql.Field{
-								Type: graphql.String,
-							},
-							// todo(sebastian): likely abstract
-							"location": &graphql.Field{
-								Type: graphql.String,
-							},
-						},
-					}),
-				},
-				"created": &graphql.Field{
-					Type: graphql.DateTime,
-				},
-				"updated": &graphql.Field{
-					Type: graphql.DateTime,
-				},
 			},
 		},
 	)
@@ -274,8 +281,37 @@ func init() {
 	VariableInputType := graphql.NewInputObject(graphql.InputObjectConfig{
 		Name: "VariableInput",
 		Fields: graphql.InputObjectConfigFieldMap{
-			"key": &graphql.InputObjectFieldConfig{
-				Type: graphql.String,
+			"var": &graphql.InputObjectFieldConfig{
+				Type: graphql.NewInputObject(graphql.InputObjectConfig{
+					Name: "VariableVarInput",
+					Fields: graphql.InputObjectConfigFieldMap{
+						"key": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"created": &graphql.InputObjectFieldConfig{
+							Type: graphql.DateTime,
+						},
+						"updated": &graphql.InputObjectFieldConfig{
+							Type: graphql.DateTime,
+						},
+						"operation": &graphql.InputObjectFieldConfig{
+							Type: graphql.NewInputObject(graphql.InputObjectConfig{
+								Name: "VariableOperationInput",
+								Fields: graphql.InputObjectConfigFieldMap{
+									"order": &graphql.InputObjectFieldConfig{
+										Type: graphql.Int,
+									},
+									"kind": &graphql.InputObjectFieldConfig{
+										Type: graphql.String,
+									},
+									"location": &graphql.InputObjectFieldConfig{
+										Type: graphql.String,
+									},
+								},
+							}),
+						},
+					},
+				}),
 			},
 			"value": &graphql.InputObjectFieldConfig{
 				Type: graphql.NewInputObject(graphql.InputObjectConfig{
@@ -319,28 +355,6 @@ func init() {
 						},
 					},
 				}),
-			},
-			"operation": &graphql.InputObjectFieldConfig{
-				Type: graphql.NewInputObject(graphql.InputObjectConfig{
-					Name: "VariableOperationInput",
-					Fields: graphql.InputObjectConfigFieldMap{
-						"order": &graphql.InputObjectFieldConfig{
-							Type: graphql.Int,
-						},
-						"kind": &graphql.InputObjectFieldConfig{
-							Type: graphql.String,
-						},
-						"location": &graphql.InputObjectFieldConfig{
-							Type: graphql.String,
-						},
-					},
-				}),
-			},
-			"created": &graphql.InputObjectFieldConfig{
-				Type: graphql.DateTime,
-			},
-			"updated": &graphql.InputObjectFieldConfig{
-				Type: graphql.DateTime,
 			},
 		},
 	})
@@ -661,18 +675,37 @@ func reduceSnapshot() QueryNodeReducer {
 			Selections: []ast.Selection{
 				ast.NewField(&ast.Field{
 					Name: ast.NewName(&ast.Name{
-						Value: "key",
-					}),
-				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "operation",
+						Value: "var",
 					}),
 					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
 						Selections: []ast.Selection{
 							ast.NewField(&ast.Field{
 								Name: ast.NewName(&ast.Name{
-									Value: "location",
+									Value: "key",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "created",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "updated",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "operation",
+								}),
+								SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+									Selections: []ast.Selection{
+										ast.NewField(&ast.Field{
+											Name: ast.NewName(&ast.Name{
+												Value: "location",
+											}),
+										}),
+									},
 								}),
 							}),
 						},
@@ -726,16 +759,6 @@ func reduceSnapshot() QueryNodeReducer {
 						},
 					}),
 				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "created",
-					}),
-				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "updated",
-					}),
-				}),
 			},
 		})
 
@@ -766,27 +789,27 @@ func reduceSnapshot() QueryNodeReducer {
 func reduceSepcs(store *Store) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var specKeys []string
-		varSpecs := make(map[string]*setVarItem)
+		varSpecs := make(map[string]*SetVarItem)
 		for _, opSet := range store.opSets {
 			if len(opSet.items) == 0 {
 				continue
 			}
 			for _, v := range opSet.items {
 				if _, ok := SpecTypes[v.Spec.Name]; !ok {
-					return nil, fmt.Errorf("unknown spec type: %s on %s", v.Spec.Name, v.Key)
+					return nil, fmt.Errorf("unknown spec type: %s on %s", v.Spec.Name, v.Var.Key)
 				}
-				varSpecs[v.Key] = v
+				varSpecs[v.Var.Key] = v
 				specKeys = append(specKeys, v.Spec.Name)
 			}
 		}
 
-		nextVarSpecs := func(varSpecs map[string]*setVarItem, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+		nextVarSpecs := func(varSpecs map[string]*SetVarItem, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
 			var keys []string
 			for _, v := range varSpecs {
 				if v.Spec.Name != spec {
 					continue
 				}
-				keys = append(keys, v.Key)
+				keys = append(keys, v.Var.Key)
 			}
 			if len(keys) == 0 {
 				return prevSelSet

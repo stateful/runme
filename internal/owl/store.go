@@ -34,7 +34,7 @@ type Operation struct {
 type OperationSet struct {
 	operation Operation
 	hasSpecs  bool
-	items     map[string]*setVarItem
+	items     map[string]*SetVarItem
 }
 
 type setVarOperation struct {
@@ -43,40 +43,54 @@ type setVarOperation struct {
 	Location string           `json:"location"`
 }
 
-type setVarValue struct {
+type varValue struct {
 	Original string `json:"original,omitempty"`
 	Resolved string `json:"resolved,omitempty"`
 	Status   string `json:"status"`
 }
 
-type setVarSpec struct {
+type varSpec struct {
 	Name        string `json:"name"`
 	Required    bool   `json:"required"`
 	Description string `json:"description"`
 	Checked     bool   `json:"checked"`
 }
 
-type setVarItem struct {
+type SetVar struct {
 	Key       string           `json:"key"`
-	Value     *setVarValue     `json:"value,omitempty"`
-	Spec      *setVarSpec      `json:"spec,omitempty"`
 	Operation *setVarOperation `json:"operation"`
 	Created   *time.Time       `json:"created,omitempty"`
 	Updated   *time.Time       `json:"updated,omitempty"`
 }
 
-type SetVarItems []*setVarItem
+type SetVarSpec struct {
+	Var  *SetVar  `json:"var,omitempty"`
+	Spec *varSpec `json:"spec,omitempty"`
+}
+
+type SetVarValue struct {
+	Var   *SetVar   `json:"var,omitempty"`
+	Value *varValue `json:"value,omitempty"`
+}
+
+type SetVarItem struct {
+	Var   *SetVar   `json:"var,omitempty"`
+	Value *varValue `json:"value,omitempty"`
+	Spec  *varSpec  `json:"spec,omitempty"`
+}
+
+type SetVarItems []*SetVarItem
 
 func (res SetVarItems) sortbyKey() {
-	slices.SortStableFunc(res, func(i, j *setVarItem) int {
-		return strings.Compare(i.Key, j.Key)
+	slices.SortStableFunc(res, func(i, j *SetVarItem) int {
+		return strings.Compare(i.Var.Key, j.Var.Key)
 	})
 }
 
 func (res SetVarItems) sort() {
-	slices.SortFunc(res, func(i, j *setVarItem) int {
+	slices.SortFunc(res, func(i, j *SetVarItem) int {
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
-			return int(i.Updated.Unix() - j.Updated.Unix())
+			return int(i.Var.Updated.Unix() - j.Var.Updated.Unix())
 		}
 		if i.Spec.Name != "Opaque" {
 			return -1
@@ -84,7 +98,7 @@ func (res SetVarItems) sort() {
 		if j.Spec.Name != "Opaque" {
 			return 1
 		}
-		return strings.Compare(i.Key, j.Key)
+		return strings.Compare(i.Var.Key, j.Var.Key)
 	})
 }
 
@@ -93,7 +107,7 @@ type OperationSetOption func(*OperationSet) error
 func NewOperationSet(opts ...OperationSetOption) (*OperationSet, error) {
 	opSet := &OperationSet{
 		hasSpecs: false,
-		items:    make(map[string]*setVarItem),
+		items:    make(map[string]*SetVarItem),
 	}
 
 	for _, opt := range opts {
@@ -130,11 +144,17 @@ func (s *OperationSet) addEnvs(envs ...string) error {
 		}
 
 		created := time.Now()
-		s.items[k] = &setVarItem{
-			Key:     k,
-			Value:   &setVarValue{Original: v},
-			Spec:    &setVarSpec{Name: SpecNameOpaque},
-			Created: &created,
+		s.items[k] = &SetVarItem{
+			Var: &SetVar{
+				Key:     k,
+				Created: &created,
+			},
+			Value: &varValue{
+				Original: v,
+			},
+			Spec: &varSpec{
+				Name: SpecNameOpaque,
+			},
 		}
 	}
 	return nil
@@ -158,19 +178,21 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 			originalValue = ""
 		}
 
-		s.items[key] = &setVarItem{
-			Key: key,
-			Value: &setVarValue{
+		s.items[key] = &SetVarItem{
+			Var: &SetVar{
+				Key:     key,
+				Created: &created,
+			},
+			Value: &varValue{
 				Original: originalValue,
 				Status:   valueStatus,
 			},
-			Spec: &setVarSpec{
+			Spec: &varSpec{
 				Name:        string(spec.Name),
 				Required:    spec.Required,
 				Description: specDescription,
 				Checked:     false,
 			},
-			Created: &created,
 		}
 	}
 
@@ -180,7 +202,7 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 func resolveLoadOrUpdate(vars SetVarItems, resolverOpSet *OperationSet, location string, isSpecs bool) error {
 	specsInResults := resolverOpSet.hasSpecs
 	for _, v := range vars {
-		old, oldFound := resolverOpSet.items[v.Key]
+		old, oldFound := resolverOpSet.items[v.Var.Key]
 		if isSpecs && oldFound {
 			// we already have a value, assign spec
 			old.Spec = v.Spec
@@ -192,7 +214,7 @@ func resolveLoadOrUpdate(vars SetVarItems, resolverOpSet *OperationSet, location
 			// already have a value, assign new value
 			v.Value.Resolved = old.Value.Original
 			v.Value.Status = "LITERAL"
-			v.Created = old.Created
+			v.Var.Created = old.Var.Created
 		}
 
 		if !oldFound && !specsInResults {
@@ -201,22 +223,22 @@ func resolveLoadOrUpdate(vars SetVarItems, resolverOpSet *OperationSet, location
 			v.Value.Status = "LITERAL"
 		}
 
-		v.Updated = v.Created
-		v.Operation = &setVarOperation{
+		v.Var.Updated = v.Var.Created
+		v.Var.Operation = &setVarOperation{
 			Location: location,
 		}
-		resolverOpSet.items[v.Key] = v
+		resolverOpSet.items[v.Var.Key] = v
 	}
 	return nil
 }
 
 func resolveDelete(vars SetVarItems, resolverOpSet *OperationSet, _ string, _ bool) error {
 	for _, v := range vars {
-		_, ok := resolverOpSet.items[v.Key]
+		_, ok := resolverOpSet.items[v.Var.Key]
 		if !ok {
 			continue
 		}
-		delete(resolverOpSet.items, v.Key)
+		delete(resolverOpSet.items, v.Var.Key)
 	}
 	return nil
 }
@@ -313,7 +335,7 @@ func (s *Store) InsecureValues() ([]string, error) {
 
 	result := make([]string, 0, len(items))
 	for _, item := range items {
-		result = append(result, item.Key+"="+item.Value.Resolved)
+		result = append(result, item.Var.Key+"="+item.Value.Resolved)
 	}
 
 	return result, nil
@@ -401,7 +423,7 @@ func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
 	}
 
 	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
-	// _, _ := fmt.Println(query.String())
+	// _, _ = fmt.Println(query.String())
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
@@ -410,7 +432,7 @@ func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
 	}
 	varValues["insecure"] = insecure
 
-	// j, err := json.Marshal(varValues)
+	// j, err := json.MarshalIndent(varValues, "", " ")
 	// if err != nil {
 	// 	return nil, err
 	// }

@@ -765,17 +765,17 @@ func convertToMonitorEnvResponse(msg *runnerv1.MonitorEnvResponse, snapshot owl.
 		case "LITERAL":
 			status = runnerv1.MonitorEnvResponseSnapshot_STATUS_LITERAL
 		default:
-			return errors.Errorf("unknown status: %s", item.Value.Status)
+			// return errors.Errorf("unknown status: %s", item.Value.Status)
 		}
 		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv{
-			Name:          item.Key,
+			Name:          item.Var.Key,
 			Spec:          item.Spec.Name,
-			Origin:        item.Operation.Location,
+			Origin:        item.Var.Operation.Location,
 			OriginalValue: item.Value.Original,
 			ResolvedValue: item.Value.Resolved,
 			Status:        status,
-			CreateTime:    item.Created.String(),
-			UpdateTime:    item.Updated.String(),
+			CreateTime:    item.Var.Created.String(),
+			UpdateTime:    item.Var.Updated.String(),
 		})
 	}
 
