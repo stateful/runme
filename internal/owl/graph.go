@@ -464,6 +464,8 @@ func init() {
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						insecure := p.Args["insecure"].(bool)
+
 						snapshot := SetVarItems{}
 						var opSet *OperationSet
 
@@ -478,12 +480,12 @@ func init() {
 						}
 
 						for _, v := range opSet.values {
+							if insecure && v.Value.Status == "UNRESOLVED" {
+								continue
+							}
 							s, ok := opSet.specs[v.Var.Key]
 							if !ok {
-								s = &SetVarSpec{
-									Var:  v.Var,
-									Spec: &varSpec{Name: SpecNameDefault},
-								}
+								return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
 							}
 							snapshot = append(snapshot, &SetVarItem{
 								Var:   v.Var,
@@ -846,7 +848,7 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 			}
 		}
 
-		deltaOpSet, err := NewOperationSet(WithOperation(ReconcileSetOperation, "specless"))
+		deltaOpSet, err := NewOperationSet(WithOperation(ReconcileSetOperation, ""))
 		if err != nil {
 			return nil, err
 		}
