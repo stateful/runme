@@ -41,9 +41,9 @@ func Test_OperationSet_Valueless(t *testing.T) {
 		err = opSet.addEnvs(naked...)
 		require.NoError(t, err)
 
-		require.Len(t, opSet.items, 1)
-		require.EqualValues(t, "FOO", opSet.items["FOO"].Var.Key)
-		require.EqualValues(t, "", opSet.items["FOO"].Value.Resolved)
+		require.Len(t, opSet.values, 1)
+		require.EqualValues(t, "FOO", opSet.values["FOO"].Var.Key)
+		require.EqualValues(t, "", opSet.values["FOO"].Value.Resolved)
 	})
 
 	// interestingly dotenv impl return an empty map for standalone values
@@ -56,15 +56,15 @@ func Test_OperationSet_Valueless(t *testing.T) {
 		err = opSet.addEnvs(naked...)
 		require.NoError(t, err)
 
-		require.Len(t, opSet.items, 3)
-		require.EqualValues(t, "BAR", opSet.items["BAR"].Var.Key)
-		require.EqualValues(t, "", opSet.items["BAR"].Value.Resolved)
+		require.Len(t, opSet.values, 3)
+		require.EqualValues(t, "BAR", opSet.values["BAR"].Var.Key)
+		require.EqualValues(t, "", opSet.values["BAR"].Value.Resolved)
 
-		require.EqualValues(t, "FOO", opSet.items["FOO"].Var.Key)
-		require.EqualValues(t, "", opSet.items["FOO"].Value.Resolved)
+		require.EqualValues(t, "FOO", opSet.values["FOO"].Var.Key)
+		require.EqualValues(t, "", opSet.values["FOO"].Value.Resolved)
 
-		require.EqualValues(t, "BAZ", opSet.items["BAZ"].Var.Key)
-		require.EqualValues(t, "", opSet.items["BAZ"].Value.Resolved)
+		require.EqualValues(t, "BAZ", opSet.values["BAZ"].Var.Key)
+		require.EqualValues(t, "", opSet.values["BAZ"].Value.Resolved)
 	})
 }
 
@@ -140,7 +140,7 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.NoError(t, err)
 
 		require.Len(t, store.opSets, 2)
-		require.Len(t, store.opSets[0].items, len(envs))
+		require.Len(t, store.opSets[0].values, len(envs))
 
 		_, err = store.snapshot(true)
 		require.NoError(t, err)
@@ -157,7 +157,7 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.NoError(t, err)
 
 		require.Len(t, store.opSets, 1)
-		require.Len(t, store.opSets[0].items, 0)
+		require.Len(t, store.opSets[0].values, 0)
 
 		snapshot, err := store.snapshot(false)
 		require.NoError(t, err)
@@ -173,8 +173,8 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 	// 	require.NoError(t, err)
 
 	// 	require.Len(t, store.opSets, 2)
-	// 	require.Len(t, store.opSets[0].items, len(envs))
-	// 	require.Len(t, store.opSets[1].items, 1)
+	// 	require.Len(t, store.opSets[0].values, len(envs))
+	// 	require.Len(t, store.opSets[1].values, 1)
 
 	// 	snapshot, err := store.snapshot(false)
 	// 	require.NoError(t, err)
@@ -198,8 +198,8 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.NoError(t, err)
 
 		require.Len(t, store.opSets, 2)
-		require.Len(t, store.opSets[0].items, 2)
-		require.Len(t, store.opSets[1].items, 2)
+		require.Len(t, store.opSets[0].values, 2)
+		require.Len(t, store.opSets[1].values, 2)
 
 		snapshot, err := store.snapshot(true)
 		require.NoError(t, err)

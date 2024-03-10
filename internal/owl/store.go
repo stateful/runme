@@ -23,6 +23,7 @@ const (
 	LoadSetOperation setOperationKind = iota
 	UpdateSetOperation
 	DeleteSetOperation
+	ReconcileSetOperation
 	TransientSetOperation
 )
 
@@ -34,7 +35,8 @@ type Operation struct {
 type OperationSet struct {
 	operation Operation
 	hasSpecs  bool
-	items     map[string]*SetVarItem
+	specs     map[string]*SetVarSpec
+	values    map[string]*SetVarValue
 }
 
 type setVarOperation struct {
@@ -89,6 +91,12 @@ func (res SetVarItems) sortbyKey() {
 
 func (res SetVarItems) sort() {
 	slices.SortFunc(res, func(i, j *SetVarItem) int {
+		if i.Spec == nil {
+			return -1
+		}
+		if j.Spec == nil {
+			return 1
+		}
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
 			return int(i.Var.Updated.Unix() - j.Var.Updated.Unix())
 		}
@@ -107,7 +115,8 @@ type OperationSetOption func(*OperationSet) error
 func NewOperationSet(opts ...OperationSetOption) (*OperationSet, error) {
 	opSet := &OperationSet{
 		hasSpecs: false,
-		items:    make(map[string]*SetVarItem),
+		specs:    make(map[string]*SetVarSpec),
+		values:   make(map[string]*SetVarValue),
 	}
 
 	for _, opt := range opts {
@@ -144,7 +153,7 @@ func (s *OperationSet) addEnvs(envs ...string) error {
 		}
 
 		created := time.Now()
-		s.items[k] = &SetVarItem{
+		s.values[k] = &SetVarValue{
 			Var: &SetVar{
 				Key:     k,
 				Created: &created,
@@ -152,93 +161,85 @@ func (s *OperationSet) addEnvs(envs ...string) error {
 			Value: &varValue{
 				Original: v,
 			},
-			Spec: &varSpec{
-				Name: SpecNameOpaque,
-			},
 		}
 	}
 	return nil
 }
 
 func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
-	values, comments, err := godotenv.UnmarshalBytesWithComments(raw)
+	vals, comments, err := godotenv.UnmarshalBytesWithComments(raw)
 	if err != nil {
 		return err
 	}
 
-	specs := ParseRawSpec(values, comments)
+	specs := ParseRawSpec(vals, comments)
 	for key, spec := range specs {
 		created := time.Now()
 
-		valueStatus := "UNRESOLVED"
-		originalValue := values[key]
-		specDescription := ""
-		if hasSpecs {
-			specDescription = originalValue
-			originalValue = ""
+		switch hasSpecs {
+		case true:
+			s.specs[key] = &SetVarSpec{
+				Var: &SetVar{
+					Key:     key,
+					Created: &created,
+				},
+				Spec: &varSpec{
+					Name:        string(spec.Name),
+					Required:    spec.Required,
+					Description: vals[key],
+					Checked:     false,
+				},
+			}
+		default:
+			s.values[key] = &SetVarValue{
+				Var: &SetVar{
+					Key:     key,
+					Created: &created,
+				},
+				Value: &varValue{
+					Original: vals[key],
+					Status:   "UNRESOLVED",
+				},
+			}
 		}
 
-		s.items[key] = &SetVarItem{
-			Var: &SetVar{
-				Key:     key,
-				Created: &created,
-			},
-			Value: &varValue{
-				Original: originalValue,
-				Status:   valueStatus,
-			},
-			Spec: &varSpec{
-				Name:        string(spec.Name),
-				Required:    spec.Required,
-				Description: specDescription,
-				Checked:     false,
-			},
-		}
 	}
 
 	return nil
 }
 
-func resolveLoadOrUpdate(vars SetVarItems, resolverOpSet *OperationSet, location string, isSpecs bool) error {
-	specsInResults := resolverOpSet.hasSpecs
-	for _, v := range vars {
-		old, oldFound := resolverOpSet.items[v.Var.Key]
-		if isSpecs && oldFound {
-			// we already have a value, assign spec
-			old.Spec = v.Spec
-			old.Spec.Required = v.Spec.Required
-			continue
+func resolveLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, location string, hasSpecs bool) error {
+	for _, r := range revived {
+		switch {
+		case r.Value != nil:
+			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
+				location = old.Var.Operation.Location
+				r.Var.Created = old.Var.Created
+			}
+			r.Var.Updated = r.Var.Created
+			r.Var.Operation = &setVarOperation{
+				Location: location,
+			}
+			if r.Value.Original != "" {
+				r.Value.Resolved = r.Value.Original
+				r.Value.Status = "LITERAL"
+			}
+			resolverOpSet.values[r.Var.Key] = &SetVarValue{Var: r.Var, Value: r.Value}
+		case r.Spec != nil:
+			r.Var.Updated = r.Var.Created
+			r.Var.Operation = &setVarOperation{
+				Location: location,
+			}
+			resolverOpSet.specs[r.Var.Key] = &SetVarSpec{Var: r.Var, Spec: r.Spec}
 		}
-
-		if oldFound {
-			// already have a value, assign new value
-			v.Value.Resolved = old.Value.Original
-			v.Value.Status = "LITERAL"
-			v.Var.Created = old.Var.Created
-		}
-
-		if !oldFound && !specsInResults {
-			// handle spec-less stores
-			v.Value.Resolved = v.Value.Original
-			v.Value.Status = "LITERAL"
-		}
-
-		v.Var.Updated = v.Var.Created
-		v.Var.Operation = &setVarOperation{
-			Location: location,
-		}
-		resolverOpSet.items[v.Var.Key] = v
 	}
 	return nil
 }
 
 func resolveDelete(vars SetVarItems, resolverOpSet *OperationSet, _ string, _ bool) error {
 	for _, v := range vars {
-		_, ok := resolverOpSet.items[v.Var.Key]
-		if !ok {
-			continue
-		}
-		delete(resolverOpSet.items, v.Var.Key)
+		delete(resolverOpSet.specs, v.Var.Key)
+		delete(resolverOpSet.values, v.Var.Key)
 	}
 	return nil
 }
@@ -393,6 +394,7 @@ func (s *Store) validateQuery(query, vars io.StringWriter) error {
 
 	q, err := NewQuery("Validate", varDefs,
 		[]QueryNodeReducer{
+			reconcileAsymmetry(s),
 			reduceSetOperations(s, vars),
 			reduceSepcs(s),
 			reduceSnapshot(),
@@ -486,7 +488,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 
 	loaded, updated, deleted := 0, 0, 0
 	for _, opSet := range s.opSets {
-		if len(opSet.items) == 0 {
+		if len(opSet.specs) == 0 && len(opSet.values) == 0 {
 			continue
 		}
 		switch opSet.operation.kind {
@@ -503,6 +505,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 
 	q, err := NewQuery("Snapshot", varDefs,
 		[]QueryNodeReducer{
+			reconcileAsymmetry(s),
 			reduceSetOperations(s, vars),
 			reduceSepcs(s),
 			reduceSnapshot(),

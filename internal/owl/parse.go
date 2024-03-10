@@ -13,6 +13,7 @@ const (
 	SpecNamePlain    string = "Plain"    // SpecNamePlain specifies a plain specification.
 	SpecNameSecret   string = "Secret"   // SpecNameSecret specifies a secret specification.
 	SpecNamePassword string = "Password" // SpecNamePassword specifies a password specification.
+	SpecNameDefault         = SpecNameOpaque
 )
 
 // Spec represents the available configuration options and their flags.
@@ -53,7 +54,7 @@ func ParseRawSpec(values map[string]string, comments map[string]string) Specs {
 	// Iterate through each key-value pair in the comments map.
 	for key, value := range values {
 		// Initialize a new Spec instance.
-		spec := Spec{Name: SpecNameOpaque}
+		spec := Spec{Name: SpecNameDefault}
 		comment := comments[key]
 
 		// Skip empty comments.

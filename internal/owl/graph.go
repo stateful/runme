@@ -7,6 +7,7 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
@@ -90,7 +91,7 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
-func specResolver(mutator func(*SetVarItem, bool)) graphql.FieldResolveFn {
+func specResolver(mutator func(*SetVarValue, *SetVarSpec, bool)) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
 		keysArg := p.Args["keys"].([]interface{})
@@ -98,18 +99,20 @@ func specResolver(mutator func(*SetVarItem, bool)) graphql.FieldResolveFn {
 		opSet := p.Source.(*OperationSet)
 		for _, kArg := range keysArg {
 			k := kArg.(string)
-			v, ok := opSet.items[k]
-			if !ok {
+			v, vOk := opSet.values[k]
+			s, sOk := opSet.specs[k]
+			if !vOk && !sOk {
 				// todo(sebastian): should UNSET/delete ever come in here?
 				continue
 			}
 
-			if v.Value.Status == "UNRESOLVED" {
+			if vOk && v.Value.Status == "UNRESOLVED" {
 				// todo(sebastian): most obvious validation error?
 				continue
 			}
 
-			mutator(v, insecure)
+			// TODO: Specs
+			mutator(v, s, insecure)
 		}
 
 		return p.Source, nil
@@ -120,7 +123,7 @@ func init() {
 	SpecTypes = make(map[string]*specType)
 
 	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true,
-		specResolver(func(v *SetVarItem, insecure bool) {
+		specResolver(func(v *SetVarValue, s *SetVarSpec, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -138,7 +141,7 @@ func init() {
 	)
 
 	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true,
-		specResolver(func(v *SetVarItem, insecure bool) {
+		specResolver(func(v *SetVarValue, s *SetVarSpec, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -153,7 +156,7 @@ func init() {
 		}),
 	)
 	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
-		specResolver(func(v *SetVarItem, insecure bool) {
+		specResolver(func(v *SetVarValue, s *SetVarSpec, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -166,7 +169,7 @@ func init() {
 		}),
 	)
 	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
-		specResolver(func(v *SetVarItem, insecure bool) {
+		specResolver(func(v *SetVarValue, s *SetVarSpec, insecure bool) {
 			if insecure {
 				original := v.Value.Original
 				v.Value.Resolved = original
@@ -380,6 +383,23 @@ func init() {
 					},
 					Resolve: resolveOperation(resolveLoadOrUpdate),
 				},
+				"reconcile": &graphql.Field{
+					Type: EnvironmentType,
+					Args: graphql.FieldConfigArgument{
+						"vars": &graphql.ArgumentConfig{
+							Type: graphql.NewList(VariableInputType),
+						},
+						"hasSpecs": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
+						"location": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "",
+						},
+					},
+					Resolve: resolveOperation(resolveLoadOrUpdate),
+				},
 				"update": &graphql.Field{
 					Type: EnvironmentType,
 					Args: graphql.FieldConfigArgument{
@@ -457,9 +477,21 @@ func init() {
 							return nil, errors.New("source is not an OperationSet")
 						}
 
-						for _, v := range opSet.items {
-							snapshot = append(snapshot, v)
+						for _, v := range opSet.values {
+							s, ok := opSet.specs[v.Var.Key]
+							if !ok {
+								s = &SetVarSpec{
+									Var:  v.Var,
+									Spec: &varSpec{Name: SpecNameDefault},
+								}
+							}
+							snapshot = append(snapshot, &SetVarItem{
+								Var:   v.Var,
+								Value: v.Value,
+								Spec:  s.Spec,
+							})
 						}
+
 						snapshot.sort()
 						return snapshot, nil
 					},
@@ -577,8 +609,9 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		opSetData := make(map[string]SetVarItems, len(store.opSets))
 
+		// TODO: Specs
 		for i, opSet := range store.opSets {
-			if len(opSet.items) == 0 {
+			if len(opSet.values) == 0 && len(opSet.specs) == 0 {
 				continue
 			}
 
@@ -588,6 +621,8 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 				opName = "load"
 			case UpdateSetOperation:
 				opName = "update"
+			case ReconcileSetOperation:
+				opName = "reconcile"
 			case DeleteSetOperation:
 				opName = "delete"
 			default:
@@ -595,8 +630,18 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 			}
 			nvars := fmt.Sprintf("%s_%d", opName, i)
 
-			for _, v := range opSet.items {
-				opSetData[nvars] = append(opSetData[nvars], v)
+			for _, v := range opSet.values {
+				opSetData[nvars] = append(opSetData[nvars], &SetVarItem{
+					Var:   v.Var,
+					Value: v.Value,
+				})
+			}
+
+			for _, s := range opSet.specs {
+				opSetData[nvars] = append(opSetData[nvars], &SetVarItem{
+					Var:  s.Var,
+					Spec: s.Spec,
+				})
 			}
 
 			opDef.VariableDefinitions = append(opDef.VariableDefinitions, ast.NewVariableDefinition(&ast.VariableDefinition{
@@ -786,20 +831,89 @@ func reduceSnapshot() QueryNodeReducer {
 	}
 }
 
+func reconcileAsymmetry(store *Store) QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		allSpecs := make(map[string]bool)
+		for _, opSet := range store.opSets {
+			for k := range opSet.specs {
+				allSpecs[k] = true
+			}
+		}
+		allVals := make(map[string]bool)
+		for _, opSet := range store.opSets {
+			for k := range opSet.values {
+				allVals[k] = true
+			}
+		}
+
+		deltaOpSet, err := NewOperationSet(WithOperation(ReconcileSetOperation, "specless"))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, opSet := range store.opSets {
+			for k := range opSet.values {
+				if _, exists := allSpecs[k]; exists {
+					continue
+				}
+				created := time.Now()
+				spec := &SetVarSpec{
+					Var: &SetVar{
+						Key:     k,
+						Created: &created,
+					},
+					Spec: &varSpec{
+						Name:     SpecNameDefault,
+						Required: false,
+						Checked:  false,
+					},
+				}
+				deltaOpSet.specs[k] = spec
+			}
+			for k := range opSet.specs {
+				if _, exists := allVals[k]; exists {
+					continue
+				}
+				created := time.Now()
+				spec := &SetVarValue{
+					Var: &SetVar{
+						Key:     k,
+						Created: &created,
+					},
+					Value: &varValue{
+						Status: "UNRESOLVED",
+					},
+				}
+				deltaOpSet.values[k] = spec
+			}
+		}
+
+		if len(deltaOpSet.specs) > 0 || len(deltaOpSet.values) > 0 {
+			deltaOpSet.hasSpecs = len(deltaOpSet.specs) > 0
+			store.opSets = append(store.opSets, deltaOpSet)
+		}
+
+		return selSet, nil
+	}
+}
+
 func reduceSepcs(store *Store) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var specKeys []string
 		varSpecs := make(map[string]*SetVarItem)
 		for _, opSet := range store.opSets {
-			if len(opSet.items) == 0 {
+			if len(opSet.specs) == 0 {
 				continue
 			}
-			for _, v := range opSet.items {
-				if _, ok := SpecTypes[v.Spec.Name]; !ok {
-					return nil, fmt.Errorf("unknown spec type: %s on %s", v.Spec.Name, v.Var.Key)
+			for _, s := range opSet.specs {
+				if _, ok := SpecTypes[s.Spec.Name]; !ok {
+					return nil, fmt.Errorf("unknown spec type: %s on %s", s.Spec.Name, s.Var.Key)
 				}
-				varSpecs[v.Var.Key] = v
-				specKeys = append(specKeys, v.Spec.Name)
+				varSpecs[s.Var.Key] = &SetVarItem{
+					Var:  s.Var,
+					Spec: s.Spec,
+				}
+				specKeys = append(specKeys, s.Spec.Name)
 			}
 		}
 
