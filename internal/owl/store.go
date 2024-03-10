@@ -210,8 +210,7 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 
 func resolveLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, location string, hasSpecs bool) error {
 	for _, r := range revived {
-		switch {
-		case r.Value != nil:
+		if r.Value != nil {
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
 				location = old.Var.Operation.Location
 				r.Var.Created = old.Var.Created
@@ -223,9 +222,16 @@ func resolveLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, locat
 			if r.Value.Original != "" {
 				r.Value.Resolved = r.Value.Original
 				r.Value.Status = "LITERAL"
+			} else {
+				r.Value.Status = "UNRESOLVED"
 			}
 			resolverOpSet.values[r.Var.Key] = &SetVarValue{Var: r.Var, Value: r.Value}
-		case r.Spec != nil:
+		}
+
+		if r.Spec != nil {
+			if old, ok := resolverOpSet.specs[r.Var.Key]; ok {
+				r.Var.Created = old.Var.Created
+			}
 			r.Var.Updated = r.Var.Created
 			r.Var.Operation = &setVarOperation{
 				Location: location,
