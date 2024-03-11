@@ -767,16 +767,19 @@ func convertToMonitorEnvResponse(msg *runnerv1.MonitorEnvResponse, snapshot owl.
 		default:
 			// return errors.Errorf("unknown status: %s", item.Value.Status)
 		}
-		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv{
+		env := &runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv{
 			Name:          item.Var.Key,
 			Spec:          item.Spec.Name,
-			Origin:        item.Var.Operation.Source,
 			OriginalValue: item.Value.Original,
 			ResolvedValue: item.Value.Resolved,
 			Status:        status,
 			CreateTime:    item.Var.Created.String(),
 			UpdateTime:    item.Var.Updated.String(),
-		})
+		}
+		if item.Var.Operation != nil {
+			env.Origin = item.Var.Operation.Source
+		}
+		envsSnapshot = append(envsSnapshot, env)
 	}
 
 	msg.Data = &runnerv1.MonitorEnvResponse_Snapshot{
