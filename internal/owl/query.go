@@ -146,14 +146,14 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 							}),
 						}),
 					}),
-					ast.NewArgument(&ast.Argument{
-						Name: ast.NewName(&ast.Name{
-							Value: "location",
-						}),
-						Value: ast.NewStringValue(&ast.StringValue{
-							Value: opSet.operation.location,
-						}),
-					}),
+					// ast.NewArgument(&ast.Argument{
+					// 	Name: ast.NewName(&ast.Name{
+					// 		Value: "location",
+					// 	}),
+					// 	Value: ast.NewStringValue(&ast.StringValue{
+					// 		Value: opSet.operation.location,
+					// 	}),
+					// }),
 					ast.NewArgument(&ast.Argument{
 						Name: ast.NewName(&ast.Name{
 							Value: "hasSpecs",
@@ -215,7 +215,7 @@ func reduceSnapshot() QueryNodeReducer {
 									Selections: []ast.Selection{
 										ast.NewField(&ast.Field{
 											Name: ast.NewName(&ast.Name{
-												Value: "location",
+												Value: "source",
 											}),
 										}),
 									},
@@ -314,7 +314,7 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 			}
 		}
 
-		deltaOpSet, err := NewOperationSet(WithOperation(ReconcileSetOperation, ""))
+		deltaOpSet, err := NewOperationSet(WithOperation(ReconcileSetOperation))
 		if err != nil {
 			return nil, err
 		}

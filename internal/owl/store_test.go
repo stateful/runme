@@ -15,7 +15,7 @@ func Test_OperationSet(t *testing.T) {
 	t.Parallel()
 
 	t.Run("withOperation", func(t *testing.T) {
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "process"))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation))
 		require.NoError(t, err)
 
 		assert.EqualValues(t, LoadSetOperation, opSet.operation.kind)
@@ -35,10 +35,10 @@ func Test_OperationSet_Valueless(t *testing.T) {
 	t.Run("Naked spec parse valueless", func(t *testing.T) {
 		naked := []string{"FOO"}
 
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "naked"))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation))
 		require.NoError(t, err)
 
-		err = opSet.addEnvs(naked...)
+		err = opSet.addEnvs("naked", naked...)
 		require.NoError(t, err)
 
 		require.Len(t, opSet.values, 1)
@@ -50,10 +50,10 @@ func Test_OperationSet_Valueless(t *testing.T) {
 	t.Run("Naked specs parsed valueless", func(t *testing.T) {
 		naked := []string{"BAR", "FOO", "BAZ"}
 
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "naked"))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation))
 		require.NoError(t, err)
 
-		err = opSet.addEnvs(naked...)
+		err = opSet.addEnvs("naked", naked...)
 		require.NoError(t, err)
 
 		require.Len(t, opSet.values, 3)
@@ -95,7 +95,7 @@ HOME=fake-secret # Secret!
 HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		envs := os.Environ()
 
-		store, err := NewStore(WithEnvs(envs...), WithSpecFile(".env.example", raw))
+		store, err := NewStore(WithEnvs("[system]", envs...), WithSpecFile(".env.example", raw))
 		require.NoError(t, err)
 
 		require.Len(t, store.opSets, 2)

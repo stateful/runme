@@ -118,13 +118,13 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 	}
 }
 
-func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, string, bool) error) graphql.FieldResolveFn {
+func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, bool) error) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		vars, ok := p.Args["vars"]
 		if !ok {
 			return p.Source, nil
 		}
-		location := p.Args["location"].(string)
+		// location := p.Args["location"].(string)
 		hasSpecs := p.Args["hasSpecs"].(bool)
 
 		var resolverOpSet *OperationSet
@@ -135,7 +135,7 @@ func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, string, bo
 			resolverOpSet = p.Source.(*OperationSet)
 			resolverOpSet.hasSpecs = resolverOpSet.hasSpecs || hasSpecs
 		default:
-			resolverOpSet, err = NewOperationSet(WithOperation(TransientSetOperation, "resolver"))
+			resolverOpSet, err = NewOperationSet(WithOperation(TransientSetOperation))
 			resolverOpSet.hasSpecs = hasSpecs
 			if err != nil {
 				return nil, err
@@ -153,7 +153,7 @@ func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, string, bo
 			return nil, err
 		}
 
-		err = resolveMutator(revive, resolverOpSet, location, hasSpecs)
+		err = resolveMutator(revive, resolverOpSet, hasSpecs)
 		if err != nil {
 			return nil, err
 		}
@@ -199,19 +199,19 @@ func resolveSnapshot() graphql.FieldResolveFn {
 	}
 }
 
-func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, location string, hasSpecs bool) error {
+func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpecs bool) error {
 	for _, r := range revived {
 		if r.Value != nil {
 			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
-				location = old.Var.Operation.Location
+				// location = old.Var.Operation.Location
 				oldCreated := old.Var.Created
 				r.Var.Created = oldCreated
 			}
 			r.Var.Updated = newCreated
-			r.Var.Operation = &setVarOperation{
-				Location: location,
-			}
+			// r.Var.Operation = &setVarOperation{
+			// 	Location: location,
+			// }
 			if r.Value.Original != "" {
 				r.Value.Resolved = r.Value.Original
 				r.Value.Status = "LITERAL"
@@ -229,16 +229,16 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, locati
 			}
 			newCreated := *r.Var.Created
 			r.Var.Updated = &newCreated
-			r.Var.Operation = &setVarOperation{
-				Location: location,
-			}
+			// r.Var.Operation = &setVarOperation{
+			// 	Location: location,
+			// }
 			resolverOpSet.specs[r.Var.Key] = &SetVarSpec{Var: r.Var, Spec: r.Spec}
 		}
 	}
 	return nil
 }
 
-func mutateDelete(vars SetVarItems, resolverOpSet *OperationSet, _ string, _ bool) error {
+func mutateDelete(vars SetVarItems, resolverOpSet *OperationSet, _ bool) error {
 	for _, v := range vars {
 		delete(resolverOpSet.specs, v.Var.Key)
 		delete(resolverOpSet.values, v.Var.Key)
@@ -351,7 +351,7 @@ func init() {
 											Type: graphql.String,
 										},
 										// todo(sebastian): likely abstract
-										"location": &graphql.Field{
+										"source": &graphql.Field{
 											Type: graphql.String,
 										},
 									},
@@ -431,10 +431,10 @@ func init() {
 									"order": &graphql.InputObjectFieldConfig{
 										Type: graphql.Int,
 									},
-									"kind": &graphql.InputObjectFieldConfig{
-										Type: graphql.String,
-									},
-									"location": &graphql.InputObjectFieldConfig{
+									// "kind": &graphql.InputObjectFieldConfig{
+									// 	Type: graphql.String,
+									// },
+									"source": &graphql.InputObjectFieldConfig{
 										Type: graphql.String,
 									},
 								},
@@ -503,10 +503,10 @@ func init() {
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
-						"location": &graphql.ArgumentConfig{
-							Type:         graphql.String,
-							DefaultValue: "",
-						},
+						// "location": &graphql.ArgumentConfig{
+						// 	Type:         graphql.String,
+						// 	DefaultValue: "",
+						// },
 					},
 					Resolve: resolveOperation(mutateLoadOrUpdate),
 				},
@@ -520,10 +520,10 @@ func init() {
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
-						"location": &graphql.ArgumentConfig{
-							Type:         graphql.String,
-							DefaultValue: "",
-						},
+						// "location": &graphql.ArgumentConfig{
+						// 	Type:         graphql.String,
+						// 	DefaultValue: "",
+						// },
 					},
 					Resolve: resolveOperation(mutateLoadOrUpdate),
 				},
@@ -533,14 +533,14 @@ func init() {
 						"vars": &graphql.ArgumentConfig{
 							Type: graphql.NewList(VariableInputType),
 						},
-						"location": &graphql.ArgumentConfig{
-							Type:         graphql.String,
-							DefaultValue: "",
-						},
 						"hasSpecs": &graphql.ArgumentConfig{
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
+						// "location": &graphql.ArgumentConfig{
+						// 	Type:         graphql.String,
+						// 	DefaultValue: "",
+						// },
 					},
 					Resolve: resolveOperation(mutateLoadOrUpdate),
 				},
@@ -550,14 +550,14 @@ func init() {
 						"vars": &graphql.ArgumentConfig{
 							Type: graphql.NewList(VariableInputType),
 						},
-						"location": &graphql.ArgumentConfig{
-							Type:         graphql.String,
-							DefaultValue: "",
-						},
 						"hasSpecs": &graphql.ArgumentConfig{
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
+						// "location": &graphql.ArgumentConfig{
+						// 	Type:         graphql.String,
+						// 	DefaultValue: "",
+						// },
 					},
 					Resolve: resolveOperation(mutateDelete),
 				},
@@ -567,21 +567,21 @@ func init() {
 						return p.Source, nil
 					},
 				},
-				"location": &graphql.Field{
-					Type: graphql.NewNonNull(graphql.String),
-					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						// todo(sebastian): bring this back?
-						switch p.Source.(type) {
-						case *OperationSet:
-							opSet := p.Source.(*OperationSet)
-							return opSet.operation.location, nil
-						default:
-							// noop
-						}
+				// "location": &graphql.Field{
+				// 	Type: graphql.NewNonNull(graphql.String),
+				// 	Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				// 		// todo(sebastian): bring this back?
+				// 		switch p.Source.(type) {
+				// 		case *OperationSet:
+				// 			opSet := p.Source.(*OperationSet)
+				// 			return opSet.operation.location, nil
+				// 		default:
+				// 			// noop
+				// 		}
 
-						return nil, nil
-					},
-				},
+				// 		return nil, nil
+				// 	},
+				// },
 				"snapshot": &graphql.Field{
 					Type: graphql.NewNonNull(graphql.NewList(VariableType)),
 					Args: graphql.FieldConfigArgument{

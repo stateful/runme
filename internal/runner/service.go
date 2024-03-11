@@ -770,7 +770,7 @@ func convertToMonitorEnvResponse(msg *runnerv1.MonitorEnvResponse, snapshot owl.
 		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv{
 			Name:          item.Var.Key,
 			Spec:          item.Spec.Name,
-			Origin:        item.Var.Operation.Location,
+			Origin:        item.Var.Operation.Source,
 			OriginalValue: item.Value.Original,
 			ResolvedValue: item.Value.Resolved,
 			Status:        status,

@@ -28,8 +28,8 @@ const (
 )
 
 type Operation struct {
-	kind     setOperationKind
-	location string
+	kind setOperationKind
+	// location string
 }
 
 type OperationSet struct {
@@ -40,9 +40,9 @@ type OperationSet struct {
 }
 
 type setVarOperation struct {
-	Order    uint             `json:"order"`
-	Kind     setOperationKind `json:"kind"`
-	Location string           `json:"location"`
+	Order  uint             `json:"order"`
+	Kind   setOperationKind `json:"-"`
+	Source string           `json:"source"`
 }
 
 type varValue struct {
@@ -135,11 +135,11 @@ func NewOperationSet(opts ...OperationSetOption) (*OperationSet, error) {
 	return opSet, nil
 }
 
-func WithOperation(operation setOperationKind, location string) OperationSetOption {
+func WithOperation(operation setOperationKind) OperationSetOption {
 	return func(opSet *OperationSet) error {
 		opSet.operation = Operation{
-			kind:     operation,
-			location: location,
+			kind: operation,
+			// location: location,
 		}
 		return nil
 	}
@@ -152,7 +152,7 @@ func WithSpecs(included bool) OperationSetOption {
 	}
 }
 
-func (s *OperationSet) addEnvs(envs ...string) error {
+func (s *OperationSet) addEnvs(source string, envs ...string) error {
 	for _, env := range envs {
 		parts := strings.Split(env, "=")
 		k, v := parts[0], ""
@@ -163,8 +163,9 @@ func (s *OperationSet) addEnvs(envs ...string) error {
 		created := time.Now()
 		s.values[k] = &SetVarValue{
 			Var: &SetVar{
-				Key:     k,
-				Created: &created,
+				Key:       k,
+				Created:   &created,
+				Operation: &setVarOperation{Source: source},
 			},
 			Value: &varValue{
 				Original: v,
@@ -174,7 +175,7 @@ func (s *OperationSet) addEnvs(envs ...string) error {
 	return nil
 }
 
-func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
+func (s *OperationSet) addRaw(raw []byte, source string, hasSpecs bool) error {
 	vals, comments, err := godotenv.UnmarshalBytesWithComments(raw)
 	if err != nil {
 		return err
@@ -188,8 +189,9 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 		case true:
 			s.specs[key] = &SetVarSpec{
 				Var: &SetVar{
-					Key:     key,
-					Created: &created,
+					Key:       key,
+					Operation: &setVarOperation{Source: source},
+					Created:   &created,
 				},
 				Spec: &varSpec{
 					Name:        string(spec.Name),
@@ -246,12 +248,12 @@ func WithEnvFile(specFile string, raw []byte) StoreOption {
 
 func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 	return func(s *Store) error {
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, specFile), WithSpecs(hasSpecs))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation), WithSpecs(hasSpecs))
 		if err != nil {
 			return err
 		}
 
-		err = opSet.addRaw(raw, hasSpecs)
+		err = opSet.addRaw(raw, specFile, hasSpecs)
 		if err != nil {
 			return err
 		}
@@ -261,14 +263,14 @@ func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 	}
 }
 
-func WithEnvs(envs ...string) StoreOption {
+func WithEnvs(source string, envs ...string) StoreOption {
 	return func(s *Store) error {
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "[system]"), WithSpecs(false))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation), WithSpecs(false))
 		if err != nil {
 			return err
 		}
 
-		err = opSet.addEnvs(envs...)
+		err = opSet.addEnvs(source, envs...)
 		if err != nil {
 			return err
 		}
@@ -318,24 +320,24 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation, "exec"), WithSpecs(false))
+	updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation), WithSpecs(false))
 	if err != nil {
 		return err
 	}
 
-	err = updateOpSet.addEnvs(newOrUpdated...)
+	err = updateOpSet.addEnvs("exec", newOrUpdated...)
 	if err != nil {
 		return err
 	}
 
 	s.opSets = append(s.opSets, updateOpSet)
 
-	deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation, "exec"), WithSpecs(false))
+	deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation), WithSpecs(false))
 	if err != nil {
 		return err
 	}
 
-	err = deleteOpSet.addEnvs(deleted...)
+	err = deleteOpSet.addEnvs("exec", deleted...)
 	if err != nil {
 		return err
 	}

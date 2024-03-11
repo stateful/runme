@@ -158,14 +158,14 @@ type owlEnvStorer struct {
 func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*owlEnvStorer, error) {
 	opts := []owl.StoreOption{
 		owl.WithLogger(logger),
-		owl.WithEnvs(envs...),
+		owl.WithEnvs("[session]", envs...),
 	}
 
 	specSourceFiles := []string{}
 	envFilesOrder := []string{}
 	if proj != nil {
 		// todo(sebastian): specs loading should be independent of project
-		specSourceFiles = []string{".env.example", ".env.spec"}
+		specSourceFiles = []string{".env.sample", ".env.example", ".env.spec"}
 		envFilesOrder = proj.EnvFilesReadOrder()
 	}
 
