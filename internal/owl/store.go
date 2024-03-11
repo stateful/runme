@@ -216,53 +216,6 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 	return nil
 }
 
-func resolveLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, location string, hasSpecs bool) error {
-	for _, r := range revived {
-		if r.Value != nil {
-			newCreated := r.Var.Created
-			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
-				location = old.Var.Operation.Location
-				oldCreated := old.Var.Created
-				r.Var.Created = oldCreated
-			}
-			r.Var.Updated = newCreated
-			r.Var.Operation = &setVarOperation{
-				Location: location,
-			}
-			if r.Value.Original != "" {
-				r.Value.Resolved = r.Value.Original
-				r.Value.Status = "LITERAL"
-			} else {
-				// todo(sebastian): load vs update difference?
-				r.Value.Status = "UNRESOLVED"
-			}
-			resolverOpSet.values[r.Var.Key] = &SetVarValue{Var: r.Var, Value: r.Value}
-		}
-
-		if r.Spec != nil {
-			if old, ok := resolverOpSet.specs[r.Var.Key]; ok {
-				oldCreated := *old.Var.Created
-				r.Var.Created = &oldCreated
-			}
-			newCreated := *r.Var.Created
-			r.Var.Updated = &newCreated
-			r.Var.Operation = &setVarOperation{
-				Location: location,
-			}
-			resolverOpSet.specs[r.Var.Key] = &SetVarSpec{Var: r.Var, Spec: r.Spec}
-		}
-	}
-	return nil
-}
-
-func resolveDelete(vars SetVarItems, resolverOpSet *OperationSet, _ string, _ bool) error {
-	for _, v := range vars {
-		delete(resolverOpSet.specs, v.Var.Key)
-		delete(resolverOpSet.values, v.Var.Key)
-	}
-	return nil
-}
-
 type Store struct {
 	mu     sync.RWMutex
 	opSets []*OperationSet
