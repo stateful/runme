@@ -23,62 +23,91 @@ const (
 	LoadSetOperation setOperationKind = iota
 	UpdateSetOperation
 	DeleteSetOperation
+	ReconcileSetOperation
 	TransientSetOperation
 )
 
 type Operation struct {
-	kind     setOperationKind
-	location string
+	kind setOperationKind
+	// location string
 }
 
 type OperationSet struct {
 	operation Operation
 	hasSpecs  bool
-	items     map[string]*setVar
+	specs     map[string]*SetVarSpec
+	values    map[string]*SetVarValue
 }
 
 type setVarOperation struct {
-	Order    uint             `json:"order"`
-	Kind     setOperationKind `json:"kind"`
-	Location string           `json:"location"`
+	Order  uint             `json:"order"`
+	Kind   setOperationKind `json:"-"`
+	Source string           `json:"source"`
 }
 
-type setVarValue struct {
-	// Type    string `json:"type"`
+type varValue struct {
 	Original string `json:"original,omitempty"`
 	Resolved string `json:"resolved,omitempty"`
 	Status   string `json:"status"`
-	// ValidationErrors validator.ValidationErrors `json:"-"`
 }
 
-type setVarSpec struct {
-	Name    string `json:"name"`
-	Checked bool   `json:"checked"`
+type varSpec struct {
+	Name        string `json:"name"`
+	Required    bool   `json:"required"`
+	Description string `json:"description"`
+	Checked     bool   `json:"checked"`
 }
 
-type setVar struct {
+type SetVar struct {
 	Key       string           `json:"key"`
-	Raw       string           `json:"raw"`
-	Value     *setVarValue     `json:"value,omitempty"`
-	Spec      *setVarSpec      `json:"spec,omitempty"`
-	Required  bool             `json:"required"`
+	Origin    string           `json:"origin,omitempty"`
 	Operation *setVarOperation `json:"operation"`
 	Created   *time.Time       `json:"created,omitempty"`
 	Updated   *time.Time       `json:"updated,omitempty"`
 }
 
-type SetVarResult []*setVar
+type SetVarSpec struct {
+	Var  *SetVar  `json:"var,omitempty"`
+	Spec *varSpec `json:"spec,omitempty"`
+}
 
-func (res SetVarResult) sortbyKey() {
-	slices.SortStableFunc(res, func(i, j *setVar) int {
-		return strings.Compare(i.Key, j.Key)
+type SetVarValue struct {
+	Var   *SetVar   `json:"var,omitempty"`
+	Value *varValue `json:"value,omitempty"`
+}
+
+type SetVarItem struct {
+	Var   *SetVar   `json:"var,omitempty"`
+	Value *varValue `json:"value,omitempty"`
+	Spec  *varSpec  `json:"spec,omitempty"`
+}
+
+type SetVarItems []*SetVarItem
+
+func (res SetVarItems) sortbyKey() {
+	slices.SortStableFunc(res, func(i, j *SetVarItem) int {
+		return strings.Compare(i.Var.Key, j.Var.Key)
 	})
 }
 
-func (res SetVarResult) sort() {
-	slices.SortStableFunc(res, func(i, j *setVar) int {
+func (res SetVarItems) sort() {
+	slices.SortFunc(res, func(i, j *SetVarItem) int {
+		if i.Spec == nil {
+			return -1
+		}
+		if j.Spec == nil {
+			return 1
+		}
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
-			return 0
+			jUpdated := j.Var.Updated.Unix()
+			iUpdated := i.Var.Updated.Unix()
+
+			delta := int(jUpdated - iUpdated)
+
+			if delta == 0 {
+				return strings.Compare(i.Var.Key, j.Var.Key)
+			}
+			return delta
 		}
 		if i.Spec.Name != "Opaque" {
 			return -1
@@ -86,7 +115,7 @@ func (res SetVarResult) sort() {
 		if j.Spec.Name != "Opaque" {
 			return 1
 		}
-		return strings.Compare(i.Key, j.Key)
+		return strings.Compare(i.Var.Key, j.Var.Key)
 	})
 }
 
@@ -95,7 +124,8 @@ type OperationSetOption func(*OperationSet) error
 func NewOperationSet(opts ...OperationSetOption) (*OperationSet, error) {
 	opSet := &OperationSet{
 		hasSpecs: false,
-		items:    make(map[string]*setVar),
+		specs:    make(map[string]*SetVarSpec),
+		values:   make(map[string]*SetVarValue),
 	}
 
 	for _, opt := range opts {
@@ -106,11 +136,11 @@ func NewOperationSet(opts ...OperationSetOption) (*OperationSet, error) {
 	return opSet, nil
 }
 
-func WithOperation(operation setOperationKind, location string) OperationSetOption {
+func WithOperation(operation setOperationKind) OperationSetOption {
 	return func(opSet *OperationSet) error {
 		opSet.operation = Operation{
-			kind:     operation,
-			location: location,
+			kind: operation,
+			// location: location,
 		}
 		return nil
 	}
@@ -123,64 +153,69 @@ func WithSpecs(included bool) OperationSetOption {
 	}
 }
 
-func (s *OperationSet) addEnvs(envs ...string) (err error) {
+func (s *OperationSet) addEnvs(source string, envs ...string) error {
 	for _, env := range envs {
-		if len(strings.Split(env, "=")) == 1 {
-			env = env + "="
+		parts := strings.Split(env, "=")
+		k, v := parts[0], ""
+		if len(parts) > 1 {
+			v = strings.Join(parts[1:], "=")
 		}
-		err = s.addRaw([]byte(env))
+
+		created := time.Now()
+		s.values[k] = &SetVarValue{
+			Var: &SetVar{
+				Key:       k,
+				Created:   &created,
+				Operation: &setVarOperation{Source: source},
+			},
+			Value: &varValue{
+				Original: v,
+			},
+		}
 	}
-	return err
+	return nil
 }
 
-func (s *OperationSet) addRaw(raw []byte) error {
-	values, comments, err := godotenv.UnmarshalBytesWithComments(raw)
+func (s *OperationSet) addRaw(raw []byte, source string, hasSpecs bool) error {
+	vals, comments, err := godotenv.UnmarshalBytesWithComments(raw)
 	if err != nil {
 		return err
 	}
 
-	specs := ParseRawSpec(values, comments)
+	specs := ParseRawSpec(vals, comments)
 	for key, spec := range specs {
 		created := time.Now()
 
-		s.items[key] = &setVar{
-			Key:      key,
-			Raw:      "", // TODO: Raw value is not supported yet
-			Value:    &setVarValue{Resolved: values[key]},
-			Spec:     &setVarSpec{Name: string(spec.Name), Checked: false},
-			Required: spec.Required,
-			Created:  &created,
+		switch hasSpecs {
+		case true:
+			s.specs[key] = &SetVarSpec{
+				Var: &SetVar{
+					Key:       key,
+					Operation: &setVarOperation{Source: source},
+					Created:   &created,
+				},
+				Spec: &varSpec{
+					Name:        string(spec.Name),
+					Required:    spec.Required,
+					Description: vals[key],
+					Checked:     false,
+				},
+			}
+		default:
+			s.values[key] = &SetVarValue{
+				Var: &SetVar{
+					Key:     key,
+					Created: &created,
+				},
+				Value: &varValue{
+					Original: vals[key],
+					Status:   "UNRESOLVED",
+				},
+			}
 		}
+
 	}
 
-	return nil
-}
-
-func resolveLoadOrUpdate(vars SetVarResult, resolverOpSet *OperationSet, hasSpecs bool) error {
-	for _, v := range vars {
-		old, ok := resolverOpSet.items[v.Key]
-		if hasSpecs && ok {
-			old.Spec = v.Spec
-			old.Required = v.Required
-			continue
-		}
-		if ok {
-			v.Created = old.Created
-		}
-		v.Updated = v.Created
-		resolverOpSet.items[v.Key] = v
-	}
-	return nil
-}
-
-func resolveDelete(vars SetVarResult, resolverOpSet *OperationSet, _ bool) error {
-	for _, v := range vars {
-		_, ok := resolverOpSet.items[v.Key]
-		if !ok {
-			continue
-		}
-		delete(resolverOpSet.items, v.Key)
-	}
 	return nil
 }
 
@@ -214,12 +249,12 @@ func WithEnvFile(specFile string, raw []byte) StoreOption {
 
 func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 	return func(s *Store) error {
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, specFile), WithSpecs(hasSpecs))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation), WithSpecs(hasSpecs))
 		if err != nil {
 			return err
 		}
 
-		err = opSet.addRaw(raw)
+		err = opSet.addRaw(raw, specFile, hasSpecs)
 		if err != nil {
 			return err
 		}
@@ -229,14 +264,14 @@ func withSpecsFile(specFile string, raw []byte, hasSpecs bool) StoreOption {
 	}
 }
 
-func WithEnvs(envs ...string) StoreOption {
+func WithEnvs(source string, envs ...string) StoreOption {
 	return func(s *Store) error {
-		opSet, err := NewOperationSet(WithOperation(LoadSetOperation, "session"), WithSpecs(false))
+		opSet, err := NewOperationSet(WithOperation(LoadSetOperation), WithSpecs(false))
 		if err != nil {
 			return err
 		}
 
-		err = opSet.addEnvs(envs...)
+		err = opSet.addEnvs(source, envs...)
 		if err != nil {
 			return err
 		}
@@ -253,6 +288,18 @@ func WithLogger(logger *zap.Logger) StoreOption {
 	}
 }
 
+func (s *Store) Snapshot() (SetVarItems, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	items, err := s.snapshot(false)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
 func (s *Store) InsecureValues() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -264,7 +311,7 @@ func (s *Store) InsecureValues() ([]string, error) {
 
 	result := make([]string, 0, len(items))
 	for _, item := range items {
-		result = append(result, item.Key+"="+item.Value.Resolved)
+		result = append(result, item.Var.Key+"="+item.Value.Resolved)
 	}
 
 	return result, nil
@@ -274,24 +321,24 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation, "exec"), WithSpecs(false))
+	updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation), WithSpecs(false))
 	if err != nil {
 		return err
 	}
 
-	err = updateOpSet.addEnvs(newOrUpdated...)
+	err = updateOpSet.addEnvs("[execution]", newOrUpdated...)
 	if err != nil {
 		return err
 	}
 
 	s.opSets = append(s.opSets, updateOpSet)
 
-	deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation, "exec"), WithSpecs(false))
+	deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation), WithSpecs(false))
 	if err != nil {
 		return err
 	}
 
-	err = deleteOpSet.addEnvs(deleted...)
+	err = deleteOpSet.addEnvs("[execution]", deleted...)
 	if err != nil {
 		return err
 	}
@@ -322,6 +369,7 @@ func (s *Store) validateQuery(query, vars io.StringWriter) error {
 
 	q, err := NewQuery("Validate", varDefs,
 		[]QueryNodeReducer{
+			reconcileAsymmetry(s),
 			reduceSetOperations(s, vars),
 			reduceSepcs(s),
 			reduceSnapshot(),
@@ -344,7 +392,7 @@ func (s *Store) validateQuery(query, vars io.StringWriter) error {
 	return nil
 }
 
-func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
+func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
 	var query, vars bytes.Buffer
 	err := s.snapshotQuery(&query, &vars)
 	if err != nil {
@@ -352,7 +400,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	}
 
 	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
-	// fmt.Println(query.String())
+	// _, _ = fmt.Println(query.String())
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
@@ -365,6 +413,7 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 	// if err != nil {
 	// 	return nil, err
 	// }
+	// fmt.Println(string(j))
 	// s.logger.Debug("snapshot vars", zap.String("vars", string(j)))
 
 	result := graphql.Do(graphql.Params{
@@ -387,70 +436,10 @@ func (s *Store) snapshot(insecure bool) (SetVarResult, error) {
 		return nil, err
 	}
 
-	var snapshot SetVarResult
+	var snapshot SetVarItems
 	_ = json.Unmarshal(j, &snapshot)
 
 	return snapshot, nil
-}
-
-func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
-	varDefs := []*ast.VariableDefinition{
-		ast.NewVariableDefinition(&ast.VariableDefinition{
-			Variable: ast.NewVariable(&ast.Variable{
-				Name: ast.NewName(&ast.Name{
-					Value: "insecure",
-				}),
-			}),
-			Type: ast.NewNamed(&ast.Named{
-				Name: ast.NewName(&ast.Name{
-					Value: "Boolean",
-				}),
-			}),
-			DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
-				Value: false,
-			}),
-		}),
-	}
-
-	loaded, updated, deleted := 0, 0, 0
-	for _, opSet := range s.opSets {
-		if len(opSet.items) == 0 {
-			continue
-		}
-		switch opSet.operation.kind {
-		case LoadSetOperation:
-			loaded++
-		case UpdateSetOperation:
-			updated++
-		case DeleteSetOperation:
-			deleted++
-		}
-
-	}
-	s.logger.Debug("snapshot opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted))
-
-	q, err := NewQuery("Snapshot", varDefs,
-		[]QueryNodeReducer{
-			reduceSetOperations(s, vars),
-			reduceSepcs(s),
-			reduceSnapshot(),
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	text, err := q.Print()
-	if err != nil {
-		return err
-	}
-
-	_, err = query.WriteString(text)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func extractDataKey(data interface{}, key string) (interface{}, error) {

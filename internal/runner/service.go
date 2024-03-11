@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
@@ -19,6 +20,7 @@ import (
 
 	commandpkg "github.com/stateful/runme/v3/internal/command"
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/rbuffer"
 	"github.com/stateful/runme/v3/internal/ulid"
@@ -81,7 +83,10 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 	envs := make([]string, len(req.Envs))
 	copy(envs, req.Envs)
 
-	if proj != nil {
+	owlStore := req.EnvStoreType == runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL
+
+	// todo(sebastian): perhaps we should move loading logic into session, like for owl store
+	if proj != nil && !owlStore {
 		projEnvs, err := proj.LoadEnv()
 		if err != nil {
 			return nil, err
@@ -90,12 +95,14 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		envs = append(envs, projEnvs...)
 	}
 
-	sess, err := NewSession(envs, proj, r.logger)
+	sess, err := NewSessionWithStore(envs, proj, owlStore, r.logger)
 	if err != nil {
 		return nil, err
 	}
 
 	r.sessions.AddSession(sess)
+
+	r.logger.Debug("created session", zap.String("id", sess.ID))
 
 	return &runnerv1.CreateSessionResponse{
 		Session: toRunnerv1Session(sess),
@@ -190,6 +197,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	logger.Debug("received initial request", zap.Any("req", req))
 
 	createSession := func(envs []string) (*Session, error) {
+		// todo(sebastian): owl store?
 		return NewSession(envs, nil, r.logger)
 	}
 
@@ -677,4 +685,106 @@ func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session,
 		}
 		return nil, false
 	}
+}
+
+func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, srv runnerv1.RunnerService_MonitorEnvStoreServer) error {
+	if req.Session == nil {
+		return status.Error(codes.InvalidArgument, "session is required")
+	}
+
+	sess, ok := r.sessions.GetSession(req.Session.Id)
+	if !ok {
+		return status.Error(codes.NotFound, "session not found")
+	}
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	snapshotc := make(chan owl.SetVarItems)
+	errc := make(chan error, 1)
+	defer close(errc)
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for snapshot := range snapshotc {
+			msg := &runnerv1.MonitorEnvStoreResponse{
+				Type: runnerv1.MonitorEnvStoreType_MONITOR_ENV_STORE_TYPE_SNAPSHOT,
+			}
+
+			if err := convertToMonitorEnvStoreResponse(msg, snapshot); err != nil {
+				errc <- err
+				goto errhandler
+			}
+
+			if err := srv.Send(msg); err != nil {
+				errc <- err
+				goto errhandler
+			}
+
+			continue
+
+		errhandler:
+			cancel()
+			// subscribers should be notified that they should exit early
+			// via cancel(). snapshotc will be closed, but it should be drained too
+			// in order to clean up any in-flight results.
+			// In theory, this is not necessary provided that all sends to snapshotc
+			// are wrapped in selects which observe ctx.Done().
+			//revive:disable:empty-block
+			for range snapshotc {
+			}
+			//revive:enable:empty-block
+		}
+
+		errc <- nil
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := sess.Subscribe(ctx, snapshotc); err != nil {
+			errc <- err
+		}
+	}()
+
+	wg.Wait()
+
+	return <-errc
+}
+
+func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, snapshot owl.SetVarItems) error {
+	envsSnapshot := make([]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv, 0, len(snapshot))
+
+	for _, item := range snapshot {
+		status := runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
+		// todo(sebastian): once more final use enums in SetVarResult
+		switch item.Value.Status {
+		case "HIDDEN":
+			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN
+		case "MASKED":
+			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED
+		case "LITERAL":
+			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL
+		default:
+			// return errors.Errorf("unknown status: %s", item.Value.Status)
+		}
+		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
+			Name:          item.Var.Key,
+			Spec:          item.Spec.Name,
+			Origin:        item.Var.Origin,
+			OriginalValue: item.Value.Original,
+			ResolvedValue: item.Value.Resolved,
+			Status:        status,
+			CreateTime:    item.Var.Created.String(),
+			UpdateTime:    item.Var.Updated.String(),
+		})
+	}
+
+	msg.Data = &runnerv1.MonitorEnvStoreResponse_Snapshot{
+		Snapshot: &runnerv1.MonitorEnvStoreResponseSnapshot{
+			Envs: envsSnapshot,
+		},
+	}
+
+	return nil
 }

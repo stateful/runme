@@ -71,6 +71,48 @@ export var ResolveProgramResponse_Status;
     ResolveProgramResponse_Status[ResolveProgramResponse_Status["RESOLVED"] = 3] = "RESOLVED";
 })(ResolveProgramResponse_Status || (ResolveProgramResponse_Status = {}));
 /**
+ * @generated from protobuf enum runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
+ */
+export var MonitorEnvStoreResponseSnapshot_Status;
+(function (MonitorEnvStoreResponseSnapshot_Status) {
+    /**
+     * @generated from protobuf enum value: STATUS_UNSPECIFIED = 0;
+     */
+    MonitorEnvStoreResponseSnapshot_Status[MonitorEnvStoreResponseSnapshot_Status["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: STATUS_LITERAL = 1;
+     */
+    MonitorEnvStoreResponseSnapshot_Status[MonitorEnvStoreResponseSnapshot_Status["LITERAL"] = 1] = "LITERAL";
+    /**
+     * @generated from protobuf enum value: STATUS_HIDDEN = 2;
+     */
+    MonitorEnvStoreResponseSnapshot_Status[MonitorEnvStoreResponseSnapshot_Status["HIDDEN"] = 2] = "HIDDEN";
+    /**
+     * @generated from protobuf enum value: STATUS_MASKED = 3;
+     */
+    MonitorEnvStoreResponseSnapshot_Status[MonitorEnvStoreResponseSnapshot_Status["MASKED"] = 3] = "MASKED";
+})(MonitorEnvStoreResponseSnapshot_Status || (MonitorEnvStoreResponseSnapshot_Status = {}));
+/**
+ * env store implementation
+ *
+ * @generated from protobuf enum runme.runner.v1.SessionEnvStoreType
+ */
+export var SessionEnvStoreType;
+(function (SessionEnvStoreType) {
+    /**
+     * uses default env store
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
+     */
+    SessionEnvStoreType[SessionEnvStoreType["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * uses owl store
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_OWL = 1;
+     */
+    SessionEnvStoreType[SessionEnvStoreType["OWL"] = 1] = "OWL";
+})(SessionEnvStoreType || (SessionEnvStoreType = {}));
+/**
  * @generated from protobuf enum runme.runner.v1.ExecuteStop
  */
 export var ExecuteStop;
@@ -128,6 +170,23 @@ export var SessionStrategy;
      */
     SessionStrategy[SessionStrategy["MOST_RECENT"] = 1] = "MOST_RECENT";
 })(SessionStrategy || (SessionStrategy = {}));
+/**
+ * @generated from protobuf enum runme.runner.v1.MonitorEnvStoreType
+ */
+export var MonitorEnvStoreType;
+(function (MonitorEnvStoreType) {
+    /**
+     * @generated from protobuf enum value: MONITOR_ENV_STORE_TYPE_UNSPECIFIED = 0;
+     */
+    MonitorEnvStoreType[MonitorEnvStoreType["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * possible expansion to have a "timeline" view
+     * MONITOR_ENV_STORE_TYPE_TIMELINE = 2;
+     *
+     * @generated from protobuf enum value: MONITOR_ENV_STORE_TYPE_SNAPSHOT = 1;
+     */
+    MonitorEnvStoreType[MonitorEnvStoreType["SNAPSHOT"] = 1] = "SNAPSHOT";
+})(MonitorEnvStoreType || (MonitorEnvStoreType = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class Session$Type extends MessageType {
     constructor() {
@@ -148,7 +207,8 @@ class CreateSessionRequest$Type extends MessageType {
         super("runme.runner.v1.CreateSessionRequest", [
             { no: 1, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 2, name: "envs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "project", kind: "message", T: () => Project }
+            { no: 3, name: "project", kind: "message", T: () => Project },
+            { no: 4, name: "env_store_type", kind: "enum", T: () => ["runme.runner.v1.SessionEnvStoreType", SessionEnvStoreType, "SESSION_ENV_STORE_TYPE_"] }
         ]);
     }
 }
@@ -379,6 +439,62 @@ class ResolveProgramResponse_VarResult$Type extends MessageType {
  * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramResponse.VarResult
  */
 export const ResolveProgramResponse_VarResult = new ResolveProgramResponse_VarResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MonitorEnvStoreRequest$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.MonitorEnvStoreRequest", [
+            { no: 1, name: "session", kind: "message", T: () => Session }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreRequest
+ */
+export const MonitorEnvStoreRequest = new MonitorEnvStoreRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MonitorEnvStoreResponseSnapshot$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.MonitorEnvStoreResponseSnapshot", [
+            { no: 1, name: "envs", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => MonitorEnvStoreResponseSnapshot_SnapshotEnv }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot
+ */
+export const MonitorEnvStoreResponseSnapshot = new MonitorEnvStoreResponseSnapshot$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv", [
+            { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status", MonitorEnvStoreResponseSnapshot_Status, "STATUS_"] },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "spec", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "origin", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "create_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "update_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
+ */
+export const MonitorEnvStoreResponseSnapshot_SnapshotEnv = new MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MonitorEnvStoreResponse$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.MonitorEnvStoreResponse", [
+            { no: 1, name: "type", kind: "enum", T: () => ["runme.runner.v1.MonitorEnvStoreType", MonitorEnvStoreType, "MONITOR_ENV_STORE_TYPE_"] },
+            { no: 2, name: "snapshot", kind: "message", oneof: "data", T: () => MonitorEnvStoreResponseSnapshot }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponse
+ */
+export const MonitorEnvStoreResponse = new MonitorEnvStoreResponse$Type();
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */
@@ -387,6 +503,7 @@ export const RunnerService = new ServiceType("runme.runner.v1.RunnerService", [
     { name: "GetSession", options: {}, I: GetSessionRequest, O: GetSessionResponse },
     { name: "ListSessions", options: {}, I: ListSessionsRequest, O: ListSessionsResponse },
     { name: "DeleteSession", options: {}, I: DeleteSessionRequest, O: DeleteSessionResponse },
+    { name: "MonitorEnvStore", serverStreaming: true, options: {}, I: MonitorEnvStoreRequest, O: MonitorEnvStoreResponse },
     { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse },
     { name: "ResolveProgram", options: {}, I: ResolveProgramRequest, O: ResolveProgramResponse }
 ]);

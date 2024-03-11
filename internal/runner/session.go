@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -11,13 +12,15 @@ import (
 	"go.uber.org/zap"
 )
 
-var owlStore = false // default off to bring it into mainline
+var owlStoreDefault = false
 
 type envStorer interface {
 	envs() []string
 	addEnvs(envs []string) error
 	updateStore(envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(k string, v string) error
+	subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error
+	complete()
 }
 
 // Session is an abstract entity separate from
@@ -32,12 +35,18 @@ type Session struct {
 }
 
 func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Session, error) {
+	return NewSessionWithStore(envs, proj, owlStoreDefault, logger)
+}
+
+func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
 
 	var storer envStorer
 	if !owlStore {
+		logger.Debug("using simple env store")
 		storer = newRunnerStorer(sessionEnvs...)
 	} else {
+		logger.Info("using owl store")
 		var err error
 		storer, err = newOwlStorer(sessionEnvs, proj, logger)
 		if err != nil {
@@ -71,6 +80,14 @@ func (s *Session) Envs() []string {
 	return vals
 }
 
+func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
+	return s.envStorer.subscribe(ctx, snapshotc)
+}
+
+func (s *Session) Complete() {
+	s.envStorer.complete()
+}
+
 // thread-safe session list
 type SessionList struct {
 	// WARNING: this mutex is created to prevent race conditions on certain
@@ -93,6 +110,15 @@ func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
 	return &runnerEnvStorer{
 		envStore: newEnvStore(sessionEnvs...),
 	}
+}
+
+func (es *runnerEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
+	defer close(snapshotc)
+	return fmt.Errorf("not available for runner env store")
+}
+
+func (es *runnerEnvStorer) complete() {
+	// noop
 }
 
 func (es *runnerEnvStorer) addEnvs(envs []string) error {
@@ -119,31 +145,58 @@ func (es *runnerEnvStorer) updateStore(envs []string, newOrUpdated []string, del
 	return nil
 }
 
+type owlEnvStorerSubscriber chan<- owl.SetVarItems
+
 type owlEnvStorer struct {
 	logger   *zap.Logger
 	owlStore *owl.Store
+
+	mu          sync.RWMutex
+	subscribers []owlEnvStorerSubscriber
 }
 
 func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*owlEnvStorer, error) {
+	// todo(sebastian): technically system should be session
 	opts := []owl.StoreOption{
 		owl.WithLogger(logger),
-		owl.WithEnvs(envs...),
+		owl.WithEnvs("[system]", envs...),
 	}
 
+	envSpecFiles := []string{}
+	// envFilesOrder := []string{}
 	if proj != nil {
-		specFilesOrder := proj.EnvFilesReadOrder()
-		specFilesOrder = append([]string{".env.example"}, specFilesOrder...)
-		for _, specFile := range specFilesOrder {
-			raw, _ := proj.LoadRawEnv(specFile)
-			if raw == nil {
-				continue
-			}
-			opt := owl.WithEnvFile(specFile, raw)
-			if specFile == ".env.example" {
-				opt = owl.WithSpecFile(specFile, raw)
-			}
-			opts = append(opts, opt)
+		// todo(sebastian): specs loading should be independent of project
+		envSpecFiles = []string{".env.sample", ".env.example", ".env.spec"}
+		// envFilesOrder = proj.EnvFilesReadOrder()
+	}
+
+	for _, specFile := range envSpecFiles {
+		raw, _ := proj.LoadRawEnv(specFile)
+		if raw == nil {
+			continue
 		}
+		opt := owl.WithEnvFile(specFile, raw)
+		for _, ssf := range envSpecFiles {
+			if specFile == ssf {
+				opt = owl.WithSpecFile(specFile, raw)
+				break
+			}
+		}
+		opts = append(opts, opt)
+	}
+
+	envWithSource, err := proj.LoadEnvWithSource()
+	if err != nil {
+		return nil, err
+	}
+
+	for envSource, envMap := range envWithSource {
+		envs := []string{}
+		for k, v := range envMap {
+			env := fmt.Sprintf("%s=%s", k, v)
+			envs = append(envs, env)
+		}
+		opts = append(opts, owl.WithEnvs(envSource, envs...))
 	}
 
 	owlStore, err := owl.NewStore(opts...)
@@ -157,12 +210,91 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	}, nil
 }
 
+func (es *owlEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
+	defer es.mu.Unlock()
+	es.mu.Lock()
+	es.logger.Debug("subscribed to owl store")
+
+	es.subscribers = append(es.subscribers, snapshotc)
+
+	go func() {
+		<-ctx.Done()
+		err := es.unsubscribe(snapshotc)
+		if err != nil {
+			es.logger.Error("unsubscribe from owl store failed", zap.Error(err))
+		}
+	}()
+
+	// avoid deadlock
+	go func() {
+		es.notifySubscribers()
+	}()
+
+	return nil
+}
+
+func (es *owlEnvStorer) complete() {
+	defer es.mu.Unlock()
+	es.mu.Lock()
+
+	for _, sub := range es.subscribers {
+		err := es.unsubscribeUnsafe(sub)
+		if err != nil {
+			es.logger.Error("unsubscribe from owl store failed", zap.Error(err))
+		}
+	}
+}
+
+func (es *owlEnvStorer) unsubscribe(snapshotc chan<- owl.SetVarItems) error {
+	defer es.mu.Unlock()
+	es.mu.Lock()
+
+	return es.unsubscribeUnsafe(snapshotc)
+}
+
+func (es *owlEnvStorer) unsubscribeUnsafe(snapshotc chan<- owl.SetVarItems) error {
+	es.logger.Debug("unsubscribed from owl store")
+
+	for i, sub := range es.subscribers {
+		if sub == snapshotc {
+			es.subscribers = append(es.subscribers[:i], es.subscribers[i+1:]...)
+			close(sub)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("unknown subscriber")
+}
+
+func (es *owlEnvStorer) notifySubscribers() {
+	defer es.mu.RUnlock()
+	es.mu.RLock()
+
+	snapshot, err := es.owlStore.Snapshot()
+	if err != nil {
+		es.logger.Error("failed to get snapshot", zap.Error(err))
+		return
+	}
+
+	for _, sub := range es.subscribers {
+		sub <- snapshot
+	}
+}
+
 func (es *owlEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {
-	return es.owlStore.Update(newOrUpdated, deleted)
+	if err := es.owlStore.Update(newOrUpdated, deleted); err != nil {
+		return err
+	}
+	es.notifySubscribers()
+	return nil
 }
 
 func (es *owlEnvStorer) addEnvs(envs []string) error {
-	return es.owlStore.Update(envs, nil)
+	if err := es.owlStore.Update(envs, nil); err != nil {
+		return err
+	}
+	es.notifySubscribers()
+	return nil
 }
 
 func (es *owlEnvStorer) setEnv(k string, v string) error {
@@ -171,6 +303,7 @@ func (es *owlEnvStorer) setEnv(k string, v string) error {
 	if err != nil {
 		return err
 	}
+	es.notifySubscribers()
 	return err
 }
 
@@ -216,6 +349,14 @@ func (sl *SessionList) GetSession(id string) (*Session, bool) {
 }
 
 func (sl *SessionList) DeleteSession(id string) (present bool) {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+
+	sess, found := sl.GetSession(id)
+	if found {
+		sess.Complete()
+	}
+
 	return sl.store.Remove(id)
 }
 

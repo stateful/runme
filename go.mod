@@ -28,7 +28,7 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/rwtodd/Go.Sed v0.0.0-20230610052213-ba3e9c186f0a
 	github.com/spf13/afero v1.11.0
-	github.com/stateful/godotenv v0.0.0-20240306155359-0ea300a1049d
+	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915
 	github.com/vektah/gqlparser/v2 v2.5.11
 	github.com/yuin/goldmark v1.7.0
 	go.uber.org/dig v1.17.0

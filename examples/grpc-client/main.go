@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 	parserv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/parser/v1"
@@ -20,13 +21,14 @@ import (
 )
 
 var (
-	addr          = flag.String("addr", "127.0.0.1:7890", "the address to connect to")
-	file          = flag.String("file", "", "file with content to upper case")
-	resultFile    = flag.String("write-result", "-", "path to a result file (default: stdout)")
-	createSession = flag.Bool("create-session", false, "create a new session")
-	parseDocument = flag.Bool("parse-document", false, "parse a dummy document")
-	deleteSession = flag.String("delete-session", "", "delete the given session")
-	tlsDir        = flag.String("tls", "", "path to tls files")
+	addr           = flag.String("addr", "127.0.0.1:7890", "the address to connect to")
+	file           = flag.String("file", "hello.md", "file with content to upper case")
+	resultFile     = flag.String("write-result", "-", "path to a result file (default: stdout)")
+	createSession  = flag.Bool("create-session", false, "create a new session")
+	subscribeToEnv = flag.String("subscribe-env", "-", "create a new session")
+	parseDocument  = flag.Bool("parse-document", false, "parse a dummy document")
+	deleteSession  = flag.String("delete-session", "", "delete the given session")
+	tlsDir         = flag.String("tls", "", "path to tls files")
 )
 
 func main() {
@@ -65,7 +67,7 @@ func run() error {
 	if *parseDocument {
 		client := parserv1.NewParserServiceClient(conn)
 
-		filename := "examples/grpc-client/hello.md"
+		filename := *file
 		data, err := os.ReadFile(filename)
 		if err != nil {
 			return err
@@ -94,23 +96,58 @@ func run() error {
 		}
 
 		_, _ = fmt.Println(string(resp2.GetResult()))
-
-		return nil
 	}
+
+	g, ctx := errgroup.WithContext(context.Background())
 
 	client := runnerv1.NewRunnerServiceClient(conn)
 
-	if *createSession {
+	if *createSession || *subscribeToEnv == "-" {
+		envType := runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_UNSPECIFIED
+		if subscribeToEnv != nil {
+			envType = runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL
+		}
 		resp, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{
-			Envs: os.Environ(),
+			Envs:         os.Environ(),
+			EnvStoreType: envType,
 		})
 		if err != nil {
 			return err
 		}
 
-		_, _ = fmt.Println(resp.Session.Id)
+		subscribeToEnv = &resp.Session.Id
+		_, _ = fmt.Println(*subscribeToEnv)
+	}
 
-		return nil
+	if subscribeToEnv != nil {
+		meClient, err := client.MonitorEnvStore(context.Background(), &runnerv1.MonitorEnvStoreRequest{
+			Session: &runnerv1.Session{Id: *subscribeToEnv},
+		})
+		if err != nil {
+			return err
+		}
+
+		subscribeEnv := func() error {
+			for {
+				var msg runnerv1.MonitorEnvStoreResponse
+				err := meClient.RecvMsg(&msg)
+				if err != nil {
+					return err
+				}
+
+				if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
+					_, _ = fmt.Printf("%s %d items in snapshot\n", time.Now(), len(msgData.Snapshot.Envs))
+					// for _, env := range msgData.Snapshot.Envs {
+					// 	_, _ = fmt.Printf("%+v\n", env)
+					// }
+				}
+			}
+		}
+
+		if subscribeToEnv != nil {
+			g.Go(subscribeEnv)
+			return g.Wait()
+		}
 	}
 
 	if *deleteSession != "" {
@@ -127,8 +164,6 @@ func run() error {
 
 		return nil
 	}
-
-	g, ctx := errgroup.WithContext(context.Background())
 
 	stream, err := client.Execute(ctx)
 	if err != nil {
