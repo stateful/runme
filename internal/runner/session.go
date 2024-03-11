@@ -165,7 +165,7 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	envFilesOrder := []string{}
 	if proj != nil {
 		// todo(sebastian): specs loading should be independent of project
-		specSourceFiles = []string{".env.spec", ".env.example"}
+		specSourceFiles = []string{".env.example", ".env.spec"}
 		envFilesOrder = proj.EnvFilesReadOrder()
 	}
 
