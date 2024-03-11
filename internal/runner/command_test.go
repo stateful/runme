@@ -394,6 +394,8 @@ func Test_command(t *testing.T) {
 			return s
 		}
 
+		env, err := cmd.Session.Envs()
+		require.NoError(t, err)
 		assert.EqualValues(
 			t,
 			sort([]string{
@@ -401,7 +403,7 @@ func Test_command(t *testing.T) {
 				"TEST_OLD_CHANGED=value2",
 				"TEST_NEW=value2",
 			}),
-			sort(cmd.Session.Envs()),
+			sort(env),
 		)
 	})
 
