@@ -325,7 +325,7 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 		return err
 	}
 
-	err = updateOpSet.addEnvs("exec", newOrUpdated...)
+	err = updateOpSet.addEnvs("[execution]", newOrUpdated...)
 	if err != nil {
 		return err
 	}
@@ -337,7 +337,7 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 		return err
 	}
 
-	err = deleteOpSet.addEnvs("exec", deleted...)
+	err = deleteOpSet.addEnvs("[execution]", deleted...)
 	if err != nil {
 		return err
 	}

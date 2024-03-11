@@ -161,28 +161,41 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 		owl.WithEnvs("[session]", envs...),
 	}
 
-	specSourceFiles := []string{}
-	envFilesOrder := []string{}
+	envSpecFiles := []string{}
+	// envFilesOrder := []string{}
 	if proj != nil {
 		// todo(sebastian): specs loading should be independent of project
-		specSourceFiles = []string{".env.sample", ".env.example", ".env.spec"}
-		envFilesOrder = proj.EnvFilesReadOrder()
+		envSpecFiles = []string{".env.sample", ".env.example", ".env.spec"}
+		// envFilesOrder = proj.EnvFilesReadOrder()
 	}
 
-	specFilesOrder := append(specSourceFiles, envFilesOrder...)
-	for _, specFile := range specFilesOrder {
+	for _, specFile := range envSpecFiles {
 		raw, _ := proj.LoadRawEnv(specFile)
 		if raw == nil {
 			continue
 		}
 		opt := owl.WithEnvFile(specFile, raw)
-		for _, ssf := range specSourceFiles {
+		for _, ssf := range envSpecFiles {
 			if specFile == ssf {
 				opt = owl.WithSpecFile(specFile, raw)
 				break
 			}
 		}
 		opts = append(opts, opt)
+	}
+
+	envWithSource, err := proj.LoadEnvWithSource()
+	if err != nil {
+		return nil, err
+	}
+
+	for envSource, envMap := range envWithSource {
+		envs := []string{}
+		for k, v := range envMap {
+			env := fmt.Sprintf("%s=%s", k, v)
+			envs = append(envs, env)
+		}
+		opts = append(opts, owl.WithEnvs(envSource, envs...))
 	}
 
 	owlStore, err := owl.NewStore(opts...)
