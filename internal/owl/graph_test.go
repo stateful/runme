@@ -169,11 +169,29 @@ func Test_Graph(t *testing.T) {
 			VariableValues: vars,
 		})
 
-		fmt.Println(result.Errors)
 		require.False(t, result.HasErrors())
 
-		b, _ := json.MarshalIndent(result, "", " ")
-		fmt.Println(string(b))
+		val, err := extractDataKey(result.Data, "snapshot")
+		require.NoError(t, err)
+
+		j, err := json.MarshalIndent(val, "", " ")
+		require.NoError(t, err)
+
+		var snapshot SetVarItems
+		err = json.Unmarshal(j, &snapshot)
+		require.NoError(t, err)
+
+		snapshot.sortbyKey()
+
+		for _, v := range snapshot {
+			if v.Var.Key != "NAME" {
+				continue
+			}
+			require.EqualValues(t, ".env", v.Var.Origin)
+			require.EqualValues(t, "Loon", v.Value.Resolved)
+			require.EqualValues(t, "LITERAL", v.Value.Status)
+			require.EqualValues(t, "Plain", v.Spec.Name)
+		}
 	})
 
 	t.Run("query specs list", func(t *testing.T) {
