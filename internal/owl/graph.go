@@ -204,14 +204,14 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpe
 		if r.Value != nil {
 			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
-				// location = old.Var.Operation.Location
 				oldCreated := old.Var.Created
 				r.Var.Created = oldCreated
+				if old.Var.Operation != nil {
+					originSource := old.Var.Operation.Source
+					r.Var.Operation.Source = originSource
+				}
 			}
 			r.Var.Updated = newCreated
-			// r.Var.Operation = &setVarOperation{
-			// 	Location: location,
-			// }
 			if r.Value.Original != "" {
 				r.Value.Resolved = r.Value.Original
 				r.Value.Status = "LITERAL"
@@ -229,9 +229,6 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpe
 			}
 			newCreated := *r.Var.Created
 			r.Var.Updated = &newCreated
-			// r.Var.Operation = &setVarOperation{
-			// 	Location: location,
-			// }
 			resolverOpSet.specs[r.Var.Key] = &SetVarSpec{Var: r.Var, Spec: r.Spec}
 		}
 	}

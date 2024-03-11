@@ -83,7 +83,10 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 	envs := make([]string, len(req.Envs))
 	copy(envs, req.Envs)
 
-	if proj != nil {
+	owlStore := req.EnvStoreType == runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL
+
+	// todo(sebastian): perhaps we should move loading logic into session, like for owl store
+	if proj != nil && !owlStore {
 		projEnvs, err := proj.LoadEnv()
 		if err != nil {
 			return nil, err
@@ -91,8 +94,6 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 
 		envs = append(envs, projEnvs...)
 	}
-
-	owlStore := req.EnvStoreType == runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL
 
 	sess, err := NewSessionWithStore(envs, proj, owlStore, r.logger)
 	if err != nil {
