@@ -223,6 +223,7 @@ func resolveLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, locat
 				r.Value.Resolved = r.Value.Original
 				r.Value.Status = "LITERAL"
 			} else {
+				// todo(sebastian): load vs update difference?
 				r.Value.Status = "UNRESOLVED"
 			}
 			resolverOpSet.values[r.Var.Key] = &SetVarValue{Var: r.Var, Value: r.Value}

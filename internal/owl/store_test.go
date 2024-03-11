@@ -68,12 +68,13 @@ func Test_OperationSet_Valueless(t *testing.T) {
 	})
 }
 
-func Test_Store(t *testing.T) {
-	t.Parallel()
-	fake := []byte(`GOPATH=/Users/sourishkrout/go
+var fake = []byte(`GOPATH=/Users/sourishkrout/go
 INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Secret!
 PGPASS=secret-fake-password # Password!
 HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
+
+func Test_Store(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Valildate query", func(t *testing.T) {
 		store, err := NewStore(withSpecsFile(".env", fake, true))
@@ -85,48 +86,6 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 		require.NoError(t, err)
 
 		// fmt.Println(query.String())
-	})
-
-	t.Run("Valildate specs", func(t *testing.T) {
-		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
-		// todo(sebastian): test the unresolved case (line below)
-		// store, err := NewStore(withSpecsFile(".env", fake, true))
-		require.NoError(t, err)
-		require.NotNil(t, store)
-
-		vars, err := store.snapshot(false)
-		require.NoError(t, err)
-		require.NotNil(t, vars)
-
-		vars.sortbyKey()
-
-		require.EqualValues(t, "GOPATH", vars[0].Var.Key)
-		require.EqualValues(t, "Opaque", vars[0].Spec.Name)
-		require.EqualValues(t, false, vars[0].Spec.Required)
-		require.EqualValues(t, "", vars[0].Value.Resolved)
-		require.EqualValues(t, "/Users/sourishkrout/go", vars[0].Value.Original)
-		require.EqualValues(t, "HIDDEN", vars[0].Value.Status)
-
-		require.EqualValues(t, "HOMEBREW_REPOSITORY", vars[1].Var.Key)
-		require.EqualValues(t, "Plain", vars[1].Spec.Name)
-		require.EqualValues(t, false, vars[1].Spec.Required)
-		require.EqualValues(t, "/opt/homebrew", vars[1].Value.Resolved)
-		require.EqualValues(t, "/opt/homebrew", vars[1].Value.Original)
-		require.EqualValues(t, "LITERAL", vars[1].Value.Status)
-
-		require.EqualValues(t, "INSTRUMENTATION_KEY", vars[2].Var.Key)
-		require.EqualValues(t, "Secret", vars[2].Spec.Name)
-		require.EqualValues(t, true, vars[2].Spec.Required)
-		require.EqualValues(t, "05a...972", vars[2].Value.Resolved)
-		require.EqualValues(t, "", vars[2].Value.Original)
-		require.EqualValues(t, "MASKED", vars[2].Value.Status)
-
-		require.EqualValues(t, "PGPASS", vars[3].Var.Key)
-		require.EqualValues(t, "Password", vars[3].Spec.Name)
-		require.EqualValues(t, true, vars[3].Spec.Required)
-		require.EqualValues(t, "********************", vars[3].Value.Resolved)
-		require.EqualValues(t, "", vars[3].Value.Original)
-		require.EqualValues(t, "MASKED", vars[3].Value.Status)
 	})
 
 	t.Run("Validate with process envs", func(t *testing.T) {
@@ -142,10 +101,12 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.Len(t, store.opSets, 2)
 		require.Len(t, store.opSets[0].values, len(envs))
 
-		_, err = store.snapshot(true)
+		snapshot, err := store.snapshot(true)
 		require.NoError(t, err)
 
-		// j, err := json.MarshalIndent(vars, "", " ")
+		require.Greater(t, len(snapshot), 4)
+
+		// j, err := json.MarshalIndent(snapshot, "", " ")
 		// require.NoError(t, err)
 
 		// fmt.Println(string(j))
@@ -182,25 +143,28 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 	// 	require.EqualValues(t, "", snapshot[0].Value.Original)
 	// 	require.EqualValues(t, "Plain", snapshot[0].Spec.Name)
 	// })
+}
 
-	t.Run("LoadEnv", func(t *testing.T) {
-		// todo(sebastian): needs better solution
-		rawEnvLocal, err := os.ReadFile("../../pkg/project/test_project/.env.local")
-		require.NoError(t, err)
-		rawEnv, err := os.ReadFile("../../pkg/project/test_project/.env")
-		require.NoError(t, err)
+func Test_Store_Specless(t *testing.T) {
+	t.Parallel()
 
-		store, err := NewStore(
-			// order matters
-			WithEnvFile(".env.local", rawEnvLocal),
-			WithEnvFile(".env", rawEnv),
-		)
-		require.NoError(t, err)
+	rawEnvLocal, err := os.ReadFile("../../pkg/project/test_project/.env.local")
+	require.NoError(t, err)
+	rawEnv, err := os.ReadFile("../../pkg/project/test_project/.env")
+	require.NoError(t, err)
 
-		require.Len(t, store.opSets, 2)
-		require.Len(t, store.opSets[0].values, 2)
-		require.Len(t, store.opSets[1].values, 2)
+	store, err := NewStore(
+		// order matters
+		WithEnvFile(".env.local", rawEnvLocal),
+		WithEnvFile(".env", rawEnv),
+	)
+	require.NoError(t, err)
 
+	require.Len(t, store.opSets, 2)
+	require.Len(t, store.opSets[0].values, 2)
+	require.Len(t, store.opSets[1].values, 2)
+
+	t.Run("with insecure true", func(t *testing.T) {
 		snapshot, err := store.snapshot(true)
 		require.NoError(t, err)
 		require.Len(t, snapshot, 3)
@@ -221,5 +185,187 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.EqualValues(t, "secret3", snapshot[2].Value.Original)
 		require.EqualValues(t, "LITERAL", snapshot[2].Value.Status)
 		require.EqualValues(t, "Opaque", snapshot[2].Spec.Name)
+	})
+
+	t.Run("with insecure false", func(t *testing.T) {
+		snapshot, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.Len(t, snapshot, 3)
+
+		snapshot.sortbyKey()
+
+		require.EqualValues(t, "", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "secret1_overridden", snapshot[0].Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot[0].Value.Status)
+		require.EqualValues(t, "Opaque", snapshot[0].Spec.Name)
+
+		require.EqualValues(t, "", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "secret2", snapshot[1].Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot[1].Value.Status)
+		require.EqualValues(t, "Opaque", snapshot[1].Spec.Name)
+
+		require.EqualValues(t, "", snapshot[2].Value.Resolved)
+		require.EqualValues(t, "secret3", snapshot[2].Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot[2].Value.Status)
+		require.EqualValues(t, "Opaque", snapshot[2].Spec.Name)
+	})
+}
+
+func Test_Store_FixtureWithSpecs(t *testing.T) {
+	t.Parallel()
+
+	store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+	require.NoError(t, err)
+	require.NotNil(t, store)
+
+	t.Run("Insecure is false", func(t *testing.T) {
+		snapshot, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.NotNil(t, snapshot)
+
+		snapshot.sortbyKey()
+
+		require.EqualValues(t, "GOPATH", snapshot[0].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[0].Spec.Name)
+		require.EqualValues(t, false, snapshot[0].Spec.Required)
+		require.EqualValues(t, "", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "/Users/sourishkrout/go", snapshot[0].Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot[0].Value.Status)
+
+		require.EqualValues(t, "HOMEBREW_REPOSITORY", snapshot[1].Var.Key)
+		require.EqualValues(t, "Plain", snapshot[1].Spec.Name)
+		require.EqualValues(t, false, snapshot[1].Spec.Required)
+		require.EqualValues(t, "/opt/homebrew", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "/opt/homebrew", snapshot[1].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[1].Value.Status)
+
+		require.EqualValues(t, "INSTRUMENTATION_KEY", snapshot[2].Var.Key)
+		require.EqualValues(t, "Secret", snapshot[2].Spec.Name)
+		require.EqualValues(t, true, snapshot[2].Spec.Required)
+		require.EqualValues(t, "05a...972", snapshot[2].Value.Resolved)
+		require.EqualValues(t, "", snapshot[2].Value.Original)
+		require.EqualValues(t, "MASKED", snapshot[2].Value.Status)
+
+		require.EqualValues(t, "PGPASS", snapshot[3].Var.Key)
+		require.EqualValues(t, "Password", snapshot[3].Spec.Name)
+		require.EqualValues(t, true, snapshot[3].Spec.Required)
+		require.EqualValues(t, "********************", snapshot[3].Value.Resolved)
+		require.EqualValues(t, "", snapshot[3].Value.Original)
+		require.EqualValues(t, "MASKED", snapshot[3].Value.Status)
+	})
+	t.Run("Insecure is true", func(t *testing.T) {
+		snapshot, err := store.snapshot(true)
+		require.NoError(t, err)
+		require.NotNil(t, snapshot)
+
+		snapshot.sortbyKey()
+
+		require.EqualValues(t, "GOPATH", snapshot[0].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[0].Spec.Name)
+		require.EqualValues(t, false, snapshot[0].Spec.Required)
+		require.EqualValues(t, "/Users/sourishkrout/go", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "/Users/sourishkrout/go", snapshot[0].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[0].Value.Status)
+
+		require.EqualValues(t, "HOMEBREW_REPOSITORY", snapshot[1].Var.Key)
+		require.EqualValues(t, "Plain", snapshot[1].Spec.Name)
+		require.EqualValues(t, false, snapshot[1].Spec.Required)
+		require.EqualValues(t, "/opt/homebrew", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "/opt/homebrew", snapshot[1].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[1].Value.Status)
+
+		require.EqualValues(t, "INSTRUMENTATION_KEY", snapshot[2].Var.Key)
+		require.EqualValues(t, "Secret", snapshot[2].Spec.Name)
+		require.EqualValues(t, true, snapshot[2].Spec.Required)
+		require.EqualValues(t, "05a2cc58-5101-4c69-a0d0-7a126253a972", snapshot[2].Value.Resolved)
+		require.EqualValues(t, "05a2cc58-5101-4c69-a0d0-7a126253a972", snapshot[2].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[2].Value.Status)
+
+		require.EqualValues(t, "PGPASS", snapshot[3].Var.Key)
+		require.EqualValues(t, "Password", snapshot[3].Spec.Name)
+		require.EqualValues(t, true, snapshot[3].Spec.Required)
+		require.EqualValues(t, "secret-fake-password", snapshot[3].Value.Resolved)
+		require.EqualValues(t, "secret-fake-password", snapshot[3].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[3].Value.Status)
+	})
+}
+
+func Test_Store_FixtureWithoutSpecs(t *testing.T) {
+	t.Parallel()
+
+	store, err := NewStore(WithEnvFile(".env", fake))
+	require.NoError(t, err)
+	require.NotNil(t, store)
+
+	t.Run("Insecure is false", func(t *testing.T) {
+		snapshot, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.NotNil(t, snapshot)
+
+		snapshot.sortbyKey()
+
+		require.EqualValues(t, "GOPATH", snapshot[0].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[0].Spec.Name)
+		require.EqualValues(t, false, snapshot[0].Spec.Required)
+		require.EqualValues(t, "", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "/Users/sourishkrout/go", snapshot[0].Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot[0].Value.Status)
+
+		require.EqualValues(t, "HOMEBREW_REPOSITORY", snapshot[1].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[1].Spec.Name)
+		require.EqualValues(t, false, snapshot[1].Spec.Required)
+		require.EqualValues(t, "", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "/opt/homebrew", snapshot[1].Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot[1].Value.Status)
+
+		require.EqualValues(t, "INSTRUMENTATION_KEY", snapshot[2].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[2].Spec.Name)
+		require.EqualValues(t, false, snapshot[2].Spec.Required)
+		require.EqualValues(t, "", snapshot[2].Value.Resolved)
+		require.EqualValues(t, "05a2cc58-5101-4c69-a0d0-7a126253a972", snapshot[2].Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot[2].Value.Status)
+
+		require.EqualValues(t, "PGPASS", snapshot[3].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[3].Spec.Name)
+		require.EqualValues(t, false, snapshot[3].Spec.Required)
+		require.EqualValues(t, "", snapshot[3].Value.Resolved)
+		require.EqualValues(t, "secret-fake-password", snapshot[3].Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot[3].Value.Status)
+	})
+
+	t.Run("Insecure is true", func(t *testing.T) {
+		snapshot, err := store.snapshot(true)
+		require.NoError(t, err)
+		require.NotNil(t, snapshot)
+
+		snapshot.sortbyKey()
+
+		require.EqualValues(t, "GOPATH", snapshot[0].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[0].Spec.Name)
+		require.EqualValues(t, false, snapshot[0].Spec.Required)
+		require.EqualValues(t, "/Users/sourishkrout/go", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "/Users/sourishkrout/go", snapshot[0].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[0].Value.Status)
+
+		require.EqualValues(t, "HOMEBREW_REPOSITORY", snapshot[1].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[1].Spec.Name)
+		require.EqualValues(t, false, snapshot[1].Spec.Required)
+		require.EqualValues(t, "/opt/homebrew", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "/opt/homebrew", snapshot[1].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[1].Value.Status)
+
+		require.EqualValues(t, "INSTRUMENTATION_KEY", snapshot[2].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[2].Spec.Name)
+		require.EqualValues(t, false, snapshot[2].Spec.Required)
+		require.EqualValues(t, "05a2cc58-5101-4c69-a0d0-7a126253a972", snapshot[2].Value.Resolved)
+		require.EqualValues(t, "05a2cc58-5101-4c69-a0d0-7a126253a972", snapshot[2].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[2].Value.Status)
+
+		require.EqualValues(t, "PGPASS", snapshot[3].Var.Key)
+		require.EqualValues(t, "Opaque", snapshot[3].Spec.Name)
+		require.EqualValues(t, false, snapshot[3].Spec.Required)
+		require.EqualValues(t, "secret-fake-password", snapshot[3].Value.Resolved)
+		require.EqualValues(t, "secret-fake-password", snapshot[3].Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot[3].Value.Status)
 	})
 }
