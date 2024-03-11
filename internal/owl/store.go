@@ -219,13 +219,13 @@ func (s *OperationSet) addRaw(raw []byte, hasSpecs bool) error {
 func resolveLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, location string, hasSpecs bool) error {
 	for _, r := range revived {
 		if r.Value != nil {
-			newCreated := *r.Var.Created
+			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
 				location = old.Var.Operation.Location
-				oldCreated := *old.Var.Created
-				r.Var.Created = &oldCreated
+				oldCreated := old.Var.Created
+				r.Var.Created = oldCreated
 			}
-			r.Var.Updated = &newCreated
+			r.Var.Updated = newCreated
 			r.Var.Operation = &setVarOperation{
 				Location: location,
 			}
