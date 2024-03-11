@@ -55,6 +55,12 @@ export interface CreateSessionRequest {
      * @generated from protobuf field: optional runme.runner.v1.Project project = 3;
      */
     project?: Project;
+    /**
+     * optional selection of which env store implementation to sue
+     *
+     * @generated from protobuf field: runme.runner.v1.SessionEnvStoreType env_store_type = 4;
+     */
+    envStoreType: SessionEnvStoreType;
 }
 /**
  * @generated from protobuf message runme.runner.v1.CreateSessionResponse
@@ -511,6 +517,122 @@ export declare enum ResolveProgramResponse_Status {
     RESOLVED = 3
 }
 /**
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreRequest
+ */
+export interface MonitorEnvStoreRequest {
+    /**
+     * @generated from protobuf field: runme.runner.v1.Session session = 1;
+     */
+    session?: Session;
+}
+/**
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot
+ */
+export interface MonitorEnvStoreResponseSnapshot {
+    /**
+     * @generated from protobuf field: repeated runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv envs = 1;
+     */
+    envs: MonitorEnvStoreResponseSnapshot_SnapshotEnv[];
+}
+/**
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
+ */
+export interface MonitorEnvStoreResponseSnapshot_SnapshotEnv {
+    /**
+     * @generated from protobuf field: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status status = 1;
+     */
+    status: MonitorEnvStoreResponseSnapshot_Status;
+    /**
+     * @generated from protobuf field: string name = 2;
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: string spec = 3;
+     */
+    spec: string;
+    /**
+     * @generated from protobuf field: string origin = 4;
+     */
+    origin: string;
+    /**
+     * @generated from protobuf field: string original_value = 5;
+     */
+    originalValue: string;
+    /**
+     * @generated from protobuf field: string resolved_value = 6;
+     */
+    resolvedValue: string;
+    /**
+     * @generated from protobuf field: string create_time = 7;
+     */
+    createTime: string;
+    /**
+     * @generated from protobuf field: string update_time = 8;
+     */
+    updateTime: string;
+}
+/**
+ * @generated from protobuf enum runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
+ */
+export declare enum MonitorEnvStoreResponseSnapshot_Status {
+    /**
+     * @generated from protobuf enum value: STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: STATUS_LITERAL = 1;
+     */
+    LITERAL = 1,
+    /**
+     * @generated from protobuf enum value: STATUS_HIDDEN = 2;
+     */
+    HIDDEN = 2,
+    /**
+     * @generated from protobuf enum value: STATUS_MASKED = 3;
+     */
+    MASKED = 3
+}
+/**
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponse
+ */
+export interface MonitorEnvStoreResponse {
+    /**
+     * @generated from protobuf field: runme.runner.v1.MonitorEnvStoreType type = 1;
+     */
+    type: MonitorEnvStoreType;
+    /**
+     * @generated from protobuf oneof: data
+     */
+    data: {
+        oneofKind: "snapshot";
+        /**
+         * @generated from protobuf field: runme.runner.v1.MonitorEnvStoreResponseSnapshot snapshot = 2;
+         */
+        snapshot: MonitorEnvStoreResponseSnapshot;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * env store implementation
+ *
+ * @generated from protobuf enum runme.runner.v1.SessionEnvStoreType
+ */
+export declare enum SessionEnvStoreType {
+    /**
+     * uses default env store
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * uses owl store
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_OWL = 1;
+     */
+    OWL = 1
+}
+/**
  * @generated from protobuf enum runme.runner.v1.ExecuteStop
  */
 export declare enum ExecuteStop {
@@ -564,6 +686,22 @@ export declare enum SessionStrategy {
      * @generated from protobuf enum value: SESSION_STRATEGY_MOST_RECENT = 1;
      */
     MOST_RECENT = 1
+}
+/**
+ * @generated from protobuf enum runme.runner.v1.MonitorEnvStoreType
+ */
+export declare enum MonitorEnvStoreType {
+    /**
+     * @generated from protobuf enum value: MONITOR_ENV_STORE_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * possible expansion to have a "timeline" view
+     * MONITOR_ENV_STORE_TYPE_TIMELINE = 2;
+     *
+     * @generated from protobuf enum value: MONITOR_ENV_STORE_TYPE_SNAPSHOT = 1;
+     */
+    SNAPSHOT = 1
 }
 declare class Session$Type extends MessageType<Session> {
     constructor();
@@ -691,6 +829,34 @@ declare class ResolveProgramResponse_VarResult$Type extends MessageType<ResolveP
  * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramResponse.VarResult
  */
 export declare const ResolveProgramResponse_VarResult: ResolveProgramResponse_VarResult$Type;
+declare class MonitorEnvStoreRequest$Type extends MessageType<MonitorEnvStoreRequest> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreRequest
+ */
+export declare const MonitorEnvStoreRequest: MonitorEnvStoreRequest$Type;
+declare class MonitorEnvStoreResponseSnapshot$Type extends MessageType<MonitorEnvStoreResponseSnapshot> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot
+ */
+export declare const MonitorEnvStoreResponseSnapshot: MonitorEnvStoreResponseSnapshot$Type;
+declare class MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type extends MessageType<MonitorEnvStoreResponseSnapshot_SnapshotEnv> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
+ */
+export declare const MonitorEnvStoreResponseSnapshot_SnapshotEnv: MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type;
+declare class MonitorEnvStoreResponse$Type extends MessageType<MonitorEnvStoreResponse> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponse
+ */
+export declare const MonitorEnvStoreResponse: MonitorEnvStoreResponse$Type;
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */

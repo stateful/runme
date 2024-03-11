@@ -526,13 +526,13 @@ func (p *Project) LoadEnv() ([]string, error) {
 	return result, nil
 }
 
-func (p *Project) LoadEnvAsMap() (map[string]string, error) {
-	// For file-based projects, there are no env to read.
-	if p.fs == nil {
-		return nil, nil
-	}
+func (p *Project) LoadEnvWithSource() (envWithSource map[string]map[string]string, err error) {
+	envWithSource = make(map[string]map[string]string)
 
-	env := make(map[string]string)
+	// For file-based projects, there are no env to read.
+	if p == nil || p.fs == nil {
+		return envWithSource, nil
+	}
 
 	for _, envFile := range p.envFilesReadOrder {
 		bytes, err := util.ReadFile(p.fs, envFile)
@@ -552,6 +552,32 @@ func (p *Project) LoadEnvAsMap() (map[string]string, error) {
 		}
 
 		for k, v := range parsed {
+			if _, ok := envWithSource[envFile]; !ok {
+				envWithSource[envFile] = map[string]string{k: v}
+				continue
+
+			}
+			envWithSource[envFile][k] = v
+		}
+	}
+
+	return
+}
+
+func (p *Project) LoadEnvAsMap() (map[string]string, error) {
+	// For file-based projects, there are no env to read.
+	if p.fs == nil {
+		return nil, nil
+	}
+
+	env := make(map[string]string)
+	envWithSource, err := p.LoadEnvWithSource()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, envSource := range envWithSource {
+		for k, v := range envSource {
 			env[k] = v
 		}
 	}

@@ -44,6 +44,13 @@ export class RunnerServiceClient {
         return stackIntercept("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: MonitorEnvStore(runme.runner.v1.MonitorEnvStoreRequest) returns (stream runme.runner.v1.MonitorEnvStoreResponse);
+     */
+    monitorEnvStore(input, options) {
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        return stackIntercept("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
      * Execute executes a program. Examine "ExecuteRequest" to explore
      * configuration options.
      *
@@ -55,7 +62,7 @@ export class RunnerServiceClient {
      * @generated from protobuf rpc: Execute(stream runme.runner.v1.ExecuteRequest) returns (stream runme.runner.v1.ExecuteResponse);
      */
     execute(options) {
-        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
         return stackIntercept("duplex", this._transport, method, opt);
     }
     /**
@@ -67,7 +74,7 @@ export class RunnerServiceClient {
      * @generated from protobuf rpc: ResolveProgram(runme.runner.v1.ResolveProgramRequest) returns (runme.runner.v1.ResolveProgramResponse);
      */
     resolveProgram(input, options) {
-        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }
 }

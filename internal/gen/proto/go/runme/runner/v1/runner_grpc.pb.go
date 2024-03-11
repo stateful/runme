@@ -19,12 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	RunnerService_CreateSession_FullMethodName  = "/runme.runner.v1.RunnerService/CreateSession"
-	RunnerService_GetSession_FullMethodName     = "/runme.runner.v1.RunnerService/GetSession"
-	RunnerService_ListSessions_FullMethodName   = "/runme.runner.v1.RunnerService/ListSessions"
-	RunnerService_DeleteSession_FullMethodName  = "/runme.runner.v1.RunnerService/DeleteSession"
-	RunnerService_Execute_FullMethodName        = "/runme.runner.v1.RunnerService/Execute"
-	RunnerService_ResolveProgram_FullMethodName = "/runme.runner.v1.RunnerService/ResolveProgram"
+	RunnerService_CreateSession_FullMethodName   = "/runme.runner.v1.RunnerService/CreateSession"
+	RunnerService_GetSession_FullMethodName      = "/runme.runner.v1.RunnerService/GetSession"
+	RunnerService_ListSessions_FullMethodName    = "/runme.runner.v1.RunnerService/ListSessions"
+	RunnerService_DeleteSession_FullMethodName   = "/runme.runner.v1.RunnerService/DeleteSession"
+	RunnerService_MonitorEnvStore_FullMethodName = "/runme.runner.v1.RunnerService/MonitorEnvStore"
+	RunnerService_Execute_FullMethodName         = "/runme.runner.v1.RunnerService/Execute"
+	RunnerService_ResolveProgram_FullMethodName  = "/runme.runner.v1.RunnerService/ResolveProgram"
 )
 
 // RunnerServiceClient is the client API for RunnerService service.
@@ -35,6 +36,7 @@ type RunnerServiceClient interface {
 	GetSession(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
+	MonitorEnvStore(ctx context.Context, in *MonitorEnvStoreRequest, opts ...grpc.CallOption) (RunnerService_MonitorEnvStoreClient, error)
 	// Execute executes a program. Examine "ExecuteRequest" to explore
 	// configuration options.
 	//
@@ -94,8 +96,40 @@ func (c *runnerServiceClient) DeleteSession(ctx context.Context, in *DeleteSessi
 	return out, nil
 }
 
+func (c *runnerServiceClient) MonitorEnvStore(ctx context.Context, in *MonitorEnvStoreRequest, opts ...grpc.CallOption) (RunnerService_MonitorEnvStoreClient, error) {
+	stream, err := c.cc.NewStream(ctx, &RunnerService_ServiceDesc.Streams[0], RunnerService_MonitorEnvStore_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &runnerServiceMonitorEnvStoreClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RunnerService_MonitorEnvStoreClient interface {
+	Recv() (*MonitorEnvStoreResponse, error)
+	grpc.ClientStream
+}
+
+type runnerServiceMonitorEnvStoreClient struct {
+	grpc.ClientStream
+}
+
+func (x *runnerServiceMonitorEnvStoreClient) Recv() (*MonitorEnvStoreResponse, error) {
+	m := new(MonitorEnvStoreResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *runnerServiceClient) Execute(ctx context.Context, opts ...grpc.CallOption) (RunnerService_ExecuteClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RunnerService_ServiceDesc.Streams[0], RunnerService_Execute_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &RunnerService_ServiceDesc.Streams[1], RunnerService_Execute_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +176,7 @@ type RunnerServiceServer interface {
 	GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
+	MonitorEnvStore(*MonitorEnvStoreRequest, RunnerService_MonitorEnvStoreServer) error
 	// Execute executes a program. Examine "ExecuteRequest" to explore
 	// configuration options.
 	//
@@ -173,6 +208,9 @@ func (UnimplementedRunnerServiceServer) ListSessions(context.Context, *ListSessi
 }
 func (UnimplementedRunnerServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
+}
+func (UnimplementedRunnerServiceServer) MonitorEnvStore(*MonitorEnvStoreRequest, RunnerService_MonitorEnvStoreServer) error {
+	return status.Errorf(codes.Unimplemented, "method MonitorEnvStore not implemented")
 }
 func (UnimplementedRunnerServiceServer) Execute(RunnerService_ExecuteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
@@ -265,6 +303,27 @@ func _RunnerService_DeleteSession_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunnerService_MonitorEnvStore_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(MonitorEnvStoreRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RunnerServiceServer).MonitorEnvStore(m, &runnerServiceMonitorEnvStoreServer{stream})
+}
+
+type RunnerService_MonitorEnvStoreServer interface {
+	Send(*MonitorEnvStoreResponse) error
+	grpc.ServerStream
+}
+
+type runnerServiceMonitorEnvStoreServer struct {
+	grpc.ServerStream
+}
+
+func (x *runnerServiceMonitorEnvStoreServer) Send(m *MonitorEnvStoreResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _RunnerService_Execute_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(RunnerServiceServer).Execute(&runnerServiceExecuteServer{stream})
 }
@@ -338,6 +397,11 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "MonitorEnvStore",
+			Handler:       _RunnerService_MonitorEnvStore_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "Execute",
 			Handler:       _RunnerService_Execute_Handler,

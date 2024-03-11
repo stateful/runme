@@ -1,7 +1,11 @@
 package owl
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/stateful/godotenv"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMapSpec(t *testing.T) {
@@ -20,18 +24,21 @@ func TestMapSpec(t *testing.T) {
 				"KEY2": "KEY2",
 				"KEY3": "KEY3",
 				"KEY4": "KEY4",
+				"KEY5": "",
 			},
 			Comments: map[string]string{
 				"KEY1": "",
 				"KEY2": "Plain",
 				"KEY3": "Password",
 				"KEY4": "Secret",
+				"KEY5": "Plain",
 			},
 			Expected: Specs{
 				"KEY1": {Name: SpecNameOpaque, Valid: false},
 				"KEY2": {Name: SpecNamePlain, Valid: true},
 				"KEY3": {Name: SpecNamePassword, Valid: true},
 				"KEY4": {Name: SpecNameSecret, Valid: true},
+				"KEY5": {Name: SpecNamePlain},
 			},
 		},
 		"WithRequiredSpecs": {
@@ -88,4 +95,35 @@ func TestMapSpec(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUnmarshal(t *testing.T) {
+	lines := []string{
+		"naked= # Plain",
+		`quotedEmpty="" # Plain`,
+		`quoted="Foo bar baz" # Plain`,
+		`unquoted=unquoted value # Plain`,
+	}
+
+	expectedValues := map[string]string{
+		"naked":       "",
+		"quotedEmpty": "",
+		"quoted":      "Foo bar baz",
+		"unquoted":    "unquoted value",
+	}
+	expectedComments := map[string]string{
+		"naked":       "Plain",
+		"quotedEmpty": "Plain",
+		"quoted":      "Plain",
+		"unquoted":    "Plain",
+	}
+
+	bytes := []byte(strings.Join(lines, "\n"))
+	values, comments, err := godotenv.UnmarshalBytesWithComments(bytes)
+	if err != nil {
+		t.Errorf("Unable to parse content %s ", bytes)
+	}
+
+	require.Equal(t, expectedValues, values)
+	require.Equal(t, expectedComments, comments)
 }

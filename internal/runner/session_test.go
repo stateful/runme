@@ -5,13 +5,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func Test_SessionList(t *testing.T) {
 	t.Parallel()
 
 	createSession := func() (*Session, error) {
-		return NewSession(nil, nil, nil)
+		return NewSession(nil, nil, zap.NewNop())
 	}
 
 	t.Run("UpdatedOnCreate", func(t *testing.T) {

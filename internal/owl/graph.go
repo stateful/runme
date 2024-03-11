@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"slices"
+	"strings"
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
@@ -89,49 +88,229 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
-func specResolver(mutator func(*setVar)) graphql.FieldResolveFn {
+type SpecResolverMutator func(val *SetVarValue, spec *SetVarSpec, insecure bool)
+
+func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
 		keysArg := p.Args["keys"].([]interface{})
 
 		opSet := p.Source.(*OperationSet)
 		for _, kArg := range keysArg {
-			if insecure {
+			k := kArg.(string)
+			v, vOk := opSet.values[k]
+			s, sOk := opSet.specs[k]
+			if !vOk && !sOk {
+				// todo(sebastian): should UNSET/delete ever come in here?
 				continue
 			}
-			k := kArg.(string)
-			v := opSet.items[k]
-			mutator(v)
+
+			if vOk && v.Value.Status == "UNRESOLVED" {
+				// todo(sebastian): most obvious validation error?
+				continue
+			}
+
+			mutator(v, s, insecure)
+			s.Spec.Checked = true
 		}
 
 		return p.Source, nil
 	}
 }
 
+func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, bool) error) graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		vars, ok := p.Args["vars"]
+		if !ok {
+			return p.Source, nil
+		}
+		// location := p.Args["location"].(string)
+		hasSpecs := p.Args["hasSpecs"].(bool)
+
+		var resolverOpSet *OperationSet
+		var err error
+
+		switch p.Source.(type) {
+		case *OperationSet:
+			resolverOpSet = p.Source.(*OperationSet)
+			resolverOpSet.hasSpecs = resolverOpSet.hasSpecs || hasSpecs
+		default:
+			resolverOpSet, err = NewOperationSet(WithOperation(TransientSetOperation))
+			resolverOpSet.hasSpecs = hasSpecs
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		buf, err := json.Marshal(vars)
+		if err != nil {
+			return nil, err
+		}
+
+		var revive SetVarItems
+		err = json.Unmarshal(buf, &revive)
+		if err != nil {
+			return nil, err
+		}
+
+		err = resolveMutator(revive, resolverOpSet, hasSpecs)
+		if err != nil {
+			return nil, err
+		}
+
+		return resolverOpSet, nil
+	}
+}
+
+func resolveSnapshot() graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		insecure := p.Args["insecure"].(bool)
+
+		snapshot := SetVarItems{}
+		var opSet *OperationSet
+
+		switch p.Source.(type) {
+		case nil, string:
+			// root passes string
+			return snapshot, nil
+		case *OperationSet:
+			opSet = p.Source.(*OperationSet)
+		default:
+			return nil, errors.New("source is not an OperationSet")
+		}
+
+		for _, v := range opSet.values {
+			if insecure && v.Value.Status == "UNRESOLVED" {
+				continue
+			}
+			s, ok := opSet.specs[v.Var.Key]
+			if !ok {
+				return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
+			}
+			snapshot = append(snapshot, &SetVarItem{
+				Var:   v.Var,
+				Value: v.Value,
+				Spec:  s.Spec,
+			})
+		}
+
+		snapshot.sort()
+		return snapshot, nil
+	}
+}
+
+func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpecs bool) error {
+	for _, r := range revived {
+		source := ""
+		if r.Var.Operation != nil {
+			source = r.Var.Operation.Source
+		}
+		if r.Value != nil {
+			newCreated := r.Var.Created
+			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
+				oldCreated := old.Var.Created
+				r.Var.Created = oldCreated
+				if old.Var.Operation != nil {
+					source = old.Var.Operation.Source
+				}
+			}
+			r.Var.Origin = source
+			r.Var.Updated = newCreated
+			if r.Value.Original != "" {
+				r.Value.Resolved = r.Value.Original
+				r.Value.Status = "LITERAL"
+			} else {
+				// todo(sebastian): load vs update difference?
+				r.Value.Status = "UNRESOLVED"
+			}
+			resolverOpSet.values[r.Var.Key] = &SetVarValue{Var: r.Var, Value: r.Value}
+		}
+
+		if r.Spec != nil {
+			newCreated := r.Var.Created
+			if old, ok := resolverOpSet.specs[r.Var.Key]; ok {
+				oldCreated := *old.Var.Created
+				r.Var.Created = &oldCreated
+				if old.Var.Operation != nil {
+					source = old.Var.Operation.Source
+				}
+			}
+			r.Var.Origin = source
+			r.Var.Updated = newCreated
+			resolverOpSet.specs[r.Var.Key] = &SetVarSpec{Var: r.Var, Spec: r.Spec}
+		}
+	}
+	return nil
+}
+
+func mutateDelete(vars SetVarItems, resolverOpSet *OperationSet, _ bool) error {
+	for _, v := range vars {
+		delete(resolverOpSet.specs, v.Var.Key)
+		delete(resolverOpSet.values, v.Var.Key)
+	}
+	return nil
+}
+
 func init() {
 	SpecTypes = make(map[string]*specType)
 
-	sensitiveResolver := specResolver(func(v *setVar) {
-		v.Value.Status = "MASKED"
-		if len(v.Value.Resolved) > 24 {
-			v.Value.Resolved = v.Value.Resolved[:3] + "..." + v.Value.Resolved[len(v.Value.Resolved)-3:]
-			return
-		}
-		v.Value.Resolved = ""
-	})
+	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true,
+		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
+			if insecure {
+				original := val.Value.Original
+				val.Value.Resolved = original
+				val.Value.Status = "LITERAL"
+				return
+			}
 
-	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true, sensitiveResolver)
-	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true, sensitiveResolver)
+			val.Value.Status = "MASKED"
+			original := val.Value.Original
+			val.Value.Original = ""
+			if len(original) > 24 {
+				val.Value.Resolved = original[:3] + "..." + original[len(original)-3:]
+			}
+		}),
+	)
+
+	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true,
+		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
+			if insecure {
+				original := val.Value.Original
+				val.Value.Resolved = original
+				val.Value.Status = "LITERAL"
+				return
+			}
+
+			val.Value.Status = "MASKED"
+			original := val.Value.Original
+			val.Value.Original = ""
+			val.Value.Resolved = strings.Repeat("*", max(8, len(original)))
+		}),
+	)
 	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
-		specResolver(func(v *setVar) {
-			v.Value.Status = "HIDDEN"
-			v.Value.Original = v.Value.Resolved
-			v.Value.Resolved = ""
+		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
+			if insecure {
+				original := val.Value.Original
+				val.Value.Resolved = original
+				val.Value.Status = "LITERAL"
+				return
+			}
+
+			val.Value.Status = "HIDDEN"
+			val.Value.Resolved = ""
 		}),
 	)
 	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
-		specResolver(func(v *setVar) {
-			v.Value.Status = "LITERAL"
+		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
+			if insecure {
+				original := val.Value.Original
+				val.Value.Resolved = original
+				val.Value.Status = "LITERAL"
+				return
+			}
+
+			val.Value.Resolved = val.Value.Original
+			val.Value.Status = "LITERAL"
 		}),
 	)
 
@@ -152,12 +331,43 @@ func init() {
 		graphql.ObjectConfig{
 			Name: "VariableType",
 			Fields: graphql.Fields{
-				"key": &graphql.Field{
-					Type: graphql.String,
+				"var": &graphql.Field{
+					Type: graphql.NewObject(graphql.ObjectConfig{
+						Name: "VariableVarType",
+						Fields: graphql.Fields{
+							"key": &graphql.Field{
+								Type: graphql.String,
+							},
+							"origin": &graphql.Field{
+								Type: graphql.String,
+							},
+							"created": &graphql.Field{
+								Type: graphql.DateTime,
+							},
+							"updated": &graphql.Field{
+								Type: graphql.DateTime,
+							},
+							"operation": &graphql.Field{
+								Type: graphql.NewObject(graphql.ObjectConfig{
+									Name: "VariableOperationType",
+									Fields: graphql.Fields{
+										"order": &graphql.Field{
+											Type: graphql.Int,
+										},
+										// todo(sebastian): should be enum
+										"kind": &graphql.Field{
+											Type: graphql.String,
+										},
+										// todo(sebastian): likely abstract
+										"source": &graphql.Field{
+											Type: graphql.String,
+										},
+									},
+								}),
+							},
+						},
+					}),
 				},
-				// "raw": &graphql.Field{
-				// 	Type: graphql.String,
-				// },
 				"value": &graphql.Field{
 					Type: graphql.NewObject(graphql.ObjectConfig{
 						Name: "VariableValueType",
@@ -190,38 +400,17 @@ func init() {
 							"name": &graphql.Field{
 								Type: graphql.String,
 							},
+							"description": &graphql.Field{
+								Type: graphql.String,
+							},
+							"required": &graphql.Field{
+								Type: graphql.Boolean,
+							},
 							"checked": &graphql.Field{
 								Type: graphql.Boolean,
 							},
 						},
 					}),
-				},
-				"required": &graphql.Field{
-					Type: graphql.Boolean,
-				},
-				"operation": &graphql.Field{
-					Type: graphql.NewObject(graphql.ObjectConfig{
-						Name: "VariableOperationType",
-						Fields: graphql.Fields{
-							"order": &graphql.Field{
-								Type: graphql.Int,
-							},
-							// todo(sebastian): should be enum
-							"kind": &graphql.Field{
-								Type: graphql.String,
-							},
-							// todo(sebastian): likely abstract
-							"location": &graphql.Field{
-								Type: graphql.String,
-							},
-						},
-					}),
-				},
-				"created": &graphql.Field{
-					Type: graphql.DateTime,
-				},
-				"updated": &graphql.Field{
-					Type: graphql.DateTime,
 				},
 			},
 		},
@@ -230,11 +419,37 @@ func init() {
 	VariableInputType := graphql.NewInputObject(graphql.InputObjectConfig{
 		Name: "VariableInput",
 		Fields: graphql.InputObjectConfigFieldMap{
-			"key": &graphql.InputObjectFieldConfig{
-				Type: graphql.String,
-			},
-			"raw": &graphql.InputObjectFieldConfig{
-				Type: graphql.String,
+			"var": &graphql.InputObjectFieldConfig{
+				Type: graphql.NewInputObject(graphql.InputObjectConfig{
+					Name: "VariableVarInput",
+					Fields: graphql.InputObjectConfigFieldMap{
+						"key": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"created": &graphql.InputObjectFieldConfig{
+							Type: graphql.DateTime,
+						},
+						"updated": &graphql.InputObjectFieldConfig{
+							Type: graphql.DateTime,
+						},
+						"operation": &graphql.InputObjectFieldConfig{
+							Type: graphql.NewInputObject(graphql.InputObjectConfig{
+								Name: "VariableOperationInput",
+								Fields: graphql.InputObjectConfigFieldMap{
+									"order": &graphql.InputObjectFieldConfig{
+										Type: graphql.Int,
+									},
+									// "kind": &graphql.InputObjectFieldConfig{
+									// 	Type: graphql.String,
+									// },
+									"source": &graphql.InputObjectFieldConfig{
+										Type: graphql.String,
+									},
+								},
+							}),
+						},
+					},
+				}),
 			},
 			"value": &graphql.InputObjectFieldConfig{
 				Type: graphql.NewInputObject(graphql.InputObjectConfig{
@@ -265,38 +480,19 @@ func init() {
 						"name": &graphql.InputObjectFieldConfig{
 							Type: graphql.String,
 						},
+						"description": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"required": &graphql.InputObjectFieldConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
 						"checked": &graphql.InputObjectFieldConfig{
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
 					},
 				}),
-			},
-			"required": &graphql.InputObjectFieldConfig{
-				Type:         graphql.Boolean,
-				DefaultValue: false,
-			},
-			"operation": &graphql.InputObjectFieldConfig{
-				Type: graphql.NewInputObject(graphql.InputObjectConfig{
-					Name: "VariableOperationInput",
-					Fields: graphql.InputObjectConfigFieldMap{
-						"order": &graphql.InputObjectFieldConfig{
-							Type: graphql.Int,
-						},
-						"kind": &graphql.InputObjectFieldConfig{
-							Type: graphql.String,
-						},
-						"location": &graphql.InputObjectFieldConfig{
-							Type: graphql.String,
-						},
-					},
-				}),
-			},
-			"created": &graphql.InputObjectFieldConfig{
-				Type: graphql.DateTime,
-			},
-			"updated": &graphql.InputObjectFieldConfig{
-				Type: graphql.DateTime,
 			},
 		},
 	})
@@ -315,8 +511,29 @@ func init() {
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
+						// "location": &graphql.ArgumentConfig{
+						// 	Type:         graphql.String,
+						// 	DefaultValue: "",
+						// },
 					},
-					Resolve: resolveOperation(resolveLoadOrUpdate),
+					Resolve: resolveOperation(mutateLoadOrUpdate),
+				},
+				"reconcile": &graphql.Field{
+					Type: EnvironmentType,
+					Args: graphql.FieldConfigArgument{
+						"vars": &graphql.ArgumentConfig{
+							Type: graphql.NewList(VariableInputType),
+						},
+						"hasSpecs": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
+						// "location": &graphql.ArgumentConfig{
+						// 	Type:         graphql.String,
+						// 	DefaultValue: "",
+						// },
+					},
+					Resolve: resolveOperation(mutateLoadOrUpdate),
 				},
 				"update": &graphql.Field{
 					Type: EnvironmentType,
@@ -328,8 +545,12 @@ func init() {
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
+						// "location": &graphql.ArgumentConfig{
+						// 	Type:         graphql.String,
+						// 	DefaultValue: "",
+						// },
 					},
-					Resolve: resolveOperation(resolveLoadOrUpdate),
+					Resolve: resolveOperation(mutateLoadOrUpdate),
 				},
 				"delete": &graphql.Field{
 					Type: EnvironmentType,
@@ -341,8 +562,12 @@ func init() {
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
+						// "location": &graphql.ArgumentConfig{
+						// 	Type:         graphql.String,
+						// 	DefaultValue: "",
+						// },
 					},
-					Resolve: resolveOperation(resolveDelete),
+					Resolve: resolveOperation(mutateDelete),
 				},
 				"validate": &graphql.Field{
 					Type: ValidateType,
@@ -350,21 +575,21 @@ func init() {
 						return p.Source, nil
 					},
 				},
-				"location": &graphql.Field{
-					Type: graphql.NewNonNull(graphql.String),
-					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						// todo(sebastian): bring this back?
-						switch p.Source.(type) {
-						case *OperationSet:
-							opSet := p.Source.(*OperationSet)
-							return opSet.operation.location, nil
-						default:
-							// noop
-						}
+				// "location": &graphql.Field{
+				// 	Type: graphql.NewNonNull(graphql.String),
+				// 	Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				// 		// todo(sebastian): bring this back?
+				// 		switch p.Source.(type) {
+				// 		case *OperationSet:
+				// 			opSet := p.Source.(*OperationSet)
+				// 			return opSet.operation.location, nil
+				// 		default:
+				// 			// noop
+				// 		}
 
-						return nil, nil
-					},
-				},
+				// 		return nil, nil
+				// 	},
+				// },
 				"snapshot": &graphql.Field{
 					Type: graphql.NewNonNull(graphql.NewList(VariableType)),
 					Args: graphql.FieldConfigArgument{
@@ -373,26 +598,7 @@ func init() {
 							DefaultValue: false,
 						},
 					},
-					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						snapshot := SetVarResult{}
-						var opSet *OperationSet
-
-						switch p.Source.(type) {
-						case nil, string:
-							// root passes string
-							return snapshot, nil
-						case *OperationSet:
-							opSet = p.Source.(*OperationSet)
-						default:
-							return nil, errors.New("source is not an OperationSet")
-						}
-
-						for _, v := range opSet.items {
-							snapshot = append(snapshot, v)
-						}
-						snapshot.sort()
-						return snapshot, nil
-					},
+					Resolve: resolveSnapshot(),
 				},
 			}
 		}),
@@ -456,365 +662,5 @@ func init() {
 	if err != nil {
 		// inconsistent schema is bad
 		panic(err)
-	}
-}
-
-func resolveOperation(resolveMutator func(SetVarResult, *OperationSet, bool) error) graphql.FieldResolveFn {
-	return func(p graphql.ResolveParams) (interface{}, error) {
-		vars, ok := p.Args["vars"]
-		if !ok {
-			return p.Source, nil
-		}
-		hasSpecs := p.Args["hasSpecs"].(bool)
-
-		var resolverOpSet *OperationSet
-		var err error
-
-		switch p.Source.(type) {
-		case *OperationSet:
-			resolverOpSet = p.Source.(*OperationSet)
-		default:
-			resolverOpSet, err = NewOperationSet(WithOperation(TransientSetOperation, "resolver"))
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		buf, err := json.Marshal(vars)
-		if err != nil {
-			return nil, err
-		}
-
-		var revive SetVarResult
-		err = json.Unmarshal(buf, &revive)
-		if err != nil {
-			return nil, err
-		}
-
-		err = resolveMutator(revive, resolverOpSet, hasSpecs)
-		if err != nil {
-			return nil, err
-		}
-
-		return resolverOpSet, nil
-	}
-}
-
-func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		opSetData := make(map[string]SetVarResult, len(store.opSets))
-
-		for i, opSet := range store.opSets {
-			if len(opSet.items) == 0 {
-				continue
-			}
-
-			opName := ""
-			switch opSet.operation.kind {
-			case LoadSetOperation:
-				opName = "load"
-			case UpdateSetOperation:
-				opName = "update"
-			case DeleteSetOperation:
-				opName = "delete"
-			default:
-				continue
-			}
-			nvars := fmt.Sprintf("%s_%d", opName, i)
-
-			for _, v := range opSet.items {
-				opSetData[nvars] = append(opSetData[nvars], v)
-			}
-
-			opDef.VariableDefinitions = append(opDef.VariableDefinitions, ast.NewVariableDefinition(&ast.VariableDefinition{
-				Variable: ast.NewVariable(&ast.Variable{
-					Name: ast.NewName(&ast.Name{
-						Value: nvars,
-					}),
-				}),
-				Type: ast.NewNamed(&ast.Named{
-					Name: ast.NewName(&ast.Name{
-						Value: "[VariableInput]!",
-					}),
-				}),
-			}))
-
-			nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-			nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "location",
-				}),
-			}))
-			selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: opName,
-				}),
-				Arguments: []*ast.Argument{
-					ast.NewArgument(&ast.Argument{
-						Name: ast.NewName(&ast.Name{
-							Value: "vars",
-						}),
-						Value: ast.NewVariable(&ast.Variable{
-							Name: ast.NewName(&ast.Name{
-								Value: nvars,
-							}),
-						}),
-					}),
-					ast.NewArgument(&ast.Argument{
-						Name: ast.NewName(&ast.Name{
-							Value: "hasSpecs",
-						}),
-						Value: ast.NewBooleanValue(&ast.BooleanValue{
-							Value: opSet.hasSpecs,
-						}),
-					}),
-				},
-				Directives:   []*ast.Directive{},
-				SelectionSet: nextSelSet,
-			}))
-			selSet = nextSelSet
-		}
-
-		opSetJSON, err := json.MarshalIndent(opSetData, "", " ")
-		if err != nil {
-			return nil, err
-		}
-		_, err = vars.WriteString(string(opSetJSON))
-		if err != nil {
-			return nil, err
-		}
-
-		return selSet, nil
-	}
-}
-
-func reduceSnapshot() QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
-			Selections: []ast.Selection{
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "key",
-					}),
-				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "value",
-					}),
-					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
-						Selections: []ast.Selection{
-							// ast.NewField(&ast.Field{
-							// 	Name: ast.NewName(&ast.Name{
-							// 		Value: "type",
-							// 	}),
-							// }),
-							ast.NewField(&ast.Field{
-								Name: ast.NewName(&ast.Name{
-									Value: "original",
-								}),
-							}),
-							ast.NewField(&ast.Field{
-								Name: ast.NewName(&ast.Name{
-									Value: "resolved",
-								}),
-							}),
-							ast.NewField(&ast.Field{
-								Name: ast.NewName(&ast.Name{
-									Value: "status",
-								}),
-							}),
-						},
-					}),
-				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "spec",
-					}),
-					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
-						Selections: []ast.Selection{
-							ast.NewField(&ast.Field{
-								Name: ast.NewName(&ast.Name{
-									Value: "name",
-								}),
-							}),
-						},
-					}),
-				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "required",
-					}),
-				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "created",
-					}),
-				}),
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: "updated",
-					}),
-				}),
-			},
-		})
-
-		selSet.Selections = append(selSet.Selections,
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "snapshot",
-				}),
-				Arguments: []*ast.Argument{
-					ast.NewArgument(&ast.Argument{
-						Name: ast.NewName(&ast.Name{
-							Value: "insecure",
-						}),
-						Value: ast.NewVariable(&ast.Variable{
-							Name: ast.NewName(&ast.Name{
-								Value: "insecure",
-							}),
-						}),
-					}),
-				},
-				SelectionSet: nextSelSet,
-			}),
-		)
-		return nextSelSet, nil
-	}
-}
-
-func reduceSepcs(store *Store) QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		var specKeys []string
-		varSpecs := make(map[string]*setVar)
-		for _, opSet := range store.opSets {
-			if len(opSet.items) == 0 {
-				continue
-			}
-			for _, v := range opSet.items {
-				if _, ok := SpecTypes[v.Spec.Name]; !ok {
-					return nil, fmt.Errorf("unknown spec type: %s on %s", v.Spec.Name, v.Key)
-				}
-				varSpecs[v.Key] = v
-				specKeys = append(specKeys, v.Spec.Name)
-			}
-		}
-
-		nextVarSpecs := func(varSpecs map[string]*setVar, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
-			var keys []string
-			for _, v := range varSpecs {
-				if v.Spec.Name != spec {
-					continue
-				}
-				keys = append(keys, v.Key)
-			}
-			if len(keys) == 0 {
-				return prevSelSet
-			}
-
-			nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
-				Selections: []ast.Selection{
-					ast.NewField(&ast.Field{
-						Name: ast.NewName(&ast.Name{
-							Value: "spec",
-						}),
-					}),
-					ast.NewField(&ast.Field{
-						Name: ast.NewName(&ast.Name{
-							Value: "sensitive",
-						}),
-					}),
-					ast.NewField(&ast.Field{
-						Name: ast.NewName(&ast.Name{
-							Value: "mask",
-						}),
-					}),
-					ast.NewField(&ast.Field{
-						Name: ast.NewName(&ast.Name{
-							Value: "errors",
-						}),
-					}),
-				},
-			})
-
-			valuekeys := ast.NewListValue(&ast.ListValue{})
-			for _, name := range keys {
-				valuekeys.Values = append(valuekeys.Values, ast.NewStringValue(&ast.StringValue{
-					Value: name,
-				}))
-			}
-
-			prevSelSet.Selections = append(prevSelSet.Selections,
-				ast.NewField(&ast.Field{
-					Name: ast.NewName(&ast.Name{
-						Value: spec,
-					}),
-					Arguments: []*ast.Argument{
-						ast.NewArgument(&ast.Argument{
-							Name: ast.NewName(&ast.Name{
-								Value: "insecure",
-							}),
-							Value: ast.NewVariable(&ast.Variable{
-								Name: ast.NewName(&ast.Name{
-									Value: "insecure",
-								}),
-							}),
-						}),
-						ast.NewArgument(&ast.Argument{
-							Name: ast.NewName(&ast.Name{
-								Value: "keys",
-							}),
-							Value: valuekeys,
-						}),
-					},
-					SelectionSet: nextSelSet,
-				}))
-
-			return nextSelSet
-		}
-
-		topSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-		nextSelSet := topSelSet
-
-		// todo: poor Sebastian's deduplication
-		slices.Sort(specKeys)
-		prev := ""
-		for _, specKey := range specKeys {
-			if prev == specKey {
-				continue
-			}
-			prev = specKey
-			nextSelSet = nextVarSpecs(varSpecs, specKey, nextSelSet)
-		}
-
-		doneSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-		nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
-			Name: ast.NewName(&ast.Name{
-				Value: "done",
-			}),
-			SelectionSet: doneSelSet,
-		}))
-
-		selSet.Selections = append(selSet.Selections,
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "validate",
-				}),
-				// Arguments: []*ast.Argument{
-				// 	ast.NewArgument(&ast.Argument{
-				// 		Name: ast.NewName(&ast.Name{
-				// 			Value: "insecure",
-				// 		}),
-				// 		Value: ast.NewVariable(&ast.Variable{
-				// 			Name: ast.NewName(&ast.Name{
-				// 				Value: "insecure",
-				// 			}),
-				// 		}),
-				// 	}),
-				// },
-				SelectionSet: topSelSet,
-			}),
-		)
-
-		return doneSelSet, nil
 	}
 }
