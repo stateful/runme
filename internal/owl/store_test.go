@@ -253,6 +253,7 @@ func Test_Store_FixtureWithSpecs(t *testing.T) {
 		require.EqualValues(t, "", snapshot[3].Value.Original)
 		require.EqualValues(t, "MASKED", snapshot[3].Value.Status)
 	})
+
 	t.Run("Insecure is true", func(t *testing.T) {
 		snapshot, err := store.snapshot(true)
 		require.NoError(t, err)
