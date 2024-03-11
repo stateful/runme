@@ -210,7 +210,9 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpe
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
 				oldCreated := old.Var.Created
 				r.Var.Created = oldCreated
-				if old.Var.Operation != nil {
+				if old.Var.Origin != "" {
+					source = old.Var.Origin
+				} else if old.Var.Operation != nil {
 					source = old.Var.Operation.Source
 				}
 			}
