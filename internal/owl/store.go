@@ -98,7 +98,15 @@ func (res SetVarItems) sort() {
 			return 1
 		}
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
-			return int(i.Var.Updated.Unix() - j.Var.Updated.Unix())
+			jUpdated := j.Var.Updated.Unix()
+			iUpdated := i.Var.Updated.Unix()
+
+			delta := int(jUpdated - iUpdated)
+
+			if delta == 0 {
+				return strings.Compare(i.Var.Key, j.Var.Key)
+			}
+			return delta
 		}
 		if i.Spec.Name != "Opaque" {
 			return -1
