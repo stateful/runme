@@ -91,7 +91,9 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
-func specResolver(mutator func(*SetVarValue, *SetVarSpec, bool)) graphql.FieldResolveFn {
+type SpecResolverMutator func(val *SetVarValue, spec *SetVarSpec, insecure bool)
+
+func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
 		keysArg := p.Args["keys"].([]interface{})
@@ -111,8 +113,8 @@ func specResolver(mutator func(*SetVarValue, *SetVarSpec, bool)) graphql.FieldRe
 				continue
 			}
 
-			// TODO: Specs
 			mutator(v, s, insecure)
+			s.Spec.Checked = true
 		}
 
 		return p.Source, nil
@@ -123,62 +125,62 @@ func init() {
 	SpecTypes = make(map[string]*specType)
 
 	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true,
-		specResolver(func(v *SetVarValue, s *SetVarSpec, insecure bool) {
+		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
-				original := v.Value.Original
-				v.Value.Resolved = original
-				v.Value.Status = "LITERAL"
+				original := val.Value.Original
+				val.Value.Resolved = original
+				val.Value.Status = "LITERAL"
 				return
 			}
 
-			v.Value.Status = "MASKED"
-			original := v.Value.Original
-			v.Value.Original = ""
+			val.Value.Status = "MASKED"
+			original := val.Value.Original
+			val.Value.Original = ""
 			if len(original) > 24 {
-				v.Value.Resolved = original[:3] + "..." + original[len(original)-3:]
+				val.Value.Resolved = original[:3] + "..." + original[len(original)-3:]
 			}
 		}),
 	)
 
 	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true,
-		specResolver(func(v *SetVarValue, s *SetVarSpec, insecure bool) {
+		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
-				original := v.Value.Original
-				v.Value.Resolved = original
-				v.Value.Status = "LITERAL"
+				original := val.Value.Original
+				val.Value.Resolved = original
+				val.Value.Status = "LITERAL"
 				return
 			}
 
-			v.Value.Status = "MASKED"
-			original := v.Value.Original
-			v.Value.Original = ""
-			v.Value.Resolved = strings.Repeat("*", max(8, len(original)))
+			val.Value.Status = "MASKED"
+			original := val.Value.Original
+			val.Value.Original = ""
+			val.Value.Resolved = strings.Repeat("*", max(8, len(original)))
 		}),
 	)
 	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
-		specResolver(func(v *SetVarValue, s *SetVarSpec, insecure bool) {
+		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
-				original := v.Value.Original
-				v.Value.Resolved = original
-				v.Value.Status = "LITERAL"
+				original := val.Value.Original
+				val.Value.Resolved = original
+				val.Value.Status = "LITERAL"
 				return
 			}
 
-			v.Value.Status = "HIDDEN"
-			v.Value.Resolved = ""
+			val.Value.Status = "HIDDEN"
+			val.Value.Resolved = ""
 		}),
 	)
 	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
-		specResolver(func(v *SetVarValue, s *SetVarSpec, insecure bool) {
+		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
-				original := v.Value.Original
-				v.Value.Resolved = original
-				v.Value.Status = "LITERAL"
+				original := val.Value.Original
+				val.Value.Resolved = original
+				val.Value.Status = "LITERAL"
 				return
 			}
 
-			v.Value.Resolved = v.Value.Original
-			v.Value.Status = "LITERAL"
+			val.Value.Resolved = val.Value.Original
+			val.Value.Status = "LITERAL"
 		}),
 	)
 
@@ -611,7 +613,6 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		opSetData := make(map[string]SetVarItems, len(store.opSets))
 
-		// TODO: Specs
 		for i, opSet := range store.opSets {
 			if len(opSet.values) == 0 && len(opSet.specs) == 0 {
 				continue
