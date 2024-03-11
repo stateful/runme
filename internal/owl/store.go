@@ -439,67 +439,6 @@ func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
 	return snapshot, nil
 }
 
-func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
-	varDefs := []*ast.VariableDefinition{
-		ast.NewVariableDefinition(&ast.VariableDefinition{
-			Variable: ast.NewVariable(&ast.Variable{
-				Name: ast.NewName(&ast.Name{
-					Value: "insecure",
-				}),
-			}),
-			Type: ast.NewNamed(&ast.Named{
-				Name: ast.NewName(&ast.Name{
-					Value: "Boolean",
-				}),
-			}),
-			DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
-				Value: false,
-			}),
-		}),
-	}
-
-	loaded, updated, deleted := 0, 0, 0
-	for _, opSet := range s.opSets {
-		if len(opSet.specs) == 0 && len(opSet.values) == 0 {
-			continue
-		}
-		switch opSet.operation.kind {
-		case LoadSetOperation:
-			loaded++
-		case UpdateSetOperation:
-			updated++
-		case DeleteSetOperation:
-			deleted++
-		}
-
-	}
-	s.logger.Debug("snapshot opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted))
-
-	q, err := NewQuery("Snapshot", varDefs,
-		[]QueryNodeReducer{
-			reconcileAsymmetry(s),
-			reduceSetOperations(s, vars),
-			reduceSepcs(s),
-			reduceSnapshot(),
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	text, err := q.Print()
-	if err != nil {
-		return err
-	}
-
-	_, err = query.WriteString(text)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func extractDataKey(data interface{}, key string) (interface{}, error) {
 	m, ok := data.(map[string]interface{})
 	if !ok {
