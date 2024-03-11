@@ -44,9 +44,9 @@ export class RunnerServiceClient {
         return stackIntercept("unary", this._transport, method, opt, input);
     }
     /**
-     * @generated from protobuf rpc: MonitorEnv(runme.runner.v1.MonitorEnvRequest) returns (stream runme.runner.v1.MonitorEnvResponse);
+     * @generated from protobuf rpc: MonitorEnvStore(runme.runner.v1.MonitorEnvStoreRequest) returns (stream runme.runner.v1.MonitorEnvStoreResponse);
      */
-    monitorEnv(input, options) {
+    monitorEnvStore(input, options) {
         const method = this.methods[4], opt = this._transport.mergeOptions(options);
         return stackIntercept("serverStreaming", this._transport, method, opt, input);
     }

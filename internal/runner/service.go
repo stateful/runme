@@ -687,7 +687,7 @@ func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session,
 	}
 }
 
-func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1.RunnerService_MonitorEnvServer) error {
+func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, srv runnerv1.RunnerService_MonitorEnvStoreServer) error {
 	if req.Session == nil {
 		return status.Error(codes.InvalidArgument, "session is required")
 	}
@@ -707,11 +707,11 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 	go func() {
 		defer wg.Done()
 		for snapshot := range snapshotc {
-			msg := &runnerv1.MonitorEnvResponse{
-				Type: runnerv1.MonitorEnvType_MONITOR_ENV_TYPE_SNAPSHOT,
+			msg := &runnerv1.MonitorEnvStoreResponse{
+				Type: runnerv1.MonitorEnvStoreType_MONITOR_ENV_STORE_TYPE_SNAPSHOT,
 			}
 
-			if err := convertToMonitorEnvResponse(msg, snapshot); err != nil {
+			if err := convertToMonitorEnvStoreResponse(msg, snapshot); err != nil {
 				errc <- err
 				goto errhandler
 			}
@@ -752,39 +752,36 @@ func (r *runnerService) MonitorEnv(req *runnerv1.MonitorEnvRequest, srv runnerv1
 	return <-errc
 }
 
-func convertToMonitorEnvResponse(msg *runnerv1.MonitorEnvResponse, snapshot owl.SetVarItems) error {
-	envsSnapshot := make([]*runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv, 0, len(snapshot))
+func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, snapshot owl.SetVarItems) error {
+	envsSnapshot := make([]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv, 0, len(snapshot))
 
 	for _, item := range snapshot {
-		status := runnerv1.MonitorEnvResponseSnapshot_STATUS_UNSPECIFIED
+		status := runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
 		// todo(sebastian): once more final use enums in SetVarResult
 		switch item.Value.Status {
 		case "HIDDEN":
-			status = runnerv1.MonitorEnvResponseSnapshot_STATUS_HIDDEN
+			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN
 		case "MASKED":
-			status = runnerv1.MonitorEnvResponseSnapshot_STATUS_MASKED
+			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED
 		case "LITERAL":
-			status = runnerv1.MonitorEnvResponseSnapshot_STATUS_LITERAL
+			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL
 		default:
 			// return errors.Errorf("unknown status: %s", item.Value.Status)
 		}
-		env := &runnerv1.MonitorEnvResponseSnapshot_SnapshotEnv{
+		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 			Name:          item.Var.Key,
 			Spec:          item.Spec.Name,
+			Origin:        item.Var.Origin,
 			OriginalValue: item.Value.Original,
 			ResolvedValue: item.Value.Resolved,
 			Status:        status,
 			CreateTime:    item.Var.Created.String(),
 			UpdateTime:    item.Var.Updated.String(),
-		}
-		if item.Var.Operation != nil {
-			env.Origin = item.Var.Operation.Source
-		}
-		envsSnapshot = append(envsSnapshot, env)
+		})
 	}
 
-	msg.Data = &runnerv1.MonitorEnvResponse_Snapshot{
-		Snapshot: &runnerv1.MonitorEnvResponseSnapshot{
+	msg.Data = &runnerv1.MonitorEnvStoreResponse_Snapshot{
+		Snapshot: &runnerv1.MonitorEnvStoreResponseSnapshot{
 			Envs: envsSnapshot,
 		},
 	}

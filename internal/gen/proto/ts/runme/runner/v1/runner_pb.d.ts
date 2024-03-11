@@ -517,31 +517,31 @@ export declare enum ResolveProgramResponse_Status {
     RESOLVED = 3
 }
 /**
- * @generated from protobuf message runme.runner.v1.MonitorEnvRequest
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreRequest
  */
-export interface MonitorEnvRequest {
+export interface MonitorEnvStoreRequest {
     /**
      * @generated from protobuf field: runme.runner.v1.Session session = 1;
      */
     session?: Session;
 }
 /**
- * @generated from protobuf message runme.runner.v1.MonitorEnvResponseSnapshot
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot
  */
-export interface MonitorEnvResponseSnapshot {
+export interface MonitorEnvStoreResponseSnapshot {
     /**
-     * @generated from protobuf field: repeated runme.runner.v1.MonitorEnvResponseSnapshot.SnapshotEnv envs = 1;
+     * @generated from protobuf field: repeated runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv envs = 1;
      */
-    envs: MonitorEnvResponseSnapshot_SnapshotEnv[];
+    envs: MonitorEnvStoreResponseSnapshot_SnapshotEnv[];
 }
 /**
- * @generated from protobuf message runme.runner.v1.MonitorEnvResponseSnapshot.SnapshotEnv
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
  */
-export interface MonitorEnvResponseSnapshot_SnapshotEnv {
+export interface MonitorEnvStoreResponseSnapshot_SnapshotEnv {
     /**
-     * @generated from protobuf field: runme.runner.v1.MonitorEnvResponseSnapshot.Status status = 1;
+     * @generated from protobuf field: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status status = 1;
      */
-    status: MonitorEnvResponseSnapshot_Status;
+    status: MonitorEnvStoreResponseSnapshot_Status;
     /**
      * @generated from protobuf field: string name = 2;
      */
@@ -572,9 +572,9 @@ export interface MonitorEnvResponseSnapshot_SnapshotEnv {
     updateTime: string;
 }
 /**
- * @generated from protobuf enum runme.runner.v1.MonitorEnvResponseSnapshot.Status
+ * @generated from protobuf enum runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
  */
-export declare enum MonitorEnvResponseSnapshot_Status {
+export declare enum MonitorEnvStoreResponseSnapshot_Status {
     /**
      * @generated from protobuf enum value: STATUS_UNSPECIFIED = 0;
      */
@@ -593,22 +593,22 @@ export declare enum MonitorEnvResponseSnapshot_Status {
     MASKED = 3
 }
 /**
- * @generated from protobuf message runme.runner.v1.MonitorEnvResponse
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponse
  */
-export interface MonitorEnvResponse {
+export interface MonitorEnvStoreResponse {
     /**
-     * @generated from protobuf field: runme.runner.v1.MonitorEnvType type = 1;
+     * @generated from protobuf field: runme.runner.v1.MonitorEnvStoreType type = 1;
      */
-    type: MonitorEnvType;
+    type: MonitorEnvStoreType;
     /**
      * @generated from protobuf oneof: data
      */
     data: {
         oneofKind: "snapshot";
         /**
-         * @generated from protobuf field: runme.runner.v1.MonitorEnvResponseSnapshot snapshot = 2;
+         * @generated from protobuf field: runme.runner.v1.MonitorEnvStoreResponseSnapshot snapshot = 2;
          */
-        snapshot: MonitorEnvResponseSnapshot;
+        snapshot: MonitorEnvStoreResponseSnapshot;
     } | {
         oneofKind: undefined;
     };
@@ -688,18 +688,18 @@ export declare enum SessionStrategy {
     MOST_RECENT = 1
 }
 /**
- * @generated from protobuf enum runme.runner.v1.MonitorEnvType
+ * @generated from protobuf enum runme.runner.v1.MonitorEnvStoreType
  */
-export declare enum MonitorEnvType {
+export declare enum MonitorEnvStoreType {
     /**
-     * @generated from protobuf enum value: MONITOR_ENV_TYPE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: MONITOR_ENV_STORE_TYPE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
      * possible expansion to have a "timeline" view
-     * MONITOR_ENV_TYPE_TIMELINE = 2;
+     * MONITOR_ENV_STORE_TYPE_TIMELINE = 2;
      *
-     * @generated from protobuf enum value: MONITOR_ENV_TYPE_SNAPSHOT = 1;
+     * @generated from protobuf enum value: MONITOR_ENV_STORE_TYPE_SNAPSHOT = 1;
      */
     SNAPSHOT = 1
 }
@@ -829,34 +829,34 @@ declare class ResolveProgramResponse_VarResult$Type extends MessageType<ResolveP
  * @generated MessageType for protobuf message runme.runner.v1.ResolveProgramResponse.VarResult
  */
 export declare const ResolveProgramResponse_VarResult: ResolveProgramResponse_VarResult$Type;
-declare class MonitorEnvRequest$Type extends MessageType<MonitorEnvRequest> {
+declare class MonitorEnvStoreRequest$Type extends MessageType<MonitorEnvStoreRequest> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvRequest
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreRequest
  */
-export declare const MonitorEnvRequest: MonitorEnvRequest$Type;
-declare class MonitorEnvResponseSnapshot$Type extends MessageType<MonitorEnvResponseSnapshot> {
+export declare const MonitorEnvStoreRequest: MonitorEnvStoreRequest$Type;
+declare class MonitorEnvStoreResponseSnapshot$Type extends MessageType<MonitorEnvStoreResponseSnapshot> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvResponseSnapshot
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot
  */
-export declare const MonitorEnvResponseSnapshot: MonitorEnvResponseSnapshot$Type;
-declare class MonitorEnvResponseSnapshot_SnapshotEnv$Type extends MessageType<MonitorEnvResponseSnapshot_SnapshotEnv> {
+export declare const MonitorEnvStoreResponseSnapshot: MonitorEnvStoreResponseSnapshot$Type;
+declare class MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type extends MessageType<MonitorEnvStoreResponseSnapshot_SnapshotEnv> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvResponseSnapshot.SnapshotEnv
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
  */
-export declare const MonitorEnvResponseSnapshot_SnapshotEnv: MonitorEnvResponseSnapshot_SnapshotEnv$Type;
-declare class MonitorEnvResponse$Type extends MessageType<MonitorEnvResponse> {
+export declare const MonitorEnvStoreResponseSnapshot_SnapshotEnv: MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type;
+declare class MonitorEnvStoreResponse$Type extends MessageType<MonitorEnvStoreResponse> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvResponse
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponse
  */
-export declare const MonitorEnvResponse: MonitorEnvResponse$Type;
+export declare const MonitorEnvStoreResponse: MonitorEnvStoreResponse$Type;
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */

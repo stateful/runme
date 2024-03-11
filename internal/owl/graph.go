@@ -201,16 +201,20 @@ func resolveSnapshot() graphql.FieldResolveFn {
 
 func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpecs bool) error {
 	for _, r := range revived {
+		source := ""
+		if r.Var.Operation != nil {
+			source = r.Var.Operation.Source
+		}
 		if r.Value != nil {
 			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
 				oldCreated := old.Var.Created
 				r.Var.Created = oldCreated
 				if old.Var.Operation != nil {
-					originSource := old.Var.Operation.Source
-					r.Var.Operation.Source = originSource
+					source = old.Var.Operation.Source
 				}
 			}
+			r.Var.Origin = source
 			r.Var.Updated = newCreated
 			if r.Value.Original != "" {
 				r.Value.Resolved = r.Value.Original
@@ -223,12 +227,16 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpe
 		}
 
 		if r.Spec != nil {
+			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.specs[r.Var.Key]; ok {
 				oldCreated := *old.Var.Created
 				r.Var.Created = &oldCreated
+				if old.Var.Operation != nil {
+					source = old.Var.Operation.Source
+				}
 			}
-			newCreated := *r.Var.Created
-			r.Var.Updated = &newCreated
+			r.Var.Origin = source
+			r.Var.Updated = newCreated
 			resolverOpSet.specs[r.Var.Key] = &SetVarSpec{Var: r.Var, Spec: r.Spec}
 		}
 	}
@@ -328,6 +336,9 @@ func init() {
 						Name: "VariableVarType",
 						Fields: graphql.Fields{
 							"key": &graphql.Field{
+								Type: graphql.String,
+							},
+							"origin": &graphql.Field{
 								Type: graphql.String,
 							},
 							"created": &graphql.Field{

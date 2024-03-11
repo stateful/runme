@@ -120,7 +120,7 @@ func run() error {
 	}
 
 	if subscribeToEnv != nil {
-		meClient, err := client.MonitorEnv(context.Background(), &runnerv1.MonitorEnvRequest{
+		meClient, err := client.MonitorEnvStore(context.Background(), &runnerv1.MonitorEnvStoreRequest{
 			Session: &runnerv1.Session{Id: *subscribeToEnv},
 		})
 		if err != nil {
@@ -129,13 +129,13 @@ func run() error {
 
 		subscribeEnv := func() error {
 			for {
-				var msg runnerv1.MonitorEnvResponse
+				var msg runnerv1.MonitorEnvStoreResponse
 				err := meClient.RecvMsg(&msg)
 				if err != nil {
 					return err
 				}
 
-				if msgData, ok := msg.Data.(*runnerv1.MonitorEnvResponse_Snapshot); ok {
+				if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
 					_, _ = fmt.Printf("%s %d items in snapshot\n", time.Now(), len(msgData.Snapshot.Envs))
 					// for _, env := range msgData.Snapshot.Envs {
 					// 	_, _ = fmt.Printf("%+v\n", env)

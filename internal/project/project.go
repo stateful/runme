@@ -527,12 +527,12 @@ func (p *Project) LoadEnv() ([]string, error) {
 }
 
 func (p *Project) LoadEnvWithSource() (envWithSource map[string]map[string]string, err error) {
-	// For file-based projects, there are no env to read.
-	if p.fs == nil {
-		return nil, nil
-	}
-
 	envWithSource = make(map[string]map[string]string)
+
+	// For file-based projects, there are no env to read.
+	if p == nil || p.fs == nil {
+		return envWithSource, nil
+	}
 
 	for _, envFile := range p.envFilesReadOrder {
 		bytes, err := util.ReadFile(p.fs, envFile)

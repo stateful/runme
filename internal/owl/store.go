@@ -60,6 +60,7 @@ type varSpec struct {
 
 type SetVar struct {
 	Key       string           `json:"key"`
+	Origin    string           `json:"origin,omitempty"`
 	Operation *setVarOperation `json:"operation"`
 	Created   *time.Time       `json:"created,omitempty"`
 	Updated   *time.Time       `json:"updated,omitempty"`

@@ -42,6 +42,7 @@ func Test_Graph(t *testing.T) {
       snapshot(insecure: $insecure) {
         var {
           key
+          origin
           created
           updated
         }
@@ -99,6 +100,7 @@ func Test_Graph(t *testing.T) {
                     snapshot(insecure: $insecure) {
                       var {
                         key
+                        origin
                         created
                         updated
                         operation {

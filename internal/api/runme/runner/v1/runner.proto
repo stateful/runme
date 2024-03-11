@@ -290,18 +290,18 @@ message ResolveProgramResponse {
   }
 }
 
-enum MonitorEnvType {
-  MONITOR_ENV_TYPE_UNSPECIFIED = 0;
-  MONITOR_ENV_TYPE_SNAPSHOT = 1;
+enum MonitorEnvStoreType {
+  MONITOR_ENV_STORE_TYPE_UNSPECIFIED = 0;
+  MONITOR_ENV_STORE_TYPE_SNAPSHOT = 1;
   // possible expansion to have a "timeline" view
-  // MONITOR_ENV_TYPE_TIMELINE = 2;
+  // MONITOR_ENV_STORE_TYPE_TIMELINE = 2;
 }
 
-message MonitorEnvRequest {
+message MonitorEnvStoreRequest {
   Session session = 1;
 }
 
-message MonitorEnvResponseSnapshot {
+message MonitorEnvStoreResponseSnapshot {
   repeated SnapshotEnv envs = 1;
 
   message SnapshotEnv {
@@ -333,11 +333,11 @@ message MonitorEnvResponseSnapshot {
   }
 }
 
-message MonitorEnvResponse {
-  MonitorEnvType type = 1;
+message MonitorEnvStoreResponse {
+  MonitorEnvStoreType type = 1;
 
   oneof data {
-    MonitorEnvResponseSnapshot snapshot = 2;
+    MonitorEnvStoreResponseSnapshot snapshot = 2;
   }
 }
 
@@ -347,7 +347,7 @@ service RunnerService {
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {}
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
 
-  rpc MonitorEnv(MonitorEnvRequest) returns (stream MonitorEnvResponse) {}
+  rpc MonitorEnvStore(MonitorEnvStoreRequest) returns (stream MonitorEnvStoreResponse) {}
 
   // Execute executes a program. Examine "ExecuteRequest" to explore
   // configuration options.
