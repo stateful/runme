@@ -283,23 +283,33 @@ func reduceSnapshot() QueryNodeReducer {
 		selSet.Selections = append(selSet.Selections,
 			ast.NewField(&ast.Field{
 				Name: ast.NewName(&ast.Name{
-					Value: "snapshot",
+					Value: "render",
 				}),
-				Arguments: []*ast.Argument{
-					ast.NewArgument(&ast.Argument{
-						Name: ast.NewName(&ast.Name{
-							Value: "insecure",
-						}),
-						Value: ast.NewVariable(&ast.Variable{
+				SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+					Selections: []ast.Selection{
+						ast.NewField(&ast.Field{
 							Name: ast.NewName(&ast.Name{
-								Value: "insecure",
+								Value: "snapshot",
 							}),
+							Arguments: []*ast.Argument{
+								ast.NewArgument(&ast.Argument{
+									Name: ast.NewName(&ast.Name{
+										Value: "insecure",
+									}),
+									Value: ast.NewVariable(&ast.Variable{
+										Name: ast.NewName(&ast.Name{
+											Value: "insecure",
+										}),
+									}),
+								}),
+							},
+							SelectionSet: nextSelSet,
 						}),
-					}),
-				},
-				SelectionSet: nextSelSet,
+					},
+				}),
 			}),
 		)
+
 		return nextSelSet, nil
 	}
 }

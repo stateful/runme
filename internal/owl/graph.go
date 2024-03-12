@@ -16,9 +16,9 @@ type specType struct {
 }
 
 var (
-	Schema                        graphql.Schema
-	EnvironmentType, ValidateType *graphql.Object
-	SpecTypes                     map[string]*specType
+	Schema                                    graphql.Schema
+	EnvironmentType, ValidateType, RenderType *graphql.Object
+	SpecTypes                                 map[string]*specType
 )
 
 type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
@@ -449,6 +449,24 @@ func init() {
 		},
 	)
 
+	RenderType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "RenderType",
+		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
+			return graphql.Fields{
+				"snapshot": &graphql.Field{
+					Type: graphql.NewNonNull(graphql.NewList(VariableType)),
+					Args: graphql.FieldConfigArgument{
+						"insecure": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
+					},
+					Resolve: resolveSnapshot(),
+				},
+			}
+		}),
+	})
+
 	VariableInputType := graphql.NewInputObject(graphql.InputObjectConfig{
 		Name: "VariableInput",
 		Fields: graphql.InputObjectConfigFieldMap{
@@ -608,30 +626,11 @@ func init() {
 						return p.Source, nil
 					},
 				},
-				// "location": &graphql.Field{
-				// 	Type: graphql.NewNonNull(graphql.String),
-				// 	Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				// 		// todo(sebastian): bring this back?
-				// 		switch p.Source.(type) {
-				// 		case *OperationSet:
-				// 			opSet := p.Source.(*OperationSet)
-				// 			return opSet.operation.location, nil
-				// 		default:
-				// 			// noop
-				// 		}
-
-				// 		return nil, nil
-				// 	},
-				// },
-				"snapshot": &graphql.Field{
-					Type: graphql.NewNonNull(graphql.NewList(VariableType)),
-					Args: graphql.FieldConfigArgument{
-						"insecure": &graphql.ArgumentConfig{
-							Type:         graphql.Boolean,
-							DefaultValue: false,
-						},
+				"render": &graphql.Field{
+					Type: RenderType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
 					},
-					Resolve: resolveSnapshot(),
 				},
 			}
 		}),
