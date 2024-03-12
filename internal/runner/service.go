@@ -786,7 +786,7 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 		case "LITERAL":
 			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL
 		default:
-			// return errors.Errorf("unknown status: %s", item.Value.Status)
+			// noop
 		}
 		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 			Name:          item.Var.Key,

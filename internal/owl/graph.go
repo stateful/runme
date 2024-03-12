@@ -105,16 +105,72 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 				continue
 			}
 
+			// skip if last known status was DELETED
+			if vOk && v.Value.Status == "DELETED" {
+				continue
+			}
+
 			if vOk && v.Value.Status == "UNRESOLVED" {
 				// todo(sebastian): most obvious validation error?
 				continue
 			}
 
 			mutator(v, s, insecure)
-			s.Spec.Checked = true
+			if sOk {
+				s.Spec.Checked = true
+			}
 		}
 
 		return p.Source, nil
+	}
+}
+
+func resolveSnapshot() graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		insecure := p.Args["insecure"].(bool)
+
+		snapshot := SetVarItems{}
+		var opSet *OperationSet
+
+		switch p.Source.(type) {
+		case nil, string:
+			// root passes string
+			return snapshot, nil
+		case *OperationSet:
+			opSet = p.Source.(*OperationSet)
+		default:
+			return nil, errors.New("source is not an OperationSet")
+		}
+
+		for _, v := range opSet.values {
+			switch insecure {
+			case true:
+				if v.Value.Status == "UNRESOLVED" {
+					continue
+				}
+				if v.Value.Status == "DELETED" {
+					continue
+				}
+			case false:
+				if v.Value.Status == "DELETED" {
+					v.Value.Original = ""
+					v.Value.Resolved = ""
+					v.Value.Status = "UNRESOLVED"
+				}
+			}
+			s, ok := opSet.specs[v.Var.Key]
+			if !ok {
+				return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
+			}
+			snapshot = append(snapshot, &SetVarItem{
+				Var:   v.Var,
+				Value: v.Value,
+				Spec:  s.Spec,
+			})
+		}
+
+		snapshot.sort()
+		return snapshot, nil
 	}
 }
 
@@ -159,43 +215,6 @@ func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, bool) erro
 		}
 
 		return resolverOpSet, nil
-	}
-}
-
-func resolveSnapshot() graphql.FieldResolveFn {
-	return func(p graphql.ResolveParams) (interface{}, error) {
-		insecure := p.Args["insecure"].(bool)
-
-		snapshot := SetVarItems{}
-		var opSet *OperationSet
-
-		switch p.Source.(type) {
-		case nil, string:
-			// root passes string
-			return snapshot, nil
-		case *OperationSet:
-			opSet = p.Source.(*OperationSet)
-		default:
-			return nil, errors.New("source is not an OperationSet")
-		}
-
-		for _, v := range opSet.values {
-			if insecure && v.Value.Status == "UNRESOLVED" {
-				continue
-			}
-			s, ok := opSet.specs[v.Var.Key]
-			if !ok {
-				return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
-			}
-			snapshot = append(snapshot, &SetVarItem{
-				Var:   v.Var,
-				Value: v.Value,
-				Spec:  s.Spec,
-			})
-		}
-
-		snapshot.sort()
-		return snapshot, nil
 	}
 }
 
@@ -247,8 +266,20 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpe
 
 func mutateDelete(vars SetVarItems, resolverOpSet *OperationSet, _ bool) error {
 	for _, v := range vars {
-		delete(resolverOpSet.specs, v.Var.Key)
-		delete(resolverOpSet.values, v.Var.Key)
+		val, vOk := resolverOpSet.values[v.Var.Key]
+		if !vOk {
+			val = &SetVarValue{v.Var, v.Value}
+		}
+		val.Value.Status = "DELETED"
+		val.Value.Resolved = ""
+		resolverOpSet.values[v.Var.Key] = val
+
+		// spec, sOk := resolverOpSet.specs[v.Var.Key]
+		// if sOk || v.Spec == nil {
+		// 	continue
+		// }
+		// spec = &SetVarSpec{Var: v.Var, Spec: v.Spec}
+		// resolverOpSet.specs[v.Var.Key] = spec
 	}
 	return nil
 }
