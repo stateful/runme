@@ -28,6 +28,7 @@ func Cmd() *cobra.Command {
 
 	cmd.AddCommand(serverGRPCurlCmd())
 	cmd.AddCommand(serverStartCmd())
+	cmd.AddCommand(serverStopCmd())
 
 	return &cmd
 }

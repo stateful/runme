@@ -1,6 +1,11 @@
 package server
 
 import (
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -36,6 +41,11 @@ func serverStartCmd() *cobra.Command {
 						return err
 					}
 
+					if err := createPIDFile(cfg.ServerAddress); err != nil {
+						return err
+					}
+					defer os.Remove(cfg.ServerAddress)
+
 					return errors.WithStack(s.Serve())
 				},
 			)
@@ -43,4 +53,23 @@ func serverStartCmd() *cobra.Command {
 	}
 
 	return &cmd
+}
+
+func pidFileName(addr string) string {
+	if !strings.HasPrefix(addr, "unix://") {
+		return ""
+	}
+
+	path := strings.TrimPrefix(addr, "unix://")
+	path = filepath.Dir(path)
+	return filepath.Join(path, "runme.pid")
+}
+
+func createPIDFile(addr string) error {
+	path := pidFileName(addr)
+	if path == "" {
+		return nil
+	}
+	err := os.WriteFile(path, []byte(strconv.Itoa(os.Getpid())), 0o600)
+	return errors.WithStack(err)
 }
