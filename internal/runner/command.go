@@ -305,7 +305,11 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 		c.Args...,
 	)
 	c.cmd.Dir = c.Directory
-	c.cmd.Env = append(c.cmd.Env, c.Session.Envs()...)
+	env, err := c.Session.Envs()
+	if err != nil {
+		return err
+	}
+	c.cmd.Env = append(c.cmd.Env, env...)
 
 	if c.tty != nil {
 		c.cmd.Stdin = c.tty

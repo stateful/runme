@@ -15,7 +15,7 @@ import (
 var owlStoreDefault = false
 
 type envStorer interface {
-	envs() []string
+	envs() ([]string, error)
 	addEnvs(envs []string) error
 	updateStore(envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(k string, v string) error
@@ -75,9 +75,12 @@ func (s *Session) SetEnv(k string, v string) error {
 	return s.envStorer.setEnv(k, v)
 }
 
-func (s *Session) Envs() []string {
-	vals := s.envStorer.envs()
-	return vals
+func (s *Session) Envs() ([]string, error) {
+	vals, err := s.envStorer.envs()
+	if err != nil {
+		return nil, err
+	}
+	return vals, nil
 }
 
 func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
@@ -102,7 +105,7 @@ type SessionList struct {
 }
 
 type runnerEnvStorer struct {
-	logger   *zap.Logger
+	// logger   *zap.Logger
 	envStore *envStore
 }
 
@@ -126,13 +129,12 @@ func (es *runnerEnvStorer) addEnvs(envs []string) error {
 	return nil
 }
 
-func (es *runnerEnvStorer) envs() []string {
+func (es *runnerEnvStorer) envs() ([]string, error) {
 	envs, err := es.envStore.Values()
 	if err != nil {
-		es.logger.Error("failed to get envs", zap.Error(err))
-		return nil
+		return nil, err
 	}
-	return envs
+	return envs, nil
 }
 
 func (es *runnerEnvStorer) setEnv(k string, v string) error {
@@ -307,13 +309,12 @@ func (es *owlEnvStorer) setEnv(k string, v string) error {
 	return err
 }
 
-func (es *owlEnvStorer) envs() []string {
+func (es *owlEnvStorer) envs() ([]string, error) {
 	vals, err := es.owlStore.InsecureValues()
 	if err != nil {
-		es.logger.Error("failed to get vals", zap.Error(err))
-		return nil
+		return nil, err
 	}
-	return vals
+	return vals, nil
 }
 
 func NewSessionList() (*SessionList, error) {

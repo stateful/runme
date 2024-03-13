@@ -64,12 +64,16 @@ func newRunnerService(logger *zap.Logger) (*runnerService, error) {
 	}, nil
 }
 
-func toRunnerv1Session(sess *Session) *runnerv1.Session {
+func toRunnerv1Session(sess *Session) (*runnerv1.Session, error) {
+	env, err := sess.Envs()
+	if err != nil {
+		return nil, err
+	}
 	return &runnerv1.Session{
 		Id:       sess.ID,
-		Envs:     sess.Envs(),
+		Envs:     env,
 		Metadata: sess.Metadata,
-	}
+	}, nil
 }
 
 func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateSessionRequest) (*runnerv1.CreateSessionResponse, error) {
@@ -104,8 +108,12 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 
 	r.logger.Debug("created session", zap.String("id", sess.ID))
 
+	runnerSess, err := toRunnerv1Session(sess)
+	if err != nil {
+		return nil, err
+	}
 	return &runnerv1.CreateSessionResponse{
-		Session: toRunnerv1Session(sess),
+		Session: runnerSess,
 	}, nil
 }
 
@@ -118,8 +126,12 @@ func (r *runnerService) GetSession(_ context.Context, req *runnerv1.GetSessionRe
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
 
+	runnerSess, err := toRunnerv1Session(sess)
+	if err != nil {
+		return nil, err
+	}
 	return &runnerv1.GetSessionResponse{
-		Session: toRunnerv1Session(sess),
+		Session: runnerSess,
 	}, nil
 }
 
@@ -133,7 +145,11 @@ func (r *runnerService) ListSessions(_ context.Context, req *runnerv1.ListSessio
 
 	runnerSessions := make([]*runnerv1.Session, 0, len(sessions))
 	for _, s := range sessions {
-		runnerSessions = append(runnerSessions, toRunnerv1Session(s))
+		runnerSess, err := toRunnerv1Session(s)
+		if err != nil {
+			return nil, err
+		}
+		runnerSessions = append(runnerSessions, runnerSess)
 	}
 
 	return &runnerv1.ListSessionsResponse{Sessions: runnerSessions}, nil
@@ -659,7 +675,11 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 	// Add session env as a source.
 	session, found := r.getSessionFromRequest(req)
 	if found {
-		sources = append(sources, commandpkg.ProgramResolverSourceFunc(session.Envs()))
+		env, err := session.Envs()
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, commandpkg.ProgramResolverSourceFunc(env))
 	}
 
 	mode := commandpkg.ProgramResolverModeAuto
@@ -766,7 +786,7 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 		case "LITERAL":
 			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL
 		default:
-			// return errors.Errorf("unknown status: %s", item.Value.Status)
+			// noop
 		}
 		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 			Name:          item.Var.Key,
