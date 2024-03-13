@@ -193,7 +193,11 @@ func resolveSnapshot() graphql.FieldResolveFn {
 				Spec:  s.Spec,
 			}
 			if s.Spec != nil && s.Spec.Error != nil {
-				item.Errors = append(item.Errors, s.Spec.Error)
+				code := s.Spec.Error.Code()
+				item.Errors = append(item.Errors, &SetVarError{
+					Code:    int(code),
+					Message: s.Spec.Error.Message(),
+				})
 			}
 
 			snapshot = append(snapshot, item)
@@ -382,23 +386,9 @@ func init() {
 		Fields: graphql.Fields{
 			"message": &graphql.Field{
 				Type: graphql.String,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					verr, ok := p.Source.(ValidationError)
-					if !ok {
-						return nil, nil
-					}
-					return verr.Message(), nil
-				},
 			},
 			"code": &graphql.Field{
 				Type: graphql.Int,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					verr, ok := p.Source.(ValidationError)
-					if !ok {
-						return nil, nil
-					}
-					return fmt.Sprintf("%d", verr.Code()), nil
-				},
 			},
 		},
 	})

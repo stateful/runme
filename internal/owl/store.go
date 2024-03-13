@@ -75,11 +75,16 @@ type SetVarValue struct {
 	Value *varValue `json:"value,omitempty"`
 }
 
+type SetVarError struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 type SetVarItem struct {
-	Var    *SetVar          `json:"var,omitempty"`
-	Value  *varValue        `json:"value,omitempty"`
-	Spec   *varSpec         `json:"spec,omitempty"`
-	Errors ValidationErrors `json:"errors,omitempty"`
+	Var    *SetVar        `json:"var,omitempty"`
+	Value  *varValue      `json:"value,omitempty"`
+	Spec   *varSpec       `json:"spec,omitempty"`
+	Errors []*SetVarError `json:"errors,omitempty"`
 }
 
 type SetVarItems []*SetVarItem

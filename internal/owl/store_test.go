@@ -370,3 +370,42 @@ func Test_Store_FixtureWithoutSpecs(t *testing.T) {
 		require.EqualValues(t, "LITERAL", snapshot[3].Value.Status)
 	})
 }
+
+func Test_Store_Validation(t *testing.T) {
+	t.Parallel()
+
+	fakeErrs := []byte(`GOPATH=
+INSTRUMENTATION_KEY=Instrumentation key for env # Secret!
+PGPASS=Your database password # Password!
+HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
+	store, err := NewStore(WithSpecFile(".env.example", fakeErrs))
+	require.NoError(t, err)
+	require.NotNil(t, store)
+
+	t.Run("Insecure is false", func(t *testing.T) {
+		snapshot, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.NotNil(t, snapshot)
+
+		snapshot.sortbyKey()
+
+		require.EqualValues(t, "INSTRUMENTATION_KEY", snapshot[2].Var.Key)
+		require.EqualValues(t, "Secret", snapshot[2].Spec.Name)
+		require.EqualValues(t, true, snapshot[2].Spec.Required)
+		require.EqualValues(t, "", snapshot[2].Value.Resolved)
+		require.EqualValues(t, "", snapshot[2].Value.Original)
+		require.EqualValues(t, "UNRESOLVED", snapshot[2].Value.Status)
+		require.Greater(t, len(snapshot[2].Errors), 0)
+		require.EqualValues(t, snapshot[2].Errors[0].Code, 0)
+		require.EqualValues(t, snapshot[2].Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"INSTRUMENTATION_KEY\" is unresolved but defined as required by \"Secret!\" in \"-\""})
+
+		require.EqualValues(t, "PGPASS", snapshot[3].Var.Key)
+		require.EqualValues(t, "Password", snapshot[3].Spec.Name)
+		require.EqualValues(t, true, snapshot[3].Spec.Required)
+		require.EqualValues(t, "", snapshot[3].Value.Resolved)
+		require.EqualValues(t, "", snapshot[3].Value.Original)
+		require.EqualValues(t, "UNRESOLVED", snapshot[3].Value.Status)
+		require.Greater(t, len(snapshot[3].Errors), 0)
+		require.EqualValues(t, snapshot[3].Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but defined as required by \"Password!\" in \"-\""})
+	})
+}
