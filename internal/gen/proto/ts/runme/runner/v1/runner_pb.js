@@ -474,7 +474,8 @@ class MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type extends MessageType {
             { no: 5, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "create_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "update_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "update_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "errors", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => MonitorEnvStoreResponseSnapshot_Error }
         ]);
     }
 }
@@ -482,6 +483,19 @@ class MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type extends MessageType {
  * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
  */
 export const MonitorEnvStoreResponseSnapshot_SnapshotEnv = new MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MonitorEnvStoreResponseSnapshot_Error$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error", [
+            { no: 1, name: "code", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
+ */
+export const MonitorEnvStoreResponseSnapshot_Error = new MonitorEnvStoreResponseSnapshot_Error$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class MonitorEnvStoreResponse$Type extends MessageType {
     constructor() {

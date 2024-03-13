@@ -570,6 +570,23 @@ export interface MonitorEnvStoreResponseSnapshot_SnapshotEnv {
      * @generated from protobuf field: string update_time = 8;
      */
     updateTime: string;
+    /**
+     * @generated from protobuf field: repeated runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error errors = 9;
+     */
+    errors: MonitorEnvStoreResponseSnapshot_Error[];
+}
+/**
+ * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
+ */
+export interface MonitorEnvStoreResponseSnapshot_Error {
+    /**
+     * @generated from protobuf field: uint32 code = 1;
+     */
+    code: number;
+    /**
+     * @generated from protobuf field: string message = 2;
+     */
+    message: string;
 }
 /**
  * @generated from protobuf enum runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
@@ -850,6 +867,13 @@ declare class MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type extends MessageTy
  * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
  */
 export declare const MonitorEnvStoreResponseSnapshot_SnapshotEnv: MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type;
+declare class MonitorEnvStoreResponseSnapshot_Error$Type extends MessageType<MonitorEnvStoreResponseSnapshot_Error> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
+ */
+export declare const MonitorEnvStoreResponseSnapshot_Error: MonitorEnvStoreResponseSnapshot_Error$Type;
 declare class MonitorEnvStoreResponse$Type extends MessageType<MonitorEnvStoreResponse> {
     constructor();
 }

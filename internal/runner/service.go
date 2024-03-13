@@ -788,7 +788,7 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 		default:
 			// noop
 		}
-		envsSnapshot = append(envsSnapshot, &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
+		es := &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 			Name:          item.Var.Key,
 			Spec:          item.Spec.Name,
 			Origin:        item.Var.Origin,
@@ -797,7 +797,18 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 			Status:        status,
 			CreateTime:    item.Var.Created.String(),
 			UpdateTime:    item.Var.Updated.String(),
-		})
+			Errors:        []*runnerv1.MonitorEnvStoreResponseSnapshot_Error{},
+		}
+		for _, verr := range item.Errors {
+			if verr.Code < 0 {
+				return fmt.Errorf("negative error code: %d", verr.Code)
+			}
+			es.Errors = append(es.Errors, &runnerv1.MonitorEnvStoreResponseSnapshot_Error{
+				Code:    uint32(verr.Code),
+				Message: verr.Message,
+			})
+		}
+		envsSnapshot = append(envsSnapshot, es)
 	}
 
 	msg.Data = &runnerv1.MonitorEnvStoreResponse_Snapshot{
