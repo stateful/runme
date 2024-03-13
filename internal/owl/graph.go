@@ -16,9 +16,9 @@ type specType struct {
 }
 
 var (
-	Schema                                    graphql.Schema
-	EnvironmentType, ValidateType, RenderType *graphql.Object
-	SpecTypes                                 map[string]*specType
+	Schema                                                        graphql.Schema
+	EnvironmentType, ValidateType, RenderType, SpecTypeErrorsType *graphql.Object
+	SpecTypes                                                     map[string]*specType
 )
 
 type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
@@ -66,7 +66,23 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 					},
 				},
 				"errors": &graphql.Field{
-					Type: graphql.NewList(graphql.String),
+					Type: graphql.NewList(SpecTypeErrorsType),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						opSet, ok := p.Source.(*OperationSet)
+						if !ok {
+							return nil, errors.New("source is not an OperationSet")
+						}
+
+						var verrs ValidationErrors
+						for _, spec := range opSet.specs {
+							if spec.Spec.Error == nil {
+								continue
+							}
+							verrs = append(verrs, spec.Spec.Error)
+						}
+
+						return verrs, nil
+					},
 				},
 				"done": &graphql.Field{
 					Type: EnvironmentType,
@@ -98,26 +114,34 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 		opSet := p.Source.(*OperationSet)
 		for _, kArg := range keysArg {
 			k := kArg.(string)
-			v, vOk := opSet.values[k]
-			s, sOk := opSet.specs[k]
-			if !vOk && !sOk {
-				// todo(sebastian): should UNSET/delete ever come in here?
+			val, valOk := opSet.values[k]
+			spec, specOk := opSet.specs[k]
+			if !valOk && !specOk {
+				// todo(sebastian): superfluous keys are only possible in hand-written queries
 				continue
 			}
 
 			// skip if last known status was DELETED
-			if vOk && v.Value.Status == "DELETED" {
+			if valOk && val.Value.Status == "DELETED" {
 				continue
 			}
 
-			if vOk && v.Value.Status == "UNRESOLVED" {
-				// todo(sebastian): most obvious validation error?
-				continue
+			// todo(sebastian): poc, move to something more generic
+			if valOk && val.Value.Status == "UNRESOLVED" {
+				if !specOk {
+					// todo(sebastian): without spec, we can't decide if unresolved is valid - should be impossible
+					continue
+				}
+
+				if spec.Spec.Required {
+					spec.Spec.Error = RequiredError{varItem: &SetVarItem{Var: val.Var, Value: val.Value, Spec: spec.Spec}}
+					continue
+				}
 			}
 
-			mutator(v, s, insecure)
-			if sOk {
-				s.Spec.Checked = true
+			mutator(val, spec, insecure)
+			if specOk {
+				spec.Spec.Checked = true
 			}
 		}
 
@@ -162,11 +186,17 @@ func resolveSnapshot() graphql.FieldResolveFn {
 			if !ok {
 				return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
 			}
-			snapshot = append(snapshot, &SetVarItem{
+
+			item := &SetVarItem{
 				Var:   v.Var,
 				Value: v.Value,
 				Spec:  s.Spec,
-			})
+			}
+			if s.Spec != nil && s.Spec.Error != nil {
+				item.Errors = append(item.Errors, s.Spec.Error)
+			}
+
+			snapshot = append(snapshot, item)
 		}
 
 		snapshot.sort()
@@ -347,6 +377,32 @@ func init() {
 		}),
 	)
 
+	SpecTypeErrorsType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "SpecTypeErrorsType",
+		Fields: graphql.Fields{
+			"message": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					verr, ok := p.Source.(ValidationError)
+					if !ok {
+						return nil, nil
+					}
+					return verr.Message(), nil
+				},
+			},
+			"code": &graphql.Field{
+				Type: graphql.Int,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					verr, ok := p.Source.(ValidationError)
+					if !ok {
+						return nil, nil
+					}
+					return fmt.Sprintf("%d", verr.Code()), nil
+				},
+			},
+		},
+	})
+
 	ValidateType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "ValidateType",
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
@@ -444,6 +500,17 @@ func init() {
 							},
 						},
 					}),
+				},
+				"errors": &graphql.Field{
+					Type: graphql.NewList(SpecTypeErrorsType),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						vars, ok := p.Source.(*SetVarItem)
+						if !ok {
+							return nil, errors.New("source is not a *SetVarItem")
+						}
+
+						return vars.Errors, nil
+					},
 				},
 			},
 		},
