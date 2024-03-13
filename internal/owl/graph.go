@@ -73,12 +73,19 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 							return nil, errors.New("source is not an OperationSet")
 						}
 
-						var verrs ValidationErrors
+						// todo(sebastian): move into interface?
+						var verrs []*SetVarError
 						for _, spec := range opSet.specs {
 							if spec.Spec.Error == nil {
 								continue
 							}
-							verrs = append(verrs, spec.Spec.Error)
+
+							code := spec.Spec.Error.Code()
+							verr := &SetVarError{
+								Code:    int(code),
+								Message: spec.Spec.Error.Message(),
+							}
+							verrs = append(verrs, verr)
 						}
 
 						return verrs, nil
