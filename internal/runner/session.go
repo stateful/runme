@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/ulid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -33,7 +37,11 @@ type Session struct {
 	Metadata  map[string]string
 	envStorer envStorer
 
-	logger *zap.Logger
+	logger       *zap.Logger
+	Tracer       trace.Tracer
+	SessionSpan  trace.Span
+	NotebookSpan trace.Span
+	Context      context.Context
 }
 
 func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Session, error) {
@@ -41,6 +49,34 @@ func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Sess
 }
 
 func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, logger *zap.Logger) (*Session, error) {
+	ID := ulid.GenerateID()
+	sessTracer := runmeTp.Tracer("session")
+
+	sessKey := "runme.session.id"
+
+	m0, _ := baggage.NewMember(string(sessKey), ID)
+	b0, _ := baggage.New(m0)
+
+	sidKey := attribute.Key(sessKey)
+
+	ctx := context.Background()
+	ctx = baggage.ContextWithBaggage(ctx, b0)
+	ctx, sessSpan := sessTracer.Start(ctx, "session")
+	sessSpan.SetAttributes(sidKey.String(ID))
+
+	nbTracer := notebookTp.Tracer("session")
+
+	fileKey := "runme.notebook.filename"
+	fileName := "shebang.md"
+	m1, _ := baggage.NewMember(string(fileKey), fileName)
+	b1, _ := baggage.New(m1)
+
+	fnKey := attribute.Key(fileKey)
+	ctx = baggage.ContextWithBaggage(ctx, b1)
+	ctx, nbSpan := nbTracer.Start(ctx, fileName)
+
+	nbSpan.SetAttributes(sidKey.String(ID), fnKey.String(fileName))
+
 	sessionEnvs := []string(envs)
 
 	var storer envStorer
@@ -60,9 +96,19 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 		ID:        ulid.GenerateID(),
 		envStorer: storer,
 
+		Tracer:       sessTracer,
+		SessionSpan:  sessSpan,
+		NotebookSpan: nbSpan,
+		Context:      ctx,
+
 		logger: logger,
 	}
 	return s, nil
+}
+
+func (s *Session) EndSpan() {
+	s.NotebookSpan.End(trace.WithTimestamp(time.Now()))
+	s.SessionSpan.End(trace.WithTimestamp(time.Now()))
 }
 
 func (s *Session) UpdateStore(envs []string, newOrUpdated []string, deleted []string) error {
@@ -383,6 +429,10 @@ func (sl *SessionList) DeleteSession(id string) (present bool) {
 	sess, found := sl.GetSession(id)
 	if found {
 		sess.Complete()
+	}
+
+	if found {
+		sess.EndSpan()
 	}
 
 	return sl.store.Remove(id)

@@ -14,6 +14,8 @@ import (
 	"github.com/creack/pty"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -201,7 +203,8 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 }
 
 func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error {
-	logger := r.logger.With(zap.String("_id", ulid.GenerateID()))
+	runID := ulid.GenerateID()
+	logger := r.logger.With(zap.String("_id", runID))
 
 	logger.Info("running Execute in runnerService")
 
@@ -253,6 +256,14 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 			return err
 		}
 	}
+
+	var runSpan trace.Span
+	// _, span = sess.Tracer.Start(sess.Context, "Execute")
+	_, runSpan = cellTp.Tracer("cell").Start(sess.Context, "run")
+	defer runSpan.End()
+
+	ridKey := attribute.Key("runme.notebook.cell.run.id")
+	runSpan.SetAttributes(ridKey.String(runID))
 
 	stdin, stdinWriter := io.Pipe()
 	stdout := rbuffer.NewRingBuffer(ringBufferSize)
@@ -534,6 +545,11 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		if werr == nil {
 			werr = err
 		}
+	}
+
+	exitCodeKey := attribute.Key("ExitCode")
+	if finalExitCode != nil {
+		runSpan.SetAttributes(exitCodeKey.Int(int(finalExitCode.GetValue())))
 	}
 
 	return werr
