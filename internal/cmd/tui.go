@@ -23,7 +23,6 @@ func tuiCmd() *cobra.Command {
 		visibleEntries int
 		runOnce        bool
 		serverAddr     string
-		filter         string
 		getRunnerOpts  func() ([]client.RunnerOption, error)
 	)
 
@@ -218,7 +217,6 @@ func tuiCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
 	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
-	cmd.Flags().StringVar(&filter, "filter", "", "Regular expression to filter results, by filename and task name")
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
