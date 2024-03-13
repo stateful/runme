@@ -377,7 +377,7 @@ func Test_Store_Validation(t *testing.T) {
 	fakeErrs := []byte(`GOPATH=
 INSTRUMENTATION_KEY=Instrumentation key for env # Secret!
 PGPASS=Your database password # Password!
-HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
+HOMEBREW_REPOSITORY= # Plain`)
 	store, err := NewStore(WithSpecFile(".env.example", fakeErrs))
 	require.NoError(t, err)
 	require.NotNil(t, store)
@@ -389,23 +389,43 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 
 		snapshot.sortbyKey()
 
-		require.EqualValues(t, "INSTRUMENTATION_KEY", snapshot[2].Var.Key)
-		require.EqualValues(t, "Secret", snapshot[2].Spec.Name)
-		require.EqualValues(t, true, snapshot[2].Spec.Required)
-		require.EqualValues(t, "", snapshot[2].Value.Resolved)
-		require.EqualValues(t, "", snapshot[2].Value.Original)
-		require.EqualValues(t, "UNRESOLVED", snapshot[2].Value.Status)
-		require.Greater(t, len(snapshot[2].Errors), 0)
-		require.EqualValues(t, snapshot[2].Errors[0].Code, 0)
-		require.EqualValues(t, snapshot[2].Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"INSTRUMENTATION_KEY\" is unresolved but defined as required by \"Secret!\" in \"-\""})
+		snapshot0 := snapshot[0]
+		require.EqualValues(t, "GOPATH", snapshot0.Var.Key)
+		require.EqualValues(t, "Opaque", snapshot0.Spec.Name)
+		require.EqualValues(t, false, snapshot0.Spec.Required)
+		require.EqualValues(t, "", snapshot0.Value.Resolved)
+		require.EqualValues(t, "", snapshot0.Value.Original)
+		require.EqualValues(t, "HIDDEN", snapshot0.Value.Status)
+		require.LessOrEqual(t, len(snapshot0.Errors), 0)
 
-		require.EqualValues(t, "PGPASS", snapshot[3].Var.Key)
-		require.EqualValues(t, "Password", snapshot[3].Spec.Name)
-		require.EqualValues(t, true, snapshot[3].Spec.Required)
-		require.EqualValues(t, "", snapshot[3].Value.Resolved)
-		require.EqualValues(t, "", snapshot[3].Value.Original)
-		require.EqualValues(t, "UNRESOLVED", snapshot[3].Value.Status)
-		require.Greater(t, len(snapshot[3].Errors), 0)
-		require.EqualValues(t, snapshot[3].Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but defined as required by \"Password!\" in \"-\""})
+		snapshot1 := snapshot[1]
+		require.EqualValues(t, "HOMEBREW_REPOSITORY", snapshot1.Var.Key)
+		require.EqualValues(t, "Plain", snapshot1.Spec.Name)
+		require.EqualValues(t, false, snapshot1.Spec.Required)
+		require.EqualValues(t, "", snapshot1.Value.Resolved)
+		require.EqualValues(t, "", snapshot1.Value.Original)
+		require.EqualValues(t, "LITERAL", snapshot1.Value.Status)
+		require.LessOrEqual(t, len(snapshot1.Errors), 0)
+
+		snapshot2 := snapshot[2]
+		require.EqualValues(t, "INSTRUMENTATION_KEY", snapshot2.Var.Key)
+		require.EqualValues(t, "Secret", snapshot2.Spec.Name)
+		require.EqualValues(t, true, snapshot2.Spec.Required)
+		require.EqualValues(t, "", snapshot2.Value.Resolved)
+		require.EqualValues(t, "", snapshot2.Value.Original)
+		require.EqualValues(t, "UNRESOLVED", snapshot2.Value.Status)
+		require.Greater(t, len(snapshot2.Errors), 0)
+		require.EqualValues(t, snapshot2.Errors[0].Code, 0)
+		require.EqualValues(t, snapshot2.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"INSTRUMENTATION_KEY\" is unresolved but defined as required by \"Secret!\" in \"-\""})
+
+		snapshot3 := snapshot[3]
+		require.EqualValues(t, "PGPASS", snapshot3.Var.Key)
+		require.EqualValues(t, "Password", snapshot3.Spec.Name)
+		require.EqualValues(t, true, snapshot3.Spec.Required)
+		require.EqualValues(t, "", snapshot3.Value.Resolved)
+		require.EqualValues(t, "", snapshot3.Value.Original)
+		require.EqualValues(t, "UNRESOLVED", snapshot3.Value.Status)
+		require.Greater(t, len(snapshot3.Errors), 0)
+		require.EqualValues(t, snapshot3.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but defined as required by \"Password!\" in \"-\""})
 	})
 }
