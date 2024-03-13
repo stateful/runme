@@ -1,4 +1,4 @@
-[![Runme](./.github/images/github-header.png)](https://runme.dev)
+[run![Runme](./.github/images/github-header.png)](https://runme.dev)
 
 # Runme runs Markdown [![ci](https://github.com/stateful/runme/actions/workflows/ci.yml/badge.svg)](https://github.com/stateful/runme/actions/workflows/ci.yml) [![Join us on Discord](https://img.shields.io/discord/1102639988832735374?color=5b39df&label=Join%20us%20on%20Discord)](https://discord.gg/runme)
 
