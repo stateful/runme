@@ -5,14 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/graphql-go/graphql"
-	"github.com/graphql-go/graphql/language/ast"
 	"github.com/stateful/godotenv"
 	"go.uber.org/zap"
 )
@@ -52,10 +50,11 @@ type varValue struct {
 }
 
 type varSpec struct {
-	Name        string `json:"name"`
-	Required    bool   `json:"required"`
-	Description string `json:"description"`
-	Checked     bool   `json:"checked"`
+	Name        string          `json:"name"`
+	Required    bool            `json:"required"`
+	Description string          `json:"description"`
+	Error       ValidationError `json:"-"`
+	Checked     bool            `json:"checked"`
 }
 
 type SetVar struct {
@@ -76,10 +75,16 @@ type SetVarValue struct {
 	Value *varValue `json:"value,omitempty"`
 }
 
+type SetVarError struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 type SetVarItem struct {
-	Var   *SetVar   `json:"var,omitempty"`
-	Value *varValue `json:"value,omitempty"`
-	Spec  *varSpec  `json:"spec,omitempty"`
+	Var    *SetVar        `json:"var,omitempty"`
+	Value  *varValue      `json:"value,omitempty"`
+	Spec   *varSpec       `json:"spec,omitempty"`
+	Errors []*SetVarError `json:"errors,omitempty"`
 }
 
 type SetVarItems []*SetVarItem
@@ -344,50 +349,6 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 	}
 
 	s.opSets = append(s.opSets, deleteOpSet)
-
-	return nil
-}
-
-func (s *Store) validateQuery(query, vars io.StringWriter) error {
-	varDefs := []*ast.VariableDefinition{
-		ast.NewVariableDefinition(&ast.VariableDefinition{
-			Variable: ast.NewVariable(&ast.Variable{
-				Name: ast.NewName(&ast.Name{
-					Value: "insecure",
-				}),
-			}),
-			Type: ast.NewNamed(&ast.Named{
-				Name: ast.NewName(&ast.Name{
-					Value: "Boolean",
-				}),
-			}),
-			DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
-				Value: false,
-			}),
-		}),
-	}
-
-	q, err := NewQuery("Validate", varDefs,
-		[]QueryNodeReducer{
-			reconcileAsymmetry(s),
-			reduceSetOperations(s, vars),
-			reduceSepcs(s),
-			reduceSnapshot(),
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	text, err := q.Print()
-	if err != nil {
-		return err
-	}
-
-	_, err = query.WriteString(text)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

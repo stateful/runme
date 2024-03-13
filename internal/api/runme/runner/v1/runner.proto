@@ -320,6 +320,14 @@ message MonitorEnvStoreResponseSnapshot {
     string create_time = 7;
 
     string update_time = 8;
+
+    repeated Error errors = 9;
+  }
+
+  message Error {
+    uint32 code = 1;
+
+    string message = 2;
   }
 
   enum Status {

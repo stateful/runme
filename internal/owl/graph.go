@@ -16,9 +16,9 @@ type specType struct {
 }
 
 var (
-	Schema                        graphql.Schema
-	EnvironmentType, ValidateType *graphql.Object
-	SpecTypes                     map[string]*specType
+	Schema                                                        graphql.Schema
+	EnvironmentType, ValidateType, RenderType, SpecTypeErrorsType *graphql.Object
+	SpecTypes                                                     map[string]*specType
 )
 
 type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
@@ -66,7 +66,30 @@ func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResol
 					},
 				},
 				"errors": &graphql.Field{
-					Type: graphql.NewList(graphql.String),
+					Type: graphql.NewList(SpecTypeErrorsType),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						opSet, ok := p.Source.(*OperationSet)
+						if !ok {
+							return nil, errors.New("source is not an OperationSet")
+						}
+
+						// todo(sebastian): move into interface?
+						var verrs []*SetVarError
+						for _, spec := range opSet.specs {
+							if spec.Spec.Error == nil {
+								continue
+							}
+
+							code := spec.Spec.Error.Code()
+							verr := &SetVarError{
+								Code:    int(code),
+								Message: spec.Spec.Error.Message(),
+							}
+							verrs = append(verrs, verr)
+						}
+
+						return verrs, nil
+					},
 				},
 				"done": &graphql.Field{
 					Type: EnvironmentType,
@@ -98,26 +121,34 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 		opSet := p.Source.(*OperationSet)
 		for _, kArg := range keysArg {
 			k := kArg.(string)
-			v, vOk := opSet.values[k]
-			s, sOk := opSet.specs[k]
-			if !vOk && !sOk {
-				// todo(sebastian): should UNSET/delete ever come in here?
+			val, valOk := opSet.values[k]
+			spec, specOk := opSet.specs[k]
+			if !valOk && !specOk {
+				// todo(sebastian): superfluous keys are only possible in hand-written queries
 				continue
 			}
 
 			// skip if last known status was DELETED
-			if vOk && v.Value.Status == "DELETED" {
+			if valOk && val.Value.Status == "DELETED" {
 				continue
 			}
 
-			if vOk && v.Value.Status == "UNRESOLVED" {
-				// todo(sebastian): most obvious validation error?
-				continue
+			// todo(sebastian): poc, move to something more generic
+			if valOk && val.Value.Status == "UNRESOLVED" {
+				if !specOk {
+					// todo(sebastian): without spec, we can't decide if unresolved is valid - should be impossible
+					continue
+				}
+
+				if spec.Spec.Required {
+					spec.Spec.Error = RequiredError{varItem: &SetVarItem{Var: val.Var, Value: val.Value, Spec: spec.Spec}}
+					continue
+				}
 			}
 
-			mutator(v, s, insecure)
-			if sOk {
-				s.Spec.Checked = true
+			mutator(val, spec, insecure)
+			if specOk {
+				spec.Spec.Checked = true
 			}
 		}
 
@@ -162,11 +193,21 @@ func resolveSnapshot() graphql.FieldResolveFn {
 			if !ok {
 				return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
 			}
-			snapshot = append(snapshot, &SetVarItem{
+
+			item := &SetVarItem{
 				Var:   v.Var,
 				Value: v.Value,
 				Spec:  s.Spec,
-			})
+			}
+			if s.Spec != nil && s.Spec.Error != nil {
+				code := s.Spec.Error.Code()
+				item.Errors = append(item.Errors, &SetVarError{
+					Code:    int(code),
+					Message: s.Spec.Error.Message(),
+				})
+			}
+
+			snapshot = append(snapshot, item)
 		}
 
 		snapshot.sort()
@@ -347,6 +388,18 @@ func init() {
 		}),
 	)
 
+	SpecTypeErrorsType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "SpecTypeErrorsType",
+		Fields: graphql.Fields{
+			"message": &graphql.Field{
+				Type: graphql.String,
+			},
+			"code": &graphql.Field{
+				Type: graphql.Int,
+			},
+		},
+	})
+
 	ValidateType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "ValidateType",
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
@@ -445,9 +498,38 @@ func init() {
 						},
 					}),
 				},
+				"errors": &graphql.Field{
+					Type: graphql.NewList(SpecTypeErrorsType),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						vars, ok := p.Source.(*SetVarItem)
+						if !ok {
+							return nil, errors.New("source is not a *SetVarItem")
+						}
+
+						return vars.Errors, nil
+					},
+				},
 			},
 		},
 	)
+
+	RenderType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "RenderType",
+		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
+			return graphql.Fields{
+				"snapshot": &graphql.Field{
+					Type: graphql.NewNonNull(graphql.NewList(VariableType)),
+					Args: graphql.FieldConfigArgument{
+						"insecure": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
+					},
+					Resolve: resolveSnapshot(),
+				},
+			}
+		}),
+	})
 
 	VariableInputType := graphql.NewInputObject(graphql.InputObjectConfig{
 		Name: "VariableInput",
@@ -608,30 +690,11 @@ func init() {
 						return p.Source, nil
 					},
 				},
-				// "location": &graphql.Field{
-				// 	Type: graphql.NewNonNull(graphql.String),
-				// 	Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				// 		// todo(sebastian): bring this back?
-				// 		switch p.Source.(type) {
-				// 		case *OperationSet:
-				// 			opSet := p.Source.(*OperationSet)
-				// 			return opSet.operation.location, nil
-				// 		default:
-				// 			// noop
-				// 		}
-
-				// 		return nil, nil
-				// 	},
-				// },
-				"snapshot": &graphql.Field{
-					Type: graphql.NewNonNull(graphql.NewList(VariableType)),
-					Args: graphql.FieldConfigArgument{
-						"insecure": &graphql.ArgumentConfig{
-							Type:         graphql.Boolean,
-							DefaultValue: false,
-						},
+				"render": &graphql.Field{
+					Type: RenderType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
 					},
-					Resolve: resolveSnapshot(),
 				},
 			}
 		}),

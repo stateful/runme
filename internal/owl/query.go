@@ -74,6 +74,50 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	return nil
 }
 
+func (s *Store) validateQuery(query, vars io.StringWriter) error {
+	varDefs := []*ast.VariableDefinition{
+		ast.NewVariableDefinition(&ast.VariableDefinition{
+			Variable: ast.NewVariable(&ast.Variable{
+				Name: ast.NewName(&ast.Name{
+					Value: "insecure",
+				}),
+			}),
+			Type: ast.NewNamed(&ast.Named{
+				Name: ast.NewName(&ast.Name{
+					Value: "Boolean",
+				}),
+			}),
+			DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
+				Value: false,
+			}),
+		}),
+	}
+
+	q, err := NewQuery("Validate", varDefs,
+		[]QueryNodeReducer{
+			reconcileAsymmetry(s),
+			reduceSetOperations(s, vars),
+			reduceSepcs(s),
+			reduceSnapshot(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	text, err := q.Print()
+	if err != nil {
+		return err
+	}
+
+	_, err = query.WriteString(text)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		opSetData := make(map[string]SetVarItems, len(store.opSets))
@@ -277,29 +321,58 @@ func reduceSnapshot() QueryNodeReducer {
 						},
 					}),
 				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "errors",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "code",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "message",
+								}),
+							}),
+						},
+					}),
+				}),
 			},
 		})
 
 		selSet.Selections = append(selSet.Selections,
 			ast.NewField(&ast.Field{
 				Name: ast.NewName(&ast.Name{
-					Value: "snapshot",
+					Value: "render",
 				}),
-				Arguments: []*ast.Argument{
-					ast.NewArgument(&ast.Argument{
-						Name: ast.NewName(&ast.Name{
-							Value: "insecure",
-						}),
-						Value: ast.NewVariable(&ast.Variable{
+				SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+					Selections: []ast.Selection{
+						ast.NewField(&ast.Field{
 							Name: ast.NewName(&ast.Name{
-								Value: "insecure",
+								Value: "snapshot",
 							}),
+							Arguments: []*ast.Argument{
+								ast.NewArgument(&ast.Argument{
+									Name: ast.NewName(&ast.Name{
+										Value: "insecure",
+									}),
+									Value: ast.NewVariable(&ast.Variable{
+										Name: ast.NewName(&ast.Name{
+											Value: "insecure",
+										}),
+									}),
+								}),
+							},
+							SelectionSet: nextSelSet,
 						}),
-					}),
-				},
-				SelectionSet: nextSelSet,
+					},
+				}),
 			}),
 		)
+
 		return nextSelSet, nil
 	}
 }
@@ -419,11 +492,11 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 							Value: "mask",
 						}),
 					}),
-					ast.NewField(&ast.Field{
-						Name: ast.NewName(&ast.Name{
-							Value: "errors",
-						}),
-					}),
+					// ast.NewField(&ast.Field{
+					// 	Name: ast.NewName(&ast.Name{
+					// 		Value: "errors",
+					// 	}),
+					// }),
 				},
 			})
 
