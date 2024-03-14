@@ -104,5 +104,5 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2alpha1.ResolvePro
 		mode = command.ProgramResolverModeSkipAll
 	}
 
-	return command.NewProgramResolver(mode, sources...), err
+	return command.NewProgramResolver(mode, []string{}, sources...), err
 }

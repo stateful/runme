@@ -15,7 +15,7 @@ type ValidationError interface {
 
 type ValidationErrors []ValidationError
 
-type ValidateErrorType int
+type ValidateErrorType uint8
 
 const (
 	ValidateErrorVarRequired ValidateErrorType = iota

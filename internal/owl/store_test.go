@@ -4,6 +4,7 @@ package owl
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"testing"
 
@@ -76,16 +77,16 @@ HOMEBREW_REPOSITORY=/opt/homebrew # Plain`)
 func Test_Store(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Valildate query", func(t *testing.T) {
-		store, err := NewStore(withSpecsFile(".env", fake, true))
+	t.Run("Sensitive query", func(t *testing.T) {
+		store, err := NewStore(withSpecsFile(".env", fake, false))
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
 		var query, vars bytes.Buffer
-		err = store.validateQuery(&query, &vars)
+		err = store.sensitiveQuery(&query, &vars)
 		require.NoError(t, err)
 
-		// fmt.Println(query.String())
+		fmt.Println(query.String())
 	})
 
 	t.Run("Validate with process envs", func(t *testing.T) {
@@ -428,4 +429,16 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.Greater(t, len(snapshot3.Errors), 0)
 		require.EqualValues(t, snapshot3.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but defined as required by \"Password!\" in \"-\""})
 	})
+}
+
+func Test_Store_SensitiveKeys(t *testing.T) {
+	t.Parallel()
+
+	store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+	require.NoError(t, err)
+	require.NotNil(t, store)
+
+	keys, err := store.SensitiveKeys()
+	require.NoError(t, err)
+	require.EqualValues(t, keys, []string{"INSTRUMENTATION_KEY", "PGPASS"})
 }

@@ -166,7 +166,7 @@ func TestProgramResolverResolve(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("ProgramResolverModeAuto_"+tc.name, func(t *testing.T) {
-			r := NewProgramResolver(ProgramResolverModeAuto)
+			r := NewProgramResolver(ProgramResolverModeAuto, []string{})
 			buf := bytes.NewBuffer(nil)
 			got, err := r.Resolve(strings.NewReader(tc.program), buf)
 			require.NoError(t, err)
@@ -175,7 +175,7 @@ func TestProgramResolverResolve(t *testing.T) {
 		})
 
 		t.Run("ProgramResolverModeSkip_"+tc.name, func(t *testing.T) {
-			r := NewProgramResolver(ProgramResolverModeSkipAll)
+			r := NewProgramResolver(ProgramResolverModeSkipAll, []string{})
 			buf := bytes.NewBuffer(nil)
 			got, err := r.Resolve(strings.NewReader(tc.program), buf)
 			require.NoError(t, err)
@@ -194,7 +194,11 @@ func TestProgramResolverResolve(t *testing.T) {
 }
 
 func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
-	r := NewProgramResolver(ProgramResolverModeAuto, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
+	r := NewProgramResolver(
+		ProgramResolverModeAuto,
+		[]string{},
+		ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
+	)
 	buf := bytes.NewBuffer(nil)
 	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), buf)
 	require.NoError(t, err)
@@ -218,7 +222,11 @@ func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
 
 func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 	t.Run("Prompt with message", func(t *testing.T) {
-		r := NewProgramResolver(ProgramResolverModePromptAll, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
+		r := NewProgramResolver(
+			ProgramResolverModePromptAll,
+			[]string{},
+			ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
+		)
 		buf := bytes.NewBuffer(nil)
 		result, err := r.Resolve(strings.NewReader(`export MY_ENV=message value`), buf)
 		require.NoError(t, err)
@@ -241,7 +249,11 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 	})
 
 	t.Run("Prompt with placeholder", func(t *testing.T) {
-		r := NewProgramResolver(ProgramResolverModePromptAll, ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}))
+		r := NewProgramResolver(
+			ProgramResolverModePromptAll,
+			[]string{},
+			ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
+		)
 		buf := bytes.NewBuffer(nil)
 		result, err := r.Resolve(strings.NewReader(`export MY_ENV="placeholder value"`), buf)
 		require.NoError(t, err)
@@ -261,5 +273,45 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 			result,
 		)
 		require.EqualValues(t, "#\n# MY_ENV set in smart env store\n# \"export MY_ENV=\\\"placeholder value\\\"\"\n\n", buf.String())
+	})
+}
+
+func TestProgramResolverResolve_SensitiveEnvKeys(t *testing.T) {
+	t.Run("Prompt with message", func(t *testing.T) {
+		r := NewProgramResolver(
+			ProgramResolverModePromptAll,
+			[]string{"MY_PASSWORD", "MY_SECRET"},
+		)
+		buf := bytes.NewBuffer(nil)
+		result, err := r.Resolve(strings.NewReader("export MY_PASSWORD=super-secret\nexport MY_SECRET=also-secret\nexport MY_PLAIN=text\n"), buf)
+		require.NoError(t, err)
+		require.EqualValues(
+			t,
+			&ProgramResolverResult{
+				ModifiedProgram: true,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status:        ProgramResolverStatusUnresolvedWithSecret,
+						Name:          "MY_PASSWORD",
+						OriginalValue: "super-secret",
+						Value:         "",
+					},
+					{
+						Status:        ProgramResolverStatusUnresolvedWithSecret,
+						Name:          "MY_SECRET",
+						OriginalValue: "also-secret",
+						Value:         "",
+					},
+					{
+						Status:        ProgramResolverStatusUnresolvedWithMessage,
+						Name:          "MY_PLAIN",
+						OriginalValue: "text",
+						Value:         "",
+					},
+				},
+			},
+			result,
+		)
+		require.EqualValues(t, "#\n# MY_PASSWORD set in smart env store\n# \"export MY_PASSWORD=super-secret\"\n#\n# MY_SECRET set in smart env store\n# \"export MY_SECRET=also-secret\"\n#\n# MY_PLAIN set in smart env store\n# \"export MY_PLAIN=text\"\n\n", buf.String())
 	})
 }

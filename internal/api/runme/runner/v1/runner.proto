@@ -285,8 +285,11 @@ message ResolveProgramResponse {
     // unresolved with placeholder means that the variable is unresolved
     // but it contains a placeholder. E.g. FOO="this is placeholder"
     STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
+    // unresolved with secret means that the variable is unresolved
+    // and it requires treatment as a secret.
+    STATUS_UNRESOLVED_WITH_SECRET = 3;
     // resolved means that the variable is resolved.
-    STATUS_RESOLVED = 3;
+    STATUS_RESOLVED = 4;
   }
 }
 
