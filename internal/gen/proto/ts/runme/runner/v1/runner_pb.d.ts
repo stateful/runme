@@ -510,18 +510,18 @@ export declare enum ResolveProgramResponse_Status {
      */
     UNRESOLVED_WITH_PLACEHOLDER = 2,
     /**
+     * resolved means that the variable is resolved.
+     *
+     * @generated from protobuf enum value: STATUS_RESOLVED = 3;
+     */
+    RESOLVED = 3,
+    /**
      * unresolved with secret means that the variable is unresolved
      * and it requires treatment as a secret.
      *
-     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_SECRET = 3;
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_SECRET = 4;
      */
-    UNRESOLVED_WITH_SECRET = 3,
-    /**
-     * resolved means that the variable is resolved.
-     *
-     * @generated from protobuf enum value: STATUS_RESOLVED = 4;
-     */
-    RESOLVED = 4
+    UNRESOLVED_WITH_SECRET = 4
 }
 /**
  * @generated from protobuf message runme.runner.v1.MonitorEnvStoreRequest

@@ -7,12 +7,11 @@
 package runnerv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -332,11 +331,11 @@ const (
 	// unresolved with placeholder means that the variable is unresolved
 	// but it contains a placeholder. E.g. FOO="this is placeholder"
 	ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER ResolveProgramResponse_Status = 2
+	// resolved means that the variable is resolved.
+	ResolveProgramResponse_STATUS_RESOLVED ResolveProgramResponse_Status = 3
 	// unresolved with secret means that the variable is unresolved
 	// and it requires treatment as a secret.
-	ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET ResolveProgramResponse_Status = 3
-	// resolved means that the variable is resolved.
-	ResolveProgramResponse_STATUS_RESOLVED ResolveProgramResponse_Status = 4
+	ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET ResolveProgramResponse_Status = 4
 )
 
 // Enum value maps for ResolveProgramResponse_Status.
@@ -345,15 +344,15 @@ var (
 		0: "STATUS_UNSPECIFIED",
 		1: "STATUS_UNRESOLVED_WITH_MESSAGE",
 		2: "STATUS_UNRESOLVED_WITH_PLACEHOLDER",
-		3: "STATUS_UNRESOLVED_WITH_SECRET",
-		4: "STATUS_RESOLVED",
+		3: "STATUS_RESOLVED",
+		4: "STATUS_UNRESOLVED_WITH_SECRET",
 	}
 	ResolveProgramResponse_Status_value = map[string]int32{
 		"STATUS_UNSPECIFIED":                 0,
 		"STATUS_UNRESOLVED_WITH_MESSAGE":     1,
 		"STATUS_UNRESOLVED_WITH_PLACEHOLDER": 2,
-		"STATUS_UNRESOLVED_WITH_SECRET":      3,
-		"STATUS_RESOLVED":                    4,
+		"STATUS_RESOLVED":                    3,
+		"STATUS_UNRESOLVED_WITH_SECRET":      4,
 	}
 )
 
@@ -2222,10 +2221,10 @@ var file_runme_runner_v1_runner_proto_rawDesc = []byte{
 	0x44, 0x5f, 0x57, 0x49, 0x54, 0x48, 0x5f, 0x4d, 0x45, 0x53, 0x53, 0x41, 0x47, 0x45, 0x10, 0x01,
 	0x12, 0x26, 0x0a, 0x22, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x52, 0x45, 0x53,
 	0x4f, 0x4c, 0x56, 0x45, 0x44, 0x5f, 0x57, 0x49, 0x54, 0x48, 0x5f, 0x50, 0x4c, 0x41, 0x43, 0x45,
-	0x48, 0x4f, 0x4c, 0x44, 0x45, 0x52, 0x10, 0x02, 0x12, 0x21, 0x0a, 0x1d, 0x53, 0x54, 0x41, 0x54,
-	0x55, 0x53, 0x5f, 0x55, 0x4e, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x56, 0x45, 0x44, 0x5f, 0x57, 0x49,
-	0x54, 0x48, 0x5f, 0x53, 0x45, 0x43, 0x52, 0x45, 0x54, 0x10, 0x03, 0x12, 0x13, 0x0a, 0x0f, 0x53,
-	0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x56, 0x45, 0x44, 0x10, 0x04,
+	0x48, 0x4f, 0x4c, 0x44, 0x45, 0x52, 0x10, 0x02, 0x12, 0x13, 0x0a, 0x0f, 0x53, 0x54, 0x41, 0x54,
+	0x55, 0x53, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x56, 0x45, 0x44, 0x10, 0x03, 0x12, 0x21, 0x0a,
+	0x1d, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x56,
+	0x45, 0x44, 0x5f, 0x57, 0x49, 0x54, 0x48, 0x5f, 0x53, 0x45, 0x43, 0x52, 0x45, 0x54, 0x10, 0x04,
 	0x22, 0x4c, 0x0a, 0x16, 0x4d, 0x6f, 0x6e, 0x69, 0x74, 0x6f, 0x72, 0x45, 0x6e, 0x76, 0x53, 0x74,
 	0x6f, 0x72, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x32, 0x0a, 0x07, 0x73, 0x65,
 	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x72, 0x75,
@@ -2375,46 +2374,44 @@ func file_runme_runner_v1_runner_proto_rawDescGZIP() []byte {
 	return file_runme_runner_v1_runner_proto_rawDescData
 }
 
-var (
-	file_runme_runner_v1_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-	file_runme_runner_v1_runner_proto_msgTypes  = make([]protoimpl.MessageInfo, 25)
-	file_runme_runner_v1_runner_proto_goTypes   = []interface{}{
-		(SessionEnvStoreType)(0),                            // 0: runme.runner.v1.SessionEnvStoreType
-		(ExecuteStop)(0),                                    // 1: runme.runner.v1.ExecuteStop
-		(CommandMode)(0),                                    // 2: runme.runner.v1.CommandMode
-		(SessionStrategy)(0),                                // 3: runme.runner.v1.SessionStrategy
-		(MonitorEnvStoreType)(0),                            // 4: runme.runner.v1.MonitorEnvStoreType
-		(ResolveProgramRequest_Mode)(0),                     // 5: runme.runner.v1.ResolveProgramRequest.Mode
-		(ResolveProgramResponse_Status)(0),                  // 6: runme.runner.v1.ResolveProgramResponse.Status
-		(MonitorEnvStoreResponseSnapshot_Status)(0),         // 7: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
-		(*Session)(nil),                                     // 8: runme.runner.v1.Session
-		(*CreateSessionRequest)(nil),                        // 9: runme.runner.v1.CreateSessionRequest
-		(*CreateSessionResponse)(nil),                       // 10: runme.runner.v1.CreateSessionResponse
-		(*GetSessionRequest)(nil),                           // 11: runme.runner.v1.GetSessionRequest
-		(*GetSessionResponse)(nil),                          // 12: runme.runner.v1.GetSessionResponse
-		(*ListSessionsRequest)(nil),                         // 13: runme.runner.v1.ListSessionsRequest
-		(*ListSessionsResponse)(nil),                        // 14: runme.runner.v1.ListSessionsResponse
-		(*DeleteSessionRequest)(nil),                        // 15: runme.runner.v1.DeleteSessionRequest
-		(*DeleteSessionResponse)(nil),                       // 16: runme.runner.v1.DeleteSessionResponse
-		(*Project)(nil),                                     // 17: runme.runner.v1.Project
-		(*Winsize)(nil),                                     // 18: runme.runner.v1.Winsize
-		(*ExecuteRequest)(nil),                              // 19: runme.runner.v1.ExecuteRequest
-		(*ProcessPID)(nil),                                  // 20: runme.runner.v1.ProcessPID
-		(*ExecuteResponse)(nil),                             // 21: runme.runner.v1.ExecuteResponse
-		(*ResolveProgramCommandList)(nil),                   // 22: runme.runner.v1.ResolveProgramCommandList
-		(*ResolveProgramRequest)(nil),                       // 23: runme.runner.v1.ResolveProgramRequest
-		(*ResolveProgramResponse)(nil),                      // 24: runme.runner.v1.ResolveProgramResponse
-		(*MonitorEnvStoreRequest)(nil),                      // 25: runme.runner.v1.MonitorEnvStoreRequest
-		(*MonitorEnvStoreResponseSnapshot)(nil),             // 26: runme.runner.v1.MonitorEnvStoreResponseSnapshot
-		(*MonitorEnvStoreResponse)(nil),                     // 27: runme.runner.v1.MonitorEnvStoreResponse
-		nil,                                                 // 28: runme.runner.v1.Session.MetadataEntry
-		nil,                                                 // 29: runme.runner.v1.CreateSessionRequest.MetadataEntry
-		(*ResolveProgramResponse_VarResult)(nil),            // 30: runme.runner.v1.ResolveProgramResponse.VarResult
-		(*MonitorEnvStoreResponseSnapshot_SnapshotEnv)(nil), // 31: runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
-		(*MonitorEnvStoreResponseSnapshot_Error)(nil),       // 32: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
-		(*wrapperspb.UInt32Value)(nil),                      // 33: google.protobuf.UInt32Value
-	}
-)
+var file_runme_runner_v1_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
+var file_runme_runner_v1_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_runme_runner_v1_runner_proto_goTypes = []interface{}{
+	(SessionEnvStoreType)(0),                            // 0: runme.runner.v1.SessionEnvStoreType
+	(ExecuteStop)(0),                                    // 1: runme.runner.v1.ExecuteStop
+	(CommandMode)(0),                                    // 2: runme.runner.v1.CommandMode
+	(SessionStrategy)(0),                                // 3: runme.runner.v1.SessionStrategy
+	(MonitorEnvStoreType)(0),                            // 4: runme.runner.v1.MonitorEnvStoreType
+	(ResolveProgramRequest_Mode)(0),                     // 5: runme.runner.v1.ResolveProgramRequest.Mode
+	(ResolveProgramResponse_Status)(0),                  // 6: runme.runner.v1.ResolveProgramResponse.Status
+	(MonitorEnvStoreResponseSnapshot_Status)(0),         // 7: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
+	(*Session)(nil),                                     // 8: runme.runner.v1.Session
+	(*CreateSessionRequest)(nil),                        // 9: runme.runner.v1.CreateSessionRequest
+	(*CreateSessionResponse)(nil),                       // 10: runme.runner.v1.CreateSessionResponse
+	(*GetSessionRequest)(nil),                           // 11: runme.runner.v1.GetSessionRequest
+	(*GetSessionResponse)(nil),                          // 12: runme.runner.v1.GetSessionResponse
+	(*ListSessionsRequest)(nil),                         // 13: runme.runner.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),                        // 14: runme.runner.v1.ListSessionsResponse
+	(*DeleteSessionRequest)(nil),                        // 15: runme.runner.v1.DeleteSessionRequest
+	(*DeleteSessionResponse)(nil),                       // 16: runme.runner.v1.DeleteSessionResponse
+	(*Project)(nil),                                     // 17: runme.runner.v1.Project
+	(*Winsize)(nil),                                     // 18: runme.runner.v1.Winsize
+	(*ExecuteRequest)(nil),                              // 19: runme.runner.v1.ExecuteRequest
+	(*ProcessPID)(nil),                                  // 20: runme.runner.v1.ProcessPID
+	(*ExecuteResponse)(nil),                             // 21: runme.runner.v1.ExecuteResponse
+	(*ResolveProgramCommandList)(nil),                   // 22: runme.runner.v1.ResolveProgramCommandList
+	(*ResolveProgramRequest)(nil),                       // 23: runme.runner.v1.ResolveProgramRequest
+	(*ResolveProgramResponse)(nil),                      // 24: runme.runner.v1.ResolveProgramResponse
+	(*MonitorEnvStoreRequest)(nil),                      // 25: runme.runner.v1.MonitorEnvStoreRequest
+	(*MonitorEnvStoreResponseSnapshot)(nil),             // 26: runme.runner.v1.MonitorEnvStoreResponseSnapshot
+	(*MonitorEnvStoreResponse)(nil),                     // 27: runme.runner.v1.MonitorEnvStoreResponse
+	nil,                                                 // 28: runme.runner.v1.Session.MetadataEntry
+	nil,                                                 // 29: runme.runner.v1.CreateSessionRequest.MetadataEntry
+	(*ResolveProgramResponse_VarResult)(nil),            // 30: runme.runner.v1.ResolveProgramResponse.VarResult
+	(*MonitorEnvStoreResponseSnapshot_SnapshotEnv)(nil), // 31: runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
+	(*MonitorEnvStoreResponseSnapshot_Error)(nil),       // 32: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
+	(*wrapperspb.UInt32Value)(nil),                      // 33: google.protobuf.UInt32Value
+}
 var file_runme_runner_v1_runner_proto_depIdxs = []int32{
 	28, // 0: runme.runner.v1.Session.metadata:type_name -> runme.runner.v1.Session.MetadataEntry
 	29, // 1: runme.runner.v1.CreateSessionRequest.metadata:type_name -> runme.runner.v1.CreateSessionRequest.MetadataEntry
