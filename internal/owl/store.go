@@ -322,6 +322,68 @@ func (s *Store) InsecureValues() ([]string, error) {
 	return result, nil
 }
 
+func (s *Store) SensitiveKeys() ([]string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var query, vars bytes.Buffer
+	err := s.sensitiveQuery(&query, &vars)
+	if err != nil {
+		return nil, err
+	}
+
+	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
+	// _, _ = fmt.Println(query.String())
+
+	var varValues map[string]interface{}
+	err = json.Unmarshal(vars.Bytes(), &varValues)
+	if err != nil {
+		return nil, err
+	}
+
+	// j, err := json.Marshal(varValues)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// fmt.Println(string(j))
+	// s.logger.Debug("sensitiveKeys vars", zap.String("vars", string(j)))
+
+	result := graphql.Do(graphql.Params{
+		Schema:         Schema,
+		RequestString:  query.String(),
+		VariableValues: varValues,
+	})
+
+	if result.HasErrors() {
+		return nil, fmt.Errorf("graphql errors %s", result.Errors)
+	}
+
+	val, err := extractDataKey(result.Data, "sensitiveKeys")
+	if err != nil {
+		return nil, err
+	}
+
+	j, err := json.Marshal(val)
+	if err != nil {
+		return nil, err
+	}
+
+	var keyResults SetVarItems
+	err = json.Unmarshal(j, &keyResults)
+	if err != nil {
+		return nil, err
+	}
+
+	keyResults.sortbyKey()
+
+	keys := make([]string, 0, len(keyResults))
+	for _, item := range keyResults {
+		keys = append(keys, item.Var.Key)
+	}
+
+	return keys, nil
+}
+
 func (s *Store) Update(newOrUpdated, deleted []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

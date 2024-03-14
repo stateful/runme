@@ -38,16 +38,18 @@ type ProgramResolver struct {
 	mode    ProgramResolverMode
 	sources []ProgramResolverSource
 
-	envCache *sync.Map
+	sensitiveEnvNames []string
+	envCache          *sync.Map
 
 	astPrinter *syntax.Printer
 }
 
-func NewProgramResolver(mode ProgramResolverMode, sources ...ProgramResolverSource) *ProgramResolver {
+func NewProgramResolver(mode ProgramResolverMode, sensitiveEnvNames []string, sources ...ProgramResolverSource) *ProgramResolver {
 	return &ProgramResolver{
-		mode:       mode,
-		sources:    sources,
-		astPrinter: syntax.NewPrinter(),
+		mode:              mode,
+		sensitiveEnvNames: sensitiveEnvNames,
+		sources:           sources,
+		astPrinter:        syntax.NewPrinter(),
 	}
 }
 
@@ -62,6 +64,9 @@ const (
 	// ProgramResolverStatusUnresolvedWithPlaceholder indicates a variable is unresolved but it has a placeholder.
 	// It typically means that the variable is of form `export FOO="this is a placeholder"`.
 	ProgramResolverStatusUnresolvedWithPlaceholder
+	// ProgramResolverStatusUnresolvedWithSecret indicates a variable is unresolved and needs to be treated with sensitivity.
+	// It typically means that the variable is a password, certificate, or access key.
+	ProgramResolverStatusUnresolvedWithSecret
 	// ProgramResolverStatusResolved indicates a variable is resolved.
 	ProgramResolverStatusResolved
 )
@@ -114,6 +119,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 		name := decl.Args[0].Name.Value
 		originalValue, isPlaceholder := r.findOriginalValue(decl)
 		resolvedValue, hasResolvedValue := r.findEnvValue(name)
+		isSensitive := r.IsEnvSensitive(name)
 
 		varResult := ProgramResolverVarResult{
 			Status:        ProgramResolverStatusUnresolved,
@@ -124,6 +130,10 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 
 		switch r.mode {
 		case ProgramResolverModePromptAll:
+			if isSensitive {
+				varResult.Status = ProgramResolverStatusUnresolvedWithSecret
+				break
+			}
 			if hasResolvedValue {
 				varResult.Status = ProgramResolverStatusUnresolvedWithPlaceholder
 				break
@@ -142,6 +152,8 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 		default:
 			if hasResolvedValue {
 				varResult.Status = ProgramResolverStatusResolved
+			} else if isSensitive {
+				varResult.Status = ProgramResolverStatusUnresolvedWithSecret
 			} else if isPlaceholder {
 				varResult.Status = ProgramResolverStatusUnresolvedWithPlaceholder
 			} else if originalValue != "" {
@@ -252,6 +264,15 @@ func (r *ProgramResolver) findEnvValue(name string) (string, bool) {
 		return val.(string), ok
 	}
 	return "", ok
+}
+
+func (r *ProgramResolver) IsEnvSensitive(name string) bool {
+	for _, key := range r.sensitiveEnvNames {
+		if key == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *ProgramResolver) collectEnvFromSources() {

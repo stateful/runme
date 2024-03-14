@@ -74,7 +74,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	return nil
 }
 
-func (s *Store) validateQuery(query, vars io.StringWriter) error {
+func (s *Store) sensitiveQuery(query, vars io.StringWriter) error {
 	varDefs := []*ast.VariableDefinition{
 		ast.NewVariableDefinition(&ast.VariableDefinition{
 			Variable: ast.NewVariable(&ast.Variable{
@@ -93,12 +93,12 @@ func (s *Store) validateQuery(query, vars io.StringWriter) error {
 		}),
 	}
 
-	q, err := NewQuery("Validate", varDefs,
+	q, err := NewQuery("Sensitive", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
 			reduceSetOperations(s, vars),
 			reduceSepcs(s),
-			reduceSnapshot(),
+			reduceSensitive(),
 		},
 	)
 	if err != nil {
@@ -223,6 +223,111 @@ func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 		}
 
 		return selSet, nil
+	}
+}
+
+func reduceSensitive() QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
+			Selections: []ast.Selection{
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "var",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "key",
+								}),
+							}),
+						},
+					}),
+				}),
+				// ast.NewField(&ast.Field{
+				// 	Name: ast.NewName(&ast.Name{
+				// 		Value: "value",
+				// 	}),
+				// 	SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+				// 		Selections: []ast.Selection{
+				// 			ast.NewField(&ast.Field{
+				// 				Name: ast.NewName(&ast.Name{
+				// 					Value: "original",
+				// 				}),
+				// 			}),
+				// 			ast.NewField(&ast.Field{
+				// 				Name: ast.NewName(&ast.Name{
+				// 					Value: "resolved",
+				// 				}),
+				// 			}),
+				// 			ast.NewField(&ast.Field{
+				// 				Name: ast.NewName(&ast.Name{
+				// 					Value: "status",
+				// 				}),
+				// 			}),
+				// 		},
+				// 	}),
+				// }),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "spec",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "name",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "required",
+								}),
+							}),
+						},
+					}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "errors",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "code",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "message",
+								}),
+							}),
+						},
+					}),
+				}),
+			},
+		})
+
+		selSet.Selections = append(selSet.Selections,
+			ast.NewField(&ast.Field{
+				Name: ast.NewName(&ast.Name{
+					Value: "render",
+				}),
+				SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+					Selections: []ast.Selection{
+						ast.NewField(&ast.Field{
+							Name: ast.NewName(&ast.Name{
+								Value: "sensitiveKeys",
+							}),
+							SelectionSet: nextSelSet,
+						}),
+					},
+				}),
+			}),
+		)
+
+		return nextSelSet, nil
 	}
 }
 

@@ -637,6 +637,8 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.Resolv
 			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE
 		case commandpkg.ProgramResolverStatusUnresolvedWithPlaceholder:
 			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER
+		case commandpkg.ProgramResolverStatusUnresolvedWithSecret:
+			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET
 		default:
 			ritem.Status = runnerv1.ResolveProgramResponse_STATUS_UNSPECIFIED
 		}
@@ -672,7 +674,8 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 		}
 	}
 
-	// Add session env as a source.
+	// Add session env as a source and pass info about sensitive env vars.
+	sensitiveEnvKeys := []string{}
 	session, found := r.getSessionFromRequest(req)
 	if found {
 		env, err := session.Envs()
@@ -680,6 +683,11 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 			return nil, err
 		}
 		sources = append(sources, commandpkg.ProgramResolverSourceFunc(env))
+
+		sensitiveEnvKeys, err = session.SensitiveEnvKeys()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	mode := commandpkg.ProgramResolverModeAuto
@@ -691,7 +699,7 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 		mode = commandpkg.ProgramResolverModeSkipAll
 	}
 
-	return commandpkg.NewProgramResolver(mode, sources...), err
+	return commandpkg.NewProgramResolver(mode, sensitiveEnvKeys, sources...), err
 }
 
 func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session, bool) {

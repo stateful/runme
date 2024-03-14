@@ -156,6 +156,45 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 	}
 }
 
+func resolveSensitive() graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		sensitive := SetVarItems{}
+		var opSet *OperationSet
+
+		switch p.Source.(type) {
+		case nil, string:
+			// root passes string
+			return sensitive, nil
+		case *OperationSet:
+			opSet = p.Source.(*OperationSet)
+		default:
+			return nil, errors.New("source is not an OperationSet")
+		}
+
+		for _, v := range opSet.values {
+			s, ok := opSet.specs[v.Var.Key]
+			if !ok {
+				return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
+			}
+
+			// todo(sebastian): cutting a corner here, really shouldn't key on Specs
+			if s.Spec.Name != "Secret" && s.Spec.Name != "Password" {
+				continue
+			}
+
+			item := &SetVarItem{
+				Var:  v.Var,
+				Spec: s.Spec,
+			}
+
+			sensitive = append(sensitive, item)
+		}
+
+		sensitive.sort()
+		return sensitive, nil
+	}
+}
+
 func resolveSnapshot() graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
@@ -526,6 +565,10 @@ func init() {
 						},
 					},
 					Resolve: resolveSnapshot(),
+				},
+				"sensitiveKeys": &graphql.Field{
+					Type:    graphql.NewNonNull(graphql.NewList(VariableType)),
+					Resolve: resolveSensitive(),
 				},
 			}
 		}),

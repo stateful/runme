@@ -287,6 +287,9 @@ message ResolveProgramResponse {
     STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
     // resolved means that the variable is resolved.
     STATUS_RESOLVED = 3;
+    // unresolved with secret means that the variable is unresolved
+    // and it requires treatment as a secret.
+    STATUS_UNRESOLVED_WITH_SECRET = 4;
   }
 }
 

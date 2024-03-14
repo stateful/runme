@@ -16,6 +16,7 @@ var owlStoreDefault = false
 
 type envStorer interface {
 	envs() ([]string, error)
+	sensitiveEnvKeys() ([]string, error)
 	addEnvs(envs []string) error
 	updateStore(envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(k string, v string) error
@@ -69,6 +70,10 @@ func (s *Session) UpdateStore(envs []string, newOrUpdated []string, deleted []st
 
 func (s *Session) AddEnvs(envs []string) error {
 	return s.envStorer.addEnvs(envs)
+}
+
+func (s *Session) SensitiveEnvKeys() ([]string, error) {
+	return s.envStorer.sensitiveEnvKeys()
 }
 
 func (s *Session) SetEnv(k string, v string) error {
@@ -127,6 +132,11 @@ func (es *runnerEnvStorer) complete() {
 func (es *runnerEnvStorer) addEnvs(envs []string) error {
 	es.envStore.Add(envs...)
 	return nil
+}
+
+func (es *runnerEnvStorer) sensitiveEnvKeys() ([]string, error) {
+	// noop, not supported
+	return []string{}, nil
 }
 
 func (es *runnerEnvStorer) envs() ([]string, error) {
@@ -297,6 +307,14 @@ func (es *owlEnvStorer) addEnvs(envs []string) error {
 	}
 	es.notifySubscribers()
 	return nil
+}
+
+func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {
+	vals, err := es.owlStore.SensitiveKeys()
+	if err != nil {
+		return nil, err
+	}
+	return vals, nil
 }
 
 func (es *owlEnvStorer) setEnv(k string, v string) error {

@@ -69,6 +69,13 @@ export var ResolveProgramResponse_Status;
      * @generated from protobuf enum value: STATUS_RESOLVED = 3;
      */
     ResolveProgramResponse_Status[ResolveProgramResponse_Status["RESOLVED"] = 3] = "RESOLVED";
+    /**
+     * unresolved with secret means that the variable is unresolved
+     * and it requires treatment as a secret.
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_SECRET = 4;
+     */
+    ResolveProgramResponse_Status[ResolveProgramResponse_Status["UNRESOLVED_WITH_SECRET"] = 4] = "UNRESOLVED_WITH_SECRET";
 })(ResolveProgramResponse_Status || (ResolveProgramResponse_Status = {}));
 /**
  * @generated from protobuf enum runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
