@@ -119,8 +119,8 @@ func storeSnapshotCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&addr, "address", "", "The Server address to connect to, i.e. 127.0.0.1:7865")
-	cmd.Flags().StringVar(&tlsDir, "tlsDir", "/tmp/runme/tls", "Path to tls files")
+	cmd.Flags().StringVar(&addr, "address", os.Getenv("RUNME_RUNNER_ADDRESS"), "The Server address to connect to, i.e. 127.0.0.1:7865")
+	cmd.Flags().StringVar(&tlsDir, "tlsDir", os.Getenv("RUNME_RUNNER_TLS_DIR"), "Path to tls files")
 	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
 
 	return &cmd
