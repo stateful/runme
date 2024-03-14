@@ -104,7 +104,7 @@ func storeSnapshotCmd() *cobra.Command {
 
 				for _, env := range msgData.Snapshot.Envs {
 					table.AddField(env.Name)
-					table.AddField(env.OriginalValue)
+					table.AddField(env.ResolvedValue)
 					table.AddField(env.Spec)
 					table.AddField(env.Origin)
 					table.AddField(env.UpdateTime)
