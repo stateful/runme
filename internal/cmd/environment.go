@@ -1,11 +1,20 @@
 package cmd
 
 import (
-	"errors"
+	"context"
 	"os"
 	"strings"
 
+	"github.com/cli/cli/v2/pkg/iostreams"
+	"github.com/cli/go-gh/pkg/tableprinter"
+	"github.com/pkg/errors"
+
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
 var osEnviron = os.Environ
@@ -20,8 +29,99 @@ func environmentCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(environmentDumpCmd())
+	cmd.AddCommand(storeCmd())
 
 	setDefaultFlags(&cmd)
+
+	return &cmd
+}
+
+func storeCmd() *cobra.Command {
+	cmd := cobra.Command{
+		Use:   "store",
+		Short: "Owl store",
+		Long:  "Owl Store",
+	}
+
+	cmd.AddCommand(storeSnapshotCmd())
+
+	return &cmd
+}
+
+func storeSnapshotCmd() *cobra.Command {
+	var (
+		addr      string
+		tlsDir    string
+		sessionID string
+	)
+
+	cmd := cobra.Command{
+		Use:   "snapshot",
+		Short: "Dump environment variables to stdout",
+		Long:  "Dumps all environmenzt variables to stdout as a list of K=V separated by null terminators",
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
+			if err != nil {
+				return err
+			}
+
+			credentials := credentials.NewTLS(tlsConfig)
+
+			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(credentials))
+			if err != nil {
+				return errors.Wrap(err, "failed to connect")
+			}
+			defer conn.Close()
+
+			client := runnerv1.NewRunnerServiceClient(conn)
+
+			meClient, err := client.MonitorEnvStore(context.Background(), &runnerv1.MonitorEnvStoreRequest{
+				Session: &runnerv1.Session{Id: sessionID},
+			})
+
+			if err != nil {
+				return err
+			}
+
+			var msg runnerv1.MonitorEnvStoreResponse
+			err = meClient.RecvMsg(&msg)
+
+			if err != nil {
+				return err
+			}
+
+			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
+				io := iostreams.System()
+				table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
+				table.AddField(strings.ToUpper("Name"))
+				table.AddField(strings.ToUpper("Value"))
+				table.AddField(strings.ToUpper("Spec"))
+				table.AddField(strings.ToUpper("Origin"))
+				table.AddField(strings.ToUpper("Updated"))
+				table.AddField(strings.ToUpper("Created"))
+				table.EndRow()
+
+				for _, env := range msgData.Snapshot.Envs {
+					table.AddField(env.Name)
+					table.AddField(env.OriginalValue)
+					table.AddField(env.Spec)
+					table.AddField(env.Origin)
+					table.AddField(env.UpdateTime)
+					table.AddField(env.CreateTime)
+					table.EndRow()
+				}
+
+				return errors.Wrap(table.Render(), "failed to render")
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&addr, "address", "", "The Server address to connect to, i.e. 127.0.0.1:7865")
+	cmd.Flags().StringVar(&tlsDir, "tlsDir", "/tmp/runme/tls", "Path to tls files")
+	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
 
 	return &cmd
 }

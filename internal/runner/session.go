@@ -42,6 +42,9 @@ func NewSession(envs []string, proj *project.Project, logger *zap.Logger) (*Sess
 func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, logger *zap.Logger) (*Session, error) {
 	sessionEnvs := []string(envs)
 
+	id := ulid.GenerateID()
+	sessionEnvs = append(sessionEnvs, fmt.Sprintf("RUNME_SESSION=%s", id))
+
 	var storer envStorer
 	if !owlStore {
 		logger.Debug("using simple env store")
@@ -56,7 +59,7 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 	}
 
 	s := &Session{
-		ID:        ulid.GenerateID(),
+		ID:        id,
 		envStorer: storer,
 
 		logger: logger,
