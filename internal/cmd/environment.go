@@ -58,7 +58,7 @@ func storeSnapshotCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "snapshot",
 		Short: "Dump environment variables to stdout",
-		Long:  "Dumps all environmenzt variables to stdout as a list of K=V separated by null terminators",
+		Long:  "Dumps all environment variables to stdout as a table",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
