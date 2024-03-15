@@ -24,22 +24,29 @@ func serverStopCmd() *cobra.Command {
 				) error {
 					defer logger.Sync()
 
-					pidRaw, err := os.ReadFile(pidFileName(cfg.ServerAddress))
+					logger.Debug("stopping the server by looking for runme.pid")
+
+					path := pidFileNameFromAddr(cfg.ServerAddress)
+					if path == "" {
+						return errors.New("server address is not a unix socket")
+					}
+
+					pidRaw, err := os.ReadFile(path)
 					if err != nil {
 						return errors.WithStack(err)
 					}
-
 					pid, err := strconv.Atoi(string(pidRaw))
 					if err != nil {
 						return errors.WithStack(err)
 					}
 
-					p, err := os.FindProcess(pid)
+					logger.Debug("found PID file", zap.String("path", path), zap.Int("pid", pid))
+
+					process, err := os.FindProcess(pid)
 					if err != nil {
 						return errors.WithStack(err)
 					}
-
-					return errors.WithStack(p.Signal(os.Interrupt))
+					return errors.WithStack(process.Signal(os.Interrupt))
 				},
 			)
 		},
