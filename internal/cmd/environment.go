@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/owl"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
@@ -108,8 +110,14 @@ func storeSnapshotCmd() *cobra.Command {
 				table.EndRow()
 
 				for _, env := range msgData.Snapshot.Envs {
+					value := env.ResolvedValue
+
+					if env.Spec == owl.SpecNameSecret {
+						value = fmt.Sprintf("%s [masked]", env.ResolvedValue)
+					}
+
 					table.AddField(env.Name)
-					table.AddField(env.ResolvedValue)
+					table.AddField(value)
 					table.AddField(env.Spec)
 					table.AddField(env.Origin)
 
