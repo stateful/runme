@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/go-gh/pkg/tableprinter"
@@ -38,9 +39,10 @@ func environmentCmd() *cobra.Command {
 
 func storeCmd() *cobra.Command {
 	cmd := cobra.Command{
-		Use:   "store",
-		Short: "Owl store",
-		Long:  "Owl Store",
+		Hidden: true,
+		Use:    "store",
+		Short:  "Owl store",
+		Long:   "Owl Store",
 	}
 
 	cmd.AddCommand(storeSnapshotCmd())
@@ -56,9 +58,10 @@ func storeSnapshotCmd() *cobra.Command {
 	)
 
 	cmd := cobra.Command{
-		Use:   "snapshot",
-		Short: "Dump environment variables to stdout",
-		Long:  "Dumps all environment variables to stdout as a table",
+		Hidden: true,
+		Use:    "snapshot",
+		Short:  "Dump environment variables to stdout",
+		Long:   "Dumps all environment variables to stdout as a table",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
@@ -93,13 +96,15 @@ func storeSnapshotCmd() *cobra.Command {
 
 			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
 				io := iostreams.System()
+				sourceDateFormat := "2006-01-02 15:04:05.999999999 -0700 -07"
+				columnDateFormat := "2006-01-02 15:04:05 -07"
+
 				table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
 				table.AddField(strings.ToUpper("Name"))
 				table.AddField(strings.ToUpper("Value"))
 				table.AddField(strings.ToUpper("Spec"))
 				table.AddField(strings.ToUpper("Origin"))
 				table.AddField(strings.ToUpper("Updated"))
-				table.AddField(strings.ToUpper("Created"))
 				table.EndRow()
 
 				for _, env := range msgData.Snapshot.Envs {
@@ -107,8 +112,15 @@ func storeSnapshotCmd() *cobra.Command {
 					table.AddField(env.ResolvedValue)
 					table.AddField(env.Spec)
 					table.AddField(env.Origin)
-					table.AddField(env.UpdateTime)
-					table.AddField(env.CreateTime)
+
+					t, err := time.Parse(sourceDateFormat, env.UpdateTime)
+					if err == nil {
+						roundedTime := t.Round(time.Second)
+						table.AddField(roundedTime.Format(columnDateFormat))
+					} else {
+						table.AddField("-")
+					}
+
 					table.EndRow()
 				}
 
@@ -119,8 +131,8 @@ func storeSnapshotCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&addr, "address", os.Getenv("RUNME_RUNNER_ADDRESS"), "The Server address to connect to, i.e. 127.0.0.1:7865")
-	cmd.Flags().StringVar(&tlsDir, "tlsDir", os.Getenv("RUNME_RUNNER_TLS_DIR"), "Path to tls files")
+	cmd.Flags().StringVar(&addr, "address", os.Getenv("RUNME_SERVER_ADDR"), "The Server address to connect to, i.e. 127.0.0.1:7865")
+	cmd.Flags().StringVar(&tlsDir, "tlsDir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
 	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
 
 	return &cmd

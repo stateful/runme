@@ -91,8 +91,13 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 
 	envs := make([]string, len(req.Envs))
 	copy(envs, req.Envs)
-	envs = append(envs, fmt.Sprintf("RUNME_RUNNER_ADDRESS=%s", r.address))
-	envs = append(envs, fmt.Sprintf("RUNME_RUNNER_TLS_DIR=%s", r.tlsDir))
+
+	if r.address != "" && r.tlsDir != "" {
+		envs = append(
+			envs,
+			fmt.Sprintf("RUNME_SERVER_ADDR=%s", r.address),
+			fmt.Sprintf("RUNME_TLS_DIR=%s", r.tlsDir))
+	}
 
 	owlStore := req.EnvStoreType == runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL
 
