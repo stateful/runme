@@ -51,8 +51,8 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 	} else {
 		logger.Info("using owl store")
 		var err error
-		storer, err = newOwlStorer(sessionEnvs, proj, logger)
 		sessionEnvs = append(sessionEnvs, fmt.Sprintf("RUNME_SESSION=%s", id))
+		storer, err = newOwlStorer(sessionEnvs, proj, logger)
 		if err != nil {
 			return nil, err
 		}
