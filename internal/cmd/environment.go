@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -98,8 +97,6 @@ func storeSnapshotCmd() *cobra.Command {
 
 			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
 				io := iostreams.System()
-				sourceDateFormat := "2006-01-02 15:04:05.999999999 -0700 -07"
-				columnDateFormat := "2006-01-02 15:04:05 -07"
 
 				table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
 				table.AddField(strings.ToUpper("Name"))
@@ -113,7 +110,9 @@ func storeSnapshotCmd() *cobra.Command {
 					value := env.ResolvedValue
 
 					if env.Spec == owl.SpecNameSecret {
-						value = fmt.Sprintf("%s [masked]", env.ResolvedValue)
+						value = "[masked]"
+					} else if env.Spec == owl.SpecNameOpaque {
+						value = "****"
 					}
 
 					table.AddField(env.Name)
@@ -121,10 +120,9 @@ func storeSnapshotCmd() *cobra.Command {
 					table.AddField(env.Spec)
 					table.AddField(env.Origin)
 
-					t, err := time.Parse(sourceDateFormat, env.UpdateTime)
+					t, err := time.Parse(time.RFC3339, env.UpdateTime)
 					if err == nil {
-						roundedTime := t.Round(time.Second)
-						table.AddField(roundedTime.Format(columnDateFormat))
+						table.AddField(t.Format(time.RFC1123Z))
 					} else {
 						table.AddField("-")
 					}
