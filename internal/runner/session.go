@@ -43,7 +43,6 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 	sessionEnvs := []string(envs)
 
 	id := ulid.GenerateID()
-	sessionEnvs = append(sessionEnvs, fmt.Sprintf("RUNME_SESSION=%s", id))
 
 	var storer envStorer
 	if !owlStore {
@@ -53,6 +52,7 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 		logger.Info("using owl store")
 		var err error
 		storer, err = newOwlStorer(sessionEnvs, proj, logger)
+		sessionEnvs = append(sessionEnvs, fmt.Sprintf("RUNME_SESSION=%s", id))
 		if err != nil {
 			return nil, err
 		}
