@@ -9,6 +9,7 @@ import (
 	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/go-gh/pkg/tableprinter"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -63,6 +64,8 @@ func storeSnapshotCmd() *cobra.Command {
 		Short:  "Dump environment variables to stdout",
 		Long:   "Dumps all environment variables to stdout as a table",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			g, _ := errgroup.WithContext(context.Background())
+
 			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
 			if err != nil {
 				return err
@@ -85,51 +88,26 @@ func storeSnapshotCmd() *cobra.Command {
 				return err
 			}
 
-			var msg runnerv1.MonitorEnvStoreResponse
-			err = meClient.RecvMsg(&msg)
-			if err != nil {
-				return err
-			}
-
-			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
-				io := iostreams.System()
-
-				table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
-				table.AddField(strings.ToUpper("Name"))
-				table.AddField(strings.ToUpper("Value"))
-				table.AddField(strings.ToUpper("Spec"))
-				table.AddField(strings.ToUpper("Origin"))
-				table.AddField(strings.ToUpper("Updated"))
-				table.EndRow()
-
-				for _, env := range msgData.Snapshot.Envs {
-					value := env.ResolvedValue
-
-					if env.Status.Number() == runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED.Number() {
-						value = "[masked]"
-					} else if env.Status.Number() == runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN.Number() {
-						value = "****"
+			subscribeEnv := func() error {
+				for {
+					var msg runnerv1.MonitorEnvStoreResponse
+					err = meClient.RecvMsg(&msg)
+					if err != nil {
+						return err
 					}
 
-					table.AddField(env.Name)
-					table.AddField(value)
-					table.AddField(env.Spec)
-					table.AddField(env.Origin)
-
-					t, err := time.Parse(time.RFC3339, env.UpdateTime)
-					if err == nil {
-						table.AddField(t.Format(time.RFC1123Z))
-					} else {
-						table.AddField("-")
+					if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
+						printStore(*msgData)
 					}
-
-					table.EndRow()
+					// TODO: let it break for now
+					break
 				}
-
-				return errors.Wrap(table.Render(), "failed to render")
+				return nil
 			}
 
-			return nil
+			g.Go(subscribeEnv)
+
+			return g.Wait()
 		},
 	}
 
@@ -161,6 +139,46 @@ func environmentDumpCmd() *cobra.Command {
 	setDefaultFlags(&cmd)
 
 	return &cmd
+}
+
+func printStore(msgData runnerv1.MonitorEnvStoreResponse_Snapshot) {
+	io := iostreams.System()
+
+	// TODO: Clear terminal screen
+
+	table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
+	table.AddField(strings.ToUpper("Name"))
+	table.AddField(strings.ToUpper("Value"))
+	table.AddField(strings.ToUpper("Spec"))
+	table.AddField(strings.ToUpper("Origin"))
+	table.AddField(strings.ToUpper("Updated"))
+	table.EndRow()
+
+	for _, env := range msgData.Snapshot.Envs {
+		value := env.ResolvedValue
+
+		if env.Status.Number() == runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED.Number() {
+			value = "[masked]"
+		} else if env.Status.Number() == runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN.Number() {
+			value = "****"
+		}
+
+		table.AddField(env.Name)
+		table.AddField(value)
+		table.AddField(env.Spec)
+		table.AddField(env.Origin)
+
+		t, err := time.Parse(time.RFC3339, env.UpdateTime)
+		if err == nil {
+			table.AddField(t.Format(time.RFC1123Z))
+		} else {
+			table.AddField("-")
+		}
+
+		table.EndRow()
+	}
+
+	table.Render()
 }
 
 func getDumpedEnvironment() string {
