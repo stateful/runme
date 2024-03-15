@@ -442,3 +442,54 @@ func Test_Store_SensitiveKeys(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, keys, []string{"INSTRUMENTATION_KEY", "PGPASS"})
 }
+
+func Test_Store_SecretMasking(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Short secret is masked as empty", func(t *testing.T) {
+		fake := []byte("SHORT_SECRET=extra-short # Secret!\n")
+
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.NotNil(t, snapshot)
+
+		snapshot.sortbyKey()
+
+		snapshot0 := snapshot[0]
+		require.EqualValues(t, "SHORT_SECRET", snapshot0.Var.Key)
+		require.EqualValues(t, "Secret", snapshot0.Spec.Name)
+		require.EqualValues(t, true, snapshot0.Spec.Required)
+		require.EqualValues(t, "", snapshot0.Value.Resolved)
+		require.EqualValues(t, "", snapshot0.Value.Original)
+		require.EqualValues(t, "MASKED", snapshot0.Value.Status)
+		require.LessOrEqual(t, len(snapshot0.Errors), 0)
+	})
+
+	t.Run("Long secret greater than 24 chars shows glimpse", func(t *testing.T) {
+		fake := []byte("LONG_SECRET=this-is-a-extra-long-secret-which-is-much-better-practice # Secret!\n")
+
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.NotNil(t, snapshot)
+
+		snapshot.sortbyKey()
+
+		snapshot0 := snapshot[0]
+		require.EqualValues(t, "LONG_SECRET", snapshot0.Var.Key)
+		require.EqualValues(t, "Secret", snapshot0.Spec.Name)
+		require.EqualValues(t, true, snapshot0.Spec.Required)
+		// codespell-ignore-next
+		require.EqualValues(t, "thi...ice", snapshot0.Value.Resolved)
+		require.EqualValues(t, "", snapshot0.Value.Original)
+		require.EqualValues(t, "MASKED", snapshot0.Value.Status)
+		require.LessOrEqual(t, len(snapshot0.Errors), 0)
+	})
+}
