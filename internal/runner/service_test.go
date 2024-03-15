@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stateful/runme/v3/internal/env"
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
+
+	envHelper "github.com/stateful/runme/v3/internal/env"
 )
 
 func testCreateLogger(t *testing.T) *zap.Logger {
@@ -110,7 +113,7 @@ func Test_runnerService(t *testing.T) {
 		)
 		require.NoError(t, err)
 		assert.NotEmpty(t, createSessResp.Session.Id)
-		assert.EqualValues(t, envs, createSessResp.Session.Envs)
+		assert.EqualValues(t, envs, env.CleaSessionVars(createSessResp.Session.Envs))
 
 		getSessResp, err := client.GetSession(
 			context.Background(),
@@ -400,7 +403,7 @@ func Test_runnerService(t *testing.T) {
 			t,
 			// Session.Envs is sorted alphabetically
 			[]string{"EXEC_EXPORTED=execute2", "EXEC_PROVIDED=execute1", "SESSION=session1"},
-			sessResp.Session.Envs,
+			envHelper.CleaSessionVars(sessResp.Session.Envs),
 		)
 	})
 

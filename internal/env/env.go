@@ -1,6 +1,11 @@
 package env
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
+
+var SESSION_KEYS = []string{"RUNME_SESSION", "RUNME_SERVER_ADDR", "RUNME_TLS_DIR"}
 
 func ConvertMapEnv(mapEnv map[string]string) []string {
 	result := make([]string, len(mapEnv))
@@ -12,4 +17,23 @@ func ConvertMapEnv(mapEnv map[string]string) []string {
 	}
 
 	return result
+}
+
+func CleaSessionVars(envs []string) []string {
+	var cleanedEnv []string
+
+	for _, env := range envs {
+		shouldKeep := true
+		for _, key := range SESSION_KEYS {
+			if strings.Contains(env, key) {
+				shouldKeep = false
+				break
+			}
+		}
+		if shouldKeep {
+			cleanedEnv = append(cleanedEnv, env)
+		}
+	}
+
+	return cleanedEnv
 }
