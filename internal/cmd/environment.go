@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
-	"github.com/stateful/runme/v3/internal/owl"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
@@ -109,9 +108,9 @@ func storeSnapshotCmd() *cobra.Command {
 				for _, env := range msgData.Snapshot.Envs {
 					value := env.ResolvedValue
 
-					if env.Spec == owl.SpecNameSecret {
+					if env.Status.Number() == runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED.Number() {
 						value = "[masked]"
-					} else if env.Spec == owl.SpecNameOpaque {
+					} else if env.Status.Number() == runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN.Number() {
 						value = "****"
 					}
 
