@@ -25,8 +25,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
-
-	envHelper "github.com/stateful/runme/v3/internal/env"
 )
 
 func testCreateLogger(t *testing.T) *zap.Logger {
@@ -403,7 +401,7 @@ func Test_runnerService(t *testing.T) {
 			t,
 			// Session.Envs is sorted alphabetically
 			[]string{"EXEC_EXPORTED=execute2", "EXEC_PROVIDED=execute1", "SESSION=session1"},
-			envHelper.CleaSessionVars(sessResp.Session.Envs),
+			env.CleaSessionVars(sessResp.Session.Envs),
 		)
 	})
 

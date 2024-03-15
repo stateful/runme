@@ -63,7 +63,6 @@ func storeSnapshotCmd() *cobra.Command {
 		Short:  "Dump environment variables to stdout",
 		Long:   "Dumps all environment variables to stdout as a table",
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
 			if err != nil {
 				return err
@@ -82,14 +81,12 @@ func storeSnapshotCmd() *cobra.Command {
 			meClient, err := client.MonitorEnvStore(context.Background(), &runnerv1.MonitorEnvStoreRequest{
 				Session: &runnerv1.Session{Id: sessionID},
 			})
-
 			if err != nil {
 				return err
 			}
 
 			var msg runnerv1.MonitorEnvStoreResponse
 			err = meClient.RecvMsg(&msg)
-
 			if err != nil {
 				return err
 			}
