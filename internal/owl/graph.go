@@ -379,6 +379,7 @@ func init() {
 			val.Value.Status = "MASKED"
 			original := val.Value.Original
 			val.Value.Original = ""
+			val.Value.Resolved = ""
 			if len(original) > 24 {
 				val.Value.Resolved = original[:3] + "..." + original[len(original)-3:]
 			}
