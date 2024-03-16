@@ -238,7 +238,7 @@ func resolveDotEnv() graphql.FieldResolveFn {
 				}
 			}
 
-			buf.WriteString(fmt.Sprintf("%s%s=\"%s\"\n", prefix, v.Var.Key, v.Value.Resolved))
+			_, _ = buf.WriteString(fmt.Sprintf("%s%s=\"%s\"\n", prefix, v.Var.Key, v.Value.Resolved))
 		}
 
 		return buf.String(), nil
