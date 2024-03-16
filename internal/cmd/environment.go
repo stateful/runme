@@ -9,7 +9,6 @@ import (
 	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/go-gh/pkg/tableprinter"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -64,8 +63,6 @@ func storeSnapshotCmd() *cobra.Command {
 		Short:  "Dump environment variables to stdout",
 		Long:   "Dumps all environment variables to stdout as a table",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			g, _ := errgroup.WithContext(context.Background())
-
 			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
 			if err != nil {
 				return err
@@ -88,26 +85,17 @@ func storeSnapshotCmd() *cobra.Command {
 				return err
 			}
 
-			subscribeEnv := func() error {
-				for {
-					var msg runnerv1.MonitorEnvStoreResponse
-					err = meClient.RecvMsg(&msg)
-					if err != nil {
-						return err
-					}
-
-					if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
-						printStore(*msgData)
-					}
-					// TODO: let it break for now
-					break
-				}
-				return nil
+			var msg runnerv1.MonitorEnvStoreResponse
+			err = meClient.RecvMsg(&msg)
+			if err != nil {
+				return err
 			}
 
-			g.Go(subscribeEnv)
+			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
+				return errors.Wrap(printStore(*msgData), "failed to render")
+			}
 
-			return g.Wait()
+			return nil
 		},
 	}
 
@@ -141,7 +129,7 @@ func environmentDumpCmd() *cobra.Command {
 	return &cmd
 }
 
-func printStore(msgData runnerv1.MonitorEnvStoreResponse_Snapshot) {
+func printStore(msgData runnerv1.MonitorEnvStoreResponse_Snapshot) error {
 	io := iostreams.System()
 
 	// TODO: Clear terminal screen
@@ -178,7 +166,7 @@ func printStore(msgData runnerv1.MonitorEnvStoreResponse_Snapshot) {
 		table.EndRow()
 	}
 
-	table.Render()
+	return table.Render()
 }
 
 func getDumpedEnvironment() string {
