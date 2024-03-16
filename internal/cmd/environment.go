@@ -60,8 +60,8 @@ func storeSnapshotCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Hidden: true,
 		Use:    "snapshot",
-		Short:  "Dump environment variables to stdout",
-		Long:   "Dumps all environment variables to stdout as a table",
+		Short:  "Takes a snapshot of the Owl Store",
+		Long:   "Connects with a running server to inspect the environment variables of a session and takes a snapshot of the Owl Store.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
 			if err != nil {
@@ -158,7 +158,7 @@ func printStore(msgData runnerv1.MonitorEnvStoreResponse_Snapshot) error {
 
 		t, err := time.Parse(time.RFC3339, env.UpdateTime)
 		if err == nil {
-			table.AddField(t.Format(time.RFC1123Z))
+			table.AddField(t.Format(time.DateTime))
 		} else {
 			table.AddField("-")
 		}

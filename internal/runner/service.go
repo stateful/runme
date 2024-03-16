@@ -47,16 +47,13 @@ type runnerService struct {
 	sessions *SessionList
 
 	logger *zap.Logger
-
-	address string
-	tlsDir  string
 }
 
-func NewRunnerService(logger *zap.Logger, address string, tlsDir string) (runnerv1.RunnerServiceServer, error) {
-	return newRunnerService(logger, address, tlsDir)
+func NewRunnerService(logger *zap.Logger) (runnerv1.RunnerServiceServer, error) {
+	return newRunnerService(logger)
 }
 
-func newRunnerService(logger *zap.Logger, address string, tlsDir string) (*runnerService, error) {
+func newRunnerService(logger *zap.Logger) (*runnerService, error) {
 	sessions, err := NewSessionList()
 	if err != nil {
 		return nil, err
@@ -65,8 +62,6 @@ func newRunnerService(logger *zap.Logger, address string, tlsDir string) (*runne
 	return &runnerService{
 		logger:   logger,
 		sessions: sessions,
-		address:  address,
-		tlsDir:   tlsDir,
 	}, nil
 }
 
@@ -92,13 +87,6 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 
 	envs := make([]string, len(req.Envs))
 	copy(envs, req.Envs)
-
-	if r.address != "" && r.tlsDir != "" {
-		envs = append(
-			envs,
-			fmt.Sprintf("RUNME_SERVER_ADDR=%s", r.address),
-			fmt.Sprintf("RUNME_TLS_DIR=%s", r.tlsDir))
-	}
 
 	owlStore := req.EnvStoreType == runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL
 

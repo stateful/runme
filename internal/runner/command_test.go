@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
-
-	envHelper "github.com/stateful/runme/v3/internal/env"
 )
 
 func init() {
@@ -406,7 +404,7 @@ func Test_command(t *testing.T) {
 				"TEST_OLD_CHANGED=value2",
 				"TEST_NEW=value2",
 			}),
-			sort(envHelper.CleaSessionVars(env)),
+			sort(env),
 		)
 	})
 
