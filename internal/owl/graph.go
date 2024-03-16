@@ -1,6 +1,7 @@
 package owl
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,10 +17,14 @@ type specType struct {
 }
 
 var (
-	Schema                                                        graphql.Schema
-	EnvironmentType, ValidateType, RenderType, SpecTypeErrorsType *graphql.Object
-	SpecTypes                                                     map[string]*specType
+	Schema    graphql.Schema
+	SpecTypes map[string]*specType
 )
+
+var EnvironmentType,
+	ValidateType,
+	RenderType,
+	SpecTypeErrorsType *graphql.Object
 
 type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
@@ -199,6 +204,47 @@ func resolveSensitive() graphql.FieldResolveFn {
 	}
 }
 
+func resolveDotEnv() graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		insecure := p.Args["insecure"].(bool)
+		prefix := p.Args["prefix"].(string)
+		dotenv := SetVarItems{}
+		var opSet *OperationSet
+
+		switch p.Source.(type) {
+		case nil, string:
+			// root passes string
+			return dotenv, nil
+		case *OperationSet:
+			opSet = p.Source.(*OperationSet)
+		default:
+			return nil, errors.New("source is not an OperationSet")
+		}
+
+		var buf bytes.Buffer
+		// todo(sebastian): this should really be up the graph
+		for _, v := range opSet.values {
+			switch insecure {
+			case true:
+				if v.Value.Status == "UNRESOLVED" {
+					continue
+				}
+				if v.Value.Status == "DELETED" {
+					continue
+				}
+			case false:
+				if v.Value.Status != "LITERAL" {
+					continue
+				}
+			}
+
+			buf.WriteString(fmt.Sprintf("%s%s=\"%s\"\n", prefix, v.Var.Key, v.Value.Resolved))
+		}
+
+		return buf.String(), nil
+	}
+}
+
 func resolveSnapshot() graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
@@ -216,6 +262,7 @@ func resolveSnapshot() graphql.FieldResolveFn {
 			return nil, errors.New("source is not an OperationSet")
 		}
 
+		// todo(sebastian): this should really be up the graph
 		for _, v := range opSet.values {
 			switch insecure {
 			case true:
@@ -576,6 +623,20 @@ func init() {
 						},
 					},
 					Resolve: resolveSnapshot(),
+				},
+				"dotenv": &graphql.Field{
+					Type: graphql.NewNonNull(graphql.String),
+					Args: graphql.FieldConfigArgument{
+						"insecure": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
+						"prefix": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "",
+						},
+					},
+					Resolve: resolveDotEnv(),
 				},
 				"sensitiveKeys": &graphql.Field{
 					Type:    graphql.NewNonNull(graphql.NewList(VariableType)),
