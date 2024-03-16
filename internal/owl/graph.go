@@ -301,18 +301,18 @@ func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, bool) erro
 func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpecs bool) error {
 	for _, r := range revived {
 		source := ""
-		if r.Var.Operation != nil {
-			source = r.Var.Operation.Source
-		}
 		if r.Value != nil {
+			if r.Value.Operation != nil {
+				source = r.Value.Operation.Source
+			}
 			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
 				oldCreated := old.Var.Created
 				r.Var.Created = oldCreated
 				if old.Var.Origin != "" {
 					source = old.Var.Origin
-				} else if old.Var.Operation != nil {
-					source = old.Var.Operation.Source
+				} else if old.Value.Operation != nil {
+					source = old.Value.Operation.Source
 				}
 			}
 			r.Var.Origin = source
@@ -328,12 +328,15 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpe
 		}
 
 		if r.Spec != nil {
+			if r.Spec.Operation != nil {
+				source = r.Spec.Operation.Source
+			}
 			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.specs[r.Var.Key]; ok {
 				oldCreated := *old.Var.Created
 				r.Var.Created = &oldCreated
-				if old.Var.Operation != nil {
-					source = old.Var.Operation.Source
+				if old.Spec.Operation != nil {
+					source = old.Spec.Operation.Source
 				}
 			}
 			r.Var.Origin = source
@@ -453,6 +456,24 @@ func init() {
 		}),
 	})
 
+	OperationType := &graphql.Field{
+		Type: graphql.NewObject(graphql.ObjectConfig{
+			Name: "VariableOperationType",
+			Fields: graphql.Fields{
+				"order": &graphql.Field{
+					Type: graphql.Int,
+				},
+
+				"kind": &graphql.Field{
+					Type: graphql.String,
+				},
+
+				"source": &graphql.Field{
+					Type: graphql.String,
+				},
+			},
+		}),
+	}
 	VariableType := graphql.NewObject(
 		graphql.ObjectConfig{
 			Name: "VariableType",
@@ -473,24 +494,7 @@ func init() {
 							"updated": &graphql.Field{
 								Type: graphql.DateTime,
 							},
-							"operation": &graphql.Field{
-								Type: graphql.NewObject(graphql.ObjectConfig{
-									Name: "VariableOperationType",
-									Fields: graphql.Fields{
-										"order": &graphql.Field{
-											Type: graphql.Int,
-										},
-										// todo(sebastian): should be enum
-										"kind": &graphql.Field{
-											Type: graphql.String,
-										},
-										// todo(sebastian): likely abstract
-										"source": &graphql.Field{
-											Type: graphql.String,
-										},
-									},
-								}),
-							},
+							"operation": OperationType,
 						},
 					}),
 				},
@@ -510,6 +514,7 @@ func init() {
 							"status": &graphql.Field{
 								Type: graphql.String,
 							},
+							"operation": OperationType,
 							// "success": &graphql.Field{
 							// 	Type: graphql.Boolean,
 							// },
@@ -535,6 +540,7 @@ func init() {
 							"checked": &graphql.Field{
 								Type: graphql.Boolean,
 							},
+							"operation": OperationType,
 						},
 					}),
 				},
@@ -575,6 +581,21 @@ func init() {
 		}),
 	})
 
+	OperationInputType := &graphql.InputObjectFieldConfig{
+		Type: graphql.NewInputObject(graphql.InputObjectConfig{
+			Name: "VariableOperationInput",
+			Fields: graphql.InputObjectConfigFieldMap{
+				"order": &graphql.InputObjectFieldConfig{
+					Type: graphql.Int,
+				},
+
+				"source": &graphql.InputObjectFieldConfig{
+					Type: graphql.String,
+				},
+			},
+		}),
+	}
+
 	VariableInputType := graphql.NewInputObject(graphql.InputObjectConfig{
 		Name: "VariableInput",
 		Fields: graphql.InputObjectConfigFieldMap{
@@ -591,22 +612,7 @@ func init() {
 						"updated": &graphql.InputObjectFieldConfig{
 							Type: graphql.DateTime,
 						},
-						"operation": &graphql.InputObjectFieldConfig{
-							Type: graphql.NewInputObject(graphql.InputObjectConfig{
-								Name: "VariableOperationInput",
-								Fields: graphql.InputObjectConfigFieldMap{
-									"order": &graphql.InputObjectFieldConfig{
-										Type: graphql.Int,
-									},
-									// "kind": &graphql.InputObjectFieldConfig{
-									// 	Type: graphql.String,
-									// },
-									"source": &graphql.InputObjectFieldConfig{
-										Type: graphql.String,
-									},
-								},
-							}),
-						},
+						"operation": OperationInputType,
 					},
 				}),
 			},
@@ -626,6 +632,7 @@ func init() {
 						"status": &graphql.InputObjectFieldConfig{
 							Type: graphql.String,
 						},
+						"operation": OperationInputType,
 						// "success": &graphql.InputObjectFieldConfig{
 						// 	Type: graphql.Boolean,
 						// },
@@ -646,6 +653,7 @@ func init() {
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
+						"operation": OperationInputType,
 						"checked": &graphql.InputObjectFieldConfig{
 							Type:         graphql.Boolean,
 							DefaultValue: false,

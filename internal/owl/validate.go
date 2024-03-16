@@ -66,10 +66,10 @@ func (e RequiredError) SpecName() string {
 }
 
 func (e RequiredError) Source() string {
-	if e.varItem.Var.Operation == nil {
+	if e.varItem.Spec.Operation == nil {
 		return "-"
 	}
-	return e.varItem.Var.Operation.Source
+	return e.varItem.Spec.Operation.Source
 }
 
 // make sure interfaces are satisfied
