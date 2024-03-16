@@ -69,6 +69,9 @@ func (e RequiredError) Source() string {
 	if e.varItem.Spec.Operation == nil {
 		return "-"
 	}
+	if e.varItem.Spec.Operation.Source == "" {
+		return "-"
+	}
 	return e.varItem.Spec.Operation.Source
 }
 

@@ -39,7 +39,7 @@ type OperationSet struct {
 
 type setVarOperation struct {
 	Order  uint             `json:"-"`
-	Kind   setOperationKind `json:"-"`
+	Kind   setOperationKind `json:"kind"`
 	Source string           `json:"source"`
 }
 

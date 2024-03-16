@@ -526,16 +526,19 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 					continue
 				}
 				created := time.Now()
-				spec := &SetVarValue{
+				val := &SetVarValue{
 					Var: &SetVar{
 						Key:     k,
 						Created: &created,
 					},
 					Value: &varValue{
 						Status: "UNRESOLVED",
+						Operation: &setVarOperation{
+							Kind: ReconcileSetOperation,
+						},
 					},
 				}
-				deltaOpSet.values[k] = spec
+				deltaOpSet.values[k] = val
 			}
 		}
 

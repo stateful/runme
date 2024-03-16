@@ -396,7 +396,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, false, snapshot0.Spec.Required)
 		require.EqualValues(t, "", snapshot0.Value.Resolved)
 		require.EqualValues(t, "", snapshot0.Value.Original)
-		require.EqualValues(t, "HIDDEN", snapshot0.Value.Status)
+		require.EqualValues(t, "UNRESOLVED", snapshot0.Value.Status)
 		require.LessOrEqual(t, len(snapshot0.Errors), 0)
 
 		snapshot1 := snapshot[1]
@@ -405,7 +405,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, false, snapshot1.Spec.Required)
 		require.EqualValues(t, "", snapshot1.Value.Resolved)
 		require.EqualValues(t, "", snapshot1.Value.Original)
-		require.EqualValues(t, "LITERAL", snapshot1.Value.Status)
+		require.EqualValues(t, "UNRESOLVED", snapshot1.Value.Status)
 		require.LessOrEqual(t, len(snapshot1.Errors), 0)
 
 		snapshot2 := snapshot[2]
@@ -428,6 +428,21 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, "UNRESOLVED", snapshot3.Value.Status)
 		require.Greater(t, len(snapshot3.Errors), 0)
 		require.EqualValues(t, snapshot3.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but defined as required by \"Password!\" in \".env.example\""})
+	})
+}
+
+func Test_Store_Reconcile(t *testing.T) {
+	t.Run("remove unresolved values from snapshot", func(t *testing.T) {
+		fake := []byte(`UNRESOLVED_SECRET_WITHOUT_VALUE= # Secret`)
+
+		store, err := NewStore(withSpecsFile(".env.example", fake, true))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.snapshot(true)
+		require.NoError(t, err)
+
+		require.Equal(t, 0, len(snapshot))
 	})
 }
 

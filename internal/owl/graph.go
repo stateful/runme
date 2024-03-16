@@ -144,6 +144,10 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 					spec.Spec.Error = RequiredError{varItem: &SetVarItem{Var: val.Var, Value: val.Value, Spec: spec.Spec}}
 					continue
 				}
+
+				if val.Value.Operation != nil && val.Value.Operation.Kind == ReconcileSetOperation {
+					continue
+				}
 			}
 
 			mutator(val, spec, insecure)
@@ -465,7 +469,7 @@ func init() {
 				},
 
 				"kind": &graphql.Field{
-					Type: graphql.String,
+					Type: graphql.Int,
 				},
 
 				"source": &graphql.Field{
@@ -588,7 +592,9 @@ func init() {
 				"order": &graphql.InputObjectFieldConfig{
 					Type: graphql.Int,
 				},
-
+				"kind": &graphql.InputObjectFieldConfig{
+					Type: graphql.Int,
+				},
 				"source": &graphql.InputObjectFieldConfig{
 					Type: graphql.String,
 				},
