@@ -587,7 +587,7 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 				Selections: []ast.Selection{
 					ast.NewField(&ast.Field{
 						Name: ast.NewName(&ast.Name{
-							Value: "spec",
+							Value: "name",
 						}),
 					}),
 					ast.NewField(&ast.Field{

@@ -47,15 +47,15 @@ func registerSpecFields(fields graphql.Fields) {
 	}
 }
 
-func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResolveFn) *specType {
+func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResolveFn) *specType {
 	typ := graphql.NewObject(graphql.ObjectConfig{
-		Name: fmt.Sprintf("SpecType%s", spec),
+		Name: fmt.Sprintf("SpecType%s", name),
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			fields := graphql.Fields{
-				"spec": &graphql.Field{
+				"name": &graphql.Field{
 					Type: graphql.String,
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						return spec, nil
+						return name, nil
 					},
 				},
 				"sensitive": &graphql.Field{

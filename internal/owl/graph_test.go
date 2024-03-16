@@ -103,19 +103,19 @@ func Test_Graph(t *testing.T) {
                                   update(vars: $update_23, hasSpecs: false) {
                                     validate {
                                       Opaque(insecure: $insecure, keys: ["INSTRUMENTATION_KEY", "MANPATH", "ASDF_DIR", "VSCODE_CWD", "LSCOLORS", "INNER", "__", "USE_GKE_GCLOUD_AUTH_PLUGIN", "TERM", "WASI_SDK_PATH", "INFOPATH", "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL", "SHELL", "VSCODE_AMD_ENTRYPOINT", "LS_COLORS", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "TMPDIR", "BUF_TOKEN", "TREE_COLORS", "LESS", "HOMEBREW_CELLAR", "__CF_USER_TEXT_ENCODING", "LOGNAME", "VSCODE_NLS_CONFIG", "HOME", "GOPATH", "OLDPWD", "MallocNanoZone", "KRAFTCLOUD_USER", "BEGIN_INSTALL", "HOMEBREW_REPOSITORY", "VSCODE_IPC_HOOK", "ELECTRON_RUN_AS_NODE", "VSCODE_HANDLES_UNCAUGHT_ERRORS", "XPC_SERVICE_NAME", "PATH", "WASMTIME_HOME", "LC_ALL", "_", "HOMEBREW_PREFIX", "XPC_FLAGS", "__CFBundleIdentifier", "TERMINFO", "VSCODE_PID", "SHLVL", "PAGER", "ORIGINAL_XDG_CURRENT_DESKTOP", "RUNME_ID", "SSH_AUTH_SOCK"]) {
-                                        spec
+                                        name
                                         sensitive
                                         mask
                                         Password(insecure: $insecure, keys: ["KRAFTCLOUD_TOKEN"]) {
-                                          spec
+                                          name
                                           sensitive
                                           mask
                                           Plain(insecure: $insecure, keys: ["MSG", "OPENAI_ORG_ID", "NAME", "USER", "PWD", "COMMAND_MODE", "NAKED"]) {
-                                            spec
+                                            name
                                             sensitive
                                             mask
                                             Secret(insecure: $insecure, keys: ["OPENAI_API_KEY"]) {
-                                              spec
+                                              name
                                               sensitive
                                               mask
                                               done {
@@ -237,15 +237,15 @@ func Test_Graph(t *testing.T) {
     load(vars: $load_0, hasSpecs: false) {
       validate {
         Opaque(keys: ["GOPATH"]) {
-          spec
+          name
           sensitive
           mask
           Secret(keys: ["HOME"]) {
-            spec
+            name
             sensitive
             mask
             Plain(keys: ["HOMEBREW_REPOSITORY"]) {
-              spec
+              name
               sensitive
               mask
               done {
@@ -319,15 +319,15 @@ func Test_Graph_Update(t *testing.T) {
                         update(vars: $update_17, hasSpecs: false) {
                           validate {
                             Opaque(insecure: $insecure, keys: ["ELECTRON_RUN_AS_NODE", "PAGER", "INFOPATH", "VSCODE_PID", "__CF_USER_TEXT_ENCODING", "BEGIN_INSTALL", "TMPDIR", "HOMEBREW_PREFIX", "HOMEBREW_REPOSITORY", "LC_ALL", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "VSCODE_NLS_CONFIG", "USE_GKE_GCLOUD_AUTH_PLUGIN", "ASDF_DIR", "LOGNAME", "VSCODE_AMD_ENTRYPOINT", "HOME", "VSCODE_HANDLES_UNCAUGHT_ERRORS", "__CFBundleIdentifier", "WASI_SDK_PATH", "TERMINFO", "KRAFTCLOUD_USER", "INSTRUMENTATION_KEY", "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL", "TERM", "GOPATH", "_", "MANPATH", "SHLVL", "HOMEBREW_CELLAR", "TREE_COLORS", "RUNME_ID", "INNER", "MallocNanoZone", "OLDPWD", "VSCODE_IPC_HOOK", "XPC_SERVICE_NAME", "SHELL", "ORIGINAL_XDG_CURRENT_DESKTOP", "XPC_FLAGS", "WASMTIME_HOME", "SSH_AUTH_SOCK", "LS_COLORS", "PATH", "BUF_TOKEN", "LESS", "VSCODE_CWD", "LSCOLORS", "__"]) {
-                              spec
+                              name
                               sensitive
                               mask
                               Plain(insecure: $insecure, keys: ["MSG", "PWD", "NAKED", "NAME", "USER", "COMMAND_MODE", "OPENAI_ORG_ID"]) {
-                                spec
+                                name
                                 sensitive
                                 mask
                                 Secret(insecure: $insecure, keys: ["OPENAI_API_KEY", "KRAFTCLOUD_TOKEN"]) {
-                                  spec
+                                  name
                                   sensitive
                                   mask
                                   done {
@@ -405,7 +405,7 @@ func Test_Graph_Required(t *testing.T) {
     load(vars: $load_0, hasSpecs: true) {
       validate {
         Opaque(insecure: $insecure, keys: ["GOPATH", "HOME", "HOMEBREW_REPOSITORY"]) {
-          spec
+          name
           sensitive
           mask
           errors {
@@ -478,19 +478,19 @@ func Test_Graph_LackOfOperation(t *testing.T) {
               reconcile(vars: $reconcile_6, hasSpecs: true) {
                 validate {
                   Opaque(insecure: $insecure, keys: ["VSCODE_NLS_CONFIG", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "WASI_SDK_PATH", "VSCODE_CWD", "OLDPWD", "INSTRUMENTATION_KEY", "SHELL", "PATH", "LS_COLORS", "MallocNanoZone", "LOGNAME", "_", "VSCODE_PID", "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL", "VSCODE_HANDLES_UNCAUGHT_ERRORS", "GOPATH", "XPC_FLAGS", "VSCODE_IPC_HOOK", "TMPDIR", "LC_ALL", "LESS", "PAGER", "BUF_TOKEN", "HOMEBREW_REPOSITORY", "TERM", "MANPATH", "WASMTIME_HOME", "LSCOLORS", "USE_GKE_GCLOUD_AUTH_PLUGIN", "__CF_USER_TEXT_ENCODING", "BEGIN_INSTALL", "ORIGINAL_XDG_CURRENT_DESKTOP", "RUNME_ID", "KRAFTCLOUD_USER", "ASDF_DIR", "INFOPATH", "TERMINFO", "SSH_AUTH_SOCK", "VSCODE_AMD_ENTRYPOINT", "HOMEBREW_CELLAR", "VSCODE_L10N_BUNDLE_LOCATION", "HOMEBREW_PREFIX", "__CFBundleIdentifier", "HOME", "SHLVL", "XPC_SERVICE_NAME", "TREE_COLORS", "ELECTRON_RUN_AS_NODE"]) {
-                    spec
+                    name
                     sensitive
                     mask
                     Password(insecure: $insecure, keys: ["KRAFTCLOUD_TOKEN"]) {
-                      spec
+                      name
                       sensitive
                       mask
                       Plain(insecure: $insecure, keys: ["NAME", "MSG", "PWD", "USER", "NAKED", "COMMAND_MODE", "OPENAI_ORG_ID"]) {
-                        spec
+                        name
                         sensitive
                         mask
                         Secret(insecure: $insecure, keys: ["OPENAI_API_KEY"]) {
-                          spec
+                          name
                           sensitive
                           mask
                           done {
@@ -569,19 +569,19 @@ func Test_Graph_Sensitive(t *testing.T) {
               reconcile(vars: $reconcile_6, hasSpecs: true) {
                 validate {
                   Opaque(insecure: $insecure, keys: ["VSCODE_NLS_CONFIG", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "WASI_SDK_PATH", "VSCODE_CWD", "OLDPWD", "INSTRUMENTATION_KEY", "SHELL", "PATH", "LS_COLORS", "MallocNanoZone", "LOGNAME", "_", "VSCODE_PID", "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL", "VSCODE_HANDLES_UNCAUGHT_ERRORS", "GOPATH", "XPC_FLAGS", "VSCODE_IPC_HOOK", "TMPDIR", "LC_ALL", "LESS", "PAGER", "BUF_TOKEN", "HOMEBREW_REPOSITORY", "TERM", "MANPATH", "WASMTIME_HOME", "LSCOLORS", "USE_GKE_GCLOUD_AUTH_PLUGIN", "__CF_USER_TEXT_ENCODING", "BEGIN_INSTALL", "ORIGINAL_XDG_CURRENT_DESKTOP", "RUNME_ID", "KRAFTCLOUD_USER", "ASDF_DIR", "INFOPATH", "TERMINFO", "SSH_AUTH_SOCK", "VSCODE_AMD_ENTRYPOINT", "HOMEBREW_CELLAR", "VSCODE_L10N_BUNDLE_LOCATION", "HOMEBREW_PREFIX", "__CFBundleIdentifier", "HOME", "SHLVL", "XPC_SERVICE_NAME", "TREE_COLORS", "ELECTRON_RUN_AS_NODE"]) {
-                    spec
+                    name
                     sensitive
                     mask
                     Password(insecure: $insecure, keys: ["KRAFTCLOUD_TOKEN"]) {
-                      spec
+                      name
                       sensitive
                       mask
                       Plain(insecure: $insecure, keys: ["NAME", "MSG", "PWD", "USER", "NAKED", "COMMAND_MODE", "OPENAI_ORG_ID"]) {
-                        spec
+                        name
                         sensitive
                         mask
                         Secret(insecure: $insecure, keys: ["OPENAI_API_KEY"]) {
-                          spec
+                          name
                           sensitive
                           mask
                           done {
@@ -647,15 +647,15 @@ func Test_Graph_DotEnv(t *testing.T) {
                         update(vars: $update_17, hasSpecs: false) {
                           validate {
                             Opaque(insecure: $insecure, keys: ["ELECTRON_RUN_AS_NODE", "PAGER", "INFOPATH", "VSCODE_PID", "__CF_USER_TEXT_ENCODING", "BEGIN_INSTALL", "TMPDIR", "HOMEBREW_PREFIX", "HOMEBREW_REPOSITORY", "LC_ALL", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "VSCODE_NLS_CONFIG", "USE_GKE_GCLOUD_AUTH_PLUGIN", "ASDF_DIR", "LOGNAME", "VSCODE_AMD_ENTRYPOINT", "HOME", "VSCODE_HANDLES_UNCAUGHT_ERRORS", "__CFBundleIdentifier", "WASI_SDK_PATH", "TERMINFO", "KRAFTCLOUD_USER", "INSTRUMENTATION_KEY", "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL", "TERM", "GOPATH", "_", "MANPATH", "SHLVL", "HOMEBREW_CELLAR", "TREE_COLORS", "RUNME_ID", "INNER", "MallocNanoZone", "OLDPWD", "VSCODE_IPC_HOOK", "XPC_SERVICE_NAME", "SHELL", "ORIGINAL_XDG_CURRENT_DESKTOP", "XPC_FLAGS", "WASMTIME_HOME", "SSH_AUTH_SOCK", "LS_COLORS", "PATH", "BUF_TOKEN", "LESS", "VSCODE_CWD", "LSCOLORS", "__"]) {
-                              spec
+                              name
                               sensitive
                               mask
                               Plain(insecure: $insecure, keys: ["MSG", "PWD", "NAKED", "NAME", "USER", "COMMAND_MODE", "OPENAI_ORG_ID"]) {
-                                spec
+                                name
                                 sensitive
                                 mask
                                 Secret(insecure: $insecure, keys: ["OPENAI_API_KEY", "KRAFTCLOUD_TOKEN"]) {
-                                  spec
+                                  name
                                   sensitive
                                   mask
                                   done {
