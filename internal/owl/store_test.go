@@ -432,9 +432,10 @@ HOMEBREW_REPOSITORY= # Plain`)
 }
 
 func Test_Store_Reconcile(t *testing.T) {
-	t.Run("remove unresolved values from snapshot", func(t *testing.T) {
-		fake := []byte(`UNRESOLVED_SECRET_WITHOUT_VALUE= # Secret`)
+	t.Parallel()
+	fake := []byte(`UNRESOLVED_SECRET_WITHOUT_VALUE= # Secret`)
 
+	t.Run("exclude unresolved values from insecure snapshot", func(t *testing.T) {
 		store, err := NewStore(withSpecsFile(".env.example", fake, true))
 		require.NoError(t, err)
 		require.NotNil(t, store)
@@ -443,6 +444,26 @@ func Test_Store_Reconcile(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, 0, len(snapshot))
+	})
+
+	t.Run("include unresolved values from secure snapshot", func(t *testing.T) {
+		store, err := NewStore(withSpecsFile(".env.example", fake, true))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(snapshot))
+
+		snapshot0 := snapshot[0]
+
+		require.EqualValues(t, "UNRESOLVED_SECRET_WITHOUT_VALUE", snapshot0.Var.Key)
+		require.EqualValues(t, "Secret", snapshot0.Spec.Name)
+		require.EqualValues(t, false, snapshot0.Spec.Required)
+		require.EqualValues(t, "", snapshot0.Value.Resolved)
+		require.EqualValues(t, "", snapshot0.Value.Original)
+		require.EqualValues(t, "UNRESOLVED", snapshot0.Value.Status)
+		require.LessOrEqual(t, len(snapshot0.Errors), 0)
 	})
 }
 
@@ -501,8 +522,7 @@ func Test_Store_SecretMasking(t *testing.T) {
 		require.EqualValues(t, "LONG_SECRET", snapshot0.Var.Key)
 		require.EqualValues(t, "Secret", snapshot0.Spec.Name)
 		require.EqualValues(t, true, snapshot0.Spec.Required)
-		// codespell-ignore-next
-		require.EqualValues(t, "thi...ice", snapshot0.Value.Resolved)
+		require.EqualValues(t, `thi...ice`, snapshot0.Value.Resolved)
 		require.EqualValues(t, "", snapshot0.Value.Original)
 		require.EqualValues(t, "MASKED", snapshot0.Value.Status)
 		require.LessOrEqual(t, len(snapshot0.Errors), 0)
