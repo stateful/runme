@@ -396,7 +396,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, false, snapshot0.Spec.Required)
 		require.EqualValues(t, "", snapshot0.Value.Resolved)
 		require.EqualValues(t, "", snapshot0.Value.Original)
-		require.EqualValues(t, "HIDDEN", snapshot0.Value.Status)
+		require.EqualValues(t, "UNRESOLVED", snapshot0.Value.Status)
 		require.LessOrEqual(t, len(snapshot0.Errors), 0)
 
 		snapshot1 := snapshot[1]
@@ -405,7 +405,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, false, snapshot1.Spec.Required)
 		require.EqualValues(t, "", snapshot1.Value.Resolved)
 		require.EqualValues(t, "", snapshot1.Value.Original)
-		require.EqualValues(t, "LITERAL", snapshot1.Value.Status)
+		require.EqualValues(t, "UNRESOLVED", snapshot1.Value.Status)
 		require.LessOrEqual(t, len(snapshot1.Errors), 0)
 
 		snapshot2 := snapshot[2]
@@ -417,7 +417,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, "UNRESOLVED", snapshot2.Value.Status)
 		require.Greater(t, len(snapshot2.Errors), 0)
 		require.EqualValues(t, snapshot2.Errors[0].Code, 0)
-		require.EqualValues(t, snapshot2.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"INSTRUMENTATION_KEY\" is unresolved but defined as required by \"Secret!\" in \"-\""})
+		require.EqualValues(t, snapshot2.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"INSTRUMENTATION_KEY\" is unresolved but defined as required by \"Secret!\" in \".env.example\""})
 
 		snapshot3 := snapshot[3]
 		require.EqualValues(t, "PGPASS", snapshot3.Var.Key)
@@ -427,7 +427,43 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, "", snapshot3.Value.Original)
 		require.EqualValues(t, "UNRESOLVED", snapshot3.Value.Status)
 		require.Greater(t, len(snapshot3.Errors), 0)
-		require.EqualValues(t, snapshot3.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but defined as required by \"Password!\" in \"-\""})
+		require.EqualValues(t, snapshot3.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but defined as required by \"Password!\" in \".env.example\""})
+	})
+}
+
+func Test_Store_Reconcile(t *testing.T) {
+	t.Parallel()
+	fake := []byte(`UNRESOLVED_SECRET_WITHOUT_VALUE= # Secret`)
+
+	t.Run("exclude unresolved values from insecure snapshot", func(t *testing.T) {
+		store, err := NewStore(withSpecsFile(".env.example", fake, true))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.snapshot(true)
+		require.NoError(t, err)
+
+		require.Equal(t, 0, len(snapshot))
+	})
+
+	t.Run("include unresolved values from secure snapshot", func(t *testing.T) {
+		store, err := NewStore(withSpecsFile(".env.example", fake, true))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.snapshot(false)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(snapshot))
+
+		snapshot0 := snapshot[0]
+
+		require.EqualValues(t, "UNRESOLVED_SECRET_WITHOUT_VALUE", snapshot0.Var.Key)
+		require.EqualValues(t, "Secret", snapshot0.Spec.Name)
+		require.EqualValues(t, false, snapshot0.Spec.Required)
+		require.EqualValues(t, "", snapshot0.Value.Resolved)
+		require.EqualValues(t, "", snapshot0.Value.Original)
+		require.EqualValues(t, "UNRESOLVED", snapshot0.Value.Status)
+		require.LessOrEqual(t, len(snapshot0.Errors), 0)
 	})
 }
 
@@ -486,8 +522,7 @@ func Test_Store_SecretMasking(t *testing.T) {
 		require.EqualValues(t, "LONG_SECRET", snapshot0.Var.Key)
 		require.EqualValues(t, "Secret", snapshot0.Spec.Name)
 		require.EqualValues(t, true, snapshot0.Spec.Required)
-		// codespell-ignore-next
-		require.EqualValues(t, "thi...ice", snapshot0.Value.Resolved)
+		require.EqualValues(t, `thi...ice`, snapshot0.Value.Resolved)
 		require.EqualValues(t, "", snapshot0.Value.Original)
 		require.EqualValues(t, "MASKED", snapshot0.Value.Status)
 		require.LessOrEqual(t, len(snapshot0.Errors), 0)

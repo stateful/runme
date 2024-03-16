@@ -132,6 +132,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 		case ProgramResolverModePromptAll:
 			if isSensitive {
 				varResult.Status = ProgramResolverStatusUnresolvedWithSecret
+				varResult.Value = ""
 				break
 			}
 			if hasResolvedValue {

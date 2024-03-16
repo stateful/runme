@@ -1,6 +1,7 @@
 package owl
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,10 +17,14 @@ type specType struct {
 }
 
 var (
-	Schema                                                        graphql.Schema
-	EnvironmentType, ValidateType, RenderType, SpecTypeErrorsType *graphql.Object
-	SpecTypes                                                     map[string]*specType
+	Schema    graphql.Schema
+	SpecTypes map[string]*specType
 )
+
+var EnvironmentType,
+	ValidateType,
+	RenderType,
+	SpecTypeErrorsType *graphql.Object
 
 type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
@@ -42,15 +47,15 @@ func registerSpecFields(fields graphql.Fields) {
 	}
 }
 
-func registerSpec(spec string, sensitive, mask bool, resolver graphql.FieldResolveFn) *specType {
+func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResolveFn) *specType {
 	typ := graphql.NewObject(graphql.ObjectConfig{
-		Name: fmt.Sprintf("SpecType%s", spec),
+		Name: fmt.Sprintf("SpecType%s", name),
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			fields := graphql.Fields{
-				"spec": &graphql.Field{
+				"name": &graphql.Field{
 					Type: graphql.String,
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						return spec, nil
+						return name, nil
 					},
 				},
 				"sensitive": &graphql.Field{
@@ -144,6 +149,10 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 					spec.Spec.Error = RequiredError{varItem: &SetVarItem{Var: val.Var, Value: val.Value, Spec: spec.Spec}}
 					continue
 				}
+
+				if val.Value.Operation != nil && val.Value.Operation.Kind == ReconcileSetOperation {
+					continue
+				}
 			}
 
 			mutator(val, spec, insecure)
@@ -195,6 +204,47 @@ func resolveSensitive() graphql.FieldResolveFn {
 	}
 }
 
+func resolveDotEnv() graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		insecure := p.Args["insecure"].(bool)
+		prefix := p.Args["prefix"].(string)
+		dotenv := SetVarItems{}
+		var opSet *OperationSet
+
+		switch p.Source.(type) {
+		case nil, string:
+			// root passes string
+			return dotenv, nil
+		case *OperationSet:
+			opSet = p.Source.(*OperationSet)
+		default:
+			return nil, errors.New("source is not an OperationSet")
+		}
+
+		var buf bytes.Buffer
+		// todo(sebastian): this should really be up the graph
+		for _, v := range opSet.values {
+			switch insecure {
+			case true:
+				if v.Value.Status == "UNRESOLVED" {
+					continue
+				}
+				if v.Value.Status == "DELETED" {
+					continue
+				}
+			case false:
+				if v.Value.Status != "LITERAL" {
+					continue
+				}
+			}
+
+			_, _ = buf.WriteString(fmt.Sprintf("%s%s=\"%s\"\n", prefix, v.Var.Key, v.Value.Resolved))
+		}
+
+		return buf.String(), nil
+	}
+}
+
 func resolveSnapshot() graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
@@ -212,6 +262,7 @@ func resolveSnapshot() graphql.FieldResolveFn {
 			return nil, errors.New("source is not an OperationSet")
 		}
 
+		// todo(sebastian): this should really be up the graph
 		for _, v := range opSet.values {
 			switch insecure {
 			case true:
@@ -301,18 +352,18 @@ func resolveOperation(resolveMutator func(SetVarItems, *OperationSet, bool) erro
 func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpecs bool) error {
 	for _, r := range revived {
 		source := ""
-		if r.Var.Operation != nil {
-			source = r.Var.Operation.Source
-		}
 		if r.Value != nil {
+			if r.Value.Operation != nil {
+				source = r.Value.Operation.Source
+			}
 			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
 				oldCreated := old.Var.Created
 				r.Var.Created = oldCreated
 				if old.Var.Origin != "" {
 					source = old.Var.Origin
-				} else if old.Var.Operation != nil {
-					source = old.Var.Operation.Source
+				} else if old.Value.Operation != nil {
+					source = old.Value.Operation.Source
 				}
 			}
 			r.Var.Origin = source
@@ -328,12 +379,15 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpe
 		}
 
 		if r.Spec != nil {
+			if r.Spec.Operation != nil {
+				source = r.Spec.Operation.Source
+			}
 			newCreated := r.Var.Created
 			if old, ok := resolverOpSet.specs[r.Var.Key]; ok {
 				oldCreated := *old.Var.Created
 				r.Var.Created = &oldCreated
-				if old.Var.Operation != nil {
-					source = old.Var.Operation.Source
+				if old.Spec.Operation != nil {
+					source = old.Spec.Operation.Source
 				}
 			}
 			r.Var.Origin = source
@@ -453,6 +507,24 @@ func init() {
 		}),
 	})
 
+	OperationType := &graphql.Field{
+		Type: graphql.NewObject(graphql.ObjectConfig{
+			Name: "VariableOperationType",
+			Fields: graphql.Fields{
+				"order": &graphql.Field{
+					Type: graphql.Int,
+				},
+
+				"kind": &graphql.Field{
+					Type: graphql.Int,
+				},
+
+				"source": &graphql.Field{
+					Type: graphql.String,
+				},
+			},
+		}),
+	}
 	VariableType := graphql.NewObject(
 		graphql.ObjectConfig{
 			Name: "VariableType",
@@ -473,24 +545,7 @@ func init() {
 							"updated": &graphql.Field{
 								Type: graphql.DateTime,
 							},
-							"operation": &graphql.Field{
-								Type: graphql.NewObject(graphql.ObjectConfig{
-									Name: "VariableOperationType",
-									Fields: graphql.Fields{
-										"order": &graphql.Field{
-											Type: graphql.Int,
-										},
-										// todo(sebastian): should be enum
-										"kind": &graphql.Field{
-											Type: graphql.String,
-										},
-										// todo(sebastian): likely abstract
-										"source": &graphql.Field{
-											Type: graphql.String,
-										},
-									},
-								}),
-							},
+							"operation": OperationType,
 						},
 					}),
 				},
@@ -510,6 +565,7 @@ func init() {
 							"status": &graphql.Field{
 								Type: graphql.String,
 							},
+							"operation": OperationType,
 							// "success": &graphql.Field{
 							// 	Type: graphql.Boolean,
 							// },
@@ -535,6 +591,7 @@ func init() {
 							"checked": &graphql.Field{
 								Type: graphql.Boolean,
 							},
+							"operation": OperationType,
 						},
 					}),
 				},
@@ -567,6 +624,20 @@ func init() {
 					},
 					Resolve: resolveSnapshot(),
 				},
+				"dotenv": &graphql.Field{
+					Type: graphql.NewNonNull(graphql.String),
+					Args: graphql.FieldConfigArgument{
+						"insecure": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
+						"prefix": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "",
+						},
+					},
+					Resolve: resolveDotEnv(),
+				},
 				"sensitiveKeys": &graphql.Field{
 					Type:    graphql.NewNonNull(graphql.NewList(VariableType)),
 					Resolve: resolveSensitive(),
@@ -574,6 +645,23 @@ func init() {
 			}
 		}),
 	})
+
+	OperationInputType := &graphql.InputObjectFieldConfig{
+		Type: graphql.NewInputObject(graphql.InputObjectConfig{
+			Name: "VariableOperationInput",
+			Fields: graphql.InputObjectConfigFieldMap{
+				"order": &graphql.InputObjectFieldConfig{
+					Type: graphql.Int,
+				},
+				"kind": &graphql.InputObjectFieldConfig{
+					Type: graphql.Int,
+				},
+				"source": &graphql.InputObjectFieldConfig{
+					Type: graphql.String,
+				},
+			},
+		}),
+	}
 
 	VariableInputType := graphql.NewInputObject(graphql.InputObjectConfig{
 		Name: "VariableInput",
@@ -591,22 +679,7 @@ func init() {
 						"updated": &graphql.InputObjectFieldConfig{
 							Type: graphql.DateTime,
 						},
-						"operation": &graphql.InputObjectFieldConfig{
-							Type: graphql.NewInputObject(graphql.InputObjectConfig{
-								Name: "VariableOperationInput",
-								Fields: graphql.InputObjectConfigFieldMap{
-									"order": &graphql.InputObjectFieldConfig{
-										Type: graphql.Int,
-									},
-									// "kind": &graphql.InputObjectFieldConfig{
-									// 	Type: graphql.String,
-									// },
-									"source": &graphql.InputObjectFieldConfig{
-										Type: graphql.String,
-									},
-								},
-							}),
-						},
+						"operation": OperationInputType,
 					},
 				}),
 			},
@@ -626,6 +699,7 @@ func init() {
 						"status": &graphql.InputObjectFieldConfig{
 							Type: graphql.String,
 						},
+						"operation": OperationInputType,
 						// "success": &graphql.InputObjectFieldConfig{
 						// 	Type: graphql.Boolean,
 						// },
@@ -646,6 +720,7 @@ func init() {
 							Type:         graphql.Boolean,
 							DefaultValue: false,
 						},
+						"operation": OperationInputType,
 						"checked": &graphql.InputObjectFieldConfig{
 							Type:         graphql.Boolean,
 							DefaultValue: false,

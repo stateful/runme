@@ -38,31 +38,33 @@ type OperationSet struct {
 }
 
 type setVarOperation struct {
-	Order  uint             `json:"order"`
-	Kind   setOperationKind `json:"-"`
+	Order  uint             `json:"-"`
+	Kind   setOperationKind `json:"kind"`
 	Source string           `json:"source"`
 }
 
 type varValue struct {
-	Original string `json:"original,omitempty"`
-	Resolved string `json:"resolved,omitempty"`
-	Status   string `json:"status"`
+	Original  string           `json:"original,omitempty"`
+	Resolved  string           `json:"resolved,omitempty"`
+	Status    string           `json:"status"`
+	Operation *setVarOperation `json:"operation"`
 }
 
 type varSpec struct {
-	Name        string          `json:"name"`
-	Required    bool            `json:"required"`
-	Description string          `json:"description"`
-	Error       ValidationError `json:"-"`
-	Checked     bool            `json:"checked"`
+	Name        string           `json:"name"`
+	Required    bool             `json:"required"`
+	Description string           `json:"description"`
+	Operation   *setVarOperation `json:"operation"`
+	Error       ValidationError  `json:"-"`
+	Checked     bool             `json:"checked"`
 }
 
 type SetVar struct {
-	Key       string           `json:"key"`
-	Origin    string           `json:"origin,omitempty"`
-	Operation *setVarOperation `json:"operation"`
-	Created   *time.Time       `json:"created,omitempty"`
-	Updated   *time.Time       `json:"updated,omitempty"`
+	Key    string `json:"key"`
+	Origin string `json:"origin,omitempty"`
+	// Operation *setVarOperation `json:"operation"`
+	Created *time.Time `json:"created,omitempty"`
+	Updated *time.Time `json:"updated,omitempty"`
 }
 
 type SetVarSpec struct {
@@ -169,12 +171,13 @@ func (s *OperationSet) addEnvs(source string, envs ...string) error {
 		created := time.Now()
 		s.values[k] = &SetVarValue{
 			Var: &SetVar{
-				Key:       k,
-				Created:   &created,
-				Operation: &setVarOperation{Source: source},
+				Key:     k,
+				Created: &created,
+				// Operation: &setVarOperation{Source: source},
 			},
 			Value: &varValue{
-				Original: v,
+				Original:  v,
+				Operation: &setVarOperation{Source: source},
 			},
 		}
 	}
@@ -195,14 +198,15 @@ func (s *OperationSet) addRaw(raw []byte, source string, hasSpecs bool) error {
 		case true:
 			s.specs[key] = &SetVarSpec{
 				Var: &SetVar{
-					Key:       key,
-					Operation: &setVarOperation{Source: source},
-					Created:   &created,
+					Key: key,
+					// Operation: &setVarOperation{Source: source},
+					Created: &created,
 				},
 				Spec: &varSpec{
 					Name:        string(spec.Name),
 					Required:    spec.Required,
 					Description: vals[key],
+					Operation:   &setVarOperation{Source: source},
 					Checked:     false,
 				},
 			}
