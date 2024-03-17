@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -46,6 +47,7 @@ func storeCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(storeSnapshotCmd())
+	cmd.AddCommand(storeCheckCmd())
 
 	return &cmd
 }
@@ -71,7 +73,6 @@ func storeSnapshotCmd() *cobra.Command {
 			}
 
 			credentials := credentials.NewTLS(tlsConfig)
-
 			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(credentials))
 			if err != nil {
 				return errors.Wrap(err, "failed to connect")
@@ -106,6 +107,59 @@ func storeSnapshotCmd() *cobra.Command {
 	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
 	cmd.Flags().IntVar(&limit, "limit", 15, "Limit the number of lines")
 	cmd.Flags().BoolVarP(&all, "all", "A", false, "Show all lines")
+
+	return &cmd
+}
+
+func storeCheckCmd() *cobra.Command {
+	var (
+		addr      string
+		tlsDir    string
+		sessionID string
+	)
+
+	cmd := cobra.Command{
+		Hidden: true,
+		Use:    "check",
+		Short:  "Validates smart store",
+		Long:   "Connects with a running server to validates smart store, exiting with success or displaying API errors.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
+			if err != nil {
+				return err
+			}
+
+			credentials := credentials.NewTLS(tlsConfig)
+			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(credentials))
+			if err != nil {
+				return errors.Wrap(err, "failed to connect")
+			}
+			defer conn.Close()
+
+			client := runnerv1.NewRunnerServiceClient(conn)
+
+			session, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{
+				Envs: []string{},
+				Project: &runnerv1.Project{
+					Root:         "/home/cristian/Code/demos/runme-cli-demo",
+					EnvLoadOrder: []string{".env.local", ".env"},
+				},
+				EnvStoreType: runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL,
+			})
+
+			if err != nil {
+				return fmt.Errorf("Failed to create environment for gRPC runner: %s", err.Error())
+
+			}
+
+			fmt.Printf("Session created successfuly with the ID %s\n", session.Session.Id)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&addr, "address", os.Getenv("RUNME_SERVER_ADDR"), "The Server address to connect to, i.e. 127.0.0.1:7865")
+	cmd.Flags().StringVar(&tlsDir, "tlsDir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
+	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
 
 	return &cmd
 }
