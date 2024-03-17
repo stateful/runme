@@ -62,8 +62,8 @@ func storeSnapshotCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Hidden: true,
 		Use:    "snapshot",
-		Short:  "Takes a snapshot of the Owl Store",
-		Long:   "Connects with a running server to inspect the environment variables of a session and takes a snapshot of the Owl Store.",
+		Short:  "Takes a snapshot of the smart env store",
+		Long:   "Connects with a running server to inspect the environment variables of a session and returns a snapshot of the smart env store.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
 			if err != nil {
