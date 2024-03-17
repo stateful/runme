@@ -153,7 +153,7 @@ func storeCheckCmd() *cobra.Command {
 			if err != nil {
 				// todo(sebastian): hack
 				errStr := err.Error()
-				parts := strings.Split(errStr, "rpc error: code = ")
+				parts := strings.Split(errStr, "Unknown desc = ")
 				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Error: %s\n", parts[len(parts)-1])
 				return nil
 			}
