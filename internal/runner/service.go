@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
@@ -803,8 +804,8 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 			OriginalValue: item.Value.Original,
 			ResolvedValue: item.Value.Resolved,
 			Status:        status,
-			CreateTime:    item.Var.Created.String(),
-			UpdateTime:    item.Var.Updated.String(),
+			CreateTime:    item.Var.Created.Format(time.RFC3339),
+			UpdateTime:    item.Var.Updated.Format(time.RFC3339),
 			Errors:        []*runnerv1.MonitorEnvStoreResponseSnapshot_Error{},
 		}
 		for _, verr := range item.Errors {
