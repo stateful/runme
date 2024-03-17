@@ -55,6 +55,8 @@ func storeSnapshotCmd() *cobra.Command {
 		addr      string
 		tlsDir    string
 		sessionID string
+		limit     int
+		all       bool
 	)
 
 	cmd := cobra.Command{
@@ -92,7 +94,7 @@ func storeSnapshotCmd() *cobra.Command {
 			}
 
 			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
-				return errors.Wrap(printStore(*msgData), "failed to render")
+				return errors.Wrap(printStore(msgData, limit, all), "failed to render")
 			}
 
 			return nil
@@ -102,6 +104,8 @@ func storeSnapshotCmd() *cobra.Command {
 	cmd.Flags().StringVar(&addr, "address", os.Getenv("RUNME_SERVER_ADDR"), "The Server address to connect to, i.e. 127.0.0.1:7865")
 	cmd.Flags().StringVar(&tlsDir, "tlsDir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
 	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
+	cmd.Flags().IntVar(&limit, "limit", 15, "Limit the number of lines")
+	cmd.Flags().BoolVarP(&all, "all", "A", false, "Show all lines")
 
 	return &cmd
 }
@@ -129,7 +133,7 @@ func environmentDumpCmd() *cobra.Command {
 	return &cmd
 }
 
-func printStore(msgData runnerv1.MonitorEnvStoreResponse_Snapshot) error {
+func printStore(msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, all bool) error {
 	io := iostreams.System()
 
 	// TODO: Clear terminal screen
@@ -142,13 +146,19 @@ func printStore(msgData runnerv1.MonitorEnvStoreResponse_Snapshot) error {
 	table.AddField(strings.ToUpper("Updated"))
 	table.EndRow()
 
-	for _, env := range msgData.Snapshot.Envs {
+	for i, env := range msgData.Snapshot.Envs {
+		if i >= lines && !all {
+			break
+		}
 		value := env.ResolvedValue
 
-		if env.Status.Number() == runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED.Number() {
+		switch env.Status {
+		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED:
+			value = "[unset]"
+		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED:
 			value = "[masked]"
-		} else if env.Status.Number() == runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN.Number() {
-			value = "****"
+		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN:
+			value = "******"
 		}
 
 		table.AddField(env.Name)
