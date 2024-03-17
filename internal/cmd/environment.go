@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/runner/client"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
@@ -113,9 +114,8 @@ func storeSnapshotCmd() *cobra.Command {
 
 func storeCheckCmd() *cobra.Command {
 	var (
-		addr      string
-		tlsDir    string
-		sessionID string
+		serverAddr    string
+		getRunnerOpts func() ([]client.RunnerOption, error)
 	)
 
 	cmd := cobra.Command{
@@ -124,42 +124,43 @@ func storeCheckCmd() *cobra.Command {
 		Short:  "Validates smart store",
 		Long:   "Connects with a running server to validates smart store, exiting with success or displaying API errors.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			tlsConfig, err := runmetls.LoadTLSConfig(tlsDir, true)
+			project, err := getProject()
 			if err != nil {
 				return err
 			}
 
-			credentials := credentials.NewTLS(tlsConfig)
-			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(credentials))
+			runnerOpts, err := getRunnerOpts()
 			if err != nil {
-				return errors.Wrap(err, "failed to connect")
+				return err
 			}
-			defer conn.Close()
 
-			client := runnerv1.NewRunnerServiceClient(conn)
+			runnerOpts = append(
+				runnerOpts,
+				client.WithinShellMaybe(),
+				client.WithStdin(cmd.InOrStdin()),
+				client.WithStdout(cmd.OutOrStdout()),
+				client.WithStderr(cmd.ErrOrStderr()),
+				client.WithProject(project),
+				client.WithEnvStoreType(runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL),
+			)
 
-			session, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{
-				Envs: []string{},
-				Project: &runnerv1.Project{
-					Root:         "/home/cristian/Code/demos/runme-cli-demo",
-					EnvLoadOrder: []string{".env.local", ".env"},
-				},
-				EnvStoreType: runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL,
-			})
+			_, err = client.NewRemoteRunner(
+				cmd.Context(),
+				serverAddr,
+				runnerOpts...,
+			)
 
 			if err != nil {
 				return fmt.Errorf("Failed to create environment for gRPC runner: %s", err.Error())
 
 			}
 
-			fmt.Printf("Session created successfuly with the ID %s\n", session.Session.Id)
+			fmt.Printf("Session created successfuly in %s\n", project.Root())
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&addr, "address", os.Getenv("RUNME_SERVER_ADDR"), "The Server address to connect to, i.e. 127.0.0.1:7865")
-	cmd.Flags().StringVar(&tlsDir, "tlsDir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
-	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
+	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
 	return &cmd
 }

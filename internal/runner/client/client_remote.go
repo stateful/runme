@@ -84,10 +84,13 @@ func (r *RemoteRunner) setupSession(ctx context.Context) error {
 		return nil
 	}
 
-	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{
-		Envs:    os.Environ(),
-		Project: ConvertToRunnerProject(r.project),
-	})
+	request := &runnerv1.CreateSessionRequest{
+		Envs:         os.Environ(),
+		Project:      ConvertToRunnerProject(r.project),
+		EnvStoreType: r.envStoreType,
+	}
+
+	resp, err := r.client.CreateSession(ctx, request)
 	if err != nil {
 		return errors.Wrap(err, "failed to create session")
 	}
