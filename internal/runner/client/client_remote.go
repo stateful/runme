@@ -300,3 +300,7 @@ func (r *RemoteRunner) GetEnvs(ctx context.Context) ([]string, error) {
 
 	return resp.Session.Envs, nil
 }
+
+func (r *RemoteRunner) GetSessionID() string {
+	return r.sessionID
+}

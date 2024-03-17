@@ -138,25 +138,24 @@ func storeCheckCmd() *cobra.Command {
 				runnerOpts,
 				client.WithinShellMaybe(),
 				client.WithStdin(cmd.InOrStdin()),
+				client.WithCleanupSession(true),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
 				client.WithProject(project),
 				client.WithEnvStoreType(runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL),
 			)
 
-			_, err = client.NewRemoteRunner(
+			runner, err := client.NewRemoteRunner(
 				cmd.Context(),
 				serverAddr,
 				runnerOpts...,
 			)
-
 			if err != nil {
-				return fmt.Errorf("Failed to create environment for gRPC runner: %s", err.Error())
-
+				return fmt.Errorf("failed to create environment for gRPC runner: %s", err.Error())
 			}
 
-			fmt.Printf("Session created successfuly in %s\n", project.Root())
-			return nil
+			_, err = fmt.Printf("session created successfully in %s with id %s\n", project.Root(), runner.GetSessionID())
+			return err
 		},
 	}
 
