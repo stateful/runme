@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	"github.com/stateful/runme/v3/internal/runner/client"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
@@ -46,6 +48,7 @@ func storeCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(storeSnapshotCmd())
+	cmd.AddCommand(storeCheckCmd())
 
 	return &cmd
 }
@@ -71,7 +74,6 @@ func storeSnapshotCmd() *cobra.Command {
 			}
 
 			credentials := credentials.NewTLS(tlsConfig)
-
 			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(credentials))
 			if err != nil {
 				return errors.Wrap(err, "failed to connect")
@@ -106,6 +108,63 @@ func storeSnapshotCmd() *cobra.Command {
 	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
 	cmd.Flags().IntVar(&limit, "limit", 15, "Limit the number of lines")
 	cmd.Flags().BoolVarP(&all, "all", "A", false, "Show all lines")
+
+	return &cmd
+}
+
+func storeCheckCmd() *cobra.Command {
+	var (
+		serverAddr    string
+		getRunnerOpts func() ([]client.RunnerOption, error)
+	)
+
+	cmd := cobra.Command{
+		Hidden: true,
+		Use:    "check",
+		Short:  "Validates smart store",
+		Long:   "Connects with a running server to validates smart store, exiting with success or displaying API errors.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			project, err := getProject()
+			if err != nil {
+				return err
+			}
+
+			runnerOpts, err := getRunnerOpts()
+			if err != nil {
+				return err
+			}
+
+			runnerOpts = append(
+				runnerOpts,
+				client.WithinShellMaybe(),
+				client.WithStdin(cmd.InOrStdin()),
+				client.WithCleanupSession(true),
+				client.WithStdout(cmd.OutOrStdout()),
+				client.WithStderr(cmd.ErrOrStderr()),
+				client.WithProject(project),
+				client.WithEnvStoreType(runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL),
+			)
+
+			_, err = client.NewRemoteRunner(
+				cmd.Context(),
+				serverAddr,
+				runnerOpts...,
+			)
+			if err != nil {
+				// todo(sebastian): hack
+				errStr := err.Error()
+				parts := strings.Split(errStr, "Unknown desc = ")
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Error: %s\n", parts[len(parts)-1])
+				return nil
+			}
+
+			// _, err = fmt.Printf("session created successfully in %s with id %s\n", project.Root(), runner.GetSessionID())
+			_, err = fmt.Println("Success")
+			return err
+		},
+	}
+
+	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
 	return &cmd
 }
