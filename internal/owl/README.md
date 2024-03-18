@@ -8,7 +8,7 @@ version = 'v3'
 
 ### ...aka smart ENV store, is a better solution to specify, validate, and resolve a user's or workload's environment. Because environment variables aren't just for workloads they are for humans, too.
 
-<img src="owl.png" alt="image" width="400" height="auto">
+![Owl Store](owl.png)
 
 ### Features
 
@@ -49,13 +49,7 @@ version = 'v3'
 
 ### Environment Vars ⇄ “Specs”
 
-```clj {"id":"01HS8C1PN0T7BGJA0T6XN5WEZP"}
-POSTGRES_PASSWORD <-> Password! (! means Required)
-    [Name]           [Spec/Type]
-
-Your-super-secret...-password
-        [Value]
-```
+![Specs](vars-specs.png)
 
 ### Extensible at every stage
 
