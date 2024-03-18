@@ -67,7 +67,7 @@ Your-super-secret...-password
 
 ![front-end](front-end.png)
 
-## Common set of Specs
+## Common set of Specs (not all available yet)
 
 - Plain
 
