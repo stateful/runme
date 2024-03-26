@@ -6,34 +6,37 @@ version = 'v3'
 
 # The Owl Store 🦉
 
-What is it?
+### What is it?
+
+![Owl Store](owl.png)
 
 ## A ENV solution for Humans **and** Workloads:
+
 - Specify, Validate, and Resolve ENV vars
 - Verification of “Correctness” & better tools
 
 ## Took inspiration from
+
 - The SSH-Agent
 - How Typescript brings type-safety to Javascript
 
 ## Why?
+
 - Make idea of “SSO for your Environments” come to live
 - The 🦉 knows best, because she's the wisest of birds in the animal kingdom
-
-![Owl Store](owl.png)
 
 ## Environment “Specs”
 
 The **.env.example** frontend/facade:
 
-```ini {"id":"01HS8C1PN0T7BGJA0T6TT2G68R"}
-    JWT_SECRET=Secret to sign authed JWT tokens # Secret!
-    ANON_KEY=Secret to sign anonymous JWT tokens # Secret!
-    SERVICE_ROLE_KEY=JWT to assume the service role # JWT
-    POSTGRES_PASSWORD=Password for the postgres user # Password!
-    DASHBOARD_USERNAME=Username for the dashboard # Plain!
-    DASHBOARD_PASSWORD=Password for the dashboard # Password!
-    SOME_OTHER_VAR=Needs a matching value # Regex(/^[a-z...a. -]+\.)
+```ini {"id":"01HS8C1PN0T7BGJA0T6TT2G68R","interpreter":"cat"}
+JWT_SECRET=Secret to sign authed JWT tokens # Secret!
+ANON_KEY=Secret to sign anonymous JWT tokens # Secret!
+SERVICE_ROLE_KEY=JWT to assume the service role # JWT
+POSTGRES_PASSWORD=Password for the postgres user # Password!
+DASHBOARD_USERNAME=Username for the dashboard # Plain!
+DASHBOARD_PASSWORD=Password for the dashboard # Password!
+SOME_OTHER_VAR=Needs a matching value # Regex(/^[a-z...a. -]+\.)
 ```
 
 ### Philosophy
@@ -56,13 +59,48 @@ The **.env.example** frontend/facade:
 
 ## Extensible at every stage
 
-#### Resolution (e.g. translated env.owl.yaml or JS/Golang/Java/etc SDKs)
+#### Resolution (e.g. translated `env.owl.yaml` or JS/Golang/Java/etc SDKs)
 
-![resolution](resolution.png)
+```graphql {"id":"01HSXDJ4HAGVVT62961TK2NTBT","interpreter":"cat"}
+query ResolveEnv(...) {
+   ...
+   render {
+      withCell(ulid: "01HRA297WC2HJP7X48FM3DR1V0") {
+         withShell(command: "terraform output -json | jq -r .workspace_vars.value.{}") {
+            command
+            withWebhook(url: "https://secrets.platform.runme.dev/resolver") {
+               url
+               withStateful(org: "acme-corp") {
+                  org
+                  dotenv(prefix: "VITE_REACT_APP_", export: false)
+                  snapshot {
+                     ...
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+```
 
-#### .env Front-end (query ASTs rendered in text for illustration)
+#### .env-Frontend (query ASTs rendered in text for illustration)
 
-![front-end](front-end.png)
+```graphql {"id":"01HSXDR2PDVFZ9ZV8Z60XK6MTB","interpreter":"cat"}
+query LoadDotEnvs {
+    process {
+        path
+        file(paths: ["env.spec", ".env.example"], ignoreSpecs: false) {
+            path
+            file(paths: [".env.local", ".env"]) {
+                path
+                vars
+                specs
+            }
+        }
+    }
+}
+```
 
 ## Common set of Specs (not all available yet)
 
