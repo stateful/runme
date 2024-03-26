@@ -1,0 +1,51 @@
+query ResolveOwlSnapshot($insecure: Boolean = false, $load_0: [VariableInput]!, $load_1: [VariableInput]!, $load_2: [VariableInput]!, $reconcile_3: [VariableInput]!, $update_4: [VariableInput]!, $reconcile_6: [VariableInput]!) {
+  environment {
+    load(vars: $load_0, hasSpecs: false) {
+      load(vars: $load_1, hasSpecs: true) {
+        load(vars: $load_2, hasSpecs: false) {
+          reconcile(vars: $reconcile_3, hasSpecs: true) {
+            update(vars: $update_4, hasSpecs: false) {
+              reconcile(vars: $reconcile_6, hasSpecs: true) {
+                validate {
+                  Opaque(insecure: $insecure, keys: ["VSCODE_NLS_CONFIG", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "WASI_SDK_PATH", "VSCODE_CWD", "OLDPWD", "INSTRUMENTATION_KEY", "SHELL", "PATH", "LS_COLORS", "MallocNanoZone", "LOGNAME", "_", "VSCODE_PID", "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL", "VSCODE_HANDLES_UNCAUGHT_ERRORS", "GOPATH", "XPC_FLAGS", "VSCODE_IPC_HOOK", "TMPDIR", "LC_ALL", "LESS", "PAGER", "BUF_TOKEN", "HOMEBREW_REPOSITORY", "TERM", "MANPATH", "WASMTIME_HOME", "LSCOLORS", "USE_GKE_GCLOUD_AUTH_PLUGIN", "__CF_USER_TEXT_ENCODING", "BEGIN_INSTALL", "ORIGINAL_XDG_CURRENT_DESKTOP", "RUNME_ID", "KRAFTCLOUD_USER", "ASDF_DIR", "INFOPATH", "TERMINFO", "SSH_AUTH_SOCK", "VSCODE_AMD_ENTRYPOINT", "HOMEBREW_CELLAR", "VSCODE_L10N_BUNDLE_LOCATION", "HOMEBREW_PREFIX", "__CFBundleIdentifier", "HOME", "SHLVL", "XPC_SERVICE_NAME", "TREE_COLORS", "ELECTRON_RUN_AS_NODE"]) {
+                    name
+                    sensitive
+                    mask
+                    Password(insecure: $insecure, keys: ["KRAFTCLOUD_TOKEN"]) {
+                      name
+                      sensitive
+                      mask
+                      Plain(insecure: $insecure, keys: ["NAME", "MSG", "PWD", "USER", "NAKED", "COMMAND_MODE", "OPENAI_ORG_ID"]) {
+                        name
+                        sensitive
+                        mask
+                        Secret(insecure: $insecure, keys: ["OPENAI_API_KEY"]) {
+                          name
+                          sensitive
+                          mask
+                          done {
+                            render {
+                              sensitiveKeys {
+                                var {
+                                  key
+                                }
+                                spec {
+                                  name
+                                  required
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+    "insecure": false,
+    "load_0": [
+        {
+            "var": {
+                "key": "GOPATH",
+                "created": "2024-03-02T13:25:01.270468-05:00",
+                "operation": {
+                    "source": "[system]"
+                }
+            },
+            "spec": {
+                "checked": false,
+                "name": "Opaque",
+                "required": false
+            },
+            "value": {
+                "resolved": "/Users/sourishkrout/go",
+                "status": ""
+            }
+        },
+        {
+            "var": {
+                "created": "2024-03-02T13:25:01.270469-05:00",
+                "key": "HOME",
+                "operation": {
+                    "source": "[system]"
+                }
+            },
+            "spec": {
+                "checked": false,
+                "name": "Secret",
+                "required": true
+            },
+            "value": {
+                "resolved": "/Users/sourishkrout",
+                "status": ""
+            }
+        },
+        {
+            "var": {
+                "created": "2024-03-02T13:25:01.270471-05:00",
+                "key": "HOMEBREW_REPOSITORY",
+                "operation": {
+                    "source": "[system]"
+                }
+            },
+            "spec": {
+                "checked": false,
+                "name": "Plain",
+                "required": false
+            },
+            "value": {
+                "resolved": "/opt/homebrew",
+                "status": ""
+            }
+        }
+    ]
+}
