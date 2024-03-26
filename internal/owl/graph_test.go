@@ -254,7 +254,7 @@ func Test_Graph_DotEnv(t *testing.T) {
 				require.True(t, ok)
 				require.False(t, strings.HasPrefix(dotenvStr, "VITE_APP"))
 
-				fmt.Println(dotenvStr)
+				_, _ = fmt.Println(dotenvStr)
 			},
 		},
 		{
