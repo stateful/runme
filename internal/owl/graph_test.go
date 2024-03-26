@@ -42,7 +42,7 @@ func Test_QuerySpecs(t *testing.T) {
 
 		b, err := json.MarshalIndent(result, "", " ")
 		require.NoError(t, err)
-		fmt.Println(string(b))
+		_, _ = fmt.Println(string(b))
 
 		require.NotNil(t, b)
 	})
@@ -89,7 +89,7 @@ func (testCases fileTestCases) runAll(t *testing.T) {
 
 			b, err := json.MarshalIndent(result, "", " ")
 			require.NoError(t, err)
-			fmt.Println(string(b))
+			_, _ = fmt.Println(string(b))
 			require.NotNil(t, b)
 
 			if tc.post == nil {
@@ -139,7 +139,7 @@ func Test_ResolveEnv(t *testing.T) {
 				}
 				b, err := yaml.Marshal(snapshot)
 				require.NoError(t, err)
-				fmt.Println(string(b))
+				_, _ = fmt.Println(string(b))
 				require.NotNil(t, b)
 			},
 		},
@@ -153,7 +153,7 @@ func Test_ResolveEnv(t *testing.T) {
 				b, err := yaml.Marshal(render)
 				// b, err := json.MarshalIndent(result, "", " ")
 				require.NoError(t, err)
-				fmt.Println(string(b))
+				_, _ = fmt.Println(string(b))
 				require.NotNil(t, b)
 			},
 		},
@@ -189,7 +189,7 @@ func Test_Graph_Required(t *testing.T) {
 				b, err := yaml.Marshal(validate)
 				// b, err := json.MarshalIndent(result, "", " ")
 				require.NoError(t, err)
-				fmt.Println(string(b))
+				_, _ = fmt.Println(string(b))
 				require.NotNil(t, b)
 			},
 		},
@@ -210,7 +210,7 @@ func Test_Graph_Reconcile(t *testing.T) {
 				b, err := yaml.Marshal(validate)
 				// b, err := json.MarshalIndent(result, "", " ")
 				require.NoError(t, err)
-				fmt.Println(string(b))
+				_, _ = fmt.Println(string(b))
 				require.NotNil(t, b)
 			},
 		},
@@ -231,7 +231,7 @@ func Test_Graph_Sensitive(t *testing.T) {
 				b, err := yaml.Marshal(render)
 				// b, err := json.MarshalIndent(result, "", " ")
 				require.NoError(t, err)
-				fmt.Println(string(b))
+				_, _ = fmt.Println(string(b))
 				require.NotNil(t, b)
 			},
 		},
