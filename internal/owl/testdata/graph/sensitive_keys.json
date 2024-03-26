@@ -1,0 +1,1586 @@
+{
+    "insecure": false,
+    "load_0": [
+        {
+            "value": {
+                "original": "/opt/homebrew/share/man:/usr/share/man:/usr/local/share/man:/Users/sourishkrout/.cache/zsh4humans/v5/fzf/man:",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077665-04:00",
+                "key": "MANPATH",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "less",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077668-04:00",
+                "key": "PAGER",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "application.com.microsoft.VSCode.251091548.251091554",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07768-04:00",
+                "key": "XPC_SERVICE_NAME",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/Users/sourishkrout/.begin",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077653-04:00",
+                "key": "BEGIN_INSTALL",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/Users/sourishkrout/go",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077655-04:00",
+                "key": "GOPATH",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "fi=00:mi=00:mh=00:ln=01;36:or=01;31:di=01;34:ow=01;34:st=34:tw=34:pi=01;33:so=01;33:do=01;33:bd=01;33:cd=01;33:su=01;35:sg=01;35:ca=01;35:ex=01;32",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077675-04:00",
+                "key": "TREE_COLORS",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "sourishkrout",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077675-04:00",
+                "key": "USER",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "true",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077678-04:00",
+                "key": "VSCODE_HANDLES_UNCAUGHT_ERRORS",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "unix2003",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077654-04:00",
+                "key": "COMMAND_MODE",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "0",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077666-04:00",
+                "key": "MallocNanoZone",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/opt/homebrew/share/info:",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077659-04:00",
+                "key": "INFOPATH",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "vs/workbench/api/node/extensionHostProcess",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077676-04:00",
+                "key": "VSCODE_AMD_ENTRYPOINT",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "extensionHost",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077677-04:00",
+                "key": "VSCODE_CRASH_REPORTER_PROCESS_TYPE",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077683-04:00",
+                "key": "VSCODE_L10N_BUNDLE_LOCATION",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxlFl",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07766-04:00",
+                "key": "KRAFTCLOUD_TOKEN",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/Users/sourishkrout/.wasmtime",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07768-04:00",
+                "key": "WASMTIME_HOME",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "0x0",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07768-04:00",
+                "key": "XPC_FLAGS",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "d8xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx188",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077654-04:00",
+                "key": "BUF_TOKEN",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "fi=00:mi=00:mh=00:ln=01;36:or=01;31:di=01;34:ow=04;01;34:st=34:tw=04;34:pi=01;33:so=01;33:do=01;33:bd=01;33:cd=01;33:su=01;35:sg=01;35:ca=01;35:ex=01;32",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077664-04:00",
+                "key": "LS_COLORS",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077677-04:00",
+                "key": "VSCODE_CWD",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/Users/sourishkrout/Projects/stateful/2022Q4/wasi-sdk/dist/wasi-sdk-16.5ga0a342ac182c",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077679-04:00",
+                "key": "WASI_SDK_PATH",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "93046",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077679-04:00",
+                "key": "VSCODE_PID",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/Applications/Visual Studio Code.app/Contents/MacOS/Electron",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077681-04:00",
+                "key": "_",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/opt/homebrew/opt/asdf/libexec",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077651-04:00",
+                "key": "ASDF_DIR",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "sourishkrout",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077662-04:00",
+                "key": "LOGNAME",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/opt/homebrew/share/google-cloud-sdk/bin:/Users/sourishkrout/.wasmtime/bin:/opt/homebrew/opt/libpq/bin:/Users/sourishkrout/go/bin:/Users/sourishkrout/.asdf/shims:/opt/homebrew/opt/asdf/libexec/bin:/Users/sourishkrout/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/sourishkrout/.cache/zsh4humans/v5/fzf/bin:/Applications/Postgres.app/Contents/Versions/16/bin",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077668-04:00",
+                "key": "PATH",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "1",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077682-04:00",
+                "key": "ELECTRON_RUN_AS_NODE",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "en_US.UTF-8",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077661-04:00",
+                "key": "LC_ALL",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "undefined",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077667-04:00",
+                "key": "ORIGINAL_XDG_CURRENT_DESKTOP",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/var/folders/c3/5r0t1nzs7sbfpxjgbc6n3ss40000gn/T/",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077674-04:00",
+                "key": "TMPDIR",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/Users/sourishkrout",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077655-04:00",
+                "key": "HOME",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "xxxxxxxx-a41e-xxxx-xxxx-xxxxxxxxxxxx",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07766-04:00",
+                "key": "INSTRUMENTATION_KEY",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "achristian",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077661-04:00",
+                "key": "KRAFTCLOUD_USER",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "0x1F5:0x0:0x0",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077682-04:00",
+                "key": "__CF_USER_TEXT_ENCODING",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "sk-Kxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxq",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077666-04:00",
+                "key": "OPENAI_API_KEY",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/opt/homebrew",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077657-04:00",
+                "key": "HOMEBREW_REPOSITORY",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/Users/sourishkrout/.terminfo",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077673-04:00",
+                "key": "TERMINFO",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/opt/homebrew/Cellar",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077656-04:00",
+                "key": "HOMEBREW_CELLAR",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "org-tmxxxxxxxxxxxxxxxxxxxxk0",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077667-04:00",
+                "key": "OPENAI_ORG_ID",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "com.microsoft.VSCode",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077681-04:00",
+                "key": "__CFBundleIdentifier",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/opt/homebrew",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077656-04:00",
+                "key": "HOMEBREW_PREFIX",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "ExGxDxDxCxDxDxFxFxexEx",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077663-04:00",
+                "key": "LSCOLORS",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/bin/zsh",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077671-04:00",
+                "key": "SHELL",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "0",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077672-04:00",
+                "key": "SHLVL",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/private/tmp/com.apple.launchd.WJncT7ZrHW/Listeners",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077672-04:00",
+                "key": "SSH_AUTH_SOCK",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "1",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077682-04:00",
+                "key": "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "-iRFXMx4",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077662-04:00",
+                "key": "LESS",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077666-04:00",
+                "key": "OLDPWD",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "xterm-256color",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077673-04:00",
+                "key": "TERM",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "{\"locale\":\"en-us\",\"osLocale\":\"en-us\",\"availableLanguages\":{},\"_languagePackSupport\":true}",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077678-04:00",
+                "key": "VSCODE_NLS_CONFIG",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077669-04:00",
+                "key": "PWD",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "True",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077676-04:00",
+                "key": "USE_GKE_GCLOUD_AUTH_PLUGIN",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "/Users/sourishkrout/Library/Application Support/Code/1.87-main.sock",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077678-04:00",
+                "key": "VSCODE_IPC_HOOK",
+                "operation": {
+                    "order": 0,
+                    "source": "[system]"
+                }
+            }
+        }
+    ],
+    "load_1": [
+        {
+            "spec": {
+                "checked": false,
+                "description": "Some value",
+                "name": "Plain",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077717-04:00",
+                "key": "NAKED",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "Some name",
+                "name": "Plain",
+                "required": true
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077718-04:00",
+                "key": "NAME",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "No idea what mode this is",
+                "name": "Plain",
+                "required": true
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07772-04:00",
+                "key": "COMMAND_MODE",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Plain",
+                "required": true
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07772-04:00",
+                "key": "MSG",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "Working directory",
+                "name": "Plain",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077718-04:00",
+                "key": "PWD",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "Your OpenAI API key matching the org",
+                "name": "Secret",
+                "required": true
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077719-04:00",
+                "key": "OPENAI_API_KEY",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "This is secret",
+                "name": "Password",
+                "required": true
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077719-04:00",
+                "key": "KRAFTCLOUD_TOKEN",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Plain",
+                "required": true
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077719-04:00",
+                "key": "USER",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "Your OpenAI org identifier",
+                "name": "Plain",
+                "required": true
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07772-04:00",
+                "key": "OPENAI_ORG_ID",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            }
+        }
+    ],
+    "load_2": [
+        {
+            "value": {
+                "original": "Luna",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077722-04:00",
+                "key": "NAME",
+                "operation": {
+                    "order": 0,
+                    "source": ".env"
+                }
+            }
+        }
+    ],
+    "reconcile_3": [
+        {
+            "value": {
+                "status": "UNRESOLVED"
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077916-04:00",
+                "key": "MSG",
+                "operation": null
+            }
+        },
+        {
+            "value": {
+                "status": "UNRESOLVED"
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077916-04:00",
+                "key": "NAKED",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077911-04:00",
+                "key": "__CFBundleIdentifier",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077911-04:00",
+                "key": "LSCOLORS",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077912-04:00",
+                "key": "SHLVL",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077913-04:00",
+                "key": "LESS",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077903-04:00",
+                "key": "WASMTIME_HOME",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077902-04:00",
+                "key": "LS_COLORS",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077906-04:00",
+                "key": "ORIGINAL_XDG_CURRENT_DESKTOP",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077908-04:00",
+                "key": "KRAFTCLOUD_USER",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077913-04:00",
+                "key": "SSH_AUTH_SOCK",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077895-04:00",
+                "key": "GOPATH",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077898-04:00",
+                "key": "INFOPATH",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.0779-04:00",
+                "key": "XPC_FLAGS",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077902-04:00",
+                "key": "VSCODE_CWD",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077903-04:00",
+                "key": "_",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077903-04:00",
+                "key": "ASDF_DIR",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077908-04:00",
+                "key": "INSTRUMENTATION_KEY",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077915-04:00",
+                "key": "USE_GKE_GCLOUD_AUTH_PLUGIN",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077897-04:00",
+                "key": "MallocNanoZone",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077906-04:00",
+                "key": "TMPDIR",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077907-04:00",
+                "key": "HOME",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077912-04:00",
+                "key": "SHELL",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077914-04:00",
+                "key": "OLDPWD",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077914-04:00",
+                "key": "TERM",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077915-04:00",
+                "key": "VSCODE_IPC_HOOK",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077899-04:00",
+                "key": "VSCODE_AMD_ENTRYPOINT",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077915-04:00",
+                "key": "VSCODE_NLS_CONFIG",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077895-04:00",
+                "key": "TREE_COLORS",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077899-04:00",
+                "key": "VSCODE_CRASH_REPORTER_PROCESS_TYPE",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077904-04:00",
+                "key": "LOGNAME",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077905-04:00",
+                "key": "VSCODE_PID",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077905-04:00",
+                "key": "ELECTRON_RUN_AS_NODE",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077905-04:00",
+                "key": "LC_ALL",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07791-04:00",
+                "key": "HOMEBREW_CELLAR",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077896-04:00",
+                "key": "XPC_SERVICE_NAME",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077901-04:00",
+                "key": "BUF_TOKEN",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07791-04:00",
+                "key": "HOMEBREW_REPOSITORY",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077913-04:00",
+                "key": "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.0779-04:00",
+                "key": "VSCODE_L10N_BUNDLE_LOCATION",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077894-04:00",
+                "key": "PAGER",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077895-04:00",
+                "key": "BEGIN_INSTALL",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077896-04:00",
+                "key": "VSCODE_HANDLES_UNCAUGHT_ERRORS",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077902-04:00",
+                "key": "WASI_SDK_PATH",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077904-04:00",
+                "key": "PATH",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077909-04:00",
+                "key": "__CF_USER_TEXT_ENCODING",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.07791-04:00",
+                "key": "TERMINFO",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077894-04:00",
+                "key": "MANPATH",
+                "operation": null
+            }
+        },
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:00.077911-04:00",
+                "key": "HOMEBREW_PREFIX",
+                "operation": null
+            }
+        }
+    ],
+    "reconcile_6": [
+        {
+            "spec": {
+                "checked": false,
+                "description": "",
+                "name": "Opaque",
+                "required": false
+            },
+            "var": {
+                "created": "2024-03-12T20:45:05.291937-04:00",
+                "key": "RUNME_ID",
+                "operation": null
+            }
+        }
+    ],
+    "update_4": [
+        {
+            "value": {
+                "original": "01HRAZTSXWC0NX5Y3DAK9ZVG64",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:05.291876-04:00",
+                "key": "RUNME_ID",
+                "operation": {
+                    "order": 0,
+                    "source": "[execution]"
+                }
+            }
+        },
+        {
+            "value": {
+                "original": "xterm-256color",
+                "status": ""
+            },
+            "var": {
+                "created": "2024-03-12T20:45:05.291877-04:00",
+                "key": "TERM",
+                "operation": {
+                    "order": 0,
+                    "source": "[execution]"
+                }
+            }
+        }
+    ]
+}

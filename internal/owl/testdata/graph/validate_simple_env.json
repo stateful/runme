@@ -1,0 +1,60 @@
+{
+    "load_0": [
+        {
+            "var": {
+                "key": "GOPATH",
+                "created": "2024-03-02T13:25:01.270468-05:00",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            },
+            "spec": {
+                "checked": false,
+                "name": "Opaque",
+                "required": true
+            },
+            "value": {
+                "status": "UNRESOLVED"
+            }
+        },
+        {
+            "var": {
+                "key": "HOME",
+                "created": "2024-03-02T13:25:01.270469-05:00",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            },
+            "spec": {
+                "checked": false,
+                "name": "Opaque",
+                "required": false
+            },
+            "value": {
+                "original": "/Users/sourishkrout",
+                "status": ""
+            }
+        },
+        {
+            "var": {
+                "key": "HOMEBREW_REPOSITORY",
+                "created": "2024-03-02T13:25:01.270471-05:00",
+                "operation": {
+                    "order": 0,
+                    "source": ".env.example"
+                }
+            },
+            "spec": {
+                "checked": false,
+                "name": "Opaque",
+                "required": false
+            },
+            "value": {
+                "original": "/opt/homebrew",
+                "status": ""
+            }
+        }
+    ]
+}
