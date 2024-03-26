@@ -52,12 +52,12 @@ func Test_ResolveEnv(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name string
-		f    func(t *testing.T, result *graphql.Result)
+		name         string
+		assertResult func(t *testing.T, result *graphql.Result)
 	}{
 		{
 			name: "query_simple_env",
-			f: func(t *testing.T, result *graphql.Result) {
+			assertResult: func(t *testing.T, result *graphql.Result) {
 				snapshot, err := extractDataKey(result.Data, "snapshot")
 				require.NoError(t, err)
 				require.Len(t, snapshot, 3)
@@ -65,7 +65,7 @@ func Test_ResolveEnv(t *testing.T) {
 		},
 		{
 			name: "query_complex_env",
-			f: func(t *testing.T, result *graphql.Result) {
+			assertResult: func(t *testing.T, result *graphql.Result) {
 				val, err := extractDataKey(result.Data, "snapshot")
 				require.NoError(t, err)
 
@@ -95,7 +95,7 @@ func Test_ResolveEnv(t *testing.T) {
 		},
 		{
 			name: "env_without_specs",
-			f: func(t *testing.T, result *graphql.Result) {
+			assertResult: func(t *testing.T, result *graphql.Result) {
 				render, err := extractDataKey(result.Data, "render")
 				require.NoError(t, err)
 				require.NotNil(t, render)
@@ -131,7 +131,7 @@ func Test_ResolveEnv(t *testing.T) {
 			fmt.Println(string(b))
 			require.NotNil(t, b)
 
-			tc.f(t, result)
+			tc.assertResult(t, result)
 		})
 	}
 }
