@@ -48,13 +48,45 @@ func Test_QuerySpecs(t *testing.T) {
 	})
 }
 
+type fileTestCase struct {
+	name         string
+	assertResult func(t *testing.T, result *graphql.Result)
+}
+
+type fileTestCases []fileTestCase
+
+func (testCases fileTestCases) runAll(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			buf, err := os.ReadFile(filepath.Join("testdata", "graph", tc.name+".json"))
+			require.NoError(t, err)
+			var vars map[string]interface{}
+			err = json.Unmarshal(buf, &vars)
+			require.NoError(t, err)
+
+			query, err := os.ReadFile(filepath.Join("testdata", "graph", tc.name+".graphql"))
+			require.NoError(t, err)
+			result := graphql.Do(graphql.Params{
+				Schema:         Schema,
+				RequestString:  string(query),
+				VariableValues: vars,
+			})
+			require.False(t, result.HasErrors())
+
+			b, err := json.MarshalIndent(result, "", " ")
+			require.NoError(t, err)
+			fmt.Println(string(b))
+			require.NotNil(t, b)
+
+			tc.assertResult(t, result)
+		})
+	}
+}
+
 func Test_ResolveEnv(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name         string
-		assertResult func(t *testing.T, result *graphql.Result)
-	}{
+	testCases := fileTestCases{
 		{
 			name: "query_simple_env",
 			assertResult: func(t *testing.T, result *graphql.Result) {
@@ -109,31 +141,7 @@ func Test_ResolveEnv(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			buf, err := os.ReadFile(filepath.Join("testdata", "graph", tc.name+".json"))
-			require.NoError(t, err)
-			var vars map[string]interface{}
-			err = json.Unmarshal(buf, &vars)
-			require.NoError(t, err)
-
-			query, err := os.ReadFile(filepath.Join("testdata", "graph", tc.name+".graphql"))
-			require.NoError(t, err)
-			result := graphql.Do(graphql.Params{
-				Schema:         Schema,
-				RequestString:  string(query),
-				VariableValues: vars,
-			})
-			require.False(t, result.HasErrors())
-
-			b, err := json.MarshalIndent(result, "", " ")
-			require.NoError(t, err)
-			fmt.Println(string(b))
-			require.NotNil(t, b)
-
-			tc.assertResult(t, result)
-		})
-	}
+	testCases.runAll(t)
 }
 
 func Test_Graph_Update(t *testing.T) {
