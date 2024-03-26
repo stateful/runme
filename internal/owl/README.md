@@ -6,22 +6,25 @@ version = 'v3'
 
 # The Owl Store 🦉
 
-### ...aka smart ENV store, is a better solution to specify, validate, and resolve a user's or workload's environment. Because environment variables aren't just for workloads they are for humans, too.
+What is it?
+
+## A ENV solution for Humans **and** Workloads:
+- Specify, Validate, and Resolve ENV vars
+- Verification of “Correctness” & better tools
+
+## Took inspiration from
+- The SSH-Agent
+- How Typescript brings type-safety to Javascript
+
+## Why?
+- Make idea of “SSO for your Environments” come to live
+- The 🦉 knows best, because she's the wisest of birds in the animal kingdom
 
 ![Owl Store](owl.png)
 
-### Features
+## Environment “Specs”
 
-- A ENV solution for Humans and Workloads
-- Specify, Validate, and Resolve ENV vars
-- Verification of “Correctness” & better tools
-- Smart Env Store, took inspiration from
-- SSH-Agent and Javascript ⇄ Typescript
-- The wisest of birds in the animal kingdom
-
-### Environment “Specs”
-
-**.env.example**
+The **.env.example** frontend/facade:
 
 ```ini {"id":"01HS8C1PN0T7BGJA0T6TT2G68R"}
     JWT_SECRET=Secret to sign authed JWT tokens # Secret!
@@ -47,11 +50,11 @@ version = 'v3'
 - Runme’s fallback resolution → “securely prompt user”
 - Get involved, help building out owl toolkit & ecosystem
 
-### Environment Vars ⇄ “Specs”
+## Anatomy of Environment Vars ⇄ “Specs”
 
 ![Specs](vars-specs.png)
 
-### Extensible at every stage
+## Extensible at every stage
 
 #### Resolution (e.g. translated env.owl.yaml or JS/Golang/Java/etc SDKs)
 
@@ -65,21 +68,25 @@ version = 'v3'
 
 - Plain
 
-  - Opaque
-  - Regex(...)
+   - Opaque
+   - Regex(...)
+   - ...
 
 - Secret
 
-  - Password
-  - JWT
-  - x590Cer
+   - Password
+   - JWT
+   - x509Cert
+   - ...
 
 - Resources
 
-  - DbUrl
-  - Redis
+   - DbUrl
+   - Redis
+   - ...
 
 - Cred Sets (non-atomic)
 
-  - FirebaseSdk
-  - OpenAI
+   - FirebaseSdk
+   - OpenAI
+   - ...
