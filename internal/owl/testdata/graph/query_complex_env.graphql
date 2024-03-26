@@ -1,0 +1,86 @@
+query ResolveOwlSnapshot($insecure: Boolean = false, $load_0: [VariableInput]!, $load_1: [VariableInput]!, $load_2: [VariableInput]!, $reconcile_3: [VariableInput]!, $update_4: [VariableInput]!, $reconcile_6: [VariableInput]!, $update_7: [VariableInput]!, $reconcile_9: [VariableInput]!, $update_10: [VariableInput]!, $reconcile_12: [VariableInput]!, $update_13: [VariableInput]!, $update_15: [VariableInput]!, $update_17: [VariableInput]!, $update_19: [VariableInput]!, $update_21: [VariableInput]!, $update_23: [VariableInput]!) {
+  environment {
+    load(vars: $load_0, hasSpecs: false) {
+      load(vars: $load_1, hasSpecs: true) {
+        load(vars: $load_2, hasSpecs: false) {
+          reconcile(vars: $reconcile_3, hasSpecs: true) {
+            update(vars: $update_4, hasSpecs: false) {
+              reconcile(vars: $reconcile_6, hasSpecs: true) {
+                update(vars: $update_7, hasSpecs: false) {
+                  reconcile(vars: $reconcile_9, hasSpecs: true) {
+                    update(vars: $update_10, hasSpecs: false) {
+                      reconcile(vars: $reconcile_12, hasSpecs: true) {
+                        update(vars: $update_13, hasSpecs: false) {
+                          update(vars: $update_15, hasSpecs: false) {
+                            update(vars: $update_17, hasSpecs: false) {
+                              update(vars: $update_19, hasSpecs: false) {
+                                update(vars: $update_21, hasSpecs: false) {
+                                  update(vars: $update_23, hasSpecs: false) {
+                                    validate {
+                                      Opaque(insecure: $insecure, keys: ["INSTRUMENTATION_KEY", "MANPATH", "ASDF_DIR", "VSCODE_CWD", "LSCOLORS", "INNER", "__", "USE_GKE_GCLOUD_AUTH_PLUGIN", "TERM", "WASI_SDK_PATH", "INFOPATH", "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL", "SHELL", "VSCODE_AMD_ENTRYPOINT", "LS_COLORS", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "TMPDIR", "BUF_TOKEN", "TREE_COLORS", "LESS", "HOMEBREW_CELLAR", "__CF_USER_TEXT_ENCODING", "LOGNAME", "VSCODE_NLS_CONFIG", "HOME", "GOPATH", "OLDPWD", "MallocNanoZone", "KRAFTCLOUD_USER", "BEGIN_INSTALL", "HOMEBREW_REPOSITORY", "VSCODE_IPC_HOOK", "ELECTRON_RUN_AS_NODE", "VSCODE_HANDLES_UNCAUGHT_ERRORS", "XPC_SERVICE_NAME", "PATH", "WASMTIME_HOME", "LC_ALL", "_", "HOMEBREW_PREFIX", "XPC_FLAGS", "__CFBundleIdentifier", "TERMINFO", "VSCODE_PID", "SHLVL", "PAGER", "ORIGINAL_XDG_CURRENT_DESKTOP", "RUNME_ID", "SSH_AUTH_SOCK"]) {
+                                        name
+                                        sensitive
+                                        mask
+                                        Password(insecure: $insecure, keys: ["KRAFTCLOUD_TOKEN"]) {
+                                          name
+                                          sensitive
+                                          mask
+                                          Plain(insecure: $insecure, keys: ["MSG", "OPENAI_ORG_ID", "NAME", "USER", "PWD", "COMMAND_MODE", "NAKED"]) {
+                                            name
+                                            sensitive
+                                            mask
+                                            Secret(insecure: $insecure, keys: ["OPENAI_API_KEY"]) {
+                                              name
+                                              sensitive
+                                              mask
+                                              done {
+                                                render {
+                                                  snapshot(insecure: $insecure) {
+                                                    var {
+                                                      key
+                                                      origin
+                                                      created
+                                                      updated
+                                                      operation {
+                                                        source
+                                                      }
+                                                    }
+                                                    value {
+                                                      original
+                                                      resolved
+                                                      status
+                                                    }
+                                                    spec {
+                                                      name
+                                                      required
+                                                    }
+                                                    errors {
+                                                      code
+                                                      message
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

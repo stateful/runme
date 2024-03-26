@@ -1,0 +1,53 @@
+query ResolveOwlSnapshot(
+  $insecure: Boolean = false
+  $load_0: [VariableInput]!
+) {
+  environment {
+    load(vars: $load_0, hasSpecs: false) {
+      validate {
+        Opaque(keys: ["GOPATH"]) {
+          name
+          sensitive
+          mask
+          Secret(keys: ["HOME"]) {
+            name
+            sensitive
+            mask
+            Plain(keys: ["HOMEBREW_REPOSITORY"]) {
+              name
+              sensitive
+              mask
+              done {
+                render {
+                  snapshot(insecure: $insecure) {
+                    var {
+                      key
+                      created
+                      updated
+                      operation {
+                        source
+                      }
+                    }
+                    value {
+                      original
+                      resolved
+                      status
+                    }
+                    spec {
+                      name
+                      required
+                    }
+                    errors {
+                      code
+                      message
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
