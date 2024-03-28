@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -39,4 +40,28 @@ func TestLoadOrGenerateConfig(t *testing.T) {
 		tlsConfig1.Certificates[0].Certificate[0],
 		tlsConfig3.Certificates[0].Certificate[0],
 	)
+}
+
+func TestLoadOrGenerateConfigFromDir(t *testing.T) {
+	dir := t.TempDir()
+	logger := zaptest.NewLogger(t)
+
+	t.Run("DirNotExist", func(t *testing.T) {
+		_, err := LoadOrGenerateConfigFromDir(filepath.Join(dir, "not", "exist"), logger)
+		require.NoError(t, err)
+	})
+
+	t.Run("PathNotDir", func(t *testing.T) {
+		file := filepath.Join(dir, "file.txt")
+		err := os.WriteFile(file, []byte("test"), 0o600)
+		require.NoError(t, err)
+
+		_, err = LoadOrGenerateConfigFromDir(file, logger)
+		require.Error(t, err)
+	})
+
+	t.Run("DirExist", func(t *testing.T) {
+		_, err := LoadOrGenerateConfigFromDir(filepath.Join(dir, "not", "exist"), logger)
+		require.NoError(t, err)
+	})
 }
