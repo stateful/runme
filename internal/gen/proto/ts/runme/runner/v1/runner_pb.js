@@ -352,7 +352,8 @@ class ExecuteRequest$Type extends MessageType {
             { no: 23, name: "store_last_output", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 24, name: "command_mode", kind: "enum", T: () => ["runme.runner.v1.CommandMode", CommandMode, "COMMAND_MODE_"] },
             { no: 25, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 26, name: "file_extension", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 26, name: "file_extension", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 27, name: "known_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }

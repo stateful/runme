@@ -291,6 +291,12 @@ export interface ExecuteRequest {
      * @generated from protobuf field: string file_extension = 26;
      */
     fileExtension: string;
+    /**
+     * optional well known name for cell/block
+     *
+     * @generated from protobuf field: string known_name = 27;
+     */
+    knownName: string;
 }
 /**
  * @generated from protobuf message runme.runner.v1.ProcessPID

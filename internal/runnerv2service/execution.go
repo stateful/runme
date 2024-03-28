@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"syscall"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -32,8 +33,9 @@ const (
 )
 
 type execution struct {
-	ID  string
-	Cmd command.Command
+	ID        string
+	KnownName string
+	Cmd       command.Command
 
 	session         *command.Session
 	storeLastStdout bool
@@ -83,8 +85,9 @@ func newExecution(
 	}
 
 	exec := &execution{
-		ID:  id,
-		Cmd: cmd,
+		ID:        id,
+		KnownName: cfg.GetKnownName(),
+		Cmd:       cmd,
 
 		session:         session,
 		storeLastStdout: storeLastStdout,
@@ -271,6 +274,18 @@ func (e *execution) storeLastOutput(r io.Reader) {
 	if err := e.session.SetEnv("__=" + string(sanitized)); err != nil {
 		e.logger.Info("failed to store last output", zap.Error(err))
 	}
+
+	if e.KnownName != "" && conformsEnvVarNaming(e.KnownName) {
+		if err := e.session.SetEnv(e.KnownName, string(sanitized)); err != nil {
+			e.logger.Info("failed to store output under known name", zap.String("known_name", e.KnownName), zap.Error(err))
+		}
+	}
+}
+
+func conformsEnvVarNaming(knownName string) bool {
+	// only allow uppercase letters, digits and underscores
+	re := regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
+	return re.MatchString(knownName)
 }
 
 type sender interface {

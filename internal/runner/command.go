@@ -690,6 +690,12 @@ func inferFileProgram(sys *system.System, programPath string, languageID string)
 		}
 	}
 
+	// default to "cat"
+	res, err := exec.LookPath("cat")
+	if err == nil {
+		return res, args, nil
+	}
+
 	return "", []string{}, ErrInvalidLanguage{
 		LanguageID: languageID,
 	}

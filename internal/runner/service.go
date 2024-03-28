@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -503,6 +504,14 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		if err != nil {
 			logger.Sugar().Errorf("%v", err)
 		}
+
+		knownName := req.GetKnownName()
+		if knownName != "" && runnerConformsEnvVarNaming(knownName) {
+			err = sess.SetEnv(knownName, string(stdoutMem))
+			if err != nil {
+				logger.Sugar().Errorf("%v", err)
+			}
+		}
 	}
 
 	var finalExitCode *wrapperspb.UInt32Value
@@ -607,6 +616,12 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 		X:    uint16(winsize.X),
 		Y:    uint16(winsize.Y),
 	}
+}
+
+func runnerConformsEnvVarNaming(knownName string) bool {
+	// only allow uppercase letters, digits and underscores
+	re := regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
+	return re.MatchString(knownName)
 }
 
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.ResolveProgramRequest) (*runnerv1.ResolveProgramResponse, error) {

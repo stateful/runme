@@ -77,6 +77,12 @@ export interface ProgramConfig {
      * @generated from protobuf field: runme.runner.v2alpha1.CommandMode mode = 8;
      */
     mode: CommandMode;
+    /**
+     * optional well known name for cell/block
+     *
+     * @generated from protobuf field: string known_name = 9;
+     */
+    knownName: string;
 }
 /**
  * @generated from protobuf message runme.runner.v2alpha1.ProgramConfig.CommandList

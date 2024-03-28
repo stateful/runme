@@ -38,7 +38,8 @@ class ProgramConfig$Type extends MessageType {
             { no: 5, name: "commands", kind: "message", oneof: "source", T: () => ProgramConfig_CommandList },
             { no: 6, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "interactive", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 8, name: "mode", kind: "enum", T: () => ["runme.runner.v2alpha1.CommandMode", CommandMode, "COMMAND_MODE_"] }
+            { no: 8, name: "mode", kind: "enum", T: () => ["runme.runner.v2alpha1.CommandMode", CommandMode, "COMMAND_MODE_"] },
+            { no: 9, name: "known_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
