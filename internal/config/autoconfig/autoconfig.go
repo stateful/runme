@@ -1,16 +1,22 @@
-// autoconfig provides a way to instantiate and configure objects like
-// logger, project, session, and others. It takes into account runme.yaml,
-// flags, and environment variables.
+// autoconfig provides a way to create various instances from the [config.Config] like
+// [project.Project], [command.Session], [zap.Logger].
 //
-// For example, to instantiate a project.Project, you can use:
+// For example, to instantiate [project.Project], you can write:
 //
 //	autoconfig.Invoke(func(p *project.Project) error {
 //	    ...
 //	})
+//
+// Treat it as a dependency injection mechanism.
+//
+// autoconfig relies on [viper.Viper] which has a set of limitations. The most important one
+// is the fact that it does not support hierarchical configuration per folder. We might consider
+// switchig from [viper.Viper] to something else in the future.
 package autoconfig
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -40,13 +46,14 @@ func mustProvide(err error) {
 }
 
 func init() {
-	// viper.Viper can be overridden by a decorator:
+	// [viper.Viper] can be overridden by a decorator:
 	//   container.Decorate(func(v *viper.Viper) *viper.Viper { return nil })
 	mustProvide(container.Provide(getConfig))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
 	mustProvide(container.Provide(getSession))
+	mustProvide(container.Provide(getUserConfigDir))
 	mustProvide(container.Provide(getViper))
 
 	if err := container.Invoke(func(viper *viper.Viper) {
@@ -65,15 +72,16 @@ func init() {
 	}
 }
 
-func getConfig(viper *viper.Viper) (*config.Config, error) {
+func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, error) {
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	// As viper does not offer writing config to a writer,
-	// the workaround is to create a memory file system,
-	// set it to viper, and write the config to it.
-	// Finally, a deferred cleanup function is called.
+	// the workaround is to create a in-memory file system,
+	// set it in viper, and write the config to it.
+	// Finally, a deferred cleanup function is called
+	// which brings back the OS file system.
 	// Source: https://github.com/spf13/viper/issues/856
 	memFS := afero.NewMemMapFs()
 
@@ -89,7 +97,21 @@ func getConfig(viper *viper.Viper) (*config.Config, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	return config.ParseYAML(content)
+	cfg, err := config.ParseYAML(content)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.ServerTLSEnabled {
+		if cfg.ServerTLSCertFile == "" {
+			cfg.ServerTLSCertFile = filepath.Join(string(userCfgDir), "cert.pem")
+		}
+		if cfg.ServerTLSKeyFile == "" {
+			cfg.ServerTLSKeyFile = filepath.Join(string(userCfgDir), "key.pem")
+		}
+	}
+
+	return cfg, nil
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {
@@ -165,16 +187,17 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 		case config.FilterTypeBlock:
 			filters = append(filters, project.Filter(func(t project.Task) (bool, error) {
 				env := config.FilterBlockEnv{
-					Language:    t.CodeBlock.Language(),
-					Name:        t.CodeBlock.Name(),
-					Cwd:         t.CodeBlock.Cwd(),
-					Interactive: t.CodeBlock.Interactive(),
-					Background:  t.CodeBlock.Background(),
-					PromptEnv:   t.CodeBlock.PromptEnv(),
+					Background: t.CodeBlock.Background(),
+					Categories: t.CodeBlock.Categories(),
 					// TODO(adamb): implement this in the code block.
 					// CloseTerminalOnSuccess: t.CodeBlock.CloseTerminalOnSuccess(),
+					Cwd:               t.CodeBlock.Cwd(),
 					ExcludeFromRunAll: t.CodeBlock.ExcludeFromRunAll(),
-					Categories:        t.CodeBlock.Categories(),
+					Interactive:       t.CodeBlock.Interactive(),
+					IsNamed:           !t.CodeBlock.IsUnnamed(),
+					Language:          t.CodeBlock.Language(),
+					Name:              t.CodeBlock.Name(),
+					PromptEnv:         t.CodeBlock.PromptEnv(),
 				}
 				return filter.Evaluate(env)
 			}))
@@ -223,6 +246,13 @@ func getSession(cfg *config.Config, proj *project.Project) (*command.Session, er
 	}
 
 	return sess, nil
+}
+
+type UserConfigDir string
+
+func getUserConfigDir() (UserConfigDir, error) {
+	dir, err := os.UserConfigDir()
+	return UserConfigDir(dir), errors.WithStack(err)
 }
 
 func getViper() *viper.Viper { return viper.GetViper() }

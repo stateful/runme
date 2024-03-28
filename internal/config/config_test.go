@@ -31,9 +31,24 @@ func TestParseYAML(t *testing.T) {
 			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - source: exactly one field is required",
 		},
 		{
+			name:           "project and filename",
+			rawConfig:      "version: v1alpha1\nproject:\n  dir: \".\"\nfilename: \"README.md\"\n",
+			errorSubstring: "error parsing \"project\", oneof runme.config.v1alpha1.Config.source is already set",
+		},
+		{
 			name:           "validate filter type",
 			rawConfig:      "version: v1alpha1\nfilename: README.md\nfilters:\n  - type: 3\n    condition: \"name != ''\"\n",
 			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - filters[0].type: value must be one of the defined enum values",
+		},
+		{
+			name:           "validate project within cwd",
+			rawConfig:      "version: v1alpha1\nproject:\n  dir: '..'\n",
+			errorSubstring: "failed to validate config: failed to validate project dir: outside of current working directory",
+		},
+		{
+			name:           "validate filename within cwd",
+			rawConfig:      "version: v1alpha1\nfilename: '../README.md'\n",
+			errorSubstring: "failed to validate config: failed to validate filename: outside of current working directory",
 		},
 	}
 

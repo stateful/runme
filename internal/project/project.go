@@ -2,7 +2,6 @@ package project
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -240,17 +239,8 @@ func NewFileProject(
 	return p, nil
 }
 
-func (p *Project) String() string {
-	switch {
-	case p.filePath != "":
-		return fmt.Sprintf("File-based project with path %q", p.filePath)
-	case p.repo != nil:
-		return fmt.Sprintf("Git-based project in directory %q", p.fs.Root())
-	case p.fs != nil:
-		return fmt.Sprintf("Directory-based project in %q", p.fs.Root())
-	default:
-		return "Invalid project"
-	}
+func (p *Project) EnvFilesReadOrder() []string {
+	return p.envFilesReadOrder
 }
 
 func (p *Project) Root() string {
@@ -265,8 +255,9 @@ func (p *Project) Root() string {
 	panic("invariant: Project was not initialized properly")
 }
 
-func (p *Project) EnvFilesReadOrder() []string {
-	return p.envFilesReadOrder
+func (p *Project) relPath(path string) (string, error) {
+	result, err := filepath.Rel(p.Root(), path)
+	return result, errors.WithStack(err)
 }
 
 type LoadOptions struct {
@@ -471,12 +462,18 @@ func (p *Project) extractTasksFromFile(
 	}
 
 	for _, b := range codeBlocks {
+		// Because we are within the context of a project,
+		// each document should come from the project root and
+		// it should always be possible to create a relative path.
+		relPath, _ := p.relPath(path)
+
 		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventFoundTask,
 			Data: LoadEventFoundTaskData{
 				Task: Task{
-					CodeBlock:    b,
-					DocumentPath: path,
+					CodeBlock:       b,
+					DocumentPath:    path,
+					RelDocumentPath: relPath,
 				},
 			},
 		})

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runEnvCommand(arg ...string) *exec.Cmd {
+func runEnvCommand(...string) *exec.Cmd {
 	return exec.Command("env", "-0")
 }
 

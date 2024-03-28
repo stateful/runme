@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/yuin/goldmark/ast"
 	"go.uber.org/multierr"
 )
 
@@ -16,6 +17,45 @@ type Attributes map[string]string
 type attributeParser interface {
 	Parse(raw []byte) (Attributes, error)
 	Write(attr Attributes, w io.Writer) error
+}
+
+func getRawAttributes(source []byte) []byte {
+	start, stop := -1, -1
+
+	for i := 0; i < len(source); i++ {
+		if start == -1 && source[i] == '{' && i+1 < len(source) && source[i+1] != '}' {
+			start = i + 1
+		}
+		if stop == -1 && source[i] == '}' {
+			stop = i
+			break
+		}
+	}
+
+	if start >= 0 && stop >= 0 {
+		return bytes.TrimSpace(source[start-1 : stop+1])
+	}
+
+	return nil
+}
+
+func getAttributes(node *ast.FencedCodeBlock, source []byte, parser attributeParser) (Attributes, error) {
+	attributes := make(map[string]string)
+
+	if node.Info != nil {
+		codeBlockInfo := node.Info.Text(source)
+		rawAttrs := getRawAttributes(codeBlockInfo)
+
+		if len(bytes.TrimSpace(rawAttrs)) > 0 {
+			attr, err := parser.Parse(rawAttrs)
+			if err != nil {
+				return nil, err
+			}
+
+			attributes = attr
+		}
+	}
+	return attributes, nil
 }
 
 // Original attribute language used by runme prior to v1.3.0
@@ -70,7 +110,7 @@ func (*babikMLParser) rawAttributes(source []byte) []byte {
 	return nil
 }
 
-func sortedAttrs(attr Attributes) []string {
+func (*babikMLParser) sortedAttrs(attr Attributes) []string {
 	keys := make([]string, 0, len(attr))
 
 	for k := range attr {
@@ -96,8 +136,8 @@ func sortedAttrs(attr Attributes) []string {
 	return keys
 }
 
-func (*babikMLParser) Write(attr Attributes, w io.Writer) error {
-	keys := sortedAttrs(attr)
+func (p *babikMLParser) Write(attr Attributes, w io.Writer) error {
+	keys := p.sortedAttrs(attr)
 
 	_, _ = w.Write([]byte{'{', ' '})
 	i := 0
@@ -159,7 +199,9 @@ func (p *jsonParser) Write(attr Attributes, w io.Writer) error {
 	return nil
 }
 
-// Tries to parse attributes in sequence, until it finds a non-failing parser
+// failoverAttributeParser tries to parse attributes using one of the provided ordered parsers
+// until it finds a non-failing one.
+// Attributes are written using the provided writer.
 type failoverAttributeParser struct {
 	parsers []attributeParser
 	writer  attributeParser
@@ -189,11 +231,3 @@ func (p *failoverAttributeParser) Parse(raw []byte) (attr Attributes, finalErr e
 func (p *failoverAttributeParser) Write(attr Attributes, w io.Writer) error {
 	return p.writer.Write(attr, w)
 }
-
-var DefaultDocumentParser = newFailoverAttributeParser(
-	[]attributeParser{
-		&jsonParser{},
-		&babikMLParser{},
-	},
-	&jsonParser{},
-)

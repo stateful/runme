@@ -35,7 +35,8 @@ class Config$Type extends MessageType {
             { no: 2, name: "filename", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "env", kind: "message", T: () => Config_Env },
             { no: 5, name: "filters", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => Config_Filter },
-            { no: 7, name: "log", kind: "message", T: () => Config_Log }
+            { no: 7, name: "log", kind: "message", T: () => Config_Log },
+            { no: 8, name: "server", kind: "message", T: () => Config_Server }
         ]);
     }
 }
@@ -98,3 +99,30 @@ class Config_Log$Type extends MessageType {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Log
  */
 export const Config_Log = new Config_Log$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Config_Server$Type extends MessageType {
+    constructor() {
+        super("runme.config.v1alpha1.Config.Server", [
+            { no: 1, name: "address", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "tls", kind: "message", T: () => Config_Server_TLS }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server
+ */
+export const Config_Server = new Config_Server$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Config_Server_TLS$Type extends MessageType {
+    constructor() {
+        super("runme.config.v1alpha1.Config.Server.TLS", [
+            { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "cert_file", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "key_file", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server.TLS
+ */
+export const Config_Server_TLS = new Config_Server_TLS$Type();

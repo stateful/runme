@@ -334,8 +334,6 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 
 type runFunc func(context.Context) error
 
-const tlsFileMode = os.FileMode(int(0o700))
-
 var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")
 
 func promptEnvVars(cmd *cobra.Command, envs []string, tasks ...project.Task) error {
