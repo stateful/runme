@@ -22,7 +22,7 @@ type VirtualCommand struct {
 	// cmd is populated when the command is started.
 	cmd *exec.Cmd
 
-	// stdin is Opts.Stdin wrapped in readCloser.
+	// stdin is [VirtualCommandOptions.Stdin] wrapped in readCloser.
 	stdin io.ReadCloser
 
 	cleanFuncs []func() error
@@ -30,49 +30,12 @@ type VirtualCommand struct {
 	pty *os.File
 	tty *os.File
 
-	wg sync.WaitGroup
+	wg sync.WaitGroup // watch goroutines copying I/O
 
-	mu  sync.Mutex
+	mu  sync.Mutex // protect err
 	err error
 
 	logger *zap.Logger
-}
-
-// readCloser allows to wrap a io.Reader into io.ReadCloser.
-//
-// When Close() is called, the underlying read operation is ignored.
-// A disadvantage is that it may leak and hang indefinitely, or
-// the read data is lost. It's caller's responsibility to interrupt
-// the underlying reader when the virtualCommand exits.
-type readCloser struct {
-	r    io.Reader
-	done chan struct{}
-}
-
-func (r *readCloser) Read(p []byte) (int, error) {
-	var (
-		n   int
-		err error
-	)
-
-	readc := make(chan struct{})
-
-	go func() {
-		n, err = r.r.Read(p)
-		close(readc)
-	}()
-
-	select {
-	case <-readc:
-		return n, err
-	case <-r.done:
-		return 0, io.EOF
-	}
-}
-
-func (r *readCloser) Close() error {
-	close(r.done)
-	return nil
 }
 
 func newVirtualCommand(cfg *Config, opts *VirtualCommandOptions) *VirtualCommand {
@@ -109,7 +72,7 @@ func (c *VirtualCommand) Pid() int {
 func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 	cfg, cleanups, err := normalizeConfig(
 		c.cfg,
-		pathNormalizer,
+		newPathNormalizer(),
 		modeNormalizer,
 		newArgsNormalizer(c.opts.Session, c.logger),
 		newEnvNormalizer(c.opts.Session.GetEnv),
@@ -296,4 +259,41 @@ func isNil(val any) bool {
 	}
 
 	return reflect.ValueOf(val).IsNil()
+}
+
+// readCloser wraps [io.Reader] into [io.ReadCloser].
+//
+// When Close is called, the underlying read operation is ignored.
+// It might discard some read data, or read might hang indefinitely.
+// It is caller's responsibility to interrupt the underlying [io.Reader]
+// when [VirtualCommand] exits.
+type readCloser struct {
+	r    io.Reader
+	done chan struct{}
+}
+
+func (r *readCloser) Read(p []byte) (int, error) {
+	var (
+		n   int
+		err error
+	)
+
+	readc := make(chan struct{})
+
+	go func() {
+		n, err = r.r.Read(p)
+		close(readc)
+	}()
+
+	select {
+	case <-readc:
+		return n, err
+	case <-r.done:
+		return 0, io.EOF
+	}
+}
+
+func (r *readCloser) Close() error {
+	close(r.done)
+	return nil
 }

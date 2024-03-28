@@ -44,14 +44,10 @@ func (c *NativeCommand) Pid() int {
 	return c.cmd.Process.Pid
 }
 
-func (c *NativeCommand) SetWinsize(rows, cols, x, y uint16) error {
-	return errors.New("unsupported")
-}
-
 func (c *NativeCommand) Start(ctx context.Context) (err error) {
 	cfg, cleanups, err := normalizeConfig(
 		c.cfg,
-		pathNormalizer,
+		newPathNormalizer(),
 		modeNormalizer,
 		newArgsNormalizer(c.opts.Session, c.logger),
 		newEnvNormalizer(c.opts.Session.GetEnv),

@@ -43,6 +43,9 @@ type Config struct {
 	ServerTLSEnabled  bool
 	ServerTLSCertFile string
 	ServerTLSKeyFile  string
+
+	// Kernel related fields.
+	Kernels []Kernel
 }
 
 func ParseYAML(data []byte) (*Config, error) {
@@ -61,7 +64,10 @@ func ParseYAML(data []byte) (*Config, error) {
 			return nil, errors.Wrap(err, "failed to validate v1alpha1 config")
 		}
 
-		config := configV1alpha1ToConfig(cfg)
+		config, err := configV1alpha1ToConfig(cfg)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to convert v1alpha1 config")
+		}
 
 		if err := validateConfig(config); err != nil {
 			return nil, errors.Wrap(err, "failed to validate config")
@@ -111,7 +117,7 @@ func parseYAMLv1alpha1(data []byte) (*configv1alpha1.Config, error) {
 	return &cfg, nil
 }
 
-func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
+func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 	project := c.GetProject()
 	log := c.GetLog()
 
@@ -123,7 +129,33 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 		})
 	}
 
-	return &Config{
+	var kernels []Kernel
+	for _, k := range c.GetKernels() {
+		msg, err := k.UnmarshalNew()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to unmarshal kernel")
+		}
+
+		switch k := msg.(type) {
+		case *configv1alpha1.Config_LocalKernel:
+			kernels = append(kernels, &LocalKernel{})
+		case *configv1alpha1.Config_DockerKernel:
+			kernels = append(kernels, &DockerKernel{
+				Image: k.GetImage(),
+				Build: struct {
+					Context    string
+					Dockerfile string
+				}{
+					Context:    k.GetBuild().GetContext(),
+					Dockerfile: k.GetBuild().GetDockerfile(),
+				},
+			})
+		default:
+			return nil, errors.Errorf("unknown kernel type: %s", k.ProtoReflect().Type().Descriptor().FullName())
+		}
+	}
+
+	cfg := &Config{
 		ProjectDir:       project.GetDir(),
 		FindRepoUpward:   project.GetFindRepoUpward(),
 		IgnorePaths:      project.GetIgnorePaths(),
@@ -144,7 +176,11 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 		ServerTLSEnabled:  c.GetServer().GetTls().GetEnabled(),
 		ServerTLSCertFile: c.GetServer().GetTls().GetCertFile(),
 		ServerTLSKeyFile:  c.GetServer().GetTls().GetKeyFile(),
+
+		Kernels: kernels,
 	}
+
+	return cfg, nil
 }
 
 func validateConfig(cfg *Config) error {

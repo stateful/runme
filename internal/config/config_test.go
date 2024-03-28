@@ -6,6 +6,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
+
+	configv1alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/config/v1alpha1"
 )
 
 func TestParseYAML(t *testing.T) {
@@ -49,6 +53,11 @@ func TestParseYAML(t *testing.T) {
 			name:           "validate filename within cwd",
 			rawConfig:      "version: v1alpha1\nfilename: '../README.md'\n",
 			errorSubstring: "failed to validate config: failed to validate filename: outside of current working directory",
+		},
+		{
+			name:           "invalid kernel type",
+			rawConfig:      "version: v1alpha1\nfilename: REAEDME.md\nkernels:\n  - '@type': 'type.googleapis.com/runme.config.v1alpha1.Config.Unknown'\n",
+			errorSubstring: "unable to resolve \"type.googleapis.com/runme.config.v1alpha1.Config.Unknown\": \"not found\"",
 		},
 	}
 
@@ -95,6 +104,14 @@ filters:
   - type: "FILTER_TYPE_BLOCK"
     condition: "name != ''"
 
+kernels:
+  - "@type": "type.googleapis.com/runme.config.v1alpha1.Config.DockerKernel"
+    image: runme-kernel:latest
+    build:
+      context: ./experimental/kernel
+      dockerfile: Dockerfile
+  - "@type": "type.googleapis.com/runme.config.v1alpha1.Config.LocalKernel"
+
 log:
   enabled: true
   path: "/var/tmp/runme.log"
@@ -116,8 +133,37 @@ log:
 			},
 		},
 
+		Kernels: []Kernel{
+			&DockerKernel{
+				Image: "runme-kernel:latest",
+				Build: struct {
+					Context    string
+					Dockerfile string
+				}{
+					Context:    "./experimental/kernel",
+					Dockerfile: "Dockerfile",
+				},
+			},
+			&LocalKernel{},
+		},
+
 		LogEnabled: true,
 		LogPath:    "/var/tmp/runme.log",
 		LogVerbose: true,
 	}
 )
+
+func TestKernelProtoJSONToProto(t *testing.T) {
+	localKernel, err := anypb.New(&configv1alpha1.Config_LocalKernel{})
+	require.NoError(t, err)
+
+	obj := &configv1alpha1.Config{
+		Kernels: []*anypb.Any{
+			localKernel,
+		},
+	}
+
+	data, err := protojson.Marshal(obj)
+	require.NoError(t, err)
+	require.Equal(t, `{"kernels":[{"@type":"type.googleapis.com/runme.config.v1alpha1.Config.LocalKernel"}]}`, string(data))
+}

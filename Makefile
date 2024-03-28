@@ -30,8 +30,9 @@ wasm:
 test/execute: PKGS ?= "./..."
 test/execute: RUN ?= .*
 test/execute: RACE ?= false
+test/execute: TAGS ?= "" # e.g. TAGS="test_with_docker"
 test/execute: build test/prep-git-project
-	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -timeout=60s -race=$(RACE) -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
+	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=60s -race=$(RACE) -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
 .PHONY: test/prep-git-project
 test/prep-git-project:

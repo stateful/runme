@@ -42,7 +42,11 @@ type argsNormalizer struct {
 }
 
 func newArgsNormalizer(session *Session, logger *zap.Logger) configNormalizer {
-	return (&argsNormalizer{session: session, logger: logger}).Normalize
+	obj := &argsNormalizer{
+		session: session,
+		logger:  logger,
+	}
+	return obj.Normalize
 }
 
 func (n *argsNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {

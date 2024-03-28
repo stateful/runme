@@ -18,13 +18,11 @@ func (n *envNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {
 	result := proto.Clone(cfg).(*Config)
 
 	// TODO: getting envs from OS should be configurable.
-	env := append(os.Environ(), cfg.Env...)
+	result.Env = append(os.Environ(), cfg.Env...)
 
 	for _, source := range n.sources {
-		env = append(env, source()...)
+		result.Env = append(result.Env, source()...)
 	}
-
-	result.Env = env
 
 	return result, nil, nil
 }

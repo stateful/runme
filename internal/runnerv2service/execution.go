@@ -217,7 +217,7 @@ func (e *execution) Write(p []byte) (int, error) {
 	// Alternatively, there should be a way to signal end of input.
 	if _, ok := e.Cmd.(*command.NativeCommand); ok {
 		if closeErr := e.stdinWriter.Close(); closeErr != nil {
-			e.logger.Info("failed to close stdin writer", zap.Error(closeErr))
+			e.logger.Info("failed to close native command stdin writer", zap.Error(closeErr))
 			if err == nil {
 				err = closeErr
 			}
