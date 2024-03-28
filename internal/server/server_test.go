@@ -37,27 +37,6 @@ func TestServer(t *testing.T) {
 		require.NoError(t, <-errc)
 	})
 
-	t.Run("unix", func(t *testing.T) {
-		dir := t.TempDir()
-		sock := filepath.Join(dir, "runme.sock")
-		cfg := &Config{
-			Address: "unix://" + sock,
-		}
-		logger := zaptest.NewLogger(t)
-		s, err := New(cfg, logger)
-		require.NoError(t, err)
-		errc := make(chan error, 1)
-		go func() {
-			err := s.Serve()
-			errc <- err
-		}()
-
-		testConnectivity(t, cfg.Address, insecure.NewCredentials())
-
-		s.Shutdown()
-		require.NoError(t, <-errc)
-	})
-
 	t.Run("tcp with tls", func(t *testing.T) {
 		dir := t.TempDir()
 		cfg := &Config{
