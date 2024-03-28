@@ -20,6 +20,7 @@ import (
 )
 
 const (
+	tlsDirMode  = 0o700
 	tlsFileMode = 0o600
 	certPEMFile = "cert.pem" // deprecated
 	keyPEMFile  = "key.pem"  // deprecated
@@ -104,13 +105,31 @@ func LoadOrGenerateConfig(certFile, keyFile string, logger *zap.Logger) (*tls.Co
 
 // Deprecated: use LoadOrGenerateConfig.
 func LoadOrGenerateConfigFromDir(dir string, logger *zap.Logger) (*tls.Config, error) {
+	info, err := os.Stat(dir)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, errors.WithStack(err)
+		}
+		if err := os.MkdirAll(dir, tlsDirMode); err != nil {
+			return nil, errors.Wrap(err, "failed to create dir")
+		}
+	} else {
+		if !info.IsDir() {
+			return nil, errors.New("provided path is not a directory")
+		}
+
+		if err := os.Chmod(dir, tlsDirMode); err != nil {
+			return nil, errors.Wrap(err, "failed to change the directory mod")
+		}
+	}
+
 	return LoadOrGenerateConfig(filepath.Join(dir, certPEMFile), filepath.Join(dir, keyPEMFile), logger)
 }
 
 func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	ca := &x509.Certificate{
@@ -139,7 +158,7 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 
 	certificateBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &privKey.PublicKey, privKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	caPEM := new(bytes.Buffer)
@@ -147,11 +166,11 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 		Type:  "CERTIFICATE",
 		Bytes: certificateBytes,
 	}); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	if err := os.WriteFile(certFile, caPEM.Bytes(), tlsFileMode); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to write CA")
 	}
 
 	privKeyPEM := new(bytes.Buffer)
@@ -159,11 +178,11 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privKey),
 	}); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	if err := os.WriteFile(keyFile, privKeyPEM.Bytes(), tlsFileMode); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to write private key")
 	}
 
 	certPool := x509.NewCertPool()
