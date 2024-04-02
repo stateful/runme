@@ -30,6 +30,8 @@ message Config {
   // log contains the log configuration.
   Log log = 7;
 
+  Server server = 8;
+
   message Project {
     // dir is the directory to look for Markdown files.
     string dir = 1;
@@ -83,5 +85,17 @@ message Config {
 
     // verbose is the verbosity level of the log.
     bool verbose = 3;
+  }
+
+  message Server {
+    string address = 1;
+
+    TLS tls = 2;
+
+    message TLS {
+      bool enabled = 1;
+      string cert_file = 2;
+      string key_file = 3;
+    }
   }
 }

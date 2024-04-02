@@ -1,0 +1,25 @@
+! exec runme beta server start &
+# wait for the server to generate certs and start up
+exec sleep 5
+exec runme beta server stop
+wait
+! stdout .
+stderr '(?sm)server listening'
+
+-- experimental/runme.yaml --
+version: v1alpha1
+filename: README.md
+server:
+  address: unix://runme.sock
+  tls:
+    enabled: true
+    cert_file: "cert.pem"
+    key_file: "key.pem"
+log:
+  enabled: true
+  verbose: true
+
+-- README.md --
+```sh {"name": "hello"}
+echo hello
+```

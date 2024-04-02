@@ -57,7 +57,7 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 	if r.insecure {
 		creds = insecure.NewCredentials()
 	} else {
-		tlsConfig, err := runmetls.LoadTLSConfig(r.tlsDir, true)
+		tlsConfig, err := runmetls.LoadClientConfigFromDir(r.tlsDir)
 		if err != nil {
 			return nil, err
 		}
@@ -84,10 +84,13 @@ func (r *RemoteRunner) setupSession(ctx context.Context) error {
 		return nil
 	}
 
-	resp, err := r.client.CreateSession(ctx, &runnerv1.CreateSessionRequest{
-		Envs:    os.Environ(),
-		Project: ConvertToRunnerProject(r.project),
-	})
+	request := &runnerv1.CreateSessionRequest{
+		Envs:         os.Environ(),
+		Project:      ConvertToRunnerProject(r.project),
+		EnvStoreType: r.envStoreType,
+	}
+
+	resp, err := r.client.CreateSession(ctx, request)
 	if err != nil {
 		return errors.Wrap(err, "failed to create session")
 	}
@@ -296,4 +299,8 @@ func (r *RemoteRunner) GetEnvs(ctx context.Context) ([]string, error) {
 	}
 
 	return resp.Session.Envs, nil
+}
+
+func (r *RemoteRunner) GetSessionID() string {
+	return r.sessionID
 }

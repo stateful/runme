@@ -1,0 +1,56 @@
+cd nested
+exec runme beta ls
+cd ..
+cmp stdout result-ls.txt
+! stderr .
+
+cd nested
+exec runme beta print
+cd ..
+cmp stdout result-print.txt
+! stderr .
+
+-- nested/experimental/runme.yaml --
+version: v1alpha1
+project:
+  dir: "."
+  find_repo_upward: true
+env:
+  sources:
+    - .env
+
+# Ensure that there is a git repository upwards.
+# It contains .gitignore which should be respected.
+-- .git/config --
+# empty
+
+-- .git/HEAD --
+ref: refs/heads/main
+
+-- .gitignore --
+IGNORED.md
+
+-- README.md --
+```sh {"name": "root-hello"}
+echo root-hello
+```
+
+-- nested/README.md --
+```sh {"name": "nested-hello"}
+echo nested-hello
+```
+
+-- IGNORED.md --
+```sh {"name": "root-ignored"}
+echo root-ignored
+```
+
+-- result-ls.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+root-hello	../README.md	echo root-hello		Yes
+nested-hello	README.md	echo nested-hello		Yes
+-- result-print.txt --
+# ../README.md:root-hello
+echo root-hello
+# README.md:nested-hello
+echo nested-hello

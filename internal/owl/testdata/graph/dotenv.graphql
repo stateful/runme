@@ -1,0 +1,48 @@
+query ResolveOwlDotEnv($insecure: Boolean = false, $prefix: String = "", $load_0: [VariableInput]!, $load_1: [VariableInput]!, $reconcile_3: [VariableInput]!, $update_4: [VariableInput]!, $reconcile_6: [VariableInput]!, $update_7: [VariableInput]!, $reconcile_9: [VariableInput]!, $update_10: [VariableInput]!, $reconcile_12: [VariableInput]!, $update_13: [VariableInput]!, $update_17: [VariableInput]!) {
+  environment {
+    load(vars: $load_0, hasSpecs: false) {
+      load(vars: $load_1, hasSpecs: true) {
+        reconcile(vars: $reconcile_3, hasSpecs: true) {
+          update(vars: $update_4, hasSpecs: false) {
+            reconcile(vars: $reconcile_6, hasSpecs: true) {
+              update(vars: $update_7, hasSpecs: false) {
+                reconcile(vars: $reconcile_9, hasSpecs: true) {
+                  update(vars: $update_10, hasSpecs: false) {
+                    reconcile(vars: $reconcile_12, hasSpecs: true) {
+                      update(vars: $update_13, hasSpecs: false) {
+                        update(vars: $update_17, hasSpecs: false) {
+                          validate {
+                            Opaque(insecure: $insecure, keys: ["ELECTRON_RUN_AS_NODE", "PAGER", "INFOPATH", "VSCODE_PID", "__CF_USER_TEXT_ENCODING", "BEGIN_INSTALL", "TMPDIR", "HOMEBREW_PREFIX", "HOMEBREW_REPOSITORY", "LC_ALL", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "VSCODE_NLS_CONFIG", "USE_GKE_GCLOUD_AUTH_PLUGIN", "ASDF_DIR", "LOGNAME", "VSCODE_AMD_ENTRYPOINT", "HOME", "VSCODE_HANDLES_UNCAUGHT_ERRORS", "__CFBundleIdentifier", "WASI_SDK_PATH", "TERMINFO", "KRAFTCLOUD_USER", "INSTRUMENTATION_KEY", "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL", "TERM", "GOPATH", "_", "MANPATH", "SHLVL", "HOMEBREW_CELLAR", "TREE_COLORS", "RUNME_ID", "INNER", "MallocNanoZone", "OLDPWD", "VSCODE_IPC_HOOK", "XPC_SERVICE_NAME", "SHELL", "ORIGINAL_XDG_CURRENT_DESKTOP", "XPC_FLAGS", "WASMTIME_HOME", "SSH_AUTH_SOCK", "LS_COLORS", "PATH", "BUF_TOKEN", "LESS", "VSCODE_CWD", "LSCOLORS", "__"]) {
+                              name
+                              sensitive
+                              mask
+                              Plain(insecure: $insecure, keys: ["MSG", "PWD", "NAKED", "NAME", "USER", "COMMAND_MODE", "OPENAI_ORG_ID"]) {
+                                name
+                                sensitive
+                                mask
+                                Secret(insecure: $insecure, keys: ["OPENAI_API_KEY", "KRAFTCLOUD_TOKEN"]) {
+                                  name
+                                  sensitive
+                                  mask
+                                  done {
+                                    render {
+                                      dotenv(insecure: $insecure, prefix: $prefix)
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

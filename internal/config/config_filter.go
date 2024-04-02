@@ -39,6 +39,7 @@ type FilterBlockEnv struct {
 	Cwd                    string   `expr:"cwd"`
 	ExcludeFromRunAll      bool     `expr:"exclude_from_run_all"`
 	Interactive            bool     `expr:"interactive"`
+	IsNamed                bool     `expr:"is_named"`
 	Language               string   `expr:"language"`
 	Name                   string   `expr:"name"`
 	PromptEnv              bool     `expr:"prompt_env"`

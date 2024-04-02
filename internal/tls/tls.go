@@ -8,145 +8,128 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
+	"io/fs"
 	"math/big"
 	"net"
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
-type TLSFiles[T any] struct {
-	Cert    T
-	PrivKey T
-}
+const (
+	tlsDirMode  = 0o700
+	tlsFileMode = 0o600
+	certPEMFile = "cert.pem" // deprecated
+	keyPEMFile  = "key.pem"  // deprecated
+)
 
-// Done for mocking purposes
-var getNow = func() time.Time {
-	return time.Now()
-}
+var nowFn = time.Now
 
-func getTLSFiles(tlsDir string) TLSFiles[string] {
-	return TLSFiles[string]{
-		Cert:    path.Join(tlsDir, "cert.pem"),
-		PrivKey: path.Join(tlsDir, "key.pem"),
-	}
-}
-
-func getTLSBytes(tlsDir string) (*TLSFiles[[]byte], error) {
-	tlsFiles := getTLSFiles(tlsDir)
-
-	certBytes, err := os.ReadFile(tlsFiles.Cert)
+func LoadClientConfig(certFile, keyFile string) (*tls.Config, error) {
+	cert, certPool, err := loadCertificateAndCertPool(certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}
-
-	privKeyBytes, err := os.ReadFile(tlsFiles.PrivKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return &TLSFiles[[]byte]{
-		Cert:    certBytes,
-		PrivKey: privKeyBytes,
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      certPool,
+		MinVersion:   tls.VersionTLS12,
 	}, nil
 }
 
-func serverTLSConfig(cert tls.Certificate, certPool *x509.CertPool) *tls.Config {
+// Deprecated: use LoadClientConfig.
+func LoadClientConfigFromDir(dir string) (*tls.Config, error) {
+	return LoadClientConfig(filepath.Join(dir, certPEMFile), filepath.Join(dir, keyPEMFile))
+}
+
+func LoadServerConfig(certFile, keyFile string) (*tls.Config, error) {
+	cert, certPool, err := loadCertificateAndCertPool(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
 		MinVersion:   tls.VersionTLS12,
-	}
+	}, nil
 }
 
-func clientTLSConfig(cert tls.Certificate, certPool *x509.CertPool) *tls.Config {
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      certPool,
-		MinVersion:   tls.VersionTLS12,
-	}
-}
-
-func LoadTLSConfig(tlsDir string, isClient bool) (*tls.Config, error) {
-	pemBytes, err := getTLSBytes(tlsDir)
+func loadCertificateAndCertPool(certFile, keyFile string) (cert tls.Certificate, _ *x509.CertPool, _ error) {
+	certBytes, err := os.ReadFile(certFile)
 	if err != nil {
+		return cert, nil, errors.WithStack(err)
+	}
+
+	privKeyBytes, err := os.ReadFile(keyFile)
+	if err != nil {
+		return cert, nil, errors.WithStack(err)
+	}
+
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(certBytes) {
+		return cert, nil, errors.New("failed to add root certificate to pool")
+	}
+
+	cert, err = tls.X509KeyPair(certBytes, privKeyBytes)
+	if err != nil {
+		return cert, nil, errors.WithStack(err)
+	}
+
+	return cert, pool, nil
+}
+
+// LoadOrGenerateConfig loads the TLS configuration from the given files,
+// or generates a new one if the files do not exist.
+func LoadOrGenerateConfig(certFile, keyFile string, logger *zap.Logger) (*tls.Config, error) {
+	config, err := LoadServerConfig(certFile, keyFile)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
 
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(pemBytes.Cert) {
-		return nil, fmt.Errorf("failed to add root certificate to pool")
-	}
-
-	cert, err := tls.X509KeyPair(pemBytes.Cert, pemBytes.PrivKey)
-	if err != nil {
-		return nil, err
-	}
-
-	var tlsConfig *tls.Config
-
-	if isClient {
-		tlsConfig = clientTLSConfig(cert, certPool)
+	if config != nil {
+		if ttl, err := validateTLSConfig(config); err == nil {
+			logger.Info("certificate is valid", zap.Duration("ttl", ttl))
+			return config, nil
+		}
+		logger.Warn("failed to validate TLS config; generating new cartificate", zap.Error(err))
 	} else {
-		tlsConfig = serverTLSConfig(cert, certPool)
+		logger.Info("certificate not found; generating new certificate")
 	}
 
-	return tlsConfig, nil
+	return generateCertificate(certFile, keyFile)
 }
 
-func GenerateTLS(tlsDir string, tlsFileMode os.FileMode, logger *zap.Logger) (*tls.Config, error) {
-	if info, err := os.Stat(tlsDir); err != nil {
-		if err := os.MkdirAll(tlsDir, tlsFileMode); err != nil {
-			return nil, err
+// Deprecated: use LoadOrGenerateConfig.
+func LoadOrGenerateConfigFromDir(dir string, logger *zap.Logger) (*tls.Config, error) {
+	info, err := os.Stat(dir)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, errors.WithStack(err)
+		}
+		if err := os.MkdirAll(dir, tlsDirMode); err != nil {
+			return nil, errors.Wrap(err, "failed to create dir")
 		}
 	} else {
 		if !info.IsDir() {
-			return nil, fmt.Errorf("provided tls path is not a directory: %s", tlsDir)
+			return nil, errors.New("provided path is not a directory")
 		}
 
-		if err := os.Chmod(tlsDir, tlsFileMode); err != nil {
-			return nil, err
+		if err := os.Chmod(dir, tlsDirMode); err != nil {
+			return nil, errors.Wrap(err, "failed to change the directory mod")
 		}
 	}
 
-	var (
-		certPath = path.Join(tlsDir, "cert.pem")
-		pkPath   = path.Join(tlsDir, "key.pem")
-	)
+	return LoadOrGenerateConfig(filepath.Join(dir, certPEMFile), filepath.Join(dir, keyPEMFile), logger)
+}
 
-	if tlsConfig, err := LoadTLSConfig(tlsDir, false); err == nil {
-		if len(tlsConfig.Certificates) < 1 || len(tlsConfig.Certificates[0].Certificate) < 1 {
-			logger.Warn("invalid TLS certificate, generating new certificate...")
-			goto generateNew
-		}
-
-		cert, err := x509.ParseCertificate(tlsConfig.Certificates[0].Certificate[0])
-		if err != nil {
-			logger.Warn("failed to parse certificate, generating new certificate...", zap.Error(err))
-			goto generateNew
-		}
-
-		if getNow().AddDate(0, 0, 7).After(cert.NotAfter) {
-			logger.Info("pre-existing certificate will expire soon, generating new certificate...")
-			goto generateNew
-		}
-
-		ttl := cert.NotAfter.Sub(getNow()).Hours() / 24
-		logger.Sugar().Infof("using pre-existing TLS certificate, ttl: %.2fd", ttl)
-
-		return tlsConfig, nil
-	}
-
-generateNew:
-	logger.Info("generating new TLS certificate...")
-
+func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	ca := &x509.Certificate{
@@ -158,8 +141,8 @@ generateNew:
 			Province:     []string{"California"},
 			Locality:     []string{"Berkeley"},
 		},
-		NotBefore:             getNow(),
-		NotAfter:              getNow().AddDate(0, 0, 30),
+		NotBefore:             nowFn(),
+		NotAfter:              nowFn().AddDate(0, 0, 30),
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -175,7 +158,7 @@ generateNew:
 
 	certificateBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &privKey.PublicKey, privKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	caPEM := new(bytes.Buffer)
@@ -183,7 +166,11 @@ generateNew:
 		Type:  "CERTIFICATE",
 		Bytes: certificateBytes,
 	}); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
+	}
+
+	if err := os.WriteFile(certFile, caPEM.Bytes(), tlsFileMode); err != nil {
+		return nil, errors.Wrap(err, "failed to write CA")
 	}
 
 	privKeyPEM := new(bytes.Buffer)
@@ -191,38 +178,49 @@ generateNew:
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privKey),
 	}); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
-	tlsCa := tls.Certificate{
-		Certificate: [][]byte{certificateBytes},
-		PrivateKey:  privKey,
-		Leaf:        ca,
+	if err := os.WriteFile(keyFile, privKeyPEM.Bytes(), tlsFileMode); err != nil {
+		return nil, errors.Wrap(err, "failed to write private key")
 	}
 
 	certPool := x509.NewCertPool()
 
 	// TODO: can probably use `AddCert` here
 	if !certPool.AppendCertsFromPEM(caPEM.Bytes()) {
-		return nil, fmt.Errorf("failed to add certificate to certificate pool")
+		return nil, errors.New("failed to add certificate to certificate pool")
+	}
+
+	tlsCA := tls.Certificate{
+		Certificate: [][]byte{certificateBytes},
+		PrivateKey:  privKey,
+		Leaf:        ca,
 	}
 
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{tlsCa},
+		Certificates: []tls.Certificate{tlsCA},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
 		MinVersion:   tls.VersionTLS12,
 	}
 
-	if err := os.WriteFile(certPath, caPEM.Bytes(), tlsFileMode); err != nil {
-		return nil, err
-	}
-
-	if err := os.WriteFile(pkPath, privKeyPEM.Bytes(), tlsFileMode); err != nil {
-		return nil, err
-	}
-
-	logger.Info("successfully generated new TLS certificate!")
-
 	return tlsConfig, nil
+}
+
+func validateTLSConfig(config *tls.Config) (ttl time.Duration, _ error) {
+	if len(config.Certificates) < 1 || len(config.Certificates[0].Certificate) < 1 {
+		return ttl, errors.New("invalid TLS certificate")
+	}
+
+	cert, err := x509.ParseCertificate(config.Certificates[0].Certificate[0])
+	if err != nil {
+		return ttl, errors.Wrap(err, "failed to parse certificate")
+	}
+
+	if nowFn().AddDate(0, 0, 7).After(cert.NotAfter) {
+		return ttl, errors.New("certificate will expire soon")
+	}
+
+	return cert.NotAfter.Sub(nowFn()), nil
 }

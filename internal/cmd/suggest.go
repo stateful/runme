@@ -101,7 +101,7 @@ func promptForDescription(cmd *cobra.Command) (string, error) {
 	return val, nil
 }
 
-func runSuggestAndRetry(ctx context.Context, cmd *cobra.Command, runF runFunc) error {
+func runSuggestAndRetry(ctx context.Context, _ *cobra.Command, runF runFunc) error {
 	err := runF(ctx)
 	switch {
 	case err == nil:

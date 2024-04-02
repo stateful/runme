@@ -43,6 +43,8 @@ type RunnerSettings struct {
 	tlsDir   string
 
 	envs []string
+
+	envStoreType runnerv1.SessionEnvStoreType
 }
 
 func (rs *RunnerSettings) Clone() *RunnerSettings {
@@ -216,6 +218,12 @@ func WithTempSettings(rc Runner, opts []RunnerOption, cb func() error) error {
 	}
 
 	return nil
+}
+
+func WithEnvStoreType(EnvStoreType runnerv1.SessionEnvStoreType) RunnerOption {
+	return withSettings(func(rs *RunnerSettings) {
+		rs.envStoreType = EnvStoreType
+	})
 }
 
 func ApplyOptions(rc Runner, opts ...RunnerOption) error {

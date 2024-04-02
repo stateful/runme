@@ -10,6 +10,10 @@ exec runme beta run echo-env
 stdout '^ENV_IN_ENV=env_in_env[\s]+$'
 ! stderr .
 
+exec runme beta run unknown
+! stdout .
+stderr 'no tasks to run'
+
 -- experimental/runme.yaml --
 version: v1alpha1
 project:

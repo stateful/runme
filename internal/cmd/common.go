@@ -314,6 +314,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 			client.WithInsecure(fInsecure),
 			client.WithEnableBackgroundProcesses(EnableBackgroundProcesses),
 			client.WithEnvs([]string{fmt.Sprintf("%s=%d", envStackDepth, stackDepth)}),
+			client.WithEnvStoreType(runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_UNSPECIFIED),
 		}
 
 		switch strings.ToLower(SessionStrategy) {
@@ -332,8 +333,6 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 }
 
 type runFunc func(context.Context) error
-
-const tlsFileMode = os.FileMode(int(0o700))
 
 var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")
 

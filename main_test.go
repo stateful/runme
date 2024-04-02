@@ -52,9 +52,9 @@ func TestRunmeRunAll(t *testing.T) {
 	})
 }
 
-func TestRunmeBetaRun(t *testing.T) {
+func TestRunmeBeta(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "testdata/beta/run",
+		Dir: "testdata/beta",
 	})
 }
 

@@ -396,6 +396,7 @@ func Test_command(t *testing.T) {
 
 		env, err := cmd.Session.Envs()
 		require.NoError(t, err)
+
 		assert.EqualValues(
 			t,
 			sort([]string{

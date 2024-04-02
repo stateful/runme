@@ -52,6 +52,10 @@ export interface Config {
      * @generated from protobuf field: runme.config.v1alpha1.Config.Log log = 7;
      */
     log?: Config_Log;
+    /**
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Server server = 8;
+     */
+    server?: Config_Server;
 }
 /**
  * @generated from protobuf message runme.config.v1alpha1.Config.Project
@@ -145,6 +149,36 @@ export interface Config_Log {
     verbose: boolean;
 }
 /**
+ * @generated from protobuf message runme.config.v1alpha1.Config.Server
+ */
+export interface Config_Server {
+    /**
+     * @generated from protobuf field: string address = 1;
+     */
+    address: string;
+    /**
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Server.TLS tls = 2;
+     */
+    tls?: Config_Server_TLS;
+}
+/**
+ * @generated from protobuf message runme.config.v1alpha1.Config.Server.TLS
+ */
+export interface Config_Server_TLS {
+    /**
+     * @generated from protobuf field: bool enabled = 1;
+     */
+    enabled: boolean;
+    /**
+     * @generated from protobuf field: string cert_file = 2;
+     */
+    certFile: string;
+    /**
+     * @generated from protobuf field: string key_file = 3;
+     */
+    keyFile: string;
+}
+/**
  * @generated from protobuf enum runme.config.v1alpha1.Config.FilterType
  */
 export declare enum Config_FilterType {
@@ -196,4 +230,18 @@ declare class Config_Log$Type extends MessageType<Config_Log> {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Log
  */
 export declare const Config_Log: Config_Log$Type;
+declare class Config_Server$Type extends MessageType<Config_Server> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server
+ */
+export declare const Config_Server: Config_Server$Type;
+declare class Config_Server_TLS$Type extends MessageType<Config_Server_TLS> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server.TLS
+ */
+export declare const Config_Server_TLS: Config_Server_TLS$Type;
 export {};
