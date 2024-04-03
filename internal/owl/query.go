@@ -47,7 +47,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 		}
 
 	}
-	s.logger.Debug("snapshot opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted))
+	s.logger.Debug("snapshot opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted), zap.Int("total", len(s.opSets)))
 
 	q, err := NewQuery("Snapshot", varDefs,
 		[]QueryNodeReducer{
