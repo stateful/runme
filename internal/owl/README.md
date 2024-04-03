@@ -53,6 +53,10 @@ SOME_OTHER_VAR=Needs a matching value # Regex(/^[a-z...a. -]+\.)
 - Runme’s fallback resolution → “securely prompt user”
 - Get involved, help building out owl toolkit & ecosystem
 
+## Define ENV spec inside code repository
+
+![Relationship](env-spec.png)
+
 ## Anatomy of Environment Vars ⇄ “Specs”
 
 ![Specs](vars-specs.png)
