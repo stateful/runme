@@ -26,7 +26,7 @@ func newProgramWithOutputs(output io.Writer, input io.Reader, model tea.Model, o
 		opts = append(opts, tea.WithOutput(output))
 	}
 
-	if input != nil {
+	if input != nil && isTerminal(os.Stdin.Fd()) {
 		opts = append(opts, tea.WithInput(input))
 	}
 
