@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -182,10 +183,17 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
+			// non-tty fails on linux otherwise
+			var stdin io.Reader
+			stdin = bytes.NewBuffer([]byte{})
+			if isTerminal(os.Stdout.Fd()) {
+				stdin = cmd.InOrStdin()
+			}
+
 			runnerOpts = append(
 				runnerOpts,
 				client.WithinShellMaybe(),
-				client.WithStdin(cmd.InOrStdin()),
+				client.WithStdin(stdin),
 				client.WithStdout(cmd.OutOrStdout()),
 				client.WithStderr(cmd.ErrOrStderr()),
 				client.WithProject(proj),

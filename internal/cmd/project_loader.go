@@ -23,9 +23,9 @@ type projectLoader struct {
 }
 
 func newProjectLoader(cmd *cobra.Command, allowUnknown, allowUnnamed bool) (*projectLoader, error) {
-	fd := os.Stdout.Fd()
+	ofd := os.Stdout.Fd()
 
-	if int(fd) < 0 {
+	if int(ofd) < 0 {
 		return nil, fmt.Errorf("invalid file descriptor due to restricted environments, redirected standard output, system configuration issues, or testing/simulation setups")
 	}
 
@@ -35,7 +35,7 @@ func newProjectLoader(cmd *cobra.Command, allowUnknown, allowUnnamed bool) (*pro
 		ctx:          cmd.Context(),
 		w:            cmd.OutOrStdout(),
 		r:            cmd.InOrStdin(),
-		isTerminal:   isTerminal(fd),
+		isTerminal:   isTerminal(ofd) && isTerminal(os.Stdin.Fd()),
 	}, nil
 }
 
