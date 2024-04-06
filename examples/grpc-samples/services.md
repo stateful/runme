@@ -85,5 +85,5 @@ grpcurl \
     -cert /tmp/runme/tls/cert.pem \
     -key /tmp/runme/tls/key.pem \
     -d @ \
-    127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveVars < complex-script.json
+    127.0.0.1:9999 runme.runner.v1.RunnerService/ResolveProgram < complex-script.json
 ```
