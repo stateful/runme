@@ -16,8 +16,8 @@ func newPathNormalizer() configNormalizer {
 
 func (n *pathNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {
 	var (
-		programPath string
-		args        []string
+		programPath string   = cfg.ProgramName
+		args        []string = cfg.Arguments
 		err         error
 	)
 
