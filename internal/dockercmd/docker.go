@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
+	"go.uber.org/zap"
 	"golang.org/x/exp/rand"
 )
 
@@ -13,6 +14,8 @@ type Options struct {
 	// BuildContext string
 	// Dockerfile   string
 	Image string
+
+	Logger *zap.Logger
 }
 
 type Factory interface {
@@ -27,11 +30,17 @@ func New(opts *Options) (Factory, error) {
 		return nil, err
 	}
 
+	logger := opts.Logger
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	rnd := rand.New(rand.NewSource(uint64(time.Now().Unix())))
 
 	return &docker{
 		Client: c,
 		Image:  opts.Image,
+		logger: logger,
 		rnd:    rnd,
 	}, nil
 }
@@ -40,7 +49,8 @@ type docker struct {
 	*client.Client
 	Image string
 
-	rnd *rand.Rand
+	logger *zap.Logger
+	rnd    *rand.Rand
 }
 
 func (d *docker) CommandContext(ctx context.Context, program string, args ...string) *Cmd {
@@ -51,6 +61,8 @@ func (d *docker) CommandContext(ctx context.Context, program string, args ...str
 		ctx:    ctx,
 		docker: d,
 		name:   d.containerUniqueName(),
+
+		logger: d.logger,
 	}
 }
 

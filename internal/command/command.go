@@ -1,13 +1,16 @@
 package command
 
 import (
+	"errors"
 	"io"
 
+	"github.com/stateful/runme/v3/internal/dockercmd"
 	"go.uber.org/zap"
 )
 
 type DockerCommandOptions struct {
-	Session *Session
+	CmdFactory dockercmd.Factory
+	Session    *Session
 
 	Stdin  io.Reader
 	Stdout io.Writer
@@ -16,16 +19,20 @@ type DockerCommandOptions struct {
 	Logger *zap.Logger
 }
 
-func NewDocker(cfg *Config, options *DockerCommandOptions) *DockerCommand {
+func NewDocker(cfg *Config, options *DockerCommandOptions) (*DockerCommand, error) {
 	if options == nil {
-		options = &DockerCommandOptions{}
+		return nil, errors.New("options cannot be nil")
+	}
+
+	if options.CmdFactory == nil {
+		return nil, errors.New("CmdFactory cannot be nil")
 	}
 
 	if options.Logger == nil {
 		options.Logger = zap.NewNop()
 	}
 
-	return newDockerCommand(cfg, options)
+	return newDockerCommand(cfg, options), nil
 }
 
 type NativeCommandOptions struct {

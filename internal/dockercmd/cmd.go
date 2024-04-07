@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type Cmd struct {
@@ -22,14 +23,23 @@ type Cmd struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	ctx context.Context
+	Process      *Process
+	ProcessState *ProcessState
 
+	// Fields set by the constructor.
+	ctx    context.Context
 	docker *docker
+	name   string
 
+	// containerID will be set in Start().
 	containerID string
-	name        string
 
-	errC chan error
+	ioErrC chan error
+
+	waitErrC  <-chan error
+	waitRespC <-chan container.WaitResponse
+
+	logger *zap.Logger
 }
 
 func (c *Cmd) Start() error {
@@ -48,7 +58,7 @@ func (c *Cmd) Start() error {
 	}
 	hostConfig := &container.HostConfig{
 		RestartPolicy:  container.RestartPolicy{Name: container.RestartPolicyDisabled},
-		AutoRemove:     false,
+		AutoRemove:     true,
 		ConsoleSize:    [2]uint{80, 24},
 		ReadonlyRootfs: true,
 		Mounts: []mount.Mount{
@@ -75,6 +85,13 @@ func (c *Cmd) Start() error {
 	}
 
 	c.containerID = resp.ID
+	c.waitRespC, c.waitErrC = c.docker.ContainerWait(
+		c.ctx,
+		c.containerID,
+		// It's ok to wait for the "removed" state
+		// because the container is started with auto-remove.
+		container.WaitConditionRemoved,
+	)
 
 	hijack, err := c.docker.ContainerAttach(
 		c.ctx,
@@ -99,7 +116,7 @@ func (c *Cmd) Start() error {
 		return errors.WithStack(err)
 	}
 
-	c.errC = make(chan error, 2)
+	c.ioErrC = make(chan error, 2)
 
 	go func() {
 		var err error
@@ -108,7 +125,7 @@ func (c *Cmd) Start() error {
 		} else {
 			_, err = stdcopy.StdCopy(c.Stdout, c.Stderr, hijack.Reader)
 		}
-		c.errC <- errors.WithStack(err)
+		c.ioErrC <- errors.WithStack(err)
 	}()
 
 	go func() {
@@ -116,19 +133,61 @@ func (c *Cmd) Start() error {
 			return
 		}
 		_, err := io.Copy(hijack.Conn, c.Stdin)
-		c.errC <- errors.WithStack(err)
+		c.ioErrC <- errors.WithStack(err)
 	}()
+
+	inspect, err := c.docker.ContainerInspect(c.ctx, c.containerID)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	c.Process = &Process{
+		Pid: inspect.State.Pid,
+	}
 
 	return nil
 }
 
+func (c *Cmd) Signal() error {
+	err := c.docker.ContainerStop(
+		c.ctx,
+		c.containerID,
+		container.StopOptions{
+			Signal:  "SIGTERM",
+			Timeout: nil,
+		},
+	)
+	return errors.WithStack(err)
+}
+
 func (c *Cmd) Wait() error {
-	_, waitC := c.docker.ContainerWait(c.ctx, c.containerID, container.WaitConditionNotRunning)
+	var err error
 
 	select {
-	case err := <-waitC:
-		return errors.WithStack(err)
-	case err := <-c.errC:
-		return err
+	case resp := <-c.waitRespC:
+		c.logger.Debug("container wait response", zap.Any("response", resp))
+		c.ProcessState = &ProcessState{
+			ExitCode: int(resp.StatusCode),
+		}
+		if resp.Error != nil {
+			c.ProcessState.ErrorMessage = resp.Error.Message
+		}
+	case err = <-c.waitErrC:
+		err = errors.WithStack(err)
 	}
+
+	if err == nil {
+		err = <-c.ioErrC
+	}
+
+	return err
+}
+
+type Process struct {
+	Pid int
+}
+
+type ProcessState struct {
+	ErrorMessage string
+	ExitCode     int
 }

@@ -46,6 +46,8 @@ func (c *NativeCommand) Pid() int {
 
 func (c *NativeCommand) Start(ctx context.Context) (err error) {
 	cfg, cleanups, err := normalizeConfig(
+		// TODO(adamb): pass a copy of [Config] here instead of cloning it
+		// in normalizers.
 		c.cfg,
 		newPathNormalizer(),
 		modeNormalizer,
@@ -133,10 +135,10 @@ func (c *NativeCommand) Wait() (err error) {
 	c.logger.Info("waiting for the native command to finish")
 
 	defer func() {
-		errC := errors.WithStack(c.cleanup())
-		c.logger.Info("cleaned up the native command", zap.Error(errC))
-		if err == nil && errC != nil {
-			err = errC
+		cleanErr := errors.WithStack(c.cleanup())
+		c.logger.Info("cleaned up the native command", zap.Error(cleanErr))
+		if err == nil && cleanErr != nil {
+			err = cleanErr
 		}
 	}()
 
