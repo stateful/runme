@@ -61,7 +61,7 @@ jobs:
         run: |
           export SHELL=/bin/bash
           export TZ=UTC
-          make test
+          TAGS="test_with_docker" make test
           make test/coverage/func
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Test
