@@ -3,19 +3,22 @@ package dockercmd
 import (
 	"context"
 	"encoding/hex"
+	"io"
 	"time"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"golang.org/x/exp/rand"
 )
 
 type Options struct {
-	// BuildContext string
-	// Dockerfile   string
-	Image string
-
-	Logger *zap.Logger
+	BuildContext string
+	Dockerfile   string
+	Image        string
+	Logger       *zap.Logger
 }
 
 type Factory interface {
@@ -38,17 +41,25 @@ func New(opts *Options) (Factory, error) {
 
 	rnd := rand.New(rand.NewSource(uint64(time.Now().Unix())))
 
-	return &docker{
+	d := &docker{
 		Client: c,
 		Image:  opts.Image,
 		logger: logger,
 		rnd:    rnd,
-	}, nil
+	}
+
+	if err := d.buildOrPullImage(context.Background()); err != nil {
+		return nil, err
+	}
+
+	return d, nil
 }
 
 type docker struct {
 	*client.Client
-	Image string
+	BuildContext string
+	Dockerfile   string
+	Image        string
 
 	logger *zap.Logger
 	rnd    *rand.Rand
@@ -71,4 +82,35 @@ func (d *docker) containerUniqueName() string {
 	var hash [4]byte
 	_, _ = d.rnd.Read(hash[:])
 	return "runme-kernel-" + hex.EncodeToString(hash[:])
+}
+
+func (d *docker) buildOrPullImage(ctx context.Context) error {
+	if d.BuildContext != "" {
+		return d.buildImage(ctx)
+	}
+	return d.pullImage(ctx)
+}
+
+func (d *docker) buildImage(ctx context.Context) error {
+	return errors.New("not implemented")
+}
+
+func (d *docker) pullImage(ctx context.Context) error {
+	filters := filters.NewArgs(filters.Arg("reference", d.Image))
+	result, err := d.ImageList(ctx, types.ImageListOptions{Filters: filters})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if len(result) > 0 {
+		return nil
+	}
+
+	resp, err := d.ImagePull(ctx, d.Image, types.ImagePullOptions{})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer resp.Close()
+	_, _ = io.Copy(io.Discard, resp)
+	return nil
 }

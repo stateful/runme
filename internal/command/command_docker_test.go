@@ -14,15 +14,18 @@ import (
 )
 
 func TestDockerCommand(t *testing.T) {
+	t.Parallel()
+
 	t.Run("OptionsIsNil", func(t *testing.T) {
 		_, err := NewDocker(testConfigBasicProgram, nil)
 		require.EqualError(t, err, "options cannot be nil")
 	})
 
-	dockerCmdFactory, err := dockercmd.New(&dockercmd.Options{Image: "runme-kernel:latest"})
+	dockerCmdFactory, err := dockercmd.New(&dockercmd.Options{Image: "alpine:3.19"})
 	require.NoError(t, err)
 
 	t.Run("Output", func(t *testing.T) {
+		// Do not run in parallel; this is a warm up test.
 		stdout := bytes.NewBuffer(nil)
 		opts := &DockerCommandOptions{
 			CmdFactory: dockerCmdFactory,
@@ -36,6 +39,7 @@ func TestDockerCommand(t *testing.T) {
 	})
 
 	t.Run("NoOutput", func(t *testing.T) {
+		t.Parallel()
 		opts := &DockerCommandOptions{
 			CmdFactory: dockerCmdFactory,
 		}
@@ -46,6 +50,7 @@ func TestDockerCommand(t *testing.T) {
 	})
 
 	t.Run("Running", func(t *testing.T) {
+		t.Parallel()
 		opts := &DockerCommandOptions{
 			CmdFactory: dockerCmdFactory,
 		}
@@ -64,6 +69,7 @@ func TestDockerCommand(t *testing.T) {
 	})
 
 	t.Run("NonZeroExit", func(t *testing.T) {
+		t.Parallel()
 		opts := &DockerCommandOptions{
 			CmdFactory: dockerCmdFactory,
 		}
