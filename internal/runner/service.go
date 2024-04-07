@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/creack/pty"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -435,14 +436,29 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	})
 
 	g.Go(func() error {
+		firstStdoutSent := false
+
 		for data := range datac {
 			logger.Debug("sending data", zap.Int("lenStdout", len(data.Stdout)), zap.Int("lenStderr", len(data.Stderr)))
-			err := srv.Send(&runnerv1.ExecuteResponse{
+
+			resp := &runnerv1.ExecuteResponse{
 				StdoutData: data.Stdout,
 				StderrData: data.Stderr,
-			})
+			}
+
+			if !firstStdoutSent && len(data.Stdout) > 0 {
+				if detected := mimetype.Detect(data.Stdout); detected != nil {
+					resp.MimeType = detected.String()
+				}
+			}
+
+			err := srv.Send(resp)
 			if err != nil {
 				return err
+			}
+
+			if len(resp.StdoutData) > 0 {
+				firstStdoutSent = true
 			}
 
 			if storeStdout && len(stdoutMem) < maxEnvSize {

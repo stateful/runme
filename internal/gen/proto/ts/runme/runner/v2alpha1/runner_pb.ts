@@ -278,12 +278,20 @@ export interface ExecuteResponse {
     stderrData: Uint8Array;
     /**
      * pid contains the process' PID.
-     * This is only sent once in an initial response
-     * for background processes.
+     *
+     * This is only sent once in an initial response for background processes.
      *
      * @generated from protobuf field: google.protobuf.UInt32Value pid = 4;
      */
     pid?: UInt32Value;
+    /**
+     * mime_type is a detected MIME type of the stdout_data.
+     *
+     * This is only sent once in the first response containing stdout_data.
+     *
+     * @generated from protobuf field: string mime_type = 5;
+     */
+    mimeType: string;
 }
 /**
  * @generated from protobuf message runme.runner.v2alpha1.ResolveProgramCommandList
@@ -698,7 +706,8 @@ class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
             { no: 1, name: "exit_code", kind: "message", T: () => UInt32Value },
             { no: 2, name: "stdout_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 3, name: "stderr_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
-            { no: 4, name: "pid", kind: "message", T: () => UInt32Value }
+            { no: 4, name: "pid", kind: "message", T: () => UInt32Value },
+            { no: 5, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
