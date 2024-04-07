@@ -25,7 +25,8 @@ type Factory interface {
 var _ Factory = (*docker)(nil)
 
 func New(opts *Options) (Factory, error) {
-	c, err := client.NewClientWithOpts(client.FromEnv)
+	// Typically, the version is dicted by the Docker API version in the CI (GitHub Actions).
+	c, err := client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.43"))
 	if err != nil {
 		return nil, err
 	}
