@@ -61,7 +61,7 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 
 	r.client = runnerv1.NewRunnerServiceClient(conn)
 
-	if err := setupSession(r.RunnerSettings, ctx); err != nil {
+	if err := setupSession(ctx, r.RunnerSettings); err != nil {
 		return nil, err
 	}
 
@@ -89,7 +89,7 @@ func ConvertToRunnerProject(proj *project.Project) *runnerv1.Project {
 }
 
 func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
-	return runTask(r.RunnerSettings, ctx, task)
+	return runTask(ctx, r.RunnerSettings, task)
 }
 
 func (r *RemoteRunner) DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error {
@@ -107,7 +107,7 @@ func (r *RemoteRunner) Cleanup(ctx context.Context) error {
 }
 
 func (r *RemoteRunner) GetEnvs(ctx context.Context) ([]string, error) {
-	return getEnvs(r.RunnerSettings, ctx)
+	return getEnvs(ctx, r.RunnerSettings)
 }
 
 func (r *RemoteRunner) GetSessionID() string {

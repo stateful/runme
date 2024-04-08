@@ -71,7 +71,7 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	}
 
 	ctx := context.Background()
-	if err := setupSession(r.RunnerSettings, ctx); err != nil {
+	if err := setupSession(ctx, r.RunnerSettings); err != nil {
 		return nil, err
 	}
 
@@ -143,7 +143,7 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 }
 
 func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {
-	return runTask(r.RunnerSettings, ctx, task)
+	return runTask(ctx, r.RunnerSettings, task)
 }
 
 func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeBlock) error {
@@ -230,5 +230,5 @@ func (r *LocalRunner) newRunnerServiceClient(
 }
 
 func (r *LocalRunner) GetEnvs(ctx context.Context) ([]string, error) {
-	return getEnvs(r.RunnerSettings, ctx)
+	return getEnvs(ctx, r.RunnerSettings)
 }

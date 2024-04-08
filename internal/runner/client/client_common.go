@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func runTask(rs *RunnerSettings, ctx context.Context, task project.Task) error {
+func runTask(ctx context.Context, rs *RunnerSettings, task project.Task) error {
 	block := task.CodeBlock
 	fmtr, err := task.CodeBlock.Document().Frontmatter()
 	if err != nil {
@@ -174,7 +174,7 @@ func recvLoop(rs *RunnerSettings, stream runnerv1.RunnerService_ExecuteClient, b
 	}
 }
 
-func setupSession(rs *RunnerSettings, ctx context.Context) error {
+func setupSession(ctx context.Context, rs *RunnerSettings) error {
 	if rs.sessionID != "" || rs.sessionStrategy == runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT {
 		return nil
 	}
@@ -197,7 +197,7 @@ func setupSession(rs *RunnerSettings, ctx context.Context) error {
 	return nil
 }
 
-func getEnvs(rs *RunnerSettings, ctx context.Context) ([]string, error) {
+func getEnvs(ctx context.Context, rs *RunnerSettings) ([]string, error) {
 	if rs.sessionID == "" {
 		return nil, nil
 	}
