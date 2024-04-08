@@ -12,7 +12,6 @@ import (
 	"github.com/stateful/runme/v3/internal/document"
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/project"
-	"github.com/stateful/runme/v3/internal/runner"
 	"go.uber.org/zap"
 )
 
@@ -21,7 +20,6 @@ type RunnerOption func(Runner) error
 var ErrRunnerClientUnimplemented = fmt.Errorf("method unimplemented")
 
 type RunnerSettings struct {
-	session        *runner.Session
 	sessionID      string
 	project        *project.Project
 	cleanupSession bool

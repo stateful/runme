@@ -23,10 +23,6 @@ import (
 	"github.com/stateful/runme/v3/internal/tui"
 )
 
-const (
-	exportExtractRegex string = `(\n*)export (\w+=)(("[^"]*")|('[^']*')|[^;\n]+)`
-)
-
 type CommandExportExtractMatch struct {
 	Key            string
 	Value          string

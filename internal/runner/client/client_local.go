@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
-	"github.com/stateful/runme/v3/internal/document"
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/runner"
@@ -144,25 +142,6 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 
 func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {
 	return runTask(ctx, r.RunnerSettings, task)
-}
-
-func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeBlock) error {
-	var d net.Dialer
-	conn, err := d.DialContext(ctx, "unix", "/tmp/runme-"+strconv.Itoa(r.shellID)+".sock")
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	for _, line := range block.Lines() {
-		line = strings.TrimSpace(line)
-
-		if _, err := conn.Write([]byte(line)); err != nil {
-			return errors.WithStack(err)
-		}
-		if _, err := conn.Write([]byte("\n")); err != nil {
-			return errors.WithStack(err)
-		}
-	}
-	return nil
 }
 
 func (r *LocalRunner) DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error {
