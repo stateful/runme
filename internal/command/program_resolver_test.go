@@ -23,7 +23,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status: ProgramResolverStatusUnresolved,
+						Status: ProgramResolvedStatusUnspecified,
 						Name:   "TEST_NO_VALUE",
 					},
 				},
@@ -37,7 +37,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status: ProgramResolverStatusUnresolved,
+						Status: ProgramResolvedStatusUnspecified,
 						Name:   "TEST_EMPTY_VALUE",
 					},
 				},
@@ -81,7 +81,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status: ProgramResolverStatusUnresolved,
+						Status: ProgramResolvedStatusUnspecified,
 						Name:   "TEST_STRING_DBL_QUOTED_VALUE_EMPTY",
 					},
 				},
@@ -110,7 +110,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
-						Status: ProgramResolverStatusUnresolved,
+						Status: ProgramResolvedStatusUnspecified,
 						Name:   "TEST_STRING_SGL_QUOTED_VALUE_EMPTY",
 					},
 				},
@@ -184,7 +184,7 @@ func TestProgramResolverResolve(t *testing.T) {
 			if tc.result != nil {
 				for i, v := range tc.result.Variables {
 					v.Status = ProgramResolverStatusResolved
-					v.Value = v.OriginalValue
+					v.ResolvedValue = v.OriginalValue
 					tc.result.Variables[i] = v
 				}
 				assert.EqualValues(t, tc.result, got)
@@ -211,7 +211,7 @@ func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
 					Status:        ProgramResolverStatusResolved,
 					Name:          "MY_ENV",
 					OriginalValue: "default",
-					Value:         "resolved",
+					ResolvedValue: "resolved",
 				},
 			},
 		},
@@ -239,7 +239,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 						Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
 						Name:          "MY_ENV",
 						OriginalValue: "message value",
-						Value:         "resolved",
+						ResolvedValue: "resolved",
 					},
 				},
 			},
@@ -266,7 +266,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 						Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
 						Name:          "MY_ENV",
 						OriginalValue: "placeholder value",
-						Value:         "resolved",
+						ResolvedValue: "resolved",
 					},
 				},
 			},
@@ -294,19 +294,19 @@ func TestProgramResolverResolve_SensitiveEnvKeys(t *testing.T) {
 						Status:        ProgramResolverStatusUnresolvedWithSecret,
 						Name:          "MY_PASSWORD",
 						OriginalValue: "super-secret",
-						Value:         "",
+						ResolvedValue: "",
 					},
 					{
 						Status:        ProgramResolverStatusUnresolvedWithSecret,
 						Name:          "MY_SECRET",
 						OriginalValue: "also-secret",
-						Value:         "",
+						ResolvedValue: "",
 					},
 					{
 						Status:        ProgramResolverStatusUnresolvedWithMessage,
 						Name:          "MY_PLAIN",
 						OriginalValue: "text",
-						Value:         "",
+						ResolvedValue: "",
 					},
 				},
 			},

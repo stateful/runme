@@ -21,11 +21,10 @@ type RunnerOption func(Runner) error
 var ErrRunnerClientUnimplemented = fmt.Errorf("method unimplemented")
 
 type RunnerSettings struct {
-	session         *runner.Session
-	sessionID       string
-	project         *project.Project
-	cleanupSession  bool
-	sessionStrategy runnerv1.SessionStrategy
+	session        *runner.Session
+	sessionID      string
+	project        *project.Project
+	cleanupSession bool
 
 	withinShellMaybe bool
 	customShell      string
@@ -44,7 +43,9 @@ type RunnerSettings struct {
 
 	envs []string
 
-	envStoreType runnerv1.SessionEnvStoreType
+	sessionStrategy runnerv1.SessionStrategy
+	envStoreType    runnerv1.SessionEnvStoreType
+	client          runnerv1.RunnerServiceClient
 }
 
 func (rs *RunnerSettings) Clone() *RunnerSettings {
@@ -78,11 +79,12 @@ func withSettingsErr(applySettings func(settings *RunnerSettings) error) RunnerO
 	}
 }
 
-func WithSession(s *runner.Session) RunnerOption {
-	return withSettings(func(rs *RunnerSettings) {
-		rs.session = s
-	})
-}
+// TODO(cepeda): Review later
+// func WithSession(s *runner.Session) RunnerOption {
+// 	return withSettings(func(rs *RunnerSettings) {
+// 		rs.session = s
+// 	})
+// }
 
 func WithSessionID(id string) RunnerOption {
 	return withSettings(func(rs *RunnerSettings) {

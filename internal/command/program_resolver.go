@@ -56,19 +56,20 @@ func NewProgramResolver(mode ProgramResolverMode, sensitiveEnvNames []string, so
 type ProgramResolverStatus uint8
 
 const (
-	// ProgramResolverStatusUnresolved indicates a variable is unresolved.
-	ProgramResolverStatusUnresolved ProgramResolverStatus = iota
+	ProgramResolvedStatusUnspecified ProgramResolverStatus = iota
+
 	// ProgramResolverStatusUnresolvedWithMessage indicates a variable is unresolved but it has a message.
 	// It typically means that the variable is of form `export FOO=this is a message`.
 	ProgramResolverStatusUnresolvedWithMessage
 	// ProgramResolverStatusUnresolvedWithPlaceholder indicates a variable is unresolved but it has a placeholder.
 	// It typically means that the variable is of form `export FOO="this is a placeholder"`.
 	ProgramResolverStatusUnresolvedWithPlaceholder
+	// ProgramResolverStatusUnresolved indicates a variable is unresolved.
+	ProgramResolverStatusResolved
+
 	// ProgramResolverStatusUnresolvedWithSecret indicates a variable is unresolved and needs to be treated with sensitivity.
 	// It typically means that the variable is a password, certificate, or access key.
 	ProgramResolverStatusUnresolvedWithSecret
-	// ProgramResolverStatusResolved indicates a variable is resolved.
-	ProgramResolverStatusResolved
 )
 
 type ProgramResolverResult struct {
@@ -89,9 +90,9 @@ type ProgramResolverVarResult struct {
 	// a message (`export FOO=this is a message`).
 	OriginalValue string
 
-	// Value is the resolved value of the variable.
+	// ResolvedValue is the resolved value of the variable.
 	// It is set only if Status is ProgramResolverStatusResolved.
-	Value string
+	ResolvedValue string
 }
 
 // Resolve resolves the environment variables found in a shell program.
@@ -122,17 +123,17 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 		isSensitive := r.IsEnvSensitive(name)
 
 		varResult := ProgramResolverVarResult{
-			Status:        ProgramResolverStatusUnresolved,
+			Status:        ProgramResolvedStatusUnspecified,
 			Name:          name,
 			OriginalValue: originalValue,
-			Value:         resolvedValue,
+			ResolvedValue: resolvedValue,
 		}
 
 		switch r.mode {
 		case ProgramResolverModePromptAll:
 			if isSensitive {
 				varResult.Status = ProgramResolverStatusUnresolvedWithSecret
-				varResult.Value = ""
+				varResult.ResolvedValue = ""
 				break
 			}
 			if hasResolvedValue {
@@ -148,7 +149,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 			// For ProgramResolverModeSkip the status is awalys ProgramResolverStatusResolved.
 			varResult.Status = ProgramResolverStatusResolved
 			if !hasResolvedValue {
-				varResult.Value = originalValue
+				varResult.ResolvedValue = originalValue
 			}
 		default:
 			if hasResolvedValue {
@@ -160,7 +161,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramR
 			} else if originalValue != "" {
 				varResult.Status = ProgramResolverStatusUnresolvedWithMessage
 			} else {
-				varResult.Status = ProgramResolverStatusUnresolved
+				varResult.Status = ProgramResolvedStatusUnspecified
 			}
 		}
 

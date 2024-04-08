@@ -209,7 +209,7 @@ func (b *CodeBlock) PromptEnv() bool {
 		return true
 	}
 
-	// todo(sebastian): integration with ResolveProgram
+	// todo(cepeda): integration with ResolveProgram
 	switch strings.ToLower(val) {
 	case "false", "no", "0":
 		return false

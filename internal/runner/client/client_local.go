@@ -7,20 +7,24 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/v3/internal/document"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/runner"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 type LocalRunner struct {
 	*RunnerSettings
 
 	shellID int
+
+	Stop func()
 }
 
 func (r *LocalRunner) Clone() Runner {
@@ -57,15 +61,19 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		}
 	}
 
-	envs := append(os.Environ(), r.envs...)
-
-	// todo(sebastian): owl store?
-	sess, err := runner.NewSession(envs, nil, r.logger)
+	lis, err := r.setupAdHocServer()
 	if err != nil {
 		return nil, err
 	}
 
-	r.session = sess
+	if err := r.newRunnerServiceClient(lis); err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	if err := setupSession(r.RunnerSettings, ctx); err != nil {
+		return nil, err
+	}
 
 	return r, nil
 }
@@ -85,13 +93,12 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 	programName, _ := runner.GetCellProgram(block.Language(), customShell, block)
 
 	cfg := &runner.ExecutableConfig{
-		Name:    block.Name(),
-		Dir:     r.dir,
-		Tty:     block.Interactive(),
-		Stdout:  r.stdout,
-		Stderr:  r.stderr,
-		Session: r.session,
-		Logger:  r.logger,
+		Name:   block.Name(),
+		Dir:    r.dir,
+		Tty:    block.Interactive(),
+		Stdout: r.stdout,
+		Stderr: r.stderr,
+		Logger: r.logger,
 	}
 
 	cfg.PreEnv, err = r.project.LoadEnv()
@@ -136,40 +143,7 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 }
 
 func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {
-	block := task.CodeBlock
-
-	if r.shellID > 0 {
-		return r.runBlockInShell(ctx, block)
-	}
-
-	executable, err := r.newExecutable(task)
-	if err != nil {
-		return err
-	}
-
-	if executable == nil {
-		return errors.Errorf("unknown executable: %q", block.Language())
-	}
-
-	// poll for exit
-	// TODO(mxs): we probably want to use `StdinPipe` eventually
-	if block.Interactive() {
-		go func() {
-			for {
-				if executable.ExitCode() > -1 {
-					if canceler, ok := r.stdin.(cancelreader.CancelReader); ok {
-						_ = canceler.Cancel()
-					}
-
-					return
-				}
-
-				time.Sleep(100 * time.Millisecond)
-			}
-		}()
-	}
-
-	return errors.WithStack(executable.Run(ctx))
+	return runTask(r.RunnerSettings, ctx, task)
 }
 
 func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeBlock) error {
@@ -218,6 +192,43 @@ func shellID() (int, bool) {
 	return i, true
 }
 
+func (r *LocalRunner) setupAdHocServer() (
+	interface{ Dial() (net.Conn, error) },
+	error,
+) {
+	lis := bufconn.Listen(1024 << 10)
+	server := grpc.NewServer()
+
+	rss, err := runner.NewRunnerService(r.logger)
+	if err != nil {
+		return nil, err
+	}
+
+	runnerv1.RegisterRunnerServiceServer(server, rss)
+	go server.Serve(lis)
+	r.Stop = server.Stop
+
+	return lis, nil
+}
+
+func (r *LocalRunner) newRunnerServiceClient(
+	lis interface{ Dial() (net.Conn, error) },
+) error {
+	conn, err := grpc.Dial(
+		"",
+		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
+			return lis.Dial()
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return err
+	}
+
+	r.client = runnerv1.NewRunnerServiceClient(conn)
+	return nil
+}
+
 func (r *LocalRunner) GetEnvs(ctx context.Context) ([]string, error) {
-	return r.session.Envs()
+	return getEnvs(r.RunnerSettings, ctx)
 }

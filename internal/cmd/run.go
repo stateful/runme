@@ -33,20 +33,20 @@ type CommandExportExtractMatch struct {
 	Match          string
 	HasStringValue bool
 	LineNumber     int
+	IsPassword     bool
 }
 
 func runCmd() *cobra.Command {
 	var (
-		dryRun                bool
-		runAll                bool
-		skipPrompts           bool
-		skipPromptsExplicitly bool
-		parallel              bool
-		replaceScripts        []string
-		serverAddr            string
-		categories            []string
-		getRunnerOpts         func() ([]client.RunnerOption, error)
-		runIndex              int
+		dryRun         bool
+		runAll         bool
+		skipPrompts    bool
+		parallel       bool
+		replaceScripts []string
+		serverAddr     string
+		categories     []string
+		getRunnerOpts  func() ([]client.RunnerOption, error)
+		runIndex       int
 	)
 
 	cmd := cobra.Command{
@@ -203,6 +203,8 @@ func runCmd() *cobra.Command {
 					return err
 				}
 
+				defer localRunner.Stop()
+
 				runner = localRunner
 			} else {
 				remoteRunner, err := client.NewRemoteRunner(
@@ -233,7 +235,7 @@ func runCmd() *cobra.Command {
 				}
 			}
 
-			if (skipPromptsExplicitly || isTerminal(os.Stdout.Fd())) && !skipPrompts {
+			if !skipPrompts && isTerminal(os.Stdout.Fd()) {
 				err = promptEnvVars(cmd, sessionEnvs, runTasks...)
 				if err != nil {
 					return err
@@ -350,9 +352,6 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&skipPrompts, "skip-prompts", false, "Skip prompting for variables.")
 	cmd.Flags().StringArrayVarP(&categories, "category", "c", nil, "Run from a specific category.")
 	cmd.Flags().IntVarP(&runIndex, "index", "i", -1, "Index of command to run, 0-based. (Ignored in project mode)")
-	cmd.PreRun = func(cmd *cobra.Command, args []string) {
-		skipPromptsExplicitly = cmd.Flags().Changed("skip-prompts")
-	}
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 

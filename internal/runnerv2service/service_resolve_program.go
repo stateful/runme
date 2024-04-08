@@ -49,7 +49,7 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 		ritem := &runnerv2alpha1.ResolveProgramResponse_VarResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
-			ResolvedValue: item.Value,
+			ResolvedValue: item.ResolvedValue,
 		}
 
 		switch item.Status {

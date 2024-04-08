@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/document/identity"
 	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
@@ -350,21 +350,25 @@ func promptEnvVars(cmd *cobra.Command, envs []string, tasks ...project.Task) err
 	for _, task := range tasks {
 		block := task.CodeBlock
 
-		if block.PromptEnv() {
-			varPrompts := getCommandExportExtractMatches(block.Lines())
-			for _, ev := range varPrompts {
-				if slices.Contains(keys, ev.Key) {
-					block.SetLine(ev.LineNumber, "")
+		if !block.PromptEnv() {
+			continue
+		}
 
-					continue
-				}
+		lines := block.Lines()
+		varPrompts := getCommandExportExtractMatches(lines)
 
-				newVal, err := promptForEnvVar(cmd, ev)
-				block.SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
+		for _, ev := range varPrompts {
+			if slices.Contains(keys, ev.Key) {
+				block.SetLine(ev.LineNumber, "")
 
-				if err != nil {
-					return err
-				}
+				continue
+			}
+
+			newVal, err := promptForEnvVar(cmd, ev)
+			block.SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
+
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -372,41 +376,30 @@ func promptEnvVars(cmd *cobra.Command, envs []string, tasks ...project.Task) err
 }
 
 func getCommandExportExtractMatches(lines []string) []CommandExportExtractMatch {
-	test := regexp.MustCompile(exportExtractRegex)
 	result := []CommandExportExtractMatch{}
 
 	for i, line := range lines {
-		for _, match := range test.FindAllStringSubmatch(line, -1) {
-			e := match[0]
-
-			parts := strings.SplitN(strings.TrimSpace(e)[len("export "):], "=", 2)
-			if len(parts) == 0 {
-				continue
-			}
-			key := parts[0]
-			ph := strings.TrimSpace(parts[1])
-
-			isExecValue := strings.HasPrefix(ph, "$(") && strings.HasSuffix(ph, ")")
-			if isExecValue {
-				continue
-			}
-
-			hasStringValue := strings.HasPrefix(ph, "\"") || strings.HasPrefix(ph, "'")
-			placeHolder := ph
-			if hasStringValue {
-				placeHolder = ph[1 : len(ph)-1]
-			}
-
-			value := placeHolder
-
-			result = append(result, CommandExportExtractMatch{
-				Key:            key,
-				Value:          value,
-				Match:          e,
-				HasStringValue: hasStringValue,
-				LineNumber:     i,
-			})
+		r := command.NewProgramResolver(command.ProgramResolverModeAuto, []string{})
+		buf := bytes.NewBuffer(nil)
+		got, err := r.Resolve(strings.NewReader(line), buf)
+		if err != nil {
+			continue
 		}
+
+		if len(got.Variables) == 0 {
+			continue
+		}
+
+		variable := got.Variables[0]
+
+		result = append(result, CommandExportExtractMatch{
+			Key:            variable.Name,
+			Value:          variable.ResolvedValue,
+			Match:          line,
+			HasStringValue: variable.Status == command.ProgramResolverStatusUnresolvedWithPlaceholder,
+			LineNumber:     i,
+			IsPassword:     variable.Status == command.ProgramResolverStatusUnresolvedWithSecret,
+		})
 	}
 
 	return result

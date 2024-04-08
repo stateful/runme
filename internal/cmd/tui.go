@@ -115,6 +115,9 @@ func tuiCmd() *cobra.Command {
 				localRunner, err := client.NewLocalRunner(
 					runnerOpts...,
 				)
+
+				defer localRunner.Stop()
+
 				if err != nil {
 					return errors.Wrap(err, "failed to create local runner")
 				}
