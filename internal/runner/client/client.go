@@ -77,13 +77,6 @@ func withSettingsErr(applySettings func(settings *RunnerSettings) error) RunnerO
 	}
 }
 
-// TODO(cepeda): Review later
-// func WithSession(s *runner.Session) RunnerOption {
-// 	return withSettings(func(rs *RunnerSettings) {
-// 		rs.session = s
-// 	})
-// }
-
 func WithSessionID(id string) RunnerOption {
 	return withSettings(func(rs *RunnerSettings) {
 		rs.sessionID = id
