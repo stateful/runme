@@ -17,6 +17,7 @@ require (
 	github.com/expr-lang/expr v1.16.1
 	github.com/fatih/color v1.16.0
 	github.com/fullstorydev/grpcurl v1.8.9
+	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/gobwas/glob v0.2.3
 	github.com/golang/mock v1.6.0
@@ -52,7 +53,6 @@ require (
 	github.com/bufbuild/protocompile v0.6.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/cel-go v0.20.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

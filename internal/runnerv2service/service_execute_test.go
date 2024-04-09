@@ -29,7 +29,7 @@ func init() {
 	command.EnvDumpCommand = "env -0"
 }
 
-func TestRunnerServiceServerExecute(t *testing.T) {
+func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
@@ -60,7 +60,10 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 	assert.Nil(t, resp.ExitCode)
 
 	// Assert second and third responses.
-	var out bytes.Buffer
+	var (
+		out      bytes.Buffer
+		mimeType string
+	)
 
 	resp, err = stream.Recv()
 	assert.NoError(t, err)
@@ -68,14 +71,25 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 	assert.Nil(t, resp.Pid)
 	_, err = out.Write(resp.StdoutData)
 	assert.NoError(t, err)
+	_, err = out.Write(resp.StderrData)
+	assert.NoError(t, err)
+	if resp.MimeType != "" {
+		mimeType = resp.MimeType
+	}
 
 	resp, err = stream.Recv()
 	assert.NoError(t, err)
 	assert.Nil(t, resp.ExitCode)
 	assert.Nil(t, resp.Pid)
+	_, err = out.Write(resp.StdoutData)
+	assert.NoError(t, err)
 	_, err = out.Write(resp.StderrData)
 	assert.NoError(t, err)
+	if resp.MimeType != "" {
+		mimeType = resp.MimeType
+	}
 
+	assert.Contains(t, mimeType, "text/plain")
 	assert.Equal(t, "test\ntest\n", out.String())
 
 	// Assert fourth response.
@@ -85,7 +99,46 @@ func TestRunnerServiceServerExecute(t *testing.T) {
 	assert.Nil(t, resp.Pid)
 }
 
-func TestRunnerServiceServerExecuteConfigs(t *testing.T) {
+func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	stream, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult := make(chan executeResult)
+	go getExecuteResult(stream, execResult)
+
+	req := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						// Echo JSON to stderr and plain text to stdout.
+						// Only the plain text should be detected.
+						">&2 echo '{\"field1\": \"value\", \"field2\": 2}'",
+						"echo 'some plain text'",
+					},
+				},
+			},
+		},
+	}
+
+	err = stream.Send(req)
+	assert.NoError(t, err)
+
+	result := <-execResult
+
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	assert.Equal(t, "{\"field1\": \"value\", \"field2\": 2}\n", string(result.Stderr))
+	assert.Equal(t, "some plain text\n", string(result.Stdout))
+	assert.Contains(t, result.MimeType, "text/plain")
+}
+
+func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
@@ -228,7 +281,7 @@ func TestRunnerServiceServerExecuteConfigs(t *testing.T) {
 	}
 }
 
-func TestRunnerServiceServerExecuteWithInput(t *testing.T) {
+func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
@@ -570,6 +623,7 @@ func testCreateRunnerServiceClient(
 type executeResult struct {
 	Stdout   []byte
 	Stderr   []byte
+	MimeType string
 	ExitCode int
 	Err      error
 }
@@ -591,6 +645,9 @@ func getExecuteResult(
 		}
 		result.Stdout = append(result.Stdout, r.StdoutData...)
 		result.Stderr = append(result.Stderr, r.StderrData...)
+		if r.MimeType != "" {
+			result.MimeType = r.MimeType
+		}
 		if r.ExitCode != nil {
 			result.ExitCode = int(r.ExitCode.Value)
 		}

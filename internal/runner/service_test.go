@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -24,6 +23,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
+
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 )
 
 func testCreateLogger(t *testing.T) *zap.Logger {
@@ -66,6 +67,7 @@ func testCreateRunnerServiceClient(
 type executeResult struct {
 	Stdout   []byte
 	Stderr   []byte
+	MimeType string
 	ExitCode int
 	Err      error
 }
@@ -87,6 +89,9 @@ func getExecuteResult(
 		}
 		result.Stdout = append(result.Stdout, r.StdoutData...)
 		result.Stderr = append(result.Stderr, r.StderrData...)
+		if r.MimeType != "" {
+			result.MimeType = r.MimeType
+		}
 		if r.ExitCode != nil {
 			result.ExitCode = int(r.ExitCode.Value)
 		}
@@ -222,6 +227,30 @@ func Test_runnerService(t *testing.T) {
 
 		assert.NoError(t, result.Err)
 		assert.Equal(t, "1\r\n2\r\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
+	})
+
+	t.Run("ExecuteBasicMimeType", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
+			Commands:    []string{`echo '{"field1": "value", "field2": 2}'`},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		assert.Equal(t, "{\"field1\": \"value\", \"field2\": 2}\n", string(result.Stdout))
+		assert.Contains(t, result.MimeType, "application/json")
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 

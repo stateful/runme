@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"syscall"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -119,6 +120,7 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizInBytes)
 	defer e.storeLastOutput(lastStdout)
 
+	firstStdoutSent := false
 	errc := make(chan error, 2)
 
 	go func() {
@@ -126,13 +128,42 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 			e.stdout,
 			sender,
 			func(b []byte) *runnerv2alpha1.ExecuteResponse {
+				if len(b) == 0 {
+					return nil
+				}
+
 				_, _ = lastStdout.Write(b)
-				return &runnerv2alpha1.ExecuteResponse{StdoutData: b}
+
+				resp := &runnerv2alpha1.ExecuteResponse{StdoutData: b}
+
+				if !firstStdoutSent {
+					if detected := mimetype.Detect(b); detected != nil {
+						e.logger.Info("detected MIME type", zap.String("mime", detected.String()))
+						resp.MimeType = detected.String()
+					}
+				}
+
+				firstStdoutSent = true
+
+				e.logger.Debug("sending stdout data", zap.Any("resp", resp))
+
+				return resp
 			},
 		)
 	}()
 	go func() {
-		errc <- readSendLoop(e.stderr, sender, func(b []byte) *runnerv2alpha1.ExecuteResponse { return &runnerv2alpha1.ExecuteResponse{StderrData: b} })
+		errc <- readSendLoop(
+			e.stderr,
+			sender,
+			func(b []byte) *runnerv2alpha1.ExecuteResponse {
+				if len(b) == 0 {
+					return nil
+				}
+				resp := &runnerv2alpha1.ExecuteResponse{StderrData: b}
+				e.logger.Debug("sending stderr data", zap.Any("resp", resp))
+				return resp
+			},
+		)
 	}()
 
 	waitErr := e.Cmd.Wait()
@@ -278,7 +309,11 @@ func readSendLoop(reader io.Reader, sender sender, fn func([]byte) *runnerv2alph
 			continue
 		}
 
-		err = sender.Send(fn(buf[:n]))
+		msg := fn(buf[:n])
+		if msg == nil {
+			return nil
+		}
+		err = sender.Send(msg)
 		if err != nil {
 			return errors.WithStack(err)
 		}

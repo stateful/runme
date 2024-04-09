@@ -330,6 +330,14 @@ export interface ExecuteResponse {
      * @generated from protobuf field: runme.runner.v1.ProcessPID pid = 4;
      */
     pid?: ProcessPID;
+    /**
+     * mime_type is a detected MIME type of the stdout_data.
+     *
+     * This is only sent once in the first response containing stdout_data.
+     *
+     * @generated from protobuf field: string mime_type = 5;
+     */
+    mimeType: string;
 }
 /**
  * @generated from protobuf message runme.runner.v1.ResolveProgramCommandList
@@ -817,9 +825,18 @@ declare class ProcessPID$Type extends MessageType<ProcessPID> {
 /**
  * @generated MessageType for protobuf message runme.runner.v1.ProcessPID
  */
-export declare const ProcessPID: ProcessPID$Type;
-declare class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
-    constructor();
+export const ProcessPID = new ProcessPID$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
+    constructor() {
+        super("runme.runner.v1.ExecuteResponse", [
+            { no: 1, name: "exit_code", kind: "message", T: () => UInt32Value },
+            { no: 2, name: "stdout_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "stderr_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 4, name: "pid", kind: "message", T: () => ProcessPID },
+            { no: 5, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
 }
 /**
  * @generated MessageType for protobuf message runme.runner.v1.ExecuteResponse

@@ -154,9 +154,14 @@ message ExecuteResponse {
   bytes stderr_data = 3;
 
   // pid contains the process' PID.
-  // This is only sent once in an initial response
-  // for background processes.
+  //
+  // This is only sent once in an initial response for background processes.
   google.protobuf.UInt32Value pid = 4;
+
+  // mime_type is a detected MIME type of the stdout_data.
+  //
+  // This is only sent once in the first response containing stdout_data.
+  string mime_type = 5;
 }
 
 message ResolveProgramCommandList {
