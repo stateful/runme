@@ -1,42 +1,41 @@
 package command
 
 import (
-	"os/exec"
 	"strings"
 
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
-type pathNormalizer struct{}
-
-func newPathNormalizer() configNormalizer {
-	return (&pathNormalizer{}).Normalize
+type pathNormalizer struct {
+	kernel Kernel
 }
 
-func (n *pathNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {
+func newPathNormalizer(kernel Kernel) configNormalizer {
+	return (&pathNormalizer{kernel: kernel}).Normalize
+}
+
+func (n *pathNormalizer) Normalize(cfg *Config) (func() error, error) {
 	var (
 		programPath string   = cfg.ProgramName
 		args        []string = cfg.Arguments
 		err         error
 	)
 
-	programPath, err = exec.LookPath(cfg.ProgramName)
+	programPath, err = n.kernel.LookPath(cfg.ProgramName)
 	if err == nil {
 		goto finish
 	}
 
 	programPath, args, err = n.findProgramInInterpreters(cfg.ProgramName)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 finish:
-	result := proto.Clone(cfg).(*Config)
-	result.ProgramName = programPath
-	result.Arguments = args
+	cfg.ProgramName = programPath
+	cfg.Arguments = args
 
-	return result, nil, nil
+	return nil, nil
 }
 
 func (n *pathNormalizer) findProgramInInterpreters(programName string) (programPath string, args []string, _ error) {
@@ -47,7 +46,7 @@ func (n *pathNormalizer) findProgramInInterpreters(programName string) (programP
 
 	for _, interpreter := range interpreters {
 		iProgram, iArgs := parseInterpreter(interpreter)
-		if path, err := exec.LookPath(iProgram); err == nil {
+		if path, err := n.kernel.LookPath(iProgram); err == nil {
 			programPath = path
 			args = iArgs
 			return

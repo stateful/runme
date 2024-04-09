@@ -17,7 +17,7 @@ import (
 
 type VirtualCommand struct {
 	cfg  *Config
-	opts *VirtualCommandOptions
+	opts Options
 
 	// cmd is populated when the command is started.
 	cmd *exec.Cmd
@@ -34,11 +34,11 @@ type VirtualCommand struct {
 
 	mu  sync.Mutex // protect err
 	err error
-
-	logger *zap.Logger
 }
 
-func newVirtualCommand(cfg *Config, opts *VirtualCommandOptions) *VirtualCommand {
+var _ Command = (*VirtualCommand)(nil)
+
+func NewVirtual(cfg *Config, opts Options) *VirtualCommand {
 	var stdin io.ReadCloser
 
 	if opts.Stdin != nil {
@@ -50,11 +50,18 @@ func newVirtualCommand(cfg *Config, opts *VirtualCommandOptions) *VirtualCommand
 		opts.Stdout = io.Discard
 	}
 
+	if opts.Kernel == nil {
+		opts.Kernel = NewLocalKernel(nil)
+	}
+
+	if opts.Logger == nil {
+		opts.Logger = zap.NewNop()
+	}
+
 	return &VirtualCommand{
-		cfg:    cfg,
-		opts:   opts,
-		stdin:  stdin,
-		logger: opts.Logger,
+		cfg:   cfg,
+		opts:  opts,
+		stdin: stdin,
 	}
 }
 
@@ -72,10 +79,10 @@ func (c *VirtualCommand) Pid() int {
 func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 	cfg, cleanups, err := normalizeConfig(
 		c.cfg,
-		newPathNormalizer(),
+		newPathNormalizer(c.opts.Kernel),
 		modeNormalizer,
-		newArgsNormalizer(c.opts.Session, c.logger),
-		newEnvNormalizer(c.opts.Session.GetEnv),
+		newArgsNormalizer(c.opts.Session, c.opts.Logger),
+		newEnvNormalizer(c.opts.Kernel, c.opts.Session.GetEnv),
 	)
 	if err != nil {
 		return
@@ -105,7 +112,7 @@ func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 
 	setSysProcAttrCtty(c.cmd)
 
-	c.logger.Info("starting a virtual command", zap.Any("config", redactConfig(cfg)))
+	c.opts.Logger.Info("starting a virtual command", zap.Any("config", redactConfig(cfg)))
 	if err := c.cmd.Start(); err != nil {
 		return errors.WithStack(err)
 	}
@@ -115,7 +122,7 @@ func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 		go func() {
 			defer c.wg.Done()
 			n, err := io.Copy(c.pty, c.stdin)
-			c.logger.Info("finished copying from stdin to pty", zap.Error(err), zap.Int64("count", n))
+			c.opts.Logger.Info("finished copying from stdin to pty", zap.Error(err), zap.Int64("count", n))
 			if err != nil {
 				c.setErr(errors.WithStack(err))
 			}
@@ -132,36 +139,36 @@ func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 				// a master pseudo-terminal which no longer has an open slave.
 				// See https://github.com/creack/pty/issues/21.
 				if errors.Is(err, syscall.EIO) {
-					c.logger.Debug("failed to copy from pty to stdout; handled EIO")
+					c.opts.Logger.Debug("failed to copy from pty to stdout; handled EIO")
 					return
 				}
 				if errors.Is(err, os.ErrClosed) {
-					c.logger.Debug("failed to copy from pty to stdout; handled ErrClosed")
+					c.opts.Logger.Debug("failed to copy from pty to stdout; handled ErrClosed")
 					return
 				}
 
-				c.logger.Info("failed to copy from pty to stdout", zap.Error(err))
+				c.opts.Logger.Info("failed to copy from pty to stdout", zap.Error(err))
 
 				c.setErr(errors.WithStack(err))
 			} else {
-				c.logger.Debug("finished copying from pty to stdout", zap.Int64("count", n))
+				c.opts.Logger.Debug("finished copying from pty to stdout", zap.Int64("count", n))
 			}
 		}()
 	}
 
-	c.logger.Info("a virtual command started")
+	c.opts.Logger.Info("a virtual command started")
 
 	return nil
 }
 
-func (c *VirtualCommand) StopWithSignal(sig os.Signal) error {
-	c.logger.Info("stopping the virtual command with signal", zap.String("signal", sig.String()))
+func (c *VirtualCommand) Signal(sig os.Signal) error {
+	c.opts.Logger.Info("stopping the virtual command with signal", zap.String("signal", sig.String()))
 
 	// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
 	if err := signalPgid(c.cmd.Process.Pid, sig); err != nil {
-		c.logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
+		c.opts.Logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
 		if err := c.cmd.Process.Signal(sig); err != nil {
-			c.logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
+			c.opts.Logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
 			return errors.WithStack(c.cmd.Process.Kill())
 		}
 	}
@@ -169,21 +176,21 @@ func (c *VirtualCommand) StopWithSignal(sig os.Signal) error {
 }
 
 func (c *VirtualCommand) Wait() (err error) {
-	c.logger.Info("waiting for the virtual command to finish")
+	c.opts.Logger.Info("waiting for the virtual command to finish")
 
 	defer func() {
 		errC := errors.WithStack(c.cleanup())
-		c.logger.Info("cleaned up the virtual command", zap.Error(errC))
+		c.opts.Logger.Info("cleaned up the virtual command", zap.Error(errC))
 		if err == nil && errC != nil {
 			err = errC
 		}
 	}()
 
 	err = errors.WithStack(c.cmd.Wait())
-	c.logger.Info("the virtual command finished", zap.Error(err))
+	c.opts.Logger.Info("the virtual command finished", zap.Error(err))
 
 	errIO := c.closeIO()
-	c.logger.Info("closed IO of the virtual command", zap.Error(errIO))
+	c.opts.Logger.Info("closed IO of the virtual command", zap.Error(errIO))
 	if err == nil && errIO != nil {
 		err = errIO
 	}

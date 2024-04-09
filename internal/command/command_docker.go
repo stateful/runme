@@ -6,23 +6,25 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/v3/internal/dockercmd"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
+
+	"github.com/stateful/runme/v3/internal/dockerexec"
 )
 
 type DockerCommand struct {
-	cfg  *Config
-	opts *DockerCommandOptions
+	cfg     *Config
+	factory dockerexec.Factory
+	opts    Options
 
-	cmd *dockercmd.Cmd
+	cmd *dockerexec.Cmd
 
 	cleanFuncs []func() error
-
-	logger *zap.Logger
 }
 
-func newDockerCommand(cfg *Config, opts *DockerCommandOptions) *DockerCommand {
+var _ Command = (*DockerCommand)(nil)
+
+func NewDocker(cfg *Config, factory dockerexec.Factory, opts Options) *DockerCommand {
 	if opts.Stdout == nil {
 		opts.Stdout = io.Discard
 	}
@@ -31,10 +33,14 @@ func newDockerCommand(cfg *Config, opts *DockerCommandOptions) *DockerCommand {
 		opts.Stderr = io.Discard
 	}
 
+	if opts.Logger == nil {
+		opts.Logger = zap.NewNop()
+	}
+
 	return &DockerCommand{
-		cfg:    cfg,
-		opts:   opts,
-		logger: opts.Logger,
+		cfg:     cfg,
+		factory: factory,
+		opts:    opts,
 	}
 }
 
@@ -70,7 +76,7 @@ func (c *DockerCommand) Start(ctx context.Context) (err error) {
 
 	// c.cleanFuncs = append(c.cleanFuncs, cleanups...)
 
-	cmd := c.opts.CmdFactory.CommandContext(
+	cmd := c.factory.CommandContext(
 		ctx,
 		cfg.ProgramName,
 		cfg.Arguments...,
@@ -84,27 +90,27 @@ func (c *DockerCommand) Start(ctx context.Context) (err error) {
 
 	c.cmd = cmd
 
-	c.logger.Info("starting a docker command", zap.Any("config", redactConfig(cfg)))
+	c.opts.Logger.Info("starting a docker command", zap.Any("config", redactConfig(cfg)))
 
 	if err := c.cmd.Start(); err != nil {
 		return err
 	}
 
-	c.logger.Info("docker command started")
+	c.opts.Logger.Info("docker command started")
 
 	return nil
 }
 
-func (c *DockerCommand) StopWithSignal(sig os.Signal) error {
+func (c *DockerCommand) Signal(os.Signal) error {
 	return c.cmd.Signal()
 }
 
 func (c *DockerCommand) Wait() (err error) {
-	c.logger.Info("waiting for docker command to finish")
+	c.opts.Logger.Info("waiting for docker command to finish")
 
 	defer func() {
 		cleanErr := errors.WithStack(c.cleanup())
-		c.logger.Info("cleaned up the native command", zap.Error(cleanErr))
+		c.opts.Logger.Info("cleaned up the native command", zap.Error(cleanErr))
 		if err == nil && cleanErr != nil {
 			err = cleanErr
 		}
@@ -112,7 +118,7 @@ func (c *DockerCommand) Wait() (err error) {
 
 	err = c.cmd.Wait()
 
-	c.logger.Info("the docker command finished", zap.Error(err))
+	c.opts.Logger.Info("the docker command finished", zap.Error(err))
 
 	return
 }

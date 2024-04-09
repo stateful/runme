@@ -31,9 +31,10 @@ Run all blocks from the "setup" and "teardown" categories:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.Invoke(
 				func(
-					proj *project.Project,
 					filters []project.Filter,
+					kernel command.Kernel,
 					logger *zap.Logger,
+					proj *project.Project,
 					session *command.Session,
 				) error {
 					defer logger.Sync()
@@ -63,7 +64,7 @@ Run all blocks from the "setup" and "teardown" categories:
 					}
 
 					for _, t := range tasks {
-						err := runCommandNatively(cmd, t.CodeBlock, session, logger)
+						err := runCommandNatively(cmd, t.CodeBlock, kernel, session, logger)
 						if err != nil {
 							return err
 						}
@@ -78,24 +79,28 @@ Run all blocks from the "setup" and "teardown" categories:
 	return &cmd
 }
 
-func runCommandNatively(cmd *cobra.Command, block *document.CodeBlock, sess *command.Session, logger *zap.Logger) error {
+func runCommandNatively(
+	cmd *cobra.Command,
+	block *document.CodeBlock,
+	kernel command.Kernel,
+	sess *command.Session,
+	logger *zap.Logger,
+) error {
 	cfg, err := command.NewConfigFromCodeBlock(block)
 	if err != nil {
 		return err
 	}
 
-	opts := &command.NativeCommandOptions{
+	opts := command.Options{
+		Kernel:  kernel,
+		Logger:  logger,
 		Session: sess,
 		Stdin:   cmd.InOrStdin(),
 		Stdout:  cmd.OutOrStdout(),
 		Stderr:  cmd.ErrOrStderr(),
-		Logger:  logger,
 	}
 
-	nativeCommand, err := command.NewNative(cfg, opts)
-	if err != nil {
-		return err
-	}
+	nativeCommand := command.NewNative(cfg, opts)
 
 	err = nativeCommand.Start(cmd.Context())
 	if err != nil {

@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
@@ -49,6 +50,7 @@ func init() {
 	// [viper.Viper] can be overridden by a decorator:
 	//   container.Decorate(func(v *viper.Viper) *viper.Viper { return nil })
 	mustProvide(container.Provide(getConfig))
+	mustProvide(container.Provide(getKernel))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
@@ -112,6 +114,30 @@ func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, er
 	}
 
 	return cfg, nil
+}
+
+func getKernel(c *config.Config, logger *zap.Logger) (command.Kernel, error) {
+	var err error
+
+	for _, cfg := range c.Kernels {
+		switch cfg := cfg.(type) {
+		case *config.LocalKernel:
+			return command.NewLocalKernel(cfg), nil
+		case *config.DockerKernel:
+			k, kErr := command.NewDockerKernel(cfg, logger)
+			if kErr == nil {
+				return k, nil
+			}
+			err = multierr.Append(err, kErr)
+		default:
+			return nil, errors.Errorf("unknown kernel type: %T", cfg)
+		}
+	}
+
+	if err == nil {
+		return nil, errors.New("no kernel found")
+	}
+	return nil, errors.Wrap(err, "no valid kernel found")
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {

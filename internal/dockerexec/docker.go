@@ -1,4 +1,4 @@
-package dockercmd
+package dockerexec
 
 import (
 	"context"
@@ -23,6 +23,7 @@ type Options struct {
 
 type Factory interface {
 	CommandContext(context.Context, string, ...string) *Cmd
+	LookPath(string) (string, error)
 }
 
 var _ Factory = (*docker)(nil)
@@ -76,6 +77,10 @@ func (d *docker) CommandContext(ctx context.Context, program string, args ...str
 
 		logger: d.logger,
 	}
+}
+
+func (d *docker) LookPath(path string) (string, error) {
+	return "", errors.New("not implemented")
 }
 
 func (d *docker) containerUniqueName() string {

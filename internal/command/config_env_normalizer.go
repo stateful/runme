@@ -1,28 +1,21 @@
 package command
 
-import (
-	"os"
-
-	"google.golang.org/protobuf/proto"
-)
-
 type envNormalizer struct {
+	kernel  Kernel
 	sources []func() []string
 }
 
-func newEnvNormalizer(sources ...func() []string) configNormalizer {
-	return (&envNormalizer{sources: sources}).Normalize
+func newEnvNormalizer(kernel Kernel, sources ...func() []string) configNormalizer {
+	return (&envNormalizer{kernel: kernel, sources: sources}).Normalize
 }
 
-func (n *envNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {
-	result := proto.Clone(cfg).(*Config)
-
+func (n *envNormalizer) Normalize(cfg *Config) (func() error, error) {
 	// TODO: getting envs from OS should be configurable.
-	result.Env = append(os.Environ(), cfg.Env...)
+	cfg.Env = append(n.kernel.Environ(), cfg.Env...)
 
 	for _, source := range n.sources {
-		result.Env = append(result.Env, source()...)
+		cfg.Env = append(cfg.Env, source()...)
 	}
 
-	return result, nil, nil
+	return nil, nil
 }

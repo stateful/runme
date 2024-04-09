@@ -1,6 +1,6 @@
 //go:build test_with_docker
 
-package dockercmd
+package dockerexec
 
 import (
 	"bytes"

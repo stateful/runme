@@ -1,4 +1,4 @@
-package dockercmd
+package dockerexec
 
 import (
 	"context"
@@ -129,11 +129,10 @@ func (c *Cmd) Start() error {
 	}()
 
 	go func() {
-		if c.Stdin == nil {
-			return
+		if c.Stdin != nil {
+			_, err := io.Copy(hijack.Conn, c.Stdin)
+			c.ioErrC <- errors.WithStack(err)
 		}
-		_, err := io.Copy(hijack.Conn, c.Stdin)
-		c.ioErrC <- errors.WithStack(err)
 	}()
 
 	inspect, err := c.docker.ContainerInspect(c.ctx, c.containerID)

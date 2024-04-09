@@ -15,21 +15,28 @@ var SignalToProcessGroup = true
 
 type NativeCommand struct {
 	cfg  *Config
-	opts *NativeCommandOptions
+	opts Options
 
 	// cmd is populated when the command is started.
 	cmd *exec.Cmd
 
 	cleanFuncs []func() error
-
-	logger *zap.Logger
 }
 
-func newNativeCommand(cfg *Config, opts *NativeCommandOptions) *NativeCommand {
+var _ Command = (*NativeCommand)(nil)
+
+func NewNative(cfg *Config, opts Options) *NativeCommand {
+	if opts.Kernel == nil {
+		opts.Kernel = NewLocalKernel(nil)
+	}
+
+	if opts.Logger == nil {
+		opts.Logger = zap.NewNop()
+	}
+
 	return &NativeCommand{
-		cfg:    cfg,
-		opts:   opts,
-		logger: opts.Logger,
+		cfg:  cfg,
+		opts: opts,
 	}
 }
 
@@ -46,13 +53,11 @@ func (c *NativeCommand) Pid() int {
 
 func (c *NativeCommand) Start(ctx context.Context) (err error) {
 	cfg, cleanups, err := normalizeConfig(
-		// TODO(adamb): pass a copy of [Config] here instead of cloning it
-		// in normalizers.
 		c.cfg,
-		newPathNormalizer(),
+		newPathNormalizer(c.opts.Kernel),
 		modeNormalizer,
-		newArgsNormalizer(c.opts.Session, c.logger),
-		newEnvNormalizer(c.opts.Session.GetEnv),
+		newArgsNormalizer(c.opts.Session, c.opts.Logger),
+		newEnvNormalizer(c.opts.Kernel, c.opts.Session.GetEnv),
 	)
 	if err != nil {
 		return
@@ -100,19 +105,19 @@ func (c *NativeCommand) Start(ctx context.Context) (err error) {
 	// like "python", hence, it's commented out.
 	// setSysProcAttrPgid(c.cmd)
 
-	c.logger.Info("starting a native command", zap.Any("config", redactConfig(cfg)))
+	c.opts.Logger.Info("starting a native command", zap.Any("config", redactConfig(cfg)))
 
 	if err := c.cmd.Start(); err != nil {
 		return errors.WithStack(err)
 	}
 
-	c.logger.Info("a native command started")
+	c.opts.Logger.Info("a native command started")
 
 	return nil
 }
 
-func (c *NativeCommand) StopWithSignal(sig os.Signal) error {
-	c.logger.Info("stopping the native command with a signal", zap.Stringer("signal", sig))
+func (c *NativeCommand) Signal(sig os.Signal) error {
+	c.opts.Logger.Info("stopping the native command with a signal", zap.Stringer("signal", sig))
 
 	if SignalToProcessGroup {
 		// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
@@ -120,11 +125,11 @@ func (c *NativeCommand) StopWithSignal(sig os.Signal) error {
 		if err == nil {
 			return nil
 		}
-		c.logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
+		c.opts.Logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
 	}
 
 	if err := c.cmd.Process.Signal(sig); err != nil {
-		c.logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
+		c.opts.Logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
 		return errors.WithStack(c.cmd.Process.Kill())
 	}
 
@@ -132,11 +137,11 @@ func (c *NativeCommand) StopWithSignal(sig os.Signal) error {
 }
 
 func (c *NativeCommand) Wait() (err error) {
-	c.logger.Info("waiting for the native command to finish")
+	c.opts.Logger.Info("waiting for the native command to finish")
 
 	defer func() {
 		cleanErr := errors.WithStack(c.cleanup())
-		c.logger.Info("cleaned up the native command", zap.Error(cleanErr))
+		c.opts.Logger.Info("cleaned up the native command", zap.Error(cleanErr))
 		if err == nil && cleanErr != nil {
 			err = cleanErr
 		}
@@ -152,7 +157,7 @@ func (c *NativeCommand) Wait() (err error) {
 		}
 	}
 
-	c.logger.Info("the native command finished", zap.Error(err), zap.ByteString("stderr", stderr))
+	c.opts.Logger.Info("the native command finished", zap.Error(err), zap.ByteString("stderr", stderr))
 
 	return
 }
