@@ -11,6 +11,6 @@ plugins:
     opt: paths=source_relative
 
   # Remote plugin. You can switch to a local one by using "timostamm-protobuf-ts".
-  - plugin: buf.build/community/timostamm-protobuf-ts
+  - plugin: buf.build/community/timostamm-protobuf-ts:v2.9.3
     out: internal/gen/proto/ts
-    opt: optimize_code_size,long_type_string,add_pb_suffix,ts_nocheck,eslint_disable
+    opt: output_javascript,optimize_code_size,long_type_string,add_pb_suffix,ts_nocheck,eslint_disable
