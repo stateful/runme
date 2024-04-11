@@ -10,37 +10,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDockerKernel(t *testing.T) {
+func TestDockerCommandContext(t *testing.T) {
 	t.Parallel()
 
 	workingDir := t.TempDir()
 
-	factory, err := New(
+	docker, err := New(
 		&Options{
 			Image: "alpine:3.19",
 		},
 	)
 	require.NoError(t, err)
 
+	// Do not parallelize the warmup step.
 	t.Run("Warmup", func(t *testing.T) {
-		cmd := factory.CommandContext(context.Background(), "true")
+		cmd := docker.CommandContext(context.Background(), "true")
 		cmd.Dir = workingDir
 		require.NoError(t, cmd.Start())
 		require.NoError(t, cmd.Wait())
 	})
 
-	t.Run("NonTTY", func(t *testing.T) {
+	t.Run("NotTTY", func(t *testing.T) {
 		t.Parallel()
 
 		stdout := bytes.NewBuffer(nil)
 
-		cmd := factory.CommandContext(context.Background(), "echo", "-n", "hello")
+		cmd := docker.CommandContext(context.Background(), "echo", "hello")
 		cmd.Dir = workingDir
 		cmd.Stdout = stdout
 
 		require.NoError(t, cmd.Start())
 		require.NoError(t, cmd.Wait())
-		require.Equal(t, "hello", stdout.String())
+		require.Equal(t, "hello\n", stdout.String())
 	})
 
 	t.Run("TTY", func(t *testing.T) {
@@ -48,7 +49,7 @@ func TestDockerKernel(t *testing.T) {
 
 		stdout := bytes.NewBuffer(nil)
 
-		cmd := factory.CommandContext(context.Background(), "echo", "hello")
+		cmd := docker.CommandContext(context.Background(), "echo", "hello")
 		cmd.Dir = workingDir
 		cmd.TTY = true
 		cmd.Stdout = stdout
@@ -63,7 +64,7 @@ func TestDockerKernel(t *testing.T) {
 
 		stdout := bytes.NewBuffer(nil)
 
-		cmd := factory.CommandContext(context.Background(), "sh", "-c", "echo hello")
+		cmd := docker.CommandContext(context.Background(), "sh", "-c", "echo hello")
 		cmd.Dir = workingDir
 		cmd.TTY = true
 		cmd.Stdout = stdout

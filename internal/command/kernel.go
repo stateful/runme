@@ -37,11 +37,11 @@ func (k *LocalKernel) LookPath(path string) (string, error) {
 }
 
 type DockerKernel struct {
-	factory dockerexec.Factory
+	docker *dockerexec.Docker
 }
 
 func NewDockerKernel(cfg *config.DockerKernel, logger *zap.Logger) (*DockerKernel, error) {
-	f, err := dockerexec.New(&dockerexec.Options{
+	d, err := dockerexec.New(&dockerexec.Options{
 		Image:        cfg.Image,
 		BuildContext: cfg.Build.Context,
 		Dockerfile:   cfg.Build.Dockerfile,
@@ -50,11 +50,11 @@ func NewDockerKernel(cfg *config.DockerKernel, logger *zap.Logger) (*DockerKerne
 	if err != nil {
 		return nil, err
 	}
-	return &DockerKernel{factory: f}, nil
+	return &DockerKernel{docker: d}, nil
 }
 
 func (k *DockerKernel) Command(cfg *Config, opts Options) Command {
-	return NewDocker(cfg, k.factory, opts)
+	return NewDocker(cfg, k.docker, opts)
 }
 
 func (k *DockerKernel) Environ() []string {
@@ -62,5 +62,6 @@ func (k *DockerKernel) Environ() []string {
 }
 
 func (k *DockerKernel) LookPath(path string) (string, error) {
+	// TODO(adamb): implement
 	return path, nil
 }

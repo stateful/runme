@@ -138,10 +138,11 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 
 		switch k := msg.(type) {
 		case *configv1alpha1.Config_LocalKernel:
-			kernels = append(kernels, &LocalKernel{})
+			kernels = append(kernels, &LocalKernel{
+				Name: k.GetName(),
+			})
 		case *configv1alpha1.Config_DockerKernel:
 			kernels = append(kernels, &DockerKernel{
-				Image: k.GetImage(),
 				Build: struct {
 					Context    string
 					Dockerfile string
@@ -149,6 +150,8 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 					Context:    k.GetBuild().GetContext(),
 					Dockerfile: k.GetBuild().GetDockerfile(),
 				},
+				Image: k.GetImage(),
+				Name:  k.GetName(),
 			})
 		default:
 			return nil, errors.Errorf("unknown kernel type: %s", k.ProtoReflect().Type().Descriptor().FullName())

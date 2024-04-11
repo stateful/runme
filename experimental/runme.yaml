@@ -63,12 +63,14 @@ server:
 # A custom docker-based kernel is recommended as it will help to provide
 # a hermetic environment.
 kernels:
+  - "@type": "type.googleapis.com/runme.config.v1alpha1.Config.LocalKernel"
+    name: "local"
   - "@type": "type.googleapis.com/runme.config.v1alpha1.Config.DockerKernel"
+    name: "docker"
     image: runme-kernel:latest
     build:
       context: ./experimental/docker
       dockerfile: Dockerfile
-  - "@type": "type.googleapis.com/runme.config.v1alpha1.Config.LocalKernel"
 
 log:
   enabled: true

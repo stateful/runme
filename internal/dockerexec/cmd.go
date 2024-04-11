@@ -28,7 +28,7 @@ type Cmd struct {
 
 	// Fields set by the constructor.
 	ctx    context.Context
-	docker *docker
+	docker *Docker
 	name   string
 
 	// containerID will be set in Start().
@@ -53,12 +53,12 @@ func (c *Cmd) Start() error {
 		Env:          c.Env,
 		Entrypoint:   []string{c.Path},
 		Cmd:          c.Args,
-		Image:        c.docker.Image,
+		Image:        c.docker.image,
 		WorkingDir:   "/workspace",
 	}
 	hostConfig := &container.HostConfig{
 		RestartPolicy:  container.RestartPolicy{Name: container.RestartPolicyDisabled},
-		AutoRemove:     true,
+		AutoRemove:     !c.docker.debug,
 		ConsoleSize:    [2]uint{80, 24},
 		ReadonlyRootfs: true,
 		Mounts: []mount.Mount{
@@ -72,7 +72,7 @@ func (c *Cmd) Start() error {
 	networkConfig := &network.NetworkingConfig{}
 	platformConfig := &v1.Platform{}
 
-	resp, err := c.docker.ContainerCreate(
+	resp, err := c.docker.client.ContainerCreate(
 		c.ctx,
 		containerConfig,
 		hostConfig,
@@ -85,7 +85,7 @@ func (c *Cmd) Start() error {
 	}
 
 	c.containerID = resp.ID
-	c.waitRespC, c.waitErrC = c.docker.ContainerWait(
+	c.waitRespC, c.waitErrC = c.docker.client.ContainerWait(
 		c.ctx,
 		c.containerID,
 		// It's ok to wait for the "removed" state
@@ -93,7 +93,7 @@ func (c *Cmd) Start() error {
 		container.WaitConditionRemoved,
 	)
 
-	hijack, err := c.docker.ContainerAttach(
+	hijack, err := c.docker.client.ContainerAttach(
 		c.ctx,
 		c.containerID,
 		container.AttachOptions{
@@ -107,7 +107,7 @@ func (c *Cmd) Start() error {
 		return errors.WithStack(err)
 	}
 
-	err = c.docker.ContainerStart(
+	err = c.docker.client.ContainerStart(
 		c.ctx,
 		resp.ID,
 		container.StartOptions{},
@@ -135,7 +135,7 @@ func (c *Cmd) Start() error {
 		}
 	}()
 
-	inspect, err := c.docker.ContainerInspect(c.ctx, c.containerID)
+	inspect, err := c.docker.client.ContainerInspect(c.ctx, c.containerID)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -148,7 +148,7 @@ func (c *Cmd) Start() error {
 }
 
 func (c *Cmd) Signal() error {
-	err := c.docker.ContainerStop(
+	err := c.docker.client.ContainerStop(
 		c.ctx,
 		c.containerID,
 		container.StopOptions{

@@ -50,6 +50,7 @@ func init() {
 	// [viper.Viper] can be overridden by a decorator:
 	//   container.Decorate(func(v *viper.Viper) *viper.Viper { return nil })
 	mustProvide(container.Provide(getConfig))
+	mustProvide(container.Provide(getKernelGetter))
 	mustProvide(container.Provide(getKernel))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
@@ -116,28 +117,67 @@ func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, er
 	return cfg, nil
 }
 
-func getKernel(c *config.Config, logger *zap.Logger) (command.Kernel, error) {
-	var err error
-
-	for _, cfg := range c.Kernels {
-		switch cfg := cfg.(type) {
-		case *config.LocalKernel:
-			return command.NewLocalKernel(cfg), nil
-		case *config.DockerKernel:
-			k, kErr := command.NewDockerKernel(cfg, logger)
-			if kErr == nil {
-				return k, nil
-			}
-			err = multierr.Append(err, kErr)
-		default:
-			return nil, errors.Errorf("unknown kernel type: %T", cfg)
+func getKernel(c *config.Config, logger *zap.Logger) (_ command.Kernel, err error) {
+	// Find the first kernel that can be instantiated without error.
+	// This is inline with how the kernels are described in the configuration file.
+	for _, kernelCfg := range c.Kernels {
+		kernel, kErr := createKernelFromConfig(kernelCfg, logger)
+		if kErr == nil {
+			return kernel, nil
 		}
+		err = multierr.Append(err, kErr)
 	}
 
-	if err == nil {
-		return nil, errors.New("no kernel found")
+	if err != nil {
+		return nil, errors.Wrap(err, "no valid kernel found")
 	}
-	return nil, errors.Wrap(err, "no valid kernel found")
+	return nil, errors.New("kernel not found")
+}
+
+type KernelGetter func(name string) (command.Kernel, error)
+
+func getKernelGetter(c *config.Config, logger *zap.Logger) KernelGetter {
+	cache := make(map[string]command.Kernel)
+
+	return func(name string) (command.Kernel, error) {
+		k, ok := cache[name]
+		if ok {
+			return k, nil
+		}
+
+		for _, kernelCfg := range c.Kernels {
+			if name != "" && kernelCfg.GetName() != name {
+				continue
+			}
+
+			var err error
+			k, err = createKernelFromConfig(kernelCfg, logger)
+			if err != nil {
+				return nil, err
+			}
+
+			cache[name] = k
+
+			break
+		}
+
+		if k == nil {
+			return nil, errors.Errorf("kernel with name %q not found", name)
+		}
+		return k, nil
+	}
+}
+
+func createKernelFromConfig(kernelCfg config.Kernel, logger *zap.Logger) (command.Kernel, error) {
+	switch kernelCfg := kernelCfg.(type) {
+	case *config.LocalKernel:
+		return command.NewLocalKernel(kernelCfg), nil
+	case *config.DockerKernel:
+		k, err := command.NewDockerKernel(kernelCfg, logger)
+		return k, errors.WithStack(err)
+	default:
+		return nil, errors.Errorf("unknown kernel type: %T", kernelCfg)
+	}
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {

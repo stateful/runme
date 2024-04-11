@@ -187,17 +187,25 @@ export interface Config_Server_TLS {
  * @generated from protobuf message runme.config.v1alpha1.Config.LocalKernel
  */
 export interface Config_LocalKernel {
+    /**
+     * @generated from protobuf field: string name = 1;
+     */
+    name: string;
 }
 /**
  * @generated from protobuf message runme.config.v1alpha1.Config.DockerKernel
  */
 export interface Config_DockerKernel {
     /**
-     * @generated from protobuf field: string image = 1;
+     * @generated from protobuf field: string name = 1;
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: string image = 2;
      */
     image: string;
     /**
-     * @generated from protobuf field: runme.config.v1alpha1.Config.DockerKernel.Build build = 2;
+     * @generated from protobuf field: runme.config.v1alpha1.Config.DockerKernel.Build build = 3;
      */
     build?: Config_DockerKernel_Build;
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/stateful/runme/v3/internal/term"
 )
 
-func listCmd(_ *commonFlags) *cobra.Command {
+func listCmd(*commonFlags) *cobra.Command {
 	var format string
 
 	cmd := cobra.Command{

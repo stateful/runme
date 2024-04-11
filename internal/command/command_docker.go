@@ -9,13 +9,14 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/dockerexec"
 )
 
 type DockerCommand struct {
-	cfg     *Config
-	factory dockerexec.Factory
-	opts    Options
+	cfg    *Config
+	docker *dockerexec.Docker
+	opts   Options
 
 	cmd *dockerexec.Cmd
 
@@ -24,7 +25,7 @@ type DockerCommand struct {
 
 var _ Command = (*DockerCommand)(nil)
 
-func NewDocker(cfg *Config, factory dockerexec.Factory, opts Options) *DockerCommand {
+func NewDocker(cfg *Config, docker *dockerexec.Docker, opts Options) *DockerCommand {
 	if opts.Stdout == nil {
 		opts.Stdout = io.Discard
 	}
@@ -38,9 +39,9 @@ func NewDocker(cfg *Config, factory dockerexec.Factory, opts Options) *DockerCom
 	}
 
 	return &DockerCommand{
-		cfg:     cfg,
-		factory: factory,
-		opts:    opts,
+		cfg:    cfg,
+		docker: docker,
+		opts:   opts,
 	}
 }
 
@@ -56,27 +57,45 @@ func (c *DockerCommand) Pid() int {
 }
 
 func (c *DockerCommand) Start(ctx context.Context) (err error) {
+	if c.opts.Session != nil {
+		return errors.New("docker command does not support session")
+	}
+
+	// This validation should be in the constructor, but it would mean that
+	// all constructors' signatures would have to change. At this point,
+	// it's a trade-off to provide a clean API and gracefully handle defaults.
+	if c.opts.Kernel == nil {
+		c.opts.Kernel, err = NewDockerKernel(
+			&config.DockerKernel{
+				Image: "alpine:3.19",
+			},
+			c.opts.Logger,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	cfg := c.cfg
 
 	if cfg.Directory == "" {
 		cfg.Directory = "/tmp"
 	}
 
-	// TODO(adamb): likely each normalizer should be kernel-dependent.
-	// cfg, cleanups, err := normalizeConfig(
-	// 	c.cfg,
-	// 	newPathNormalizer(),
-	// 	modeNormalizer,
-	// 	newArgsNormalizer(c.opts.Session, c.logger),
-	// 	newEnvNormalizer(c.opts.Session.GetEnv),
-	// )
-	// if err != nil {
-	// 	return
-	// }
+	cfg, cleanups, err := normalizeConfig(
+		c.cfg,
+		newPathNormalizer(c.opts.Kernel),
+		modeNormalizer,
+		newArgsNormalizer(c.opts.Session, c.opts.Logger),
+		newEnvNormalizer(c.opts.Kernel, c.opts.Session.GetEnv),
+	)
+	if err != nil {
+		return
+	}
 
-	// c.cleanFuncs = append(c.cleanFuncs, cleanups...)
+	c.cleanFuncs = append(c.cleanFuncs, cleanups...)
 
-	cmd := c.factory.CommandContext(
+	cmd := c.docker.CommandContext(
 		ctx,
 		cfg.ProgramName,
 		cfg.Arguments...,

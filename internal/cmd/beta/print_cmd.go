@@ -13,7 +13,7 @@ import (
 	"github.com/stateful/runme/v3/internal/project"
 )
 
-func printCmd(_ *commonFlags) *cobra.Command {
+func printCmd(*commonFlags) *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "print [command1 command2 ...]",
 		Short: "Print content of commands.",

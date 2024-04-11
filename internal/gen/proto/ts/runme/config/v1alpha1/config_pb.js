@@ -131,7 +131,9 @@ export const Config_Server_TLS = new Config_Server_TLS$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Config_LocalKernel$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.Config.LocalKernel", []);
+        super("runme.config.v1alpha1.Config.LocalKernel", [
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
     }
 }
 /**
@@ -142,8 +144,9 @@ export const Config_LocalKernel = new Config_LocalKernel$Type();
 class Config_DockerKernel$Type extends MessageType {
     constructor() {
         super("runme.config.v1alpha1.Config.DockerKernel", [
-            { no: 1, name: "image", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "build", kind: "message", T: () => Config_DockerKernel_Build }
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "image", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "build", kind: "message", T: () => Config_DockerKernel_Build }
         ]);
     }
 }

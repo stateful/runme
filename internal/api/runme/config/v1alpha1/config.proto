@@ -102,11 +102,16 @@ message Config {
     }
   }
 
-  message LocalKernel {}
+  message LocalKernel {
+    string name = 1;
+  }
 
   message DockerKernel {
-    string image = 1;
-    Build build = 2;
+    string name = 1;
+
+    string image = 2;
+
+    Build build = 3;
 
     message Build {
       string context = 1;

@@ -11,7 +11,9 @@ import (
 	"github.com/stateful/runme/v3/internal/project"
 )
 
-func runCmd(_ *commonFlags) *cobra.Command {
+func runCmd(*commonFlags) *cobra.Command {
+	var kernelName string
+
 	cmd := cobra.Command{
 		Use:     "run [command1 command2 ...]",
 		Aliases: []string{"exec"},
@@ -32,7 +34,7 @@ Run all blocks from the "setup" and "teardown" categories:
 			return autoconfig.Invoke(
 				func(
 					filters []project.Filter,
-					kernel command.Kernel,
+					kernelGetter autoconfig.KernelGetter,
 					logger *zap.Logger,
 					proj *project.Project,
 					session *command.Session,
@@ -63,6 +65,11 @@ Run all blocks from the "setup" and "teardown" categories:
 						return errors.WithStack(err)
 					}
 
+					kernel, err := kernelGetter(kernelName)
+					if err != nil {
+						return err
+					}
+
 					for _, t := range tasks {
 						err := runCommandNatively(cmd, t.CodeBlock, kernel, session, logger)
 						if err != nil {
@@ -75,6 +82,8 @@ Run all blocks from the "setup" and "teardown" categories:
 			)
 		},
 	}
+
+	cmd.Flags().StringVar(&kernelName, "kernel", "", "Kernel name or index to use for command execution.")
 
 	return &cmd
 }
@@ -91,21 +100,22 @@ func runCommandNatively(
 		return err
 	}
 
-	opts := command.Options{
-		Kernel:  kernel,
-		Logger:  logger,
-		Session: sess,
-		Stdin:   cmd.InOrStdin(),
-		Stdout:  cmd.OutOrStdout(),
-		Stderr:  cmd.ErrOrStderr(),
-	}
+	kernelCmd := kernel.Command(
+		cfg,
+		command.Options{
+			Kernel:  kernel,
+			Logger:  logger,
+			Session: sess,
+			Stdin:   cmd.InOrStdin(),
+			Stdout:  cmd.OutOrStdout(),
+			Stderr:  cmd.ErrOrStderr(),
+		},
+	)
 
-	nativeCommand := command.NewNative(cfg, opts)
-
-	err = nativeCommand.Start(cmd.Context())
+	err = kernelCmd.Start(cmd.Context())
 	if err != nil {
 		return err
 	}
 
-	return nativeCommand.Wait()
+	return kernelCmd.Wait()
 }

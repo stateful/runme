@@ -16,27 +16,27 @@ import (
 func TestDockerCommand(t *testing.T) {
 	t.Parallel()
 
-	dockerCmdFactory, err := dockerexec.New(&dockerexec.Options{Image: "alpine:3.19"})
+	docker, err := dockerexec.New(&dockerexec.Options{Debug: true, Image: "alpine:3.19"})
 	require.NoError(t, err)
 
+	// This test case is treated as a warm up. Do not parallelize.
+	t.Run("NoOutput", func(t *testing.T) {
+		cmd := NewDocker(testConfigBasicProgram, docker, Options{})
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+	})
+
 	t.Run("Output", func(t *testing.T) {
-		// Do not run in parallel; this is a warm up test.
+		t.Parallel()
 		stdout := bytes.NewBuffer(nil)
 		cmd := NewDocker(
 			testConfigBasicProgram,
-			dockerCmdFactory,
+			docker,
 			Options{Stdout: stdout},
 		)
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 		assert.Equal(t, "test", stdout.String())
-	})
-
-	t.Run("NoOutput", func(t *testing.T) {
-		t.Parallel()
-		cmd := NewDocker(testConfigBasicProgram, dockerCmdFactory, Options{})
-		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.Wait())
 	})
 
 	t.Run("Running", func(t *testing.T) {
@@ -46,7 +46,7 @@ func TestDockerCommand(t *testing.T) {
 				ProgramName: "sleep",
 				Arguments:   []string{"5"},
 			},
-			dockerCmdFactory,
+			docker,
 			Options{},
 		)
 		require.NoError(t, cmd.Start(context.Background()))
@@ -62,7 +62,7 @@ func TestDockerCommand(t *testing.T) {
 				ProgramName: "sh",
 				Arguments:   []string{"-c", "exit 11"},
 			},
-			dockerCmdFactory,
+			docker,
 			Options{},
 		)
 		require.NoError(t, err)
