@@ -6,6 +6,7 @@
 # You can test it with the "runme beta" commands.
 version: v1alpha1
 
+# config settings that apply at the repo-level
 repo:
   # The list of filters to apply to blocks.
   # "condition" must return a boolean value.
@@ -22,6 +23,7 @@ repo:
     - type: "FILTER_TYPE_BLOCK"
       condition: "!hasPrefix(name, 'test')"
 
+# config settings that often use default or a set at points of integration
 core:
   # Indicate the root of the runme project. "." means that
   # the project root directory will be used.
