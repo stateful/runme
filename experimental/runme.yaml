@@ -6,8 +6,45 @@
 # You can test it with the "runme beta" commands.
 version: v1alpha1
 
+# config settings that often use default or a set at points of integration
+kernel:
+  server:
+    # Also unix:///path/to/file.sock is supported.
+    address: localhost:7890
+    tls:
+      enabled: true
+      # If not specified, default paths will be used.
+      # cert_file: "/path/to/cert.pem"
+      # key_file: "/path/to/key.pem"
+
+  log:
+    enabled: true
+    path: "/var/tmp/runme.log"
+    verbose: true
+
 # config settings that apply at the repo-level
-repo:
+project:
+  # Indicate the root of the runme project. "." means that
+  # the project root directory will be used.
+  root: "."
+  # If true, the project root will be searched upwards starting from "dir".
+  # If found, the repo root will be used as the project root.
+  find_repo_upward: true
+  ignore:
+    - "node_modules"
+    - ".venv"
+  disable_gitignore: false
+
+  # It's possible to point at a single file as well.
+  # filename: "README.md"
+
+  # List of dotenv files to load.
+  env:
+    use_system_env: true
+    sources:
+      - ".env"
+      - ".env.local"
+
   # The list of filters to apply to blocks.
   # "condition" must return a boolean value.
   # You can learn about the syntax at https://expr-lang.org/docs/language-definition.
@@ -22,41 +59,3 @@ repo:
     # Do not allow code blocks starting with "test".
     - type: "FILTER_TYPE_BLOCK"
       condition: "!hasPrefix(name, 'test')"
-
-# config settings that often use default or a set at points of integration
-core:
-  # Indicate the root of the runme project. "." means that
-  # the project root directory will be used.
-  project:
-    dir: "."
-    # If true, the project root will be searched upwards starting from "dir".
-    # If found, the repo root will be used as the project root.
-    find_repo_upward: true
-    ignore:
-      - "node_modules"
-      - ".venv"
-    disable_gitignore: false
-
-  # It's possible to point at a single file as well.
-  # filename: "README.md"
-
-  # List of dotenv files to load.
-  env:
-    use_system_env: true
-    sources:
-      - ".env"
-      - ".env.local"
-
-  server:
-    # Also unix:///path/to/file.sock is supported.
-    address: localhost:7890
-    tls:
-      enabled: true
-      # If not specified, default paths will be used.
-      # cert_file: "/path/to/cert.pem"
-      # key_file: "/path/to/key.pem"
-
-  log:
-    enabled: true
-    path: "/var/tmp/runme.log"
-    verbose: true

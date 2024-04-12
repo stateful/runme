@@ -102,12 +102,12 @@ func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, er
 		return nil, err
 	}
 
-	if cfg.Core.ServerTLSEnabled {
-		if cfg.Core.ServerTLSCertFile == "" {
-			cfg.Core.ServerTLSCertFile = filepath.Join(string(userCfgDir), "cert.pem")
+	if cfg.Kernel.ServerTLSEnabled {
+		if cfg.Kernel.ServerTLSCertFile == "" {
+			cfg.Kernel.ServerTLSCertFile = filepath.Join(string(userCfgDir), "cert.pem")
 		}
-		if cfg.Core.ServerTLSKeyFile == "" {
-			cfg.Core.ServerTLSKeyFile = filepath.Join(string(userCfgDir), "key.pem")
+		if cfg.Kernel.ServerTLSKeyFile == "" {
+			cfg.Kernel.ServerTLSKeyFile = filepath.Join(string(userCfgDir), "key.pem")
 		}
 	}
 
@@ -115,7 +115,7 @@ func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, er
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {
-	if c == nil || !c.Core.LogEnabled {
+	if c == nil || !c.Kernel.LogEnabled {
 		return zap.NewNop(), nil
 	}
 
@@ -132,16 +132,16 @@ func getLogger(c *config.Config) (*zap.Logger, error) {
 		ErrorOutputPaths: []string{"stderr"},
 	}
 
-	if c.Core.LogVerbose {
+	if c.Kernel.LogVerbose {
 		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 		zapConfig.Development = true
 		zapConfig.Encoding = "console"
 		zapConfig.EncoderConfig = zap.NewDevelopmentEncoderConfig()
 	}
 
-	if c.Core.LogPath != "" {
-		zapConfig.OutputPaths = []string{c.Core.LogPath}
-		zapConfig.ErrorOutputPaths = []string{c.Core.LogPath}
+	if c.Kernel.LogPath != "" {
+		zapConfig.OutputPaths = []string{c.Kernel.LogPath}
+		zapConfig.ErrorOutputPaths = []string{c.Kernel.LogPath}
 	}
 
 	l, err := zapConfig.Build()
@@ -153,11 +153,11 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 		project.WithLogger(logger),
 	}
 
-	if c.Core.Filename != "" {
-		return project.NewFileProject(c.Core.Filename, opts...)
+	if c.Kernel.Filename != "" {
+		return project.NewFileProject(c.Kernel.Filename, opts...)
 	}
 
-	projDir := c.Core.ProjectDir
+	projDir := c.Kernel.ProjectDir
 	// If no project directory is specified, use the current directory.
 	if projDir == "" {
 		projDir = "."
@@ -165,12 +165,12 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 
 	opts = append(
 		opts,
-		project.WithIgnoreFilePatterns(c.Core.IgnorePaths...),
-		project.WithRespectGitignore(!c.Core.DisableGitignore),
-		project.WithEnvFilesReadOrder(c.Core.EnvSourceFiles),
+		project.WithIgnoreFilePatterns(c.Kernel.IgnorePaths...),
+		project.WithRespectGitignore(!c.Kernel.DisableGitignore),
+		project.WithEnvFilesReadOrder(c.Kernel.EnvSourceFiles),
 	)
 
-	if c.Core.FindRepoUpward {
+	if c.Kernel.FindRepoUpward {
 		opts = append(opts, project.WithFindRepoUpward())
 	}
 
@@ -228,7 +228,7 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 func getSession(cfg *config.Config, proj *project.Project) (*command.Session, error) {
 	sess := command.NewSession()
 
-	if cfg.Core.UseSystemEnv {
+	if cfg.Kernel.UseSystemEnv {
 		if err := sess.SetEnv(os.Environ()...); err != nil {
 			return nil, err
 		}

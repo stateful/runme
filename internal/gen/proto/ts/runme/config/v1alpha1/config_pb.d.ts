@@ -5,101 +5,26 @@
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
 /**
- * ConfigCore describes system-level configuration of the runme toolchain.
+ * Kernel describes system-level configuration of the runme toolchain.
  *
- * @generated from protobuf message runme.config.v1alpha1.ConfigCore
+ * @generated from protobuf message runme.config.v1alpha1.Kernel
  */
-export interface ConfigCore {
-    /**
-     * @generated from protobuf oneof: source
-     */
-    source: {
-        oneofKind: "project";
-        /**
-         * project indicates a dir-based source typically including multiple Markdown files.
-         *
-         * @generated from protobuf field: runme.config.v1alpha1.ConfigCore.Project project = 1;
-         */
-        project: ConfigCore_Project;
-    } | {
-        oneofKind: "filename";
-        /**
-         * filename indicates a single Markdown file.
-         *
-         * @generated from protobuf field: string filename = 2;
-         */
-        filename: string;
-    } | {
-        oneofKind: undefined;
-    };
-    /**
-     * env is the environment variables configuration.
-     *
-     * @generated from protobuf field: runme.config.v1alpha1.ConfigCore.Env env = 3;
-     */
-    env?: ConfigCore_Env;
+export interface Kernel {
     /**
      * log contains the log configuration.
      *
-     * @generated from protobuf field: runme.config.v1alpha1.ConfigCore.Log log = 7;
+     * @generated from protobuf field: runme.config.v1alpha1.Kernel.Log log = 1;
      */
-    log?: ConfigCore_Log;
+    log?: Kernel_Log;
     /**
-     * @generated from protobuf field: runme.config.v1alpha1.ConfigCore.Server server = 8;
+     * @generated from protobuf field: runme.config.v1alpha1.Kernel.Server server = 2;
      */
-    server?: ConfigCore_Server;
+    server?: Kernel_Server;
 }
 /**
- * @generated from protobuf message runme.config.v1alpha1.ConfigCore.Project
+ * @generated from protobuf message runme.config.v1alpha1.Kernel.Log
  */
-export interface ConfigCore_Project {
-    /**
-     * dir is the directory to look for Markdown files.
-     *
-     * @generated from protobuf field: string dir = 1;
-     */
-    dir: string;
-    /**
-     * find_repo_upward indicates whether to find the nearest Git repository upward.
-     * This is useful to, for example, recognize .gitignore files.
-     *
-     * @generated from protobuf field: bool find_repo_upward = 2;
-     */
-    findRepoUpward: boolean;
-    /**
-     * ignore_paths is a list of paths to ignore relative to dir.
-     *
-     * @generated from protobuf field: repeated string ignore_paths = 3 [json_name = "ignore"];
-     */
-    ignorePaths: string[];
-    /**
-     * disable_gitignore indicates whether to disable the .gitignore file.
-     *
-     * @generated from protobuf field: bool disable_gitignore = 4;
-     */
-    disableGitignore: boolean;
-}
-/**
- * @generated from protobuf message runme.config.v1alpha1.ConfigCore.Env
- */
-export interface ConfigCore_Env {
-    /**
-     * use_system_env indicates whether to use the system environment variables.
-     *
-     * @generated from protobuf field: bool use_system_env = 1;
-     */
-    useSystemEnv: boolean;
-    /**
-     * sources is a list of files with env.
-     *
-     * @generated from protobuf field: repeated string sources = 2;
-     */
-    sources: string[];
-}
-/**
- * @generated from protobuf message runme.config.v1alpha1.ConfigCore.Log
- */
-export interface ConfigCore_Log {
+export interface Kernel_Log {
     /**
      * enabled indicates whether to enable logging.
      *
@@ -120,22 +45,22 @@ export interface ConfigCore_Log {
     verbose: boolean;
 }
 /**
- * @generated from protobuf message runme.config.v1alpha1.ConfigCore.Server
+ * @generated from protobuf message runme.config.v1alpha1.Kernel.Server
  */
-export interface ConfigCore_Server {
+export interface Kernel_Server {
     /**
      * @generated from protobuf field: string address = 1;
      */
     address: string;
     /**
-     * @generated from protobuf field: runme.config.v1alpha1.ConfigCore.Server.TLS tls = 2;
+     * @generated from protobuf field: runme.config.v1alpha1.Kernel.Server.TLS tls = 2;
      */
-    tls?: ConfigCore_Server_TLS;
+    tls?: Kernel_Server_TLS;
 }
 /**
- * @generated from protobuf message runme.config.v1alpha1.ConfigCore.Server.TLS
+ * @generated from protobuf message runme.config.v1alpha1.Kernel.Server.TLS
  */
-export interface ConfigCore_Server_TLS {
+export interface Kernel_Server_TLS {
     /**
      * @generated from protobuf field: bool enabled = 1;
      */
@@ -150,30 +75,94 @@ export interface ConfigCore_Server_TLS {
     keyFile: string;
 }
 /**
- * ConfigRepo describes repo-level configuration of the runme toolchain.
+ * Project describes repo-level configuration of the runme toolchain.
  *
- * @generated from protobuf message runme.config.v1alpha1.ConfigRepo
+ * @generated from protobuf message runme.config.v1alpha1.Project
  */
-export interface ConfigRepo {
+export interface Project {
+    /**
+     * @generated from protobuf oneof: source
+     */
+    source: {
+        oneofKind: "root";
+        /**
+         * root indicates a dir-based source typically including multiple Markdown files.
+         *
+         * @generated from protobuf field: string root = 1;
+         */
+        root: string;
+    } | {
+        oneofKind: "filename";
+        /**
+         * filename indicates a single Markdown file.
+         *
+         * @generated from protobuf field: string filename = 2;
+         */
+        filename: string;
+    } | {
+        oneofKind: undefined;
+    };
+    /**
+     * env is the environment variables configuration.
+     *
+     * @generated from protobuf field: runme.config.v1alpha1.Project.Env env = 3;
+     */
+    env?: Project_Env;
+    /**
+     * find_repo_upward indicates whether to find the nearest Git repository upward.
+     * This is useful to, for example, recognize .gitignore files.
+     *
+     * @generated from protobuf field: bool find_repo_upward = 4;
+     */
+    findRepoUpward: boolean;
+    /**
+     * ignore_paths is a list of paths to ignore relative to dir.
+     *
+     * @generated from protobuf field: repeated string ignore_paths = 5 [json_name = "ignore"];
+     */
+    ignorePaths: string[];
+    /**
+     * disable_gitignore indicates whether to disable the .gitignore file.
+     *
+     * @generated from protobuf field: bool disable_gitignore = 6;
+     */
+    disableGitignore: boolean;
     /**
      * filters is a list of filters to apply.
      * Filters can be applied to documents or
      * individual code blocks.
      *
-     * @generated from protobuf field: repeated runme.config.v1alpha1.ConfigRepo.Filter filters = 5;
+     * @generated from protobuf field: repeated runme.config.v1alpha1.Project.Filter filters = 7;
      */
-    filters: ConfigRepo_Filter[];
+    filters: Project_Filter[];
 }
 /**
- * @generated from protobuf message runme.config.v1alpha1.ConfigRepo.Filter
+ * @generated from protobuf message runme.config.v1alpha1.Project.Env
  */
-export interface ConfigRepo_Filter {
+export interface Project_Env {
+    /**
+     * use_system_env indicates whether to use the system environment variables.
+     *
+     * @generated from protobuf field: bool use_system_env = 1;
+     */
+    useSystemEnv: boolean;
+    /**
+     * sources is a list of files with env.
+     *
+     * @generated from protobuf field: repeated string sources = 2;
+     */
+    sources: string[];
+}
+/**
+ * @generated from protobuf message runme.config.v1alpha1.Project.Filter
+ */
+export interface Project_Filter {
     /**
      * type is the type of the filter.
      *
-     * @generated from protobuf field: runme.config.v1alpha1.ConfigRepo.FilterType type = 1;
+     * @generated from protobuf field: runme.config.v1alpha1.Project.FilterType type = 1;
      */
-    type: ConfigRepo_FilterType;
+    type: Project_FilterType;
     /**
      * condition is the filter program to execute for each document or block,
      * depending on the filter type.
@@ -186,9 +175,9 @@ export interface ConfigRepo_Filter {
     condition: string;
 }
 /**
- * @generated from protobuf enum runme.config.v1alpha1.ConfigRepo.FilterType
+ * @generated from protobuf enum runme.config.v1alpha1.Project.FilterType
  */
-export declare enum ConfigRepo_FilterType {
+export declare enum Project_FilterType {
     /**
      * @generated from protobuf enum value: FILTER_TYPE_UNSPECIFIED = 0;
      */
@@ -209,74 +198,67 @@ export declare enum ConfigRepo_FilterType {
  */
 export interface Config {
     /**
-     * core is the system-level configuration.
+     * kernel is the system-level configuration.
      *
-     * @generated from protobuf field: runme.config.v1alpha1.ConfigCore core = 1;
+     * @generated from protobuf field: runme.config.v1alpha1.Kernel kernel = 1;
      */
-    core?: ConfigCore;
+    kernel?: Kernel;
     /**
-     * repo is the repo-level configuration.
+     * project contains configuration applicable to the project inside a repo.
      *
-     * @generated from protobuf field: runme.config.v1alpha1.ConfigRepo repo = 2;
+     * @generated from protobuf field: runme.config.v1alpha1.Project project = 2;
      */
-    repo?: ConfigRepo;
+    project?: Project;
 }
-declare class ConfigCore$Type extends MessageType<ConfigCore> {
+declare class Kernel$Type extends MessageType<Kernel> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Kernel
  */
-export declare const ConfigCore: ConfigCore$Type;
-declare class ConfigCore_Project$Type extends MessageType<ConfigCore_Project> {
+export declare const Kernel: Kernel$Type;
+declare class Kernel_Log$Type extends MessageType<Kernel_Log> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Project
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Kernel.Log
  */
-export declare const ConfigCore_Project: ConfigCore_Project$Type;
-declare class ConfigCore_Env$Type extends MessageType<ConfigCore_Env> {
+export declare const Kernel_Log: Kernel_Log$Type;
+declare class Kernel_Server$Type extends MessageType<Kernel_Server> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Env
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Kernel.Server
  */
-export declare const ConfigCore_Env: ConfigCore_Env$Type;
-declare class ConfigCore_Log$Type extends MessageType<ConfigCore_Log> {
+export declare const Kernel_Server: Kernel_Server$Type;
+declare class Kernel_Server_TLS$Type extends MessageType<Kernel_Server_TLS> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Log
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Kernel.Server.TLS
  */
-export declare const ConfigCore_Log: ConfigCore_Log$Type;
-declare class ConfigCore_Server$Type extends MessageType<ConfigCore_Server> {
+export declare const Kernel_Server_TLS: Kernel_Server_TLS$Type;
+declare class Project$Type extends MessageType<Project> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Server
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Project
  */
-export declare const ConfigCore_Server: ConfigCore_Server$Type;
-declare class ConfigCore_Server_TLS$Type extends MessageType<ConfigCore_Server_TLS> {
+export declare const Project: Project$Type;
+declare class Project_Env$Type extends MessageType<Project_Env> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Server.TLS
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Project.Env
  */
-export declare const ConfigCore_Server_TLS: ConfigCore_Server_TLS$Type;
-declare class ConfigRepo$Type extends MessageType<ConfigRepo> {
+export declare const Project_Env: Project_Env$Type;
+declare class Project_Filter$Type extends MessageType<Project_Filter> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigRepo
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Project.Filter
  */
-export declare const ConfigRepo: ConfigRepo$Type;
-declare class ConfigRepo_Filter$Type extends MessageType<ConfigRepo_Filter> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigRepo.Filter
- */
-export declare const ConfigRepo_Filter: ConfigRepo_Filter$Type;
+export declare const Project_Filter: Project_Filter$Type;
 declare class Config$Type extends MessageType<Config> {
     constructor();
 }

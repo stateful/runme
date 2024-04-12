@@ -8,8 +8,9 @@ stderr '(?sm)server listening'
 
 -- experimental/runme.yaml --
 version: v1alpha1
-core:
+project:
   filename: README.md
+kernel:
   server:
     address: unix://runme.sock
     tls:

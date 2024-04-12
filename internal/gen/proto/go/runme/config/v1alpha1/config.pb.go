@@ -21,77 +21,68 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ConfigRepo_FilterType int32
+type Project_FilterType int32
 
 const (
-	ConfigRepo_FILTER_TYPE_UNSPECIFIED ConfigRepo_FilterType = 0
-	ConfigRepo_FILTER_TYPE_BLOCK       ConfigRepo_FilterType = 1
-	ConfigRepo_FILTER_TYPE_DOCUMENT    ConfigRepo_FilterType = 2
+	Project_FILTER_TYPE_UNSPECIFIED Project_FilterType = 0
+	Project_FILTER_TYPE_BLOCK       Project_FilterType = 1
+	Project_FILTER_TYPE_DOCUMENT    Project_FilterType = 2
 )
 
-// Enum value maps for ConfigRepo_FilterType.
+// Enum value maps for Project_FilterType.
 var (
-	ConfigRepo_FilterType_name = map[int32]string{
+	Project_FilterType_name = map[int32]string{
 		0: "FILTER_TYPE_UNSPECIFIED",
 		1: "FILTER_TYPE_BLOCK",
 		2: "FILTER_TYPE_DOCUMENT",
 	}
-	ConfigRepo_FilterType_value = map[string]int32{
+	Project_FilterType_value = map[string]int32{
 		"FILTER_TYPE_UNSPECIFIED": 0,
 		"FILTER_TYPE_BLOCK":       1,
 		"FILTER_TYPE_DOCUMENT":    2,
 	}
 )
 
-func (x ConfigRepo_FilterType) Enum() *ConfigRepo_FilterType {
-	p := new(ConfigRepo_FilterType)
+func (x Project_FilterType) Enum() *Project_FilterType {
+	p := new(Project_FilterType)
 	*p = x
 	return p
 }
 
-func (x ConfigRepo_FilterType) String() string {
+func (x Project_FilterType) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (ConfigRepo_FilterType) Descriptor() protoreflect.EnumDescriptor {
+func (Project_FilterType) Descriptor() protoreflect.EnumDescriptor {
 	return file_runme_config_v1alpha1_config_proto_enumTypes[0].Descriptor()
 }
 
-func (ConfigRepo_FilterType) Type() protoreflect.EnumType {
+func (Project_FilterType) Type() protoreflect.EnumType {
 	return &file_runme_config_v1alpha1_config_proto_enumTypes[0]
 }
 
-func (x ConfigRepo_FilterType) Number() protoreflect.EnumNumber {
+func (x Project_FilterType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ConfigRepo_FilterType.Descriptor instead.
-func (ConfigRepo_FilterType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use Project_FilterType.Descriptor instead.
+func (Project_FilterType) EnumDescriptor() ([]byte, []int) {
 	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{1, 0}
 }
 
-// ConfigCore describes system-level configuration of the runme toolchain.
-type ConfigCore struct {
+// Kernel describes system-level configuration of the runme toolchain.
+type Kernel struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// source is a source of Markdown files to look into.
-	//
-	// Types that are assignable to Source:
-	//
-	//	*ConfigCore_Project_
-	//	*ConfigCore_Filename
-	Source isConfigCore_Source `protobuf_oneof:"source"`
-	// env is the environment variables configuration.
-	Env *ConfigCore_Env `protobuf:"bytes,3,opt,name=env,proto3" json:"env,omitempty"`
 	// log contains the log configuration.
-	Log    *ConfigCore_Log    `protobuf:"bytes,7,opt,name=log,proto3" json:"log,omitempty"`
-	Server *ConfigCore_Server `protobuf:"bytes,8,opt,name=server,proto3" json:"server,omitempty"`
+	Log    *Kernel_Log    `protobuf:"bytes,1,opt,name=log,proto3" json:"log,omitempty"`
+	Server *Kernel_Server `protobuf:"bytes,2,opt,name=server,proto3" json:"server,omitempty"`
 }
 
-func (x *ConfigCore) Reset() {
-	*x = ConfigCore{}
+func (x *Kernel) Reset() {
+	*x = Kernel{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -99,13 +90,13 @@ func (x *ConfigCore) Reset() {
 	}
 }
 
-func (x *ConfigCore) String() string {
+func (x *Kernel) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConfigCore) ProtoMessage() {}
+func (*Kernel) ProtoMessage() {}
 
-func (x *ConfigCore) ProtoReflect() protoreflect.Message {
+func (x *Kernel) ProtoReflect() protoreflect.Message {
 	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -117,85 +108,55 @@ func (x *ConfigCore) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfigCore.ProtoReflect.Descriptor instead.
-func (*ConfigCore) Descriptor() ([]byte, []int) {
+// Deprecated: Use Kernel.ProtoReflect.Descriptor instead.
+func (*Kernel) Descriptor() ([]byte, []int) {
 	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0}
 }
 
-func (m *ConfigCore) GetSource() isConfigCore_Source {
-	if m != nil {
-		return m.Source
-	}
-	return nil
-}
-
-func (x *ConfigCore) GetProject() *ConfigCore_Project {
-	if x, ok := x.GetSource().(*ConfigCore_Project_); ok {
-		return x.Project
-	}
-	return nil
-}
-
-func (x *ConfigCore) GetFilename() string {
-	if x, ok := x.GetSource().(*ConfigCore_Filename); ok {
-		return x.Filename
-	}
-	return ""
-}
-
-func (x *ConfigCore) GetEnv() *ConfigCore_Env {
-	if x != nil {
-		return x.Env
-	}
-	return nil
-}
-
-func (x *ConfigCore) GetLog() *ConfigCore_Log {
+func (x *Kernel) GetLog() *Kernel_Log {
 	if x != nil {
 		return x.Log
 	}
 	return nil
 }
 
-func (x *ConfigCore) GetServer() *ConfigCore_Server {
+func (x *Kernel) GetServer() *Kernel_Server {
 	if x != nil {
 		return x.Server
 	}
 	return nil
 }
 
-type isConfigCore_Source interface {
-	isConfigCore_Source()
-}
-
-type ConfigCore_Project_ struct {
-	// project indicates a dir-based source typically including multiple Markdown files.
-	Project *ConfigCore_Project `protobuf:"bytes,1,opt,name=project,proto3,oneof"`
-}
-
-type ConfigCore_Filename struct {
-	// filename indicates a single Markdown file.
-	Filename string `protobuf:"bytes,2,opt,name=filename,proto3,oneof"`
-}
-
-func (*ConfigCore_Project_) isConfigCore_Source() {}
-
-func (*ConfigCore_Filename) isConfigCore_Source() {}
-
-// ConfigRepo describes repo-level configuration of the runme toolchain.
-type ConfigRepo struct {
+// Project describes repo-level configuration of the runme toolchain.
+type Project struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// source is a source of Markdown files to look into.
+	//
+	// Types that are assignable to Source:
+	//
+	//	*Project_Root
+	//	*Project_Filename
+	Source isProject_Source `protobuf_oneof:"source"`
+	// env is the environment variables configuration.
+	Env *Project_Env `protobuf:"bytes,3,opt,name=env,proto3" json:"env,omitempty"`
+	// find_repo_upward indicates whether to find the nearest Git repository upward.
+	// This is useful to, for example, recognize .gitignore files.
+	FindRepoUpward bool `protobuf:"varint,4,opt,name=find_repo_upward,json=findRepoUpward,proto3" json:"find_repo_upward,omitempty"`
+	// ignore_paths is a list of paths to ignore relative to dir.
+	IgnorePaths []string `protobuf:"bytes,5,rep,name=ignore_paths,json=ignore,proto3" json:"ignore_paths,omitempty"`
+	// disable_gitignore indicates whether to disable the .gitignore file.
+	DisableGitignore bool `protobuf:"varint,6,opt,name=disable_gitignore,json=disableGitignore,proto3" json:"disable_gitignore,omitempty"`
 	// filters is a list of filters to apply.
 	// Filters can be applied to documents or
 	// individual code blocks.
-	Filters []*ConfigRepo_Filter `protobuf:"bytes,5,rep,name=filters,proto3" json:"filters,omitempty"`
+	Filters []*Project_Filter `protobuf:"bytes,7,rep,name=filters,proto3" json:"filters,omitempty"`
 }
 
-func (x *ConfigRepo) Reset() {
-	*x = ConfigRepo{}
+func (x *Project) Reset() {
+	*x = Project{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -203,13 +164,13 @@ func (x *ConfigRepo) Reset() {
 	}
 }
 
-func (x *ConfigRepo) String() string {
+func (x *Project) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConfigRepo) ProtoMessage() {}
+func (*Project) ProtoMessage() {}
 
-func (x *ConfigRepo) ProtoReflect() protoreflect.Message {
+func (x *Project) ProtoReflect() protoreflect.Message {
 	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -221,17 +182,84 @@ func (x *ConfigRepo) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfigRepo.ProtoReflect.Descriptor instead.
-func (*ConfigRepo) Descriptor() ([]byte, []int) {
+// Deprecated: Use Project.ProtoReflect.Descriptor instead.
+func (*Project) Descriptor() ([]byte, []int) {
 	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ConfigRepo) GetFilters() []*ConfigRepo_Filter {
+func (m *Project) GetSource() isProject_Source {
+	if m != nil {
+		return m.Source
+	}
+	return nil
+}
+
+func (x *Project) GetRoot() string {
+	if x, ok := x.GetSource().(*Project_Root); ok {
+		return x.Root
+	}
+	return ""
+}
+
+func (x *Project) GetFilename() string {
+	if x, ok := x.GetSource().(*Project_Filename); ok {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *Project) GetEnv() *Project_Env {
+	if x != nil {
+		return x.Env
+	}
+	return nil
+}
+
+func (x *Project) GetFindRepoUpward() bool {
+	if x != nil {
+		return x.FindRepoUpward
+	}
+	return false
+}
+
+func (x *Project) GetIgnorePaths() []string {
+	if x != nil {
+		return x.IgnorePaths
+	}
+	return nil
+}
+
+func (x *Project) GetDisableGitignore() bool {
+	if x != nil {
+		return x.DisableGitignore
+	}
+	return false
+}
+
+func (x *Project) GetFilters() []*Project_Filter {
 	if x != nil {
 		return x.Filters
 	}
 	return nil
 }
+
+type isProject_Source interface {
+	isProject_Source()
+}
+
+type Project_Root struct {
+	// root indicates a dir-based source typically including multiple Markdown files.
+	Root string `protobuf:"bytes,1,opt,name=root,proto3,oneof"`
+}
+
+type Project_Filename struct {
+	// filename indicates a single Markdown file.
+	Filename string `protobuf:"bytes,2,opt,name=filename,proto3,oneof"`
+}
+
+func (*Project_Root) isProject_Source() {}
+
+func (*Project_Filename) isProject_Source() {}
 
 // Config describes the configuration of the runme toolchain, including CLI, server, and clients like VS Code extension.
 type Config struct {
@@ -239,10 +267,10 @@ type Config struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// core is the system-level configuration.
-	Core *ConfigCore `protobuf:"bytes,1,opt,name=core,proto3" json:"core,omitempty"`
-	// repo is the repo-level configuration.
-	Repo *ConfigRepo `protobuf:"bytes,2,opt,name=repo,proto3" json:"repo,omitempty"`
+	// kernel is the system-level configuration.
+	Kernel *Kernel `protobuf:"bytes,1,opt,name=kernel,proto3" json:"kernel,omitempty"`
+	// project contains configuration applicable to the project inside a repo.
+	Project *Project `protobuf:"bytes,2,opt,name=project,proto3" json:"project,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -277,154 +305,21 @@ func (*Config) Descriptor() ([]byte, []int) {
 	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *Config) GetCore() *ConfigCore {
+func (x *Config) GetKernel() *Kernel {
 	if x != nil {
-		return x.Core
+		return x.Kernel
 	}
 	return nil
 }
 
-func (x *Config) GetRepo() *ConfigRepo {
+func (x *Config) GetProject() *Project {
 	if x != nil {
-		return x.Repo
+		return x.Project
 	}
 	return nil
 }
 
-type ConfigCore_Project struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// dir is the directory to look for Markdown files.
-	Dir string `protobuf:"bytes,1,opt,name=dir,proto3" json:"dir,omitempty"`
-	// find_repo_upward indicates whether to find the nearest Git repository upward.
-	// This is useful to, for example, recognize .gitignore files.
-	FindRepoUpward bool `protobuf:"varint,2,opt,name=find_repo_upward,json=findRepoUpward,proto3" json:"find_repo_upward,omitempty"`
-	// ignore_paths is a list of paths to ignore relative to dir.
-	IgnorePaths []string `protobuf:"bytes,3,rep,name=ignore_paths,json=ignore,proto3" json:"ignore_paths,omitempty"`
-	// disable_gitignore indicates whether to disable the .gitignore file.
-	DisableGitignore bool `protobuf:"varint,4,opt,name=disable_gitignore,json=disableGitignore,proto3" json:"disable_gitignore,omitempty"`
-}
-
-func (x *ConfigCore_Project) Reset() {
-	*x = ConfigCore_Project{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ConfigCore_Project) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigCore_Project) ProtoMessage() {}
-
-func (x *ConfigCore_Project) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigCore_Project.ProtoReflect.Descriptor instead.
-func (*ConfigCore_Project) Descriptor() ([]byte, []int) {
-	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0, 0}
-}
-
-func (x *ConfigCore_Project) GetDir() string {
-	if x != nil {
-		return x.Dir
-	}
-	return ""
-}
-
-func (x *ConfigCore_Project) GetFindRepoUpward() bool {
-	if x != nil {
-		return x.FindRepoUpward
-	}
-	return false
-}
-
-func (x *ConfigCore_Project) GetIgnorePaths() []string {
-	if x != nil {
-		return x.IgnorePaths
-	}
-	return nil
-}
-
-func (x *ConfigCore_Project) GetDisableGitignore() bool {
-	if x != nil {
-		return x.DisableGitignore
-	}
-	return false
-}
-
-type ConfigCore_Env struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// use_system_env indicates whether to use the system environment variables.
-	UseSystemEnv bool `protobuf:"varint,1,opt,name=use_system_env,json=useSystemEnv,proto3" json:"use_system_env,omitempty"`
-	// sources is a list of files with env.
-	Sources []string `protobuf:"bytes,2,rep,name=sources,proto3" json:"sources,omitempty"`
-}
-
-func (x *ConfigCore_Env) Reset() {
-	*x = ConfigCore_Env{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ConfigCore_Env) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigCore_Env) ProtoMessage() {}
-
-func (x *ConfigCore_Env) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigCore_Env.ProtoReflect.Descriptor instead.
-func (*ConfigCore_Env) Descriptor() ([]byte, []int) {
-	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0, 1}
-}
-
-func (x *ConfigCore_Env) GetUseSystemEnv() bool {
-	if x != nil {
-		return x.UseSystemEnv
-	}
-	return false
-}
-
-func (x *ConfigCore_Env) GetSources() []string {
-	if x != nil {
-		return x.Sources
-	}
-	return nil
-}
-
-type ConfigCore_Log struct {
+type Kernel_Log struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -437,8 +332,126 @@ type ConfigCore_Log struct {
 	Verbose bool `protobuf:"varint,3,opt,name=verbose,proto3" json:"verbose,omitempty"`
 }
 
-func (x *ConfigCore_Log) Reset() {
-	*x = ConfigCore_Log{}
+func (x *Kernel_Log) Reset() {
+	*x = Kernel_Log{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Kernel_Log) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Kernel_Log) ProtoMessage() {}
+
+func (x *Kernel_Log) ProtoReflect() protoreflect.Message {
+	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Kernel_Log.ProtoReflect.Descriptor instead.
+func (*Kernel_Log) Descriptor() ([]byte, []int) {
+	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0, 0}
+}
+
+func (x *Kernel_Log) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *Kernel_Log) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *Kernel_Log) GetVerbose() bool {
+	if x != nil {
+		return x.Verbose
+	}
+	return false
+}
+
+type Kernel_Server struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Address string             `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Tls     *Kernel_Server_TLS `protobuf:"bytes,2,opt,name=tls,proto3" json:"tls,omitempty"`
+}
+
+func (x *Kernel_Server) Reset() {
+	*x = Kernel_Server{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Kernel_Server) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Kernel_Server) ProtoMessage() {}
+
+func (x *Kernel_Server) ProtoReflect() protoreflect.Message {
+	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Kernel_Server.ProtoReflect.Descriptor instead.
+func (*Kernel_Server) Descriptor() ([]byte, []int) {
+	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0, 1}
+}
+
+func (x *Kernel_Server) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *Kernel_Server) GetTls() *Kernel_Server_TLS {
+	if x != nil {
+		return x.Tls
+	}
+	return nil
+}
+
+type Kernel_Server_TLS struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Enabled  bool   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	CertFile string `protobuf:"bytes,2,opt,name=cert_file,json=certFile,proto3" json:"cert_file,omitempty"`
+	KeyFile  string `protobuf:"bytes,3,opt,name=key_file,json=keyFile,proto3" json:"key_file,omitempty"`
+}
+
+func (x *Kernel_Server_TLS) Reset() {
+	*x = Kernel_Server_TLS{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -446,13 +459,13 @@ func (x *ConfigCore_Log) Reset() {
 	}
 }
 
-func (x *ConfigCore_Log) String() string {
+func (x *Kernel_Server_TLS) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConfigCore_Log) ProtoMessage() {}
+func (*Kernel_Server_TLS) ProtoMessage() {}
 
-func (x *ConfigCore_Log) ProtoReflect() protoreflect.Message {
+func (x *Kernel_Server_TLS) ProtoReflect() protoreflect.Message {
 	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -464,43 +477,45 @@ func (x *ConfigCore_Log) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfigCore_Log.ProtoReflect.Descriptor instead.
-func (*ConfigCore_Log) Descriptor() ([]byte, []int) {
-	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0, 2}
+// Deprecated: Use Kernel_Server_TLS.ProtoReflect.Descriptor instead.
+func (*Kernel_Server_TLS) Descriptor() ([]byte, []int) {
+	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0, 1, 0}
 }
 
-func (x *ConfigCore_Log) GetEnabled() bool {
+func (x *Kernel_Server_TLS) GetEnabled() bool {
 	if x != nil {
 		return x.Enabled
 	}
 	return false
 }
 
-func (x *ConfigCore_Log) GetPath() string {
+func (x *Kernel_Server_TLS) GetCertFile() string {
 	if x != nil {
-		return x.Path
+		return x.CertFile
 	}
 	return ""
 }
 
-func (x *ConfigCore_Log) GetVerbose() bool {
+func (x *Kernel_Server_TLS) GetKeyFile() string {
 	if x != nil {
-		return x.Verbose
+		return x.KeyFile
 	}
-	return false
+	return ""
 }
 
-type ConfigCore_Server struct {
+type Project_Env struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Address string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Tls     *ConfigCore_Server_TLS `protobuf:"bytes,2,opt,name=tls,proto3" json:"tls,omitempty"`
+	// use_system_env indicates whether to use the system environment variables.
+	UseSystemEnv bool `protobuf:"varint,1,opt,name=use_system_env,json=useSystemEnv,proto3" json:"use_system_env,omitempty"`
+	// sources is a list of files with env.
+	Sources []string `protobuf:"bytes,2,rep,name=sources,proto3" json:"sources,omitempty"`
 }
 
-func (x *ConfigCore_Server) Reset() {
-	*x = ConfigCore_Server{}
+func (x *Project_Env) Reset() {
+	*x = Project_Env{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -508,13 +523,13 @@ func (x *ConfigCore_Server) Reset() {
 	}
 }
 
-func (x *ConfigCore_Server) String() string {
+func (x *Project_Env) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConfigCore_Server) ProtoMessage() {}
+func (*Project_Env) ProtoMessage() {}
 
-func (x *ConfigCore_Server) ProtoReflect() protoreflect.Message {
+func (x *Project_Env) ProtoReflect() protoreflect.Message {
 	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -526,37 +541,42 @@ func (x *ConfigCore_Server) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfigCore_Server.ProtoReflect.Descriptor instead.
-func (*ConfigCore_Server) Descriptor() ([]byte, []int) {
-	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0, 3}
+// Deprecated: Use Project_Env.ProtoReflect.Descriptor instead.
+func (*Project_Env) Descriptor() ([]byte, []int) {
+	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{1, 0}
 }
 
-func (x *ConfigCore_Server) GetAddress() string {
+func (x *Project_Env) GetUseSystemEnv() bool {
 	if x != nil {
-		return x.Address
+		return x.UseSystemEnv
 	}
-	return ""
+	return false
 }
 
-func (x *ConfigCore_Server) GetTls() *ConfigCore_Server_TLS {
+func (x *Project_Env) GetSources() []string {
 	if x != nil {
-		return x.Tls
+		return x.Sources
 	}
 	return nil
 }
 
-type ConfigCore_Server_TLS struct {
+type Project_Filter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Enabled  bool   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	CertFile string `protobuf:"bytes,2,opt,name=cert_file,json=certFile,proto3" json:"cert_file,omitempty"`
-	KeyFile  string `protobuf:"bytes,3,opt,name=key_file,json=keyFile,proto3" json:"key_file,omitempty"`
+	// type is the type of the filter.
+	Type Project_FilterType `protobuf:"varint,1,opt,name=type,proto3,enum=runme.config.v1alpha1.Project_FilterType" json:"type,omitempty"`
+	// condition is the filter program to execute for each document or block,
+	// depending on the filter type.
+	//
+	// The condition should be a valid Expr expression and it should return a boolean value.
+	// You can read more about the Expr syntax on https://expr-lang.org/.
+	Condition string `protobuf:"bytes,2,opt,name=condition,proto3" json:"condition,omitempty"`
 }
 
-func (x *ConfigCore_Server_TLS) Reset() {
-	*x = ConfigCore_Server_TLS{}
+func (x *Project_Filter) Reset() {
+	*x = Project_Filter{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -564,13 +584,13 @@ func (x *ConfigCore_Server_TLS) Reset() {
 	}
 }
 
-func (x *ConfigCore_Server_TLS) String() string {
+func (x *Project_Filter) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConfigCore_Server_TLS) ProtoMessage() {}
+func (*Project_Filter) ProtoMessage() {}
 
-func (x *ConfigCore_Server_TLS) ProtoReflect() protoreflect.Message {
+func (x *Project_Filter) ProtoReflect() protoreflect.Message {
 	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -582,87 +602,19 @@ func (x *ConfigCore_Server_TLS) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfigCore_Server_TLS.ProtoReflect.Descriptor instead.
-func (*ConfigCore_Server_TLS) Descriptor() ([]byte, []int) {
-	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{0, 3, 0}
+// Deprecated: Use Project_Filter.ProtoReflect.Descriptor instead.
+func (*Project_Filter) Descriptor() ([]byte, []int) {
+	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{1, 1}
 }
 
-func (x *ConfigCore_Server_TLS) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *ConfigCore_Server_TLS) GetCertFile() string {
-	if x != nil {
-		return x.CertFile
-	}
-	return ""
-}
-
-func (x *ConfigCore_Server_TLS) GetKeyFile() string {
-	if x != nil {
-		return x.KeyFile
-	}
-	return ""
-}
-
-type ConfigRepo_Filter struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// type is the type of the filter.
-	Type ConfigRepo_FilterType `protobuf:"varint,1,opt,name=type,proto3,enum=runme.config.v1alpha1.ConfigRepo_FilterType" json:"type,omitempty"`
-	// condition is the filter program to execute for each document or block,
-	// depending on the filter type.
-	//
-	// The condition should be a valid Expr expression and it should return a boolean value.
-	// You can read more about the Expr syntax on https://expr-lang.org/.
-	Condition string `protobuf:"bytes,2,opt,name=condition,proto3" json:"condition,omitempty"`
-}
-
-func (x *ConfigRepo_Filter) Reset() {
-	*x = ConfigRepo_Filter{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_runme_config_v1alpha1_config_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ConfigRepo_Filter) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigRepo_Filter) ProtoMessage() {}
-
-func (x *ConfigRepo_Filter) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_config_v1alpha1_config_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigRepo_Filter.ProtoReflect.Descriptor instead.
-func (*ConfigRepo_Filter) Descriptor() ([]byte, []int) {
-	return file_runme_config_v1alpha1_config_proto_rawDescGZIP(), []int{1, 0}
-}
-
-func (x *ConfigRepo_Filter) GetType() ConfigRepo_FilterType {
+func (x *Project_Filter) GetType() Project_FilterType {
 	if x != nil {
 		return x.Type
 	}
-	return ConfigRepo_FILTER_TYPE_UNSPECIFIED
+	return Project_FILTER_TYPE_UNSPECIFIED
 }
 
-func (x *ConfigRepo_Filter) GetCondition() string {
+func (x *Project_Filter) GetCondition() string {
 	if x != nil {
 		return x.Condition
 	}
@@ -677,89 +629,83 @@ var file_runme_config_v1alpha1_config_proto_rawDesc = []byte{
 	0x72, 0x6f, 0x74, 0x6f, 0x12, 0x15, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x1a, 0x1b, 0x62, 0x75, 0x66,
 	0x2f, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x2f, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61,
-	0x74, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x9d, 0x06, 0x0a, 0x0a, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x43, 0x6f, 0x72, 0x65, 0x12, 0x45, 0x0a, 0x07, 0x70, 0x72, 0x6f, 0x6a, 0x65,
-	0x63, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x29, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65,
+	0x74, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x84, 0x03, 0x0a, 0x06, 0x4b, 0x65, 0x72,
+	0x6e, 0x65, 0x6c, 0x12, 0x33, 0x0a, 0x03, 0x6c, 0x6f, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x21, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e,
+	0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x4b, 0x65, 0x72, 0x6e, 0x65, 0x6c, 0x2e,
+	0x4c, 0x6f, 0x67, 0x52, 0x03, 0x6c, 0x6f, 0x67, 0x12, 0x3c, 0x0a, 0x06, 0x73, 0x65, 0x72, 0x76,
+	0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x24, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65,
 	0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31,
-	0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x6f, 0x72, 0x65, 0x2e, 0x50, 0x72, 0x6f, 0x6a,
-	0x65, 0x63, 0x74, 0x48, 0x00, 0x52, 0x07, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x1c,
-	0x0a, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
-	0x48, 0x00, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x37, 0x0a, 0x03,
-	0x65, 0x6e, 0x76, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x72, 0x75, 0x6e, 0x6d,
-	0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61,
-	0x31, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x6f, 0x72, 0x65, 0x2e, 0x45, 0x6e, 0x76,
-	0x52, 0x03, 0x65, 0x6e, 0x76, 0x12, 0x37, 0x0a, 0x03, 0x6c, 0x6f, 0x67, 0x18, 0x07, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x25, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69,
-	0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69,
-	0x67, 0x43, 0x6f, 0x72, 0x65, 0x2e, 0x4c, 0x6f, 0x67, 0x52, 0x03, 0x6c, 0x6f, 0x67, 0x12, 0x40,
-	0x0a, 0x06, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28,
-	0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31,
-	0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x6f, 0x72,
-	0x65, 0x2e, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x06, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
-	0x1a, 0x90, 0x01, 0x0a, 0x07, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x10, 0x0a, 0x03,
-	0x64, 0x69, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x64, 0x69, 0x72, 0x12, 0x28,
-	0x0a, 0x10, 0x66, 0x69, 0x6e, 0x64, 0x5f, 0x72, 0x65, 0x70, 0x6f, 0x5f, 0x75, 0x70, 0x77, 0x61,
-	0x72, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0e, 0x66, 0x69, 0x6e, 0x64, 0x52, 0x65,
-	0x70, 0x6f, 0x55, 0x70, 0x77, 0x61, 0x72, 0x64, 0x12, 0x1c, 0x0a, 0x0c, 0x69, 0x67, 0x6e, 0x6f,
-	0x72, 0x65, 0x5f, 0x70, 0x61, 0x74, 0x68, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x09, 0x52, 0x06,
-	0x69, 0x67, 0x6e, 0x6f, 0x72, 0x65, 0x12, 0x2b, 0x0a, 0x11, 0x64, 0x69, 0x73, 0x61, 0x62, 0x6c,
-	0x65, 0x5f, 0x67, 0x69, 0x74, 0x69, 0x67, 0x6e, 0x6f, 0x72, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x08, 0x52, 0x10, 0x64, 0x69, 0x73, 0x61, 0x62, 0x6c, 0x65, 0x47, 0x69, 0x74, 0x69, 0x67, 0x6e,
-	0x6f, 0x72, 0x65, 0x1a, 0x45, 0x0a, 0x03, 0x45, 0x6e, 0x76, 0x12, 0x24, 0x0a, 0x0e, 0x75, 0x73,
-	0x65, 0x5f, 0x73, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x5f, 0x65, 0x6e, 0x76, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x08, 0x52, 0x0c, 0x75, 0x73, 0x65, 0x53, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x45, 0x6e, 0x76,
-	0x12, 0x18, 0x0a, 0x07, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28,
-	0x09, 0x52, 0x07, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x1a, 0x4d, 0x0a, 0x03, 0x4c, 0x6f,
-	0x67, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x08, 0x52, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x70,
-	0x61, 0x74, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x12,
-	0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x62, 0x6f, 0x73, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08,
-	0x52, 0x07, 0x76, 0x65, 0x72, 0x62, 0x6f, 0x73, 0x65, 0x1a, 0xbb, 0x01, 0x0a, 0x06, 0x53, 0x65,
-	0x72, 0x76, 0x65, 0x72, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x3e,
-	0x0a, 0x03, 0x74, 0x6c, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2c, 0x2e, 0x72, 0x75,
+	0x2e, 0x4b, 0x65, 0x72, 0x6e, 0x65, 0x6c, 0x2e, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x06,
+	0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x1a, 0x4d, 0x0a, 0x03, 0x4c, 0x6f, 0x67, 0x12, 0x18, 0x0a,
+	0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07,
+	0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x12, 0x18, 0x0a, 0x07, 0x76,
+	0x65, 0x72, 0x62, 0x6f, 0x73, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x76, 0x65,
+	0x72, 0x62, 0x6f, 0x73, 0x65, 0x1a, 0xb7, 0x01, 0x0a, 0x06, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,
+	0x12, 0x18, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x3a, 0x0a, 0x03, 0x74, 0x6c,
+	0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e,
+	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e,
+	0x4b, 0x65, 0x72, 0x6e, 0x65, 0x6c, 0x2e, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x54, 0x4c,
+	0x53, 0x52, 0x03, 0x74, 0x6c, 0x73, 0x1a, 0x57, 0x0a, 0x03, 0x54, 0x4c, 0x53, 0x12, 0x18, 0x0a,
+	0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07,
+	0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x63, 0x65, 0x72, 0x74, 0x5f,
+	0x66, 0x69, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x63, 0x65, 0x72, 0x74,
+	0x46, 0x69, 0x6c, 0x65, 0x12, 0x19, 0x0a, 0x08, 0x6b, 0x65, 0x79, 0x5f, 0x66, 0x69, 0x6c, 0x65,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6b, 0x65, 0x79, 0x46, 0x69, 0x6c, 0x65, 0x22,
+	0xda, 0x04, 0x0a, 0x07, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x14, 0x0a, 0x04, 0x72,
+	0x6f, 0x6f, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x04, 0x72, 0x6f, 0x6f,
+	0x74, 0x12, 0x1c, 0x0a, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x12,
+	0x34, 0x0a, 0x03, 0x65, 0x6e, 0x76, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x72,
+	0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c,
+	0x70, 0x68, 0x61, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2e, 0x45, 0x6e, 0x76,
+	0x52, 0x03, 0x65, 0x6e, 0x76, 0x12, 0x28, 0x0a, 0x10, 0x66, 0x69, 0x6e, 0x64, 0x5f, 0x72, 0x65,
+	0x70, 0x6f, 0x5f, 0x75, 0x70, 0x77, 0x61, 0x72, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x08, 0x52,
+	0x0e, 0x66, 0x69, 0x6e, 0x64, 0x52, 0x65, 0x70, 0x6f, 0x55, 0x70, 0x77, 0x61, 0x72, 0x64, 0x12,
+	0x1c, 0x0a, 0x0c, 0x69, 0x67, 0x6e, 0x6f, 0x72, 0x65, 0x5f, 0x70, 0x61, 0x74, 0x68, 0x73, 0x18,
+	0x05, 0x20, 0x03, 0x28, 0x09, 0x52, 0x06, 0x69, 0x67, 0x6e, 0x6f, 0x72, 0x65, 0x12, 0x2b, 0x0a,
+	0x11, 0x64, 0x69, 0x73, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x67, 0x69, 0x74, 0x69, 0x67, 0x6e, 0x6f,
+	0x72, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x08, 0x52, 0x10, 0x64, 0x69, 0x73, 0x61, 0x62, 0x6c,
+	0x65, 0x47, 0x69, 0x74, 0x69, 0x67, 0x6e, 0x6f, 0x72, 0x65, 0x12, 0x3f, 0x0a, 0x07, 0x66, 0x69,
+	0x6c, 0x74, 0x65, 0x72, 0x73, 0x18, 0x07, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x72, 0x75,
 	0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70,
-	0x68, 0x61, 0x31, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x6f, 0x72, 0x65, 0x2e, 0x53,
-	0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x54, 0x4c, 0x53, 0x52, 0x03, 0x74, 0x6c, 0x73, 0x1a, 0x57,
-	0x0a, 0x03, 0x54, 0x4c, 0x53, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x12,
-	0x1b, 0x0a, 0x09, 0x63, 0x65, 0x72, 0x74, 0x5f, 0x66, 0x69, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x08, 0x63, 0x65, 0x72, 0x74, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x19, 0x0a, 0x08,
-	0x6b, 0x65, 0x79, 0x5f, 0x66, 0x69, 0x6c, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07,
-	0x6b, 0x65, 0x79, 0x46, 0x69, 0x6c, 0x65, 0x42, 0x0f, 0x0a, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63,
-	0x65, 0x12, 0x05, 0xba, 0x48, 0x02, 0x08, 0x01, 0x22, 0xac, 0x02, 0x0a, 0x0a, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x52, 0x65, 0x70, 0x6f, 0x12, 0x42, 0x0a, 0x07, 0x66, 0x69, 0x6c, 0x74, 0x65,
-	0x72, 0x73, 0x18, 0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65,
-	0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31,
-	0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x70, 0x6f, 0x2e, 0x46, 0x69, 0x6c, 0x74,
-	0x65, 0x72, 0x52, 0x07, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x73, 0x1a, 0x7e, 0x0a, 0x06, 0x46,
-	0x69, 0x6c, 0x74, 0x65, 0x72, 0x12, 0x4a, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0e, 0x32, 0x2c, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66,
-	0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x43, 0x6f, 0x6e, 0x66,
-	0x69, 0x67, 0x52, 0x65, 0x70, 0x6f, 0x2e, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x54, 0x79, 0x70,
-	0x65, 0x42, 0x08, 0xba, 0x48, 0x05, 0x82, 0x01, 0x02, 0x10, 0x01, 0x52, 0x04, 0x74, 0x79, 0x70,
-	0x65, 0x12, 0x28, 0x0a, 0x09, 0x63, 0x6f, 0x6e, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x09, 0x42, 0x0a, 0xba, 0x48, 0x07, 0x72, 0x05, 0x10, 0x01, 0x18, 0x80, 0x08,
-	0x52, 0x09, 0x63, 0x6f, 0x6e, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x5a, 0x0a, 0x0a, 0x46,
-	0x69, 0x6c, 0x74, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1b, 0x0a, 0x17, 0x46, 0x49, 0x4c,
-	0x54, 0x45, 0x52, 0x5f, 0x54, 0x59, 0x50, 0x45, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49,
-	0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x15, 0x0a, 0x11, 0x46, 0x49, 0x4c, 0x54, 0x45, 0x52,
-	0x5f, 0x54, 0x59, 0x50, 0x45, 0x5f, 0x42, 0x4c, 0x4f, 0x43, 0x4b, 0x10, 0x01, 0x12, 0x18, 0x0a,
-	0x14, 0x46, 0x49, 0x4c, 0x54, 0x45, 0x52, 0x5f, 0x54, 0x59, 0x50, 0x45, 0x5f, 0x44, 0x4f, 0x43,
-	0x55, 0x4d, 0x45, 0x4e, 0x54, 0x10, 0x02, 0x22, 0x76, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x66, 0x69,
-	0x67, 0x12, 0x35, 0x0a, 0x04, 0x63, 0x6f, 0x72, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x21, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76,
-	0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x6f,
-	0x72, 0x65, 0x52, 0x04, 0x63, 0x6f, 0x72, 0x65, 0x12, 0x35, 0x0a, 0x04, 0x72, 0x65, 0x70, 0x6f,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x43,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x70, 0x6f, 0x52, 0x04, 0x72, 0x65, 0x70, 0x6f, 0x42,
-	0x56, 0x5a, 0x54, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x73, 0x74,
-	0x61, 0x74, 0x65, 0x66, 0x75, 0x6c, 0x2f, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2f, 0x69, 0x6e, 0x74,
-	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x67, 0x65, 0x6e, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f,
-	0x67, 0x6f, 0x2f, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f,
-	0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x3b, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x76,
-	0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x68, 0x61, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2e, 0x46, 0x69, 0x6c, 0x74,
+	0x65, 0x72, 0x52, 0x07, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x73, 0x1a, 0x45, 0x0a, 0x03, 0x45,
+	0x6e, 0x76, 0x12, 0x24, 0x0a, 0x0e, 0x75, 0x73, 0x65, 0x5f, 0x73, 0x79, 0x73, 0x74, 0x65, 0x6d,
+	0x5f, 0x65, 0x6e, 0x76, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0c, 0x75, 0x73, 0x65, 0x53,
+	0x79, 0x73, 0x74, 0x65, 0x6d, 0x45, 0x6e, 0x76, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x07, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x73, 0x1a, 0x7b, 0x0a, 0x06, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x12, 0x47, 0x0a, 0x04,
+	0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x29, 0x2e, 0x72, 0x75, 0x6e,
+	0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68,
+	0x61, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2e, 0x46, 0x69, 0x6c, 0x74, 0x65,
+	0x72, 0x54, 0x79, 0x70, 0x65, 0x42, 0x08, 0xba, 0x48, 0x05, 0x82, 0x01, 0x02, 0x10, 0x01, 0x52,
+	0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x28, 0x0a, 0x09, 0x63, 0x6f, 0x6e, 0x64, 0x69, 0x74, 0x69,
+	0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0a, 0xba, 0x48, 0x07, 0x72, 0x05, 0x10,
+	0x01, 0x18, 0x80, 0x08, 0x52, 0x09, 0x63, 0x6f, 0x6e, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x22,
+	0x5a, 0x0a, 0x0a, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1b, 0x0a,
+	0x17, 0x46, 0x49, 0x4c, 0x54, 0x45, 0x52, 0x5f, 0x54, 0x59, 0x50, 0x45, 0x5f, 0x55, 0x4e, 0x53,
+	0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x15, 0x0a, 0x11, 0x46, 0x49,
+	0x4c, 0x54, 0x45, 0x52, 0x5f, 0x54, 0x59, 0x50, 0x45, 0x5f, 0x42, 0x4c, 0x4f, 0x43, 0x4b, 0x10,
+	0x01, 0x12, 0x18, 0x0a, 0x14, 0x46, 0x49, 0x4c, 0x54, 0x45, 0x52, 0x5f, 0x54, 0x59, 0x50, 0x45,
+	0x5f, 0x44, 0x4f, 0x43, 0x55, 0x4d, 0x45, 0x4e, 0x54, 0x10, 0x02, 0x42, 0x0f, 0x0a, 0x06, 0x73,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x05, 0xba, 0x48, 0x02, 0x08, 0x01, 0x22, 0x79, 0x0a, 0x06,
+	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x35, 0x0a, 0x06, 0x6b, 0x65, 0x72, 0x6e, 0x65, 0x6c,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x4b,
+	0x65, 0x72, 0x6e, 0x65, 0x6c, 0x52, 0x06, 0x6b, 0x65, 0x72, 0x6e, 0x65, 0x6c, 0x12, 0x38, 0x0a,
+	0x07, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1e,
+	0x2e, 0x72, 0x75, 0x6e, 0x6d, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x76, 0x31,
+	0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x52, 0x07,
+	0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x42, 0x56, 0x5a, 0x54, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x73, 0x74, 0x61, 0x74, 0x65, 0x66, 0x75, 0x6c, 0x2f, 0x72,
+	0x75, 0x6e, 0x6d, 0x65, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x67, 0x65,
+	0x6e, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x6f, 0x2f, 0x72, 0x75, 0x6e, 0x6d, 0x65,
+	0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31,
+	0x3b, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -775,34 +721,32 @@ func file_runme_config_v1alpha1_config_proto_rawDescGZIP() []byte {
 }
 
 var file_runme_config_v1alpha1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_runme_config_v1alpha1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_runme_config_v1alpha1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_runme_config_v1alpha1_config_proto_goTypes = []interface{}{
-	(ConfigRepo_FilterType)(0),    // 0: runme.config.v1alpha1.ConfigRepo.FilterType
-	(*ConfigCore)(nil),            // 1: runme.config.v1alpha1.ConfigCore
-	(*ConfigRepo)(nil),            // 2: runme.config.v1alpha1.ConfigRepo
-	(*Config)(nil),                // 3: runme.config.v1alpha1.Config
-	(*ConfigCore_Project)(nil),    // 4: runme.config.v1alpha1.ConfigCore.Project
-	(*ConfigCore_Env)(nil),        // 5: runme.config.v1alpha1.ConfigCore.Env
-	(*ConfigCore_Log)(nil),        // 6: runme.config.v1alpha1.ConfigCore.Log
-	(*ConfigCore_Server)(nil),     // 7: runme.config.v1alpha1.ConfigCore.Server
-	(*ConfigCore_Server_TLS)(nil), // 8: runme.config.v1alpha1.ConfigCore.Server.TLS
-	(*ConfigRepo_Filter)(nil),     // 9: runme.config.v1alpha1.ConfigRepo.Filter
+	(Project_FilterType)(0),   // 0: runme.config.v1alpha1.Project.FilterType
+	(*Kernel)(nil),            // 1: runme.config.v1alpha1.Kernel
+	(*Project)(nil),           // 2: runme.config.v1alpha1.Project
+	(*Config)(nil),            // 3: runme.config.v1alpha1.Config
+	(*Kernel_Log)(nil),        // 4: runme.config.v1alpha1.Kernel.Log
+	(*Kernel_Server)(nil),     // 5: runme.config.v1alpha1.Kernel.Server
+	(*Kernel_Server_TLS)(nil), // 6: runme.config.v1alpha1.Kernel.Server.TLS
+	(*Project_Env)(nil),       // 7: runme.config.v1alpha1.Project.Env
+	(*Project_Filter)(nil),    // 8: runme.config.v1alpha1.Project.Filter
 }
 var file_runme_config_v1alpha1_config_proto_depIdxs = []int32{
-	4, // 0: runme.config.v1alpha1.ConfigCore.project:type_name -> runme.config.v1alpha1.ConfigCore.Project
-	5, // 1: runme.config.v1alpha1.ConfigCore.env:type_name -> runme.config.v1alpha1.ConfigCore.Env
-	6, // 2: runme.config.v1alpha1.ConfigCore.log:type_name -> runme.config.v1alpha1.ConfigCore.Log
-	7, // 3: runme.config.v1alpha1.ConfigCore.server:type_name -> runme.config.v1alpha1.ConfigCore.Server
-	9, // 4: runme.config.v1alpha1.ConfigRepo.filters:type_name -> runme.config.v1alpha1.ConfigRepo.Filter
-	1, // 5: runme.config.v1alpha1.Config.core:type_name -> runme.config.v1alpha1.ConfigCore
-	2, // 6: runme.config.v1alpha1.Config.repo:type_name -> runme.config.v1alpha1.ConfigRepo
-	8, // 7: runme.config.v1alpha1.ConfigCore.Server.tls:type_name -> runme.config.v1alpha1.ConfigCore.Server.TLS
-	0, // 8: runme.config.v1alpha1.ConfigRepo.Filter.type:type_name -> runme.config.v1alpha1.ConfigRepo.FilterType
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	4, // 0: runme.config.v1alpha1.Kernel.log:type_name -> runme.config.v1alpha1.Kernel.Log
+	5, // 1: runme.config.v1alpha1.Kernel.server:type_name -> runme.config.v1alpha1.Kernel.Server
+	7, // 2: runme.config.v1alpha1.Project.env:type_name -> runme.config.v1alpha1.Project.Env
+	8, // 3: runme.config.v1alpha1.Project.filters:type_name -> runme.config.v1alpha1.Project.Filter
+	1, // 4: runme.config.v1alpha1.Config.kernel:type_name -> runme.config.v1alpha1.Kernel
+	2, // 5: runme.config.v1alpha1.Config.project:type_name -> runme.config.v1alpha1.Project
+	6, // 6: runme.config.v1alpha1.Kernel.Server.tls:type_name -> runme.config.v1alpha1.Kernel.Server.TLS
+	0, // 7: runme.config.v1alpha1.Project.Filter.type:type_name -> runme.config.v1alpha1.Project.FilterType
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_runme_config_v1alpha1_config_proto_init() }
@@ -812,7 +756,7 @@ func file_runme_config_v1alpha1_config_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_runme_config_v1alpha1_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigCore); i {
+			switch v := v.(*Kernel); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -824,7 +768,7 @@ func file_runme_config_v1alpha1_config_proto_init() {
 			}
 		}
 		file_runme_config_v1alpha1_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigRepo); i {
+			switch v := v.(*Project); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -848,7 +792,7 @@ func file_runme_config_v1alpha1_config_proto_init() {
 			}
 		}
 		file_runme_config_v1alpha1_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigCore_Project); i {
+			switch v := v.(*Kernel_Log); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -860,7 +804,7 @@ func file_runme_config_v1alpha1_config_proto_init() {
 			}
 		}
 		file_runme_config_v1alpha1_config_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigCore_Env); i {
+			switch v := v.(*Kernel_Server); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -872,7 +816,7 @@ func file_runme_config_v1alpha1_config_proto_init() {
 			}
 		}
 		file_runme_config_v1alpha1_config_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigCore_Log); i {
+			switch v := v.(*Kernel_Server_TLS); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -884,7 +828,7 @@ func file_runme_config_v1alpha1_config_proto_init() {
 			}
 		}
 		file_runme_config_v1alpha1_config_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigCore_Server); i {
+			switch v := v.(*Project_Env); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -896,19 +840,7 @@ func file_runme_config_v1alpha1_config_proto_init() {
 			}
 		}
 		file_runme_config_v1alpha1_config_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigCore_Server_TLS); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_runme_config_v1alpha1_config_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigRepo_Filter); i {
+			switch v := v.(*Project_Filter); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -920,9 +852,9 @@ func file_runme_config_v1alpha1_config_proto_init() {
 			}
 		}
 	}
-	file_runme_config_v1alpha1_config_proto_msgTypes[0].OneofWrappers = []interface{}{
-		(*ConfigCore_Project_)(nil),
-		(*ConfigCore_Filename)(nil),
+	file_runme_config_v1alpha1_config_proto_msgTypes[1].OneofWrappers = []interface{}{
+		(*Project_Root)(nil),
+		(*Project_Filename)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -930,7 +862,7 @@ func file_runme_config_v1alpha1_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_runme_config_v1alpha1_config_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

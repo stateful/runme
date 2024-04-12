@@ -22,8 +22,8 @@ func TestParseYAML(t *testing.T) {
 		},
 		{
 			name:           "minimal config v1alpha1",
-			rawConfig:      "version: v1alpha1\ncore:\n  filename: REAEDME.md\n",
-			expectedConfig: &Config{Core: ConfigCore{Filename: "REAEDME.md"}},
+			rawConfig:      "version: v1alpha1\nproject:\n  filename: REAEDME.md\n",
+			expectedConfig: &Config{Kernel: ConfigKernel{Filename: "REAEDME.md"}},
 		},
 		{
 			name:           "validate source",
@@ -32,22 +32,22 @@ func TestParseYAML(t *testing.T) {
 		},
 		{
 			name:           "project and filename",
-			rawConfig:      "version: v1alpha1\ncore:\n  project:\n    dir: \".\"\n  filename: \"README.md\"\n",
-			errorSubstring: "error parsing \"project\", oneof runme.config.v1alpha1.ConfigCore.source is already set",
+			rawConfig:      "version: v1alpha1\nproject:\n  root: \".\"\n  filename: \"README.md\"\n",
+			errorSubstring: "error parsing \"root\", oneof runme.config.v1alpha1.Project.source is already set",
 		},
 		{
 			name:           "validate filter type",
-			rawConfig:      "version: v1alpha1\ncore:\n  filename: README.md\nrepo:\n  filters:\n  - type: 3\n    condition: \"name != ''\"\n",
-			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - repo.filters[0].type: value must be one of the defined enum values",
+			rawConfig:      "version: v1alpha1\nproject:\n  filename: README.md\n  filters:\n  - type: 3\n    condition: \"name != ''\"\n",
+			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - project.filters[0].type: value must be one of the defined enum values",
 		},
 		{
 			name:           "validate project within cwd",
-			rawConfig:      "version: v1alpha1\ncore:\n  project:\n    dir: '..'\n",
+			rawConfig:      "version: v1alpha1\nproject:\n  root: '..'\n",
 			errorSubstring: "failed to validate config: failed to validate project dir: outside of current working directory",
 		},
 		{
 			name:           "validate filename within cwd",
-			rawConfig:      "version: v1alpha1\ncore:\n  filename: '../README.md'\n",
+			rawConfig:      "version: v1alpha1\nproject:\n  filename: '../README.md'\n",
 			errorSubstring: "failed to validate config: failed to validate filename: outside of current working directory",
 		},
 	}
@@ -79,32 +79,31 @@ func TestParseYAML(t *testing.T) {
 var (
 	testConfigV1alpha1Raw = `version: v1alpha1
 
-core:
-  project:
-    dir: "."
-    find_repo_upward: true
-    ignore:
-      - "node_modules"
-      - ".venv"
-    disable_gitignore: false
-
-  env:
-    sources:
-      - ".env"
-
+kernel:
   log:
     enabled: true
     path: "/var/tmp/runme.log"
     verbose: true
 
-repo:
+project:
+  root: "."
+  find_repo_upward: true
+  ignore:
+    - "node_modules"
+    - ".venv"
+  disable_gitignore: false
+
+  env:
+    sources:
+      - ".env"
+
   filters:
     - type: "FILTER_TYPE_BLOCK"
       condition: "name != ''"
 `
 
 	testConfigV1alpha1 = &Config{
-		Core: ConfigCore{
+		Kernel: ConfigKernel{
 			ProjectDir:       ".",
 			FindRepoUpward:   true,
 			IgnorePaths:      []string{"node_modules", ".venv"},

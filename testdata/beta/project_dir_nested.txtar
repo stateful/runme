@@ -8,9 +8,8 @@ cmp stdout result-print.txt
 
 -- experimental/runme.yaml --
 version: v1alpha1
-core:
-  project:
-    dir: "./nested"
+project:
+  root: "./nested"
   env:
     sources:
       - .env

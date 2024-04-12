@@ -12,7 +12,7 @@ stderr '^could not execute command: failed to open file-based project ".*/unknow
 
 -- experimental/runme.yaml --
 version: v1alpha1
-core:
+project:
   filename: README.md
 
 -- README.md --

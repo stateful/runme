@@ -12,10 +12,9 @@ cmp stdout result-print.txt
 
 -- nested/experimental/runme.yaml --
 version: v1alpha1
-core:
-  project:
-    dir: "."
-    find_repo_upward: true
+project:
+  root: "."
+  find_repo_upward: true
   env:
     sources:
       - .env

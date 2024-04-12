@@ -6,49 +6,12 @@ import "buf/validate/validate.proto";
 
 option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/config/v1alpha1;configv1alpha1";
 
-// ConfigCore describes system-level configuration of the runme toolchain.
-message ConfigCore {
-  // source is a source of Markdown files to look into.
-  oneof source {
-    option (buf.validate.oneof).required = true;
-
-    // project indicates a dir-based source typically including multiple Markdown files.
-    Project project = 1;
-
-    // filename indicates a single Markdown file.
-    string filename = 2;
-  }
-
-  // env is the environment variables configuration.
-  Env env = 3;
-
+// Kernel describes system-level configuration of the runme toolchain.
+message Kernel {
   // log contains the log configuration.
-  Log log = 7;
+  Log log = 1;
 
-  Server server = 8;
-
-  message Project {
-    // dir is the directory to look for Markdown files.
-    string dir = 1;
-
-    // find_repo_upward indicates whether to find the nearest Git repository upward.
-    // This is useful to, for example, recognize .gitignore files.
-    bool find_repo_upward = 2;
-
-    // ignore_paths is a list of paths to ignore relative to dir.
-    repeated string ignore_paths = 3 [json_name = "ignore"];
-
-    // disable_gitignore indicates whether to disable the .gitignore file.
-    bool disable_gitignore = 4;
-  }
-
-  message Env {
-    // use_system_env indicates whether to use the system environment variables.
-    bool use_system_env = 1;
-
-    // sources is a list of files with env.
-    repeated string sources = 2;
-  }
+  Server server = 2;
 
   message Log {
     // enabled indicates whether to enable logging.
@@ -74,12 +37,44 @@ message ConfigCore {
   }
 }
 
-// ConfigRepo describes repo-level configuration of the runme toolchain.
-message ConfigRepo {
+// Project describes repo-level configuration of the runme toolchain.
+message Project {
+  // source is a source of Markdown files to look into.
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    // root indicates a dir-based source typically including multiple Markdown files.
+    string root = 1;
+
+    // filename indicates a single Markdown file.
+    string filename = 2;
+  }
+
+  // env is the environment variables configuration.
+  Env env = 3;
+
+  // find_repo_upward indicates whether to find the nearest Git repository upward.
+  // This is useful to, for example, recognize .gitignore files.
+  bool find_repo_upward = 4;
+
+  // ignore_paths is a list of paths to ignore relative to dir.
+  repeated string ignore_paths = 5 [json_name = "ignore"];
+
+  // disable_gitignore indicates whether to disable the .gitignore file.
+  bool disable_gitignore = 6;
+
   // filters is a list of filters to apply.
   // Filters can be applied to documents or
   // individual code blocks.
-  repeated Filter filters = 5;
+  repeated Filter filters = 7;
+
+  message Env {
+    // use_system_env indicates whether to use the system environment variables.
+    bool use_system_env = 1;
+
+    // sources is a list of files with env.
+    repeated string sources = 2;
+  }
 
   message Filter {
     // type is the type of the filter.
@@ -105,9 +100,12 @@ message ConfigRepo {
 
 // Config describes the configuration of the runme toolchain, including CLI, server, and clients like VS Code extension.
 message Config {
-  // core is the system-level configuration.
-  ConfigCore core = 1;
+  // kernel is the system-level configuration and config that's not specific to one single client
+  Kernel kernel = 1;
 
-  // repo is the repo-level configuration.
-  ConfigRepo repo = 2;
+  // project contains configuration applicable to the project inside a repo.
+  Project project = 2;
+
+  // will likely add document to overwrite frontmatter in documents per dir when nested
+  // Document document = 3;
 }

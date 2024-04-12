@@ -30,7 +30,7 @@ All commands use the runme.yaml configuration file.`,
 			return autoconfig.Invoke(func(cfg *config.Config) error {
 				// Override the filename if provided.
 				if cFlags.filename != "" {
-					cfg.Core.Filename = cFlags.filename
+					cfg.Kernel.Filename = cFlags.filename
 				}
 
 				// Add a filter to run only tasks from the specified categories.

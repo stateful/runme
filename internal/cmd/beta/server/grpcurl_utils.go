@@ -27,14 +27,14 @@ func getDescriptorSource(ctx context.Context, cfg *config.Config) (grpcurl.Descr
 }
 
 func dialServer(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, error) {
-	tlsConf, err := runmetls.LoadClientConfig(cfg.Core.ServerTLSCertFile, cfg.Core.ServerTLSKeyFile)
+	tlsConf, err := runmetls.LoadClientConfig(cfg.Kernel.ServerTLSCertFile, cfg.Kernel.ServerTLSKeyFile)
 	if err != nil {
 		return nil, err
 	}
 
 	creds := credentials.NewTLS(tlsConf)
 
-	network, addr := "tcp", cfg.Core.ServerAddress
+	network, addr := "tcp", cfg.Kernel.ServerAddress
 	if strings.HasPrefix(addr, "unix://") {
 		network, addr = "unix", strings.TrimPrefix(addr, "unix://")
 	}

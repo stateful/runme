@@ -15,7 +15,7 @@ import (
 	configv1alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/config/v1alpha1"
 )
 
-type ConfigCore struct {
+type ConfigKernel struct {
 	// Dir- or git-based project fields.
 	DisableGitignore bool
 	IgnorePaths      []string
@@ -48,8 +48,8 @@ type ConfigRepo struct {
 // Config is a flatten configuration of runme.yaml. The purpose of it is to
 // unify all the different configuration versions into a single struct.
 type Config struct {
-	Core ConfigCore
-	Repo ConfigRepo
+	Kernel ConfigKernel
+	Repo   ConfigRepo
 }
 
 func ParseYAML(data []byte) (*Config, error) {
@@ -119,11 +119,11 @@ func parseYAMLv1alpha1(data []byte) (*configv1alpha1.Config, error) {
 }
 
 func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
-	project := c.Core.GetProject()
-	log := c.Core.GetLog()
+	project := c.GetProject()
+	log := c.Kernel.GetLog()
 
 	var filters []*Filter
-	for _, f := range c.Repo.GetFilters() {
+	for _, f := range c.Project.GetFilters() {
 		filters = append(filters, &Filter{
 			Type:      f.GetType().String(),
 			Condition: f.GetCondition(),
@@ -131,25 +131,25 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) *Config {
 	}
 
 	return &Config{
-		Core: ConfigCore{
-			ProjectDir:       project.GetDir(),
+		Kernel: ConfigKernel{
+			ProjectDir:       project.GetRoot(),
 			FindRepoUpward:   project.GetFindRepoUpward(),
 			IgnorePaths:      project.GetIgnorePaths(),
 			DisableGitignore: project.GetDisableGitignore(),
 
-			Filename: c.Core.GetFilename(),
+			Filename: project.GetFilename(),
 
-			UseSystemEnv:   c.Core.GetEnv().GetUseSystemEnv(),
-			EnvSourceFiles: c.Core.GetEnv().GetSources(),
+			UseSystemEnv:   project.GetEnv().GetUseSystemEnv(),
+			EnvSourceFiles: project.GetEnv().GetSources(),
 
 			LogEnabled: log.GetEnabled(),
 			LogPath:    log.GetPath(),
 			LogVerbose: log.GetVerbose(),
 
-			ServerAddress:     c.Core.GetServer().GetAddress(),
-			ServerTLSEnabled:  c.Core.GetServer().GetTls().GetEnabled(),
-			ServerTLSCertFile: c.Core.GetServer().GetTls().GetCertFile(),
-			ServerTLSKeyFile:  c.Core.GetServer().GetTls().GetKeyFile(),
+			ServerAddress:     c.Kernel.GetServer().GetAddress(),
+			ServerTLSEnabled:  c.Kernel.GetServer().GetTls().GetEnabled(),
+			ServerTLSCertFile: c.Kernel.GetServer().GetTls().GetCertFile(),
+			ServerTLSKeyFile:  c.Kernel.GetServer().GetTls().GetKeyFile(),
 		},
 		Repo: ConfigRepo{
 			Filters: filters,
@@ -175,7 +175,7 @@ func validateConfig(cfg *Config) error {
 }
 
 func validateProjectDir(cfg *Config, cwd string) error {
-	rel, err := filepath.Rel(cwd, filepath.Join(cwd, cfg.Core.ProjectDir))
+	rel, err := filepath.Rel(cwd, filepath.Join(cwd, cfg.Kernel.ProjectDir))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -187,7 +187,7 @@ func validateProjectDir(cfg *Config, cwd string) error {
 }
 
 func validateFilename(cfg *Config, cwd string) error {
-	rel, err := filepath.Rel(cwd, filepath.Join(cwd, cfg.Core.Filename))
+	rel, err := filepath.Rel(cwd, filepath.Join(cwd, cfg.Kernel.Filename))
 	if err != nil {
 		return errors.WithStack(err)
 	}

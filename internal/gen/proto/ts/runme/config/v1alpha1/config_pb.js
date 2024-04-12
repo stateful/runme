@@ -10,71 +10,40 @@
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
 /**
- * @generated from protobuf enum runme.config.v1alpha1.ConfigRepo.FilterType
+ * @generated from protobuf enum runme.config.v1alpha1.Project.FilterType
  */
-export var ConfigRepo_FilterType;
-(function (ConfigRepo_FilterType) {
+export var Project_FilterType;
+(function (Project_FilterType) {
     /**
      * @generated from protobuf enum value: FILTER_TYPE_UNSPECIFIED = 0;
      */
-    ConfigRepo_FilterType[ConfigRepo_FilterType["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    Project_FilterType[Project_FilterType["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
      * @generated from protobuf enum value: FILTER_TYPE_BLOCK = 1;
      */
-    ConfigRepo_FilterType[ConfigRepo_FilterType["BLOCK"] = 1] = "BLOCK";
+    Project_FilterType[Project_FilterType["BLOCK"] = 1] = "BLOCK";
     /**
      * @generated from protobuf enum value: FILTER_TYPE_DOCUMENT = 2;
      */
-    ConfigRepo_FilterType[ConfigRepo_FilterType["DOCUMENT"] = 2] = "DOCUMENT";
-})(ConfigRepo_FilterType || (ConfigRepo_FilterType = {}));
+    Project_FilterType[Project_FilterType["DOCUMENT"] = 2] = "DOCUMENT";
+})(Project_FilterType || (Project_FilterType = {}));
 // @generated message type with reflection information, may provide speed optimized methods
-class ConfigCore$Type extends MessageType {
+class Kernel$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.ConfigCore", [
-            { no: 1, name: "project", kind: "message", oneof: "source", T: () => ConfigCore_Project },
-            { no: 2, name: "filename", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "env", kind: "message", T: () => ConfigCore_Env },
-            { no: 7, name: "log", kind: "message", T: () => ConfigCore_Log },
-            { no: 8, name: "server", kind: "message", T: () => ConfigCore_Server }
+        super("runme.config.v1alpha1.Kernel", [
+            { no: 1, name: "log", kind: "message", T: () => Kernel_Log },
+            { no: 2, name: "server", kind: "message", T: () => Kernel_Server }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Kernel
  */
-export const ConfigCore = new ConfigCore$Type();
+export const Kernel = new Kernel$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ConfigCore_Project$Type extends MessageType {
+class Kernel_Log$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.ConfigCore.Project", [
-            { no: 1, name: "dir", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "find_repo_upward", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 3, name: "ignore_paths", kind: "scalar", jsonName: "ignore", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "disable_gitignore", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Project
- */
-export const ConfigCore_Project = new ConfigCore_Project$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ConfigCore_Env$Type extends MessageType {
-    constructor() {
-        super("runme.config.v1alpha1.ConfigCore.Env", [
-            { no: 1, name: "use_system_env", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "sources", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Env
- */
-export const ConfigCore_Env = new ConfigCore_Env$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ConfigCore_Log$Type extends MessageType {
-    constructor() {
-        super("runme.config.v1alpha1.ConfigCore.Log", [
+        super("runme.config.v1alpha1.Kernel.Log", [
             { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 2, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "verbose", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
@@ -82,26 +51,26 @@ class ConfigCore_Log$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Log
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Kernel.Log
  */
-export const ConfigCore_Log = new ConfigCore_Log$Type();
+export const Kernel_Log = new Kernel_Log$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ConfigCore_Server$Type extends MessageType {
+class Kernel_Server$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.ConfigCore.Server", [
+        super("runme.config.v1alpha1.Kernel.Server", [
             { no: 1, name: "address", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "tls", kind: "message", T: () => ConfigCore_Server_TLS }
+            { no: 2, name: "tls", kind: "message", T: () => Kernel_Server_TLS }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Server
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Kernel.Server
  */
-export const ConfigCore_Server = new ConfigCore_Server$Type();
+export const Kernel_Server = new Kernel_Server$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ConfigCore_Server_TLS$Type extends MessageType {
+class Kernel_Server_TLS$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.ConfigCore.Server.TLS", [
+        super("runme.config.v1alpha1.Kernel.Server.TLS", [
             { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 2, name: "cert_file", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "key_file", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -109,40 +78,59 @@ class ConfigCore_Server_TLS$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigCore.Server.TLS
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Kernel.Server.TLS
  */
-export const ConfigCore_Server_TLS = new ConfigCore_Server_TLS$Type();
+export const Kernel_Server_TLS = new Kernel_Server_TLS$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ConfigRepo$Type extends MessageType {
+class Project$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.ConfigRepo", [
-            { no: 5, name: "filters", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ConfigRepo_Filter }
+        super("runme.config.v1alpha1.Project", [
+            { no: 1, name: "root", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "filename", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "env", kind: "message", T: () => Project_Env },
+            { no: 4, name: "find_repo_upward", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "ignore_paths", kind: "scalar", jsonName: "ignore", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "disable_gitignore", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "filters", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => Project_Filter }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigRepo
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Project
  */
-export const ConfigRepo = new ConfigRepo$Type();
+export const Project = new Project$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ConfigRepo_Filter$Type extends MessageType {
+class Project_Env$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.ConfigRepo.Filter", [
-            { no: 1, name: "type", kind: "enum", T: () => ["runme.config.v1alpha1.ConfigRepo.FilterType", ConfigRepo_FilterType, "FILTER_TYPE_"], options: { "buf.validate.field": { enum: { definedOnly: true } } } },
+        super("runme.config.v1alpha1.Project.Env", [
+            { no: 1, name: "use_system_env", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "sources", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Project.Env
+ */
+export const Project_Env = new Project_Env$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Project_Filter$Type extends MessageType {
+    constructor() {
+        super("runme.config.v1alpha1.Project.Filter", [
+            { no: 1, name: "type", kind: "enum", T: () => ["runme.config.v1alpha1.Project.FilterType", Project_FilterType, "FILTER_TYPE_"], options: { "buf.validate.field": { enum: { definedOnly: true } } } },
             { no: 2, name: "condition", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "1024" } } } }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.ConfigRepo.Filter
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Project.Filter
  */
-export const ConfigRepo_Filter = new ConfigRepo_Filter$Type();
+export const Project_Filter = new Project_Filter$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Config$Type extends MessageType {
     constructor() {
         super("runme.config.v1alpha1.Config", [
-            { no: 1, name: "core", kind: "message", T: () => ConfigCore },
-            { no: 2, name: "repo", kind: "message", T: () => ConfigRepo }
+            { no: 1, name: "kernel", kind: "message", T: () => Kernel },
+            { no: 2, name: "project", kind: "message", T: () => Project }
         ]);
     }
 }
