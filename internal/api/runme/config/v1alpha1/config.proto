@@ -6,8 +6,8 @@ import "buf/validate/validate.proto";
 
 option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/config/v1alpha1;configv1alpha1";
 
-// Config describes the configuration of the runme tools, including CLI, server, and clients like VS Code extension.
-message Config {
+// ConfigCore describes system-level configuration of the runme toolchain.
+message ConfigCore {
   // source is a source of Markdown files to look into.
   oneof source {
     option (buf.validate.oneof).required = true;
@@ -21,11 +21,6 @@ message Config {
 
   // env is the environment variables configuration.
   Env env = 3;
-
-  // filters is a list of filters to apply.
-  // Filters can be applied to documents or
-  // individual code blocks.
-  repeated Filter filters = 5;
 
   // log contains the log configuration.
   Log log = 7;
@@ -45,27 +40,6 @@ message Config {
 
     // disable_gitignore indicates whether to disable the .gitignore file.
     bool disable_gitignore = 4;
-  }
-
-  message Filter {
-    // type is the type of the filter.
-    FilterType type = 1 [(buf.validate.field).enum.defined_only = true];
-
-    // condition is the filter program to execute for each document or block,
-    // depending on the filter type.
-    //
-    // The condition should be a valid Expr expression and it should return a boolean value.
-    // You can read more about the Expr syntax on https://expr-lang.org/.
-    string condition = 2 [
-      (buf.validate.field).string.min_len = 1,
-      (buf.validate.field).string.max_len = 1024
-    ];
-  }
-
-  enum FilterType {
-    FILTER_TYPE_UNSPECIFIED = 0;
-    FILTER_TYPE_BLOCK = 1;
-    FILTER_TYPE_DOCUMENT = 2;
   }
 
   message Env {
@@ -98,4 +72,42 @@ message Config {
       string key_file = 3;
     }
   }
+}
+
+// ConfigRepo describes repo-level configuration of the runme toolchain.
+message ConfigRepo {
+  // filters is a list of filters to apply.
+  // Filters can be applied to documents or
+  // individual code blocks.
+  repeated Filter filters = 5;
+
+  message Filter {
+    // type is the type of the filter.
+    FilterType type = 1 [(buf.validate.field).enum.defined_only = true];
+
+    // condition is the filter program to execute for each document or block,
+    // depending on the filter type.
+    //
+    // The condition should be a valid Expr expression and it should return a boolean value.
+    // You can read more about the Expr syntax on https://expr-lang.org/.
+    string condition = 2 [
+      (buf.validate.field).string.min_len = 1,
+      (buf.validate.field).string.max_len = 1024
+    ];
+  }
+
+  enum FilterType {
+    FILTER_TYPE_UNSPECIFIED = 0;
+    FILTER_TYPE_BLOCK = 1;
+    FILTER_TYPE_DOCUMENT = 2;
+  }
+}
+
+// Config describes the configuration of the runme toolchain, including CLI, server, and clients like VS Code extension.
+message Config {
+  // core is the system-level configuration.
+  ConfigCore core = 1;
+
+  // repo is the repo-level configuration.
+  ConfigRepo repo = 2;
 }

@@ -45,7 +45,7 @@ type RunnerServiceClient interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(ctx context.Context, opts ...grpc.CallOption) (RunnerService_ExecuteClient, error)
-	// ResolveVars resolves variables from a script or a list of commands
+	// ResolveProgram resolves variables from a script or a list of commands
 	// using the provided sources, which can be a list of environment variables,
 	// a session, or a project.
 	// For now, the resolved variables are only the exported ones using `export`.
@@ -162,7 +162,7 @@ type RunnerServiceServer interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(RunnerService_ExecuteServer) error
-	// ResolveVars resolves variables from a script or a list of commands
+	// ResolveProgram resolves variables from a script or a list of commands
 	// using the provided sources, which can be a list of environment variables,
 	// a session, or a project.
 	// For now, the resolved variables are only the exported ones using `export`.

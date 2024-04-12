@@ -16,13 +16,14 @@ stderr 'no tasks to run'
 
 -- experimental/runme.yaml --
 version: v1alpha1
-project:
-  dir: "."
-env:
-  sources:
-    - .env
-# log:
-#   enable: true
+core:
+  project:
+    dir: "."
+  env:
+    sources:
+      - .env
+#  log:
+#    enable: true
 
 -- .env --
 ENV_IN_ENV="env_in_env"

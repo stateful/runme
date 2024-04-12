@@ -30,12 +30,12 @@ All commands use the runme.yaml configuration file.`,
 			return autoconfig.Invoke(func(cfg *config.Config) error {
 				// Override the filename if provided.
 				if cFlags.filename != "" {
-					cfg.Filename = cFlags.filename
+					cfg.Core.Filename = cFlags.filename
 				}
 
 				// Add a filter to run only tasks from the specified categories.
 				if len(cFlags.categories) > 0 {
-					cfg.Filters = append(cfg.Filters, &config.Filter{
+					cfg.Repo.Filters = append(cfg.Repo.Filters, &config.Filter{
 						Type:      config.FilterTypeBlock,
 						Condition: `len(intersection(categories, extra.categories)) > 0`,
 						Extra:     map[string]interface{}{"categories": cFlags.categories},
