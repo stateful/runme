@@ -71,7 +71,7 @@ Run all blocks from the "setup" and "teardown" categories:
 					}
 
 					for _, t := range tasks {
-						err := runCommandNatively(cmd, t.CodeBlock, kernel, session, logger)
+						err := runCodeBlock(t.CodeBlock, cmd, kernel, session, logger)
 						if err != nil {
 							return err
 						}
@@ -88,9 +88,9 @@ Run all blocks from the "setup" and "teardown" categories:
 	return &cmd
 }
 
-func runCommandNatively(
-	cmd *cobra.Command,
+func runCodeBlock(
 	block *document.CodeBlock,
+	cmd *cobra.Command,
 	kernel command.Kernel,
 	sess *command.Session,
 	logger *zap.Logger,

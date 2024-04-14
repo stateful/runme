@@ -268,7 +268,7 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 					// CloseTerminalOnSuccess: t.CodeBlock.CloseTerminalOnSuccess(),
 					Cwd:               t.CodeBlock.Cwd(),
 					ExcludeFromRunAll: t.CodeBlock.ExcludeFromRunAll(),
-					Interactive:       t.CodeBlock.Interactive(),
+					Interactive:       t.CodeBlock.InteractiveLegacy(),
 					IsNamed:           !t.CodeBlock.IsUnnamed(),
 					Language:          t.CodeBlock.Language(),
 					Name:              t.CodeBlock.Name(),

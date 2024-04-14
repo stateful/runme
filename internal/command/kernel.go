@@ -24,12 +24,9 @@ func NewLocalKernel(cfg *config.LocalKernel) *LocalKernel {
 }
 
 func (k *LocalKernel) Command(cfg *Config, opts Options) Command {
-	// TODO(adamb): enable it back when [CodeBlock.Interactive]
-	// does not have return true by default. Or fix tests that
-	// assume otherwise.
-	// if cfg.Interactive {
-	// 	return NewVirtual(cfg, opts)
-	// }
+	if cfg.Interactive {
+		return NewVirtual(cfg, opts)
+	}
 	return NewNative(cfg, opts)
 }
 
