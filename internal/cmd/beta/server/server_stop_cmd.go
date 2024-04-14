@@ -22,6 +22,7 @@ func serverStopCmd() *cobra.Command {
 					cfg *config.Config,
 					logger *zap.Logger,
 				) error {
+					logger = logger.Named("cmd:beta_server_stop")
 					defer logger.Sync()
 
 					logger.Debug("stopping the server by looking for runme.pid")
@@ -44,9 +45,9 @@ func serverStopCmd() *cobra.Command {
 
 					process, err := os.FindProcess(pid)
 					if err != nil {
-						return errors.WithStack(err)
+						return errors.Wrap(err, "failed to find process")
 					}
-					return errors.WithStack(process.Signal(os.Interrupt))
+					return errors.Wrap(process.Signal(os.Interrupt), "failed to send signal")
 				},
 			)
 		},

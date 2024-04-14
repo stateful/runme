@@ -11,12 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/stateful/runme/v3/internal/dockerexec"
+	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
 )
 
 func TestDockerCommand(t *testing.T) {
 	t.Parallel()
 
-	docker, err := dockerexec.New(&dockerexec.Options{Debug: true, Image: "alpine:3.19"})
+	docker, err := dockerexec.New(&dockerexec.Options{Debug: false, Image: "alpine:3.19"})
 	require.NoError(t, err)
 
 	// This test case is treated as a warm up. Do not parallelize.
@@ -44,12 +45,14 @@ func TestDockerCommand(t *testing.T) {
 		cmd := NewDocker(
 			&Config{
 				ProgramName: "sleep",
-				Arguments:   []string{"5"},
+				Arguments:   []string{"1"},
+				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 			},
 			docker,
 			Options{},
 		)
-		require.NoError(t, cmd.Start(context.Background()))
+		err := cmd.Start(context.Background())
+		require.NoError(t, err)
 		require.True(t, cmd.Running())
 		require.Greater(t, cmd.Pid(), 0)
 		require.NoError(t, cmd.Wait())

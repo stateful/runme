@@ -62,6 +62,9 @@ server:
 #
 # A custom docker-based kernel is recommended as it will help to provide
 # a hermetic environment.
+#
+# This section is optional. If it's not defined, runme will use the default
+# local kernel.
 kernels:
   - "@type": "type.googleapis.com/runme.config.v1alpha1.Config.LocalKernel"
     name: "local"

@@ -11,6 +11,9 @@ import (
 // It's agnostic to the runtime or particular execution settings.
 type Config = runnerv2alpha1.ProgramConfig
 
+// configNormalizer is a function that normalizes [Config].
+// It will modify the [Config] in place and return a cleanup function
+// that should be executed when the command is finished.
 type configNormalizer func(*Config) (func() error, error)
 
 func normalizeConfig(cfg *Config, normalizers ...configNormalizer) (_ *Config, cleanups []func() error, err error) {

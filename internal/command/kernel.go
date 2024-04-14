@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// Kernel represents an execution environment for commands.
+// It abstracts all OS-specific details and provides a unified interface.
 type Kernel interface {
 	Command(*Config, Options) Command
 	Environ() []string
@@ -22,9 +24,12 @@ func NewLocalKernel(cfg *config.LocalKernel) *LocalKernel {
 }
 
 func (k *LocalKernel) Command(cfg *Config, opts Options) Command {
-	if cfg.Interactive {
-		return NewVirtual(cfg, opts)
-	}
+	// TODO(adamb): enable it back when [CodeBlock.Interactive]
+	// does not have return true by default. Or fix tests that
+	// assume otherwise.
+	// if cfg.Interactive {
+	// 	return NewVirtual(cfg, opts)
+	// }
 	return NewNative(cfg, opts)
 }
 

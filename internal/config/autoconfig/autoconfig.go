@@ -140,6 +140,15 @@ func getKernelGetter(c *config.Config, logger *zap.Logger) KernelGetter {
 	cache := make(map[string]command.Kernel)
 
 	return func(name string) (command.Kernel, error) {
+		// If name is empty and there are no kernels,
+		// return a local kernel as a default for
+		// backward compatibility.
+		if name == "" && len(c.Kernels) == 0 {
+			return command.NewLocalKernel(
+				&config.LocalKernel{Name: "default-local"},
+			), nil
+		}
+
 		k, ok := cache[name]
 		if ok {
 			return k, nil

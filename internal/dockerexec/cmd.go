@@ -90,7 +90,7 @@ func (c *Cmd) Start() error {
 		c.containerID,
 		// It's ok to wait for the "removed" state
 		// because the container is started with auto-remove.
-		container.WaitConditionRemoved,
+		container.WaitConditionNextExit,
 	)
 
 	hijack, err := c.docker.client.ContainerAttach(

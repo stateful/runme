@@ -57,6 +57,7 @@ func (c *DockerCommand) Pid() int {
 }
 
 func (c *DockerCommand) Start(ctx context.Context) (err error) {
+	// TODO(adamb): remove then sessions are supported.
 	if c.opts.Session != nil {
 		return errors.New("docker command does not support session")
 	}
