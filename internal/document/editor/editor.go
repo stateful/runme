@@ -12,7 +12,10 @@ import (
 	"github.com/stateful/runme/v3/internal/document/identity"
 )
 
-const FrontmatterKey = "frontmatter"
+const (
+	FrontmatterKey = "frontmatter"
+	DocumentID     = "id"
+)
 
 func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Notebook, error) {
 	// Deserialize content to cells.
@@ -39,6 +42,11 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 	// TODO(adamb): handle the error.
 	if raw, err := frontmatter.Marshal(identityResolver.DocumentEnabled()); err == nil && len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
+	}
+
+	// Store internal ephemeral document ID if the document lifecycle ID is disabled.
+	if !identityResolver.DocumentEnabled() {
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = identityResolver.EphemeralDocumentID()
 	}
 
 	return notebook, nil
