@@ -218,11 +218,11 @@ A paragraph
 	rpath := "README.md"
 	invalidTs := "invalid-timestamp-should-be-overwritten"
 	outputMetadata := &document.RunmeMetadata{
-		Session: document.RunmeMetadataSession{
+		Session: &document.RunmeMetadataSession{
 			ID:      sid,
 			Updated: invalidTs,
 		},
-		Document: document.RunmeMetadataDocument{RelativePath: rpath},
+		Document: &document.RunmeMetadataDocument{RelativePath: rpath},
 	}
 	result, err := Serialize(notebook, outputMetadata)
 	require.NoError(t, err)
