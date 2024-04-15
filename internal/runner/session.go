@@ -15,6 +15,7 @@ import (
 var owlStoreDefault = false
 
 type envStorer interface {
+	getEnv(string) string
 	envs() ([]string, error)
 	sensitiveEnvKeys() ([]string, error)
 	addEnvs(envs []string) error
@@ -137,6 +138,10 @@ func (es *runnerEnvStorer) addEnvs(envs []string) error {
 func (es *runnerEnvStorer) sensitiveEnvKeys() ([]string, error) {
 	// noop, not supported
 	return []string{}, nil
+}
+
+func (es *runnerEnvStorer) getEnv(name string) string {
+	return es.envStore.Get(name)
 }
 
 func (es *runnerEnvStorer) envs() ([]string, error) {
@@ -307,6 +312,11 @@ func (es *owlEnvStorer) addEnvs(envs []string) error {
 	}
 	es.notifySubscribers()
 	return nil
+}
+
+func (es *owlEnvStorer) getEnv(name string) string {
+	// TODO(adamb): implement this
+	return ""
 }
 
 func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {
