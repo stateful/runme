@@ -68,9 +68,10 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]by
 	}
 
 	var raw []byte
-	if outputMetadata != nil {
+	if outputMetadata != nil && outputMetadata.Session.GetID() != "" {
 		if frontmatter == nil {
 			frontmatter = document.NewYAMLFrontmatter()
+			frontmatter.Runme = &document.RunmeMetadata{}
 		}
 		frontmatter.Runme.Session = outputMetadata.Session
 		frontmatter.Runme.Session.Updated = prettyTime(time.Now())
