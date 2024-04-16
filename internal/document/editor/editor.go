@@ -53,21 +53,22 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 }
 
 func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]byte, error) {
-	var result []byte
-	var err error
-	var frontmatter *document.Frontmatter
+	var (
+		result      []byte
+		frontmatter *document.Frontmatter
+	)
 
-	// Serialize frontmatter.
+	// Deserialize frontmatter in order to enhance it with output metadata.
 	if intro, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]; ok {
-		raw := []byte(intro)
-
-		frontmatter, err = document.ParseFrontmatter(raw)
+		var err error
+		frontmatter, err = document.ParseFrontmatter([]byte(intro))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	var raw []byte
+	// If output metadata is not nil, add it to the frontmatter to be present
+	// in the final result of the serialization.
 	if outputMetadata != nil && outputMetadata.Session.GetID() != "" {
 		if frontmatter == nil {
 			frontmatter = document.NewYAMLFrontmatter()
@@ -75,15 +76,15 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]by
 		if frontmatter.Runme == nil {
 			frontmatter.Runme = &document.RunmeMetadata{}
 		}
+		frontmatter.Runme.Document = outputMetadata.Document
 		frontmatter.Runme.Session = outputMetadata.Session
 		frontmatter.Runme.Session.Updated = prettyTime(time.Now())
-		frontmatter.Runme.Document = outputMetadata.Document
 	}
 
 	if frontmatter != nil {
-		// if the deserializer didn't add the ID first, it means it's not required
-		requireIdentity := !frontmatter.Runme.IsEmpty() && frontmatter.Runme.ID != ""
-		raw, err = frontmatter.Marshal(requireIdentity)
+		// If the deserializer didn't add the ID first, it means it's not required.
+		requireIdentity := frontmatter.Runme.GetID() != ""
+		raw, err := frontmatter.Marshal(requireIdentity)
 		if err != nil {
 			return nil, err
 		}

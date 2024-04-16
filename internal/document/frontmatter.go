@@ -26,7 +26,10 @@ type RunmeMetadataDocument struct {
 }
 
 type RunmeMetadataSession struct {
-	ID      string `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
+	// ID is a unique identifier of the session.
+	ID string `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
+
+	// Updated is a string representation of the time when the session was last updated.
 	Updated string `yaml:"updated,omitempty" json:"updated,omitempty" toml:"updated,omitempty"`
 }
 
@@ -34,23 +37,56 @@ func (s *RunmeMetadataSession) GetID() string {
 	if s == nil {
 		return ""
 	}
-
 	return s.ID
 }
 
 type RunmeMetadata struct {
-	ID       string                 `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
-	Version  string                 `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
+	// ID is a unique identifier of the document.
+	ID string `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
+
+	// Version is a base version of the runme CLI.
+	Version string `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
+
+	// Document is a metadata of the document.
 	Document *RunmeMetadataDocument `yaml:"document,omitempty" json:"document,omitempty" toml:"document,omitempty"`
-	Session  *RunmeMetadataSession  `yaml:"session,omitempty" json:"session,omitempty" toml:"session,omitempty"`
+
+	// Session is a metadata of the session.
+	Session *RunmeMetadataSession `yaml:"session,omitempty" json:"session,omitempty" toml:"session,omitempty"`
+}
+
+func (m *RunmeMetadata) GetID() string {
+	if m == nil {
+		return ""
+	}
+	return m.ID
+}
+
+func (m *RunmeMetadata) GetDocument() *RunmeMetadataDocument {
+	if m == nil {
+		return nil
+	}
+	return m.Document
+}
+
+func (m *RunmeMetadata) GetSession() *RunmeMetadataSession {
+	if m == nil {
+		return nil
+	}
+	return m.Session
+}
+
+func (m *RunmeMetadata) GetVersion() string {
+	if m == nil {
+		return ""
+	}
+	return m.Version
 }
 
 func (m *RunmeMetadata) IsEmpty() bool {
 	if m == nil {
 		return true
 	}
-
-	return m.ID == "" && m.Version == "" && m.Document == nil && m.Session == nil
+	return *m == RunmeMetadata{}
 }
 
 type Frontmatter struct {
@@ -64,16 +100,10 @@ type Frontmatter struct {
 	raw    string // using string to be able to compare using ==
 }
 
-func newBlankFrontmatter(format string) *Frontmatter {
-	return &Frontmatter{
-		format: format,
-	}
-}
-
 func NewYAMLFrontmatter() *Frontmatter {
-	f := newBlankFrontmatter(frontmatterFormatYAML)
-	f.raw = ""
-	return f
+	return &Frontmatter{
+		format: frontmatterFormatYAML,
+	}
 }
 
 func newFrontmatter() *Frontmatter {

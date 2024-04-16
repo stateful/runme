@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/document/editor"
@@ -66,24 +67,26 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 
 		runme := parserv1.FrontmatterRunme{}
 
-		if notebook.Frontmatter.Runme.ID != "" {
-			runme.Id = notebook.Frontmatter.Runme.ID
+		if id := notebook.Frontmatter.Runme.GetID(); id != "" {
+			runme.Id = id
 		}
 
-		if notebook.Frontmatter.Runme.Version != "" {
-			runme.Version = notebook.Frontmatter.Runme.Version
+		if version := notebook.Frontmatter.Runme.GetVersion(); version != "" {
+			runme.Version = version
 		}
 
-		if notebook.Frontmatter.Runme.Session != nil && notebook.Frontmatter.Runme.Session.ID != "" {
+		if session := notebook.Frontmatter.Runme.GetSession(); session != nil {
 			runme.Session = &parserv1.RunmeSession{
-				Id: notebook.Frontmatter.Runme.Session.ID,
-				Document: &parserv1.RunmeSessionDocument{
-					RelativePath: notebook.Frontmatter.Runme.Document.RelativePath,
-				},
+				Id: session.GetID(),
+			}
+			if doc := notebook.Frontmatter.Runme.GetDocument(); doc != nil {
+				runme.Session.Document = &parserv1.RunmeSessionDocument{
+					RelativePath: doc.RelativePath,
+				}
 			}
 		}
 
-		if runme.Id != "" || runme.Version != "" || runme.Session != nil {
+		if !proto.Equal(&runme, &parserv1.FrontmatterRunme{}) {
 			frontmatter.Runme = &runme
 		}
 	}
