@@ -109,7 +109,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 	// This is especially important for virtual envs.
 	sys := system.Default
 	if cfg.Session != nil {
-		if pathEnv := cfg.Session.envStorer.getEnv("PATH"); pathEnv != "" {
+		if pathEnv, err := cfg.Session.envStorer.getEnv("PATH"); err == nil && pathEnv != "" {
 			sys = system.New(system.WithPathEnvGetter(func() string { return pathEnv }))
 		}
 	}
