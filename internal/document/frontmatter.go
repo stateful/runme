@@ -30,27 +30,55 @@ type RunmeMetadataSession struct {
 	Updated string `yaml:"updated,omitempty" json:"updated,omitempty" toml:"updated,omitempty"`
 }
 
+func (s *RunmeMetadataSession) GetID() string {
+	if s == nil {
+		return ""
+	}
+
+	return s.ID
+}
+
 type RunmeMetadata struct {
-	ID       string                `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
-	Version  string                `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
-	Document RunmeMetadataDocument `yaml:"document,omitempty" json:"document,omitempty" toml:"document,omitempty"`
-	Session  RunmeMetadataSession  `yaml:"session,omitempty" json:"session,omitempty" toml:"session,omitempty"`
+	ID       string                 `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
+	Version  string                 `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
+	Document *RunmeMetadataDocument `yaml:"document,omitempty" json:"document,omitempty" toml:"document,omitempty"`
+	Session  *RunmeMetadataSession  `yaml:"session,omitempty" json:"session,omitempty" toml:"session,omitempty"`
+}
+
+func (m *RunmeMetadata) IsEmpty() bool {
+	if m == nil {
+		return true
+	}
+
+	return m.ID == "" && m.Version == "" && m.Document == nil && m.Session == nil
 }
 
 type Frontmatter struct {
-	Runme       RunmeMetadata `yaml:"runme,omitempty"`
-	Shell       string        `yaml:"shell"`
-	Cwd         string        `yaml:"cwd"`
-	Category    string        `yaml:"category"`
-	SkipPrompts bool          `yaml:"skipPrompts,omitempty"`
+	Runme       *RunmeMetadata `yaml:"runme,omitempty"`
+	Shell       string         `yaml:"shell"`
+	Cwd         string         `yaml:"cwd"`
+	Category    string         `yaml:"category"`
+	SkipPrompts bool           `yaml:"skipPrompts,omitempty"`
 
 	format string
 	raw    string // using string to be able to compare using ==
 }
 
+func newBlankFrontmatter(format string) *Frontmatter {
+	return &Frontmatter{
+		format: format,
+	}
+}
+
+func NewYAMLFrontmatter() *Frontmatter {
+	f := newBlankFrontmatter(frontmatterFormatYAML)
+	f.raw = ""
+	return f
+}
+
 func newFrontmatter() *Frontmatter {
 	return &Frontmatter{
-		Runme: RunmeMetadata{
+		Runme: &RunmeMetadata{
 			ID:      ulid.GenerateID(),
 			Version: version.BaseVersion(),
 		},
@@ -84,7 +112,7 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		if requireIdentity {
+		if !f.Runme.IsEmpty() {
 			m["runme"] = f.Runme
 		}
 
@@ -107,7 +135,7 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		if requireIdentity {
+		if !f.Runme.IsEmpty() {
 			m["runme"] = f.Runme
 		}
 
@@ -115,7 +143,7 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		return append(append([]byte("---\n"), data...), []byte("---")...), nil
+		return append(append([]byte("---\n"), data...), []byte("\n---")...), nil
 
 	case frontmatterFormatTOML:
 		m := make(map[string]interface{})
@@ -124,7 +152,7 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 			return nil, errors.WithStack(err)
 		}
 
-		if requireIdentity {
+		if !f.Runme.IsEmpty() {
 			m["runme"] = f.Runme
 		}
 
@@ -140,6 +168,10 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 }
 
 func (f *Frontmatter) ensureID() {
+	if f.Runme.IsEmpty() {
+		f.Runme = &RunmeMetadata{}
+	}
+
 	if !ulid.ValidID(f.Runme.ID) {
 		f.Runme.ID = ulid.GenerateID()
 	}
