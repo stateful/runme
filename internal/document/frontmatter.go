@@ -30,6 +30,14 @@ type RunmeMetadataSession struct {
 	Updated string `yaml:"updated,omitempty" json:"updated,omitempty" toml:"updated,omitempty"`
 }
 
+func (s *RunmeMetadataSession) GetID() string {
+	if s == nil {
+		return ""
+	}
+
+	return s.ID
+}
+
 type RunmeMetadata struct {
 	ID       string                 `yaml:"id,omitempty" json:"id,omitempty" toml:"id,omitempty"`
 	Version  string                 `yaml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
