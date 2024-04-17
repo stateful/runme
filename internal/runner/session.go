@@ -316,6 +316,7 @@ func (es *owlEnvStorer) addEnvs(envs []string) error {
 }
 
 func (es *owlEnvStorer) getEnv(name string) (string, error) {
+	// todo(sebastian): provide narrow API to get single ENV var
 	env, err := es.owlStore.InsecureValues()
 	if err != nil {
 		return "", err
