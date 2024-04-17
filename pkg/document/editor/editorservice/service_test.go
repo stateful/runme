@@ -139,7 +139,7 @@ func Test_IdentityAll(t *testing.T) {
 		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 		assert.True(t, ok)
 
-		assert.Len(t, dResp.Notebook.Metadata, 2)
+		assert.Len(t, dResp.Notebook.Metadata, 3)
 
 		if tt.hasExtraFrontmatter {
 			assert.Contains(t, rawFrontmatter, "prop: value")
@@ -180,7 +180,7 @@ func Test_IdentityDocument(t *testing.T) {
 		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 		assert.True(t, ok)
 
-		assert.Len(t, dResp.Notebook.Metadata, 2)
+		assert.Len(t, dResp.Notebook.Metadata, 3)
 
 		if tt.hasExtraFrontmatter {
 			assert.Contains(t, rawFrontmatter, "prop: value")

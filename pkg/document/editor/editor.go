@@ -40,14 +40,12 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 
 	// Additionally, put raw frontmatter in notebook's metadata.
 	// TODO(adamb): handle the error.
-	if raw, err := frontmatter.Marshal(identityResolver.DocumentEnabled()); err == nil && len(raw) > 0 {
+	raw, internalDocID, err := frontmatter.Marshal(identityResolver.DocumentEnabled())
+	if err == nil && len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
-
-	// Store internal ephemeral document ID if the document lifecycle ID is disabled.
-	if !identityResolver.DocumentEnabled() {
-		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = identityResolver.EphemeralDocumentID()
-	}
+	// Store document ID in internal metadata to bridge state where frontmatter with identity wasn't saved yet.
+	notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = internalDocID
 
 	return notebook, nil
 }
@@ -83,7 +81,7 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]by
 	if frontmatter != nil {
 		// if the deserializer didn't add the ID first, it means it's not required
 		requireIdentity := !frontmatter.Runme.IsEmpty() && frontmatter.Runme.ID != ""
-		raw, err = frontmatter.Marshal(requireIdentity)
+		raw, _, err = frontmatter.Marshal(requireIdentity)
 		if err != nil {
 			return nil, err
 		}

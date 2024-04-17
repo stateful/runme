@@ -57,9 +57,4 @@ func TestIdentityResolver(t *testing.T) {
 		assert.True(t, ok)
 		assert.NotEmpty(t, id)
 	})
-
-	t.Run("EphemeralDocumentID", func(t *testing.T) {
-		resolver := NewResolver(DefaultLifecycleIdentity)
-		assert.Len(t, resolver.EphemeralDocumentID(), 26)
-	})
 }
