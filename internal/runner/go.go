@@ -20,7 +20,7 @@ type Go struct {
 var _ Executable = (*Go)(nil)
 
 func (g Go) DryRun(ctx context.Context, w io.Writer) {
-	_, err := exec.LookPath("go")
+	_, err := g.System.LookPath("go")
 	if err != nil {
 		_, _ = fmt.Fprintf(w, "failed to find %q executable: %s\n", "go", err)
 	}
@@ -30,7 +30,7 @@ func (g Go) DryRun(ctx context.Context, w io.Writer) {
 }
 
 func (g *Go) Run(ctx context.Context) error {
-	executable, err := exec.LookPath("go")
+	executable, err := g.System.LookPath("go")
 	if err != nil {
 		return errors.Wrapf(err, "failed to find %q executable", "go")
 	}

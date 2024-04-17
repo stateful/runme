@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -15,6 +16,7 @@ import (
 var owlStoreDefault = false
 
 type envStorer interface {
+	getEnv(string) (string, error)
 	envs() ([]string, error)
 	sensitiveEnvKeys() ([]string, error)
 	addEnvs(envs []string) error
@@ -137,6 +139,10 @@ func (es *runnerEnvStorer) addEnvs(envs []string) error {
 func (es *runnerEnvStorer) sensitiveEnvKeys() ([]string, error) {
 	// noop, not supported
 	return []string{}, nil
+}
+
+func (es *runnerEnvStorer) getEnv(name string) (string, error) {
+	return es.envStore.Get(name), nil
 }
 
 func (es *runnerEnvStorer) envs() ([]string, error) {
@@ -307,6 +313,23 @@ func (es *owlEnvStorer) addEnvs(envs []string) error {
 	}
 	es.notifySubscribers()
 	return nil
+}
+
+func (es *owlEnvStorer) getEnv(name string) (string, error) {
+	env, err := es.owlStore.InsecureValues()
+	if err != nil {
+		return "", err
+	}
+
+	prefix := name + "="
+
+	for _, item := range env {
+		if strings.HasPrefix(item, prefix) {
+			return item[len(prefix):], nil
+		}
+	}
+
+	return "", nil
 }
 
 func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {
