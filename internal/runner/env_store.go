@@ -33,6 +33,12 @@ func (s *envStore) Add(envs ...string) *envStore {
 	return s
 }
 
+func (s *envStore) Get(k string) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.values[k]
+}
+
 func getEnvSizeContribution(k, v string) int {
 	// +2 for the '=' and '\0' separators
 	return len(k) + len(v) + 2
