@@ -26,7 +26,7 @@ func serverStopCmd() *cobra.Command {
 
 					logger.Debug("stopping the server by looking for runme.pid")
 
-					path := pidFileNameFromAddr(cfg.ServerAddress)
+					path := pidFileNameFromAddr(cfg.Kernel.ServerAddress)
 					if path == "" {
 						return errors.New("server address is not a unix socket")
 					}

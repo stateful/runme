@@ -8,16 +8,18 @@ stderr '(?sm)server listening'
 
 -- experimental/runme.yaml --
 version: v1alpha1
-filename: README.md
-server:
-  address: unix://runme.sock
-  tls:
+project:
+  filename: README.md
+kernel:
+  server:
+    address: unix://runme.sock
+    tls:
+      enabled: true
+      cert_file: "cert.pem"
+      key_file: "key.pem"
+  log:
     enabled: true
-    cert_file: "cert.pem"
-    key_file: "key.pem"
-log:
-  enabled: true
-  verbose: true
+    verbose: true
 
 -- README.md --
 ```sh {"name": "hello"}

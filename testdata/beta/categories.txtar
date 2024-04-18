@@ -8,9 +8,11 @@ stdout '^bar[\s]+bar-baz[\s]+$'
 
 -- experimental/runme.yaml --
 version: v1alpha1
-filename: README.md
-# log:
-#   enable: true
+project:
+  filename: README.md
+#kernel:
+#  log:
+#    enable: true
 
 -- README.md --
 ```sh {"category": "foo", "name": "foo"}
