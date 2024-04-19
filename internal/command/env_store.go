@@ -43,7 +43,7 @@ func (s *envStore) Set(k, v string) (*envStore, error) {
 	// 	environSize += envPairSize(key, value)
 	// }
 
-	// if environSize > MaxEnvironSizInBytes {
+	// if environSize > MaxEnvironSizeInBytes {
 	// 	return s, errors.New("could not set environment variable, environment size limit exceeded")
 	// }
 

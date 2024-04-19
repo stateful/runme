@@ -506,7 +506,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		}
 
 		knownName := req.GetKnownName()
-		if knownName != "" && runnerConformsEnvVarNaming(knownName) {
+		if knownName != "" && runnerConformsOpinionatedEnvVarNaming(knownName) {
 			err = sess.SetEnv(knownName, string(stdoutMem))
 			if err != nil {
 				logger.Sugar().Errorf("%v", err)
@@ -618,9 +618,9 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 	}
 }
 
-func runnerConformsEnvVarNaming(knownName string) bool {
-	// only allow uppercase letters, digits and underscores
-	re := regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
+func runnerConformsOpinionatedEnvVarNaming(knownName string) bool {
+	// only allow uppercase letters, digits and underscores, min three chars
+	re := regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 	return re.MatchString(knownName)
 }
 

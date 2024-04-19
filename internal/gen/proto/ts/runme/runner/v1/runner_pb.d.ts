@@ -292,9 +292,15 @@ export interface ExecuteRequest {
      */
     fileExtension: string;
     /**
+     * optional well known id for cell/block
+     *
+     * @generated from protobuf field: string known_id = 27;
+     */
+    knownId: string;
+    /**
      * optional well known name for cell/block
      *
-     * @generated from protobuf field: string known_name = 27;
+     * @generated from protobuf field: string known_name = 28;
      */
     knownName: string;
 }

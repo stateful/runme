@@ -138,9 +138,9 @@ message ExecuteRequest {
   // project used to load environment variables from .env files.
   optional Project project = 22;
 
-  // store_last_stdout, if true, will store the stdout of
-  // the last ran block in the environment variable `__`.
-  bool store_last_stdout = 23;
+  // store_env_vars, if true, will store the stdout under well known name
+  // and the last ran block in the environment variable `__`.
+  bool store_env_vars = 23;
 }
 
 message ExecuteResponse {

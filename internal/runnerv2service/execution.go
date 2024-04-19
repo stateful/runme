@@ -37,8 +37,8 @@ type execution struct {
 	KnownName string
 	Cmd       command.Command
 
-	session         *command.Session
-	storeLastStdout bool
+	session      *command.Session
+	storeEnvVars bool
 
 	stdin       io.Reader
 	stdinWriter io.WriteCloser
@@ -52,7 +52,7 @@ func newExecution(
 	id string,
 	cfg *command.Config,
 	session *command.Session,
-	storeLastStdout bool,
+	storeEnvVars bool,
 	logger *zap.Logger,
 ) (*execution, error) {
 	stdin, stdinWriter := io.Pipe()
@@ -89,8 +89,8 @@ func newExecution(
 		KnownName: cfg.GetKnownName(),
 		Cmd:       cmd,
 
-		session:         session,
-		storeLastStdout: storeLastStdout,
+		session:      session,
+		storeEnvVars: storeEnvVars,
 
 		stdin:       stdin,
 		stdinWriter: stdinWriter,
@@ -104,7 +104,7 @@ func newExecution(
 }
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
-	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizInBytes)
+	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizeInBytes)
 	defer func() {
 		_ = lastStdout.Close()
 		e.storeLastOutput(lastStdout)
@@ -267,7 +267,7 @@ func (e *execution) closeIO() {
 }
 
 func (e *execution) storeLastOutput(r io.Reader) {
-	if !e.storeLastStdout {
+	if !e.storeEnvVars {
 		return
 	}
 
@@ -278,16 +278,16 @@ func (e *execution) storeLastOutput(r io.Reader) {
 		e.logger.Info("failed to store last output", zap.Error(err))
 	}
 
-	if e.KnownName != "" && conformsEnvVarNaming(e.KnownName) {
-		if err := e.session.SetEnv(e.KnownName, string(sanitized)); err != nil {
+	if e.KnownName != "" && conformsOpinionatedEnvVarNaming(e.KnownName) {
+		if err := e.session.SetEnv(e.KnownName + "=" + string(sanitized)); err != nil {
 			e.logger.Info("failed to store output under known name", zap.String("known_name", e.KnownName), zap.Error(err))
 		}
 	}
 }
 
-func conformsEnvVarNaming(knownName string) bool {
-	// only allow uppercase letters, digits and underscores
-	re := regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
+func conformsOpinionatedEnvVarNaming(knownName string) bool {
+	// only allow uppercase letters, digits and underscores, min three chars
+	re := regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 	return re.MatchString(knownName)
 }
 

@@ -78,9 +78,15 @@ export interface ProgramConfig {
      */
     mode: CommandMode;
     /**
+     * optional well known id for cell/block
+     *
+     * @generated from protobuf field: string known_id = 9;
+     */
+    knownId: string;
+    /**
      * optional well known name for cell/block
      *
-     * @generated from protobuf field: string known_name = 9;
+     * @generated from protobuf field: string known_name = 10;
      */
     knownName: string;
 }
