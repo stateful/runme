@@ -138,6 +138,78 @@ func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
 	assert.Contains(t, result.MimeType, "text/plain")
 }
 
+func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, sessionResp.Session)
+
+	stream1, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult1 := make(chan executeResult)
+	go getExecuteResult(stream1, execResult1)
+
+	req1 := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo test | tee >(cat >&2)",
+					},
+				},
+			},
+		},
+		SessionId:       sessionResp.GetSession().GetId(),
+		StoreLastStdout: true,
+	}
+
+	err = stream1.Send(req1)
+	assert.NoError(t, err)
+
+	result := <-execResult1
+
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	assert.Equal(t, "test\n", string(result.Stdout))
+	assert.Contains(t, result.MimeType, "text/plain")
+
+	// subsequent req to check last stored value
+	stream2, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult2 := make(chan executeResult)
+	go getExecuteResult(stream2, execResult2)
+
+	req2 := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo $__",
+					},
+				},
+			},
+		},
+		SessionId: sessionResp.GetSession().GetId(),
+	}
+
+	err = stream2.Send(req2)
+	assert.NoError(t, err)
+
+	result = <-execResult2
+
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	assert.Equal(t, "test\n", string(result.Stdout))
+	assert.Contains(t, result.MimeType, "text/plain")
+}
+
 func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)

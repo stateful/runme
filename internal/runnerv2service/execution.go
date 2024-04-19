@@ -105,7 +105,10 @@ func newExecution(
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizInBytes)
-	defer e.storeLastOutput(lastStdout)
+	defer func() {
+		_ = lastStdout.Close()
+		e.storeLastOutput(lastStdout)
+	}()
 
 	firstStdoutSent := false
 	errc := make(chan error, 2)
