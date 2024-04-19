@@ -178,8 +178,11 @@ message ExecuteRequest {
   // file extension associated with script
   string file_extension = 26;
 
+  // optional well known id for cell/block
+  string known_id = 27;
+
   // optional well known name for cell/block
-  string known_name = 27;
+  string known_name = 28;
 }
 
 message ProcessPID {
