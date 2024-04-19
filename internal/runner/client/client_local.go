@@ -14,6 +14,7 @@ import (
 	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/runner"
+	"github.com/stateful/runme/v3/internal/system"
 	"go.uber.org/zap"
 )
 
@@ -91,6 +92,7 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 		Stdout:  r.stdout,
 		Stderr:  r.stderr,
 		Session: r.session,
+		System:  system.Default,
 		Logger:  r.logger,
 	}
 

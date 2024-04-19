@@ -74,7 +74,7 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			runme.Version = notebook.Frontmatter.Runme.Version
 		}
 
-		if notebook.Frontmatter.Runme.Session.ID != "" {
+		if notebook.Frontmatter.Runme.Session != nil && notebook.Frontmatter.Runme.Session.ID != "" {
 			runme.Session = &parserv1.RunmeSession{
 				Id: notebook.Frontmatter.Runme.Session.ID,
 				Document: &parserv1.RunmeSessionDocument{
@@ -123,10 +123,10 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 		}
 
 		outputMetadata = &document.RunmeMetadata{
-			Session: document.RunmeMetadataSession{
+			Session: &document.RunmeMetadataSession{
 				ID: req.Options.Session.GetId(),
 			},
-			Document: document.RunmeMetadataDocument{
+			Document: &document.RunmeMetadataDocument{
 				RelativePath: relativePath,
 			},
 		}

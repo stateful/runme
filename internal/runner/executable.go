@@ -4,8 +4,10 @@ import (
 	"context"
 	"io"
 
-	"github.com/stateful/runme/v3/internal/executable"
 	"go.uber.org/zap"
+
+	"github.com/stateful/runme/v3/internal/executable"
+	"github.com/stateful/runme/v3/internal/system"
 )
 
 type Executable interface {
@@ -24,6 +26,7 @@ type ExecutableConfig struct {
 	PreEnv  []string
 	PostEnv []string
 	Session *Session
+	System  *system.System
 	Logger  *zap.Logger
 }
 
