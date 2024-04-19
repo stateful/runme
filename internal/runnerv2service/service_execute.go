@@ -95,7 +95,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 				// continue
 			case err == io.EOF:
 				logger.Info("client closed its send direction; stopping the program")
-				if err := exec.Cmd.StopWithSignal(os.Interrupt); err != nil {
+				if err := exec.Cmd.Signal(os.Interrupt); err != nil {
 					logger.Info("failed to stop the command with interrupt signal", zap.Error(err))
 				}
 				return
@@ -104,7 +104,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 					logger.Info("stream canceled after the process finished; ignoring")
 				} else {
 					logger.Info("stream canceled while the process is still running; program will be stopped if non-background")
-					if err := exec.Cmd.StopWithSignal(os.Kill); err != nil {
+					if err := exec.Cmd.Signal(os.Kill); err != nil {
 						logger.Info("failed to stop program with kill signal", zap.Error(err))
 					}
 				}

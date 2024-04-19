@@ -163,6 +163,13 @@ func (b *CodeBlock) FirstLine() string {
 func (b *CodeBlock) ID() string { return b.id }
 
 func (b *CodeBlock) Interactive() bool {
+	val, _ := strconv.ParseBool(b.Attributes()["interactive"])
+	return val
+}
+
+// InteractiveLegacy returns true as a default value.
+// Deprecated: use Interactive instead.
+func (b *CodeBlock) InteractiveLegacy() bool {
 	val, err := strconv.ParseBool(b.Attributes()["interactive"])
 	if err != nil {
 		return true

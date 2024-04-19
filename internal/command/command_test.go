@@ -177,17 +177,15 @@ func testExecuteNativeCommand(
 	cfg, err := NewConfigFromCodeBlock(blocks[0])
 	require.NoError(t, err)
 
-	options := &NativeCommandOptions{
+	options := Options{
+		Logger:  logger,
 		Session: MustNewSessionWithEnv(env...),
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Stdin:   input,
-		Logger:  logger,
 	}
-	require.NoError(t, err)
 
-	command, err := NewNative(cfg, options)
-	require.NoError(t, err)
+	command := NewNative(cfg, options)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -222,14 +220,13 @@ func testExecuteVirtualCommand(
 
 	stdout := bytes.NewBuffer(nil)
 
-	options := &VirtualCommandOptions{
+	options := Options{
 		Session: MustNewSessionWithEnv(env...),
 		Stdout:  stdout,
 		Stdin:   input,
 		Logger:  logger,
 	}
-	command, err := NewVirtual(cfg, options)
-	require.NoError(t, err)
+	command := NewVirtual(cfg, options)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -264,27 +261,23 @@ func TestCommandWithSession(t *testing.T) {
 
 		sess := NewSession()
 
-		commandSetter, err := NewNative(
+		commandSetter := NewNative(
 			setterCfg,
-			&NativeCommandOptions{
-				Session: sess,
-			},
+			Options{Session: sess},
 		)
-		require.NoError(t, err)
 		require.NoError(t, commandSetter.Start(context.Background()))
 		require.NoError(t, commandSetter.Wait())
 
 		require.Equal(t, []string{"TEST_ENV=test1"}, sess.GetEnv())
 
 		stdout := bytes.NewBuffer(nil)
-		commandGetter, err := NewNative(
+		commandGetter := NewNative(
 			getterCfg,
-			&NativeCommandOptions{
+			Options{
 				Session: sess,
 				Stdout:  stdout,
 			},
 		)
-		require.NoError(t, err)
 		require.NoError(t, commandGetter.Start(context.Background()))
 		require.NoError(t, commandGetter.Wait())
 		require.Equal(t, "TEST_ENV equals test1", stdout.String())
@@ -295,27 +288,25 @@ func TestCommandWithSession(t *testing.T) {
 
 		sess := NewSession()
 
-		commandSetter, err := NewVirtual(
+		commandSetter := NewVirtual(
 			setterCfg,
-			&VirtualCommandOptions{
+			Options{
 				Session: sess,
 			},
 		)
-		require.NoError(t, err)
 		require.NoError(t, commandSetter.Start(context.Background()))
 		require.NoError(t, commandSetter.Wait())
 
 		require.Equal(t, []string{"TEST_ENV=test1"}, sess.GetEnv())
 
 		stdout := bytes.NewBuffer(nil)
-		commandGetter, err := NewVirtual(
+		commandGetter := NewVirtual(
 			getterCfg,
-			&VirtualCommandOptions{
+			Options{
 				Session: sess,
 				Stdout:  stdout,
 			},
 		)
-		require.NoError(t, err)
 		require.NoError(t, commandGetter.Start(context.Background()))
 		require.NoError(t, commandGetter.Wait())
 		require.Equal(t, "TEST_ENV equals test1", stdout.String())

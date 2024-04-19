@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 
 	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
 )
@@ -42,10 +41,14 @@ type argsNormalizer struct {
 }
 
 func newArgsNormalizer(session *Session, logger *zap.Logger) configNormalizer {
-	return (&argsNormalizer{session: session, logger: logger}).Normalize
+	obj := &argsNormalizer{
+		session: session,
+		logger:  logger,
+	}
+	return obj.Normalize
 }
 
-func (n *argsNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {
+func (n *argsNormalizer) Normalize(cfg *Config) (func() error, error) {
 	args := append([]string{}, cfg.Arguments...)
 
 	switch cfg.Mode {
@@ -56,7 +59,7 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {
 
 		if isShellLanguage(filepath.Base(cfg.ProgramName)) {
 			if err := n.inlineShell(cfg, &buf); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		} else {
 			// Write the script from the commands or the script.
@@ -77,15 +80,15 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {
 
 	case *runnerv2alpha1.CommandMode_COMMAND_MODE_FILE.Enum():
 		if err := n.createTempDir(); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		if err := n.createScriptFile(); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		if err := n.writeScript([]byte(cfg.GetScript())); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// TODO(adamb): it's not always true that the script-based program
@@ -93,9 +96,9 @@ func (n *argsNormalizer) Normalize(cfg *Config) (*Config, func() error, error) {
 		args = append(args, n.scriptFile.Name())
 	}
 
-	result := proto.Clone(cfg).(*Config)
-	result.Arguments = args
-	return result, n.cleanup, nil
+	cfg.Arguments = args
+
+	return n.cleanup, nil
 }
 
 func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {

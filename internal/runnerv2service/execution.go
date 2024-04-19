@@ -31,18 +31,9 @@ const (
 	msgBufferSize = 2048 << 10 // 2 MiB
 )
 
-// commandIface is an interface for virtual and native commands.
-type commandIface interface {
-	Pid() int
-	Running() bool
-	Start(context.Context) error
-	StopWithSignal(os.Signal) error
-	Wait() error
-}
-
 type execution struct {
 	ID  string
-	Cmd commandIface
+	Cmd command.Command
 
 	session         *command.Session
 	storeLastStdout bool
@@ -66,15 +57,12 @@ func newExecution(
 	stdout := rbuffer.NewRingBuffer(ringBufferSize)
 	stderr := rbuffer.NewRingBuffer(ringBufferSize)
 
-	var (
-		cmd commandIface
-		err error
-	)
+	var cmd command.Command
 
 	if cfg.Interactive {
-		cmd, err = command.NewVirtual(
+		cmd = command.NewVirtual(
 			cfg,
-			&command.VirtualCommandOptions{
+			command.Options{
 				Session: session,
 				Stdin:   stdin,
 				Stdout:  stdout,
@@ -82,9 +70,9 @@ func newExecution(
 			},
 		)
 	} else {
-		cmd, err = command.NewNative(
+		cmd = command.NewNative(
 			cfg,
-			&command.NativeCommandOptions{
+			command.Options{
 				Session: session,
 				Stdin:   stdin,
 				Stdout:  stdout,
@@ -92,10 +80,6 @@ func newExecution(
 				Logger:  logger,
 			},
 		)
-	}
-
-	if err != nil {
-		return nil, err
 	}
 
 	exec := &execution{
@@ -217,7 +201,7 @@ func (e *execution) Write(p []byte) (int, error) {
 	// Alternatively, there should be a way to signal end of input.
 	if _, ok := e.Cmd.(*command.NativeCommand); ok {
 		if closeErr := e.stdinWriter.Close(); closeErr != nil {
-			e.logger.Info("failed to close stdin writer", zap.Error(closeErr))
+			e.logger.Info("failed to close native command stdin writer", zap.Error(closeErr))
 			if err == nil {
 				err = closeErr
 			}
@@ -256,9 +240,9 @@ func (e *execution) Stop(stop runnerv2alpha1.ExecuteStop) (err error) {
 	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_UNSPECIFIED:
 		// continue
 	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_INTERRUPT:
-		err = e.Cmd.StopWithSignal(os.Interrupt)
+		err = e.Cmd.Signal(os.Interrupt)
 	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_KILL:
-		err = e.Cmd.StopWithSignal(os.Kill)
+		err = e.Cmd.Signal(os.Kill)
 	default:
 		err = errors.New("unknown stop signal")
 	}

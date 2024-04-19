@@ -1,58 +1,59 @@
 package command
 
 import (
-	"fmt"
-	"os/exec"
 	"strings"
 
-	"google.golang.org/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
-type ErrUnsupportedLanguage struct {
-	langID string
+type pathNormalizer struct {
+	kernel Kernel
 }
 
-func (e ErrUnsupportedLanguage) Error() string {
-	return fmt.Sprintf("unsupported language %s", e.langID)
+func newPathNormalizer(kernel Kernel) configNormalizer {
+	return (&pathNormalizer{kernel: kernel}).Normalize
 }
 
-type ErrInterpretersNotFound struct {
-	interpreters []string
-}
+func (n *pathNormalizer) Normalize(cfg *Config) (func() error, error) {
+	var (
+		programPath string   = cfg.ProgramName
+		args        []string = cfg.Arguments
+		err         error
+	)
 
-func (e ErrInterpretersNotFound) Error() string {
-	return fmt.Sprintf("unable to look up any of interpreters %q", e.interpreters)
-}
-
-func pathNormalizer(cfg *Config) (*Config, func() error, error) {
-	programPath, err := exec.LookPath(cfg.ProgramName)
+	programPath, err = n.kernel.LookPath(cfg.ProgramName)
 	if err == nil {
-		if programPath == cfg.ProgramName {
-			return cfg, nil, nil
-		}
-
-		result := proto.Clone(cfg).(*Config)
-		result.ProgramName = programPath
-
-		return result, nil, nil
+		goto finish
 	}
 
-	interpreters := inferInterpreterFromLanguage(cfg.ProgramName)
+	programPath, args, err = n.findProgramInInterpreters(cfg.ProgramName)
+	if err != nil {
+		return nil, err
+	}
+
+finish:
+	cfg.ProgramName = programPath
+	cfg.Arguments = args
+
+	return nil, nil
+}
+
+func (n *pathNormalizer) findProgramInInterpreters(programName string) (programPath string, args []string, _ error) {
+	interpreters := inferInterpreterFromLanguage(programName)
 	if len(interpreters) == 0 {
-		return nil, nil, &ErrUnsupportedLanguage{langID: cfg.ProgramName}
+		return "", nil, errors.Errorf("unsupported language %s", programName)
 	}
 
 	for _, interpreter := range interpreters {
-		program, args := parseInterpreter(interpreter)
-		if programPath, err := exec.LookPath(program); err == nil {
-			result := proto.Clone(cfg).(*Config)
-			result.ProgramName = programPath
-			result.Arguments = args
-			return result, nil, nil
+		iProgram, iArgs := parseInterpreter(interpreter)
+		if path, err := n.kernel.LookPath(iProgram); err == nil {
+			programPath = path
+			args = iArgs
+			return
 		}
 	}
 
-	return nil, nil, &ErrInterpretersNotFound{interpreters: interpreters}
+	return "", nil, errors.Errorf("unable to look up any of interpreters %s", interpreters)
 }
 
 // parseInterpreter handles cases when the interpreter is, for instance, "deno run".

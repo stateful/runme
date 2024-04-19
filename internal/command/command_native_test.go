@@ -8,9 +8,10 @@ import (
 	"os"
 	"testing"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
 )
 
 func init() {
@@ -21,19 +22,14 @@ func init() {
 
 func TestNativeCommand(t *testing.T) {
 	t.Run("OptionsIsNil", func(t *testing.T) {
-		cmd, err := NewNative(testConfigBasicProgram, nil)
-		require.NoError(t, err)
+		cmd := NewNative(testConfigBasicProgram, Options{})
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 	})
 
 	t.Run("Output", func(t *testing.T) {
 		stdout := bytes.NewBuffer(nil)
-		opts := &NativeCommandOptions{
-			Stdout: stdout,
-		}
-		cmd, err := NewNative(testConfigBasicProgram, opts)
-		require.NoError(t, err)
+		cmd := NewNative(testConfigBasicProgram, Options{Stdout: stdout})
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 		assert.Equal(t, "test", stdout.String())
@@ -41,19 +37,14 @@ func TestNativeCommand(t *testing.T) {
 
 	t.Run("Shell", func(t *testing.T) {
 		stdout := bytes.NewBuffer(nil)
-		opts := &NativeCommandOptions{
-			Stdout: stdout,
-		}
-		cmd, err := NewNative(testConfigShellProgram, opts)
-		require.NoError(t, err)
+		cmd := NewNative(testConfigShellProgram, Options{Stdout: stdout})
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 		assert.Equal(t, "test", stdout.String())
 	})
 
 	t.Run("DevStdin", func(t *testing.T) {
-		cmd, err := NewNative(testConfigShellProgram, &NativeCommandOptions{Stdin: os.Stdin})
-		require.NoError(t, err)
+		cmd := NewNative(testConfigShellProgram, Options{Stdin: os.Stdin})
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 	})
@@ -67,13 +58,12 @@ func TestNativeCommandStopWithSignal(t *testing.T) {
 	}
 
 	t.Run("SIGINT", func(t *testing.T) {
-		cmd, err := NewNative(cfg, nil)
-		require.NoError(t, err)
+		cmd := NewNative(cfg, Options{})
 		require.NoError(t, cmd.Start(context.Background()))
 
 		errc := make(chan error, 1)
 		go func() {
-			errc <- cmd.StopWithSignal(os.Interrupt)
+			errc <- cmd.Signal(os.Interrupt)
 		}()
 
 		require.EqualError(t, cmd.Wait(), "signal: interrupt")
@@ -81,13 +71,12 @@ func TestNativeCommandStopWithSignal(t *testing.T) {
 	})
 
 	t.Run("SIGKILL", func(t *testing.T) {
-		cmd, err := NewNative(cfg, nil)
-		require.NoError(t, err)
+		cmd := NewNative(cfg, Options{})
 		require.NoError(t, cmd.Start(context.Background()))
 
 		errc := make(chan error, 1)
 		go func() {
-			errc <- cmd.StopWithSignal(os.Kill)
+			errc <- cmd.Signal(os.Kill)
 		}()
 
 		require.EqualError(t, cmd.Wait(), "signal: killed")

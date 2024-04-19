@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
@@ -49,6 +50,8 @@ func init() {
 	// [viper.Viper] can be overridden by a decorator:
 	//   container.Decorate(func(v *viper.Viper) *viper.Viper { return nil })
 	mustProvide(container.Provide(getConfig))
+	mustProvide(container.Provide(getKernelGetter))
+	mustProvide(container.Provide(getKernel))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
@@ -112,6 +115,78 @@ func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, er
 	}
 
 	return cfg, nil
+}
+
+func getKernel(c *config.Config, logger *zap.Logger) (_ command.Kernel, err error) {
+	// Find the first kernel that can be instantiated without error.
+	// This is inline with how the kernels are described in the configuration file.
+	for _, kernelCfg := range c.Kernels {
+		kernel, kErr := createKernelFromConfig(kernelCfg, logger)
+		if kErr == nil {
+			return kernel, nil
+		}
+		err = multierr.Append(err, kErr)
+	}
+
+	if err != nil {
+		return nil, errors.Wrap(err, "no valid kernel found")
+	}
+	return nil, errors.New("kernel not found")
+}
+
+type KernelGetter func(name string) (command.Kernel, error)
+
+func getKernelGetter(c *config.Config, logger *zap.Logger) KernelGetter {
+	cache := make(map[string]command.Kernel)
+
+	return func(name string) (command.Kernel, error) {
+		// If name is empty and there are no kernels,
+		// return a local kernel as a default for
+		// backward compatibility.
+		if name == "" && len(c.Kernels) == 0 {
+			return command.NewLocalKernel(
+				&config.LocalKernel{Name: "default-local"},
+			), nil
+		}
+
+		k, ok := cache[name]
+		if ok {
+			return k, nil
+		}
+
+		for _, kernelCfg := range c.Kernels {
+			if name != "" && kernelCfg.GetName() != name {
+				continue
+			}
+
+			var err error
+			k, err = createKernelFromConfig(kernelCfg, logger)
+			if err != nil {
+				return nil, err
+			}
+
+			cache[name] = k
+
+			break
+		}
+
+		if k == nil {
+			return nil, errors.Errorf("kernel with name %q not found", name)
+		}
+		return k, nil
+	}
+}
+
+func createKernelFromConfig(kernelCfg config.Kernel, logger *zap.Logger) (command.Kernel, error) {
+	switch kernelCfg := kernelCfg.(type) {
+	case *config.LocalKernel:
+		return command.NewLocalKernel(kernelCfg), nil
+	case *config.DockerKernel:
+		k, err := command.NewDockerKernel(kernelCfg, logger)
+		return k, errors.WithStack(err)
+	default:
+		return nil, errors.Errorf("unknown kernel type: %T", kernelCfg)
+	}
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {
@@ -193,7 +268,7 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 					// CloseTerminalOnSuccess: t.CodeBlock.CloseTerminalOnSuccess(),
 					Cwd:               t.CodeBlock.Cwd(),
 					ExcludeFromRunAll: t.CodeBlock.ExcludeFromRunAll(),
-					Interactive:       t.CodeBlock.Interactive(),
+					Interactive:       t.CodeBlock.InteractiveLegacy(),
 					IsNamed:           !t.CodeBlock.IsUnnamed(),
 					Language:          t.CodeBlock.Language(),
 					Name:              t.CodeBlock.Name(),

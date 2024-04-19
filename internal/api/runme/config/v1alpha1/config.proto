@@ -3,6 +3,7 @@ syntax = "proto3";
 package runme.config.v1alpha1;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/any.proto";
 
 option go_package = "github.com/stateful/runme/internal/gen/proto/go/runme/config/v1alpha1;configv1alpha1";
 
@@ -31,6 +32,8 @@ message Config {
   Log log = 7;
 
   Server server = 8;
+
+  repeated google.protobuf.Any kernels = 9;
 
   message Project {
     // dir is the directory to look for Markdown files.
@@ -96,6 +99,23 @@ message Config {
       bool enabled = 1;
       string cert_file = 2;
       string key_file = 3;
+    }
+  }
+
+  message LocalKernel {
+    string name = 1;
+  }
+
+  message DockerKernel {
+    string name = 1;
+
+    string image = 2;
+
+    Build build = 3;
+
+    message Build {
+      string context = 1;
+      string dockerfile = 2;
     }
   }
 }

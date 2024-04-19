@@ -4,19 +4,25 @@ import (
 	"strings"
 
 	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
+	"google.golang.org/protobuf/proto"
 )
 
 // Config contains a serializable configuration for a command.
 // It's agnostic to the runtime or particular execution settings.
 type Config = runnerv2alpha1.ProgramConfig
 
-type configNormalizer func(*Config) (*Config, func() error, error)
+// configNormalizer is a function that normalizes [Config].
+// It will modify the [Config] in place and return a cleanup function
+// that should be executed when the command is finished.
+type configNormalizer func(*Config) (func() error, error)
 
 func normalizeConfig(cfg *Config, normalizers ...configNormalizer) (_ *Config, cleanups []func() error, err error) {
+	cfg = proto.Clone(cfg).(*Config)
+
 	for _, normalizer := range normalizers {
 		var cleanup func() error
 
-		cfg, cleanup, err = normalizer(cfg)
+		cleanup, err = normalizer(cfg)
 		if err != nil {
 			return nil, nil, err
 		}

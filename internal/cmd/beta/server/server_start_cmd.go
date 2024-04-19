@@ -47,6 +47,8 @@ func serverStartCmd() *cobra.Command {
 						defer os.Remove(cfg.ServerAddress)
 					}
 
+					logger.Debug("starting the server")
+
 					return errors.WithStack(s.Serve())
 				},
 			)

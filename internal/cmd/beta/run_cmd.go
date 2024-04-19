@@ -11,7 +11,9 @@ import (
 	"github.com/stateful/runme/v3/internal/project"
 )
 
-func runCmd(_ *commonFlags) *cobra.Command {
+func runCmd(*commonFlags) *cobra.Command {
+	var kernelName string
+
 	cmd := cobra.Command{
 		Use:     "run [command1 command2 ...]",
 		Aliases: []string{"exec"},
@@ -31,9 +33,10 @@ Run all blocks from the "setup" and "teardown" categories:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.Invoke(
 				func(
-					proj *project.Project,
 					filters []project.Filter,
+					kernelGetter autoconfig.KernelGetter,
 					logger *zap.Logger,
+					proj *project.Project,
 					session *command.Session,
 				) error {
 					defer logger.Sync()
@@ -62,8 +65,13 @@ Run all blocks from the "setup" and "teardown" categories:
 						return errors.WithStack(err)
 					}
 
+					kernel, err := kernelGetter(kernelName)
+					if err != nil {
+						return err
+					}
+
 					for _, t := range tasks {
-						err := runCommandNatively(cmd, t.CodeBlock, session, logger)
+						err := runCodeBlock(t.CodeBlock, cmd, kernel, session, logger)
 						if err != nil {
 							return err
 						}
@@ -75,32 +83,39 @@ Run all blocks from the "setup" and "teardown" categories:
 		},
 	}
 
+	cmd.Flags().StringVar(&kernelName, "kernel", "", "Kernel name or index to use for command execution.")
+
 	return &cmd
 }
 
-func runCommandNatively(cmd *cobra.Command, block *document.CodeBlock, sess *command.Session, logger *zap.Logger) error {
+func runCodeBlock(
+	block *document.CodeBlock,
+	cmd *cobra.Command,
+	kernel command.Kernel,
+	sess *command.Session,
+	logger *zap.Logger,
+) error {
 	cfg, err := command.NewConfigFromCodeBlock(block)
 	if err != nil {
 		return err
 	}
 
-	opts := &command.NativeCommandOptions{
-		Session: sess,
-		Stdin:   cmd.InOrStdin(),
-		Stdout:  cmd.OutOrStdout(),
-		Stderr:  cmd.ErrOrStderr(),
-		Logger:  logger,
-	}
+	kernelCmd := kernel.Command(
+		cfg,
+		command.Options{
+			Kernel:  kernel,
+			Logger:  logger,
+			Session: sess,
+			Stdin:   cmd.InOrStdin(),
+			Stdout:  cmd.OutOrStdout(),
+			Stderr:  cmd.ErrOrStderr(),
+		},
+	)
 
-	nativeCommand, err := command.NewNative(cfg, opts)
+	err = kernelCmd.Start(cmd.Context())
 	if err != nil {
 		return err
 	}
 
-	err = nativeCommand.Start(cmd.Context())
-	if err != nil {
-		return err
-	}
-
-	return nativeCommand.Wait()
+	return kernelCmd.Wait()
 }

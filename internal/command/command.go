@@ -1,50 +1,26 @@
 package command
 
 import (
+	"context"
 	"io"
+	"os"
 
 	"go.uber.org/zap"
 )
 
-type NativeCommandOptions struct {
+type Command interface {
+	Pid() int
+	Running() bool
+	Start(context.Context) error
+	Signal(os.Signal) error
+	Wait() error
+}
+
+type Options struct {
+	Kernel  Kernel
+	Logger  *zap.Logger
 	Session *Session
-
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
-
-	Logger *zap.Logger
-}
-
-func NewNative(cfg *Config, options *NativeCommandOptions) (*NativeCommand, error) {
-	if options == nil {
-		options = &NativeCommandOptions{}
-	}
-
-	if options.Logger == nil {
-		options.Logger = zap.NewNop()
-	}
-
-	return newNativeCommand(cfg, options), nil
-}
-
-type VirtualCommandOptions struct {
-	Session *Session
-
-	Stdin  io.Reader
-	Stdout io.Writer
-
-	Logger *zap.Logger
-}
-
-func NewVirtual(cfg *Config, options *VirtualCommandOptions) (*VirtualCommand, error) {
-	if options == nil {
-		options = &VirtualCommandOptions{}
-	}
-
-	if options.Logger == nil {
-		options.Logger = zap.NewNop()
-	}
-
-	return newVirtualCommand(cfg, options), nil
+	Stdin   io.Reader
+	Stdout  io.Writer
+	Stderr  io.Writer
 }
