@@ -71,7 +71,9 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	// From the initial request, only the config is used to create a new execution.
 	// The rest of fields like InputData, Winsize, Stop are handled in this goroutine,
 	// and then the goroutine continues to read the next requests.
-	go func(req *runnerv2alpha1.ExecuteRequest) {
+	go func(initialReq *runnerv2alpha1.ExecuteRequest) {
+		req := initialReq
+
 		for {
 			var err error
 

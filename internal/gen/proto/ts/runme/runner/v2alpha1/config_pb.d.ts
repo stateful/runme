@@ -118,7 +118,11 @@ export declare enum CommandMode {
     /**
      * @generated from protobuf enum value: COMMAND_MODE_FILE = 2;
      */
-    FILE = 2
+    FILE = 2,
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_TERMINAL = 3;
+     */
+    TERMINAL = 3
 }
 declare class ProgramConfig$Type extends MessageType<ProgramConfig> {
     constructor();

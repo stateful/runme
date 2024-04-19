@@ -17,10 +17,11 @@ type Command interface {
 }
 
 type Options struct {
-	Kernel  Kernel
-	Logger  *zap.Logger
-	Session *Session
-	Stdin   io.Reader
-	Stdout  io.Writer
-	Stderr  io.Writer
+	Kernel      Kernel
+	Logger      *zap.Logger
+	Session     *Session
+	StdinWriter io.Writer
+	Stdin       io.Reader
+	Stdout      io.Writer
+	Stderr      io.Writer
 }

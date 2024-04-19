@@ -34,8 +34,8 @@ env:
 # Available fields are defined in [config.FilterDocumentEnv] and [config.FilterBlockEnv].
 filters:
   # Do not allow unnamed code blocks.
-  - type: "FILTER_TYPE_BLOCK"
-    condition: "is_named"
+  # - type: "FILTER_TYPE_BLOCK"
+  #   condition: "is_named"
   # Do not allow code blocks without a language.
   - type: "FILTER_TYPE_BLOCK"
     condition: "language != ''"
