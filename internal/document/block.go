@@ -257,6 +257,14 @@ func (b *CodeBlock) Value() []byte {
 	return b.value
 }
 
+func (b *CodeBlock) SetLines(newLines []string) {
+	b.lines = newLines
+}
+
+func (b *CodeBlock) PrependLines(newLines []string) {
+	b.lines = append(newLines, b.lines...)
+}
+
 // TODO(mxs): use guesslang model
 func getLanguage(node *ast.FencedCodeBlock, source []byte) string {
 	var rawAttrs string

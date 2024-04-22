@@ -375,6 +375,8 @@ service RunnerService {
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {}
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {}
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
+  // TODO(cepeda): Proposal
+  // rpc SyncSession(SyncSessionRequest) returns (SyncSessionResponse) {}
 
   rpc MonitorEnvStore(MonitorEnvStoreRequest) returns (stream MonitorEnvStoreResponse) {}
 
@@ -386,6 +388,9 @@ service RunnerService {
   // Subsequent "ExecuteRequest" should only contain "input_data" as
   // other fields will be ignored.
   rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
+
+  // TODO(cepeda): Proposal
+  // rpc ExecuteSync(ExecuteSyncRequest) returns (ExecuteSyncResponse) {}
 
   // ResolveProgram resolves variables from a script or a list of commands
   // using the provided sources, which can be a list of environment variables,

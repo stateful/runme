@@ -12,6 +12,7 @@ import (
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/v3/internal/document"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/runner"
 	"github.com/stateful/runme/v3/internal/system"
@@ -21,13 +22,15 @@ import (
 type LocalRunner struct {
 	*RunnerSettings
 
-	shellID int
+	shellID       int
+	runnerService runnerv1.RunnerServiceServer
 }
 
 func (r *LocalRunner) Clone() Runner {
 	return &LocalRunner{
 		RunnerSettings: r.RunnerSettings.Clone(),
 		shellID:        r.shellID,
+		runnerService:  r.runnerService,
 	}
 }
 
@@ -58,20 +61,72 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		}
 	}
 
+	runnerService, err := runner.NewRunnerService(r.logger)
+	if err != nil {
+		return nil, err
+	}
+
+	r.runnerService = runnerService
+	ctx := context.Background()
+	err = r.setupSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func (r *LocalRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string) (*runnerv1.ResolveProgramResponse, error) {
+	envs, err := r.GetEnvs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	request := &runnerv1.ResolveProgramRequest{
+		// SessionId:       r.sessionID,
+		Env:             envs,
+		Mode:            mode,
+		SessionStrategy: r.sessionStrategy,
+		Source: &runnerv1.ResolveProgramRequest_Script{
+			Script: script,
+		},
+	}
+
+	resp, err := r.runnerService.ResolveProgram(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *LocalRunner) setupSession(ctx context.Context) error {
 	envs := append(os.Environ(), r.envs...)
 
 	// todo(sebastian): owl store?
 	sess, err := runner.NewSession(envs, nil, r.logger)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
 	r.session = sess
+	return nil
 
-	return r, nil
+	// TODO(cepeda): Runner Service Session is not compatible yet
+	// request := &runnerv1.CreateSessionRequest{
+	// 	// Project:      ConvertToRunnerProject(r.project),
+	// 	Envs:         envs,
+	// 	EnvStoreType: r.envStoreType,
+	// }
+
+	// resp, err := r.runnerService.CreateSession(ctx, request)
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to create session")
+	// }
+	// r.sessionID = resp.Session.Id
+	// return nil
 }
 
-func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
+func (r *LocalRunner) newExecutable(ctx context.Context, task project.Task) (runner.Executable, error) {
 	block := task.CodeBlock
 	fmtr, err := task.CodeBlock.Document().Frontmatter()
 	if err != nil {
@@ -83,6 +138,15 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 		customShell = fmtr.Shell
 	}
 
+	// TODO(cepeda): Session is not working
+	// sess, err := r.GetSession()
+	// session := &runner.Session{
+	// 	ID:       r.sessionID,
+	// 	Envs:     sess.Session.Envs,
+	// 	Metadata: sess.Session.Metadata,
+	// }
+	// session := runner.GetSessions(r.runnerService)
+
 	programName, _ := runner.GetCellProgram(block.Language(), customShell, block)
 
 	cfg := &runner.ExecutableConfig{
@@ -91,9 +155,9 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 		Tty:     block.InteractiveLegacy(),
 		Stdout:  r.stdout,
 		Stderr:  r.stderr,
-		Session: r.session,
 		System:  system.Default,
 		Logger:  r.logger,
+		Session: r.session,
 	}
 
 	cfg.PreEnv, err = r.project.LoadEnv()
@@ -144,7 +208,7 @@ func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {
 		return r.runBlockInShell(ctx, block)
 	}
 
-	executable, err := r.newExecutable(task)
+	executable, err := r.newExecutable(ctx, task)
 	if err != nil {
 		return err
 	}
@@ -194,7 +258,7 @@ func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeB
 }
 
 func (r *LocalRunner) DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error {
-	executable, err := r.newExecutable(task)
+	executable, err := r.newExecutable(ctx, task)
 	if err != nil {
 		return err
 	}
@@ -220,6 +284,30 @@ func shellID() (int, bool) {
 	return i, true
 }
 
+// TODO(cepeda): Session is not working
+// func (r *LocalRunner) GetSession(ctx context.Context) (*runnerv1.GetSessionResponse, error) {
+// 	// if r.sessionID == "" {
+// 	// 	return nil, nil
+// 	// }
+
+// 	// resp, err := r.runnerService.GetSession(ctx, &runnerv1.GetSessionRequest{
+// 	// 	Id: r.sessionID,
+// 	// })
+// 	// if err != nil {
+// 	// 	return nil, err
+// 	// }
+
+// 	// return resp, nil
+// }
+
 func (r *LocalRunner) GetEnvs(ctx context.Context) ([]string, error) {
 	return r.session.Envs()
+
+	// TODO(cepeda): Session is not working
+	// resp, err := r.GetSession(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// return resp.Session.Envs, nil
 }

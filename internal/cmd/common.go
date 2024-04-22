@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -21,7 +20,6 @@ import (
 	"github.com/stateful/runme/v3/internal/runner/client"
 	"github.com/stateful/runme/v3/internal/tui"
 	"github.com/stateful/runme/v3/internal/tui/prompt"
-	"golang.org/x/exp/slices"
 )
 
 const envStackDepth = "__RUNME_STACK_DEPTH"
@@ -336,90 +334,81 @@ type runFunc func(context.Context) error
 
 var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")
 
-func promptEnvVars(cmd *cobra.Command, envs []string, tasks ...project.Task) error {
-	keys := make([]string, len(envs))
-
-	for i, line := range envs {
-		if line == "" {
-			continue
-		}
-
-		keys[i] = strings.SplitN(line, "=", 2)[0]
-	}
-
+func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Task) error {
 	for _, task := range tasks {
 		block := task.CodeBlock
 
-		if block.PromptEnv() {
-			varPrompts := getCommandExportExtractMatches(block.Lines())
-			for _, ev := range varPrompts {
-				if slices.Contains(keys, ev.Key) {
-					block.SetLine(ev.LineNumber, "")
+		if !block.PromptEnv() {
+			continue
+		}
 
-					continue
-				}
+		script := string(block.Content())
+		// TODO(cepeda): get the prompt mode
+		mode := runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL
+		response, err := runner.ResolveProgram(cmd.Context(), mode, script)
+		if err != nil {
+			return err
+		}
 
-				newVal, err := promptForEnvVar(cmd, ev)
-				block.SetLine(ev.LineNumber, replaceVarValue(ev, newVal))
+		var newLines []string
+		block.SetLines(strings.Split(response.Script, "\n"))
 
+		for _, variable := range response.Vars {
+			capturedValue := ""
+			switch variable.Status {
+			case runnerv1.ResolveProgramResponse_STATUS_RESOLVED:
+				capturedValue = variable.ResolvedValue
+			case runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
+				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER,
+				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET:
+				newVal, err := prompter(cmd, variable)
 				if err != nil {
 					return err
 				}
+				capturedValue = newVal
+			}
+
+			if len(capturedValue) > 0 {
+				newLine := fmt.Sprintf(`export %s="%s"`, variable.Name, capturedValue)
+				newLines = append(newLines, newLine)
 			}
 		}
+
+		if len(newLines) > 0 {
+			block.PrependLines(newLines)
+		}
 	}
+
 	return nil
 }
 
-func getCommandExportExtractMatches(lines []string) []CommandExportExtractMatch {
-	test := regexp.MustCompile(exportExtractRegex)
-	result := []CommandExportExtractMatch{}
+func prompter(cmd *cobra.Command, variable *runnerv1.ResolveProgramResponse_VarResult) (string, error) {
+	label := fmt.Sprintf("Set Environment Variable %q:", variable.Name)
 
-	for i, line := range lines {
-		for _, match := range test.FindAllStringSubmatch(line, -1) {
-			e := match[0]
+	var placeHolder string
+	var isPassword bool
 
-			parts := strings.SplitN(strings.TrimSpace(e)[len("export "):], "=", 2)
-			if len(parts) == 0 {
-				continue
-			}
-			key := parts[0]
-			ph := strings.TrimSpace(parts[1])
-
-			isExecValue := strings.HasPrefix(ph, "$(") && strings.HasSuffix(ph, ")")
-			if isExecValue {
-				continue
-			}
-
-			hasStringValue := strings.HasPrefix(ph, "\"") || strings.HasPrefix(ph, "'")
-			placeHolder := ph
-			if hasStringValue {
-				placeHolder = ph[1 : len(ph)-1]
-			}
-
-			value := placeHolder
-
-			result = append(result, CommandExportExtractMatch{
-				Key:            key,
-				Value:          value,
-				Match:          e,
-				HasStringValue: hasStringValue,
-				LineNumber:     i,
-			})
-		}
+	if variable.ResolvedValue != "" {
+		placeHolder = variable.ResolvedValue
+	} else if variable.OriginalValue != "" {
+		placeHolder = variable.OriginalValue
+	} else {
+		placeHolder = "Enter a value please"
 	}
 
-	return result
-}
+	ip := prompt.InputParams{Label: label, PlaceHolder: placeHolder}
 
-func promptForEnvVar(cmd *cobra.Command, ev CommandExportExtractMatch) (string, error) {
-	label := fmt.Sprintf("Set Environment Variable %q:", ev.Key)
-	ip := prompt.InputParams{Label: label, PlaceHolder: ev.Value}
-	if ev.HasStringValue {
-		ip.Value = ev.Value
+	if variable.Status == runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER {
+		ip.Value = variable.ResolvedValue
 	}
+
+	if variable.Status == runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET {
+		isPassword = true
+		// tag(cepeda): pass password flag to the input model
+		fmt.Print(isPassword)
+	}
+
 	model := tui.NewStandaloneInputModel(ip, tui.MinimalKeyMap, tui.DefaultStyles)
-
 	finalModel, err := newProgram(cmd, model).Run()
 	if err != nil {
 		return "", err
@@ -429,12 +418,6 @@ func promptForEnvVar(cmd *cobra.Command, ev CommandExportExtractMatch) (string, 
 		return "", errors.New("canceled")
 	}
 	return val, nil
-}
-
-func replaceVarValue(ev CommandExportExtractMatch, newValue string) string {
-	parts := strings.SplitN(ev.Match, "=", 2)
-	replacedText := fmt.Sprintf("%s=%q", parts[0], newValue)
-	return replacedText
 }
 
 func getRelativePath(base string, documentPath string) string {

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -138,11 +137,6 @@ func tuiCmd() *cobra.Command {
 
 			model.filterCodeBlocks()
 
-			sessionEnvs, err := runnerClient.GetEnvs(context.Background())
-			if err != nil {
-				return err
-			}
-
 			for {
 				prog := newProgramWithOutputs(nil, cmd.InOrStdin(), model)
 
@@ -168,7 +162,7 @@ func tuiCmd() *cobra.Command {
 				}
 
 				if fmtr != nil && !fmtr.SkipPrompts {
-					err = promptEnvVars(cmd, sessionEnvs, task)
+					err = promptEnvVars(cmd, runnerClient, task)
 					if err != nil {
 						return err
 					}

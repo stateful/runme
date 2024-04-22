@@ -61,6 +61,8 @@ type Runner interface {
 
 	GetEnvs(ctx context.Context) ([]string, error)
 
+	ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string) (*runnerv1.ResolveProgramResponse, error)
+
 	getSettings() *RunnerSettings
 	setSettings(settings *RunnerSettings)
 }

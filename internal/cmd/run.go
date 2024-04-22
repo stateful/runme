@@ -34,6 +34,7 @@ type CommandExportExtractMatch struct {
 	Match          string
 	HasStringValue bool
 	LineNumber     int
+	IsPassword     bool
 }
 
 func runCmd() *cobra.Command {
@@ -205,6 +206,8 @@ func runCmd() *cobra.Command {
 
 			var runner client.Runner
 
+			// tag(cepeda): only for testing to force local runner
+			// if serverAddr != "" {
 			if serverAddr == "" {
 				localRunner, err := client.NewLocalRunner(runnerOpts...)
 				if err != nil {
@@ -225,11 +228,6 @@ func runCmd() *cobra.Command {
 				runner = remoteRunner
 			}
 
-			sessionEnvs, err := runner.GetEnvs(ctx)
-			if err != nil {
-				return err
-			}
-
 			for _, task := range runTasks {
 				fmtr, err := task.CodeBlock.Document().Frontmatter()
 				if err != nil {
@@ -242,7 +240,7 @@ func runCmd() *cobra.Command {
 			}
 
 			if (skipPromptsExplicitly || isTerminal(os.Stdout.Fd())) && !skipPrompts {
-				err = promptEnvVars(cmd, sessionEnvs, runTasks...)
+				err = promptEnvVars(cmd, runner, runTasks...)
 				if err != nil {
 					return err
 				}
