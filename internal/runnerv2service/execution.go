@@ -35,15 +35,6 @@ const (
 // Only allow uppercase letters, digits and underscores, min three chars
 var OpininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 
-// commandIface is an interface for virtual and native commands.
-type commandIface interface {
-	Pid() int
-	Running() bool
-	Start(context.Context) error
-	StopWithSignal(os.Signal) error
-	Wait() error
-}
-
 type execution struct {
 	ID        string
 	KnownName string
