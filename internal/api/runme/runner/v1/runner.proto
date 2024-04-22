@@ -177,6 +177,18 @@ message ExecuteRequest {
 
   // file extension associated with script
   string file_extension = 26;
+
+  // optional well known id for cell/block. "know" meaning that
+  // CLI/notebook UX have id/name for cells/blocks that contain commands.
+  // While the runner doesn't require the name to work, it is useful for
+  // auxiliary concerns (e.g. tracing, logging, etc).
+  string known_id = 27;
+
+  // optional well known name for cell/block. "know" meaning that
+  // CLI/notebook UX have id/name for cells/blocks that contain commands.
+  // While the runner doesn't require the name to work, it is useful for
+  // auxiliary concerns (e.g. tracing, logging, etc).
+  string known_name = 28;
 }
 
 message ProcessPID {

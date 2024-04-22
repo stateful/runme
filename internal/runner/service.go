@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -41,6 +42,9 @@ const (
 	// variable-sized buffers.
 	msgBufferSize = 32 * 1000 // 32 KB
 )
+
+// Only allow uppercase letters, digits and underscores, min three chars
+var OpininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 
 type runnerService struct {
 	runnerv1.UnimplementedRunnerServiceServer
@@ -503,6 +507,14 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		if err != nil {
 			logger.Sugar().Errorf("%v", err)
 		}
+
+		knownName := req.GetKnownName()
+		if knownName != "" && runnerConformsOpinionatedEnvVarNaming(knownName) {
+			err = sess.SetEnv(knownName, string(stdoutMem))
+			if err != nil {
+				logger.Warn("failed to set env", zap.Error(err))
+			}
+		}
 	}
 
 	var finalExitCode *wrapperspb.UInt32Value
@@ -607,6 +619,10 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 		X:    uint16(winsize.X),
 		Y:    uint16(winsize.Y),
 	}
+}
+
+func runnerConformsOpinionatedEnvVarNaming(knownName string) bool {
+	return OpininatedEnvVarNamingRegexp.MatchString(knownName)
 }
 
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.ResolveProgramRequest) (*runnerv1.ResolveProgramResponse, error) {

@@ -135,6 +135,35 @@ func Test_command(t *testing.T) {
 		assert.Equal(t, "", string(data))
 	})
 
+	t.Run("Nonexec resorts to cat", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "",
+				LanguageID:  "sql",
+				Stdout:      stdout,
+				Stderr:      stderr,
+				CommandMode: CommandModeTempFile,
+				Script:      "SELECT * FROM users;",
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Contains(t, cmd.cmd.Path, "cat")
+		assert.Equal(t, "SELECT * FROM users;", string(data))
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
+	})
+
 	t.Run("Tty", func(t *testing.T) {
 		t.Parallel()
 

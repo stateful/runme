@@ -47,6 +47,12 @@ message ProgramConfig {
   // should tell whether to execute it inline or as a file.
   CommandMode mode = 8;
 
+  // optional well known id for cell/block
+  string known_id = 9;
+
+  // optional well known name for cell/block
+  string known_name = 10;
+
   message CommandList {
     // commands are commands to be executed by the program.
     // The commands are joined and executed as a script.

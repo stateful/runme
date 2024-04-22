@@ -1,6 +1,7 @@
 package command
 
 import (
+	"os/exec"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -51,6 +52,12 @@ func (n *pathNormalizer) findProgramInInterpreters(programName string) (programP
 			args = iArgs
 			return
 		}
+	}
+
+	// Default to "cat"
+	cat, err := exec.LookPath("cat")
+	if err == nil {
+		return cat, nil, nil
 	}
 
 	return "", nil, errors.Errorf("unable to look up any of interpreters %s", interpreters)

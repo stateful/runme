@@ -1014,3 +1014,36 @@ func Test_readLoop(t *testing.T) {
 	assert.Equal(t, dataSize, stdoutN)
 	assert.Equal(t, dataSize, stderrN)
 }
+
+func Test_runnerConformsOpinionatedEnvVarNaming(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		assert.True(t, runnerConformsOpinionatedEnvVarNaming("TEST"))
+		assert.True(t, runnerConformsOpinionatedEnvVarNaming("ABC"))
+		assert.True(t, runnerConformsOpinionatedEnvVarNaming("TEST_ABC"))
+		assert.True(t, runnerConformsOpinionatedEnvVarNaming("ABC_123"))
+	})
+
+	t.Run("lowercase is invalid", func(t *testing.T) {
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("test"))
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("abc"))
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("test_abc"))
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("abc_123"))
+	})
+
+	t.Run("too short", func(t *testing.T) {
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("AB"))
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("T"))
+	})
+
+	t.Run("numbers only is invalid", func(t *testing.T) {
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("123"))
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("8761123"))
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("138761123"))
+	})
+
+	t.Run("invalid characters", func(t *testing.T) {
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("ABC_%^!"))
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("&^%$"))
+		assert.False(t, runnerConformsOpinionatedEnvVarNaming("A@#$%"))
+	})
+}

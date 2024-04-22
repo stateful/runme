@@ -29,6 +29,39 @@ func init() {
 	command.EnvDumpCommand = "env -0"
 }
 
+func Test_conformsOpinionatedEnvVarNaming(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		assert.True(t, conformsOpinionatedEnvVarNaming("TEST"))
+		assert.True(t, conformsOpinionatedEnvVarNaming("ABC"))
+		assert.True(t, conformsOpinionatedEnvVarNaming("TEST_ABC"))
+		assert.True(t, conformsOpinionatedEnvVarNaming("ABC_123"))
+	})
+
+	t.Run("lowercase is invalid", func(t *testing.T) {
+		assert.False(t, conformsOpinionatedEnvVarNaming("test"))
+		assert.False(t, conformsOpinionatedEnvVarNaming("abc"))
+		assert.False(t, conformsOpinionatedEnvVarNaming("test_abc"))
+		assert.False(t, conformsOpinionatedEnvVarNaming("abc_123"))
+	})
+
+	t.Run("too short", func(t *testing.T) {
+		assert.False(t, conformsOpinionatedEnvVarNaming("AB"))
+		assert.False(t, conformsOpinionatedEnvVarNaming("T"))
+	})
+
+	t.Run("numbers only is invalid", func(t *testing.T) {
+		assert.False(t, conformsOpinionatedEnvVarNaming("123"))
+		assert.False(t, conformsOpinionatedEnvVarNaming("8761123"))
+		assert.False(t, conformsOpinionatedEnvVarNaming("138761123"))
+	})
+
+	t.Run("invalid characters", func(t *testing.T) {
+		assert.False(t, conformsOpinionatedEnvVarNaming("ABC_%^!"))
+		assert.False(t, conformsOpinionatedEnvVarNaming("&^%$"))
+		assert.False(t, conformsOpinionatedEnvVarNaming("A@#$%"))
+	})
+}
+
 func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
@@ -135,6 +168,151 @@ func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
 	assert.EqualValues(t, 0, result.ExitCode)
 	assert.Equal(t, "{\"field1\": \"value\", \"field2\": 2}\n", string(result.Stderr))
 	assert.Equal(t, "some plain text\n", string(result.Stdout))
+	assert.Contains(t, result.MimeType, "text/plain")
+}
+
+func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, sessionResp.Session)
+
+	stream1, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult1 := make(chan executeResult)
+	go getExecuteResult(stream1, execResult1)
+
+	req1 := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo test | tee >(cat >&2)",
+					},
+				},
+			},
+		},
+		SessionId:        sessionResp.GetSession().GetId(),
+		StoreStdoutInEnv: true,
+	}
+
+	err = stream1.Send(req1)
+	assert.NoError(t, err)
+
+	result := <-execResult1
+
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	assert.Equal(t, "test\n", string(result.Stdout))
+	assert.Contains(t, result.MimeType, "text/plain")
+
+	// subsequent req to check last stored value
+	stream2, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult2 := make(chan executeResult)
+	go getExecuteResult(stream2, execResult2)
+
+	req2 := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo $__",
+					},
+				},
+			},
+		},
+		SessionId: sessionResp.GetSession().GetId(),
+	}
+
+	err = stream2.Send(req2)
+	assert.NoError(t, err)
+
+	result = <-execResult2
+
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	assert.Equal(t, "test\n", string(result.Stdout))
+	assert.Contains(t, result.MimeType, "text/plain")
+}
+
+func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, sessionResp.Session)
+
+	stream1, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult1 := make(chan executeResult)
+	go getExecuteResult(stream1, execResult1)
+
+	req1 := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo test | tee >(cat >&2)",
+					},
+				},
+			},
+			KnownName: "TEST_VAR",
+		},
+		SessionId:        sessionResp.GetSession().GetId(),
+		StoreStdoutInEnv: true,
+	}
+
+	err = stream1.Send(req1)
+	assert.NoError(t, err)
+
+	result := <-execResult1
+
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	assert.Equal(t, "test\n", string(result.Stdout))
+	assert.Contains(t, result.MimeType, "text/plain")
+
+	// subsequent req to check last stored value
+	stream2, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult2 := make(chan executeResult)
+	go getExecuteResult(stream2, execResult2)
+
+	req2 := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo $TEST_VAR",
+					},
+				},
+			},
+		},
+		SessionId: sessionResp.GetSession().GetId(),
+	}
+
+	err = stream2.Send(req2)
+	assert.NoError(t, err)
+
+	result = <-execResult2
+
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	assert.Equal(t, "test\n", string(result.Stdout))
 	assert.Contains(t, result.MimeType, "text/plain")
 }
 

@@ -51,7 +51,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 		id,
 		req.Config,
 		session,
-		req.StoreLastStdout,
+		req.StoreStdoutInEnv,
 		logger,
 	)
 	if err != nil {

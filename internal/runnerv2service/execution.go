@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"syscall"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -31,12 +32,16 @@ const (
 	msgBufferSize = 2048 << 10 // 2 MiB
 )
 
-type execution struct {
-	ID  string
-	Cmd command.Command
+// Only allow uppercase letters, digits and underscores, min three chars
+var OpininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 
-	session         *command.Session
-	storeLastStdout bool
+type execution struct {
+	ID        string
+	KnownName string
+	Cmd       command.Command
+
+	session          *command.Session
+	storeStdoutInEnv bool
 
 	stdin       io.Reader
 	stdinWriter io.WriteCloser
@@ -50,7 +55,7 @@ func newExecution(
 	id string,
 	cfg *command.Config,
 	session *command.Session,
-	storeLastStdout bool,
+	storeStdoutInEnv bool,
 	logger *zap.Logger,
 ) (*execution, error) {
 	stdin, stdinWriter := io.Pipe()
@@ -83,11 +88,12 @@ func newExecution(
 	}
 
 	exec := &execution{
-		ID:  id,
-		Cmd: cmd,
+		ID:        id,
+		KnownName: cfg.GetKnownName(),
+		Cmd:       cmd,
 
-		session:         session,
-		storeLastStdout: storeLastStdout,
+		session:          session,
+		storeStdoutInEnv: storeStdoutInEnv,
 
 		stdin:       stdin,
 		stdinWriter: stdinWriter,
@@ -101,8 +107,11 @@ func newExecution(
 }
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
-	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizInBytes)
-	defer e.storeLastOutput(lastStdout)
+	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizeInBytes)
+	defer func() {
+		_ = lastStdout.Close()
+		e.storeOutputInEnv(lastStdout)
+	}()
 
 	firstStdoutSent := false
 	errc := make(chan error, 2)
@@ -260,8 +269,8 @@ func (e *execution) closeIO() {
 	e.logger.Info("closed stderr writer", zap.Error(err))
 }
 
-func (e *execution) storeLastOutput(r io.Reader) {
-	if !e.storeLastStdout {
+func (e *execution) storeOutputInEnv(r io.Reader) {
+	if !e.storeStdoutInEnv {
 		return
 	}
 
@@ -271,6 +280,16 @@ func (e *execution) storeLastOutput(r io.Reader) {
 	if err := e.session.SetEnv("__=" + string(sanitized)); err != nil {
 		e.logger.Info("failed to store last output", zap.Error(err))
 	}
+
+	if e.KnownName != "" && conformsOpinionatedEnvVarNaming(e.KnownName) {
+		if err := e.session.SetEnv(e.KnownName + "=" + string(sanitized)); err != nil {
+			e.logger.Info("failed to store output under known name", zap.String("known_name", e.KnownName), zap.Error(err))
+		}
+	}
+}
+
+func conformsOpinionatedEnvVarNaming(knownName string) bool {
+	return OpininatedEnvVarNamingRegexp.MatchString(knownName)
 }
 
 type sender interface {
