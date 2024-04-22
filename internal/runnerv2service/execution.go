@@ -32,13 +32,25 @@ const (
 	msgBufferSize = 2048 << 10 // 2 MiB
 )
 
+// Only allow uppercase letters, digits and underscores, min three chars
+var OpininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
+
+// commandIface is an interface for virtual and native commands.
+type commandIface interface {
+	Pid() int
+	Running() bool
+	Start(context.Context) error
+	StopWithSignal(os.Signal) error
+	Wait() error
+}
+
 type execution struct {
 	ID        string
 	KnownName string
 	Cmd       command.Command
 
-	session      *command.Session
-	storeEnvVars bool
+	session          *command.Session
+	storeStdoutInEnv bool
 
 	stdin       io.Reader
 	stdinWriter io.WriteCloser
@@ -52,7 +64,7 @@ func newExecution(
 	id string,
 	cfg *command.Config,
 	session *command.Session,
-	storeEnvVars bool,
+	storeStdoutInEnv bool,
 	logger *zap.Logger,
 ) (*execution, error) {
 	stdin, stdinWriter := io.Pipe()
@@ -89,8 +101,8 @@ func newExecution(
 		KnownName: cfg.GetKnownName(),
 		Cmd:       cmd,
 
-		session:      session,
-		storeEnvVars: storeEnvVars,
+		session:          session,
+		storeStdoutInEnv: storeStdoutInEnv,
 
 		stdin:       stdin,
 		stdinWriter: stdinWriter,
@@ -107,7 +119,7 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizeInBytes)
 	defer func() {
 		_ = lastStdout.Close()
-		e.storeLastOutput(lastStdout)
+		e.storeOutputInEnv(lastStdout)
 	}()
 
 	firstStdoutSent := false
@@ -266,8 +278,8 @@ func (e *execution) closeIO() {
 	e.logger.Info("closed stderr writer", zap.Error(err))
 }
 
-func (e *execution) storeLastOutput(r io.Reader) {
-	if !e.storeEnvVars {
+func (e *execution) storeOutputInEnv(r io.Reader) {
+	if !e.storeStdoutInEnv {
 		return
 	}
 
@@ -286,9 +298,7 @@ func (e *execution) storeLastOutput(r io.Reader) {
 }
 
 func conformsOpinionatedEnvVarNaming(knownName string) bool {
-	// only allow uppercase letters, digits and underscores, min three chars
-	re := regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
-	return re.MatchString(knownName)
+	return OpininatedEnvVarNamingRegexp.MatchString(knownName)
 }
 
 type sender interface {

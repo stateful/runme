@@ -54,7 +54,7 @@ func (n *pathNormalizer) findProgramInInterpreters(programName string) (programP
 		}
 	}
 
-	// default to "cat"
+	// Default to "cat"
 	cat, err := exec.LookPath("cat")
 	if err == nil {
 		return cat, nil, nil

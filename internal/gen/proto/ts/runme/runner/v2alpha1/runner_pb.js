@@ -286,7 +286,7 @@ class ExecuteRequest$Type extends MessageType {
             { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v2alpha1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
             { no: 22, name: "project", kind: "message", T: () => Project },
-            { no: 23, name: "store_env_vars", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 23, name: "store_stdout_in_env", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
 }

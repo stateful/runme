@@ -246,12 +246,12 @@ export interface ExecuteRequest {
      */
     project?: Project;
     /**
-     * store_env_vars, if true, will store the stdout under well known name
+     * store_stdout_in_env, if true, will store the stdout under well known name
      * and the last ran block in the environment variable `__`.
      *
-     * @generated from protobuf field: bool store_env_vars = 23;
+     * @generated from protobuf field: bool store_stdout_in_env = 23;
      */
-    storeEnvVars: boolean;
+    storeStdoutInEnv: boolean;
 }
 /**
  * @generated from protobuf message runme.runner.v2alpha1.ExecuteResponse

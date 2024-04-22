@@ -43,6 +43,9 @@ const (
 	msgBufferSize = 32 * 1000 // 32 KB
 )
 
+// Only allow uppercase letters, digits and underscores, min three chars
+var OpininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
+
 type runnerService struct {
 	runnerv1.UnimplementedRunnerServiceServer
 
@@ -509,7 +512,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		if knownName != "" && runnerConformsOpinionatedEnvVarNaming(knownName) {
 			err = sess.SetEnv(knownName, string(stdoutMem))
 			if err != nil {
-				logger.Sugar().Errorf("%v", err)
+				logger.Warn("failed to set env", zap.Error(err))
 			}
 		}
 	}
@@ -619,9 +622,7 @@ func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 }
 
 func runnerConformsOpinionatedEnvVarNaming(knownName string) bool {
-	// only allow uppercase letters, digits and underscores, min three chars
-	re := regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
-	return re.MatchString(knownName)
+	return OpininatedEnvVarNamingRegexp.MatchString(knownName)
 }
 
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.ResolveProgramRequest) (*runnerv1.ResolveProgramResponse, error) {

@@ -197,8 +197,8 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 				},
 			},
 		},
-		SessionId:    sessionResp.GetSession().GetId(),
-		StoreEnvVars: true,
+		SessionId:        sessionResp.GetSession().GetId(),
+		StoreStdoutInEnv: true,
 	}
 
 	err = stream1.Send(req1)
@@ -270,8 +270,8 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 			},
 			KnownName: "TEST_VAR",
 		},
-		SessionId:    sessionResp.GetSession().GetId(),
-		StoreEnvVars: true,
+		SessionId:        sessionResp.GetSession().GetId(),
+		StoreStdoutInEnv: true,
 	}
 
 	err = stream1.Send(req1)
