@@ -29,6 +29,8 @@ func (c *TerminalCommand) Start(ctx context.Context) error {
 		return err
 	}
 
+	c.opts.Logger.Info("a terminal command started")
+
 	c.envCollector = &shellEnvCollector{
 		buf: c.opts.StdinWriter,
 	}

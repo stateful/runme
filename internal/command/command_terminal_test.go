@@ -55,6 +55,10 @@ func TestTerminalCommand(t *testing.T) {
 
 	require.NoError(t, cmd.Start(ctx))
 
+	// TODO(adamb): on macOS is is not necessary, but on Linux
+	// we need to wait for the shell to start before we start sending commands.
+	time.Sleep(time.Second)
+
 	_, err := stdinW.Write([]byte("export TEST_ENV=1\n"))
 	require.NoError(t, err)
 	_, err = stdinW.Write([]byte{0x04}) // EOT
