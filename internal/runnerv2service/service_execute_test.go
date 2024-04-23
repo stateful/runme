@@ -486,12 +486,13 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 						},
 					},
 				},
-				Interactive: true,
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
+				Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 			},
 			SessionId: sessResp.GetSession().GetId(),
 		})
 		require.NoError(t, err)
+
+		time.Sleep(time.Second)
 
 		// Export some variables so that it can be tested if they are collected.
 		req := &runnerv2alpha1.ExecuteRequest{InputData: []byte("export TEST_ENV=TEST_VALUE\n")}
