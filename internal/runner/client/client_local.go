@@ -83,10 +83,10 @@ func (r *LocalRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveP
 	}
 
 	request := &runnerv1.ResolveProgramRequest{
-		// SessionId:       r.sessionID,
 		Env:             envs,
 		Mode:            mode,
 		SessionStrategy: r.sessionStrategy,
+		Project:         ConvertToRunnerProject(r.project),
 		Source: &runnerv1.ResolveProgramRequest_Script{
 			Script: script,
 		},
@@ -110,20 +110,6 @@ func (r *LocalRunner) setupSession(ctx context.Context) error {
 	}
 	r.session = sess
 	return nil
-
-	// TODO(cepeda): Runner Service Session is not compatible yet
-	// request := &runnerv1.CreateSessionRequest{
-	// 	// Project:      ConvertToRunnerProject(r.project),
-	// 	Envs:         envs,
-	// 	EnvStoreType: r.envStoreType,
-	// }
-
-	// resp, err := r.runnerService.CreateSession(ctx, request)
-	// if err != nil {
-	// 	return errors.Wrap(err, "failed to create session")
-	// }
-	// r.sessionID = resp.Session.Id
-	// return nil
 }
 
 func (r *LocalRunner) newExecutable(ctx context.Context, task project.Task) (runner.Executable, error) {
@@ -137,15 +123,6 @@ func (r *LocalRunner) newExecutable(ctx context.Context, task project.Task) (run
 	if fmtr != nil && fmtr.Shell != "" {
 		customShell = fmtr.Shell
 	}
-
-	// TODO(cepeda): Session is not working
-	// sess, err := r.GetSession()
-	// session := &runner.Session{
-	// 	ID:       r.sessionID,
-	// 	Envs:     sess.Session.Envs,
-	// 	Metadata: sess.Session.Metadata,
-	// }
-	// session := runner.GetSessions(r.runnerService)
 
 	programName, _ := runner.GetCellProgram(block.Language(), customShell, block)
 
@@ -284,30 +261,6 @@ func shellID() (int, bool) {
 	return i, true
 }
 
-// TODO(cepeda): Session is not working
-// func (r *LocalRunner) GetSession(ctx context.Context) (*runnerv1.GetSessionResponse, error) {
-// 	// if r.sessionID == "" {
-// 	// 	return nil, nil
-// 	// }
-
-// 	// resp, err := r.runnerService.GetSession(ctx, &runnerv1.GetSessionRequest{
-// 	// 	Id: r.sessionID,
-// 	// })
-// 	// if err != nil {
-// 	// 	return nil, err
-// 	// }
-
-// 	// return resp, nil
-// }
-
 func (r *LocalRunner) GetEnvs(ctx context.Context) ([]string, error) {
 	return r.session.Envs()
-
-	// TODO(cepeda): Session is not working
-	// resp, err := r.GetSession(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return resp.Session.Envs, nil
 }

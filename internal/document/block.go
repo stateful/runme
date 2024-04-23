@@ -210,6 +210,10 @@ func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
+func (b *CodeBlock) PromptEnvStr() string {
+	return b.Attributes()["promptEnv"]
+}
+
 func (b *CodeBlock) PromptEnv() bool {
 	val, ok := b.Attributes()["promptEnv"]
 	if !ok {

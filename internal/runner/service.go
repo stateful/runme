@@ -58,11 +58,6 @@ func NewRunnerService(logger *zap.Logger) (runnerv1.RunnerServiceServer, error) 
 	return newRunnerService(logger)
 }
 
-// TODO(cepeda): wormhole
-func GetSessions(r runnerService) *SessionList {
-	return r.sessions
-}
-
 func newRunnerService(logger *zap.Logger) (*runnerService, error) {
 	sessions, err := NewSessionList()
 	if err != nil {

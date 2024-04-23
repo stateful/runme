@@ -42,10 +42,10 @@ func (r *RemoteRunner) ResolveProgram(ctx context.Context, mode runnerv1.Resolve
 	}
 
 	request := &runnerv1.ResolveProgramRequest{
-		Env:             envs,
 		SessionId:       r.sessionID,
-		Mode:            mode,
 		SessionStrategy: r.sessionStrategy,
+		Env:             envs,
+		Mode:            mode,
 		Source: &runnerv1.ResolveProgramRequest_Script{
 			Script: script,
 		},

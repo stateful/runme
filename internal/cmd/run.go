@@ -24,10 +24,6 @@ import (
 	"github.com/stateful/runme/v3/internal/tui"
 )
 
-const (
-	exportExtractRegex string = `(\n*)export (\w+=)(("[^"]*")|('[^']*')|[^;\n]+)`
-)
-
 type CommandExportExtractMatch struct {
 	Key            string
 	Value          string
@@ -206,8 +202,6 @@ func runCmd() *cobra.Command {
 
 			var runner client.Runner
 
-			// tag(cepeda): only for testing to force local runner
-			// if serverAddr != "" {
 			if serverAddr == "" {
 				localRunner, err := client.NewLocalRunner(runnerOpts...)
 				if err != nil {

@@ -338,13 +338,18 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 	for _, task := range tasks {
 		block := task.CodeBlock
 
-		if !block.PromptEnv() {
-			continue
+		var mode runnerv1.ResolveProgramRequest_Mode
+
+		switch strings.ToLower(block.PromptEnvStr()) {
+		case "auto":
+			mode = runnerv1.ResolveProgramRequest_MODE_UNSPECIFIED
+		case "1", "true", "yes":
+			mode = runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL
+		case "0", "false", "no":
+			mode = runnerv1.ResolveProgramRequest_MODE_SKIP_ALL
 		}
 
 		script := string(block.Content())
-		// TODO(cepeda): get the prompt mode
-		mode := runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL
 		response, err := runner.ResolveProgram(cmd.Context(), mode, script)
 		if err != nil {
 			return err
@@ -361,7 +366,7 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 			case runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET:
-				newVal, err := prompter(cmd, variable)
+				newVal, err := captureVariableEnv(cmd, variable)
 				if err != nil {
 					return err
 				}
@@ -382,11 +387,10 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 	return nil
 }
 
-func prompter(cmd *cobra.Command, variable *runnerv1.ResolveProgramResponse_VarResult) (string, error) {
+func captureVariableEnv(cmd *cobra.Command, variable *runnerv1.ResolveProgramResponse_VarResult) (string, error) {
 	label := fmt.Sprintf("Set Environment Variable %q:", variable.Name)
 
 	var placeHolder string
-	var isPassword bool
 
 	if variable.ResolvedValue != "" {
 		placeHolder = variable.ResolvedValue
@@ -400,12 +404,6 @@ func prompter(cmd *cobra.Command, variable *runnerv1.ResolveProgramResponse_VarR
 
 	if variable.Status == runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER {
 		ip.Value = variable.ResolvedValue
-	}
-
-	if variable.Status == runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET {
-		isPassword = true
-		// tag(cepeda): pass password flag to the input model
-		fmt.Print(isPassword)
 	}
 
 	model := tui.NewStandaloneInputModel(ip, tui.MinimalKeyMap, tui.DefaultStyles)
