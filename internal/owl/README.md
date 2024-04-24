@@ -8,7 +8,7 @@ version = 'v3'
 
 ### What is it?
 
-![Owl Store](owl.png)
+![Owl Store](assets/owl.png)
 
 ## A ENV solution for Humans **and** Workloads:
 
@@ -55,11 +55,11 @@ SOME_OTHER_VAR=Needs a matching value # Regex(/^[a-z...a. -]+\.)
 
 ## Define ENV spec inside code repository
 
-![Relationship](env-spec.png)
+![Relationship](assets/env-spec.png)
 
 ## Anatomy of Environment Vars ⇄ “Specs”
 
-![Specs](vars-specs.png)
+![Specs](assets/vars-specs.png)
 
 ## Extensible at every stage
 
