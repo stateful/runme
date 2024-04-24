@@ -91,6 +91,10 @@ func testStartRunnerServiceServer(t *testing.T) (
 }
 
 func TestResolveProgramLocal(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test on windows")
+	}
+
 	list, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	// conn, _ := testCreateRunnerServiceClient(t, lis)
