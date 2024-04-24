@@ -361,10 +361,10 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 		for _, variable := range response.Vars {
 			capturedValue := ""
 			switch variable.Status {
-			case runnerv1.ResolveProgramResponse_STATUS_RESOLVED:
+			case
+				runnerv1.ResolveProgramResponse_STATUS_RESOLVED:
 				capturedValue = variable.ResolvedValue
 			case
-				runnerv1.ResolveProgramResponse_STATUS_UNSPECIFIED,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET:
@@ -405,9 +405,12 @@ func captureVariableEnv(cmd *cobra.Command, variable *runnerv1.ResolveProgramRes
 	ip := prompt.InputParams{Label: label}
 
 	switch variable.Status {
-	case runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
+	case
 		runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER,
 		runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET:
+		ip.Value = variable.OriginalValue
+	case
+		runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE:
 		ip.PlaceHolder = placeHolder
 	default:
 		ip.Value = variable.ResolvedValue
