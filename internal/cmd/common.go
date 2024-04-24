@@ -363,7 +363,9 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 			switch variable.Status {
 			case runnerv1.ResolveProgramResponse_STATUS_RESOLVED:
 				capturedValue = variable.ResolvedValue
-			case runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
+			case
+				runnerv1.ResolveProgramResponse_STATUS_UNSPECIFIED,
+				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET:
 				newVal, err := captureVariableEnv(cmd, variable)
@@ -400,13 +402,22 @@ func captureVariableEnv(cmd *cobra.Command, variable *runnerv1.ResolveProgramRes
 		placeHolder = "Enter a value please"
 	}
 
-	ip := prompt.InputParams{Label: label, PlaceHolder: placeHolder}
+	ip := prompt.InputParams{Label: label}
 
-	if variable.Status == runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER {
+	switch variable.Status {
+	case runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
+		runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER,
+		runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET:
+		ip.PlaceHolder = placeHolder
+	default:
 		ip.Value = variable.ResolvedValue
 	}
 
-	model := tui.NewStandaloneInputModel(ip, tui.MinimalKeyMap, tui.DefaultStyles)
+	return ttyInput(cmd, &ip)
+}
+
+func ttyInput(cmd *cobra.Command, ip *prompt.InputParams) (string, error) {
+	model := tui.NewStandaloneInputModel(*ip, tui.MinimalKeyMap, tui.DefaultStyles)
 	finalModel, err := newProgram(cmd, model).Run()
 	if err != nil {
 		return "", err
@@ -415,6 +426,7 @@ func captureVariableEnv(cmd *cobra.Command, variable *runnerv1.ResolveProgramRes
 	if !ok {
 		return "", errors.New("canceled")
 	}
+
 	return val, nil
 }
 
