@@ -14,7 +14,7 @@ This is a basic snippet with shell command:
 $ echo "Hello, runme!"
 ```
 
-With `{name=hello}` you can annotate it and give it a nice name:
+With `{"name": "hello"}` you can annotate it and give it a nice name:
 
 ```sh {"id":"01HF7BT3HD84GWTQB8ZEBC4E7R","name":"echo"}
 $ echo "Hello, runme!"
