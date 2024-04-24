@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"testing"
 
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,5 +61,93 @@ func TestResolveDirectory(t *testing.T) {
 			"relative-rel-pwd": rp("../"),
 			"relative-abs-pwd": "/opt",
 		}, taskMap)
+	}
+}
+
+func TestResolveProgramLocal(t *testing.T) {
+	type Var struct {
+		Status runnerv1.ResolveProgramResponse_Status
+		Name   string
+	}
+
+	testCases := []struct {
+		Title          string
+		Mode           runnerv1.ResolveProgramRequest_Mode
+		Input          string
+		ExpectedScript string
+		ExpectedVars   []Var
+	}{
+		{
+			Title: "Mode UNSPECIFIED",
+			Mode:  runnerv1.ResolveProgramRequest_MODE_UNSPECIFIED,
+			Input: "export VARIABLE=Foo",
+			ExpectedVars: []Var{
+				{
+					Status: runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
+					Name:   "VARIABLE",
+				},
+			},
+			ExpectedScript: `#
+# VARIABLE set in smart env store
+# "export VARIABLE=Foo"
+
+`,
+		},
+		{
+			Title: "Mode SKIP_ALL",
+			Mode:  runnerv1.ResolveProgramRequest_MODE_SKIP_ALL,
+			Input: "export VARIABLE=Foo",
+			ExpectedVars: []Var{
+				{
+					Status: runnerv1.ResolveProgramResponse_STATUS_RESOLVED,
+					Name:   "VARIABLE",
+				},
+			},
+			ExpectedScript: `#
+# VARIABLE set in smart env store
+# "export VARIABLE=Foo"
+
+`,
+		},
+		{
+			Title: "Mode PROMPT_ALL",
+			Mode:  runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL,
+			Input: "export VARIABLE=Foo",
+			ExpectedVars: []Var{
+				{
+					Status: runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
+					Name:   "VARIABLE",
+				},
+			},
+			ExpectedScript: `#
+# VARIABLE set in smart env store
+# "export VARIABLE=Foo"
+
+`,
+		},
+	}
+
+	runnerOpts := []RunnerOption{}
+
+	runner, err := NewLocalRunner(runnerOpts...)
+	assert.NoError(t, err)
+
+	for _, tt := range testCases {
+		t.Run(tt.Title, func(t *testing.T) {
+			ctx := context.Background()
+			resp, err := runner.ResolveProgram(ctx, tt.Mode, tt.Input)
+
+			var vars []Var
+			for _, v := range resp.Vars {
+				vars = append(vars, Var{
+					Status: v.Status,
+					Name:   v.Name,
+				})
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.ExpectedScript, resp.Script)
+			assert.Equal(t, tt.ExpectedVars, vars)
+		})
 	}
 }
