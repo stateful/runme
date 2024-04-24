@@ -76,30 +76,6 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	return r, nil
 }
 
-func (r *LocalRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string) (*runnerv1.ResolveProgramResponse, error) {
-	envs, err := r.GetEnvs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	request := &runnerv1.ResolveProgramRequest{
-		Env:             envs,
-		Mode:            mode,
-		SessionStrategy: r.sessionStrategy,
-		Project:         ConvertToRunnerProject(r.project),
-		Source: &runnerv1.ResolveProgramRequest_Script{
-			Script: script,
-		},
-	}
-
-	resp, err := r.runnerService.ResolveProgram(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
 func (r *LocalRunner) setupSession(ctx context.Context) error {
 	envs := append(os.Environ(), r.envs...)
 
@@ -176,6 +152,30 @@ func (r *LocalRunner) newExecutable(ctx context.Context, task project.Task) (run
 			LanguageID:       block.Language(),
 		}, nil
 	}
+}
+
+func (r *LocalRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string) (*runnerv1.ResolveProgramResponse, error) {
+	envs, err := r.GetEnvs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	request := &runnerv1.ResolveProgramRequest{
+		Env:             envs,
+		Mode:            mode,
+		SessionStrategy: r.sessionStrategy,
+		Project:         ConvertToRunnerProject(r.project),
+		Source: &runnerv1.ResolveProgramRequest_Script{
+			Script: script,
+		},
+	}
+
+	resp, err := r.runnerService.ResolveProgram(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {

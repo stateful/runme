@@ -26,7 +26,6 @@ type RunnerSettings struct {
 	project         *project.Project
 	cleanupSession  bool
 	sessionStrategy runnerv1.SessionStrategy
-	promptMode      string
 
 	withinShellMaybe bool
 	customShell      string
@@ -267,12 +266,6 @@ func ResolveDirectory(parentDir string, task project.Task) string {
 	}
 
 	return parentDir
-}
-
-func WithPromptMode(promptMode string) RunnerOption {
-	return withSettings(func(rs *RunnerSettings) {
-		rs.promptMode = promptMode
-	})
 }
 
 func resolveOrAbsolute(parent string, child string) string {

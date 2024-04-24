@@ -368,7 +368,8 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET:
-				newVal, err := captureVariableEnv(cmd, variable)
+				params := resolveInputParams(variable)
+				newVal, err := captureVariable(cmd, &params)
 				if err != nil {
 					return err
 				}
@@ -389,7 +390,7 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 	return nil
 }
 
-func captureVariableEnv(cmd *cobra.Command, variable *runnerv1.ResolveProgramResponse_VarResult) (string, error) {
+func resolveInputParams(variable *runnerv1.ResolveProgramResponse_VarResult) prompt.InputParams {
 	label := fmt.Sprintf("Set Environment Variable %q:", variable.Name)
 
 	var placeHolder string
@@ -416,10 +417,10 @@ func captureVariableEnv(cmd *cobra.Command, variable *runnerv1.ResolveProgramRes
 		ip.Value = variable.ResolvedValue
 	}
 
-	return ttyInput(cmd, &ip)
+	return ip
 }
 
-func ttyInput(cmd *cobra.Command, ip *prompt.InputParams) (string, error) {
+func captureVariable(cmd *cobra.Command, ip *prompt.InputParams) (string, error) {
 	model := tui.NewStandaloneInputModel(*ip, tui.MinimalKeyMap, tui.DefaultStyles)
 	finalModel, err := newProgram(cmd, model).Run()
 	if err != nil {

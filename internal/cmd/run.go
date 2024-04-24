@@ -30,7 +30,6 @@ type CommandExportExtractMatch struct {
 	Match          string
 	HasStringValue bool
 	LineNumber     int
-	IsPassword     bool
 }
 
 func runCmd() *cobra.Command {
