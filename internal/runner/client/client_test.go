@@ -97,7 +97,6 @@ func TestResolveProgramLocal(t *testing.T) {
 
 	list, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	// conn, _ := testCreateRunnerServiceClient(t, lis)
 
 	type Var struct {
 		Status runnerv1.ResolveProgramResponse_Status

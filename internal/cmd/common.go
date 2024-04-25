@@ -338,19 +338,13 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 	for _, task := range tasks {
 		block := task.CodeBlock
 
-		var mode runnerv1.ResolveProgramRequest_Mode
-
-		switch strings.ToLower(block.PromptEnvStr()) {
-		case "auto":
-			mode = runnerv1.ResolveProgramRequest_MODE_UNSPECIFIED
-		case "1", "true", "yes":
-			mode = runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL
-		case "0", "false", "no":
-			mode = runnerv1.ResolveProgramRequest_MODE_SKIP_ALL
+		mode, err := resolveRequestMode(block.PromptEnvStr())
+		if err != nil {
+			return err
 		}
 
 		script := string(block.Content())
-		response, err := runner.ResolveProgram(cmd.Context(), mode, script)
+		response, err := runner.ResolveProgram(cmd.Context(), *mode, script)
 		if err != nil {
 			return err
 		}
@@ -388,6 +382,23 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 	}
 
 	return nil
+}
+
+func resolveRequestMode(cellMode string) (*runnerv1.ResolveProgramRequest_Mode, error) {
+	var mode runnerv1.ResolveProgramRequest_Mode
+
+	switch strings.ToLower(cellMode) {
+	case "auto":
+		mode = runnerv1.ResolveProgramRequest_MODE_UNSPECIFIED
+	case "1", "true", "yes":
+		mode = runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL
+	case "0", "false", "no":
+		mode = runnerv1.ResolveProgramRequest_MODE_SKIP_ALL
+	default:
+		return nil, fmt.Errorf("unknown mode %q", cellMode)
+	}
+
+	return &mode, nil
 }
 
 func resolveInputParams(variable *runnerv1.ResolveProgramResponse_VarResult) prompt.InputParams {
