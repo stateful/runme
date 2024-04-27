@@ -88,7 +88,7 @@ func (r *LocalRunner) setupSession(ctx context.Context) error {
 	return nil
 }
 
-func (r *LocalRunner) newExecutable(ctx context.Context, task project.Task) (runner.Executable, error) {
+func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
 	block := task.CodeBlock
 	fmtr, err := task.CodeBlock.Document().Frontmatter()
 	if err != nil {
@@ -185,7 +185,7 @@ func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {
 		return r.runBlockInShell(ctx, block)
 	}
 
-	executable, err := r.newExecutable(ctx, task)
+	executable, err := r.newExecutable(task)
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func (r *LocalRunner) runBlockInShell(ctx context.Context, block *document.CodeB
 }
 
 func (r *LocalRunner) DryRunTask(ctx context.Context, task project.Task, w io.Writer, opts ...RunnerOption) error {
-	executable, err := r.newExecutable(ctx, task)
+	executable, err := r.newExecutable(task)
 	if err != nil {
 		return err
 	}
