@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: runme
+  description: Runme CLI
+  annotations:
+    github.com/project-slug: stateful/runme
+    backstage.io/techdocs-ref: dir:.
+spec:
+  type: service
+  owner: user:sourishkrout
+  lifecycle: production
