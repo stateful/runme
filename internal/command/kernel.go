@@ -6,14 +6,13 @@ import (
 
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/dockerexec"
-	"go.uber.org/zap"
 )
 
 // Kernel represents an execution environment for commands.
 // It abstracts all OS-specific details and provides a unified interface.
 type Kernel interface {
-	Command(*Config, Options) Command
 	Environ() []string
+	GetEnv(string) string
 	LookPath(string) (string, error)
 }
 
@@ -23,15 +22,12 @@ func NewLocalKernel(cfg *config.LocalKernel) *LocalKernel {
 	return &LocalKernel{}
 }
 
-func (k *LocalKernel) Command(cfg *Config, opts Options) Command {
-	if cfg.Interactive {
-		return NewVirtual(cfg, opts)
-	}
-	return NewNative(cfg, opts)
-}
-
 func (k *LocalKernel) Environ() []string {
 	return os.Environ()
+}
+
+func (k *LocalKernel) GetEnv(key string) string {
+	return os.Getenv(key)
 }
 
 func (k *LocalKernel) LookPath(path string) (string, error) {
@@ -42,25 +38,18 @@ type DockerKernel struct {
 	docker *dockerexec.Docker
 }
 
-func NewDockerKernel(cfg *config.DockerKernel, logger *zap.Logger) (*DockerKernel, error) {
-	d, err := dockerexec.New(&dockerexec.Options{
-		Image:        cfg.Image,
-		BuildContext: cfg.Build.Context,
-		Dockerfile:   cfg.Build.Dockerfile,
-		Logger:       logger,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &DockerKernel{docker: d}, nil
-}
-
-func (k *DockerKernel) Command(cfg *Config, opts Options) Command {
-	return NewDocker(cfg, k.docker, opts)
+func NewDockerKernel(docker *dockerexec.Docker) *DockerKernel {
+	return &DockerKernel{docker: docker}
 }
 
 func (k *DockerKernel) Environ() []string {
+	// TODO(adamb): implement
 	return nil
+}
+
+func (k *DockerKernel) GetEnv(key string) string {
+	// TODO(adamb): implement
+	return ""
 }
 
 func (k *DockerKernel) LookPath(path string) (string, error) {

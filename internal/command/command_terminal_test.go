@@ -17,8 +17,8 @@ import (
 )
 
 func TestTerminalCommand_Options_Stdinwriter_Nil(t *testing.T) {
-	cmd := NewTerminal(
-		&Config{
+	cmd := newTerminal(
+		&ProgramConfig{
 			ProgramName: "bash",
 			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 		},
@@ -38,8 +38,8 @@ func TestTerminalCommand(t *testing.T) {
 	stdinR, stdinW := io.Pipe()
 	stdout := bytes.NewBuffer(nil)
 
-	cmd := NewTerminal(
-		&Config{
+	cmd := newTerminal(
+		&ProgramConfig{
 			ProgramName: "bash",
 			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 		},

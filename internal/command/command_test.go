@@ -7,10 +7,10 @@ import (
 	"context"
 	"io"
 	"testing"
-	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/document/identity"
@@ -18,22 +18,13 @@ import (
 )
 
 var (
-	testConfigBasicProgram = &Config{
+	testConfigBasicProgram = &ProgramConfig{
 		ProgramName: "echo",
 		Arguments:   []string{"-n", "test"},
 		Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 	}
 
-	testConfigShellProgram = &Config{
-		ProgramName: "bash",
-		Source: &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
-				Items: []string{"echo -n test"},
-			},
-		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
-	}
-	testConfigInvalidProgram = &Config{
+	testConfigInvalidProgram = &ProgramConfig{
 		ProgramName: "invalidProgram",
 		Source: &runnerv2alpha1.ProgramConfig_Commands{
 			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
@@ -42,291 +33,147 @@ var (
 		},
 		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 	}
-	testConfigDefaultToCat = &Config{
-		ProgramName: "",
-		Source: &runnerv2alpha1.ProgramConfig_Script{
-			Script: "SELECT * FROM users;",
-		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_FILE,
-	}
 )
 
 func init() {
 	EnvDumpCommand = "env -0"
 }
 
-func TestExecutionCommandFromCodeBlocks(t *testing.T) {
-	logger, err := zap.NewDevelopment()
-	require.NoError(t, err)
-	defer logger.Sync()
-
+func TestCommandFromCodeBlocks(t *testing.T) {
 	testCases := []struct {
-		name                  string
-		source                string
-		env                   []string
-		input                 []byte
-		nativeExpectedStdout  string
-		nativeExpectedStderr  string
-		virtualExpectedStdout string
+		name           string
+		source         string
+		env            []string
+		input          []byte
+		expectedStdout string
+		expectedStderr string
 	}{
 		{
-			name:                 "BasicShell",
-			source:               "```bash\necho -n test\n```",
-			nativeExpectedStdout: "test",
+			name:           "BasicShell",
+			source:         "```bash\necho -n test\n```",
+			expectedStdout: "test",
 		},
 		{
-			name:                  "ShellScript",
-			source:                "```shellscript\n#!/usr/local/bin/bash\n\nset -x -e -o pipefail\n\necho -n test\n```",
-			nativeExpectedStdout:  "test",
-			nativeExpectedStderr:  "+ echo -n test\n", // due to -x
-			virtualExpectedStdout: "+ echo -n test\r\ntest",
+			name:           "ShellScript",
+			source:         "```shellscript\n#!/usr/local/bin/bash\n\nset -x -e -o pipefail\n\necho -n test\n```",
+			expectedStdout: "test",
+			expectedStderr: "+ echo -n test\n", // due to -x
 		},
 		{
-			name:                  "Python",
-			source:                "```py\nprint('test')\n```",
-			nativeExpectedStdout:  "test\n",
-			virtualExpectedStdout: "test\r\n",
+			name:           "ShellScriptInteractive",
+			source:         "```shellscript {\"interactive\": true}\n#!/usr/local/bin/bash\n\nset -x -e -o pipefail\n\necho -n test\n```",
+			expectedStdout: "+ echo -n test\r\ntest", // due to -x
 		},
 		{
-			name:                  "JavaScript",
-			source:                "```js\nconsole.log('1'); console.log('2')\n```",
-			nativeExpectedStdout:  "1\n2\n",
-			virtualExpectedStdout: "1\r\n2\r\n",
+			name:           "Python",
+			source:         "```py\nprint('test')\n```",
+			expectedStdout: "test\n",
+		},
+		{
+			name:           "PythonInteractive",
+			source:         "```py {\"interactive\": true}\nprint('test')\n```",
+			expectedStdout: "test\r\n",
+		},
+		{
+			name:           "JavaScript",
+			source:         "```js\nconsole.log('1'); console.log('2')\n```",
+			expectedStdout: "1\n2\n",
 		},
 		{
 			name:   "Empty",
 			source: "```sh\n```",
 		},
 		{
-			name:                  "WithInput",
-			source:                "```bash\nread line; echo $line | tr a-z A-Z\n```",
-			input:                 []byte("test\n"),
-			nativeExpectedStdout:  "TEST\n",
-			virtualExpectedStdout: "TEST\r\n",
+			name:           "WithInput",
+			source:         "```bash\nread line; echo $line | tr a-z A-Z\n```",
+			input:          []byte("test\n"),
+			expectedStdout: "TEST\n",
 		},
 		{
-			name:                 "Env",
-			source:               "```bash\necho -n $MY_ENV\n```",
-			env:                  []string{"MY_ENV=hello"},
-			nativeExpectedStdout: "hello",
+			name:           "WithInputInteractive",
+			source:         "```bash {\"interactive\": true}\nread line; echo $line | tr a-z A-Z\n```",
+			input:          []byte("test\n"),
+			expectedStdout: "TEST\r\n",
 		},
 		{
-			name:                 "Interpreter",
-			source:               "```sh { \"interpreter\": \"bash\" }\necho -n test\n```",
-			nativeExpectedStdout: "test",
+			name:           "Env",
+			source:         "```bash\necho -n $MY_ENV\n```",
+			env:            []string{"MY_ENV=hello"},
+			expectedStdout: "hello",
 		},
 		{
-			name:                 "FrontmatterShell",
-			source:               "---\nshell: bash\n---\n```sh\necho -n test\n```",
-			nativeExpectedStdout: "test",
+			name:           "Interpreter",
+			source:         "```sh { \"interpreter\": \"bash\" }\necho -n test\n```",
+			expectedStdout: "test",
+		},
+		{
+			name:           "FrontmatterShell",
+			source:         "---\nshell: bash\n---\n```sh\necho -n $0 | xargs basename\n```",
+			expectedStdout: "bash\n",
+		},
+		{
+			name:           "DefaultToCat",
+			source:         "```\nSELECT * FROM users;\n```",
+			expectedStdout: "SELECT * FROM users;",
 		},
 	}
 
 	for _, tc := range testCases {
 		tc := tc
 
-		t.Run("NativeCommand", func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
+			idResolver := identity.NewResolver(identity.AllLifecycleIdentity)
 
-				testExecuteNativeCommand(
-					t,
-					[]byte(tc.source),
-					tc.env,
-					bytes.NewReader(tc.input),
-					tc.nativeExpectedStdout,
-					tc.nativeExpectedStderr,
-					logger.Named(t.Name()),
-				)
-			})
-		})
+			doc := document.New([]byte(tc.source), idResolver)
+			node, err := doc.Root()
+			require.NoError(t, err)
 
-		t.Run("VirtualCommand", func(t *testing.T) {
-			t.Parallel()
+			blocks := document.CollectCodeBlocks(node)
+			require.Len(t, blocks, 1)
 
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
+			cfg, err := NewProgramConfigFromCodeBlock(blocks[0])
+			require.NoError(t, err)
 
-				expectedOutput := tc.nativeExpectedStdout
-				if tc.virtualExpectedStdout != "" {
-					expectedOutput = tc.virtualExpectedStdout
-				}
+			cfg.Env = tc.env
 
-				testExecuteVirtualCommand(
-					t,
-					[]byte(tc.source),
-					tc.env,
-					bytes.NewReader(tc.input),
-					expectedOutput,
-					logger.Named(t.Name()),
-				)
-			})
+			testExecuteCommand(
+				t,
+				cfg,
+				bytes.NewReader(tc.input),
+				tc.expectedStdout,
+				tc.expectedStderr,
+			)
 		})
 	}
 }
 
-func testExecuteNativeCommand(
+func testExecuteCommand(
 	t *testing.T,
-	source []byte,
-	env []string,
+	cfg *ProgramConfig,
 	input io.Reader,
 	expectedStdout string,
 	expectedStderr string,
-	logger *zap.Logger,
 ) {
 	t.Helper()
-
-	idResolver := identity.NewResolver(identity.AllLifecycleIdentity)
-
-	doc := document.New(source, idResolver)
-	node, err := doc.Root()
-	require.NoError(t, err)
-
-	blocks := document.CollectCodeBlocks(node)
-	require.Len(t, blocks, 1)
 
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)
 
-	cfg, err := NewConfigFromCodeBlock(blocks[0])
-	require.NoError(t, err)
-
 	options := Options{
-		Logger:  logger,
-		Session: mustNewSessionWithEnv(env...),
-		Stdout:  stdout,
-		Stderr:  stderr,
-		Stdin:   input,
+		Logger: zaptest.NewLogger(t),
+		Stdout: stdout,
+		Stderr: stderr,
+		Stdin:  input,
 	}
 
-	command := NewNative(cfg, options)
+	command := NewFactory(nil, nil).Build(cfg, options)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	require.NoError(t, command.Start(ctx))
-	require.NoError(t, command.Wait())
-	require.Equal(t, expectedStdout, stdout.String())
-	require.Equal(t, expectedStderr, stderr.String())
-}
-
-func testExecuteVirtualCommand(
-	t *testing.T,
-	source []byte,
-	env []string,
-	input io.Reader,
-	expectedStdout string,
-	logger *zap.Logger,
-) {
-	t.Helper()
-
-	idResolver := identity.NewResolver(identity.AllLifecycleIdentity)
-
-	doc := document.New(source, idResolver)
-	node, err := doc.Root()
-	require.NoError(t, err)
-
-	blocks := document.CollectCodeBlocks(node)
-	require.Len(t, blocks, 1)
-
-	cfg, err := NewConfigFromCodeBlock(blocks[0])
-	require.NoError(t, err)
-
-	stdout := bytes.NewBuffer(nil)
-
-	options := Options{
-		Session: mustNewSessionWithEnv(env...),
-		Stdout:  stdout,
-		Stdin:   input,
-		Logger:  logger,
-	}
-	command := NewVirtual(cfg, options)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	require.NoError(t, command.Start(ctx))
-	require.NoError(t, command.Wait())
-	require.Equal(t, expectedStdout, stdout.String())
-}
-
-func TestCommandWithSession(t *testing.T) {
-	setterCfg := &Config{
-		ProgramName: "bash",
-		Source: &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
-				Items: []string{"export TEST_ENV=test1"},
-			},
-		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
-	}
-	getterCfg := &Config{
-		ProgramName: "bash",
-		Source: &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
-				Items: []string{"echo -n \"TEST_ENV equals $TEST_ENV\""},
-			},
-		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
-	}
-
-	t.Run("Native", func(t *testing.T) {
-		t.Parallel()
-
-		sess := NewSession()
-
-		commandSetter := NewNative(
-			setterCfg,
-			Options{Session: sess},
-		)
-		require.NoError(t, commandSetter.Start(context.Background()))
-		require.NoError(t, commandSetter.Wait())
-
-		require.Equal(t, []string{"TEST_ENV=test1"}, sess.GetEnv())
-
-		stdout := bytes.NewBuffer(nil)
-		commandGetter := NewNative(
-			getterCfg,
-			Options{
-				Session: sess,
-				Stdout:  stdout,
-			},
-		)
-		require.NoError(t, commandGetter.Start(context.Background()))
-		require.NoError(t, commandGetter.Wait())
-		require.Equal(t, "TEST_ENV equals test1", stdout.String())
-	})
-
-	t.Run("Virtual", func(t *testing.T) {
-		t.Parallel()
-
-		sess := NewSession()
-
-		commandSetter := NewVirtual(
-			setterCfg,
-			Options{
-				Session: sess,
-			},
-		)
-		require.NoError(t, commandSetter.Start(context.Background()))
-		require.NoError(t, commandSetter.Wait())
-
-		require.Equal(t, []string{"TEST_ENV=test1"}, sess.GetEnv())
-
-		stdout := bytes.NewBuffer(nil)
-		commandGetter := NewVirtual(
-			getterCfg,
-			Options{
-				Session: sess,
-				Stdout:  stdout,
-			},
-		)
-		require.NoError(t, commandGetter.Start(context.Background()))
-		require.NoError(t, commandGetter.Wait())
-		require.Equal(t, "TEST_ENV equals test1", stdout.String())
-	})
+	require.NoError(t, command.Start(context.Background()))
+	assert.NoError(t, command.Wait())
+	assert.Equal(t, expectedStdout, stdout.String())
+	assert.Equal(t, expectedStderr, stderr.String())
 }
 
 func newSessionWithEnv(env ...string) (*Session, error) {

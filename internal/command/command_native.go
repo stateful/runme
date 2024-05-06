@@ -6,66 +6,40 @@ import (
 	"os/exec"
 
 	"github.com/pkg/errors"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
 // SignalToProcessGroup is used in tests to disable sending signals to a process group.
 var SignalToProcessGroup = true
 
-type NativeCommand struct {
-	cfg  *Config
-	opts Options
+type nativeCommand struct {
+	internalCommand
 
-	// cmd is populated when the command is started.
 	cmd *exec.Cmd
-
-	cleanFuncs []func() error
 }
 
-var _ Command = (*NativeCommand)(nil)
+var _ Command = (*nativeCommand)(nil)
 
-func NewNative(cfg *Config, opts Options) *NativeCommand {
-	if opts.Kernel == nil {
-		opts.Kernel = NewLocalKernel(nil)
-	}
-
-	if opts.Logger == nil {
-		opts.Logger = zap.NewNop()
-	}
-
-	return &NativeCommand{
-		cfg:  cfg,
-		opts: opts,
+func newNative(cfg *ProgramConfig, opts Options) *nativeCommand {
+	return &nativeCommand{
+		internalCommand: newBase(cfg, opts),
 	}
 }
 
-func (c *NativeCommand) Running() bool {
+func (c *nativeCommand) Running() bool {
 	return c.cmd != nil && c.cmd.ProcessState == nil
 }
 
-func (c *NativeCommand) Pid() int {
+func (c *nativeCommand) Pid() int {
 	if c.cmd == nil || c.cmd.Process == nil {
 		return 0
 	}
 	return c.cmd.Process.Pid
 }
 
-func (c *NativeCommand) Start(ctx context.Context) (err error) {
-	cfg, cleanups, err := normalizeConfig(
-		c.cfg,
-		newPathNormalizer(c.opts.Kernel),
-		modeNormalizer,
-		newArgsNormalizer(c.opts.Session, c.opts.Logger),
-		newEnvNormalizer(c.opts.Kernel, c.opts.Session.GetEnv),
-	)
-	if err != nil {
-		return
-	}
-
-	c.cleanFuncs = append(c.cleanFuncs, cleanups...)
-
-	stdin := c.opts.Stdin
+func (c *nativeCommand) Start(ctx context.Context) (err error) {
+	logger := c.Logger()
+	stdin := c.Stdin()
 
 	if f, ok := stdin.(*os.File); ok && f != nil {
 		// Duplicate /dev/stdin.
@@ -85,16 +59,22 @@ func (c *NativeCommand) Start(ctx context.Context) (err error) {
 		stdin = os.NewFile(uintptr(newStdinFd), "")
 	}
 
+	program, args, err := c.ProgramPath()
+	if err != nil {
+		return err
+	}
+	logger.Info("detected program path and arguments", zap.String("program", program), zap.Strings("args", args))
+
 	c.cmd = exec.CommandContext(
 		ctx,
-		cfg.ProgramName,
-		cfg.Arguments...,
+		program,
+		args...,
 	)
-	c.cmd.Dir = cfg.Directory
-	c.cmd.Env = cfg.Env
+	c.cmd.Dir = c.ProgramConfig().Directory
+	c.cmd.Env = c.Env()
 	c.cmd.Stdin = stdin
-	c.cmd.Stdout = c.opts.Stdout
-	c.cmd.Stderr = c.opts.Stderr
+	c.cmd.Stdout = c.Stdout()
+	c.cmd.Stderr = c.Stderr()
 
 	// Set the process group ID of the program.
 	// It is helpful to stop the program and its
@@ -105,19 +85,19 @@ func (c *NativeCommand) Start(ctx context.Context) (err error) {
 	// like "python", hence, it's commented out.
 	// setSysProcAttrPgid(c.cmd)
 
-	c.opts.Logger.Info("starting a native command", zap.Any("config", redactConfig(cfg)))
-
+	logger.Info("starting a native command", zap.Any("config", redactConfig(c.ProgramConfig())))
 	if err := c.cmd.Start(); err != nil {
 		return errors.WithStack(err)
 	}
-
-	c.opts.Logger.Info("a native command started")
+	logger.Info("a native command started")
 
 	return nil
 }
 
-func (c *NativeCommand) Signal(sig os.Signal) error {
-	c.opts.Logger.Info("stopping the native command with a signal", zap.Stringer("signal", sig))
+func (c *nativeCommand) Signal(sig os.Signal) error {
+	logger := c.Logger()
+
+	logger.Info("stopping the native command with a signal", zap.Stringer("signal", sig))
 
 	if SignalToProcessGroup {
 		// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
@@ -125,30 +105,22 @@ func (c *NativeCommand) Signal(sig os.Signal) error {
 		if err == nil {
 			return nil
 		}
-		c.opts.Logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
+		logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
 	}
 
 	if err := c.cmd.Process.Signal(sig); err != nil {
-		c.opts.Logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
+		logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
 		return errors.WithStack(c.cmd.Process.Kill())
 	}
 
 	return nil
 }
 
-func (c *NativeCommand) Wait() (err error) {
-	c.opts.Logger.Info("waiting for the native command to finish")
+func (c *nativeCommand) Wait() (err error) {
+	logger := c.Logger()
 
-	defer func() {
-		cleanErr := errors.WithStack(c.cleanup())
-		c.opts.Logger.Info("cleaned up the native command", zap.Error(cleanErr))
-		if err == nil && cleanErr != nil {
-			err = cleanErr
-		}
-	}()
-
+	logger.Info("waiting for the native command to finish")
 	var stderr []byte
-
 	err = errors.WithStack(c.cmd.Wait())
 	if err != nil {
 		var exitErr *exec.ExitError
@@ -156,17 +128,7 @@ func (c *NativeCommand) Wait() (err error) {
 			stderr = exitErr.Stderr
 		}
 	}
+	logger.Info("the native command finished", zap.Error(err), zap.ByteString("stderr", stderr))
 
-	c.opts.Logger.Info("the native command finished", zap.Error(err), zap.ByteString("stderr", stderr))
-
-	return
-}
-
-func (c *NativeCommand) cleanup() (err error) {
-	for _, fn := range c.cleanFuncs {
-		if errFn := fn(); errFn != nil {
-			err = multierr.Append(err, errFn)
-		}
-	}
 	return
 }

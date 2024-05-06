@@ -4,51 +4,55 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
-type TerminalCommand struct {
-	*VirtualCommand
+type terminalCommand struct {
+	internalCommand
 
 	envCollector *shellEnvCollector
 }
 
-var _ Command = (*TerminalCommand)(nil)
+var _ Command = (*terminalCommand)(nil)
 
-func NewTerminal(cfg *Config, opts Options) *TerminalCommand {
-	return &TerminalCommand{
-		VirtualCommand: NewVirtual(cfg, opts),
+func newTerminal(cfg *ProgramConfig, opts Options) *terminalCommand {
+	return &terminalCommand{
+		internalCommand: newVirtual(cfg, opts),
 	}
 }
 
-func (c *TerminalCommand) Start(ctx context.Context) error {
-	if isNil(c.opts.StdinWriter) {
+func (c *terminalCommand) Start(ctx context.Context) error {
+	if isNil(c.StdinWriter()) {
 		return errors.New("stdin writer is nil")
 	}
 
-	if err := c.VirtualCommand.Start(ctx); err != nil {
+	c.Logger().Info("starting a terminal command")
+	if err := c.internalCommand.Start(ctx); err != nil {
 		return err
 	}
+	c.Logger().Info("a terminal command started")
 
-	c.opts.Logger.Info("a terminal command started")
-
-	c.envCollector = &shellEnvCollector{
-		buf: c.opts.StdinWriter,
-	}
+	// [shellEnvCollector] writes defines a function collecting env and
+	// registers it as a trap directly into the shell interactive session.
+	c.envCollector = &shellEnvCollector{buf: c.StdinWriter()}
 	return c.envCollector.Init()
 }
 
-func (c *TerminalCommand) Wait() (err error) {
-	err = c.VirtualCommand.Wait()
-
-	if cErr := c.collectEnv(); err == nil && cErr != nil {
-		err = cErr
+func (c *terminalCommand) Wait() (err error) {
+	err = c.internalCommand.Wait()
+	if cErr := c.collectEnv(); cErr != nil {
+		c.Logger().Info("failed to collect the environment", zap.Error(cErr))
+		if err == nil {
+			err = cErr
+		}
 	}
-
 	return err
 }
 
-func (c *TerminalCommand) collectEnv() error {
-	if c.opts.Session == nil || c.envCollector == nil {
+func (c *terminalCommand) collectEnv() error {
+	sess := c.Session()
+
+	if sess == nil || c.envCollector == nil {
 		return nil
 	}
 
@@ -56,12 +60,11 @@ func (c *TerminalCommand) collectEnv() error {
 	if err != nil {
 		return err
 	}
-
-	if err := c.opts.Session.SetEnv(changed...); err != nil {
+	if err := sess.SetEnv(changed...); err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
 
-	c.opts.Session.DeleteEnv(deleted...)
+	sess.DeleteEnv(deleted...)
 
 	return nil
 }

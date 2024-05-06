@@ -1,18 +1,19 @@
 package beta
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/project"
 )
 
 func runCmd(*commonFlags) *cobra.Command {
-	var kernelName string
-
 	cmd := cobra.Command{
 		Use:     "run [command1 command2 ...]",
 		Aliases: []string{"exec"},
@@ -32,8 +33,9 @@ Run all blocks from the "setup" and "teardown" categories:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.Invoke(
 				func(
+					cmdFactory command.Factory,
 					filters []project.Filter,
-					kernelGetter autoconfig.KernelGetter,
+					kernel command.Kernel,
 					logger *zap.Logger,
 					proj *project.Project,
 					session *command.Session,
@@ -64,13 +66,15 @@ Run all blocks from the "setup" and "teardown" categories:
 						return errors.WithStack(err)
 					}
 
-					kernel, err := kernelGetter(kernelName)
-					if err != nil {
-						return err
-					}
+					options := getCommandOptions(
+						cmd,
+						kernel,
+						session,
+						logger,
+					)
 
 					for _, t := range tasks {
-						err := runCodeBlock(t, cmd, kernel, session, logger)
+						err := runCodeBlock(cmd.Context(), t.CodeBlock, cmdFactory, options)
 						if err != nil {
 							return err
 						}
@@ -82,49 +86,38 @@ Run all blocks from the "setup" and "teardown" categories:
 		},
 	}
 
-	cmd.Flags().StringVar(&kernelName, "kernel", "", "Kernel name or index to use for command execution.")
-
 	return &cmd
 }
 
-func runCodeBlock(
-	task project.Task,
+func getCommandOptions(
 	cmd *cobra.Command,
 	kernel command.Kernel,
 	sess *command.Session,
 	logger *zap.Logger,
+) command.Options {
+	return command.Options{
+		Kernel:  kernel,
+		Logger:  logger,
+		Session: sess,
+		Stdin:   cmd.InOrStdin(),
+		Stdout:  cmd.OutOrStdout(),
+		Stderr:  cmd.ErrOrStderr(),
+	}
+}
+
+func runCodeBlock(
+	ctx context.Context,
+	block *document.CodeBlock,
+	factory command.Factory,
+	options command.Options,
 ) error {
-	// TODO(adamb): [command.Config] is generated exclusively from the [document.CodeBlock].
-	// As we introduce some document- and block-related configs in runme.yaml (root but also nested),
-	// this [Command.Config] should be further extended.
-	//
-	// The way to do it is to use [config.Loader] and calling [config.Loader.FindConfigChain] with
-	// task's document path. It will produce all the configs that are relevant to the document.
-	// Next, they should be merged into a single [config.Config] in a correct order, starting from
-	// the last element of the returned config chain. Finally, [command.Config] should be updated.
-	// This algorithm should be likely encapsulated in the [internal/config] and [internal/command]
-	// packages.
-	cfg, err := command.NewConfigFromCodeBlock(task.CodeBlock)
+	cfg, err := command.NewProgramConfigFromCodeBlock(block)
 	if err != nil {
 		return err
 	}
-
-	kernelCmd := kernel.Command(
-		cfg,
-		command.Options{
-			Kernel:  kernel,
-			Logger:  logger,
-			Session: sess,
-			Stdin:   cmd.InOrStdin(),
-			Stdout:  cmd.OutOrStdout(),
-			Stderr:  cmd.ErrOrStderr(),
-		},
-	)
-
-	err = kernelCmd.Start(cmd.Context())
-	if err != nil {
+	cmd := factory.Build(cfg, options)
+	if err := cmd.Start(ctx); err != nil {
 		return err
 	}
-
-	return kernelCmd.Wait()
+	return cmd.Wait()
 }

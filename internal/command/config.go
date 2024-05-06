@@ -4,40 +4,16 @@ import (
 	"strings"
 
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
-	"google.golang.org/protobuf/proto"
 )
 
-// Config contains a serializable configuration for a command.
+// ProgramConfig contains a serializable configuration for a command.
 // It's agnostic to the runtime or particular execution settings.
-type Config = runnerv2alpha1.ProgramConfig
+type ProgramConfig = runnerv2alpha1.ProgramConfig
 
-// configNormalizer is a function that normalizes [Config].
-// It will modify the [Config] in place and return a cleanup function
-// that should be executed when the command is finished.
-type configNormalizer func(*Config) (func() error, error)
-
-func normalizeConfig(cfg *Config, normalizers ...configNormalizer) (_ *Config, cleanups []func() error, err error) {
-	cfg = proto.Clone(cfg).(*Config)
-
-	for _, normalizer := range normalizers {
-		var cleanup func() error
-
-		cleanup, err = normalizer(cfg)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if cleanup != nil {
-			cleanups = append(cleanups, cleanup)
-		}
-	}
-	return cfg, cleanups, nil
-}
-
-// redactConfig returns a new Config instance and copies only fields considered safe.
+// redactConfig returns a new [ProgramConfig] instance and copies only fields considered safe.
 // Useful for logging.
-func redactConfig(cfg *Config) *Config {
-	return &Config{
+func redactConfig(cfg *ProgramConfig) *ProgramConfig {
+	return &ProgramConfig{
 		ProgramName: cfg.ProgramName,
 		Arguments:   cfg.Arguments,
 		Directory:   cfg.Directory,

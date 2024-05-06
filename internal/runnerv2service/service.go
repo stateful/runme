@@ -6,25 +6,37 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
 type runnerService struct {
 	runnerv2alpha1.UnimplementedRunnerServiceServer
 
-	sessions *command.SessionList
-	logger   *zap.Logger
+	cmdFactory command.Factory
+	sessions   *command.SessionList
+	logger     *zap.Logger
 }
 
-func NewRunnerService(logger *zap.Logger) (runnerv2alpha1.RunnerServiceServer, error) {
+func NewRunnerService() (runnerv2alpha1.RunnerServiceServer, error) {
 	sessions, err := command.NewSessionList()
 	if err != nil {
 		return nil, err
 	}
-	return &runnerService{
+
+	r := &runnerService{
 		sessions: sessions,
-		logger:   logger,
-	}, nil
+	}
+
+	err = autoconfig.Invoke(func(factory command.Factory, logger *zap.Logger) {
+		r.cmdFactory = factory
+		r.logger = logger
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 type requestWithSession interface {

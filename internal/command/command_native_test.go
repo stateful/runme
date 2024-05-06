@@ -21,61 +21,39 @@ func init() {
 }
 
 func TestNativeCommand(t *testing.T) {
-	t.Run("OptionsIsNil", func(t *testing.T) {
-		cmd := NewNative(testConfigBasicProgram, Options{})
+	t.Run("OptionsEmpty", func(t *testing.T) {
+		cmd := newNative(testConfigBasicProgram, Options{})
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 	})
 
 	t.Run("Output", func(t *testing.T) {
 		stdout := bytes.NewBuffer(nil)
-		cmd := NewNative(testConfigBasicProgram, Options{Stdout: stdout})
+		cmd := newNative(testConfigBasicProgram, Options{Stdout: stdout})
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 		assert.Equal(t, "test", stdout.String())
-	})
-
-	t.Run("Shell", func(t *testing.T) {
-		stdout := bytes.NewBuffer(nil)
-		cmd := NewNative(testConfigShellProgram, Options{Stdout: stdout})
-		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.Wait())
-		assert.Equal(t, "test", stdout.String())
-	})
-
-	t.Run("DevStdin", func(t *testing.T) {
-		cmd := NewNative(testConfigShellProgram, Options{Stdin: os.Stdin})
-		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.Wait())
 	})
 
 	t.Run("Invalid", func(t *testing.T) {
 		stdout := bytes.NewBuffer(nil)
-		cmd := NewNative(testConfigInvalidProgram, Options{Stdout: stdout})
+		cmd := newNative(testConfigInvalidProgram, Options{Stdout: stdout})
 		err := cmd.Start(context.Background())
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed program lookup \"invalidProgram\"")
 		assert.Equal(t, "", stdout.String())
 	})
-
-	t.Run("Default to cat", func(t *testing.T) {
-		stdout := bytes.NewBuffer(nil)
-		cmd := NewNative(testConfigDefaultToCat, Options{Stdout: stdout})
-		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.Wait())
-		assert.Equal(t, "SELECT * FROM users;", stdout.String())
-	})
 }
 
 func TestNativeCommandStopWithSignal(t *testing.T) {
-	cfg := &Config{
+	cfg := &ProgramConfig{
 		ProgramName: "sleep",
 		Arguments:   []string{"10"},
 		Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 	}
 
 	t.Run("SIGINT", func(t *testing.T) {
-		cmd := NewNative(cfg, Options{})
+		cmd := newNative(cfg, Options{})
 		require.NoError(t, cmd.Start(context.Background()))
 
 		errc := make(chan error, 1)
@@ -88,7 +66,7 @@ func TestNativeCommandStopWithSignal(t *testing.T) {
 	})
 
 	t.Run("SIGKILL", func(t *testing.T) {
-		cmd := NewNative(cfg, Options{})
+		cmd := newNative(cfg, Options{})
 		require.NoError(t, cmd.Start(context.Background()))
 
 		errc := make(chan error, 1)

@@ -110,7 +110,7 @@ The kernel is used to run long running processes like shells and interacting wit
 				}
 				runnerv1.RegisterRunnerServiceServer(server, runnerServicev1)
 
-				runnerServicev2, err := runnerv2service.NewRunnerService(logger)
+				runnerServicev2, err := runnerv2service.NewRunnerService()
 				if err != nil {
 					return err
 				}
