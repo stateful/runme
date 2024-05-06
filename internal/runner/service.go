@@ -286,6 +286,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		cfg.CommandMode = CommandModeInlineShell
 	case runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE:
 		cfg.CommandMode = CommandModeTempFile
+	case runnerv1.CommandMode_COMMAND_MODE_TERMINAL:
+		return status.Error(codes.Unimplemented, "terminal mode is not supported")
 	}
 
 	logger.Debug("command config", zap.Any("cfg", cfg))

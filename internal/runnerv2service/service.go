@@ -17,10 +17,6 @@ type runnerService struct {
 }
 
 func NewRunnerService(logger *zap.Logger) (runnerv2alpha1.RunnerServiceServer, error) {
-	return newRunnerService(logger)
-}
-
-func newRunnerService(logger *zap.Logger) (*runnerService, error) {
 	sessions, err := command.NewSessionList()
 	if err != nil {
 		return nil, err
@@ -36,7 +32,7 @@ type requestWithSession interface {
 	GetSessionStrategy() runnerv2alpha1.SessionStrategy
 }
 
-func (r runnerService) getSessionFromRequest(req requestWithSession) (*command.Session, bool, error) {
+func (r *runnerService) getSessionFromRequest(req requestWithSession) (*command.Session, bool, error) {
 	var (
 		session *command.Session
 		found   bool

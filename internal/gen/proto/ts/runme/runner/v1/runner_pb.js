@@ -154,6 +154,10 @@ export var CommandMode;
      * @generated from protobuf enum value: COMMAND_MODE_TEMP_FILE = 2;
      */
     CommandMode[CommandMode["TEMP_FILE"] = 2] = "TEMP_FILE";
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_TERMINAL = 3;
+     */
+    CommandMode[CommandMode["TERMINAL"] = 3] = "TERMINAL";
 })(CommandMode || (CommandMode = {}));
 /**
  * strategy for selecting a session in an initial execute request

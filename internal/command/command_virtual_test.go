@@ -33,6 +33,14 @@ func TestVirtualCommand(t *testing.T) {
 		assert.Equal(t, "test", stdout.String())
 	})
 
+	t.Run("BasicShell", func(t *testing.T) {
+		stdout := bytes.NewBuffer(nil)
+		cmd := NewVirtual(testConfigShellProgram, Options{Stdout: stdout})
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		assert.Equal(t, "test", stdout.String())
+	})
+
 	t.Run("Getters", func(t *testing.T) {
 		cmd := NewVirtual(
 			&Config{

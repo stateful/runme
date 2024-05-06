@@ -459,6 +459,85 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 	}
 }
 
+func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	sessResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	require.NoError(t, err)
+
+	// Step 1: execute the first command in the terminal mode with bash,
+	// then write a line that exports an environment variable.
+	{
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
+			Config: &runnerv2alpha1.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2alpha1.ProgramConfig_Commands{
+					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+						Items: []string{
+							"bash",
+						},
+					},
+				},
+				Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
+			},
+			SessionId: sessResp.GetSession().GetId(),
+		})
+		require.NoError(t, err)
+
+		time.Sleep(time.Second)
+
+		// Export some variables so that it can be tested if they are collected.
+		req := &runnerv2alpha1.ExecuteRequest{InputData: []byte("export TEST_ENV=TEST_VALUE\n")}
+		err = stream.Send(req)
+		require.NoError(t, err)
+		// Signal the end of input.
+		req = &runnerv2alpha1.ExecuteRequest{InputData: []byte{0x04}}
+		err = stream.Send(req)
+		require.NoError(t, err)
+
+		result := <-execResult
+		require.NoError(t, result.Err)
+	}
+
+	// Step 2: execute the second command which will try to get the value of
+	// the exported environment variable from the step 1.
+	{
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
+			Config: &runnerv2alpha1.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2alpha1.ProgramConfig_Commands{
+					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+						Items: []string{
+							"echo -n $TEST_ENV",
+						},
+					},
+				},
+				Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+			},
+			SessionId: sessResp.GetSession().GetId(),
+		})
+		require.NoError(t, err)
+
+		result := <-execResult
+		require.NoError(t, result.Err)
+		require.Equal(t, "TEST_VALUE", string(result.Stdout))
+	}
+}
+
 func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
@@ -519,7 +598,6 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 				},
 				Interactive: true,
 			},
-			InputData: []byte("a\n"),
 		})
 		require.NoError(t, err)
 
@@ -771,7 +849,7 @@ func testStartRunnerServiceServer(t *testing.T) (
 
 	lis := bufconn.Listen(1024 << 10)
 	server := grpc.NewServer()
-	runnerService, err := newRunnerService(logger)
+	runnerService, err := NewRunnerService(logger)
 	require.NoError(t, err)
 
 	runnerv2alpha1.RegisterRunnerServiceServer(server, runnerService)

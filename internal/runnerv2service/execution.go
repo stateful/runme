@@ -62,28 +62,31 @@ func newExecution(
 	stdout := rbuffer.NewRingBuffer(ringBufferSize)
 	stderr := rbuffer.NewRingBuffer(ringBufferSize)
 
+	cmdOptions := command.Options{
+		Session:     session,
+		StdinWriter: stdinWriter,
+		Stdin:       stdin,
+		Stdout:      stdout,
+		Stderr:      stderr,
+		Logger:      logger,
+	}
+
 	var cmd command.Command
 
-	if cfg.Interactive {
+	if cfg.Mode == runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL {
+		cmd = command.NewTerminal(
+			cfg,
+			cmdOptions,
+		)
+	} else if cfg.Interactive {
 		cmd = command.NewVirtual(
 			cfg,
-			command.Options{
-				Session: session,
-				Stdin:   stdin,
-				Stdout:  stdout,
-				Logger:  logger,
-			},
+			cmdOptions,
 		)
 	} else {
 		cmd = command.NewNative(
 			cfg,
-			command.Options{
-				Session: session,
-				Stdin:   stdin,
-				Stdout:  stdout,
-				Stderr:  stderr,
-				Logger:  logger,
-			},
+			cmdOptions,
 		)
 	}
 

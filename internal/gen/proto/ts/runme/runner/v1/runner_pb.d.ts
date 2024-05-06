@@ -292,13 +292,19 @@ export interface ExecuteRequest {
      */
     fileExtension: string;
     /**
-     * optional well known id for cell/block
+     * optional well known id for cell/block. "know" meaning that
+     * CLI/notebook UX have id/name for cells/blocks that contain commands.
+     * While the runner doesn't require the name to work, it is useful for
+     * auxiliary concerns (e.g. tracing, logging, etc).
      *
      * @generated from protobuf field: string known_id = 27;
      */
     knownId: string;
     /**
-     * optional well known name for cell/block
+     * optional well known name for cell/block. "know" meaning that
+     * CLI/notebook UX have id/name for cells/blocks that contain commands.
+     * While the runner doesn't require the name to work, it is useful for
+     * auxiliary concerns (e.g. tracing, logging, etc).
      *
      * @generated from protobuf field: string known_name = 28;
      */
@@ -708,7 +714,11 @@ export declare enum CommandMode {
     /**
      * @generated from protobuf enum value: COMMAND_MODE_TEMP_FILE = 2;
      */
-    TEMP_FILE = 2
+    TEMP_FILE = 2,
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_TERMINAL = 3;
+     */
+    TERMINAL = 3
 }
 /**
  * strategy for selecting a session in an initial execute request

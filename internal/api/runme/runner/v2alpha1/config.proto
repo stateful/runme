@@ -8,6 +8,7 @@ enum CommandMode {
   COMMAND_MODE_UNSPECIFIED = 0;
   COMMAND_MODE_INLINE = 1;
   COMMAND_MODE_FILE = 2;
+  COMMAND_MODE_TERMINAL = 3;
 }
 
 // ProgramConfig is a configuration for a program to execute.

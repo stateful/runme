@@ -1,9 +1,6 @@
 package command
 
 import (
-	"bufio"
-	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,12 +29,11 @@ var EnvDumpCommand = func() string {
 }()
 
 type argsNormalizer struct {
-	session *Session
-	logger  *zap.Logger
-
-	tempDir          string
-	isEnvCollectable bool
-	scriptFile       *os.File
+	envCollector *shellEnvCollector
+	logger       *zap.Logger
+	session      *Session
+	scriptFile   *os.File
+	tempDir      string
 }
 
 func newArgsNormalizer(session *Session, logger *zap.Logger) configNormalizer {
@@ -94,6 +90,9 @@ func (n *argsNormalizer) Normalize(cfg *Config) (func() error, error) {
 		// TODO(adamb): it's not always true that the script-based program
 		// takes the filename as a last argument.
 		args = append(args, n.scriptFile.Name())
+
+	case *runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL.Enum():
+		// noop
 	}
 
 	cfg.Arguments = args
@@ -107,18 +106,14 @@ func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {
 		_, _ = buf.WriteString("\n\n")
 	}
 
-	// If the session is provided, we need to collect the environment before and after the script execution.
-	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
+	// If the session is provided, the env should be collected.
 	if n.session != nil {
-		if err := n.createTempDir(); err != nil {
+		n.envCollector = &shellEnvCollector{
+			buf: buf,
+		}
+		if err := n.envCollector.Init(); err != nil {
 			return err
 		}
-
-		_, _ = buf.WriteString(fmt.Sprintf("%s > %s\n", EnvDumpCommand, filepath.Join(n.tempDir, envStartFileName)))
-		_, _ = buf.WriteString(fmt.Sprintf("__cleanup() {\nrv=$?\n%s > %s\nexit $rv\n}\n", EnvDumpCommand, filepath.Join(n.tempDir, envEndFileName)))
-		_, _ = buf.WriteString("trap -- \"__cleanup\" EXIT\n")
-
-		n.isEnvCollectable = true
 	}
 
 	// Write the script from the commands or the script.
@@ -134,13 +129,9 @@ func (n *argsNormalizer) inlineShell(cfg *Config, buf *strings.Builder) error {
 	return nil
 }
 
-func (n *argsNormalizer) cleanup() (result error) {
-	if err := n.collectEnv(); err != nil {
-		result = multierr.Append(result, err)
-	}
-	if err := n.removeTempDir(); err != nil {
-		result = multierr.Append(result, err)
-	}
+func (n *argsNormalizer) createTempDir() (err error) {
+	n.tempDir, err = os.MkdirTemp("", "runme-*")
+	err = errors.WithMessage(err, "failed to create a temporary dir")
 	return
 }
 
@@ -158,51 +149,33 @@ func (n *argsNormalizer) removeTempDir() error {
 	return nil
 }
 
+func (n *argsNormalizer) cleanup() (result error) {
+	if err := n.collectEnv(); err != nil {
+		result = multierr.Append(result, err)
+	}
+	if err := n.removeTempDir(); err != nil {
+		result = multierr.Append(result, err)
+	}
+	return
+}
+
 func (n *argsNormalizer) collectEnv() error {
-	if n.session == nil || !n.isEnvCollectable {
+	if n.session == nil || n.envCollector == nil {
 		return nil
 	}
 
-	n.logger.Info("collecting env")
-
-	startEnv, err := n.readEnvFromFile(envStartFileName)
+	changed, deleted, err := n.envCollector.Collect()
 	if err != nil {
 		return err
 	}
 
-	endEnv, err := n.readEnvFromFile(envEndFileName)
-	if err != nil {
-		return err
-	}
-
-	// Below, we diff the env collected before and after the script execution.
-	// Then, update the session with the new or updated env and delete the deleted env.
-
-	startEnvStore := newEnvStore()
-	if _, err := startEnvStore.Merge(startEnv...); err != nil {
-		return errors.WithMessage(err, "failed to create the start env store")
-	}
-
-	endEnvStore := newEnvStore()
-	if _, err := endEnvStore.Merge(endEnv...); err != nil {
-		return errors.WithMessage(err, "failed to create the end env store")
-	}
-
-	newOrUpdated, _, deleted := diffEnvStores(startEnvStore, endEnvStore)
-
-	if err := n.session.SetEnv(newOrUpdated...); err != nil {
+	if err := n.session.SetEnv(changed...); err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
 
 	n.session.DeleteEnv(deleted...)
 
 	return nil
-}
-
-func (n *argsNormalizer) createTempDir() (err error) {
-	n.tempDir, err = os.MkdirTemp("", "runme-*")
-	err = errors.WithMessage(err, "failed to create  atemporery dir")
-	return
 }
 
 func (n *argsNormalizer) createScriptFile() (err error) {
@@ -216,43 +189,6 @@ func (n *argsNormalizer) writeScript(script []byte) error {
 		return errors.WithMessage(err, "failed to write the script to the temporary file")
 	}
 	return errors.WithMessage(n.scriptFile.Close(), "failed to close the temporary file")
-}
-
-func (n *argsNormalizer) readEnvFromFile(name string) (result []string, _ error) {
-	f, err := os.Open(filepath.Join(n.tempDir, name))
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to open the env file %q", name)
-	}
-	defer func() { _ = f.Close() }()
-
-	scanner := bufio.NewScanner(f)
-	scanner.Split(splitNull)
-
-	for scanner.Scan() {
-		result = append(result, scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, errors.WithMessagef(err, "failed to scan the env file %q", name)
-	}
-
-	return result, nil
-}
-
-func splitNull(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-	if i := bytes.IndexByte(data, 0); i >= 0 {
-		// We have a full null-terminated line.
-		return i + 1, data[0:i], nil
-	}
-	// If we're at EOF, we have a final, non-terminated line. Return it.
-	if atEOF {
-		return len(data), data, nil
-	}
-	// Request more data.
-	return 0, nil, nil
 }
 
 func shellOptionsFromProgram(programPath string) (res string) {
