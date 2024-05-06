@@ -9,7 +9,7 @@ import (
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
-func NewConfigFromCodeBlock(block *document.CodeBlock) (*Config, error) {
+func NewProgramConfigFromCodeBlock(block *document.CodeBlock) (*ProgramConfig, error) {
 	return (&configBuilder{block: block}).Build()
 }
 
@@ -17,8 +17,8 @@ type configBuilder struct {
 	block *document.CodeBlock
 }
 
-func (b *configBuilder) Build() (*Config, error) {
-	cfg := &Config{
+func (b *configBuilder) Build() (*ProgramConfig, error) {
+	cfg := &ProgramConfig{
 		ProgramName: b.programPath(),
 		LanguageId:  b.block.Language(),
 		Directory:   b.dir(),
@@ -35,7 +35,7 @@ func (b *configBuilder) Build() (*Config, error) {
 	} else {
 		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_FILE
 		cfg.Source = &runnerv2alpha1.ProgramConfig_Script{
-			Script: prepareScriptFromLines(cfg.ProgramName, b.block.Lines()),
+			Script: strings.Join(b.block.Lines(), "\n"),
 		}
 	}
 
@@ -108,15 +108,4 @@ func resolveDirUsingParentAndChild(parent, child string) string {
 	}
 
 	return child
-}
-
-func prepareScriptFromLines(programPath string, lines []string) string {
-	var buf strings.Builder
-
-	for _, cmd := range lines {
-		_, _ = buf.WriteString(cmd)
-		_, _ = buf.WriteRune('\n')
-	}
-
-	return buf.String()
 }

@@ -53,7 +53,8 @@ type execution struct {
 
 func newExecution(
 	id string,
-	cfg *command.Config,
+	factory command.Factory,
+	cfg *command.ProgramConfig,
 	session *command.Session,
 	storeStdoutInEnv bool,
 	logger *zap.Logger,
@@ -71,24 +72,7 @@ func newExecution(
 		Logger:      logger,
 	}
 
-	var cmd command.Command
-
-	if cfg.Mode == runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL {
-		cmd = command.NewTerminal(
-			cfg,
-			cmdOptions,
-		)
-	} else if cfg.Interactive {
-		cmd = command.NewVirtual(
-			cfg,
-			cmdOptions,
-		)
-	} else {
-		cmd = command.NewNative(
-			cfg,
-			cmdOptions,
-		)
-	}
+	cmd := factory.Build(cfg, cmdOptions)
 
 	exec := &execution{
 		ID:        id,
@@ -207,11 +191,10 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 func (e *execution) Write(p []byte) (int, error) {
 	n, err := e.stdinWriter.Write(p)
 
-	// Close stdin writer for native commands after handling the initial request.
-	// Native commands do not support sending data continuously, as the native
-	// command must have stdin closed to finish.
-	// Alternatively, there should be a way to signal end of input.
-	if _, ok := e.Cmd.(*command.NativeCommand); ok {
+	// Close stdin writer for non-interactive commands after handling the initial request.
+	// Non-interactive commands do not support sending data continuously and require that
+	// the stdin writer to be closed to finish processing the input.
+	if ok := e.Cmd.IsInteractive(); ok {
 		if closeErr := e.stdinWriter.Close(); closeErr != nil {
 			e.logger.Info("failed to close native command stdin writer", zap.Error(closeErr))
 			if err == nil {
@@ -228,23 +211,20 @@ func (e *execution) SetWinsize(size *runnerv2alpha1.Winsize) error {
 		return nil
 	}
 
-	switch cmd := e.Cmd.(type) {
-	case *command.VirtualCommand:
-		return command.SetWinsize(
-			cmd,
-			&command.Winsize{
-				Rows: uint16(size.Rows),
-				Cols: uint16(size.Cols),
-				X:    uint16(size.X),
-				Y:    uint16(size.Y),
-			},
-		)
-	case *command.NativeCommand:
-		e.logger.Info("winsize change is not supported for native commands")
-		return nil
-	default:
-		panic("invariant: unknown command type")
+	cmd, ok := e.Cmd.(command.CommandWithPty)
+	if !ok {
+		return errors.New("command does not support setting winsize")
 	}
+
+	return command.SetWinsize(
+		cmd,
+		&command.Winsize{
+			Rows: uint16(size.Rows),
+			Cols: uint16(size.Cols),
+			X:    uint16(size.X),
+			Y:    uint16(size.Y),
+		},
+	)
 }
 
 func (e *execution) Stop(stop runnerv2alpha1.ExecuteStop) (err error) {

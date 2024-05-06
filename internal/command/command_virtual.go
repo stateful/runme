@@ -15,17 +15,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type VirtualCommand struct {
-	cfg  *Config
-	opts Options
+type virtualCommand struct {
+	internalCommand
 
 	// cmd is populated when the command is started.
 	cmd *exec.Cmd
 
-	// stdin is [VirtualCommandOptions.Stdin] wrapped in readCloser.
+	// stdin is [Options.Stdin] wrapped in [readCloser].
 	stdin io.ReadCloser
-
-	cleanFuncs []func() error
 
 	pty *os.File
 	tty *os.File
@@ -36,59 +33,36 @@ type VirtualCommand struct {
 	err error
 }
 
-var _ Command = (*VirtualCommand)(nil)
+var _ Command = (*virtualCommand)(nil)
 
-func NewVirtual(cfg *Config, opts Options) *VirtualCommand {
+func newVirtual(cfg *ProgramConfig, opts Options) *virtualCommand {
 	var stdin io.ReadCloser
 
-	if opts.Stdin != nil {
+	if !isNil(opts.Stdin) {
 		stdin = &readCloser{r: opts.Stdin, done: make(chan struct{})}
 	}
 
-	// Stdout must be set, otherwise the command will hang trying to copy data from pty.
-	if opts.Stdout == nil {
-		opts.Stdout = io.Discard
-	}
+	opts.Stdin = stdin
 
-	if opts.Kernel == nil {
-		opts.Kernel = NewLocalKernel(nil)
-	}
-
-	if opts.Logger == nil {
-		opts.Logger = zap.NewNop()
-	}
-
-	return &VirtualCommand{
-		cfg:   cfg,
-		opts:  opts,
-		stdin: stdin,
+	return &virtualCommand{
+		internalCommand: newBase(cfg, opts),
+		stdin:           stdin,
 	}
 }
 
-func (c *VirtualCommand) Running() bool {
+func (c *virtualCommand) Running() bool {
 	return c.cmd != nil && c.cmd.ProcessState == nil
 }
 
-func (c *VirtualCommand) Pid() int {
+func (c *virtualCommand) Pid() int {
 	if c.cmd == nil || c.cmd.Process == nil {
 		return 0
 	}
 	return c.cmd.Process.Pid
 }
 
-func (c *VirtualCommand) Start(ctx context.Context) (err error) {
-	cfg, cleanups, err := normalizeConfig(
-		c.cfg,
-		newPathNormalizer(c.opts.Kernel),
-		modeNormalizer,
-		newArgsNormalizer(c.opts.Session, c.opts.Logger),
-		newEnvNormalizer(c.opts.Kernel, c.opts.Session.GetEnv),
-	)
-	if err != nil {
-		return
-	}
-
-	c.cleanFuncs = append(c.cleanFuncs, cleanups...)
+func (c *virtualCommand) Start(ctx context.Context) (err error) {
+	logger := c.Logger()
 
 	c.pty, c.tty, err = pty.Open()
 	if err != nil {
@@ -99,20 +73,25 @@ func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 		return err
 	}
 
+	program, args, err := c.ProgramPath()
+	if err != nil {
+		return err
+	}
+
 	c.cmd = exec.CommandContext(
 		ctx,
-		cfg.ProgramName,
-		cfg.Arguments...,
+		program,
+		args...,
 	)
-	c.cmd.Dir = cfg.Directory
-	c.cmd.Env = cfg.Env
+	c.cmd.Dir = c.ProgramConfig().Directory
+	c.cmd.Env = c.Env()
 	c.cmd.Stdin = c.tty
 	c.cmd.Stdout = c.tty
 	c.cmd.Stderr = c.tty
 
 	setSysProcAttrCtty(c.cmd)
 
-	c.opts.Logger.Info("starting a virtual command", zap.Any("config", redactConfig(cfg)))
+	logger.Info("starting a virtual command", zap.Any("config", redactConfig(c.ProgramConfig())))
 	if err := c.cmd.Start(); err != nil {
 		return errors.WithStack(err)
 	}
@@ -122,75 +101,72 @@ func (c *VirtualCommand) Start(ctx context.Context) (err error) {
 		go func() {
 			defer c.wg.Done()
 			n, err := io.Copy(c.pty, c.stdin)
-			c.opts.Logger.Info("finished copying from stdin to pty", zap.Error(err), zap.Int64("count", n))
+			logger.Info("finished copying from stdin to pty", zap.Error(err), zap.Int64("count", n))
 			if err != nil {
 				c.setErr(errors.WithStack(err))
 			}
 		}()
 	}
 
-	if !isNil(c.opts.Stdout) {
+	stdout := c.Stdout()
+
+	if !isNil(stdout) {
 		c.wg.Add(1)
 		go func() {
 			defer c.wg.Done()
-			n, err := io.Copy(c.opts.Stdout, c.pty)
+			n, err := io.Copy(stdout, c.pty)
 			if err != nil {
 				// Linux kernel returns EIO when attempting to read from
 				// a master pseudo-terminal which no longer has an open slave.
 				// See https://github.com/creack/pty/issues/21.
 				if errors.Is(err, syscall.EIO) {
-					c.opts.Logger.Debug("failed to copy from pty to stdout; handled EIO")
+					logger.Debug("failed to copy from pty to stdout; handled EIO")
 					return
 				}
 				if errors.Is(err, os.ErrClosed) {
-					c.opts.Logger.Debug("failed to copy from pty to stdout; handled ErrClosed")
+					logger.Debug("failed to copy from pty to stdout; handled ErrClosed")
 					return
 				}
 
-				c.opts.Logger.Info("failed to copy from pty to stdout", zap.Error(err))
+				logger.Info("failed to copy from pty to stdout", zap.Error(err))
 
 				c.setErr(errors.WithStack(err))
 			} else {
-				c.opts.Logger.Debug("finished copying from pty to stdout", zap.Int64("count", n))
+				logger.Debug("finished copying from pty to stdout", zap.Int64("count", n))
 			}
 		}()
 	}
 
-	c.opts.Logger.Info("a virtual command started")
+	logger.Info("a virtual command started")
 
 	return nil
 }
 
-func (c *VirtualCommand) Signal(sig os.Signal) error {
-	c.opts.Logger.Info("stopping the virtual command with signal", zap.String("signal", sig.String()))
+func (c *virtualCommand) Signal(sig os.Signal) error {
+	logger := c.Logger()
+
+	logger.Info("stopping the virtual command with signal", zap.String("signal", sig.String()))
 
 	// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
 	if err := signalPgid(c.cmd.Process.Pid, sig); err != nil {
-		c.opts.Logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
+		logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
 		if err := c.cmd.Process.Signal(sig); err != nil {
-			c.opts.Logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
+			logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
 			return errors.WithStack(c.cmd.Process.Kill())
 		}
 	}
 	return nil
 }
 
-func (c *VirtualCommand) Wait() (err error) {
-	c.opts.Logger.Info("waiting for the virtual command to finish")
+func (c *virtualCommand) Wait() (err error) {
+	logger := c.Logger()
 
-	defer func() {
-		errC := errors.WithStack(c.cleanup())
-		c.opts.Logger.Info("cleaned up the virtual command", zap.Error(errC))
-		if err == nil && errC != nil {
-			err = errC
-		}
-	}()
-
+	logger.Info("waiting for the virtual command to finish")
 	err = errors.WithStack(c.cmd.Wait())
-	c.opts.Logger.Info("the virtual command finished", zap.Error(err))
+	logger.Info("the virtual command finished", zap.Error(err))
 
 	errIO := c.closeIO()
-	c.opts.Logger.Info("closed IO of the virtual command", zap.Error(errIO))
+	logger.Info("closed IO of the virtual command", zap.Error(errIO))
 	if err == nil && errIO != nil {
 		err = errIO
 	}
@@ -206,7 +182,7 @@ func (c *VirtualCommand) Wait() (err error) {
 	return
 }
 
-func (c *VirtualCommand) setErr(err error) {
+func (c *virtualCommand) setErr(err error) {
 	if err == nil {
 		return
 	}
@@ -217,7 +193,7 @@ func (c *VirtualCommand) setErr(err error) {
 	c.mu.Unlock()
 }
 
-func (c *VirtualCommand) closeIO() (err error) {
+func (c *virtualCommand) closeIO() (err error) {
 	if !isNil(c.stdin) {
 		if errClose := c.stdin.Close(); errClose != nil {
 			err = multierr.Append(err, errors.WithMessage(errClose, "failed to close stdin"))
@@ -235,22 +211,17 @@ func (c *VirtualCommand) closeIO() (err error) {
 	return
 }
 
-func (c *VirtualCommand) cleanup() (err error) {
-	for _, fn := range c.cleanFuncs {
-		if errFn := fn(); errFn != nil {
-			err = multierr.Append(err, errFn)
-		}
-	}
-	return
+type CommandWithPty interface {
+	getPty() *os.File
 }
 
 type Winsize pty.Winsize
 
-func SetWinsize(cmd *VirtualCommand, winsize *Winsize) error {
-	if cmd.pty == nil {
+func SetWinsize(cmd CommandWithPty, winsize *Winsize) error {
+	if cmd.getPty() == nil {
 		return nil
 	}
-	err := pty.Setsize(cmd.pty, (*pty.Winsize)(winsize))
+	err := pty.Setsize(cmd.getPty(), (*pty.Winsize)(winsize))
 	return errors.WithStack(err)
 }
 
@@ -273,7 +244,7 @@ func isNil(val any) bool {
 // When Close is called, the underlying read operation is ignored.
 // It might discard some read data, or read might hang indefinitely.
 // It is caller's responsibility to interrupt the underlying [io.Reader]
-// when [VirtualCommand] exits.
+// when [virtualCommand] exits.
 type readCloser struct {
 	r    io.Reader
 	done chan struct{}

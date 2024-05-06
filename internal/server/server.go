@@ -83,7 +83,7 @@ func New(c *Config, logger *zap.Logger) (_ *Server, err error) {
 	// Register runme services.
 	parserv1.RegisterParserServiceServer(grpcServer, editorservice.NewParserServiceServer(logger))
 	projectv1.RegisterProjectServiceServer(grpcServer, projectservice.NewProjectServiceServer(logger))
-	runnerService, err := runnerv2service.NewRunnerService(logger)
+	runnerService, err := runnerv2service.NewRunnerService()
 	if err != nil {
 		return nil, err
 	}

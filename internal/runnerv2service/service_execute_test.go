@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -856,12 +855,9 @@ func testStartRunnerServiceServer(t *testing.T) (
 ) {
 	t.Helper()
 
-	logger, err := zap.NewDevelopment()
-	require.NoError(t, err)
-
 	lis := bufconn.Listen(1024 << 10)
 	server := grpc.NewServer()
-	runnerService, err := NewRunnerService(logger)
+	runnerService, err := NewRunnerService()
 	require.NoError(t, err)
 
 	runnerv2alpha1.RegisterRunnerServiceServer(server, runnerService)

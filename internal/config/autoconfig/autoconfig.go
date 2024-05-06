@@ -21,6 +21,7 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config"
+	"github.com/stateful/runme/v3/internal/dockerexec"
 	"github.com/stateful/runme/v3/internal/project"
 )
 
@@ -41,8 +42,9 @@ func mustProvide(err error) {
 }
 
 func init() {
+	mustProvide(container.Provide(getRootConfig))
+	mustProvide(container.Provide(getCommandFactory))
 	mustProvide(container.Provide(getConfigLoader))
-	mustProvide(container.Provide(getKernelGetter))
 	mustProvide(container.Provide(getKernel))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
@@ -75,6 +77,10 @@ func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.
 	return cfg, nil
 }
 
+func getCommandFactory(cfg *config.Config, kernel command.Kernel) command.Factory {
+	return command.NewFactory(cfg, kernel)
+}
+
 func getConfigLoader() (*config.Loader, error) {
 	// TODO(adamb): change from "./experimental" to "." when the feature is stable and
 	// delete the project root path.
@@ -98,56 +104,21 @@ func getKernel(c *config.Config, logger *zap.Logger) (_ command.Kernel, err erro
 	return nil, errors.New("kernel not found")
 }
 
-type KernelGetter func(name string) (command.Kernel, error)
-
-func getKernelGetter(c *config.Config, logger *zap.Logger) KernelGetter {
-	cache := make(map[string]command.Kernel)
-
-	return func(name string) (command.Kernel, error) {
-		// If name is empty and there are no kernels,
-		// return a local kernel as a default for
-		// backward compatibility.
-		if name == "" && len(c.Kernels) == 0 {
-			return command.NewLocalKernel(
-				&config.LocalKernel{Name: "default-local"},
-			), nil
-		}
-
-		k, ok := cache[name]
-		if ok {
-			return k, nil
-		}
-
-		for _, kernelCfg := range c.Kernels {
-			if name != "" && kernelCfg.GetName() != name {
-				continue
-			}
-
-			var err error
-			k, err = createKernelFromConfig(kernelCfg, logger)
-			if err != nil {
-				return nil, err
-			}
-
-			cache[name] = k
-
-			break
-		}
-
-		if k == nil {
-			return nil, errors.Errorf("kernel with name %q not found", name)
-		}
-		return k, nil
-	}
-}
-
 func createKernelFromConfig(kernelCfg config.Kernel, logger *zap.Logger) (command.Kernel, error) {
 	switch kernelCfg := kernelCfg.(type) {
 	case *config.LocalKernel:
 		return command.NewLocalKernel(kernelCfg), nil
 	case *config.DockerKernel:
-		k, err := command.NewDockerKernel(kernelCfg, logger)
-		return k, errors.WithStack(err)
+		docker, err := dockerexec.New(&dockerexec.Options{
+			BuildContext: kernelCfg.Build.Context,
+			Dockerfile:   kernelCfg.Build.Dockerfile,
+			Image:        kernelCfg.Image,
+			Logger:       logger,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return command.NewDockerKernel(docker), nil
 	default:
 		return nil, errors.Errorf("unknown kernel type: %T", kernelCfg)
 	}

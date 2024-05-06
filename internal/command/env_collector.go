@@ -7,9 +7,26 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
+
+const (
+	envStartFileName = ".env_start"
+	envEndFileName   = ".env_end"
+)
+
+// EnvDumpCommand is a command that dumps the environment variables.
+// It is declared as a var, because it must be replaced in tests.
+// Equivalent is `env -0`.
+var EnvDumpCommand = func() string {
+	path, err := os.Executable()
+	if err != nil {
+		panic(errors.WithMessage(err, "failed to get the executable path"))
+	}
+	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
+}()
 
 // shellEnvCollector collects the environment variables from a shell script or session.
 // It writes a shell command that dumps the initial environment variables into a file.
@@ -146,13 +163,9 @@ func splitNull(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	return 0, nil, nil
 }
 
-func setEnvDumpTrapOnExit(
-	w io.Writer,
-	cmd string,
-) (_ int, err error) {
+func setEnvDumpTrapOnExit(w io.Writer, cmd string) (int, error) {
 	bw := bulkWriter{Writer: w}
-
-	_, _ = bw.Write(
+	bw.Write(
 		[]byte(
 			fmt.Sprintf(
 				"__cleanup() {\nrv=$?\n%s\nexit $rv\n}\n",
@@ -160,23 +173,6 @@ func setEnvDumpTrapOnExit(
 			),
 		),
 	)
-	_, _ = bw.Write([]byte("trap -- \"__cleanup\" EXIT\n"))
-
-	return bw.n, bw.err
-}
-
-type bulkWriter struct {
-	io.Writer
-	n   int
-	err error
-}
-
-func (w *bulkWriter) Write(d []byte) (int, error) {
-	if w.err != nil {
-		return 0, w.err
-	}
-	n, err := w.Writer.Write(d)
-	w.n += n
-	w.err = errors.WithStack(err)
-	return n, err
+	bw.Write([]byte("trap -- \"__cleanup\" EXIT\n"))
+	return bw.Done()
 }
