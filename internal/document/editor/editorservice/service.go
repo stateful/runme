@@ -66,20 +66,22 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 
 		runme := parserv1.FrontmatterRunme{}
 
-		if notebook.Frontmatter.Runme.ID != "" {
-			runme.Id = notebook.Frontmatter.Runme.ID
-		}
+		if notebook.Frontmatter.Runme != nil {
+			if notebook.Frontmatter.Runme.ID != "" {
+				runme.Id = notebook.Frontmatter.Runme.ID
+			}
 
-		if notebook.Frontmatter.Runme.Version != "" {
-			runme.Version = notebook.Frontmatter.Runme.Version
-		}
+			if notebook.Frontmatter.Runme.Version != "" {
+				runme.Version = notebook.Frontmatter.Runme.Version
+			}
 
-		if notebook.Frontmatter.Runme.Session != nil && notebook.Frontmatter.Runme.Session.ID != "" {
-			runme.Session = &parserv1.RunmeSession{
-				Id: notebook.Frontmatter.Runme.Session.ID,
-				Document: &parserv1.RunmeSessionDocument{
-					RelativePath: notebook.Frontmatter.Runme.Document.RelativePath,
-				},
+			if notebook.Frontmatter.Runme.Session != nil && notebook.Frontmatter.Runme.Session.ID != "" {
+				runme.Session = &parserv1.RunmeSession{
+					Id: notebook.Frontmatter.Runme.Session.ID,
+					Document: &parserv1.RunmeSessionDocument{
+						RelativePath: notebook.Frontmatter.Runme.Document.RelativePath,
+					},
+				}
 			}
 		}
 

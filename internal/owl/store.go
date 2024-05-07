@@ -416,6 +416,8 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 
 	s.opSets = append(s.opSets, deleteOpSet)
 
+	// s.logger.Debug("opSets size", zap.Int("size", len(s.opSets)))
+
 	return nil
 }
 
