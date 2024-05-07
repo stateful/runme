@@ -89,6 +89,13 @@ export interface ProgramConfig {
      * @generated from protobuf field: string known_name = 10;
      */
     knownName: string;
+    /**
+     * optional language id associated with script to allow interpreter
+     * detection if no specific interpreter program is provided.
+     *
+     * @generated from protobuf field: string language_id = 11;
+     */
+    languageId: string;
 }
 /**
  * @generated from protobuf message runme.runner.v2alpha1.ProgramConfig.CommandList

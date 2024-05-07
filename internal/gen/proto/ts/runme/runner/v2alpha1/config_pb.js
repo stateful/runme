@@ -44,7 +44,8 @@ class ProgramConfig$Type extends MessageType {
             { no: 7, name: "interactive", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 8, name: "mode", kind: "enum", T: () => ["runme.runner.v2alpha1.CommandMode", CommandMode, "COMMAND_MODE_"] },
             { no: 9, name: "known_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "known_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "known_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
