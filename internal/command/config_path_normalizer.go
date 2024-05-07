@@ -1,7 +1,6 @@
 package command
 
 import (
-	"os/exec"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -44,7 +43,7 @@ func (n *pathNormalizer) findProgramInInterpreters(programName string) (programP
 	if len(interpreters) == 0 {
 		if len(programName) == 0 {
 			// Default to "cat"
-			cat, err := exec.LookPath("cat")
+			cat, err := n.kernel.LookPath("cat")
 			if err == nil {
 				return cat, nil, nil
 			}
