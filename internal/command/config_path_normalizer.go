@@ -42,7 +42,10 @@ finish:
 func (n *pathNormalizer) findProgramInInterpreters(programName string) (programPath string, args []string, _ error) {
 	interpreters := inferInterpreterFromLanguage(programName)
 	if len(interpreters) == 0 {
-		return "", nil, errors.Errorf("unsupported language %s", programName)
+		if len(programName) == 0 {
+			programName = "EMPTY"
+		}
+		return "", nil, errors.Errorf("unsupported interpreter %s", programName)
 	}
 
 	for _, interpreter := range interpreters {
