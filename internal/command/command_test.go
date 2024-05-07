@@ -37,10 +37,17 @@ var (
 		ProgramName: "invalidProgram",
 		Source: &runnerv2alpha1.ProgramConfig_Commands{
 			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
-				Items: []string{"SELECT * FROM users;"},
+				Items: []string{"echo -n test"},
 			},
 		},
 		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+	}
+	testConfigDefaultToCat = &Config{
+		ProgramName: "",
+		Source: &runnerv2alpha1.ProgramConfig_Script{
+			Script: "SELECT * FROM users;",
+		},
+		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_FILE,
 	}
 )
 

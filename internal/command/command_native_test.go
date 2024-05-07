@@ -57,6 +57,14 @@ func TestNativeCommand(t *testing.T) {
 		require.Contains(t, err.Error(), "unsupported interpreter invalidProgram")
 		assert.Equal(t, "", stdout.String())
 	})
+
+	t.Run("Default to cat", func(t *testing.T) {
+		stdout := bytes.NewBuffer(nil)
+		cmd := NewNative(testConfigDefaultToCat, Options{Stdout: stdout})
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		assert.Equal(t, "SELECT * FROM users;", stdout.String())
+	})
 }
 
 func TestNativeCommandStopWithSignal(t *testing.T) {

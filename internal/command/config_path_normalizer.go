@@ -43,8 +43,13 @@ func (n *pathNormalizer) findProgramInInterpreters(programName string) (programP
 	interpreters := inferInterpreterFromLanguage(programName)
 	if len(interpreters) == 0 {
 		if len(programName) == 0 {
-			programName = "EMPTY"
+			// Default to "cat"
+			cat, err := exec.LookPath("cat")
+			if err == nil {
+				return cat, nil, nil
+			}
 		}
+
 		return "", nil, errors.Errorf("unsupported interpreter %s", programName)
 	}
 
@@ -55,12 +60,6 @@ func (n *pathNormalizer) findProgramInInterpreters(programName string) (programP
 			args = iArgs
 			return
 		}
-	}
-
-	// Default to "cat"
-	cat, err := exec.LookPath("cat")
-	if err == nil {
-		return cat, nil, nil
 	}
 
 	return "", nil, errors.Errorf("unable to look up any of interpreters %s", interpreters)
