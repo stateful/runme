@@ -54,6 +54,10 @@ message ProgramConfig {
   // optional well known name for cell/block
   string known_name = 10;
 
+  // optional language id associated with script to allow interpreter
+  // detection if no specific interpreter program is provided.
+  string language_id = 11;
+
   message CommandList {
     // commands are commands to be executed by the program.
     // The commands are joined and executed as a script.
