@@ -33,6 +33,15 @@ var (
 		},
 		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 	}
+	testConfigInvalidProgram = &Config{
+		ProgramName: "invalidProgram",
+		Source: &runnerv2alpha1.ProgramConfig_Commands{
+			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Items: []string{"SELECT * FROM users;"},
+			},
+		},
+		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+	}
 )
 
 func init() {

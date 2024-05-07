@@ -48,6 +48,15 @@ func TestNativeCommand(t *testing.T) {
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		stdout := bytes.NewBuffer(nil)
+		cmd := NewNative(testConfigInvalidProgram, Options{Stdout: stdout})
+		err := cmd.Start(context.Background())
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "unsupported interpreter invalidProgram")
+		assert.Equal(t, "", stdout.String())
+	})
 }
 
 func TestNativeCommandStopWithSignal(t *testing.T) {
