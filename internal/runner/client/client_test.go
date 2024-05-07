@@ -126,7 +126,7 @@ func TestResolveProgramLocal(t *testing.T) {
 		{
 			Title: "Mode UNSPECIFIED",
 			Mode:  runnerv1.ResolveProgramRequest_MODE_UNSPECIFIED,
-			Input: "export VARIABLE=Foo",
+			Input: "$ export VARIABLE=Foo",
 			ExpectedVars: []Var{
 				{
 					Status: runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
@@ -142,7 +142,7 @@ func TestResolveProgramLocal(t *testing.T) {
 		{
 			Title: "Mode SKIP_ALL",
 			Mode:  runnerv1.ResolveProgramRequest_MODE_SKIP_ALL,
-			Input: "export VARIABLE=Foo",
+			Input: "$ export VARIABLE=Foo",
 			ExpectedVars: []Var{
 				{
 					Status: runnerv1.ResolveProgramResponse_STATUS_RESOLVED,
@@ -158,7 +158,7 @@ func TestResolveProgramLocal(t *testing.T) {
 		{
 			Title: "Mode PROMPT_ALL",
 			Mode:  runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL,
-			Input: "export VARIABLE=Foo",
+			Input: "$ export VARIABLE=Foo",
 			ExpectedVars: []Var{
 				{
 					Status: runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
@@ -184,7 +184,7 @@ func TestResolveProgramLocal(t *testing.T) {
 			} {
 				t.Run(r.name, func(t *testing.T) {
 					ctx := context.Background()
-					resp, err := r.runner.ResolveProgram(ctx, tt.Mode, tt.Input)
+					resp, err := r.runner.ResolveProgram(ctx, tt.Mode, tt.Input, "shell")
 					require.NoError(t, err)
 
 					var vars []Var

@@ -341,7 +341,7 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 		mode := resolveRequestMode(block.PromptEnvStr())
 
 		script := string(block.Content())
-		response, err := runner.ResolveProgram(cmd.Context(), *mode, script)
+		response, err := runner.ResolveProgram(cmd.Context(), *mode, script, block.Language())
 		if err != nil {
 			return err
 		}

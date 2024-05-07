@@ -67,8 +67,7 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	}
 
 	r.runnerService = runnerService
-	ctx := context.Background()
-	err = r.setupSession(ctx)
+	err = r.setupSession()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +75,7 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	return r, nil
 }
 
-func (r *LocalRunner) setupSession(ctx context.Context) error {
+func (r *LocalRunner) setupSession() error {
 	envs := append(os.Environ(), r.envs...)
 
 	// todo(sebastian): owl store?
@@ -108,9 +107,9 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 		Tty:     block.InteractiveLegacy(),
 		Stdout:  r.stdout,
 		Stderr:  r.stderr,
+		Session: r.session,
 		System:  system.Default,
 		Logger:  r.logger,
-		Session: r.session,
 	}
 
 	cfg.PreEnv, err = r.project.LoadEnv()
@@ -154,11 +153,13 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 	}
 }
 
-func (r *LocalRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string) (*runnerv1.ResolveProgramResponse, error) {
+func (r *LocalRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string, language string) (*runnerv1.ResolveProgramResponse, error) {
 	envs, err := r.GetEnvs(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	script = prepareCommandSeq(script, language)
 
 	request := &runnerv1.ResolveProgramRequest{
 		Env:             envs,
