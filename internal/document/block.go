@@ -210,6 +210,10 @@ func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
+func (b *CodeBlock) PromptEnvStr() string {
+	return b.Attributes()["promptEnv"]
+}
+
 func (b *CodeBlock) PromptEnv() bool {
 	val, ok := b.Attributes()["promptEnv"]
 	if !ok {
@@ -255,6 +259,14 @@ func (b *CodeBlock) Unwrap() ast.Node {
 
 func (b *CodeBlock) Value() []byte {
 	return b.value
+}
+
+func (b *CodeBlock) SetLines(newLines []string) {
+	b.lines = newLines
+}
+
+func (b *CodeBlock) PrependLines(newLines []string) {
+	b.lines = append(newLines, b.lines...)
 }
 
 // TODO(mxs): use guesslang model

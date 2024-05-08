@@ -24,10 +24,6 @@ import (
 	"github.com/stateful/runme/v3/internal/tui"
 )
 
-const (
-	exportExtractRegex string = `(\n*)export (\w+=)(("[^"]*")|('[^']*')|[^;\n]+)`
-)
-
 type CommandExportExtractMatch struct {
 	Key            string
 	Value          string
@@ -225,11 +221,6 @@ func runCmd() *cobra.Command {
 				runner = remoteRunner
 			}
 
-			sessionEnvs, err := runner.GetEnvs(ctx)
-			if err != nil {
-				return err
-			}
-
 			for _, task := range runTasks {
 				fmtr, err := task.CodeBlock.Document().Frontmatter()
 				if err != nil {
@@ -242,7 +233,7 @@ func runCmd() *cobra.Command {
 			}
 
 			if (skipPromptsExplicitly || isTerminal(os.Stdout.Fd())) && !skipPrompts {
-				err = promptEnvVars(cmd, sessionEnvs, runTasks...)
+				err = promptEnvVars(cmd, runner, runTasks...)
 				if err != nil {
 					return err
 				}

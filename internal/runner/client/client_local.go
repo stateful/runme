@@ -12,6 +12,7 @@ import (
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/v3/internal/document"
+	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/runner"
 	"github.com/stateful/runme/v3/internal/system"
@@ -21,13 +22,15 @@ import (
 type LocalRunner struct {
 	*RunnerSettings
 
-	shellID int
+	shellID       int
+	runnerService runnerv1.RunnerServiceServer
 }
 
 func (r *LocalRunner) Clone() Runner {
 	return &LocalRunner{
 		RunnerSettings: r.RunnerSettings.Clone(),
 		shellID:        r.shellID,
+		runnerService:  r.runnerService,
 	}
 }
 
@@ -58,17 +61,30 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 		}
 	}
 
+	runnerService, err := runner.NewRunnerService(r.logger)
+	if err != nil {
+		return nil, err
+	}
+
+	r.runnerService = runnerService
+	err = r.setupSession()
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func (r *LocalRunner) setupSession() error {
 	envs := append(os.Environ(), r.envs...)
 
 	// todo(sebastian): owl store?
 	sess, err := runner.NewSession(envs, nil, r.logger)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
 	r.session = sess
-
-	return r, nil
+	return nil
 }
 
 func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
@@ -135,6 +151,32 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 			LanguageID:       block.Language(),
 		}, nil
 	}
+}
+
+func (r *LocalRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string, language string) (*runnerv1.ResolveProgramResponse, error) {
+	envs, err := r.GetEnvs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	script = prepareCommandSeq(script, language)
+
+	request := &runnerv1.ResolveProgramRequest{
+		Env:             envs,
+		Mode:            mode,
+		SessionStrategy: r.sessionStrategy,
+		Project:         ConvertToRunnerProject(r.project),
+		Source: &runnerv1.ResolveProgramRequest_Script{
+			Script: script,
+		},
+	}
+
+	resp, err := r.runnerService.ResolveProgram(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {

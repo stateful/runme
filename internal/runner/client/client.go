@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/muesli/cancelreader"
@@ -60,6 +61,8 @@ type Runner interface {
 	Clone() Runner
 
 	GetEnvs(ctx context.Context) ([]string, error)
+
+	ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string, language string) (*runnerv1.ResolveProgramResponse, error)
 
 	getSettings() *RunnerSettings
 	setSettings(settings *RunnerSettings)
@@ -280,4 +283,19 @@ func resolveOrAbsolute(parent string, child string) string {
 	}
 
 	return child
+}
+
+func prepareCommandSeq(script string, language string) string {
+	if !runner.IsShellLanguage(language) {
+		return script
+	}
+
+	lines := strings.Split(script, "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(line, "$") {
+			lines[i] = strings.TrimLeft(line[1:], " ")
+		}
+	}
+
+	return strings.Join(lines, "\n")
 }

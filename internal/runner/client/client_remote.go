@@ -120,6 +120,33 @@ func ConvertToRunnerProject(proj *project.Project) *runnerv1.Project {
 	}
 }
 
+func (r *RemoteRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveProgramRequest_Mode, script string, language string) (*runnerv1.ResolveProgramResponse, error) {
+	envs, err := r.GetEnvs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	script = prepareCommandSeq(script, language)
+
+	request := &runnerv1.ResolveProgramRequest{
+		SessionId:       r.sessionID,
+		SessionStrategy: r.sessionStrategy,
+		Env:             envs,
+		Mode:            mode,
+		Project:         ConvertToRunnerProject(r.project),
+		Source: &runnerv1.ResolveProgramRequest_Script{
+			Script: script,
+		},
+	}
+
+	resp, err := r.client.ResolveProgram(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 	block := task.CodeBlock
 	fmtr, err := task.CodeBlock.Document().Frontmatter()
