@@ -33,10 +33,31 @@ export interface ProgramConfig {
      */
     directory: string;
     /**
+     * optional language id associated with script to allow interpreter
+     * detection if no specific interpreter program is provided.
+     *
+     * @generated from protobuf field: string language_id = 4;
+     */
+    languageId: string;
+    /**
+     * background indicates a background process
+     * required to handle running background tasks via CLI in C/I
+     *
+     * @generated from protobuf field: bool background = 5;
+     */
+    background: boolean;
+    /**
+     * file extension associated with script. some interpreters are strict
+     * about file extensions, such as tsc which requires .ts extension.
+     *
+     * @generated from protobuf field: string file_extension = 6;
+     */
+    fileExtension: string;
+    /**
      * env is a list of additional environment variables
      * that will be injected to the executed program.
      *
-     * @generated from protobuf field: repeated string env = 4;
+     * @generated from protobuf field: repeated string env = 7;
      */
     env: string[];
     /**
@@ -48,7 +69,7 @@ export interface ProgramConfig {
          * commands are commands to be executed by the program.
          * The commands are joined and executed as a script.
          *
-         * @generated from protobuf field: runme.runner.v2alpha1.ProgramConfig.CommandList commands = 5;
+         * @generated from protobuf field: runme.runner.v2alpha1.ProgramConfig.CommandList commands = 8;
          */
         commands: ProgramConfig_CommandList;
     } | {
@@ -57,7 +78,7 @@ export interface ProgramConfig {
          * script is code to be executed by the program.
          * Individual lines are joined with the new line character.
          *
-         * @generated from protobuf field: string script = 6;
+         * @generated from protobuf field: string script = 9;
          */
         script: string;
     } | {
@@ -67,35 +88,28 @@ export interface ProgramConfig {
      * interactive, if true, uses a pseudo-tty to execute the program.
      * Otherwise, the program is executed using in-memory buffers for I/O.
      *
-     * @generated from protobuf field: bool interactive = 7;
+     * @generated from protobuf field: bool interactive = 10;
      */
     interactive: boolean;
     /**
      * TODO(adamb): understand motivation for this. In theory, source
      * should tell whether to execute it inline or as a file.
      *
-     * @generated from protobuf field: runme.runner.v2alpha1.CommandMode mode = 8;
+     * @generated from protobuf field: runme.runner.v2alpha1.CommandMode mode = 11;
      */
     mode: CommandMode;
     /**
      * optional well known id for cell/block
      *
-     * @generated from protobuf field: string known_id = 9;
+     * @generated from protobuf field: string known_id = 12;
      */
     knownId: string;
     /**
      * optional well known name for cell/block
      *
-     * @generated from protobuf field: string known_name = 10;
+     * @generated from protobuf field: string known_name = 13;
      */
     knownName: string;
-    /**
-     * optional language id associated with script to allow interpreter
-     * detection if no specific interpreter program is provided.
-     *
-     * @generated from protobuf field: string language_id = 11;
-     */
-    languageId: string;
 }
 /**
  * @generated from protobuf message runme.runner.v2alpha1.ProgramConfig.CommandList
