@@ -26,7 +26,7 @@ func (n *pathNormalizer) Normalize(cfg *Config) (func() error, error) {
 		goto finish
 	}
 
-	programPath, args, err = n.findProgramInInterpreters(cfg.ProgramName)
+	programPath, args, err = n.findProgramInInterpreters(cfg.ProgramName, cfg.LanguageId)
 	if err != nil {
 		return nil, err
 	}
@@ -38,18 +38,18 @@ finish:
 	return nil, nil
 }
 
-func (n *pathNormalizer) findProgramInInterpreters(programName string) (programPath string, args []string, _ error) {
-	interpreters := inferInterpreterFromLanguage(programName)
-	if len(interpreters) == 0 {
-		if len(programName) == 0 {
-			// Default to "cat"
-			cat, err := n.kernel.LookPath("cat")
-			if err == nil {
-				return cat, nil, nil
-			}
+func (n *pathNormalizer) findProgramInInterpreters(programName string, languageID string) (programPath string, args []string, _ error) {
+	if programName != "" {
+		res, err := n.kernel.LookPath(programName)
+		if err != nil {
+			return "", nil, errors.Errorf("unsupported interpreter %s", programName)
 		}
+		return res, []string{}, nil
+	}
 
-		return "", nil, errors.Errorf("unsupported interpreter %s", programName)
+	interpreters := inferInterpreterFromLanguage(languageID)
+	if len(interpreters) == 0 {
+		return "", nil, errors.Errorf("unsupported interpreter for %s", languageID)
 	}
 
 	for _, interpreter := range interpreters {
@@ -59,6 +59,12 @@ func (n *pathNormalizer) findProgramInInterpreters(programName string) (programP
 			args = iArgs
 			return
 		}
+	}
+
+	// Default to "cat" for shebang++
+	cat, err := n.kernel.LookPath("cat")
+	if err == nil {
+		return cat, nil, nil
 	}
 
 	return "", nil, errors.Errorf("unable to look up any of interpreters %s", interpreters)
