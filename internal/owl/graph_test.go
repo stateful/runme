@@ -240,6 +240,27 @@ func Test_Graph_Sensitive(t *testing.T) {
 	testCases.runAll(t)
 }
 
+func Test_Graph_Get(t *testing.T) {
+	testCases := fileTestCases{
+		{
+			name: "InsecureGet",
+			post: func(t *testing.T, result *graphql.Result) {
+				render, err := extractDataKey(result.Data, "render")
+				require.NoError(t, err)
+				require.NotNil(t, render)
+
+				b, err := yaml.Marshal(render)
+				// b, err := json.MarshalIndent(result, "", " ")
+				require.NoError(t, err)
+				_, _ = fmt.Println(string(b))
+				require.NotNil(t, b)
+			},
+		},
+	}
+
+	testCases.runAll(t)
+}
+
 func Test_Graph_DotEnv(t *testing.T) {
 	testCases := fileTestCases{
 		{

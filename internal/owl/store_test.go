@@ -528,3 +528,13 @@ func Test_Store_SecretMasking(t *testing.T) {
 		require.LessOrEqual(t, len(snapshot0.Errors), 0)
 	})
 }
+
+func Test_Store_Get(t *testing.T) {
+	store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+	require.NoError(t, err)
+	require.NotNil(t, store)
+
+	val, err := store.InsecureGet("GOPATH")
+	require.NoError(t, err)
+	assert.EqualValues(t, "/Users/sourishkrout/go", val)
+}

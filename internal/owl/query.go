@@ -118,6 +118,82 @@ func (s *Store) sensitiveQuery(query, vars io.StringWriter) error {
 	return nil
 }
 
+func (s *Store) getterQuery(query, vars io.StringWriter) error {
+	varDefs := []*ast.VariableDefinition{
+		ast.NewVariableDefinition(&ast.VariableDefinition{
+			Variable: ast.NewVariable(&ast.Variable{
+				Name: ast.NewName(&ast.Name{
+					Value: "key",
+				}),
+			}),
+			Type: ast.NewNamed(&ast.Named{
+				Name: ast.NewName(&ast.Name{
+					Value: "String",
+				}),
+			}),
+			DefaultValue: ast.NewStringValue(&ast.StringValue{
+				Value: "",
+			}),
+		}),
+		ast.NewVariableDefinition(&ast.VariableDefinition{
+			Variable: ast.NewVariable(&ast.Variable{
+				Name: ast.NewName(&ast.Name{
+					Value: "insecure",
+				}),
+			}),
+			Type: ast.NewNamed(&ast.Named{
+				Name: ast.NewName(&ast.Name{
+					Value: "Boolean",
+				}),
+			}),
+			DefaultValue: ast.NewBooleanValue(&ast.BooleanValue{
+				Value: false,
+			}),
+		}),
+	}
+
+	loaded, updated, deleted := 0, 0, 0
+	for _, opSet := range s.opSets {
+		if len(opSet.specs) == 0 && len(opSet.values) == 0 {
+			continue
+		}
+		switch opSet.operation.kind {
+		case LoadSetOperation:
+			loaded++
+		case UpdateSetOperation:
+			updated++
+		case DeleteSetOperation:
+			deleted++
+		}
+
+	}
+	s.logger.Debug("getter opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted), zap.Int("total", len(s.opSets)))
+
+	q, err := NewQuery("Get", varDefs,
+		[]QueryNodeReducer{
+			reconcileAsymmetry(s),
+			reduceSetOperations(s, vars),
+			reduceSepcs(s),
+			reduceGetter(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	text, err := q.Print()
+	if err != nil {
+		return err
+	}
+
+	_, err = query.WriteString(text)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		opSetData := make(map[string]SetVarItems, len(store.opSets))
@@ -320,6 +396,167 @@ func reduceSensitive() QueryNodeReducer {
 							Name: ast.NewName(&ast.Name{
 								Value: "sensitiveKeys",
 							}),
+							SelectionSet: nextSelSet,
+						}),
+					},
+				}),
+			}),
+		)
+
+		return nextSelSet, nil
+	}
+}
+
+func reduceGetter() QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
+			Selections: []ast.Selection{
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "var",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "key",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "origin",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "created",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "updated",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "operation",
+								}),
+								SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+									Selections: []ast.Selection{
+										ast.NewField(&ast.Field{
+											Name: ast.NewName(&ast.Name{
+												Value: "source",
+											}),
+										}),
+									},
+								}),
+							}),
+						},
+					}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "value",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							// ast.NewField(&ast.Field{
+							// 	Name: ast.NewName(&ast.Name{
+							// 		Value: "type",
+							// 	}),
+							// }),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "original",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "resolved",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "status",
+								}),
+							}),
+						},
+					}),
+				}),
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "spec",
+					}),
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "name",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "required",
+								}),
+							}),
+						},
+					}),
+				}),
+				// ast.NewField(&ast.Field{
+				// 	Name: ast.NewName(&ast.Name{
+				// 		Value: "errors",
+				// 	}),
+				// 	SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+				// 		Selections: []ast.Selection{
+				// 			ast.NewField(&ast.Field{
+				// 				Name: ast.NewName(&ast.Name{
+				// 					Value: "code",
+				// 				}),
+				// 			}),
+				// 			ast.NewField(&ast.Field{
+				// 				Name: ast.NewName(&ast.Name{
+				// 					Value: "message",
+				// 				}),
+				// 			}),
+				// 		},
+				// 	}),
+				// }),
+			},
+		})
+
+		selSet.Selections = append(selSet.Selections,
+			ast.NewField(&ast.Field{
+				Name: ast.NewName(&ast.Name{
+					Value: "render",
+				}),
+				SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+					Selections: []ast.Selection{
+						ast.NewField(&ast.Field{
+							Name: ast.NewName(&ast.Name{
+								Value: "get",
+							}),
+							Arguments: []*ast.Argument{
+								ast.NewArgument(&ast.Argument{
+									Name: ast.NewName(&ast.Name{
+										Value: "key",
+									}),
+									Value: ast.NewVariable(&ast.Variable{
+										Name: ast.NewName(&ast.Name{
+											Value: "key",
+										}),
+									}),
+								}),
+								ast.NewArgument(&ast.Argument{
+									Name: ast.NewName(&ast.Name{
+										Value: "insecure",
+									}),
+									Value: ast.NewVariable(&ast.Variable{
+										Name: ast.NewName(&ast.Name{
+											Value: "insecure",
+										}),
+									}),
+								}),
+							},
 							SelectionSet: nextSelSet,
 						}),
 					},
