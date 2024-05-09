@@ -1,6 +1,9 @@
 package command
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -22,14 +25,31 @@ func (n *pathNormalizer) Normalize(cfg *Config) (func() error, error) {
 	)
 
 	programPath, err = n.kernel.LookPath(cfg.ProgramName)
+	if programPath != "" && err == nil {
+		goto finish
+	}
+
+	if isShellLanguage(cfg.LanguageId) {
+		globalShell := shellFromShellPath(globalShellPath())
+		programPath, err = n.kernel.LookPath(globalShell)
+		if err != nil {
+			goto finish
+		}
+	}
+
+	programPath, args, err = n.findProgramInInterpreters(cfg.ProgramName, cfg.LanguageId)
 	if err == nil {
 		goto finish
 	}
 
-	programPath, args, err = n.findProgramInInterpreters(cfg.ProgramName, cfg.LanguageId)
-	if err != nil {
-		return nil, err
+	// Default to "cat" for shebang++
+	programPath, err = n.kernel.LookPath("cat")
+	args = []string{}
+	if err == nil {
+		goto finish
 	}
+
+	return nil, err
 
 finish:
 	cfg.ProgramName = programPath
@@ -59,12 +79,6 @@ func (n *pathNormalizer) findProgramInInterpreters(programName string, languageI
 			args = iArgs
 			return
 		}
-	}
-
-	// Default to "cat" for shebang++
-	cat, err := n.kernel.LookPath("cat")
-	if err == nil {
-		return cat, nil, nil
 	}
 
 	return "", nil, errors.Errorf("unable to look up any of interpreters %s", interpreters)
@@ -118,4 +132,22 @@ var interpreterByLanguageID = map[string][]string{
 	"py":     {"python3", "python"},
 	"ruby":   {"ruby"},
 	"rb":     {"ruby"},
+}
+
+func globalShellPath() string {
+	shell, ok := os.LookupEnv("SHELL")
+	if !ok {
+		shell = "sh"
+	}
+	if path, err := exec.LookPath(shell); err == nil {
+		return path
+	}
+	return "/bin/sh"
+}
+
+// TODO(sebastian): this method for determining shell is not strong, since shells can
+// be aliased. we should probably run the shell to get this information
+func shellFromShellPath(programPath string) string {
+	programFile := filepath.Base(programPath)
+	return programFile[:len(programFile)-len(filepath.Ext(programFile))]
 }

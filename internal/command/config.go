@@ -54,7 +54,7 @@ func isShellLanguage(languageID string) bool {
 	// TODO(adamb): breaking change: shellscript was removed to indicate
 	// that it should be executed as a file. Consider adding it back and
 	// using attributes to decide how a code block should be executed.
-	case "sh", "bash", "zsh", "ksh", "shell":
+	case "sh", "bash", "zsh", "ksh", "shell", "shellscript":
 		return true
 
 	// dos

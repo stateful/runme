@@ -83,7 +83,7 @@ func TestExecutionCommandFromCodeBlocks(t *testing.T) {
 		},
 		{
 			name:                  "Python",
-			source:                "```python\nprint('test')\n```",
+			source:                "```py\nprint('test')\n```",
 			nativeExpectedStdout:  "test\n",
 			virtualExpectedStdout: "test\r\n",
 		},
