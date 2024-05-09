@@ -309,6 +309,63 @@ func (s *Store) Snapshot() (SetVarItems, error) {
 	return items, nil
 }
 
+func (s *Store) InsecureGet(k string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var query, vars bytes.Buffer
+	err := s.getterQuery(&query, &vars)
+	if err != nil {
+		return "", err
+	}
+
+	// s.logger.Debug("getter query", zap.String("query", query.String()))
+	// _, _ = fmt.Println(query.String())
+
+	var varValues map[string]interface{}
+	err = json.Unmarshal(vars.Bytes(), &varValues)
+	if err != nil {
+		return "", err
+	}
+	varValues["key"] = k
+	varValues["insecure"] = true
+
+	// j, err := json.Marshal(varValues)
+	// if err != nil {
+	// 	return "", err
+	// }
+	// fmt.Println(string(j))
+	// s.logger.Debug("insecure getter", zap.String("vars", string(j)))
+
+	result := graphql.Do(graphql.Params{
+		Schema:         Schema,
+		RequestString:  query.String(),
+		VariableValues: varValues,
+	})
+
+	if result.HasErrors() {
+		return "", fmt.Errorf("graphql errors %s", result.Errors)
+	}
+
+	val, err := extractDataKey(result.Data, "get")
+	if err != nil {
+		return "", err
+	}
+
+	j, err := json.Marshal(val)
+	if err != nil {
+		return "", err
+	}
+
+	var res *SetVarItem
+	err = json.Unmarshal(j, &res)
+	if err != nil {
+		return "", err
+	}
+
+	return res.Value.Resolved, nil
+}
+
 func (s *Store) InsecureValues() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -245,6 +245,48 @@ func resolveDotEnv() graphql.FieldResolveFn {
 	}
 }
 
+func resolveGetter() graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		key := p.Args["key"].(string)
+		insecure := p.Args["insecure"].(bool)
+		kv := &SetVarItem{}
+		var opSet *OperationSet
+
+		switch p.Source.(type) {
+		case nil, string:
+			// root passes string
+			return kv, nil
+		case *OperationSet:
+			opSet = p.Source.(*OperationSet)
+		default:
+			return nil, errors.New("source is not an OperationSet")
+		}
+
+		val, ok := opSet.values[key]
+		if !ok {
+			return kv, nil
+		}
+
+		kv.Var = val.Var
+		kv.Value = val.Value
+
+		spec, ok := opSet.specs[key]
+		if ok {
+			kv.Spec = spec.Spec
+		}
+
+		// up-graph?
+		if !insecure {
+			original := kv.Value.Original
+			kv.Value.Status = "MASKED"
+			kv.Value.Original = ""
+			kv.Value.Resolved = strings.Repeat("*", max(8, len(original)))
+		}
+
+		return kv, nil
+	}
+}
+
 func resolveSnapshot() graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
@@ -637,6 +679,20 @@ func init() {
 						},
 					},
 					Resolve: resolveDotEnv(),
+				},
+				"get": &graphql.Field{
+					Type: graphql.NewNonNull(VariableType),
+					Args: graphql.FieldConfigArgument{
+						"key": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "",
+						},
+						"insecure": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
+					},
+					Resolve: resolveGetter(),
 				},
 				"sensitiveKeys": &graphql.Field{
 					Type:    graphql.NewNonNull(graphql.NewList(VariableType)),
