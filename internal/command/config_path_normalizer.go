@@ -24,29 +24,25 @@ func (n *pathNormalizer) Normalize(cfg *Config) (func() error, error) {
 		err         error
 	)
 
-	programPath, err = n.kernel.LookPath(cfg.ProgramName)
-	if programPath != "" && err == nil {
+	programPath, args, err = n.findProgramInPath(cfg.ProgramName, cfg.Arguments)
+	if err == nil {
 		goto finish
 	}
 
-	if isShellLanguage(cfg.LanguageId) {
-		globalShell := shellFromShellPath(globalShellPath())
-		programPath, err = n.kernel.LookPath(globalShell)
-		if err != nil {
+	// if LanguageID is empty, interpreter lookup is futile
+	if cfg.LanguageId != "" {
+		programPath, args, err = n.findProgramInInterpreters(cfg.LanguageId)
+		if err == nil {
 			goto finish
 		}
 	}
 
-	programPath, args, err = n.findProgramInInterpreters(cfg.ProgramName, cfg.LanguageId)
-	if err == nil {
-		goto finish
-	}
-
-	// Default to "cat" for shebang++
-	programPath, err = n.kernel.LookPath("cat")
-	args = []string{}
-	if err == nil {
-		goto finish
+	// if ProgramName is empty, try to find a default program
+	if cfg.ProgramName == "" {
+		programPath, args, err = n.findDefaultProgram(cfg.ProgramName, cfg.Arguments)
+		if err == nil {
+			goto finish
+		}
 	}
 
 	return nil, err
@@ -58,15 +54,44 @@ finish:
 	return nil, nil
 }
 
-func (n *pathNormalizer) findProgramInInterpreters(programName string, languageID string) (programPath string, args []string, _ error) {
-	if programName != "" {
-		res, err := n.kernel.LookPath(programName)
+func (n *pathNormalizer) findDefaultProgram(programName string, programArgs []string) (programPath string, args []string, _ error) {
+	args = programArgs
+	if isShellLanguage(programName) {
+		globalShell := shellFromShellPath(globalShellPath())
+		res, err := n.kernel.LookPath(globalShell)
 		if err != nil {
-			return "", nil, errors.Errorf("unsupported interpreter %s", programName)
+			return "", nil, errors.Errorf("failed lookup default shell %s", globalShell)
 		}
-		return res, []string{}, nil
+		programPath = res
+	} else {
+		// Default to "cat" for shebang++
+		res, err := n.kernel.LookPath("cat")
+		args = []string{}
+		if err != nil {
+			return "", nil, errors.Errorf("failed lookup default program cat")
+		}
+		programPath = res
+	}
+	return
+}
+
+func (n *pathNormalizer) findProgramInPath(programName string, programArgs []string) (programPath string, args []string, _ error) {
+	args = programArgs
+
+	if programName == "" {
+		return "", []string{}, errors.Errorf("empty programName")
 	}
 
+	res, err := n.kernel.LookPath(programName)
+	if err != nil {
+		return "", []string{}, errors.Errorf("failed program lookup %s", programName)
+	}
+	programPath = res
+
+	return
+}
+
+func (n *pathNormalizer) findProgramInInterpreters(languageID string) (programPath string, args []string, _ error) {
 	interpreters := inferInterpreterFromLanguage(languageID)
 	if len(interpreters) == 0 {
 		return "", nil, errors.Errorf("unsupported interpreter for %s", languageID)
