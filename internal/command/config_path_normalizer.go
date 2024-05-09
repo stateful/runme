@@ -54,59 +54,48 @@ finish:
 	return nil, nil
 }
 
-func (n *pathNormalizer) findDefaultProgram(programName string, programArgs []string) (programPath string, args []string, _ error) {
-	args = programArgs
+func (n *pathNormalizer) findDefaultProgram(programName string, programArgs []string) (string, []string, error) {
 	if isShellLanguage(programName) {
 		globalShell := shellFromShellPath(globalShellPath())
 		res, err := n.kernel.LookPath(globalShell)
 		if err != nil {
 			return "", nil, errors.Errorf("failed lookup default shell %s", globalShell)
 		}
-		programPath = res
-	} else {
-		// Default to "cat" for shebang++
-		res, err := n.kernel.LookPath("cat")
-		args = []string{}
-		if err != nil {
-			return "", nil, errors.Errorf("failed lookup default program cat")
-		}
-		programPath = res
+		return res, programArgs, nil
 	}
-	return
+	// Default to "cat" for shebang++
+	res, err := n.kernel.LookPath("cat")
+	if err != nil {
+		return "", nil, errors.Errorf("failed lookup default program cat")
+	}
+	return res, nil, nil
 }
 
-func (n *pathNormalizer) findProgramInPath(programName string, programArgs []string) (programPath string, args []string, _ error) {
-	args = programArgs
-
+func (n *pathNormalizer) findProgramInPath(programName string, programArgs []string) (string, []string, error) {
 	if programName == "" {
-		return "", []string{}, errors.Errorf("empty programName")
+		return "", nil, errors.New("program name is empty")
 	}
-
 	res, err := n.kernel.LookPath(programName)
 	if err != nil {
-		return "", []string{}, errors.Errorf("failed program lookup %s", programName)
+		return "", nil, errors.Errorf("failed program lookup %q", programName)
 	}
-	programPath = res
-
-	return
+	return res, programArgs, nil
 }
 
-func (n *pathNormalizer) findProgramInInterpreters(languageID string) (programPath string, args []string, _ error) {
+func (n *pathNormalizer) findProgramInInterpreters(languageID string) (string, []string, error) {
 	interpreters := inferInterpreterFromLanguage(languageID)
 	if len(interpreters) == 0 {
-		return "", nil, errors.Errorf("unsupported interpreter for %s", languageID)
+		return "", nil, errors.Errorf("unsupported interpreter for %q", languageID)
 	}
 
 	for _, interpreter := range interpreters {
 		iProgram, iArgs := parseInterpreter(interpreter)
 		if path, err := n.kernel.LookPath(iProgram); err == nil {
-			programPath = path
-			args = iArgs
-			return
+			return path, iArgs, nil
 		}
 	}
 
-	return "", nil, errors.Errorf("unable to look up any of interpreters %s", interpreters)
+	return "", nil, errors.Errorf("unable to look up any of interpreters %v", interpreters)
 }
 
 // parseInterpreter handles cases when the interpreter is, for instance, "deno run".

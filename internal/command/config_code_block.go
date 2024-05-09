@@ -63,7 +63,6 @@ func (b *configBuilder) dir() string {
 }
 
 func (b *configBuilder) programPath() (programPath string) {
-	programPath = ""
 	language := b.block.Language()
 
 	// If the language is a shell language, check frontmatter for shell overwrite.

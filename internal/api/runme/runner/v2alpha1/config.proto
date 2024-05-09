@@ -26,7 +26,7 @@ message ProgramConfig {
   // directory to execute the program in.
   string directory = 3;
 
-  // optional language id associated with script to allow interpreter
+  // language_id associated with script to allow interpreter
   // detection if no specific interpreter program is provided.
   string language_id = 4;
 
@@ -34,8 +34,8 @@ message ProgramConfig {
   // required to handle running background tasks via CLI in C/I
   bool background = 5;
 
-  // file extension associated with script. some interpreters are strict
-  // about file extensions, such as tsc which requires .ts extension.
+  // file_extension associated with script. Some interpreters are strict
+  // about file extensions, such as tsc which requires "ts" extension.
   string file_extension = 6;
 
   // env is a list of additional environment variables
