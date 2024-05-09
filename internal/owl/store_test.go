@@ -534,7 +534,8 @@ func Test_Store_Get(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, store)
 
-	val, err := store.InsecureGet("GOPATH")
+	// PGPASS is masked without insecure
+	val, err := store.InsecureGet("PGPASS")
 	require.NoError(t, err)
-	assert.EqualValues(t, "/Users/sourishkrout/go", val)
+	assert.EqualValues(t, "secret-fake-password", val)
 }

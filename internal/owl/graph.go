@@ -248,7 +248,6 @@ func resolveDotEnv() graphql.FieldResolveFn {
 func resolveGetter() graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		key := p.Args["key"].(string)
-		insecure := p.Args["insecure"].(bool)
 		kv := &SetVarItem{}
 		var opSet *OperationSet
 
@@ -273,14 +272,6 @@ func resolveGetter() graphql.FieldResolveFn {
 		spec, ok := opSet.specs[key]
 		if ok {
 			kv.Spec = spec.Spec
-		}
-
-		// up-graph?
-		if !insecure {
-			original := kv.Value.Original
-			kv.Value.Status = "MASKED"
-			kv.Value.Original = ""
-			kv.Value.Resolved = strings.Repeat("*", max(8, len(original)))
 		}
 
 		return kv, nil
@@ -686,10 +677,6 @@ func init() {
 						"key": &graphql.ArgumentConfig{
 							Type:         graphql.String,
 							DefaultValue: "",
-						},
-						"insecure": &graphql.ArgumentConfig{
-							Type:         graphql.Boolean,
-							DefaultValue: false,
 						},
 					},
 					Resolve: resolveGetter(),

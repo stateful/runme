@@ -546,16 +546,6 @@ func reduceGetter() QueryNodeReducer {
 										}),
 									}),
 								}),
-								ast.NewArgument(&ast.Argument{
-									Name: ast.NewName(&ast.Name{
-										Value: "insecure",
-									}),
-									Value: ast.NewVariable(&ast.Variable{
-										Name: ast.NewName(&ast.Name{
-											Value: "insecure",
-										}),
-									}),
-								}),
 							},
 							SelectionSet: nextSelSet,
 						}),

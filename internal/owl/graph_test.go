@@ -10,6 +10,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
@@ -254,6 +255,7 @@ func Test_Graph_Get(t *testing.T) {
 				require.NoError(t, err)
 				_, _ = fmt.Println(string(b))
 				require.NotNil(t, b)
+				assert.Contains(t, string(b), "/opt/homebrew/share/google-cloud-sdk/bin")
 			},
 		},
 	}
