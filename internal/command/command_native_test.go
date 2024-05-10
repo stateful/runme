@@ -54,7 +54,7 @@ func TestNativeCommand(t *testing.T) {
 		cmd := NewNative(testConfigInvalidProgram, Options{Stdout: stdout})
 		err := cmd.Start(context.Background())
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "failed program lookup invalidProgram")
+		require.Contains(t, err.Error(), "failed program lookup \"invalidProgram\"")
 		assert.Equal(t, "", stdout.String())
 	})
 
