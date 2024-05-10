@@ -1,7 +1,9 @@
 package command
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -22,15 +24,28 @@ func (n *pathNormalizer) Normalize(cfg *Config) (func() error, error) {
 		err         error
 	)
 
-	programPath, err = n.kernel.LookPath(cfg.ProgramName)
+	programPath, args, err = n.findProgramInPath(cfg.ProgramName, cfg.Arguments)
 	if err == nil {
 		goto finish
 	}
 
-	programPath, args, err = n.findProgramInInterpreters(cfg.ProgramName)
-	if err != nil {
-		return nil, err
+	// if LanguageID is empty, interpreter lookup is futile
+	if cfg.LanguageId != "" {
+		programPath, args, err = n.findProgramInInterpreters(cfg.LanguageId)
+		if err == nil {
+			goto finish
+		}
 	}
+
+	// if ProgramName is empty, try to find a default program
+	if cfg.ProgramName == "" {
+		programPath, args, err = n.findDefaultProgram(cfg.ProgramName, cfg.Arguments)
+		if err == nil {
+			goto finish
+		}
+	}
+
+	return nil, err
 
 finish:
 	cfg.ProgramName = programPath
@@ -39,28 +54,48 @@ finish:
 	return nil, nil
 }
 
-func (n *pathNormalizer) findProgramInInterpreters(programName string) (programPath string, args []string, _ error) {
-	interpreters := inferInterpreterFromLanguage(programName)
+func (n *pathNormalizer) findDefaultProgram(programName string, programArgs []string) (string, []string, error) {
+	if isShellLanguage(programName) {
+		globalShell := shellFromShellPath(globalShellPath())
+		res, err := n.kernel.LookPath(globalShell)
+		if err != nil {
+			return "", nil, errors.Errorf("failed lookup default shell %s", globalShell)
+		}
+		return res, programArgs, nil
+	}
+	// Default to "cat" for shebang++
+	res, err := n.kernel.LookPath("cat")
+	if err != nil {
+		return "", nil, errors.Errorf("failed lookup default program cat")
+	}
+	return res, nil, nil
+}
+
+func (n *pathNormalizer) findProgramInPath(programName string, programArgs []string) (string, []string, error) {
+	if programName == "" {
+		return "", nil, errors.New("program name is empty")
+	}
+	res, err := n.kernel.LookPath(programName)
+	if err != nil {
+		return "", nil, errors.Errorf("failed program lookup %q", programName)
+	}
+	return res, programArgs, nil
+}
+
+func (n *pathNormalizer) findProgramInInterpreters(languageID string) (string, []string, error) {
+	interpreters := inferInterpreterFromLanguage(languageID)
 	if len(interpreters) == 0 {
-		return "", nil, errors.Errorf("unsupported language %s", programName)
+		return "", nil, errors.Errorf("unsupported interpreter for %q", languageID)
 	}
 
 	for _, interpreter := range interpreters {
 		iProgram, iArgs := parseInterpreter(interpreter)
 		if path, err := n.kernel.LookPath(iProgram); err == nil {
-			programPath = path
-			args = iArgs
-			return
+			return path, iArgs, nil
 		}
 	}
 
-	// Default to "cat"
-	cat, err := exec.LookPath("cat")
-	if err == nil {
-		return cat, nil, nil
-	}
-
-	return "", nil, errors.Errorf("unable to look up any of interpreters %s", interpreters)
+	return "", nil, errors.Errorf("unable to look up any of interpreters %v", interpreters)
 }
 
 // parseInterpreter handles cases when the interpreter is, for instance, "deno run".
@@ -111,4 +146,22 @@ var interpreterByLanguageID = map[string][]string{
 	"py":     {"python3", "python"},
 	"ruby":   {"ruby"},
 	"rb":     {"ruby"},
+}
+
+func globalShellPath() string {
+	shell, ok := os.LookupEnv("SHELL")
+	if !ok {
+		shell = "sh"
+	}
+	if path, err := exec.LookPath(shell); err == nil {
+		return path
+	}
+	return "/bin/sh"
+}
+
+// TODO(sebastian): this method for determining shell is not strong, since shells can
+// be aliased. we should probably run the shell to get this information
+func shellFromShellPath(programPath string) string {
+	programFile := filepath.Base(programPath)
+	return programFile[:len(programFile)-len(filepath.Ext(programFile))]
 }

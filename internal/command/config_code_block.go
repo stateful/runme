@@ -20,11 +20,12 @@ type configBuilder struct {
 func (b *configBuilder) Build() (*Config, error) {
 	cfg := &Config{
 		ProgramName: b.programPath(),
+		LanguageId:  b.block.Language(),
 		Directory:   b.dir(),
 		Interactive: b.block.Interactive(),
 	}
 
-	if isShellLanguage(filepath.Base(cfg.ProgramName)) {
+	if isShellLanguage(cfg.LanguageId) {
 		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
 		cfg.Source = &runnerv2alpha1.ProgramConfig_Commands{
 			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
@@ -61,23 +62,23 @@ func (b *configBuilder) dir() string {
 	return resolveDir("", dirs)
 }
 
-func (b *configBuilder) programPath() string {
-	interpreter := b.block.Language()
+func (b *configBuilder) programPath() (programPath string) {
+	language := b.block.Language()
 
-	// If the language is a shell language, then infer the interpreter from the FrontMatter.
-	if isShellLanguage(interpreter) {
+	// If the language is a shell language, check frontmatter for shell overwrite.
+	if isShellLanguage(language) {
 		fmtr, err := b.block.Document().Frontmatter()
 		if err == nil && fmtr != nil && fmtr.Shell != "" {
-			interpreter = fmtr.Shell
+			programPath = fmtr.Shell
 		}
 	}
 
 	// Interpreter can be always overwritten at the block level.
 	if val := b.block.Interpreter(); val != "" {
-		interpreter = val
+		programPath = val
 	}
 
-	return interpreter
+	return
 }
 
 func resolveDir(parentDir string, candidates []string) string {

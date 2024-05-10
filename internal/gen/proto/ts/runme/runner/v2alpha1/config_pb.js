@@ -38,13 +38,16 @@ class ProgramConfig$Type extends MessageType {
             { no: 1, name: "program_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "arguments", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "directory", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "commands", kind: "message", oneof: "source", T: () => ProgramConfig_CommandList },
-            { no: 6, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "interactive", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 8, name: "mode", kind: "enum", T: () => ["runme.runner.v2alpha1.CommandMode", CommandMode, "COMMAND_MODE_"] },
-            { no: 9, name: "known_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "known_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "background", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "file_extension", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "commands", kind: "message", oneof: "source", T: () => ProgramConfig_CommandList },
+            { no: 9, name: "script", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "interactive", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 11, name: "mode", kind: "enum", T: () => ["runme.runner.v2alpha1.CommandMode", CommandMode, "COMMAND_MODE_"] },
+            { no: 12, name: "known_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "known_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }

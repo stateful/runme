@@ -48,6 +48,23 @@ func TestNativeCommand(t *testing.T) {
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		stdout := bytes.NewBuffer(nil)
+		cmd := NewNative(testConfigInvalidProgram, Options{Stdout: stdout})
+		err := cmd.Start(context.Background())
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed program lookup \"invalidProgram\"")
+		assert.Equal(t, "", stdout.String())
+	})
+
+	t.Run("Default to cat", func(t *testing.T) {
+		stdout := bytes.NewBuffer(nil)
+		cmd := NewNative(testConfigDefaultToCat, Options{Stdout: stdout})
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		assert.Equal(t, "SELECT * FROM users;", stdout.String())
+	})
 }
 
 func TestNativeCommandStopWithSignal(t *testing.T) {

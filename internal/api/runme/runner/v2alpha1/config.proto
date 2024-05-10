@@ -26,33 +26,45 @@ message ProgramConfig {
   // directory to execute the program in.
   string directory = 3;
 
+  // language_id associated with script to allow interpreter
+  // detection if no specific interpreter program is provided.
+  string language_id = 4;
+
+  // background indicates a background process
+  // required to handle running background tasks via CLI in C/I
+  bool background = 5;
+
+  // file_extension associated with script. Some interpreters are strict
+  // about file extensions, such as tsc which requires "ts" extension.
+  string file_extension = 6;
+
   // env is a list of additional environment variables
   // that will be injected to the executed program.
-  repeated string env = 4;
+  repeated string env = 7;
 
   oneof source {
     // commands are commands to be executed by the program.
     // The commands are joined and executed as a script.
-    CommandList commands = 5;
+    CommandList commands = 8;
 
     // script is code to be executed by the program.
     // Individual lines are joined with the new line character.
-    string script = 6;
+    string script = 9;
   }
 
   // interactive, if true, uses a pseudo-tty to execute the program.
   // Otherwise, the program is executed using in-memory buffers for I/O.
-  bool interactive = 7;
+  bool interactive = 10;
 
   // TODO(adamb): understand motivation for this. In theory, source
   // should tell whether to execute it inline or as a file.
-  CommandMode mode = 8;
+  CommandMode mode = 11;
 
   // optional well known id for cell/block
-  string known_id = 9;
+  string known_id = 12;
 
   // optional well known name for cell/block
-  string known_name = 10;
+  string known_name = 13;
 
   message CommandList {
     // commands are commands to be executed by the program.

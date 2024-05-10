@@ -53,7 +53,8 @@ func (n *argsNormalizer) Normalize(cfg *Config) (func() error, error) {
 	case *runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE.Enum():
 		var buf strings.Builder
 
-		if isShellLanguage(filepath.Base(cfg.ProgramName)) {
+		// todo(sebastian): this is not fully baked
+		if isShellLanguage(cfg.LanguageId) || isShellLanguage(filepath.Base(cfg.ProgramName)) {
 			if err := n.inlineShell(cfg, &buf); err != nil {
 				return nil, err
 			}

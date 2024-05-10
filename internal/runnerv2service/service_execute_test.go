@@ -409,7 +409,8 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		{
 			name: "Python",
 			programConfig: &runnerv2alpha1.ProgramConfig{
-				ProgramName: "py",
+				ProgramName: "",
+				LanguageId:  "py",
 				Source: &runnerv2alpha1.ProgramConfig_Script{
 					Script: "print('test')",
 				},
@@ -418,9 +419,20 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 			expectedOutput: "test\r\n",
 		},
 		{
-			name: "JavaScript",
+			name: "Javascript",
 			programConfig: &runnerv2alpha1.ProgramConfig{
-				ProgramName: "js",
+				ProgramName: "node",
+				Source: &runnerv2alpha1.ProgramConfig_Script{
+					Script: "console.log('1');\nconsole.log('2');",
+				},
+			},
+			expectedOutput: "1\n2\n",
+		},
+		{
+			name: "Javascript_inferred",
+			programConfig: &runnerv2alpha1.ProgramConfig{
+				ProgramName: "",
+				LanguageId:  "js",
 				Source: &runnerv2alpha1.ProgramConfig_Script{
 					Script: "console.log('1');\nconsole.log('2');",
 				},
