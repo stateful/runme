@@ -24,7 +24,7 @@ query ResolveOwlInsecureGet($insecure: Boolean = false, $load_0: [VariableInput]
                           sensitive
                           mask
                           done {
-                            render {
+                            render(insecure: $insecure) {
                               get(key: "PATH") {
                                 var {
                                   key

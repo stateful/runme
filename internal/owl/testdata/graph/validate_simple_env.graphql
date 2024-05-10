@@ -11,8 +11,8 @@ query ResolveOwlSnapshot($insecure: Boolean = false, $load_0: [VariableInput]!) 
             message
           }
           done {
-            render {
-              snapshot(insecure: $insecure) {
+            render(insecure: $insecure) {
+              snapshot {
                 var {
                   key
                   origin

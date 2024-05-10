@@ -18,8 +18,8 @@ query ResolveOwlSnapshot(
               sensitive
               mask
               done {
-                render {
-                  snapshot(insecure: $insecure) {
+                render(insecure: $insecure) {
+                  snapshot {
                     var {
                       key
                       created

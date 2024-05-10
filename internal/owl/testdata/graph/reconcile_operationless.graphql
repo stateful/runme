@@ -24,7 +24,7 @@ query ResolveOwlSnapshot($insecure: Boolean = false, $load_0: [VariableInput]!, 
                           sensitive
                           mask
                           done {
-                            render {
+                            render(insecure: $insecure) {
                               snapshot(insecure: $insecure) {
                                 var {
                                   key

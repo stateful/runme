@@ -1,4 +1,5 @@
 {
+    "insecure": true,
     "load_0": [
         {
             "var": {
