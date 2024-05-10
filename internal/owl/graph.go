@@ -222,20 +222,9 @@ func resolveDotEnv() graphql.FieldResolveFn {
 		}
 
 		var buf bytes.Buffer
-		// todo(sebastian): this should really be up the graph
 		for _, v := range opSet.values {
-			switch insecure {
-			case true:
-				if v.Value.Status == "UNRESOLVED" {
-					continue
-				}
-				if v.Value.Status == "DELETED" {
-					continue
-				}
-			case false:
-				if v.Value.Status != "LITERAL" {
-					continue
-				}
+			if !insecure && v.Value.Status != "LITERAL" {
+				continue
 			}
 
 			_, _ = buf.WriteString(fmt.Sprintf("%s%s=\"%s\"\n", prefix, v.Var.Key, v.Value.Resolved))
@@ -708,10 +697,10 @@ func init() {
 				"dotenv": &graphql.Field{
 					Type: graphql.NewNonNull(graphql.String),
 					Args: graphql.FieldConfigArgument{
-						// "insecure": &graphql.ArgumentConfig{
-						// 	Type:         graphql.Boolean,
-						// 	DefaultValue: false,
-						// },
+						"insecure": &graphql.ArgumentConfig{
+							Type:         graphql.Boolean,
+							DefaultValue: false,
+						},
 						"prefix": &graphql.ArgumentConfig{
 							Type:         graphql.String,
 							DefaultValue: "",

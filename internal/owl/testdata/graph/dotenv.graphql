@@ -26,7 +26,7 @@ query ResolveOwlDotEnv($insecure: Boolean = false, $prefix: String = "", $load_0
                                   mask
                                   done {
                                     render(insecure: $insecure) {
-                                      dotenv(prefix: $prefix)
+                                      dotenv(insecure: $insecure, prefix: $prefix)
                                     }
                                   }
                                 }
