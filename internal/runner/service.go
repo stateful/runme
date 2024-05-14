@@ -22,11 +22,11 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	commandpkg "github.com/stateful/runme/v3/internal/command"
-	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/rbuffer"
 	"github.com/stateful/runme/v3/internal/ulid"
+	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
 const (

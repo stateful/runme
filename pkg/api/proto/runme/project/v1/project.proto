@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package runme.project.v1;
+
+import "runme/parser/v1/parser.proto";
+
+option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1;projectv1";
+
+message DirectoryProjectOptions {
+  // Path to a directory containing the project.
+  string path = 1;
+
+  // If true, .gitignore file is ignored, as well as .git/info/exclude.
+  bool skip_gitignore = 2;
+
+  // A list of file patterns, compatible with .gitignore syntax,
+  // to ignore.
+  repeated string ignore_file_patterns = 3;
+
+  // If true, it disables lookuping up for .git folder
+  // in the parent directories.
+  bool skip_repo_lookup_upward = 4;
+}
+
+message FileProjectOptions {
+  string path = 1;
+}
+
+message LoadRequest {
+  oneof kind {
+    DirectoryProjectOptions directory = 1;
+    FileProjectOptions file = 2;
+  }
+
+  runme.parser.v1.RunmeIdentity identity = 3;
+}
+
+enum LoadEventType {
+  LOAD_EVENT_TYPE_UNSPECIFIED = 0;
+  LOAD_EVENT_TYPE_STARTED_WALK = 1;
+  LOAD_EVENT_TYPE_FOUND_DIR = 2;
+  LOAD_EVENT_TYPE_FOUND_FILE = 3;
+  LOAD_EVENT_TYPE_FINISHED_WALK = 4;
+  LOAD_EVENT_TYPE_STARTED_PARSING_DOC = 5;
+  LOAD_EVENT_TYPE_FINISHED_PARSING_DOC = 6;
+  LOAD_EVENT_TYPE_FOUND_TASK = 7;
+  LOAD_EVENT_TYPE_ERROR = 8;
+}
+
+message LoadEventStartedWalk {}
+
+message LoadEventFoundDir {
+  string path = 1;
+}
+
+message LoadEventFoundFile {
+  string path = 1;
+}
+
+message LoadEventFinishedWalk {}
+
+message LoadEventStartedParsingDoc {
+  string path = 1;
+}
+
+message LoadEventFinishedParsingDoc {
+  string path = 1;
+}
+
+message LoadEventFoundTask {
+  string document_path = 1;
+
+  string id = 2;
+
+  string name = 3;
+
+  bool is_name_generated = 4;
+}
+
+message LoadEventError {
+  string error_message = 1;
+}
+
+message LoadResponse {
+  LoadEventType type = 1;
+
+  oneof data {
+    LoadEventStartedWalk started_walk = 2;
+    LoadEventFoundDir found_dir = 3;
+    LoadEventFoundFile found_file = 4;
+    LoadEventFinishedWalk finished_walk = 5;
+    LoadEventStartedParsingDoc started_parsing_doc = 6;
+    LoadEventFinishedParsingDoc finished_parsing_doc = 7;
+    LoadEventFoundTask found_task = 8;
+    LoadEventError error = 9;
+  }
+}
+
+service ProjectService {
+  // Load creates a new project, walks it, and streams events
+  // about found directories, files, and code blocks.
+  rpc Load(LoadRequest) returns (stream LoadResponse) {}
+}

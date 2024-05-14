@@ -1,3 +1,3 @@
 version: v1
 directories:
-  - internal/api
+  - pkg/api/proto
