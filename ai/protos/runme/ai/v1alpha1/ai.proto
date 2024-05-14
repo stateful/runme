@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package runme.ai.v1alpha1;
+
+import "runme/ai/v1alpha1/notebook.proto";
+option go_package = "github.com/stateful/runme/ai/gen/proto/go/runme/ai/v1alpha1;aiv1alpha1";
+
+message RunmeGenerateRequest {
+  Notebook notebook = 1;
+}
+
+message RunmeGenerateResponse {
+  repeated Cell cells = 1;
+}
+
+// The Runme service is used to integrate with Runme.
+service RunmeGenerateService {
+  rpc Generate (RunmeGenerateRequest) returns (RunmeGenerateResponse) {}
+}
