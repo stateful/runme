@@ -3,7 +3,7 @@ package command
 import (
 	"strings"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 	"google.golang.org/protobuf/proto"
 )
 

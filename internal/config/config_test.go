@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	configv1alpha1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/config/v1alpha1"
+	configv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/config/v1alpha1"
 )
 
 func TestParseYAML(t *testing.T) {

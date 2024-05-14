@@ -20,7 +20,7 @@ import (
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/runner"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
-	runnerv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v1"
+	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
 type RemoteRunner struct {

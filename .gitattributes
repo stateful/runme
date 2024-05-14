@@ -1,2 +1,2 @@
 internal/gen/**/* -diff
-pkg/gen/**/* -diff
+pkg/api/gen/**/* -diff

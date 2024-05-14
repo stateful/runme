@@ -12,8 +12,8 @@ import (
 
 	"github.com/pkg/errors"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
-	parserv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/parser/v1"
-	runnerv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v1"
+	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

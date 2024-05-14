@@ -15,7 +15,7 @@ import (
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/runner"
 	"github.com/stateful/runme/v3/internal/system"
-	runnerv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v1"
+	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"go.uber.org/zap"
 )
 
