@@ -5,15 +5,16 @@ package runme.ai.v1alpha1;
 import "runme/ai/v1alpha1/notebook.proto";
 option go_package = "github.com/stateful/runme/ai/gen/proto/go/runme/ai/v1alpha1;aiv1alpha1";
 
-message RunmeGenerateRequest {
+message GenerateCellsRequest {
   Notebook notebook = 1;
 }
 
-message RunmeGenerateResponse {
+message GenerateCellsResponse {
   repeated Cell cells = 1;
 }
 
-// The Runme service is used to integrate with Runme.
-service RunmeGenerateService {
-  rpc Generate (RunmeGenerateRequest) returns (RunmeGenerateResponse) {}
+// The AIService service is used to provide assistant capabilities to Runme.
+service AIService {
+  // GenerateCells uses the AI to generate cells to insert into the notebook.
+  rpc GenerateCells (GenerateCellsRequest) returns (GenerateCellsResponse) {}
 }
