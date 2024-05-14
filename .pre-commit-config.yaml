@@ -10,12 +10,12 @@ repos:
     hooks:
       - id: codespell
         args: ["-L=ndoes,nd,clen"] # 2x words that are preceeded with "\n"; cLen
-        exclude: (package.*\.json$|go\.sum|internal/gen)
+        exclude: (package.*\.json$|go\.sum|pkg/gen)
   - repo: https://github.com/TekWizely/pre-commit-golang
     rev: v1.0.0-rc.1
     hooks:
       - id: go-fumpt
-        exclude: (^internal/gen/.*$|^internal/client/graphql/query/generated.go$)
+        exclude: (^pkg/gen/.*$|^internal/client/graphql/query/generated.go$)
       - id: go-build-mod
       - id: go-mod-tidy
       - id: go-revive-repo-mod

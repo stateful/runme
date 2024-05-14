@@ -3,7 +3,7 @@ package command
 import (
 	"path/filepath"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v2alpha1"
 )
 
 func modeNormalizer(cfg *Config) (func() error, error) {

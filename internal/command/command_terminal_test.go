@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v2alpha1"
 )
 
 func TestTerminalCommand_Options_Stdinwriter_Nil(t *testing.T) {

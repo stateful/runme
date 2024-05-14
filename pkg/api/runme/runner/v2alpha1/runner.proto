@@ -1,0 +1,280 @@
+syntax = "proto3";
+
+package runme.runner.v2alpha1;
+
+import "google/protobuf/wrappers.proto";
+import "runme/runner/v2alpha1/config.proto";
+
+option go_package = "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v2alpha1;runnerv2alpha1";
+
+message Project {
+  // root is a root directory of the project.
+  // The semantic is the same as for the "--project"
+  // flag in "runme".
+  string root = 1;
+
+  // env_load_order is list of environment files
+  // to try and load env from.
+  repeated string env_load_order = 2;
+}
+
+message Session {
+  string id = 1;
+
+  // env keeps track of session environment variables.
+  // They can be modified by executing programs which
+  // alter them through "export" and "unset" commands.
+  repeated string env = 2;
+
+  // metadata is a map of client specific metadata.
+  map<string, string> metadata = 3;
+}
+
+message CreateSessionRequest {
+  // metadata is a map of client specific metadata.
+  map<string, string> metadata = 1;
+
+  // env field provides an initial set of environment variables
+  // for a newly created session.
+  repeated string env = 2;
+
+  // project from which to load environment variables.
+  // They will be appended to the list from the env field.
+  // The env field has a higher priority.
+  optional Project project = 3;
+}
+
+message CreateSessionResponse {
+  Session session = 1;
+}
+
+message GetSessionRequest {
+  string id = 1;
+}
+
+message GetSessionResponse {
+  Session session = 1;
+}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message UpdateSessionRequest {
+  string id = 1;
+
+  // metadata is a map of client specific metadata.
+  map<string, string> metadata = 2;
+
+  // env field provides an initial set of environment variables
+  // for a newly created session.
+  repeated string env = 3;
+
+  // project from which to load environment variables.
+  // They will be appended to the list from the env field.
+  // The env field has a higher priority.
+  optional Project project = 4;
+}
+
+message UpdateSessionResponse {
+  Session session = 1;
+}
+
+message DeleteSessionRequest {
+  string id = 1;
+}
+
+message DeleteSessionResponse {}
+
+enum ExecuteStop {
+  EXECUTE_STOP_UNSPECIFIED = 0;
+  EXECUTE_STOP_INTERRUPT = 1;
+  EXECUTE_STOP_KILL = 2;
+}
+
+// SessionStrategy determines a session selection in
+// an initial execute request.
+enum SessionStrategy {
+  // Uses the session_id field to determine the session.
+  // If none is present, a new session is created.
+  SESSION_STRATEGY_UNSPECIFIED = 0;
+  // Uses the most recent session on the server.
+  // If there is none, a new one is created.
+  SESSION_STRATEGY_MOST_RECENT = 1;
+}
+
+message Winsize {
+  uint32 rows = 1;
+  uint32 cols = 2;
+  uint32 x = 3;
+  uint32 y = 4;
+}
+
+message ExecuteRequest {
+  runme.runner.v2alpha1.ProgramConfig config = 1;
+
+  // input_data is a byte array that will be send as input
+  // to the program.
+  bytes input_data = 8;
+
+  // stop requests the running process to be stopped.
+  // It is allowed only in the consecutive calls.
+  ExecuteStop stop = 9;
+
+  // sets pty winsize
+  // has no effect in non-interactive mode
+  optional Winsize winsize = 10;
+
+  // session_id indicates in which Session the program should execute.
+  // Executing in a Session might provide additional context like
+  // environment variables.
+  string session_id = 20;
+
+  // session_strategy is a strategy for selecting the session.
+  SessionStrategy session_strategy = 21;
+
+  // project used to load environment variables from .env files.
+  optional Project project = 22;
+
+  // store_stdout_in_env, if true, will store the stdout under well known name
+  // and the last ran block in the environment variable `__`.
+  bool store_stdout_in_env = 23;
+}
+
+message ExecuteResponse {
+  // exit_code is sent only in the final message.
+  google.protobuf.UInt32Value exit_code = 1;
+
+  // stdout_data contains bytes from stdout since the last response.
+  bytes stdout_data = 2;
+
+  // stderr_data contains bytes from stderr since the last response.
+  bytes stderr_data = 3;
+
+  // pid contains the process' PID.
+  //
+  // This is only sent once in an initial response for background processes.
+  google.protobuf.UInt32Value pid = 4;
+
+  // mime_type is a detected MIME type of the stdout_data.
+  //
+  // This is only sent once in the first response containing stdout_data.
+  string mime_type = 5;
+}
+
+message ResolveProgramCommandList {
+  // commands are commands to be executed by the program.
+  // The commands are joined and executed as a script.
+  // For example: ["echo 'Hello, World'", "ls -l /etc"].
+  repeated string lines = 1;
+}
+
+message ResolveProgramRequest {
+  // use script for unnormalized cell content
+  // whereas commands is for normalized shell commands
+  oneof source {
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    ResolveProgramCommandList commands = 1;
+
+    // script is code to be executed by the program.
+    // Individual lines are joined with the new line character.
+    string script = 2;
+  }
+
+  // mode determines how variables resolution occurs.
+  // It is usually based on document or cell annotation config.
+  Mode mode = 3;
+
+  // env is a list of explicit environment variables that will be used
+  // to resolve the environment variables found in the source.
+  repeated string env = 4;
+
+  // session_id indicates which session is the source of
+  // environment variables. If not provided, the most recent
+  // session can be used using session_strategy.
+  string session_id = 5;
+
+  // session_strategy is a strategy for selecting the session.
+  SessionStrategy session_strategy = 6;
+
+  // project used to load environment variables from .env files.
+  optional Project project = 7;
+
+  enum Mode {
+    // unspecified is auto (default) which prompts for all
+    // unresolved environment variables.
+    // Subsequent runs will likely resolve via the session.
+    MODE_UNSPECIFIED = 0;
+    // prompt always means to prompt for all environment variables.
+    MODE_PROMPT_ALL = 1;
+    // skip means to not prompt for any environment variables.
+    // All variables will be marked as resolved.
+    MODE_SKIP_ALL = 2;
+  }
+}
+
+message ResolveProgramResponse {
+  string script = 1;
+
+  // use script until commands normalization is implemented
+  ResolveProgramCommandList commands = 2;
+
+  repeated VarResult vars = 3;
+
+  message VarResult {
+    // prompt indicates the resolution status of the env variable.
+    Status status = 1;
+
+    // name is the name of the environment variable.
+    string name = 2;
+
+    // original_value is a default value of the environment variable.
+    // It might be a value that is assigned to the variable in the script,
+    // like FOO=bar or FOO=${FOO:-bar}.
+    // If the variable is not assigned, it is an empty string.
+    string original_value = 3;
+
+    // resolved_value is a value of the environment variable resolved from a source.
+    // If it is an empty string, it means that the environment variable is not resolved.
+    string resolved_value = 4;
+  }
+
+  enum Status {
+    // unspecified is the default value and it means unresolved.
+    STATUS_UNSPECIFIED = 0;
+    // unresolved with message means that the variable is unresolved
+    // but it contains a message. E.g. FOO=this is message
+    STATUS_UNRESOLVED_WITH_MESSAGE = 1;
+    // unresolved with placeholder means that the variable is unresolved
+    // but it contains a placeholder. E.g. FOO="this is placeholder"
+    STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
+    // resolved means that the variable is resolved.
+    STATUS_RESOLVED = 3;
+  }
+}
+
+service RunnerService {
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {}
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {}
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {}
+  rpc UpdateSession(UpdateSessionRequest) returns (UpdateSessionResponse) {}
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
+
+  // Execute executes a program. Examine "ExecuteRequest" to explore
+  // configuration options.
+  //
+  // It's a bidirectional stream RPC method. It expects the first
+  // "ExecuteRequest" to contain details of a program to execute.
+  // Subsequent "ExecuteRequest" should only contain "input_data" as
+  // other fields will be ignored.
+  rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
+
+  // ResolveProgram resolves variables from a script or a list of commands
+  // using the provided sources, which can be a list of environment variables,
+  // a session, or a project.
+  // For now, the resolved variables are only the exported ones using `export`.
+  rpc ResolveProgram(ResolveProgramRequest) returns (ResolveProgramResponse) {}
+}

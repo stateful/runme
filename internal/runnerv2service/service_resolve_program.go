@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/stateful/runme/v3/internal/command"
-	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v2alpha1"
 )
 
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.ResolveProgramRequest) (*runnerv2alpha1.ResolveProgramResponse, error) {

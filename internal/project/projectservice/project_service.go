@@ -7,8 +7,8 @@ import (
 
 	"go.uber.org/zap"
 
-	projectv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/project/v1"
 	"github.com/stateful/runme/v3/internal/project"
+	projectv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/project/v1"
 )
 
 type projectServiceServer struct {

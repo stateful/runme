@@ -1,0 +1,395 @@
+syntax = "proto3";
+
+package runme.runner.v1;
+
+import "google/protobuf/wrappers.proto";
+
+option go_package = "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v1;runnerv1";
+
+message Session {
+  string id = 1;
+
+  // envs keeps track of session environment variables.
+  // They can be modified by executing programs which
+  // alter them through "export" and "unset" commands.
+  repeated string envs = 2;
+
+  // metadata is a map of client specific metadata.
+  map<string, string> metadata = 3;
+}
+
+// env store implementation
+enum SessionEnvStoreType {
+  // uses default env store
+  SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
+  // uses owl store
+  SESSION_ENV_STORE_TYPE_OWL = 1;
+}
+
+message CreateSessionRequest {
+  // metadata is a map of client specific metadata.
+  map<string, string> metadata = 1;
+
+  // envs field provides an initial set of environment variables
+  // for a newly created session.
+  repeated string envs = 2;
+
+  // optional project from which to immediately load environment variables
+  optional Project project = 3;
+
+  // optional selection of which env store implementation to sue
+  SessionEnvStoreType env_store_type = 4;
+}
+
+message CreateSessionResponse {
+  Session session = 1;
+}
+
+message GetSessionRequest {
+  string id = 1;
+}
+
+message GetSessionResponse {
+  Session session = 1;
+}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message DeleteSessionRequest {
+  string id = 1;
+}
+
+message DeleteSessionResponse {}
+
+enum ExecuteStop {
+  EXECUTE_STOP_UNSPECIFIED = 0;
+  EXECUTE_STOP_INTERRUPT = 1;
+  EXECUTE_STOP_KILL = 2;
+}
+
+enum CommandMode {
+  COMMAND_MODE_UNSPECIFIED = 0;
+  COMMAND_MODE_INLINE_SHELL = 1;
+  COMMAND_MODE_TEMP_FILE = 2;
+  COMMAND_MODE_TERMINAL = 3;
+}
+
+message Project {
+  // project root folder
+  string root = 1;
+
+  // list of environment files to try and load
+  // start with
+  repeated string env_load_order = 2;
+}
+
+// strategy for selecting a session in an initial execute request
+enum SessionStrategy {
+  // uses session_id field to determine session
+  // if none is present, a new session is created
+  SESSION_STRATEGY_UNSPECIFIED = 0;
+  // uses most recently used session on the grpc server
+  // if there is none, a new one is created
+  SESSION_STRATEGY_MOST_RECENT = 1;
+}
+
+message Winsize {
+  // number of rows (in cells)
+  uint32 rows = 1;
+  // number of columns (in cells)
+  uint32 cols = 2;
+  // width in pixels
+  uint32 x = 3;
+  // height in pixels
+  uint32 y = 4;
+}
+
+message ExecuteRequest {
+  // program_name is a name of the program to execute.
+  // If it's not a path (relative or absolute), the runner
+  // will try to resolve the name.
+  // For example: "sh", "/bin/bash".
+  string program_name = 1;
+
+  // arguments is a list of arguments passed to the program.
+  repeated string arguments = 2;
+
+  // directory to execute the program in.
+  string directory = 3;
+
+  // envs is a list of additional environment variables
+  // that will be injected to the executed program.
+  repeated string envs = 4;
+
+  // commands are commands to be executed by the program.
+  // The commands are joined and executed as a script.
+  // For example: "echo 'Hello, World'", "ls -l /etc".
+  // This is mutually exclusive with the script field.
+  repeated string commands = 5;
+
+  // script is code to be executed by the program.
+  // Individual lines are joined with the new line character.
+  // This is mutually exclusive with the commands field.
+  string script = 6;
+
+  // tty when true allocates a pseudo-TTY.
+  bool tty = 7;
+
+  // input_data is a byte array that will be send as input
+  // to the program.
+  bytes input_data = 8;
+
+  // stop requests the running process to be stopped.
+  // It is allowed only in the consecutive calls.
+  ExecuteStop stop = 9;
+
+  // sets pty winsize
+  // has no effect in non-interactive mode
+  optional Winsize winsize = 10;
+
+  // background indicates a background process
+  // this will send the process' PID as a first response
+  bool background = 11;
+
+  // session_id indicates in which Session the program should execute.
+  // Executing in a Session might provide additional context like
+  // environment variables.
+  string session_id = 20;
+
+  // strategy for selecting session
+  SessionStrategy session_strategy = 21;
+
+  // project for this runner
+  // used to load environment variables from .env files
+  optional Project project = 22;
+
+  // whether to store the stdout of the last ran
+  // block in the environment variable `__`
+  bool store_last_output = 23;
+
+  CommandMode command_mode = 24;
+
+  // language id associated with script
+  string language_id = 25;
+
+  // file extension associated with script
+  string file_extension = 26;
+
+  // optional well known id for cell/block. "know" meaning that
+  // CLI/notebook UX have id/name for cells/blocks that contain commands.
+  // While the runner doesn't require the name to work, it is useful for
+  // auxiliary concerns (e.g. tracing, logging, etc).
+  string known_id = 27;
+
+  // optional well known name for cell/block. "know" meaning that
+  // CLI/notebook UX have id/name for cells/blocks that contain commands.
+  // While the runner doesn't require the name to work, it is useful for
+  // auxiliary concerns (e.g. tracing, logging, etc).
+  string known_name = 28;
+}
+
+message ProcessPID {
+  int64 pid = 1;
+}
+
+message ExecuteResponse {
+  // exit_code is sent only in the final message.
+  google.protobuf.UInt32Value exit_code = 1;
+
+  // stdout_data contains bytes from stdout since the last response.
+  bytes stdout_data = 2;
+
+  // stderr_data contains bytes from stderr since the last response.
+  bytes stderr_data = 3;
+
+  // pid contains the process' PID
+  // this is only sent once in an initial response for background processes.
+  ProcessPID pid = 4;
+
+  // mime_type is a detected MIME type of the stdout_data.
+  //
+  // This is only sent once in the first response containing stdout_data.
+  string mime_type = 5;
+}
+
+message ResolveProgramCommandList {
+  // commands are commands to be executed by the program.
+  // The commands are joined and executed as a script.
+  // For example: ["echo 'Hello, World'", "ls -l /etc"].
+  repeated string lines = 1;
+}
+
+message ResolveProgramRequest {
+  // use script for unnormalized cell content
+  // whereas commands is for normalized shell commands
+  oneof source {
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    ResolveProgramCommandList commands = 1;
+
+    // script is code to be executed by the program.
+    // Individual lines are joined with the new line character.
+    string script = 2;
+  }
+
+  // mode determines how variables resolution occurs.
+  // It is usually based on document or cell annotation config.
+  Mode mode = 3;
+
+  // env is a list of explicit environment variables that will be used
+  // to resolve the environment variables found in the source.
+  repeated string env = 4;
+
+  // session_id indicates which session is the source of
+  // environment variables. If not provided, the most recent
+  // session can be used using session_strategy.
+  string session_id = 5;
+
+  // session_strategy is a strategy for selecting the session.
+  SessionStrategy session_strategy = 6;
+
+  // project used to load environment variables from .env files.
+  optional Project project = 7;
+
+  enum Mode {
+    // unspecified is auto (default) which prompts for all
+    // unresolved environment variables.
+    // Subsequent runs will likely resolve via the session.
+    MODE_UNSPECIFIED = 0;
+    // prompt always means to prompt for all environment variables.
+    MODE_PROMPT_ALL = 1;
+    // skip means to not prompt for any environment variables.
+    // All variables will be marked as resolved.
+    MODE_SKIP_ALL = 2;
+  }
+}
+
+message ResolveProgramResponse {
+  string script = 1;
+
+  // use script until commands normalization is implemented
+  ResolveProgramCommandList commands = 2;
+
+  repeated VarResult vars = 3;
+
+  message VarResult {
+    // prompt indicates the resolution status of the env variable.
+    Status status = 1;
+
+    // name is the name of the environment variable.
+    string name = 2;
+
+    // original_value is a default value of the environment variable.
+    // It might be a value that is assigned to the variable in the script,
+    // like FOO=bar or FOO=${FOO:-bar}.
+    // If the variable is not assigned, it is an empty string.
+    string original_value = 3;
+
+    // resolved_value is a value of the environment variable resolved from a source.
+    // If it is an empty string, it means that the environment variable is not resolved.
+    string resolved_value = 4;
+  }
+
+  enum Status {
+    // unspecified is the default value and it means unresolved.
+    STATUS_UNSPECIFIED = 0;
+    // unresolved with message means that the variable is unresolved
+    // but it contains a message. E.g. FOO=this is message
+    STATUS_UNRESOLVED_WITH_MESSAGE = 1;
+    // unresolved with placeholder means that the variable is unresolved
+    // but it contains a placeholder. E.g. FOO="this is placeholder"
+    STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
+    // resolved means that the variable is resolved.
+    STATUS_RESOLVED = 3;
+    // unresolved with secret means that the variable is unresolved
+    // and it requires treatment as a secret.
+    STATUS_UNRESOLVED_WITH_SECRET = 4;
+  }
+}
+
+enum MonitorEnvStoreType {
+  MONITOR_ENV_STORE_TYPE_UNSPECIFIED = 0;
+  MONITOR_ENV_STORE_TYPE_SNAPSHOT = 1;
+  // possible expansion to have a "timeline" view
+  // MONITOR_ENV_STORE_TYPE_TIMELINE = 2;
+}
+
+message MonitorEnvStoreRequest {
+  Session session = 1;
+}
+
+message MonitorEnvStoreResponseSnapshot {
+  repeated SnapshotEnv envs = 1;
+
+  message SnapshotEnv {
+    Status status = 1;
+
+    string name = 2;
+
+    string spec = 3;
+
+    string origin = 4;
+
+    string original_value = 5;
+
+    string resolved_value = 6;
+
+    string create_time = 7;
+
+    string update_time = 8;
+
+    repeated Error errors = 9;
+  }
+
+  message Error {
+    uint32 code = 1;
+
+    string message = 2;
+  }
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+
+    STATUS_LITERAL = 1;
+
+    STATUS_HIDDEN = 2;
+
+    STATUS_MASKED = 3;
+  }
+}
+
+message MonitorEnvStoreResponse {
+  MonitorEnvStoreType type = 1;
+
+  oneof data {
+    MonitorEnvStoreResponseSnapshot snapshot = 2;
+  }
+}
+
+service RunnerService {
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {}
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {}
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {}
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
+
+  rpc MonitorEnvStore(MonitorEnvStoreRequest) returns (stream MonitorEnvStoreResponse) {}
+
+  // Execute executes a program. Examine "ExecuteRequest" to explore
+  // configuration options.
+  //
+  // It's a bidirectional stream RPC method. It expects the first
+  // "ExecuteRequest" to contain details of a program to execute.
+  // Subsequent "ExecuteRequest" should only contain "input_data" as
+  // other fields will be ignored.
+  rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
+
+  // ResolveProgram resolves variables from a script or a list of commands
+  // using the provided sources, which can be a list of environment variables,
+  // a session, or a project.
+  // For now, the resolved variables are only the exported ones using `export`.
+  rpc ResolveProgram(ResolveProgramRequest) returns (ResolveProgramResponse) {}
+}

@@ -3,8 +3,8 @@ package cmd
 import (
 	"testing"
 
-	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/internal/tui/prompt"
+	runnerv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v1"
 	"github.com/stretchr/testify/assert"
 )
 

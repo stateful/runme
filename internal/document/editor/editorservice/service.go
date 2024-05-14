@@ -10,7 +10,7 @@ import (
 	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/document/editor"
 	"github.com/stateful/runme/v3/internal/document/identity"
-	parserv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/parser/v1"
+	parserv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/parser/v1"
 )
 
 type parserServiceServer struct {

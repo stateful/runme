@@ -24,7 +24,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 
-	runnerv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v1"
+	runnerv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v1"
 )
 
 func testCreateLogger(t *testing.T) *zap.Logger {

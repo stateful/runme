@@ -2,15 +2,15 @@ version: v1
 plugins:
   # Remote plugin. You can switch to a local one by using "go".
   - plugin: buf.build/protocolbuffers/go
-    out: internal/gen/proto/go
+    out: pkg/gen/proto/go
     opt: paths=source_relative
 
   # Remote plugin. You can switch to a local one by using "go-grpc".
   - plugin: buf.build/grpc/go
-    out: internal/gen/proto/go
+    out: pkg/gen/proto/go
     opt: paths=source_relative
 
   # Remote plugin. You can switch to a local one by using "timostamm-protobuf-ts".
   - plugin: buf.build/community/timostamm-protobuf-ts
-    out: internal/gen/proto/ts
+    out: pkg/gen/proto/ts
     opt: output_javascript,optimize_code_size,long_type_string,add_pb_suffix,ts_nocheck,eslint_disable

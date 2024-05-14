@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	parserv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/internal/version"
+	parserv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/parser/v1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

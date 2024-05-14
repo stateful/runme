@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stateful/runme/v3/internal/ulid"
+	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v2alpha1"
 )
 
 func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) error {

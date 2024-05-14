@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package runme.runner.v2alpha1;
+
+option go_package = "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v2alpha1;runnerv2alpha1";
+
+enum CommandMode {
+  COMMAND_MODE_UNSPECIFIED = 0;
+  COMMAND_MODE_INLINE = 1;
+  COMMAND_MODE_FILE = 2;
+  COMMAND_MODE_TERMINAL = 3;
+}
+
+// ProgramConfig is a configuration for a program to execute.
+// From this configuration, any program can be built.
+message ProgramConfig {
+  // program_name is a name of the program to execute.
+  // If it's not a path (relative or absolute), the runner
+  // will try to resolve the name.
+  // For example: "sh", "/bin/bash".
+  string program_name = 1;
+
+  // arguments is a list of arguments passed to the program.
+  repeated string arguments = 2;
+
+  // directory to execute the program in.
+  string directory = 3;
+
+  // language_id associated with script to allow interpreter
+  // detection if no specific interpreter program is provided.
+  string language_id = 4;
+
+  // background indicates a background process
+  // required to handle running background tasks via CLI in C/I
+  bool background = 5;
+
+  // file_extension associated with script. Some interpreters are strict
+  // about file extensions, such as tsc which requires "ts" extension.
+  string file_extension = 6;
+
+  // env is a list of additional environment variables
+  // that will be injected to the executed program.
+  repeated string env = 7;
+
+  oneof source {
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    CommandList commands = 8;
+
+    // script is code to be executed by the program.
+    // Individual lines are joined with the new line character.
+    string script = 9;
+  }
+
+  // interactive, if true, uses a pseudo-tty to execute the program.
+  // Otherwise, the program is executed using in-memory buffers for I/O.
+  bool interactive = 10;
+
+  // TODO(adamb): understand motivation for this. In theory, source
+  // should tell whether to execute it inline or as a file.
+  CommandMode mode = 11;
+
+  // optional well known id for cell/block
+  string known_id = 12;
+
+  // optional well known name for cell/block
+  string known_name = 13;
+
+  message CommandList {
+    // commands are commands to be executed by the program.
+    // The commands are joined and executed as a script.
+    // For example: ["echo 'Hello, World'", "ls -l /etc"].
+    repeated string items = 1;
+  }
+}

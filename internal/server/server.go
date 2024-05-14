@@ -14,12 +14,12 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/stateful/runme/v3/internal/document/editor/editorservice"
-	parserv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/parser/v1"
-	projectv1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/project/v1"
-	runnerv2alpha1 "github.com/stateful/runme/v3/internal/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stateful/runme/v3/internal/project/projectservice"
 	"github.com/stateful/runme/v3/internal/runnerv2service"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
+	parserv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/parser/v1"
+	projectv1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/project/v1"
+	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/gen/proto/go/runme/runner/v2alpha1"
 )
 
 const (
