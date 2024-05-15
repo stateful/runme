@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package runme.ai.v1alpha1;
+
+import "runme/parser/v1/parser.proto";
+option go_package = "github.com/stateful/runme/pkg/api/gen/proto/go/runme/ai/v1alpha1;aiv1alpha1";
+
+message GenerateCellsRequest {
+  runme.parser.v1.Notebook notebook = 1;
+}
+
+message GenerateCellsResponse {
+  repeated runme.parser.v1.Cell cells = 1;
+}
+
+// The AIService service is used to provide assistant capabilities to Runme.
+service AIService {
+  // GenerateCells uses the AI to generate cells to insert into the notebook.
+  rpc GenerateCells (GenerateCellsRequest) returns (GenerateCellsResponse) {}
+}
