@@ -113,7 +113,7 @@ proto/dev/reset:
 # More: https://docs.buf.build/bsr/authentication
 .PHONY: proto/publish
 proto/publish:
-	@cd ./pkg/api && buf push
+	@cd ./pkg/api/proto && buf push
 
 .PHONY: release
 release: install/goreleaser
