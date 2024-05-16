@@ -13,6 +13,7 @@ import (
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/document/editor/editorservice"
 	"github.com/stateful/runme/v3/internal/project/projectservice"
 	"github.com/stateful/runme/v3/internal/runnerv2service"
@@ -83,7 +84,7 @@ func New(c *Config, logger *zap.Logger) (_ *Server, err error) {
 	// Register runme services.
 	parserv1.RegisterParserServiceServer(grpcServer, editorservice.NewParserServiceServer(logger))
 	projectv1.RegisterProjectServiceServer(grpcServer, projectservice.NewProjectServiceServer(logger))
-	runnerService, err := runnerv2service.NewRunnerService()
+	runnerService, err := runnerv2service.NewRunnerService(command.NewFactory(nil, nil, logger), logger)
 	if err != nil {
 		return nil, err
 	}

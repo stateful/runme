@@ -69,7 +69,6 @@ func newExecution(
 		Stdin:       stdin,
 		Stdout:      stdout,
 		Stderr:      stderr,
-		Logger:      logger,
 	}
 
 	cmd := factory.Build(cfg, cmdOptions)
@@ -194,7 +193,7 @@ func (e *execution) Write(p []byte) (int, error) {
 	// Close stdin writer for non-interactive commands after handling the initial request.
 	// Non-interactive commands do not support sending data continuously and require that
 	// the stdin writer to be closed to finish processing the input.
-	if ok := e.Cmd.IsInteractive(); ok {
+	if ok := e.Cmd.Interactive(); !ok {
 		if closeErr := e.stdinWriter.Close(); closeErr != nil {
 			e.logger.Info("failed to close native command stdin writer", zap.Error(closeErr))
 			if err == nil {
@@ -211,13 +210,8 @@ func (e *execution) SetWinsize(size *runnerv2alpha1.Winsize) error {
 		return nil
 	}
 
-	cmd, ok := e.Cmd.(command.CommandWithPty)
-	if !ok {
-		return errors.New("command does not support setting winsize")
-	}
-
 	return command.SetWinsize(
-		cmd,
+		e.Cmd,
 		&command.Winsize{
 			Rows: uint16(size.Rows),
 			Cols: uint16(size.Cols),

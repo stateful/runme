@@ -3,18 +3,14 @@ package command
 import (
 	"bytes"
 	"context"
+
+	"go.uber.org/zap"
 )
 
 type inlineCommand struct {
 	internalCommand
-}
 
-var _ Command = (*inlineCommand)(nil)
-
-func newInline(internal internalCommand) *inlineCommand {
-	return &inlineCommand{
-		internalCommand: internal,
-	}
+	logger *zap.Logger
 }
 
 func (c *inlineCommand) Start(ctx context.Context) error {

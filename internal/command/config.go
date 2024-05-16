@@ -1,6 +1,7 @@
 package command
 
 import (
+	"path/filepath"
 	"strings"
 
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
@@ -20,6 +21,21 @@ func redactConfig(cfg *ProgramConfig) *ProgramConfig {
 		Source:      cfg.Source,
 		Interactive: cfg.Interactive,
 		Mode:        cfg.Mode,
+	}
+}
+
+func isShell(cfg *ProgramConfig) bool {
+	return isShellProgram(filepath.Base(cfg.ProgramName)) || isShellLanguage(cfg.LanguageId)
+}
+
+func isShellProgram(programName string) bool {
+	switch strings.ToLower(programName) {
+	case "sh", "bash", "zsh", "ksh", "shell":
+		return true
+	case "cmd", "powershell", "pwsh", "fish":
+		return true
+	default:
+		return false
 	}
 }
 

@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"os"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -11,14 +12,15 @@ type terminalCommand struct {
 	internalCommand
 
 	envCollector *shellEnvCollector
+	logger       *zap.Logger
 }
 
-var _ Command = (*terminalCommand)(nil)
-
-func newTerminal(cfg *ProgramConfig, opts Options) *terminalCommand {
-	return &terminalCommand{
-		internalCommand: newVirtual(cfg, opts),
+func (c *terminalCommand) getPty() *os.File {
+	cmdPty, ok := c.internalCommand.(commandWithPty)
+	if !ok {
+		return nil
 	}
+	return cmdPty.getPty()
 }
 
 func (c *terminalCommand) Start(ctx context.Context) error {
@@ -26,11 +28,11 @@ func (c *terminalCommand) Start(ctx context.Context) error {
 		return errors.New("stdin writer is nil")
 	}
 
-	c.Logger().Info("starting a terminal command")
+	c.logger.Info("starting a terminal command")
 	if err := c.internalCommand.Start(ctx); err != nil {
 		return err
 	}
-	c.Logger().Info("a terminal command started")
+	c.logger.Info("a terminal command started")
 
 	// [shellEnvCollector] writes defines a function collecting env and
 	// registers it as a trap directly into the shell interactive session.
@@ -41,7 +43,7 @@ func (c *terminalCommand) Start(ctx context.Context) error {
 func (c *terminalCommand) Wait() (err error) {
 	err = c.internalCommand.Wait()
 	if cErr := c.collectEnv(); cErr != nil {
-		c.Logger().Info("failed to collect the environment", zap.Error(cErr))
+		c.logger.Info("failed to collect the environment", zap.Error(cErr))
 		if err == nil {
 			err = cErr
 		}

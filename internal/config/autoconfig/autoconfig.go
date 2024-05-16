@@ -42,7 +42,6 @@ func mustProvide(err error) {
 }
 
 func init() {
-	mustProvide(container.Provide(getRootConfig))
 	mustProvide(container.Provide(getCommandFactory))
 	mustProvide(container.Provide(getConfigLoader))
 	mustProvide(container.Provide(getKernel))
@@ -54,31 +53,8 @@ func init() {
 	mustProvide(container.Provide(getUserConfigDir))
 }
 
-func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.Config, error) {
-	content, err := cfgLoader.RootConfig()
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to load project configuration")
-	}
-
-	cfg, err := config.ParseYAML(content)
-	if err != nil {
-		return nil, err
-	}
-
-	if cfg.ServerTLSEnabled {
-		if cfg.ServerTLSCertFile == "" {
-			cfg.ServerTLSCertFile = filepath.Join(string(userCfgDir), "cert.pem")
-		}
-		if cfg.ServerTLSKeyFile == "" {
-			cfg.ServerTLSKeyFile = filepath.Join(string(userCfgDir), "key.pem")
-		}
-	}
-
-	return cfg, nil
-}
-
-func getCommandFactory(cfg *config.Config, kernel command.Kernel) command.Factory {
-	return command.NewFactory(cfg, kernel)
+func getCommandFactory(cfg *config.Config, kernel command.Kernel, logger *zap.Logger) command.Factory {
+	return command.NewFactory(cfg, kernel, logger)
 }
 
 func getConfigLoader() (*config.Loader, error) {
@@ -88,6 +64,10 @@ func getConfigLoader() (*config.Loader, error) {
 }
 
 func getKernel(c *config.Config, logger *zap.Logger) (_ command.Kernel, err error) {
+	if len(c.Kernels) == 0 {
+		return command.NewLocalKernel(&config.LocalKernel{}), nil
+	}
+
 	// Find the first kernel that can be instantiated without error.
 	// This is inline with how the kernels are described in the configuration file.
 	for _, kernelCfg := range c.Kernels {
@@ -101,6 +81,7 @@ func getKernel(c *config.Config, logger *zap.Logger) (_ command.Kernel, err erro
 	if err != nil {
 		return nil, errors.Wrap(err, "no valid kernel found")
 	}
+
 	return nil, errors.New("kernel not found")
 }
 
@@ -233,6 +214,29 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 	}
 
 	return filters, nil
+}
+
+func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.Config, error) {
+	content, err := cfgLoader.RootConfig()
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to load project configuration")
+	}
+
+	cfg, err := config.ParseYAML(content)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.ServerTLSEnabled {
+		if cfg.ServerTLSCertFile == "" {
+			cfg.ServerTLSCertFile = filepath.Join(string(userCfgDir), "cert.pem")
+		}
+		if cfg.ServerTLSKeyFile == "" {
+			cfg.ServerTLSKeyFile = filepath.Join(string(userCfgDir), "key.pem")
+		}
+	}
+
+	return cfg, nil
 }
 
 func getSession(cfg *config.Config, proj *project.Project) (*command.Session, error) {

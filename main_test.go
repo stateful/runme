@@ -4,18 +4,16 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"syscall"
 	"testing"
-	"time"
 
 	"github.com/creack/pty"
 	"github.com/rogpeppe/go-internal/testscript"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -59,34 +57,23 @@ func TestRunmeBeta(t *testing.T) {
 }
 
 func TestSkipPromptsWithinAPty(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	_ = os.Setenv("RUNME_VERBOSE", "false")
+	err := os.Setenv("RUNME_VERBOSE", "false")
+	require.NoError(t, err)
 	defer os.Unsetenv("RUNME_VERBOSE")
 
 	cmd := exec.Command("go", "run", ".", "run", "skip-prompts-sample", "--chdir", "./examples/frontmatter/skipPrompts")
 	ptmx, err := pty.StartWithAttrs(cmd, &pty.Winsize{Rows: 25, Cols: 80}, &syscall.SysProcAttr{})
-	if err != nil {
-		t.Fatalf("Could not start command with pty: %s", err)
-	}
+	require.NoError(t, err)
 	defer ptmx.Close()
 
 	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(ptmx)
-
-	if ctx.Err() == context.DeadlineExceeded {
-		t.Fatalf("Command timed out")
-		return
-	}
-
-	assert.Nil(t, err, "Command execution failed")
+	_, _ = buf.ReadFrom(ptmx) // ignoring errors explicitly
 
 	expected := "The content of ENV is <insert-env-here>"
 	current := buf.String()
 	current = removeAnsiCodes(current)
 	current = strings.TrimSpace(current)
-
-	assert.Equal(t, expected, current, "Output does not match")
+	require.Equal(t, expected, current, "output does not match")
 }
 
 func removeAnsiCodes(str string) string {
