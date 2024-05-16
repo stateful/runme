@@ -39,7 +39,7 @@ test/coverage: PKGS ?= "./..."
 test/coverage: RUN ?= .*
 test/coverage: TAGS ?= "" # e.g. TAGS="test_with_docker"
 test/coverage: build test/prep-git-project
-	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=90s -covermode=atomic -coverprofile=cover.out -coverpkg=./github.com/stateful/runme/v3 $(PKGS)
+	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=90s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
 .PHONY: test/prep-git-project
 test/prep-git-project:
@@ -55,6 +55,9 @@ test/clean-git-project:
 
 .PHONY: test
 test: test/prep-git-project test/execute test/clean-git-project
+
+.PHONY: test-coverage
+test-coverage: test/prep-git-project test/coverage test/clean-git-project
 
 .PHONY: test/update-snapshots
 test/update-snapshots:

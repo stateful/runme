@@ -8,11 +8,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 type Command interface {
-	IsInteractive() bool
+	Interactive() bool
 	Pid() int
 	Running() bool
 	Start(context.Context) error
@@ -20,21 +19,8 @@ type Command interface {
 	Wait() error
 }
 
-type Options struct {
-	Kernel      Kernel
-	Logger      *zap.Logger
-	Session     *Session
-	StdinWriter io.Writer
-	Stdin       io.Reader
-	Stdout      io.Writer
-	Stderr      io.Writer
-}
-
-type internalCommand interface {
-	Command
-
+type baseCommand interface {
 	Env() []string
-	Logger() *zap.Logger
 	ProgramConfig() *ProgramConfig
 	ProgramPath() (string, []string, error)
 	Session() *Session
@@ -44,10 +30,14 @@ type internalCommand interface {
 	Stderr() io.Writer
 }
 
+type internalCommand interface {
+	Command
+	baseCommand
+}
+
 type base struct {
 	cfg         *ProgramConfig
 	kernel      Kernel
-	logger      *zap.Logger
 	session     *Session
 	stdin       io.Reader
 	stdinWriter io.Writer
@@ -55,34 +45,9 @@ type base struct {
 	stderr      io.Writer
 }
 
-func newBase(cfg *ProgramConfig, opts Options) *base {
-	if opts.Kernel == nil {
-		opts.Kernel = NewLocalKernel(nil)
-	}
-
-	if opts.Session == nil {
-		opts.Session = NewSession()
-	}
-
-	if opts.Logger == nil {
-		opts.Logger = zap.NewNop()
-	}
-
-	return &base{
-		cfg:         cfg,
-		kernel:      opts.Kernel,
-		logger:      opts.Logger,
-		session:     opts.Session,
-		stdin:       opts.Stdin,
-		stdinWriter: opts.StdinWriter,
-		stdout:      opts.Stdout,
-		stderr:      opts.Stderr,
-	}
-}
-
 var _ internalCommand = (*base)(nil)
 
-func (c *base) IsInteractive() bool {
+func (c *base) Interactive() bool {
 	return c.cfg.Interactive
 }
 
@@ -92,6 +57,13 @@ func (c *base) Pid() int {
 
 func (c *base) Running() bool {
 	return false
+}
+
+func (c *base) Session() *Session {
+	if c.session == nil {
+		c.session = NewSession()
+	}
+	return c.session
 }
 
 func (c *base) Start(context.Context) error {
@@ -117,13 +89,6 @@ func (c *base) Env() []string {
 	return env
 }
 
-func (c *base) Logger() *zap.Logger {
-	if c.logger == nil {
-		c.logger = zap.NewNop()
-	}
-	return c.logger
-}
-
 func (c *base) ProgramConfig() *ProgramConfig {
 	return c.cfg
 }
@@ -135,7 +100,7 @@ func (c *base) ProgramPath() (string, []string, error) {
 
 	// If language ID is empty, interpreter lookup is futile.
 	if c.cfg.LanguageId != "" {
-		path, args, err := c.findProgramInKnownInterpretters(c.cfg.LanguageId, c.cfg.Arguments)
+		path, args, err := c.findProgramInKnownInterpreters(c.cfg.LanguageId, c.cfg.Arguments)
 		if err == nil {
 			return path, args, nil
 		}
@@ -172,7 +137,7 @@ func (c *base) findProgramInPath(name string, args []string) (string, []string, 
 	return res, args, nil
 }
 
-func (c *base) findProgramInKnownInterpretters(programName string, args []string) (string, []string, error) {
+func (c *base) findProgramInKnownInterpreters(programName string, args []string) (string, []string, error) {
 	interpreters := inferInterpreterFromLanguage(programName)
 	if len(interpreters) == 0 {
 		return "", nil, errors.Errorf("unsupported language %q", programName)
@@ -191,13 +156,6 @@ func (c *base) findProgramInKnownInterpretters(programName string, args []string
 	}
 
 	return "", nil, errors.Errorf("failed to find known interpreter out of %s", interpreters)
-}
-
-func (c *base) Session() *Session {
-	if c.session == nil {
-		c.session = NewSession()
-	}
-	return c.session
 }
 
 func (c *base) Stdin() io.Reader {

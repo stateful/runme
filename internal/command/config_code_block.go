@@ -25,7 +25,7 @@ func (b *configBuilder) Build() (*ProgramConfig, error) {
 		Interactive: b.block.Interactive(),
 	}
 
-	if isShellLanguage(cfg.LanguageId) {
+	if isShell(cfg) {
 		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
 		cfg.Source = &runnerv2alpha1.ProgramConfig_Commands{
 			Commands: &runnerv2alpha1.ProgramConfig_CommandList{

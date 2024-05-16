@@ -1,54 +1,137 @@
 package command
 
 import (
-	"path/filepath"
+	"io"
+
+	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/config"
+	"github.com/stateful/runme/v3/internal/ulid"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
+
+type Options struct {
+	Session     *Session
+	StdinWriter io.Writer
+	Stdin       io.Reader
+	Stdout      io.Writer
+	Stderr      io.Writer
+}
 
 type Factory interface {
 	Build(*ProgramConfig, Options) Command
 }
 
-func NewFactory(cfg *config.Config, kernel Kernel) Factory {
+func NewFactory(_ *config.Config, kernel Kernel, logger *zap.Logger) Factory {
 	if kernel == nil {
 		kernel = NewLocalKernel(nil)
 	}
-	return &commandFactory{cfg: cfg, kernel: kernel}
+
+	return &commandFactory{
+		kernel: kernel,
+		logger: logger,
+	}
 }
 
 type commandFactory struct {
-	cfg    *config.Config
+	_      *config.Config // unused yet
 	kernel Kernel
+	logger *zap.Logger
 }
 
 func (f *commandFactory) Build(cfg *ProgramConfig, opts Options) Command {
-	// TODO(adamb): kernel should be a factor here too.
+	mode := cfg.Mode
+	// For backward compatibility, if the mode is not specified,
+	// we will try to infer it from the language. If it's shell,
+	// we default it to inline.
+	if mode == runnerv2alpha1.CommandMode_COMMAND_MODE_UNSPECIFIED && isShell(cfg) {
+		mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
+	}
 
-	switch cfg.Mode {
-	case runnerv2alpha1.CommandMode_COMMAND_MODE_FILE:
-		base := f.buildBaseCommand(cfg, opts)
-		return newFileCommand(base)
+	switch mode {
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE:
-		base := f.buildBaseCommand(cfg, opts)
-		if isShellLanguage(cfg.LanguageId) || isShellLanguage(filepath.Base(cfg.ProgramName)) {
-			return newInlineShell(base)
+		if isShell(cfg) {
+			return &inlineShellCommand{
+				internalCommand: f.buildInternal(cfg, opts),
+				logger:          f.getLogger("InlineShellCommand"),
+			}
 		}
-		return newInline(base)
+		return &inlineCommand{
+			internalCommand: f.buildInternal(cfg, opts),
+			logger:          f.getLogger("InlineCommand"),
+		}
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL:
-		return newTerminal(cfg, opts)
+		// For terminal commands, we always want them to be interactive.
+		cfg.Interactive = true
+
+		return &terminalCommand{
+			internalCommand: f.buildVirtual(f.buildBase(cfg, opts)),
+			logger:          f.getLogger("TerminalCommand"),
+		}
+	case runnerv2alpha1.CommandMode_COMMAND_MODE_FILE:
+		fallthrough
 	default:
-		return newNative(cfg, opts)
+		return &fileCommand{
+			internalCommand: f.buildInternal(cfg, opts),
+			logger:          f.getLogger("FileCommand"),
+		}
 	}
 }
 
-func (f *commandFactory) buildBaseCommand(cfg *ProgramConfig, opts Options) internalCommand {
+func (f *commandFactory) buildBase(cfg *ProgramConfig, opts Options) *base {
+	return &base{
+		cfg:         cfg,
+		kernel:      f.kernel,
+		session:     opts.Session,
+		stdin:       opts.Stdin,
+		stdinWriter: opts.StdinWriter,
+		stdout:      opts.Stdout,
+		stderr:      opts.Stderr,
+	}
+}
+
+// buildInternal builds an internal command based on the kernel type and interactivity.
+func (f *commandFactory) buildInternal(cfg *ProgramConfig, opts Options) internalCommand {
+	base := f.buildBase(cfg, opts)
+
 	if k, ok := f.kernel.(*DockerKernel); ok {
-		return newDocker(k.docker, cfg, opts)
+		return &dockerCommand{
+			internalCommand: base,
+			docker:          k.docker,
+			logger:          f.getLogger("DockerCommand"),
+		}
 	}
-	if cfg.Interactive {
-		return newVirtual(cfg, opts)
+
+	if base.Interactive() {
+		return f.buildVirtual(base)
 	}
-	return newNative(cfg, opts)
+
+	return f.buildNative(base)
+}
+
+func (f *commandFactory) buildNative(base *base) internalCommand {
+	return &nativeCommand{
+		internalCommand: base,
+		logger:          f.getLogger("NativeCommand"),
+	}
+}
+
+func (f *commandFactory) buildVirtual(base *base) internalCommand {
+	var stdin io.ReadCloser
+
+	if !isNil(base.Stdin()) {
+		stdin = &readCloser{r: base.Stdin(), done: make(chan struct{})}
+		base.stdin = stdin
+	}
+
+	return &virtualCommand{
+		internalCommand: base,
+		stdin:           stdin,
+		logger:          f.getLogger("VirtualCommand"),
+	}
+}
+
+func (f *commandFactory) getLogger(name string) *zap.Logger {
+	id := ulid.GenerateID()
+	return f.logger.Named(name).With(zap.String("instanceID", id))
 }

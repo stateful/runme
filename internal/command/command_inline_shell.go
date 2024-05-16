@@ -14,14 +14,7 @@ type inlineShellCommand struct {
 	internalCommand
 
 	envCollector *shellEnvCollector
-}
-
-var _ Command = (*inlineShellCommand)(nil)
-
-func newInlineShell(internal internalCommand) *inlineShellCommand {
-	return &inlineShellCommand{
-		internalCommand: internal,
-	}
+	logger       *zap.Logger
 }
 
 func (c *inlineShellCommand) getPty() *os.File {
@@ -38,6 +31,8 @@ func (c *inlineShellCommand) Start(ctx context.Context) error {
 		return err
 	}
 
+	c.logger.Debug("inline shell script", zap.String("script", script))
+
 	cfg := c.ProgramConfig()
 	cfg.Arguments = append(cfg.Arguments, "-c", script)
 
@@ -49,7 +44,7 @@ func (c *inlineShellCommand) Wait() error {
 
 	if c.envCollector != nil {
 		if cErr := c.collectEnv(); cErr != nil {
-			c.Logger().Info("failed to collect the environment", zap.Error(cErr))
+			c.logger.Info("failed to collect the environment", zap.Error(cErr))
 			if err == nil {
 				err = cErr
 			}
@@ -62,9 +57,12 @@ func (c *inlineShellCommand) Wait() error {
 func (c *inlineShellCommand) build() (string, error) {
 	buf := bytes.NewBuffer(nil)
 	bw := bulkWriter{Writer: buf}
-	cfg := c.ProgramConfig()
 
-	if options := shellOptionsFromProgram(cfg.ProgramName); options != "" {
+	options, err := c.shellOptions()
+	if err != nil {
+		return "", err
+	}
+	if options != "" {
 		bw.WriteString(options)
 		bw.WriteString("\n\n")
 	}
@@ -77,6 +75,8 @@ func (c *inlineShellCommand) build() (string, error) {
 			return "", err
 		}
 	}
+
+	cfg := c.ProgramConfig()
 
 	// Write the script from the commands or the script.
 	if commands := cfg.GetCommands(); commands != nil {
@@ -110,17 +110,21 @@ func (c *inlineShellCommand) collectEnv() error {
 	return nil
 }
 
-func shellOptionsFromProgram(programPath string) (res string) {
-	base := filepath.Base(programPath)
-	shell := base[:len(base)-len(filepath.Ext(base))]
+func (c *inlineShellCommand) shellOptions() (string, error) {
+	program, _, err := c.ProgramPath()
+	if err != nil {
+		return "", err
+	}
+
+	shell := filepath.Base(program)
 
 	// TODO(mxs): powershell and DOS are missing
 	switch shell {
 	case "zsh", "ksh", "bash":
-		res += "set -e -o pipefail"
+		return "set -e -o pipefail", nil
 	case "sh":
-		res += "set -e"
+		return "set -e", nil
+	default:
+		return "", nil
 	}
-
-	return
 }

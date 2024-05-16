@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -29,6 +30,8 @@ func init() {
 }
 
 func Test_conformsOpinionatedEnvVarNaming(t *testing.T) {
+	t.Parallel()
+
 	t.Run("valid", func(t *testing.T) {
 		assert.True(t, conformsOpinionatedEnvVarNaming("TEST"))
 		assert.True(t, conformsOpinionatedEnvVarNaming("ABC"))
@@ -79,6 +82,7 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 					},
 				},
 			},
+			Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 		},
 	}
 
@@ -444,6 +448,8 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			stream, err := client.Execute(context.Background())
 			require.NoError(t, err)
 
@@ -855,12 +861,16 @@ func testStartRunnerServiceServer(t *testing.T) (
 ) {
 	t.Helper()
 
-	lis := bufconn.Listen(1024 << 10)
-	server := grpc.NewServer()
-	runnerService, err := NewRunnerService()
-	require.NoError(t, err)
+	logger := zaptest.NewLogger(t)
+	factory := command.NewFactory(nil, nil, logger)
 
+	server := grpc.NewServer()
+
+	runnerService, err := NewRunnerService(factory, logger)
+	require.NoError(t, err)
 	runnerv2alpha1.RegisterRunnerServiceServer(server, runnerService)
+
+	lis := bufconn.Listen(1024 << 10)
 	go server.Serve(lis)
 
 	return lis, server.Stop

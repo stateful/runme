@@ -66,12 +66,7 @@ Run all blocks from the "setup" and "teardown" categories:
 						return errors.WithStack(err)
 					}
 
-					options := getCommandOptions(
-						cmd,
-						kernel,
-						session,
-						logger,
-					)
+					options := getCommandOptions(cmd, session)
 
 					for _, t := range tasks {
 						err := runCodeBlock(cmd.Context(), t.CodeBlock, cmdFactory, options)
@@ -91,13 +86,9 @@ Run all blocks from the "setup" and "teardown" categories:
 
 func getCommandOptions(
 	cmd *cobra.Command,
-	kernel command.Kernel,
 	sess *command.Session,
-	logger *zap.Logger,
 ) command.Options {
 	return command.Options{
-		Kernel:  kernel,
-		Logger:  logger,
 		Session: sess,
 		Stdin:   cmd.InOrStdin(),
 		Stdout:  cmd.OutOrStdout(),
@@ -111,6 +102,16 @@ func runCodeBlock(
 	factory command.Factory,
 	options command.Options,
 ) error {
+	// TODO(adamb): [command.Config] is generated exclusively from the [document.CodeBlock].
+	// As we introduce some document- and block-related configs in runme.yaml (root but also nested),
+	// this [Command.Config] should be further extended.
+	//
+	// The way to do it is to use [config.Loader] and calling [config.Loader.FindConfigChain] with
+	// task's document path. It will produce all the configs that are relevant to the document.
+	// Next, they should be merged into a single [config.Config] in a correct order, starting from
+	// the last element of the returned config chain. Finally, [command.Config] should be updated.
+	// This algorithm should be likely encapsulated in the [internal/config] and [internal/command]
+	// packages.
 	cfg, err := command.NewProgramConfigFromCodeBlock(block)
 	if err != nil {
 		return err

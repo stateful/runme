@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type fileCommand struct {
@@ -14,12 +15,8 @@ type fileCommand struct {
 
 	scriptFile *os.File
 	tempDir    string
-}
 
-func newFileCommand(internal internalCommand) *fileCommand {
-	return &fileCommand{
-		internalCommand: internal,
-	}
+	logger *zap.Logger
 }
 
 func (c *fileCommand) Start(ctx context.Context) error {
@@ -83,7 +80,7 @@ func (c *fileCommand) removeTempDir() error {
 	if c.tempDir == "" {
 		return nil
 	}
-	c.Logger().Info("cleaning up the temporary dir")
+	c.logger.Info("cleaning up the temporary dir")
 	return errors.WithMessage(os.RemoveAll(c.tempDir), "failed to remove the temporary dir")
 }
 
