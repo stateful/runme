@@ -7,7 +7,6 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
-	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/project"
 )
 
@@ -71,7 +70,7 @@ Run all blocks from the "setup" and "teardown" categories:
 					}
 
 					for _, t := range tasks {
-						err := runCodeBlock(t.CodeBlock, cmd, kernel, session, logger)
+						err := runCodeBlock(t, cmd, kernel, session, logger)
 						if err != nil {
 							return err
 						}
@@ -89,13 +88,23 @@ Run all blocks from the "setup" and "teardown" categories:
 }
 
 func runCodeBlock(
-	block *document.CodeBlock,
+	task project.Task,
 	cmd *cobra.Command,
 	kernel command.Kernel,
 	sess *command.Session,
 	logger *zap.Logger,
 ) error {
-	cfg, err := command.NewConfigFromCodeBlock(block)
+	// TODO(adamb): [command.Config] is generated exclusively from the [document.CodeBlock].
+	// As we introduce some document- and block-related configs in runme.yaml (root but also nested),
+	// this [Command.Config] should be further extended.
+	//
+	// The way to do it is to use [config.Loader] and calling [config.Loader.FindConfigChain] with
+	// task's document path. It will produce all the configs that are relevant to the document.
+	// Next, they should be merged into a single [config.Config] in a correct order, starting from
+	// the last element of the returned config chain. Finally, [command.Config] should be updated.
+	// This algorithm should be likely encapsulated in the [internal/config] and [internal/command]
+	// packages.
+	cfg, err := command.NewConfigFromCodeBlock(task.CodeBlock)
 	if err != nil {
 		return err
 	}

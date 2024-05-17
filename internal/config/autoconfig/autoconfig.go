@@ -8,10 +8,6 @@
 //	})
 //
 // Treat it as a dependency injection mechanism.
-//
-// autoconfig relies on [viper.Viper] which has a set of limitations. The most important one
-// is the fact that it does not support hierarchical configuration per folder. We might consider
-// switchig from [viper.Viper] to something else in the future.
 package autoconfig
 
 import (
@@ -19,8 +15,6 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 	"go.uber.org/dig"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
@@ -47,57 +41,21 @@ func mustProvide(err error) {
 }
 
 func init() {
-	// [viper.Viper] can be overridden by a decorator:
-	//   container.Decorate(func(v *viper.Viper) *viper.Viper { return nil })
-	mustProvide(container.Provide(getConfig))
+	mustProvide(container.Provide(getConfigLoader))
 	mustProvide(container.Provide(getKernelGetter))
 	mustProvide(container.Provide(getKernel))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
+	mustProvide(container.Provide(getRootConfig))
 	mustProvide(container.Provide(getSession))
 	mustProvide(container.Provide(getUserConfigDir))
-	mustProvide(container.Provide(getViper))
-
-	if err := container.Invoke(func(viper *viper.Viper) {
-		viper.SetConfigName("runme")
-		viper.SetConfigType("yaml")
-
-		viper.AddConfigPath("/etc/runme/")
-		viper.AddConfigPath("$HOME/.runme/")
-		// TODO(adamb): change to "." when ready.
-		viper.AddConfigPath("experimental/")
-
-		viper.SetEnvPrefix("RUNME")
-		viper.AutomaticEnv()
-	}); err != nil {
-		panic("failed to setup configuration: " + err.Error())
-	}
 }
 
-func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, error) {
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	// As viper does not offer writing config to a writer,
-	// the workaround is to create a in-memory file system,
-	// set it in viper, and write the config to it.
-	// Finally, a deferred cleanup function is called
-	// which brings back the OS file system.
-	// Source: https://github.com/spf13/viper/issues/856
-	memFS := afero.NewMemMapFs()
-
-	viper.SetFs(memFS)
-	defer viper.SetFs(afero.NewOsFs())
-
-	if err := viper.WriteConfigAs("/config.yaml"); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	content, err := afero.ReadFile(memFS, "/config.yaml")
+func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.Config, error) {
+	content, err := cfgLoader.RootConfig()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.WithMessage(err, "failed to load project configuration")
 	}
 
 	cfg, err := config.ParseYAML(content)
@@ -115,6 +73,12 @@ func getConfig(userCfgDir UserConfigDir, viper *viper.Viper) (*config.Config, er
 	}
 
 	return cfg, nil
+}
+
+func getConfigLoader() (*config.Loader, error) {
+	// TODO(adamb): change from "./experimental" to "." when the feature is stable and
+	// delete the project root path.
+	return config.NewLoader("runme", "yaml", os.DirFS("./experimental"), config.WithProjectRootPath(os.DirFS("."))), nil
 }
 
 func getKernel(c *config.Config, logger *zap.Logger) (_ command.Kernel, err error) {
@@ -329,5 +293,3 @@ func getUserConfigDir() (UserConfigDir, error) {
 	dir, err := os.UserConfigDir()
 	return UserConfigDir(dir), errors.WithStack(err)
 }
-
-func getViper() *viper.Viper { return viper.GetViper() }
