@@ -195,7 +195,7 @@ func testExecuteNativeCommand(
 
 	options := Options{
 		Logger:  logger,
-		Session: MustNewSessionWithEnv(env...),
+		Session: mustNewSessionWithEnv(env...),
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Stdin:   input,
@@ -237,7 +237,7 @@ func testExecuteVirtualCommand(
 	stdout := bytes.NewBuffer(nil)
 
 	options := Options{
-		Session: MustNewSessionWithEnv(env...),
+		Session: mustNewSessionWithEnv(env...),
 		Stdout:  stdout,
 		Stdin:   input,
 		Logger:  logger,
@@ -327,4 +327,20 @@ func TestCommandWithSession(t *testing.T) {
 		require.NoError(t, commandGetter.Wait())
 		require.Equal(t, "TEST_ENV equals test1", stdout.String())
 	})
+}
+
+func newSessionWithEnv(env ...string) (*Session, error) {
+	s := NewSession()
+	if err := s.SetEnv(env...); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func mustNewSessionWithEnv(env ...string) *Session {
+	s, err := newSessionWithEnv(env...)
+	if err != nil {
+		panic(err)
+	}
+	return s
 }
