@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/stateful/runme/v3/internal/project/testdata"
@@ -65,4 +66,53 @@ func TestRunnerServiceSessions(t *testing.T) {
 		)
 		require.Error(t, err)
 	})
+}
+
+func TestRunnerServiceSessions_StrategyMostRecent(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	// Create a session with env.
+	sessResp, err := client.CreateSession(
+		context.Background(),
+		&runnerv2alpha1.CreateSessionRequest{
+			Env: []string{"TEST1=value1"},
+		},
+	)
+	require.NoError(t, err)
+
+	// Prep the execute stream.
+	stream, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult := make(chan executeResult)
+	go getExecuteResult(stream, execResult)
+
+	// Execute a program using the most recent session strategy.
+	req := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						`echo "TEST1=$TEST1"`,
+					},
+				},
+			},
+		},
+		SessionStrategy: runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT,
+	}
+	err = stream.Send(req)
+	require.NoError(t, err)
+
+	result := <-execResult
+
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	assert.Equal(t, "TEST1=value1\n", string(result.Stdout))
+
+	// Delete the session.
+	_, err = client.DeleteSession(context.Background(), &runnerv2alpha1.DeleteSessionRequest{Id: sessResp.GetSession().GetId()})
+	require.NoError(t, err)
 }
