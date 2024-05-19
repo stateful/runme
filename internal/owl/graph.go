@@ -146,7 +146,7 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 				}
 
 				if spec.Spec.Required {
-					spec.Spec.Error = RequiredError{varItem: &SetVarItem{Var: val.Var, Value: val.Value, Spec: spec.Spec}}
+					spec.Spec.Error = NewRequiredError(&SetVarItem{Var: val.Var, Value: val.Value, Spec: spec.Spec})
 					continue
 				}
 
