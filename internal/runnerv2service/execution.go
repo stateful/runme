@@ -64,6 +64,7 @@ func newExecution(
 	stderr := rbuffer.NewRingBuffer(ringBufferSize)
 
 	cmdOptions := command.Options{
+		EnableEcho:  true,
 		Session:     session,
 		StdinWriter: stdinWriter,
 		Stdin:       stdin,

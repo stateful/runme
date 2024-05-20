@@ -11,6 +11,10 @@ import (
 )
 
 type Options struct {
+	// EnableEcho enables the echo when typing in the terminal.
+	// It's respected only by interactive commands, i.e. composed
+	// with [virtualCommand].
+	EnableEcho  bool
 	Session     *Session
 	StdinWriter io.Writer
 	Stdin       io.Reader
@@ -63,6 +67,8 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts Options) Command {
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL:
 		// For terminal commands, we always want them to be interactive.
 		cfg.Interactive = true
+		// And echo typed characters.
+		opts.EnableEcho = true
 
 		return &terminalCommand{
 			internalCommand: f.buildVirtual(f.buildBase(cfg, opts)),
@@ -80,13 +86,14 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts Options) Command {
 
 func (f *commandFactory) buildBase(cfg *ProgramConfig, opts Options) *base {
 	return &base{
-		cfg:         cfg,
-		kernel:      f.kernel,
-		session:     opts.Session,
-		stdin:       opts.Stdin,
-		stdinWriter: opts.StdinWriter,
-		stdout:      opts.Stdout,
-		stderr:      opts.Stderr,
+		cfg:           cfg,
+		isEchoEnabled: opts.EnableEcho,
+		kernel:        f.kernel,
+		session:       opts.Session,
+		stdin:         opts.Stdin,
+		stdinWriter:   opts.StdinWriter,
+		stdout:        opts.Stdout,
+		stderr:        opts.Stderr,
 	}
 }
 
