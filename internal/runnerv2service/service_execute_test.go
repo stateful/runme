@@ -407,7 +407,7 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 				Interactive: true,
 			},
 			inputData:      []byte("Frank\n"),
-			expectedOutput: "My name is Frank\r\n",
+			expectedOutput: "Frank\r\nMy name is Frank\r\n",
 		},
 		{
 			name: "Python",
@@ -592,7 +592,11 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		assert.Equal(t, "A\r\nB\r\nC\r\nD\r\n", string(result.Stdout))
+		expected := "a\r\nb\r\nc\r\nd\r\nA\r\nB\r\nC\r\nD\r\n"
+		// On macOS, the ctrl+d (EOT) character followed by two backspaces is collected.
+		// On Linux, in the CI, this does not occur.
+		got := string(bytes.ReplaceAll(result.Stdout, []byte("^D\b\b"), nil))
+		assert.Equal(t, expected, got)
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 

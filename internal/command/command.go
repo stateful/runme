@@ -20,6 +20,7 @@ type Command interface {
 }
 
 type baseCommand interface {
+	IsEchoEnabled() bool
 	Env() []string
 	ProgramConfig() *ProgramConfig
 	ProgramPath() (string, []string, error)
@@ -36,16 +37,21 @@ type internalCommand interface {
 }
 
 type base struct {
-	cfg         *ProgramConfig
-	kernel      Kernel
-	session     *Session
-	stdin       io.Reader
-	stdinWriter io.Writer
-	stdout      io.Writer
-	stderr      io.Writer
+	cfg           *ProgramConfig
+	isEchoEnabled bool
+	kernel        Kernel
+	session       *Session
+	stdin         io.Reader
+	stdinWriter   io.Writer
+	stdout        io.Writer
+	stderr        io.Writer
 }
 
 var _ internalCommand = (*base)(nil)
+
+func (c *base) IsEchoEnabled() bool {
+	return c.isEchoEnabled
+}
 
 func (c *base) Interactive() bool {
 	return c.cfg.Interactive

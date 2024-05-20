@@ -56,8 +56,10 @@ func (c *virtualCommand) Start(ctx context.Context) (err error) {
 		return errors.WithStack(err)
 	}
 
-	if err := disableEcho(c.tty.Fd()); err != nil {
-		return err
+	if !c.IsEchoEnabled() {
+		if err := disableEcho(c.tty.Fd()); err != nil {
+			return err
+		}
 	}
 
 	program, args, err := c.ProgramPath()
