@@ -9,7 +9,6 @@
 // tslint:disable
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
-import { Any } from "../../../google/protobuf/any_pb";
 /**
  * @generated from protobuf enum runme.config.v1alpha1.Config.FilterType
  */
@@ -38,7 +37,7 @@ class Config$Type extends MessageType {
             { no: 5, name: "filters", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => Config_Filter },
             { no: 7, name: "log", kind: "message", T: () => Config_Log },
             { no: 8, name: "server", kind: "message", T: () => Config_Server },
-            { no: 9, name: "kernels", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => Any }
+            { no: 9, name: "docker", kind: "message", T: () => Config_Docker }
         ]);
     }
 }
@@ -129,41 +128,29 @@ class Config_Server_TLS$Type extends MessageType {
  */
 export const Config_Server_TLS = new Config_Server_TLS$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class Config_LocalKernel$Type extends MessageType {
+class Config_Docker$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.Config.LocalKernel", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.LocalKernel
- */
-export const Config_LocalKernel = new Config_LocalKernel$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class Config_DockerKernel$Type extends MessageType {
-    constructor() {
-        super("runme.config.v1alpha1.Config.DockerKernel", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+        super("runme.config.v1alpha1.Config.Docker", [
+            { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 2, name: "image", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "build", kind: "message", T: () => Config_DockerKernel_Build }
+            { no: 3, name: "build", kind: "message", T: () => Config_Docker_Build }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.DockerKernel
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Docker
  */
-export const Config_DockerKernel = new Config_DockerKernel$Type();
+export const Config_Docker = new Config_Docker$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class Config_DockerKernel_Build$Type extends MessageType {
+class Config_Docker_Build$Type extends MessageType {
     constructor() {
-        super("runme.config.v1alpha1.Config.DockerKernel.Build", [
+        super("runme.config.v1alpha1.Config.Docker.Build", [
             { no: 1, name: "context", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "dockerfile", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.DockerKernel.Build
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Docker.Build
  */
-export const Config_DockerKernel_Build = new Config_DockerKernel_Build$Type();
+export const Config_Docker_Build = new Config_Docker_Build$Type();

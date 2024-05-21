@@ -80,7 +80,7 @@ func (d *Docker) CommandContext(ctx context.Context, program string, args ...str
 func (d *Docker) containerUniqueName() string {
 	var hash [4]byte
 	_, _ = d.rnd.Read(hash[:])
-	return "runme-kernel-" + hex.EncodeToString(hash[:])
+	return "runme-runner-" + hex.EncodeToString(hash[:])
 }
 
 func (d *Docker) buildOrPullImage(ctx context.Context) error {

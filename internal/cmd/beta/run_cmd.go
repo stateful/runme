@@ -35,9 +35,9 @@ Run all blocks from the "setup" and "teardown" categories:
 				func(
 					cmdFactory command.Factory,
 					filters []project.Filter,
-					kernel command.Kernel,
 					logger *zap.Logger,
 					proj *project.Project,
+					runtime command.Runtime,
 					session *command.Session,
 				) error {
 					defer logger.Sync()

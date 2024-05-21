@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/config"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
@@ -866,7 +867,7 @@ func testStartRunnerServiceServer(t *testing.T) (
 	t.Helper()
 
 	logger := zaptest.NewLogger(t)
-	factory := command.NewFactory(nil, nil, logger)
+	factory := command.NewFactory(&config.Config{}, command.NewHostRuntime(), logger)
 
 	server := grpc.NewServer()
 

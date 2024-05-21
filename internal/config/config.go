@@ -44,8 +44,11 @@ type Config struct {
 	ServerTLSCertFile string
 	ServerTLSKeyFile  string
 
-	// Kernel related fields.
-	Kernels []Kernel
+	// Docker configuration.
+	DockerEnabled         bool
+	DockerImage           string
+	DockerBuildContext    string
+	DockerBuildDockerfile string
 }
 
 func ParseYAML(data []byte) (*Config, error) {
@@ -129,35 +132,6 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 		})
 	}
 
-	var kernels []Kernel
-	for _, k := range c.GetKernels() {
-		msg, err := k.UnmarshalNew()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to unmarshal kernel")
-		}
-
-		switch k := msg.(type) {
-		case *configv1alpha1.Config_LocalKernel:
-			kernels = append(kernels, &LocalKernel{
-				Name: k.GetName(),
-			})
-		case *configv1alpha1.Config_DockerKernel:
-			kernels = append(kernels, &DockerKernel{
-				Build: struct {
-					Context    string
-					Dockerfile string
-				}{
-					Context:    k.GetBuild().GetContext(),
-					Dockerfile: k.GetBuild().GetDockerfile(),
-				},
-				Image: k.GetImage(),
-				Name:  k.GetName(),
-			})
-		default:
-			return nil, errors.Errorf("unknown kernel type: %s", k.ProtoReflect().Type().Descriptor().FullName())
-		}
-	}
-
 	cfg := &Config{
 		ProjectDir:       project.GetDir(),
 		FindRepoUpward:   project.GetFindRepoUpward(),
@@ -180,7 +154,10 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 		ServerTLSCertFile: c.GetServer().GetTls().GetCertFile(),
 		ServerTLSKeyFile:  c.GetServer().GetTls().GetKeyFile(),
 
-		Kernels: kernels,
+		DockerEnabled:         c.GetDocker().GetEnabled(),
+		DockerImage:           c.GetDocker().GetImage(),
+		DockerBuildContext:    c.GetDocker().GetBuild().GetContext(),
+		DockerBuildDockerfile: c.GetDocker().GetBuild().GetDockerfile(),
 	}
 
 	return cfg, nil

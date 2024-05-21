@@ -26,21 +26,17 @@ type Factory interface {
 	Build(*ProgramConfig, Options) Command
 }
 
-func NewFactory(_ *config.Config, kernel Kernel, logger *zap.Logger) Factory {
-	if kernel == nil {
-		kernel = NewLocalKernel(nil)
-	}
-
+func NewFactory(_ *config.Config, runtime Runtime, logger *zap.Logger) Factory {
 	return &commandFactory{
-		kernel: kernel,
-		logger: logger,
+		runtime: runtime,
+		logger:  logger,
 	}
 }
 
 type commandFactory struct {
-	_      *config.Config // unused yet
-	kernel Kernel
-	logger *zap.Logger
+	_       *config.Config // unused yet
+	runtime Runtime
+	logger  *zap.Logger
 }
 
 func (f *commandFactory) Build(cfg *ProgramConfig, opts Options) Command {
@@ -88,7 +84,7 @@ func (f *commandFactory) buildBase(cfg *ProgramConfig, opts Options) *base {
 	return &base{
 		cfg:           cfg,
 		isEchoEnabled: opts.EnableEcho,
-		kernel:        f.kernel,
+		runtime:       f.runtime,
 		session:       opts.Session,
 		stdin:         opts.Stdin,
 		stdinWriter:   opts.StdinWriter,
@@ -97,11 +93,10 @@ func (f *commandFactory) buildBase(cfg *ProgramConfig, opts Options) *base {
 	}
 }
 
-// buildInternal builds an internal command based on the kernel type and interactivity.
 func (f *commandFactory) buildInternal(cfg *ProgramConfig, opts Options) internalCommand {
 	base := f.buildBase(cfg, opts)
 
-	if k, ok := f.kernel.(*DockerKernel); ok {
+	if k, ok := f.runtime.(*Docker); ok {
 		return &dockerCommand{
 			internalCommand: base,
 			docker:          k.docker,

@@ -4,7 +4,6 @@
 // tslint:disable
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
-import { Any } from "../../../google/protobuf/any_pb";
 /**
  * Config describes the configuration of the runme tools, including CLI, server, and clients like VS Code extension.
  *
@@ -58,9 +57,9 @@ export interface Config {
      */
     server?: Config_Server;
     /**
-     * @generated from protobuf field: repeated google.protobuf.Any kernels = 9;
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Docker docker = 9;
      */
-    kernels: Any[];
+    docker?: Config_Docker;
 }
 /**
  * @generated from protobuf message runme.config.v1alpha1.Config.Project
@@ -184,35 +183,26 @@ export interface Config_Server_TLS {
     keyFile: string;
 }
 /**
- * @generated from protobuf message runme.config.v1alpha1.Config.LocalKernel
+ * @generated from protobuf message runme.config.v1alpha1.Config.Docker
  */
-export interface Config_LocalKernel {
+export interface Config_Docker {
     /**
-     * @generated from protobuf field: string name = 1;
+     * @generated from protobuf field: bool enabled = 1;
      */
-    name: string;
-}
-/**
- * @generated from protobuf message runme.config.v1alpha1.Config.DockerKernel
- */
-export interface Config_DockerKernel {
-    /**
-     * @generated from protobuf field: string name = 1;
-     */
-    name: string;
+    enabled: boolean;
     /**
      * @generated from protobuf field: string image = 2;
      */
     image: string;
     /**
-     * @generated from protobuf field: runme.config.v1alpha1.Config.DockerKernel.Build build = 3;
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Docker.Build build = 3;
      */
-    build?: Config_DockerKernel_Build;
+    build?: Config_Docker_Build;
 }
 /**
- * @generated from protobuf message runme.config.v1alpha1.Config.DockerKernel.Build
+ * @generated from protobuf message runme.config.v1alpha1.Config.Docker.Build
  */
-export interface Config_DockerKernel_Build {
+export interface Config_Docker_Build {
     /**
      * @generated from protobuf field: string context = 1;
      */
@@ -288,25 +278,18 @@ declare class Config_Server_TLS$Type extends MessageType<Config_Server_TLS> {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server.TLS
  */
 export declare const Config_Server_TLS: Config_Server_TLS$Type;
-declare class Config_LocalKernel$Type extends MessageType<Config_LocalKernel> {
+declare class Config_Docker$Type extends MessageType<Config_Docker> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.LocalKernel
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Docker
  */
-export declare const Config_LocalKernel: Config_LocalKernel$Type;
-declare class Config_DockerKernel$Type extends MessageType<Config_DockerKernel> {
+export declare const Config_Docker: Config_Docker$Type;
+declare class Config_Docker_Build$Type extends MessageType<Config_Docker_Build> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.DockerKernel
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Docker.Build
  */
-export declare const Config_DockerKernel: Config_DockerKernel$Type;
-declare class Config_DockerKernel_Build$Type extends MessageType<Config_DockerKernel_Build> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.DockerKernel.Build
- */
-export declare const Config_DockerKernel_Build: Config_DockerKernel_Build$Type;
+export declare const Config_Docker_Build: Config_Docker_Build$Type;
 export {};

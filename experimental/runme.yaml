@@ -28,6 +28,14 @@ env:
     - ".env"
     - ".env.local"
 
+# Optional Docker configuration to run code blocks in a container.
+docker:
+  enabled: false
+  image: runme-kernel:latest
+  build:
+    context: ./experimental/docker
+    dockerfile: Dockerfile
+
 # The list of filters to apply to blocks.
 # "condition" must return a boolean value.
 # You can learn about the syntax at https://expr-lang.org/docs/language-definition.
@@ -51,29 +59,6 @@ server:
     # If not specified, default paths will be used.
     # cert_file: "/path/to/cert.pem"
     # key_file: "/path/to/key.pem"
-
-# Kernels are available runtime environments for runme in which
-# code blocks will be executed. Kernels are used in the order they
-# are defined based on availability.
-#
-# Kernel should contain all programs necessary to run all code blocks.
-# For example, if your README.md defines "bash" and "python" code blocks,
-# you should have a kernel that can run both bash and python code.
-#
-# A custom docker-based kernel is recommended as it will help to provide
-# a hermetic environment.
-#
-# This section is optional. If it's not defined, runme will use the default
-# local kernel.
-kernels:
-  - "@type": "type.googleapis.com/runme.config.v1alpha1.Config.LocalKernel"
-    name: "local"
-  - "@type": "type.googleapis.com/runme.config.v1alpha1.Config.DockerKernel"
-    name: "docker"
-    image: runme-kernel:latest
-    build:
-      context: ./experimental/docker
-      dockerfile: Dockerfile
 
 log:
   enabled: true
