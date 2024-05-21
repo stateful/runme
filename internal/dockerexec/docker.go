@@ -34,7 +34,7 @@ func New(opts *Options) (*Docker, error) {
 		logger = zap.NewNop()
 	}
 
-	rnd := rand.New(rand.NewSource(uint64(time.Now().Unix())))
+	rnd := rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
 
 	d := &Docker{
 		client:       c,
