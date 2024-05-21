@@ -101,6 +101,26 @@ export var MonitorEnvStoreResponseSnapshot_Status;
     MonitorEnvStoreResponseSnapshot_Status[MonitorEnvStoreResponseSnapshot_Status["MASKED"] = 3] = "MASKED";
 })(MonitorEnvStoreResponseSnapshot_Status || (MonitorEnvStoreResponseSnapshot_Status = {}));
 /**
+ * env store implementation
+ *
+ * @generated from protobuf enum runme.runner.v2alpha1.SessionEnvStoreType
+ */
+export var SessionEnvStoreType;
+(function (SessionEnvStoreType) {
+    /**
+     * uses default env store
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
+     */
+    SessionEnvStoreType[SessionEnvStoreType["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * uses owl store
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_OWL = 1;
+     */
+    SessionEnvStoreType[SessionEnvStoreType["OWL"] = 1] = "OWL";
+})(SessionEnvStoreType || (SessionEnvStoreType = {}));
+/**
  * @generated from protobuf enum runme.runner.v2alpha1.ExecuteStop
  */
 export var ExecuteStop;
@@ -191,7 +211,8 @@ class CreateSessionRequest$Type extends MessageType {
         super("runme.runner.v2alpha1.CreateSessionRequest", [
             { no: 1, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 2, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "project", kind: "message", T: () => Project }
+            { no: 3, name: "project", kind: "message", T: () => Project },
+            { no: 4, name: "env_store_type", kind: "enum", T: () => ["runme.runner.v2alpha1.SessionEnvStoreType", SessionEnvStoreType, "SESSION_ENV_STORE_TYPE_"] }
         ]);
     }
 }

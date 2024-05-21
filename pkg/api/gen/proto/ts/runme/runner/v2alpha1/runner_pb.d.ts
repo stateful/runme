@@ -78,6 +78,12 @@ export interface CreateSessionRequest {
      * @generated from protobuf field: optional runme.runner.v2alpha1.Project project = 3;
      */
     project?: Project;
+    /**
+     * optional selection of which env store implementation to sue
+     *
+     * @generated from protobuf field: runme.runner.v2alpha1.SessionEnvStoreType env_store_type = 4;
+     */
+    envStoreType: SessionEnvStoreType;
 }
 /**
  * @generated from protobuf message runme.runner.v2alpha1.CreateSessionResponse
@@ -597,6 +603,25 @@ export interface MonitorEnvStoreResponse {
     } | {
         oneofKind: undefined;
     };
+}
+/**
+ * env store implementation
+ *
+ * @generated from protobuf enum runme.runner.v2alpha1.SessionEnvStoreType
+ */
+export declare enum SessionEnvStoreType {
+    /**
+     * uses default env store
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * uses owl store
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_TYPE_OWL = 1;
+     */
+    OWL = 1
 }
 /**
  * @generated from protobuf enum runme.runner.v2alpha1.ExecuteStop
