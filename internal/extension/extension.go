@@ -12,30 +12,54 @@ import (
 	"go.uber.org/zap"
 )
 
-const defaultName = "stateful.runme"
-
-// Order matters. Default extension name should be first and legacies behind.
-// It's the extension's job to make sure the newest version is used.
-var allExtensionNames = []string{defaultName}
+const (
+	DefaultExtensionName  = "stateful.runme"
+	PlatformExtensionName = "stateful.platform"
+)
 
 //go:generate mockgen --build_flags=--mod=mod -destination=./extension_mock_gen.go -package=extension . Extensioner
 type Extensioner interface {
 	IsInstalled() (string, bool, error)
 	Install() error
+	InstallCommand() string
 	Update() error
 }
 
-func Default() Extensioner {
-	return &extensioner{}
+func New(isStateful bool) Extensioner {
+	if isStateful {
+		return newStateful()
+	}
+
+	return newDefault()
 }
 
-type extensioner struct{}
+func newDefault() Extensioner {
+	return &extensioner{
+		extensionName:     DefaultExtensionName,
+		allExtensionNames: []string{DefaultExtensionName},
+	}
+}
 
-func (extensioner) IsInstalled() (string, bool, error) { return IsInstalled() }
-func (extensioner) Install() error                     { return Install() }
-func (extensioner) Update() error                      { return Update() }
+func newStateful() Extensioner {
+	return &extensioner{
+		extensionName:     PlatformExtensionName,
+		allExtensionNames: []string{PlatformExtensionName},
+	}
+}
 
-func IsInstalled() (string, bool, error) {
+type extensioner struct {
+	extensionName     string
+	allExtensionNames []string
+}
+
+func (ext *extensioner) IsInstalled() (string, bool, error) {
+	return IsInstalled(ext.allExtensionNames)
+}
+func (ext *extensioner) Install() error         { return Install(ext.extensionName) }
+func (ext *extensioner) InstallCommand() string { return InstallCommand(ext.extensionName) }
+func (ext *extensioner) Update() error          { return Update(ext.extensionName) }
+
+func IsInstalled(allExtensionNames []string) (string, bool, error) {
 	extensions, err := listExtensions()
 	if err != nil {
 		return "", false, err
@@ -44,19 +68,19 @@ func IsInstalled() (string, bool, error) {
 	return ext.String(), found, err
 }
 
-func InstallCommand() string {
-	return strings.Join(installCommand(false), " ")
+func InstallCommand(extensionName string) string {
+	return strings.Join(installCommand(extensionName, false), " ")
 }
 
-func Install() error {
-	cmdSlice := installCommand(false)
+func Install(extensionName string) error {
+	cmdSlice := installCommand(extensionName, false)
 	cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
 	// TODO(adamb): error written to stderr is not returned
 	return cmd.Run()
 }
 
-func Update() error {
-	cmdSlice := installCommand(true)
+func Update(extensionName string) error {
+	cmdSlice := installCommand(extensionName, true)
 	cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
 	// TODO(adamb): error written to stderr is not returned
 	return cmd.Run()
@@ -83,14 +107,14 @@ func isInstalled(extensions []ext, searchedNames []string) (ext, bool, error) {
 	return ext{}, false, nil
 }
 
-func installCommand(force bool) []string {
+func installCommand(extensionName string, force bool) []string {
 	cmd := []string{"code", "--install-extension"}
 	// --force will update if the extension is already installed.
 	// If it is not installed, --force has no effect.
 	if force {
 		cmd = append(cmd, "--force")
 	}
-	return append(cmd, defaultName)
+	return append(cmd, extensionName)
 }
 
 func isVSCodeInstalled() bool {

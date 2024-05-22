@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/stateful/runme/v3/internal/cmd/beta"
+	"github.com/stateful/runme/v3/internal/extension"
 )
 
 var (
@@ -24,6 +25,8 @@ var (
 	fInsecure              bool
 	fLogEnabled            bool
 	fLogFilePath           string
+	fExtensionHandle       string
+	fStateful              bool
 )
 
 func Root() *cobra.Command {
@@ -56,6 +59,12 @@ func Root() *cobra.Command {
 			if fFileMode && !cmd.Flags().Changed("allow-unnamed") {
 				fAllowUnnamed = true
 			}
+
+			if fExtensionHandle == "" && !fStateful {
+				fExtensionHandle = extension.DefaultExtensionName
+			} else {
+				fExtensionHandle = extension.PlatformExtensionName
+			}
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveNoFileComp
@@ -79,6 +88,8 @@ func Root() *cobra.Command {
 
 	pflags.BoolVar(&fLogEnabled, "log", false, "Enable logging")
 	pflags.StringVar(&fLogFilePath, "log-file", filepath.Join(getTempDir(), "runme.log"), "Log file path")
+
+	pflags.BoolVar(&fStateful, "stateful", false, "Set Stateful instead of the Runme default")
 
 	setAPIFlags(pflags)
 
