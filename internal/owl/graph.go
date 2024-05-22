@@ -165,7 +165,7 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 	}
 }
 
-func resolveSensitive() graphql.FieldResolveFn {
+func resolveSensitiveKeys() graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		sensitive := SetVarItems{}
 		var opSet *OperationSet
@@ -184,11 +184,6 @@ func resolveSensitive() graphql.FieldResolveFn {
 			s, ok := opSet.specs[v.Var.Key]
 			if !ok {
 				return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
-			}
-
-			// todo(sebastian): cutting a corner here, really shouldn't key on Specs
-			if s.Spec.Name != "Secret" && s.Spec.Name != "Password" {
-				continue
 			}
 
 			item := &SetVarItem{
@@ -683,7 +678,7 @@ func init() {
 				},
 				"sensitiveKeys": &graphql.Field{
 					Type:    graphql.NewNonNull(graphql.NewList(VariableType)),
-					Resolve: resolveSensitive(),
+					Resolve: resolveSensitiveKeys(),
 				},
 			}
 		}),

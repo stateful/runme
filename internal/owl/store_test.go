@@ -83,7 +83,7 @@ func Test_Store(t *testing.T) {
 		require.NotNil(t, store)
 
 		var query, vars bytes.Buffer
-		err = store.sensitiveQuery(&query, &vars)
+		err = store.sensitiveKeysQuery(&query, &vars)
 		require.NoError(t, err)
 
 		fmt.Println(query.String())

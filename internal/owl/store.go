@@ -3,12 +3,13 @@ package owl
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/graphql-go/graphql"
 	"github.com/stateful/godotenv"
@@ -95,6 +96,54 @@ func (res SetVarItems) sortbyKey() {
 	slices.SortStableFunc(res, func(i, j *SetVarItem) int {
 		return strings.Compare(i.Var.Key, j.Var.Key)
 	})
+}
+
+func (res SetVarItems) getSensitiveKeys(data interface{}) ([]string, error) {
+	validate, err := extractDataKey(data, "validate")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to extract validate key")
+	}
+
+	m, ok := validate.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("not a map")
+	}
+
+	specsSensitivity := make(map[string]bool)
+	var recurse func(map[string]interface{}, string)
+	recurse = func(m map[string]interface{}, parentName string) {
+		_, found := specsSensitivity[parentName]
+		if !found && parentName != "" {
+			specsSensitivity[parentName] = true
+		}
+		for k, v := range m {
+			// truly sensitive secrets require both mask & sensitive to be true
+			if k == "mask" || k == "sensitive" {
+				specsSensitivity[parentName] = specsSensitivity[parentName] && v.(bool)
+			}
+
+			if k == "done" {
+				break
+			}
+
+			n, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			recurse(n, k)
+		}
+	}
+	recurse(m, "")
+
+	var filtered []string
+	for _, item := range res {
+		if specsSensitivity[item.Spec.Name] {
+			filtered = append(filtered, item.Var.Key)
+		}
+	}
+
+	return filtered, nil
 }
 
 func (res SetVarItems) sort() {
@@ -388,12 +437,12 @@ func (s *Store) SensitiveKeys() ([]string, error) {
 	defer s.mu.RUnlock()
 
 	var query, vars bytes.Buffer
-	err := s.sensitiveQuery(&query, &vars)
+	err := s.sensitiveKeysQuery(&query, &vars)
 	if err != nil {
 		return nil, err
 	}
 
-	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
+	// s.logger.Debug("sensitive keys query", zap.String("query", query.String()))
 	// _, _ = fmt.Println(query.String())
 
 	var varValues map[string]interface{}
@@ -436,10 +485,9 @@ func (s *Store) SensitiveKeys() ([]string, error) {
 	}
 
 	keyResults.sortbyKey()
-
-	keys := make([]string, 0, len(keyResults))
-	for _, item := range keyResults {
-		keys = append(keys, item.Var.Key)
+	keys, err := keyResults.getSensitiveKeys(result.Data)
+	if err != nil {
+		return nil, err
 	}
 
 	return keys, nil
