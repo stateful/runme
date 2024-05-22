@@ -220,7 +220,7 @@ func Test_Graph_Reconcile(t *testing.T) {
 	testCases.runAll(t)
 }
 
-func Test_Graph_Sensitive(t *testing.T) {
+func Test_Graph_SensitiveKeys(t *testing.T) {
 	testCases := fileTestCases{
 		{
 			name: "Sensitive keys",

@@ -74,7 +74,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	return nil
 }
 
-func (s *Store) sensitiveQuery(query, vars io.StringWriter) error {
+func (s *Store) sensitiveKeysQuery(query, vars io.StringWriter) error {
 	varDefs := []*ast.VariableDefinition{
 		ast.NewVariableDefinition(&ast.VariableDefinition{
 			Variable: ast.NewVariable(&ast.Variable{
