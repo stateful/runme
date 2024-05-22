@@ -12,7 +12,8 @@ stderr '^could not execute command: failed to open file-based project ".*/unknow
 
 -- experimental/runme.yaml --
 version: v1alpha1
-filename: README.md
+project:
+  filename: README.md
 
 -- README.md --
 ```sh { "name": "not-found-singleline" }

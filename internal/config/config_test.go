@@ -21,34 +21,48 @@ func TestParseYAML(t *testing.T) {
 			expectedConfig: testConfigV1alpha1,
 		},
 		{
-			name:           "minimal config v1alpha1",
-			rawConfig:      "version: v1alpha1\nfilename: REAEDME.md\n",
-			expectedConfig: &Config{Filename: "REAEDME.md"},
+			name: "only filename",
+			rawConfig: `version: v1alpha1
+project:
+  filename: REAEDME.md
+`,
+			expectedConfig: &Config{ProjectFilename: "REAEDME.md"},
 		},
 		{
-			name:           "validate source",
-			rawConfig:      "version: v1alpha1",
-			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - source: exactly one field is required",
+			name: "root and filename",
+			rawConfig: `version: v1alpha1
+project:
+  root: "."
+  filename: README.md
+`,
+			expectedConfig: &Config{ProjectRoot: ".", ProjectFilename: "README.md"},
 		},
 		{
-			name:           "project and filename",
-			rawConfig:      "version: v1alpha1\nproject:\n  dir: \".\"\nfilename: \"README.md\"\n",
-			errorSubstring: "error parsing \"project\", oneof runme.config.v1alpha1.Config.source is already set",
+			name: "validate filter type",
+			rawConfig: `version: v1alpha1
+project:
+  filename: README.md
+  filters:
+    - type: 3
+      condition: "name != ''"
+`,
+			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - project.filters[0].type: value must be one of the defined enum values",
 		},
 		{
-			name:           "validate filter type",
-			rawConfig:      "version: v1alpha1\nfilename: README.md\nfilters:\n  - type: 3\n    condition: \"name != ''\"\n",
-			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - filters[0].type: value must be one of the defined enum values",
+			name: "validate project within cwd",
+			rawConfig: `version: v1alpha1
+project:
+  root: '..'
+`,
+			errorSubstring: "failed to validate config: failed to validate project dir: outside of the current working directory",
 		},
 		{
-			name:           "validate project within cwd",
-			rawConfig:      "version: v1alpha1\nproject:\n  dir: '..'\n",
-			errorSubstring: "failed to validate config: failed to validate project dir: outside of current working directory",
-		},
-		{
-			name:           "validate filename within cwd",
-			rawConfig:      "version: v1alpha1\nfilename: '../README.md'\n",
-			errorSubstring: "failed to validate config: failed to validate filename: outside of current working directory",
+			name: "validate filename within cwd",
+			rawConfig: `version: v1alpha1
+project:
+  filename: '../README.md'
+`,
+			errorSubstring: "failed to validate config: failed to validate filename: outside of the current working directory",
 		},
 	}
 
@@ -80,27 +94,28 @@ var (
 	testConfigV1alpha1Raw = `version: v1alpha1
 
 project:
-  dir: "."
+  root: "."
   find_repo_upward: true
   ignore:
     - "node_modules"
     - ".venv"
   disable_gitignore: false
 
-env:
-  sources:
-    - ".env"
+  env:
+    sources:
+      - ".env"
 
-filters:
-  - type: "FILTER_TYPE_BLOCK"
-    condition: "name != ''"
+  filters:
+    - type: "FILTER_TYPE_BLOCK"
+      condition: "name != ''"
 
-docker:
-  enabled: false
-  image: "runme-runner:latest"
-  build:
-    context: "./experimental/docker"
-    dockerfile: "Dockerfile"
+runtime:
+  docker:
+    enabled: false
+    image: "runme-runner:latest"
+    build:
+      context: "./experimental/docker"
+      dockerfile: "Dockerfile"
 
 log:
   enabled: true
@@ -109,24 +124,22 @@ log:
 `
 
 	testConfigV1alpha1 = &Config{
-		ProjectDir:       ".",
-		FindRepoUpward:   true,
-		IgnorePaths:      []string{"node_modules", ".venv"},
-		DisableGitignore: false,
-
-		EnvSourceFiles: []string{".env"},
-
-		Filters: []*Filter{
+		ProjectRoot:             ".",
+		ProjectFindRepoUpward:   true,
+		ProjectIgnorePaths:      []string{"node_modules", ".venv"},
+		ProjectDisableGitignore: false,
+		ProjectEnvSources:       []string{".env"},
+		ProjectFilters: []*Filter{
 			{
 				Type:      "FILTER_TYPE_BLOCK",
 				Condition: "name != ''",
 			},
 		},
 
-		DockerEnabled:         false,
-		DockerImage:           "runme-runner:latest",
-		DockerBuildContext:    "./experimental/docker",
-		DockerBuildDockerfile: "Dockerfile",
+		RuntimeDockerEnabled:         false,
+		RuntimeDockerImage:           "runme-runner:latest",
+		RuntimeDockerBuildContext:    "./experimental/docker",
+		RuntimeDockerBuildDockerfile: "Dockerfile",
 
 		LogEnabled: true,
 		LogPath:    "/var/tmp/runme.log",

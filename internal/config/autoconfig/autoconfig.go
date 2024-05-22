@@ -101,11 +101,11 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 		project.WithLogger(logger),
 	}
 
-	if c.Filename != "" {
-		return project.NewFileProject(c.Filename, opts...)
+	if c.ProjectFilename != "" {
+		return project.NewFileProject(c.ProjectFilename, opts...)
 	}
 
-	projDir := c.ProjectDir
+	projDir := c.ProjectRoot
 	// If no project directory is specified, use the current directory.
 	if projDir == "" {
 		projDir = "."
@@ -113,12 +113,12 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 
 	opts = append(
 		opts,
-		project.WithIgnoreFilePatterns(c.IgnorePaths...),
-		project.WithRespectGitignore(!c.DisableGitignore),
-		project.WithEnvFilesReadOrder(c.EnvSourceFiles),
+		project.WithIgnoreFilePatterns(c.ProjectIgnorePaths...),
+		project.WithRespectGitignore(!c.ProjectDisableGitignore),
+		project.WithEnvFilesReadOrder(c.ProjectEnvSources),
 	)
 
-	if c.FindRepoUpward {
+	if c.ProjectFindRepoUpward {
 		opts = append(opts, project.WithFindRepoUpward())
 	}
 
@@ -128,7 +128,7 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 	var filters []project.Filter
 
-	for _, filter := range c.Filters {
+	for _, filter := range c.ProjectFilters {
 		filter := filter
 
 		switch filter.Type {
@@ -197,11 +197,11 @@ func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.
 }
 
 func getRuntime(c *config.Config, logger *zap.Logger) (command.Runtime, error) {
-	if c.DockerEnabled {
+	if c.RuntimeDockerEnabled {
 		docker, err := dockerexec.New(&dockerexec.Options{
-			BuildContext: c.DockerBuildContext,
-			Dockerfile:   c.DockerBuildDockerfile,
-			Image:        c.DockerImage,
+			BuildContext: c.RuntimeDockerBuildContext,
+			Dockerfile:   c.RuntimeDockerBuildDockerfile,
+			Image:        c.RuntimeDockerImage,
 			Logger:       logger,
 		})
 		if err != nil {
@@ -215,7 +215,7 @@ func getRuntime(c *config.Config, logger *zap.Logger) (command.Runtime, error) {
 func getSession(cfg *config.Config, proj *project.Project) (*command.Session, error) {
 	sess := command.NewSession()
 
-	if cfg.UseSystemEnv {
+	if cfg.ProjectEnvUseSystemEnv {
 		if err := sess.SetEnv(os.Environ()...); err != nil {
 			return nil, err
 		}

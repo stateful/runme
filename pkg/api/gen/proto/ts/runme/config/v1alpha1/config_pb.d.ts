@@ -11,85 +11,76 @@ import { MessageType } from "@protobuf-ts/runtime";
  */
 export interface Config {
     /**
-     * @generated from protobuf oneof: source
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Project project = 1;
      */
-    source: {
-        oneofKind: "project";
-        /**
-         * project indicates a dir-based source typically including multiple Markdown files.
-         *
-         * @generated from protobuf field: runme.config.v1alpha1.Config.Project project = 1;
-         */
-        project: Config_Project;
-    } | {
-        oneofKind: "filename";
-        /**
-         * filename indicates a single Markdown file.
-         *
-         * @generated from protobuf field: string filename = 2;
-         */
-        filename: string;
-    } | {
-        oneofKind: undefined;
-    };
+    project?: Config_Project;
     /**
-     * env is the environment variables configuration.
-     *
-     * @generated from protobuf field: runme.config.v1alpha1.Config.Env env = 3;
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Runtime runtime = 2;
      */
-    env?: Config_Env;
+    runtime?: Config_Runtime;
     /**
-     * filters is a list of filters to apply.
-     * Filters can be applied to documents or
-     * individual code blocks.
-     *
-     * @generated from protobuf field: repeated runme.config.v1alpha1.Config.Filter filters = 5;
-     */
-    filters: Config_Filter[];
-    /**
-     * log contains the log configuration.
-     *
-     * @generated from protobuf field: runme.config.v1alpha1.Config.Log log = 7;
-     */
-    log?: Config_Log;
-    /**
-     * @generated from protobuf field: runme.config.v1alpha1.Config.Server server = 8;
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Server server = 3;
      */
     server?: Config_Server;
     /**
-     * @generated from protobuf field: runme.config.v1alpha1.Config.Docker docker = 9;
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Log log = 4;
      */
-    docker?: Config_Docker;
+    log?: Config_Log;
 }
 /**
  * @generated from protobuf message runme.config.v1alpha1.Config.Project
  */
 export interface Config_Project {
     /**
-     * dir is the directory to look for Markdown files.
+     * root is the root directory of the project.
      *
-     * @generated from protobuf field: string dir = 1;
+     * @generated from protobuf field: string root = 1;
      */
-    dir: string;
+    root: string;
+    /**
+     * filename is the filename to look for in the project.
+     * It effectively narrows down to search code blocks
+     * within a single file.
+     *
+     * If root is empty, it should be the absolute path.
+     * Otherwise, it should be a relative path to the root.
+     *
+     * @generated from protobuf field: string filename = 2;
+     */
+    filename: string;
     /**
      * find_repo_upward indicates whether to find the nearest Git repository upward.
      * This is useful to, for example, recognize .gitignore files.
      *
-     * @generated from protobuf field: bool find_repo_upward = 2;
+     * @generated from protobuf field: bool find_repo_upward = 3;
      */
     findRepoUpward: boolean;
     /**
      * ignore_paths is a list of paths to ignore relative to dir.
      *
-     * @generated from protobuf field: repeated string ignore_paths = 3 [json_name = "ignore"];
+     * @generated from protobuf field: repeated string ignore_paths = 4 [json_name = "ignore"];
      */
     ignorePaths: string[];
     /**
      * disable_gitignore indicates whether to disable the .gitignore file.
      *
-     * @generated from protobuf field: bool disable_gitignore = 4;
+     * @generated from protobuf field: bool disable_gitignore = 5;
      */
     disableGitignore: boolean;
+    /**
+     * env is the environment variables configuration.
+     *
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Env env = 6;
+     */
+    env?: Config_Env;
+    /**
+     * filters is a list of filters to apply.
+     * They can be applied to documents or
+     * individual code blocks.
+     *
+     * @generated from protobuf field: repeated runme.config.v1alpha1.Config.Filter filters = 7;
+     */
+    filters: Config_Filter[];
 }
 /**
  * @generated from protobuf message runme.config.v1alpha1.Config.Filter
@@ -130,27 +121,43 @@ export interface Config_Env {
     sources: string[];
 }
 /**
- * @generated from protobuf message runme.config.v1alpha1.Config.Log
+ * @generated from protobuf message runme.config.v1alpha1.Config.Runtime
  */
-export interface Config_Log {
+export interface Config_Runtime {
     /**
-     * enabled indicates whether to enable logging.
-     *
+     * @generated from protobuf field: optional runme.config.v1alpha1.Config.Docker docker = 1;
+     */
+    docker?: Config_Docker;
+}
+/**
+ * @generated from protobuf message runme.config.v1alpha1.Config.Docker
+ */
+export interface Config_Docker {
+    /**
      * @generated from protobuf field: bool enabled = 1;
      */
     enabled: boolean;
     /**
-     * path is the path to the log output file.
-     *
-     * @generated from protobuf field: string path = 2;
+     * @generated from protobuf field: string image = 2;
      */
-    path: string;
+    image: string;
     /**
-     * verbose is the verbosity level of the log.
-     *
-     * @generated from protobuf field: bool verbose = 3;
+     * @generated from protobuf field: runme.config.v1alpha1.Config.Docker.Build build = 3;
      */
-    verbose: boolean;
+    build?: Config_Docker_Build;
+}
+/**
+ * @generated from protobuf message runme.config.v1alpha1.Config.Docker.Build
+ */
+export interface Config_Docker_Build {
+    /**
+     * @generated from protobuf field: string context = 1;
+     */
+    context: string;
+    /**
+     * @generated from protobuf field: string dockerfile = 2;
+     */
+    dockerfile: string;
 }
 /**
  * @generated from protobuf message runme.config.v1alpha1.Config.Server
@@ -183,34 +190,27 @@ export interface Config_Server_TLS {
     keyFile: string;
 }
 /**
- * @generated from protobuf message runme.config.v1alpha1.Config.Docker
+ * @generated from protobuf message runme.config.v1alpha1.Config.Log
  */
-export interface Config_Docker {
+export interface Config_Log {
     /**
+     * enabled indicates whether to enable logging.
+     *
      * @generated from protobuf field: bool enabled = 1;
      */
     enabled: boolean;
     /**
-     * @generated from protobuf field: string image = 2;
+     * path is the path to the log output file.
+     *
+     * @generated from protobuf field: string path = 2;
      */
-    image: string;
+    path: string;
     /**
-     * @generated from protobuf field: runme.config.v1alpha1.Config.Docker.Build build = 3;
+     * verbose is the verbosity level of the log.
+     *
+     * @generated from protobuf field: bool verbose = 3;
      */
-    build?: Config_Docker_Build;
-}
-/**
- * @generated from protobuf message runme.config.v1alpha1.Config.Docker.Build
- */
-export interface Config_Docker_Build {
-    /**
-     * @generated from protobuf field: string context = 1;
-     */
-    context: string;
-    /**
-     * @generated from protobuf field: string dockerfile = 2;
-     */
-    dockerfile: string;
+    verbose: boolean;
 }
 /**
  * @generated from protobuf enum runme.config.v1alpha1.Config.FilterType
@@ -257,27 +257,13 @@ declare class Config_Env$Type extends MessageType<Config_Env> {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Env
  */
 export declare const Config_Env: Config_Env$Type;
-declare class Config_Log$Type extends MessageType<Config_Log> {
+declare class Config_Runtime$Type extends MessageType<Config_Runtime> {
     constructor();
 }
 /**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Log
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Runtime
  */
-export declare const Config_Log: Config_Log$Type;
-declare class Config_Server$Type extends MessageType<Config_Server> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server
- */
-export declare const Config_Server: Config_Server$Type;
-declare class Config_Server_TLS$Type extends MessageType<Config_Server_TLS> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server.TLS
- */
-export declare const Config_Server_TLS: Config_Server_TLS$Type;
+export declare const Config_Runtime: Config_Runtime$Type;
 declare class Config_Docker$Type extends MessageType<Config_Docker> {
     constructor();
 }
@@ -292,4 +278,25 @@ declare class Config_Docker_Build$Type extends MessageType<Config_Docker_Build> 
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Docker.Build
  */
 export declare const Config_Docker_Build: Config_Docker_Build$Type;
+declare class Config_Server$Type extends MessageType<Config_Server> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server
+ */
+export declare const Config_Server: Config_Server$Type;
+declare class Config_Server_TLS$Type extends MessageType<Config_Server_TLS> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Server.TLS
+ */
+export declare const Config_Server_TLS: Config_Server_TLS$Type;
+declare class Config_Log$Type extends MessageType<Config_Log> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Log
+ */
+export declare const Config_Log: Config_Log$Type;
 export {};

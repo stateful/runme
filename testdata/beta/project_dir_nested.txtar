@@ -9,10 +9,10 @@ cmp stdout result-print.txt
 -- experimental/runme.yaml --
 version: v1alpha1
 project:
-  dir: "./nested"
-env:
-  sources:
-    - .env
+  root: "./nested"
+  env:
+    sources:
+      - .env
 
 -- README.md --
 ```sh {"name": "root-hello"}
