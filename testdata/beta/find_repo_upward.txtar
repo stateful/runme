@@ -13,11 +13,11 @@ cmp stdout result-print.txt
 -- nested/experimental/runme.yaml --
 version: v1alpha1
 project:
-  dir: "."
+  root: "."
   find_repo_upward: true
-env:
-  sources:
-    - .env
+  env:
+    sources:
+      - .env
 
 # Ensure that there is a git repository upwards.
 # It contains .gitignore which should be respected.
