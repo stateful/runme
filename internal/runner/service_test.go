@@ -239,11 +239,6 @@ func Test_runnerService(t *testing.T) {
 		for _, msg := range messages {
 			if msg.KnownID == knownID && msg.Req != nil {
 				loggedReq = &runnerv1.ExecuteRequest{}
-				actual := string(*msg.Req)
-				t.Logf("actual:\n%s", actual)
-				expectedb, perr := protojson.Marshal(req)
-				require.NoError(t, perr)
-				t.Logf("expected:\n%s", string(expectedb))
 				err := protojson.Unmarshal(*msg.Req, loggedReq)
 				require.NoError(t, err)
 				assert.Equal(t, "bash", loggedReq.ProgramName)
