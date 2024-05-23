@@ -171,7 +171,7 @@ func codeServerCmd() *cobra.Command {
 				}
 			}
 
-			if _, err := runCodeServerCommand(cmd, execFile, false, "--install-extension", "stateful.runme", "--force"); err != nil {
+			if _, err := runCodeServerCommand(cmd, execFile, false, "--install-extension", fExtensionHandle, "--force"); err != nil {
 				return errors.Wrap(err, "failed to install extension to code-server")
 			}
 

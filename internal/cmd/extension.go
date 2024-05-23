@@ -51,14 +51,15 @@ type extUpdateMsg struct {
 }
 
 type extensionerModel struct {
-	force      bool
-	loading    bool
-	loadingMsg string
-	spinner    spinner.Model
-	successMsg string
-	prompting  bool
-	prompt     prompt.QuestionModel
-	log        *zap.Logger
+	force       bool
+	extensioner extension.Extensioner
+	loading     bool
+	loadingMsg  string
+	spinner     spinner.Model
+	successMsg  string
+	prompting   bool
+	prompt      prompt.QuestionModel
+	log         *zap.Logger
 }
 
 func newExtensionerModel(force bool) extensionerModel {
@@ -66,12 +67,13 @@ func newExtensionerModel(force bool) extensionerModel {
 	s.Spinner = spinner.Line
 
 	return extensionerModel{
-		force:      force,
-		prompt:     prompt.NewQuestionModel("Do you want to install the extension?"),
-		spinner:    s,
-		loading:    true,
-		loadingMsg: "checking status of the extension...",
-		log:        log.Get().Named("command.extensionerModel"),
+		force:       force,
+		extensioner: extension.New(fStateful),
+		prompt:      prompt.NewQuestionModel("Do you want to install the extension?"),
+		spinner:     s,
+		loading:     true,
+		loadingMsg:  "checking status of the extension...",
+		log:         log.Get().Named("command.extensionerModel"),
 	}
 }
 
@@ -79,7 +81,7 @@ func (m extensionerModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.prompt.Init(),
 		func() tea.Msg {
-			fullName, installed, err := extensioner.IsInstalled()
+			fullName, installed, err := m.extensioner.IsInstalled()
 			return extCheckMsg{
 				Installed: installed,
 				Name:      fullName,
@@ -101,7 +103,7 @@ func (m extensionerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Value {
 			return m, func() tea.Msg { return prepExtInstallationMsg{} }
 		}
-		m.successMsg = fmt.Sprintf("You can install the extension manually using: %q", extension.InstallCommand())
+		m.successMsg = fmt.Sprintf("You can install the extension manually using: %q", m.extensioner.InstallCommand())
 		return m, tea.Quit
 
 	case prepExtInstallationMsg:
@@ -125,11 +127,11 @@ func (m extensionerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loading = true
 			m.loadingMsg = "updating the extension..."
 			return m, func() tea.Msg {
-				if err := extensioner.Update(); err != nil {
+				if err := m.extensioner.Update(); err != nil {
 					return extUpdateMsg{Err: err}
 				}
 
-				updatedFullName, _, err := extensioner.IsInstalled()
+				updatedFullName, _, err := m.extensioner.IsInstalled()
 				if err != nil {
 					return extUpdateMsg{
 						Err: err,
@@ -176,10 +178,10 @@ func (m extensionerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m extensionerModel) installExtension() tea.Msg {
-	if err := extensioner.Install(); err != nil {
+	if err := m.extensioner.Install(); err != nil {
 		return extUpdateMsg{Err: err}
 	}
-	installedFullName, _, err := extensioner.IsInstalled()
+	installedFullName, _, err := m.extensioner.IsInstalled()
 	if err != nil {
 		return extUpdateMsg{Err: err}
 	}

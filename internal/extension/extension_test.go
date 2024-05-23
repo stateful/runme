@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var allExtensionNames = []string{DefaultExtensionName}
+
 func Test_commandExists(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		result := commandExists("cmd.exe")
@@ -29,7 +31,7 @@ func Test_isExtensionInstalled(t *testing.T) {
 	// Legacy extension installed.
 	var extensions []ext
 	for _, name := range allExtensionNames {
-		if name != defaultName {
+		if name != DefaultExtensionName {
 			extensions = append(extensions, ext{Name: name})
 		}
 	}
@@ -40,7 +42,7 @@ func Test_isExtensionInstalled(t *testing.T) {
 	require.Empty(t, version)
 
 	// Default extension installed.
-	extensions = []ext{{Name: defaultName}}
+	extensions = []ext{{Name: DefaultExtensionName}}
 	version, result, err = isInstalled(extensions, allExtensionNames)
 	require.NoError(t, err)
 	require.True(t, result)

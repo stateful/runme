@@ -342,7 +342,8 @@ func serializeCellOutputsText(w io.Writer, cell *Cell) {
 	var buf bytes.Buffer
 	for _, output := range cell.Outputs {
 		for _, item := range output.Items {
-			if strings.HasPrefix(item.Mime, "image") {
+			isAnnotationsFoldout := strings.Contains(item.Value, "\"stateful.runme/annotations\"")
+			if strings.HasPrefix(item.Mime, "image") || isAnnotationsFoldout {
 				continue
 			}
 			if cell.ExecutionSummary != nil {
