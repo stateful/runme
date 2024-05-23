@@ -6,9 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/pkg/errors"
-	"github.com/stateful/runme/v3/internal/ulid"
-	"google.golang.org/protobuf/encoding/protojson"
 	"io"
 	"net"
 	"os"
@@ -17,6 +14,10 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/stateful/runme/v3/internal/ulid"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
