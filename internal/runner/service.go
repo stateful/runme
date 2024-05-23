@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"google.golang.org/protobuf/encoding/protojson"
 	"io"
 	"os"
 	"regexp"
@@ -216,7 +217,20 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return errors.WithStack(err)
 	}
 
-	logger.Debug("received initial request", zap.Any("req", req))
+	reqJson, err := protojson.Marshal(req)
+	if err != nil {
+		logger.Error("failed to marshal request", zap.Error(err))
+	}
+
+	// We want to always log the request because it is used for AI training.
+	// see: https://github.com/stateful/runme/issues/574
+	if req.KnownId != "" {
+		logger = logger.With(zap.String("knownId", req.KnownId))
+	}
+	if req.KnownName != "" {
+		logger = logger.With(zap.String("knownName", req.KnownName))
+	}
+	logger.Info("received initial request", zap.Any("req", string(reqJson)))
 
 	createSession := func(envs []string) (*Session, error) {
 		// todo(sebastian): owl store?
