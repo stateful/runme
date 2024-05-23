@@ -5,6 +5,9 @@ package runner
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"github.com/pkg/errors"
+	"github.com/stateful/runme/v3/internal/ulid"
 	"io"
 	"net"
 	"os"
@@ -27,6 +30,11 @@ import (
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
+var (
+	logger  *zap.Logger
+	logFile string
+)
+
 func testCreateLogger(t *testing.T) *zap.Logger {
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
@@ -38,7 +46,22 @@ func testStartRunnerServiceServer(t *testing.T) (
 	interface{ Dial() (net.Conn, error) },
 	func(),
 ) {
-	logger, err := zap.NewDevelopment()
+
+	f, err := os.CreateTemp("", "runmeServiceTestLogs")
+	if err != nil {
+		t.Fatalf("failed to create log file: %v", err)
+	}
+	logFile = f.Name()
+	if err := f.Close(); err != nil {
+		t.Fatalf("failed to close log file: %v", err)
+	}
+	// N.B. We use a production config because we want to produce JSON logs so that we can
+	// read them and verify required log messages are written.
+	config := zap.NewProductionConfig()
+	config.OutputPaths = []string{"stderr", logFile}
+	newLogger, err := config.Build()
+	logger = newLogger
+
 	require.NoError(t, err)
 	lis := bufconn.Listen(1024 << 10)
 	server := grpc.NewServer()
@@ -100,6 +123,49 @@ func getExecuteResult(
 	resultc <- result
 }
 
+type LogEntry struct {
+	Msg       string          `json:"msg"`
+	ID        string          `json:"_id"`
+	KnownID   string          `json:"knownID"`
+	KnownName string          `json:"knownName"`
+	Req       json.RawMessage `json:"req"`
+}
+
+// readLogMessages reads the log messages
+func readLogMessages() ([]*LogEntry, error) {
+	messages := make([]*LogEntry, 0, 100)
+	// Flush the log messages
+	if err := logger.Sync(); err != nil {
+		ignoreError := false
+		// N.B. we get a bad file descriptor error when calling Sync on a logger writing to stderr
+		// We can just ignore that.
+		if pathErr, ok := err.(*os.PathError); ok && pathErr.Err == syscall.EBADF {
+			ignoreError = true
+		}
+		if !ignoreError {
+			return messages, errors.Wrapf(err, "failed to sync logger")
+		}
+	}
+
+	// Read the log messages
+	b, err := os.ReadFile(logFile)
+	if err != nil {
+		return messages, errors.Wrapf(err, "failed to read log file")
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(b))
+	for {
+		var entry LogEntry
+		if err := dec.Decode(&entry); err != nil {
+			if errors.Is(err, io.EOF) {
+				return messages, nil
+			}
+			return messages, errors.Wrapf(err, "failed to decode log entry")
+		}
+		messages = append(messages, &entry)
+	}
+}
+
 func Test_runnerService(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
@@ -146,7 +212,10 @@ func Test_runnerService(t *testing.T) {
 		execResult := make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
+		knownID := ulid.GenerateID()
+
 		err = stream.Send(&runnerv1.ExecuteRequest{
+			KnownId:     knownID,
 			ProgramName: "bash",
 			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
@@ -158,6 +227,24 @@ func Test_runnerService(t *testing.T) {
 		assert.NoError(t, result.Err)
 		assert.Equal(t, "1\n2\n", string(result.Stdout))
 		assert.EqualValues(t, 0, result.ExitCode)
+
+		// Ensure there is a log message with the request
+		//messages, err := readLogMessages()
+		//require.NoError(t, err)
+		//
+		//var loggedReq *runnerv1.ExecuteRequest
+		//
+		//for _, msg := range messages {
+		//	if msg.KnownID == knownID {
+		//		loggedReq = &runnerv1.ExecuteRequest{}
+		//		err := json.Unmarshal(msg.Req, loggedReq)
+		//		require.NoError(t, err)
+		//		assert.Equal(t, "bash2", loggedReq.ProgramName)
+		//		assert.Equal(t, []string{"echo 1", "sleep 1", "echo 2"}, loggedReq.Commands)
+		//		break
+		//	}
+		//}
+
 	})
 
 	t.Run("ExecuteBasicTempFile", func(t *testing.T) {

@@ -226,7 +226,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	// We want to always log the request because it is used for AI training.
 	// see: https://github.com/stateful/runme/issues/574
 	if req.KnownId != "" {
-		logger = logger.With(zap.String("knownId", req.KnownId))
+		logger = logger.With(zap.String("knownID", req.KnownId))
 	}
 	if req.KnownName != "" {
 		logger = logger.With(zap.String("knownName", req.KnownName))
