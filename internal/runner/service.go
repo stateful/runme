@@ -217,7 +217,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return errors.WithStack(err)
 	}
 
-	reqJson, err := protojson.Marshal(req)
+	reqJSON, err := protojson.Marshal(req)
 	if err != nil {
 		logger.Error("failed to marshal request", zap.Error(err))
 	}
@@ -230,7 +230,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	if req.KnownName != "" {
 		logger = logger.With(zap.String("knownName", req.KnownName))
 	}
-	logger.Info("received initial request", zap.Any("req", string(reqJson)))
+	logger.Info("received initial request", zap.Any("req", string(reqJSON)))
 
 	createSession := func(envs []string) (*Session, error) {
 		// todo(sebastian): owl store?

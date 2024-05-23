@@ -210,7 +210,13 @@ func createCoreForConsole(devMode bool) (zapcore.Core, error) {
 		return nil, errors.Wrapf(err, "could not create writer for console logger")
 	}
 
-	encoder := zapcore.NewConsoleEncoder(encoderConfig)
+	var encoder zapcore.Encoder
+	if devMode {
+		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+	} else {
+		encoder = zapcore.NewJSONEncoder(encoderConfig)
+	}
+
 	core := zapcore.NewCore(encoder, zapcore.AddSync(oFile), lvl)
 
 	if !devMode {
@@ -231,11 +237,6 @@ func createCoreForConsole(devMode bool) (zapcore.Core, error) {
 func createAICoreLogger() (zapcore.Core, error) {
 	// Configure encoder for JSON format
 	c := zap.NewProductionEncoderConfig()
-	// Use the keys used by cloud logging
-	// https://cloud.google.com/logging/docs/structured-logging
-	c.LevelKey = "severity"
-	c.TimeKey = "time"
-	c.MessageKey = "message"
 	// We attach the function key to the logs because that is useful for identifying the function that generated the log.
 	c.FunctionKey = "function"
 
@@ -248,7 +249,9 @@ func createAICoreLogger() (zapcore.Core, error) {
 	logDir := filepath.Join(configDir, "logs")
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
 		// Logger won't be setup yet so we can't use it.
-		fmt.Fprintf(os.Stdout, "Creating log directory %s\n", logDir)
+		if _, err := fmt.Fprintf(os.Stdout, "Creating log directory %s\n", logDir); err != nil {
+			return nil, errors.Wrapf(err, "could not write to stdout")
+		}
 		err := os.MkdirAll(logDir, 0755)
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not create log directory %s", logDir)
