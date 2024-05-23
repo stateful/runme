@@ -59,6 +59,8 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE
 		case command.ProgramResolverStatusUnresolvedWithPlaceholder:
 			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER
+		case command.ProgramResolverStatusUnresolvedWithSecret:
+			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET
 		default:
 			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNSPECIFIED
 		}
@@ -89,10 +91,18 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2alpha1.ResolvePro
 		}
 	}
 
-	// Add session env as a source. If session is not found, it's not an error.
+	// todo(sebastian): bring back sensitive keys for owl store
+	// Add session env as a source and pass info about sensitive env vars.
+	sensitiveEnvKeys := []string{}
 	session, found, _ := r.getSessionFromRequest(req)
 	if found {
-		sources = append(sources, command.ProgramResolverSourceFunc(session.GetEnv()))
+		env := session.GetEnv()
+		sources = append(sources, command.ProgramResolverSourceFunc(env))
+
+		// sensitiveEnvKeys, err = session.SensitiveEnvKeys()
+		// if err != nil {
+		// 	return nil, err
+		// }
 	}
 
 	mode := command.ProgramResolverModeAuto
@@ -104,5 +114,5 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2alpha1.ResolvePro
 		mode = command.ProgramResolverModeSkipAll
 	}
 
-	return command.NewProgramResolver(mode, []string{}, sources...), err
+	return command.NewProgramResolver(mode, sensitiveEnvKeys, sources...), err
 }
