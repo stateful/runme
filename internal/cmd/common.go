@@ -253,7 +253,7 @@ func createAICoreLogger() (zapcore.Core, error) {
 		if _, err := fmt.Fprintf(os.Stdout, "Creating log directory %s\n", logDir); err != nil {
 			return nil, errors.Wrapf(err, "could not write to stdout")
 		}
-		err := os.MkdirAll(logDir, 0o755)
+		err := os.MkdirAll(logDir, 0o750)
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not create log directory %s", logDir)
 		}
