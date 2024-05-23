@@ -48,7 +48,6 @@ func testStartRunnerServiceServer(t *testing.T) (
 	interface{ Dial() (net.Conn, error) },
 	func(),
 ) {
-
 	f, err := os.CreateTemp("", "runmeServiceTestLogs")
 	if err != nil {
 		t.Fatalf("failed to create log file: %v", err)
@@ -247,7 +246,6 @@ func Test_runnerService(t *testing.T) {
 				break
 			}
 		}
-
 	})
 
 	t.Run("ExecuteBasicTempFile", func(t *testing.T) {
