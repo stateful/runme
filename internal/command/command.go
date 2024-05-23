@@ -39,7 +39,7 @@ type internalCommand interface {
 type base struct {
 	cfg           *ProgramConfig
 	isEchoEnabled bool
-	kernel        Kernel
+	runtime       Runtime
 	session       *Session
 	stdin         io.Reader
 	stdinWriter   io.Writer
@@ -87,7 +87,7 @@ func (c *base) Wait() error {
 func (c *base) Env() []string {
 	// The order is important here. If the env is duplicated,
 	// the last one wins.
-	env := c.kernel.Environ()
+	env := c.runtime.Environ()
 	env = append(env, c.cfg.Env...)
 	if c.session != nil {
 		env = append(env, c.session.GetEnv()...)
@@ -118,14 +118,14 @@ func (c *base) ProgramPath() (string, []string, error) {
 func (c *base) findDefaultProgram(name string, args []string) (string, []string, error) {
 	if isShellLanguage(name) {
 		globalShell := shellFromShellPath(c.globalShellPath())
-		res, err := c.kernel.LookPath(globalShell)
+		res, err := c.runtime.LookPath(globalShell)
 		if err != nil {
 			return "", nil, errors.Errorf("failed lookup default shell %s", globalShell)
 		}
 		return res, args, nil
 	}
 	// Default to "cat" for shebang++
-	res, err := c.kernel.LookPath("cat")
+	res, err := c.runtime.LookPath("cat")
 	if err != nil {
 		return "", nil, errors.Errorf("failed lookup default program cat")
 	}
@@ -136,7 +136,7 @@ func (c *base) findProgramInPath(name string, args []string) (string, []string, 
 	if name == "" {
 		return "", nil, errors.New("program name is empty")
 	}
-	res, err := c.kernel.LookPath(name)
+	res, err := c.runtime.LookPath(name)
 	if err != nil {
 		return "", nil, errors.Errorf("failed program lookup %q", name)
 	}
@@ -151,12 +151,12 @@ func (c *base) findProgramInKnownInterpreters(programName string, args []string)
 
 	for _, interpreter := range interpreters {
 		interProgram, interArgs := parseInterpreter(interpreter)
-		if path, err := c.kernel.LookPath(interProgram); err == nil {
+		if path, err := c.runtime.LookPath(interProgram); err == nil {
 			return path, append(interArgs, args...), nil
 		}
 	}
 
-	cat, err := c.kernel.LookPath("cat")
+	cat, err := c.runtime.LookPath("cat")
 	if err == nil {
 		return cat, nil, nil
 	}
@@ -187,11 +187,11 @@ func (c *base) Stderr() io.Writer {
 }
 
 func (c *base) globalShellPath() string {
-	shell := c.kernel.GetEnv("SHELL")
+	shell := c.runtime.GetEnv("SHELL")
 	if shell == "" {
 		shell = "sh"
 	}
-	if path, err := c.kernel.LookPath(shell); err == nil {
+	if path, err := c.runtime.LookPath(shell); err == nil {
 		return path
 	}
 	return "/bin/sh"

@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/document/editor/editorservice"
 	"github.com/stateful/runme/v3/internal/project/projectservice"
 	"github.com/stateful/runme/v3/internal/runner"
@@ -111,7 +112,10 @@ The kernel is used to run long running processes like shells and interacting wit
 				}
 				runnerv1.RegisterRunnerServiceServer(server, runnerServicev1)
 
-				runnerServicev2, err := runnerv2service.NewRunnerService(command.NewFactory(nil, nil, logger), logger)
+				runnerServicev2, err := runnerv2service.NewRunnerService(
+					command.NewFactory(&config.Config{}, command.NewHostRuntime(), logger),
+					logger,
+				)
 				if err != nil {
 					return err
 				}

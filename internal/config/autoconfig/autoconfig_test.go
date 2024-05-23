@@ -17,7 +17,7 @@ func TestInvokeConfig(t *testing.T) {
 			Data: []byte("Hello, World!"),
 		},
 		"runme.yaml": {
-			Data: []byte(fmt.Sprintf("version: v1alpha1\nfilename: %s\n", "README.md")),
+			Data: []byte(fmt.Sprintf("version: v1alpha1\nproject:\n  filename: %s\n", "README.md")),
 		},
 	}
 
