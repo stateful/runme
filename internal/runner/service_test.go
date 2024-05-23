@@ -229,21 +229,21 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 0, result.ExitCode)
 
 		// Ensure there is a log message with the request
-		//messages, err := readLogMessages()
-		//require.NoError(t, err)
-		//
-		//var loggedReq *runnerv1.ExecuteRequest
-		//
-		//for _, msg := range messages {
-		//	if msg.KnownID == knownID {
-		//		loggedReq = &runnerv1.ExecuteRequest{}
-		//		err := json.Unmarshal(msg.Req, loggedReq)
-		//		require.NoError(t, err)
-		//		assert.Equal(t, "bash2", loggedReq.ProgramName)
-		//		assert.Equal(t, []string{"echo 1", "sleep 1", "echo 2"}, loggedReq.Commands)
-		//		break
-		//	}
-		//}
+		messages, err := readLogMessages()
+		require.NoError(t, err)
+
+		var loggedReq *runnerv1.ExecuteRequest
+
+		for _, msg := range messages {
+			if msg.KnownID == knownID {
+				loggedReq = &runnerv1.ExecuteRequest{}
+				err := json.Unmarshal(msg.Req, loggedReq)
+				require.NoError(t, err)
+				assert.Equal(t, "bash2", loggedReq.ProgramName)
+				assert.Equal(t, []string{"echo 1", "sleep 1", "echo 2"}, loggedReq.Commands)
+				break
+			}
+		}
 
 	})
 
