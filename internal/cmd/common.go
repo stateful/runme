@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"go.uber.org/zap/zapcore"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"

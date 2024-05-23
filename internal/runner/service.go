@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"google.golang.org/protobuf/encoding/protojson"
 	"io"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/creack/pty"
 	"github.com/gabriel-vasile/mimetype"
