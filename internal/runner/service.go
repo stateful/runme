@@ -3,6 +3,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -223,6 +224,11 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		logger.Error("failed to marshal request", zap.Error(err))
 	}
 
+	reqObj := map[string]interface{}{}
+	if err := json.Unmarshal(reqJSON, &reqObj); err != nil {
+		logger.Error("failed to unmarshal request", zap.Error(err))
+	}
+
 	// We want to always log the request because it is used for AI training.
 	// see: https://github.com/stateful/runme/issues/574
 	if req.KnownId != "" {
@@ -231,7 +237,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	if req.KnownName != "" {
 		logger = logger.With(zap.String("knownName", req.KnownName))
 	}
-	logger.Info("received initial request", zap.Any("req", string(reqJSON)))
+	logger.Info("received initial request", zap.Any("req", reqObj))
 
 	createSession := func(envs []string) (*Session, error) {
 		// todo(sebastian): owl store?

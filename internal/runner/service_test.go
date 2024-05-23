@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/v3/internal/ulid"
+	"google.golang.org/protobuf/encoding/protojson"
 	"io"
 	"net"
 	"os"
@@ -124,11 +125,11 @@ func getExecuteResult(
 }
 
 type LogEntry struct {
-	Msg       string          `json:"msg"`
-	ID        string          `json:"_id"`
-	KnownID   string          `json:"knownID"`
-	KnownName string          `json:"knownName"`
-	Req       json.RawMessage `json:"req"`
+	Msg       string           `json:"msg"`
+	ID        string           `json:"_id"`
+	KnownID   string           `json:"knownID"`
+	KnownName string           `json:"knownName"`
+	Req       *json.RawMessage `json:"req"`
 }
 
 // readLogMessages reads the log messages
@@ -214,12 +215,13 @@ func Test_runnerService(t *testing.T) {
 
 		knownID := ulid.GenerateID()
 
-		err = stream.Send(&runnerv1.ExecuteRequest{
+		req := &runnerv1.ExecuteRequest{
 			KnownId:     knownID,
 			ProgramName: "bash",
 			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands:    []string{"echo 1", "sleep 1", "echo 2"},
-		})
+		}
+		err = stream.Send(req)
 		assert.NoError(t, err)
 
 		result := <-execResult
@@ -235,11 +237,16 @@ func Test_runnerService(t *testing.T) {
 		var loggedReq *runnerv1.ExecuteRequest
 
 		for _, msg := range messages {
-			if msg.KnownID == knownID {
+			if msg.KnownID == knownID && msg.Req != nil {
 				loggedReq = &runnerv1.ExecuteRequest{}
-				err := json.Unmarshal(msg.Req, loggedReq)
+				actual := string(*msg.Req)
+				t.Logf("actual:\n%s", actual)
+				expectedb, perr := protojson.Marshal(req)
+				require.NoError(t, perr)
+				t.Logf("expected:\n%s", string(expectedb))
+				err := protojson.Unmarshal(*msg.Req, loggedReq)
 				require.NoError(t, err)
-				assert.Equal(t, "bash2", loggedReq.ProgramName)
+				assert.Equal(t, "bash", loggedReq.ProgramName)
 				assert.Equal(t, []string{"echo 1", "sleep 1", "echo 2"}, loggedReq.Commands)
 				break
 			}
