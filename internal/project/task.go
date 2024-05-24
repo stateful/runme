@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stateful/runme/v3/internal/document"
+	"github.com/stateful/runme/v3/pkg/document"
 )
 
 // Task is struct representing a [document.CodeBlock] within the context of a project.

@@ -15,7 +15,6 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config"
-	"github.com/stateful/runme/v3/internal/document/editor/editorservice"
 	"github.com/stateful/runme/v3/internal/project/projectservice"
 	"github.com/stateful/runme/v3/internal/runner"
 	runnerv2service "github.com/stateful/runme/v3/internal/runnerv2service"
@@ -24,6 +23,7 @@ import (
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 )
 
 func serverCmd() *cobra.Command {

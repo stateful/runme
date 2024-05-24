@@ -9,8 +9,8 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
-	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/project"
+	"github.com/stateful/runme/v3/pkg/document"
 )
 
 func runCmd(*commonFlags) *cobra.Command {
