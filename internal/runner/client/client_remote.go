@@ -187,6 +187,8 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 		SessionId:       r.sessionID,
 		SessionStrategy: r.sessionStrategy,
 		Background:      block.Background(),
+		KnownId:         block.ID(),
+		KnownName:       block.Name(),
 		StoreLastOutput: true,
 		Envs:            r.envs,
 		CommandMode:     commandModeGrpc,

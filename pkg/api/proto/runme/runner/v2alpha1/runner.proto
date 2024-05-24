@@ -30,6 +30,13 @@ message Session {
   map<string, string> metadata = 3;
 }
 
+// env store implementation
+enum SessionEnvStoreType {
+  // uses default env store
+  SESSION_ENV_STORE_TYPE_UNSPECIFIED = 0;
+  // uses owl store
+  SESSION_ENV_STORE_TYPE_OWL = 1;
+}
 message CreateSessionRequest {
   // metadata is a map of client specific metadata.
   map<string, string> metadata = 1;
@@ -42,6 +49,9 @@ message CreateSessionRequest {
   // They will be appended to the list from the env field.
   // The env field has a higher priority.
   optional Project project = 3;
+
+  // optional selection of which env store implementation to sue
+  SessionEnvStoreType env_store_type = 4;
 }
 
 message CreateSessionResponse {
@@ -245,14 +255,76 @@ message ResolveProgramResponse {
   enum Status {
     // unspecified is the default value and it means unresolved.
     STATUS_UNSPECIFIED = 0;
-    // unresolved with message means that the variable is unresolved
-    // but it contains a message. E.g. FOO=this is message
-    STATUS_UNRESOLVED_WITH_MESSAGE = 1;
-    // unresolved with placeholder means that the variable is unresolved
-    // but it contains a placeholder. E.g. FOO="this is placeholder"
-    STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
     // resolved means that the variable is resolved.
-    STATUS_RESOLVED = 3;
+    STATUS_RESOLVED = 1;
+    // unresolved with message means that the variable is unresolved
+    // but it contains a message. E.g. FOO=this is message.
+    STATUS_UNRESOLVED_WITH_MESSAGE = 2;
+    // unresolved with placeholder means that the variable is unresolved
+    // but it contains a placeholder. E.g. FOO="this is placeholder".
+    STATUS_UNRESOLVED_WITH_PLACEHOLDER = 3;
+    // unresolved with secret means that the variable is unresolved
+    // and it requires treatment as a secret.
+    STATUS_UNRESOLVED_WITH_SECRET = 4;
+  }
+}
+
+enum MonitorEnvStoreType {
+  MONITOR_ENV_STORE_TYPE_UNSPECIFIED = 0;
+  MONITOR_ENV_STORE_TYPE_SNAPSHOT = 1;
+  // possible expansion to have a "timeline" view
+  // MONITOR_ENV_STORE_TYPE_TIMELINE = 2;
+}
+
+message MonitorEnvStoreRequest {
+  Session session = 1;
+}
+
+message MonitorEnvStoreResponseSnapshot {
+  repeated SnapshotEnv envs = 1;
+
+  message SnapshotEnv {
+    Status status = 1;
+
+    string name = 2;
+
+    string spec = 3;
+
+    string origin = 4;
+
+    string original_value = 5;
+
+    string resolved_value = 6;
+
+    string create_time = 7;
+
+    string update_time = 8;
+
+    repeated Error errors = 9;
+  }
+
+  message Error {
+    uint32 code = 1;
+
+    string message = 2;
+  }
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+
+    STATUS_LITERAL = 1;
+
+    STATUS_HIDDEN = 2;
+
+    STATUS_MASKED = 3;
+  }
+}
+
+message MonitorEnvStoreResponse {
+  MonitorEnvStoreType type = 1;
+
+  oneof data {
+    MonitorEnvStoreResponseSnapshot snapshot = 2;
   }
 }
 
@@ -262,6 +334,8 @@ service RunnerService {
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {}
   rpc UpdateSession(UpdateSessionRequest) returns (UpdateSessionResponse) {}
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
+
+  rpc MonitorEnvStore(MonitorEnvStoreRequest) returns (stream MonitorEnvStoreResponse) {}
 
   // Execute executes a program. Examine "ExecuteRequest" to explore
   // configuration options.
