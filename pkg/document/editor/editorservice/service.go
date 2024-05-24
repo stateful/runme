@@ -7,10 +7,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/document"
-	"github.com/stateful/runme/v3/internal/document/editor"
-	"github.com/stateful/runme/v3/internal/document/identity"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	"github.com/stateful/runme/v3/pkg/document"
+	"github.com/stateful/runme/v3/pkg/document/editor"
+	"github.com/stateful/runme/v3/pkg/document/identity"
 )
 
 type parserServiceServer struct {

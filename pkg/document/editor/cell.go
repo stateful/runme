@@ -14,8 +14,8 @@ import (
 
 	"github.com/yuin/goldmark/ast"
 
-	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/ulid"
+	"github.com/stateful/runme/v3/pkg/document"
 )
 
 const (
