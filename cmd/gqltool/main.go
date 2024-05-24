@@ -16,7 +16,7 @@ import (
 
 var (
 	apiURL   = flag.String("api-url", "https://api.stateful.com", "The API base address")
-	tokenDir = flag.String("token-dir", cmd.GetDefaultConfigHome(), "The directory with tokens")
+	tokenDir = flag.String("token-dir", cmd.GetUserConfigHome(), "The directory with tokens")
 )
 
 func init() {

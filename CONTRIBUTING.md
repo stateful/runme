@@ -115,6 +115,20 @@ make wasm
 
 This builds the wasm file to `examples/web/runme.wasm`.
 
+## Install Dev Tools
+
+To install tools like `gofumpt` and `revive` which are used for development (e.g. linting) run
+
+```sh
+make install/dev
+```
+
+You will need the [pre-commit](https://pre-commit.com/) tool to run the pre-commit hooks. You can install it with:
+
+```sh
+python3 -m pip install pre-commit
+```
+
 ## Linting
 
 Like many complex go projects, this project uses a variety of linting tools to ensure code quality and prevent regressions! The main linter (revive) can be run with:
