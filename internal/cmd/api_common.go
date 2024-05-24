@@ -64,7 +64,7 @@ func setAPIFlags(flagSet *pflag.FlagSet) {
 	flagSet.StringVar(&authBaseURL, authURLF, defaultAuthURL, "Backend URL to authorize you")
 	flagSet.StringVar(&apiBaseURL, apiURLF, "https://api.stateful.com", "Backend URL with API")
 	flagSet.StringVar(&apiToken, apiTokenF, "", "API token")
-	flagSet.StringVar(&configDir, configDirF, GetDefaultConfigHome(), "Location where token will be saved")
+	flagSet.StringVar(&configDir, configDirF, GetUserConfigHome(), "Location where token will be saved")
 	flagSet.BoolVar(&trace, traceF, false, "Trace HTTP calls")
 	flagSet.BoolVar(&traceAll, traceAllF, false, "Trace all HTTP calls including authentication (it might leak sensitive data to output)")
 	flagSet.BoolVar(&enableChaos, enableChaosF, false, "Enable Chaos Monkey mode for GraphQL requests")

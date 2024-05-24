@@ -324,7 +324,11 @@ func printfInfo(msg string, args ...any) {
 	_, _ = os.Stderr.Write(buf.Bytes())
 }
 
-func GetDefaultConfigHome() string {
+// GetUserConfigHome returns the user's configuration directory.
+// The user configuration directory should be used for configuration that is specific to the user and thus
+// shouldn't be included in project/repository configuration. An example of user location is where server logs
+// should be stored.
+func GetUserConfigHome() string {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		dir = os.TempDir()
@@ -426,7 +430,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 
 type runFunc func(context.Context) error
 
-var defaultTLSDir = filepath.Join(GetDefaultConfigHome(), "tls")
+var defaultTLSDir = filepath.Join(GetUserConfigHome(), "tls")
 
 func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Task) error {
 	for _, task := range tasks {

@@ -136,7 +136,7 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().BoolVar(&enableRunner, "runner", true, "Enable runner service (legacy, defaults to true)")
 	cmd.Flags().BoolVar(&enableAILogs, "ai-logs", false, "Enable logs to support training an AI")
 	cmd.Flags().StringVar(&tlsDir, "tls", defaultTLSDir, "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
-	cmd.Flags().StringVar(&configDir, configDirF, GetDefaultConfigHome(), "If ai logs is enabled logs will be written to ${config-dir}/logs")
+	cmd.Flags().StringVar(&configDir, configDirF, GetUserConfigHome(), "If ai logs is enabled logs will be written to ${config-dir}/logs")
 	_ = cmd.Flags().MarkHidden("runner")
 
 	return &cmd
