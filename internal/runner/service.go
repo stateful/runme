@@ -3,6 +3,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +11,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/protobuf/proto"
+
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/creack/pty"
 	"github.com/gabriel-vasile/mimetype"
@@ -216,7 +221,15 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return errors.WithStack(err)
 	}
 
-	logger.Debug("received initial request", zap.Any("req", req))
+	// We want to always log the request because it is used for AI training.
+	// see: https://github.com/stateful/runme/issues/574
+	if req.KnownId != "" {
+		logger = logger.With(zap.String("knownID", req.KnownId))
+	}
+	if req.KnownName != "" {
+		logger = logger.With(zap.String("knownName", req.KnownName))
+	}
+	logger.Info("received initial request", zap.Any("req", zapProto(req, logger)))
 
 	createSession := func(envs []string) (*Session, error) {
 		// todo(sebastian): owl store?
@@ -537,6 +550,29 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	return werr
+}
+
+// zapProto is a helper function to be able to log protos as JSON objects.
+// We want protos to be logged using the proto json format so we can deserialize them from the logs.
+// If you just log a proto with zap it will use the json serialization of the GoLang struct which will not match
+// the proto json format. So we serialize the request to JSON and then deserialize it to a map so we can log it as a
+// JSON object. A more efficient solution would be to use https://github.com/kazegusuri/go-proto-zap-marshaler
+// to generate a custom zapcore.ObjectMarshaler implementation for each proto message.
+func zapProto(pb proto.Message, logger *zap.Logger) map[string]interface{} {
+	reqObj := map[string]interface{}{}
+	reqJSON, err := protojson.Marshal(pb)
+	if err != nil {
+		logger.Error("failed to marshal request", zap.Error(err))
+		reqObj["error"] = err.Error()
+		return reqObj
+	}
+
+	if err := json.Unmarshal(reqJSON, &reqObj); err != nil {
+		logger.Error("failed to unmarshal request", zap.Error(err))
+		reqObj["error"] = err.Error()
+	}
+
+	return reqObj
 }
 
 type output struct {

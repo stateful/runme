@@ -146,7 +146,7 @@ func codeServerCmd() *cobra.Command {
 				return errors.New("currently, we only support coder's code server; please uninstall any other code-server installations to use this feature")
 			}
 
-			configDir := filepath.Join(GetDefaultConfigHome(), "code-server")
+			configDir := filepath.Join(GetUserConfigHome(), "code-server")
 
 			if codeServerConfigFile == "" {
 				codeServerConfigFile = filepath.Join(configDir, "config.yaml")
