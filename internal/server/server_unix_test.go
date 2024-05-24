@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/config"
 )
 
 func TestServerUnixSocket(t *testing.T) {
@@ -18,7 +21,8 @@ func TestServerUnixSocket(t *testing.T) {
 		Address: "unix://" + sock,
 	}
 	logger := zaptest.NewLogger(t)
-	s, err := New(cfg, logger)
+	factory := command.NewFactory(&config.Config{}, command.NewHostRuntime(), logger)
+	s, err := New(cfg, factory, logger)
 	require.NoError(t, err)
 	errc := make(chan error, 1)
 	go func() {

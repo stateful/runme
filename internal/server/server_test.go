@@ -15,16 +15,20 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
+	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/config"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
 func TestServer(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	factory := command.NewFactory(&config.Config{}, command.NewHostRuntime(), logger)
+
 	t.Run("tcp", func(t *testing.T) {
 		cfg := &Config{
 			Address: "localhost:0",
 		}
-		logger := zaptest.NewLogger(t)
-		s, err := New(cfg, logger)
+		s, err := New(cfg, factory, logger)
 		require.NoError(t, err)
 		errc := make(chan error, 1)
 		go func() {
@@ -45,8 +49,7 @@ func TestServer(t *testing.T) {
 			KeyFile:    filepath.Join(dir, "key.pem"),
 			TLSEnabled: true,
 		}
-		logger := zaptest.NewLogger(t)
-		s, err := New(cfg, logger)
+		s, err := New(cfg, factory, logger)
 		require.NoError(t, err)
 		errc := make(chan error, 1)
 		go func() {

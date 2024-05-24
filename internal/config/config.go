@@ -18,34 +18,28 @@ import (
 // Config is a flatten configuration of runme.yaml. The purpose of it is to
 // unify all the different configuration versions into a single struct.
 type Config struct {
-	// Dir- or git-based project fields.
-	DisableGitignore bool
-	IgnorePaths      []string
-	FindRepoUpward   bool
-	ProjectDir       string
+	ProjectRoot             string
+	ProjectFilename         string
+	ProjectFindRepoUpward   bool
+	ProjectIgnorePaths      []string
+	ProjectDisableGitignore bool
+	ProjectEnvUseSystemEnv  bool
+	ProjectEnvSources       []string
+	ProjectFilters          []*Filter
 
-	// Filemode fields.
-	Filename string
+	RuntimeDockerEnabled         bool
+	RuntimeDockerImage           string
+	RuntimeDockerBuildContext    string
+	RuntimeDockerBuildDockerfile string
 
-	// Environment variable fields.
-	EnvSourceFiles []string
-	UseSystemEnv   bool
-
-	Filters []*Filter
-
-	// Log related fields.
-	LogEnabled bool
-	LogPath    string
-	LogVerbose bool
-
-	// Server related fields.
 	ServerAddress     string
 	ServerTLSEnabled  bool
 	ServerTLSCertFile string
 	ServerTLSKeyFile  string
 
-	// Kernel related fields.
-	Kernels []Kernel
+	LogEnabled bool
+	LogPath    string
+	LogVerbose bool
 }
 
 func ParseYAML(data []byte) (*Config, error) {
@@ -119,68 +113,41 @@ func parseYAMLv1alpha1(data []byte) (*configv1alpha1.Config, error) {
 
 func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 	project := c.GetProject()
+	runtime := c.GetRuntime()
+	server := c.GetServer()
 	log := c.GetLog()
 
 	var filters []*Filter
-	for _, f := range c.GetFilters() {
+	for _, f := range c.GetProject().GetFilters() {
 		filters = append(filters, &Filter{
 			Type:      f.GetType().String(),
 			Condition: f.GetCondition(),
 		})
 	}
 
-	var kernels []Kernel
-	for _, k := range c.GetKernels() {
-		msg, err := k.UnmarshalNew()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to unmarshal kernel")
-		}
-
-		switch k := msg.(type) {
-		case *configv1alpha1.Config_LocalKernel:
-			kernels = append(kernels, &LocalKernel{
-				Name: k.GetName(),
-			})
-		case *configv1alpha1.Config_DockerKernel:
-			kernels = append(kernels, &DockerKernel{
-				Build: struct {
-					Context    string
-					Dockerfile string
-				}{
-					Context:    k.GetBuild().GetContext(),
-					Dockerfile: k.GetBuild().GetDockerfile(),
-				},
-				Image: k.GetImage(),
-				Name:  k.GetName(),
-			})
-		default:
-			return nil, errors.Errorf("unknown kernel type: %s", k.ProtoReflect().Type().Descriptor().FullName())
-		}
-	}
-
 	cfg := &Config{
-		ProjectDir:       project.GetDir(),
-		FindRepoUpward:   project.GetFindRepoUpward(),
-		IgnorePaths:      project.GetIgnorePaths(),
-		DisableGitignore: project.GetDisableGitignore(),
+		ProjectRoot:             project.GetRoot(),
+		ProjectFilename:         project.GetFilename(),
+		ProjectFindRepoUpward:   project.GetFindRepoUpward(),
+		ProjectIgnorePaths:      project.GetIgnorePaths(),
+		ProjectDisableGitignore: project.GetDisableGitignore(),
+		ProjectEnvUseSystemEnv:  project.GetEnv().GetUseSystemEnv(),
+		ProjectEnvSources:       project.GetEnv().GetSources(),
+		ProjectFilters:          filters,
 
-		Filename: c.GetFilename(),
+		RuntimeDockerEnabled:         runtime.GetDocker().GetEnabled(),
+		RuntimeDockerImage:           runtime.GetDocker().GetImage(),
+		RuntimeDockerBuildContext:    runtime.GetDocker().GetBuild().GetContext(),
+		RuntimeDockerBuildDockerfile: runtime.GetDocker().GetBuild().GetDockerfile(),
 
-		UseSystemEnv:   c.GetEnv().GetUseSystemEnv(),
-		EnvSourceFiles: c.GetEnv().GetSources(),
-
-		Filters: filters,
+		ServerAddress:     server.GetAddress(),
+		ServerTLSEnabled:  server.GetTls().GetEnabled(),
+		ServerTLSCertFile: server.GetTls().GetCertFile(),
+		ServerTLSKeyFile:  server.GetTls().GetKeyFile(),
 
 		LogEnabled: log.GetEnabled(),
 		LogPath:    log.GetPath(),
 		LogVerbose: log.GetVerbose(),
-
-		ServerAddress:     c.GetServer().GetAddress(),
-		ServerTLSEnabled:  c.GetServer().GetTls().GetEnabled(),
-		ServerTLSCertFile: c.GetServer().GetTls().GetCertFile(),
-		ServerTLSKeyFile:  c.GetServer().GetTls().GetKeyFile(),
-
-		Kernels: kernels,
 	}
 
 	return cfg, nil
@@ -192,38 +159,25 @@ func validateConfig(cfg *Config) error {
 		cwd = "."
 	}
 
-	if err := validateProjectDir(cfg, cwd); err != nil {
+	if err := validateInsideCwd(cfg.ProjectRoot, cwd); err != nil {
 		return errors.Wrap(err, "failed to validate project dir")
 	}
 
-	if err := validateFilename(cfg, cwd); err != nil {
+	if err := validateInsideCwd(cfg.ProjectFilename, cwd); err != nil {
 		return errors.Wrap(err, "failed to validate filename")
 	}
 
 	return nil
 }
 
-func validateProjectDir(cfg *Config, cwd string) error {
-	rel, err := filepath.Rel(cwd, filepath.Join(cwd, cfg.ProjectDir))
+func validateInsideCwd(path, cwd string) error {
+	rel, err := filepath.Rel(cwd, filepath.Join(cwd, path))
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	if strings.HasPrefix(rel, "..") {
-		return errors.New("outside of current working directory")
+		return errors.New("outside of the current working directory")
 	}
-
-	return nil
-}
-
-func validateFilename(cfg *Config, cwd string) error {
-	rel, err := filepath.Rel(cwd, filepath.Join(cwd, cfg.Filename))
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if strings.HasPrefix(rel, "..") {
-		return errors.New("outside of current working directory")
-	}
-
 	return nil
 }
 

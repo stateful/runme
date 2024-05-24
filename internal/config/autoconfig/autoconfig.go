@@ -16,7 +16,6 @@ import (
 
 	"github.com/pkg/errors"
 	"go.uber.org/dig"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
@@ -44,65 +43,23 @@ func mustProvide(err error) {
 func init() {
 	mustProvide(container.Provide(getCommandFactory))
 	mustProvide(container.Provide(getConfigLoader))
-	mustProvide(container.Provide(getKernel))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
 	mustProvide(container.Provide(getRootConfig))
 	mustProvide(container.Provide(getSession))
+	mustProvide(container.Provide(getRuntime))
 	mustProvide(container.Provide(getUserConfigDir))
 }
 
-func getCommandFactory(cfg *config.Config, kernel command.Kernel, logger *zap.Logger) command.Factory {
-	return command.NewFactory(cfg, kernel, logger)
+func getCommandFactory(cfg *config.Config, runtime command.Runtime, logger *zap.Logger) command.Factory {
+	return command.NewFactory(cfg, runtime, logger)
 }
 
 func getConfigLoader() (*config.Loader, error) {
 	// TODO(adamb): change from "./experimental" to "." when the feature is stable and
 	// delete the project root path.
 	return config.NewLoader("runme", "yaml", os.DirFS("./experimental"), config.WithProjectRootPath(os.DirFS("."))), nil
-}
-
-func getKernel(c *config.Config, logger *zap.Logger) (_ command.Kernel, err error) {
-	if len(c.Kernels) == 0 {
-		return command.NewLocalKernel(&config.LocalKernel{}), nil
-	}
-
-	// Find the first kernel that can be instantiated without error.
-	// This is inline with how the kernels are described in the configuration file.
-	for _, kernelCfg := range c.Kernels {
-		kernel, kErr := createKernelFromConfig(kernelCfg, logger)
-		if kErr == nil {
-			return kernel, nil
-		}
-		err = multierr.Append(err, kErr)
-	}
-
-	if err != nil {
-		return nil, errors.Wrap(err, "no valid kernel found")
-	}
-
-	return nil, errors.New("kernel not found")
-}
-
-func createKernelFromConfig(kernelCfg config.Kernel, logger *zap.Logger) (command.Kernel, error) {
-	switch kernelCfg := kernelCfg.(type) {
-	case *config.LocalKernel:
-		return command.NewLocalKernel(kernelCfg), nil
-	case *config.DockerKernel:
-		docker, err := dockerexec.New(&dockerexec.Options{
-			BuildContext: kernelCfg.Build.Context,
-			Dockerfile:   kernelCfg.Build.Dockerfile,
-			Image:        kernelCfg.Image,
-			Logger:       logger,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return command.NewDockerKernel(docker), nil
-	default:
-		return nil, errors.Errorf("unknown kernel type: %T", kernelCfg)
-	}
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {
@@ -144,11 +101,11 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 		project.WithLogger(logger),
 	}
 
-	if c.Filename != "" {
-		return project.NewFileProject(c.Filename, opts...)
+	if c.ProjectFilename != "" {
+		return project.NewFileProject(c.ProjectFilename, opts...)
 	}
 
-	projDir := c.ProjectDir
+	projDir := c.ProjectRoot
 	// If no project directory is specified, use the current directory.
 	if projDir == "" {
 		projDir = "."
@@ -156,12 +113,12 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 
 	opts = append(
 		opts,
-		project.WithIgnoreFilePatterns(c.IgnorePaths...),
-		project.WithRespectGitignore(!c.DisableGitignore),
-		project.WithEnvFilesReadOrder(c.EnvSourceFiles),
+		project.WithIgnoreFilePatterns(c.ProjectIgnorePaths...),
+		project.WithRespectGitignore(!c.ProjectDisableGitignore),
+		project.WithEnvFilesReadOrder(c.ProjectEnvSources),
 	)
 
-	if c.FindRepoUpward {
+	if c.ProjectFindRepoUpward {
 		opts = append(opts, project.WithFindRepoUpward())
 	}
 
@@ -171,7 +128,7 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 	var filters []project.Filter
 
-	for _, filter := range c.Filters {
+	for _, filter := range c.ProjectFilters {
 		filter := filter
 
 		switch filter.Type {
@@ -239,10 +196,26 @@ func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.
 	return cfg, nil
 }
 
+func getRuntime(c *config.Config, logger *zap.Logger) (command.Runtime, error) {
+	if c.RuntimeDockerEnabled {
+		docker, err := dockerexec.New(&dockerexec.Options{
+			BuildContext: c.RuntimeDockerBuildContext,
+			Dockerfile:   c.RuntimeDockerBuildDockerfile,
+			Image:        c.RuntimeDockerImage,
+			Logger:       logger,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return command.NewDockerRuntime(docker), nil
+	}
+	return command.NewHostRuntime(), nil
+}
+
 func getSession(cfg *config.Config, proj *project.Project) (*command.Session, error) {
 	sess := command.NewSession()
 
-	if cfg.UseSystemEnv {
+	if cfg.ProjectEnvUseSystemEnv {
 		if err := sess.SetEnv(os.Environ()...); err != nil {
 			return nil, err
 		}

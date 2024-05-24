@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/document/identity"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
@@ -240,7 +241,7 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 func TestCommand_Getters(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(nil, nil, zaptest.NewLogger(t))
+	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
 
 	cfg := &ProgramConfig{
 		ProgramName: "sleep",
@@ -258,7 +259,7 @@ func TestCommand_Getters(t *testing.T) {
 func TestCommand_InvalidProgram(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(nil, nil, zaptest.NewLogger(t))
+	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
 
 	cfg := &ProgramConfig{
 		ProgramName: "invalidProgram",
@@ -279,7 +280,7 @@ func TestCommand_InvalidProgram(t *testing.T) {
 func TestCommnd_InvalidScript(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(nil, nil, zaptest.NewLogger(t))
+	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
 
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
@@ -313,7 +314,7 @@ func TestCommnd_InvalidScript(t *testing.T) {
 func TestCommand_SetWinsize(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(nil, nil, zaptest.NewLogger(t))
+	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
 
 	t.Run("InlineInteractive", func(t *testing.T) {
 		t.Parallel()
@@ -407,7 +408,7 @@ func TestCommand_Session(t *testing.T) {
 
 	sess := NewSession()
 
-	factory := NewFactory(nil, nil, zaptest.NewLogger(t))
+	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
 
 	setterCmd := factory.Build(setterCfg, Options{Session: sess})
 	require.NoError(t, setterCmd.Start(context.Background()))
@@ -435,7 +436,7 @@ func TestCommand_SimulateCtrlC(t *testing.T) {
 	stdinR, stdinW := io.Pipe()
 	stdout := bytes.NewBuffer(nil)
 
-	factory := NewFactory(nil, nil, zaptest.NewLogger(t))
+	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
 	cmd := factory.Build(cfg, Options{Stdin: stdinR, Stdout: stdout})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -474,7 +475,7 @@ func TestCommand_SimulateCtrlC(t *testing.T) {
 func TestCommand_StopWithSignal(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(nil, nil, zaptest.NewLogger(t))
+	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
 
 	cfg := &ProgramConfig{
 		ProgramName: "sleep",

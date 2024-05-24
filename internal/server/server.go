@@ -40,7 +40,11 @@ type Server struct {
 	logger     *zap.Logger
 }
 
-func New(c *Config, logger *zap.Logger) (_ *Server, err error) {
+func New(
+	c *Config,
+	cmdFactory command.Factory,
+	logger *zap.Logger,
+) (_ *Server, err error) {
 	var tlsConfig *tls.Config
 
 	if c.TLSEnabled {
@@ -84,7 +88,7 @@ func New(c *Config, logger *zap.Logger) (_ *Server, err error) {
 	// Register runme services.
 	parserv1.RegisterParserServiceServer(grpcServer, editorservice.NewParserServiceServer(logger))
 	projectv1.RegisterProjectServiceServer(grpcServer, projectservice.NewProjectServiceServer(logger))
-	runnerService, err := runnerv2service.NewRunnerService(command.NewFactory(nil, nil, logger), logger)
+	runnerService, err := runnerv2service.NewRunnerService(cmdFactory, logger)
 	if err != nil {
 		return nil, err
 	}

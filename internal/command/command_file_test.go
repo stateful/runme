@@ -31,7 +31,7 @@ func TestFileCommand(t *testing.T) {
 		t.Parallel()
 
 		cfg := &ProgramConfig{
-			ProgramName: "python",
+			ProgramName: "python3",
 			Source: &runnerv2alpha1.ProgramConfig_Script{
 				Script: "print('test')",
 			},

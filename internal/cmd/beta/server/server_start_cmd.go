@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	"github.com/stateful/runme/v3/internal/server"
@@ -20,6 +21,7 @@ func serverStartCmd() *cobra.Command {
 			return autoconfig.Invoke(
 				func(
 					cfg *config.Config,
+					cmdFactory command.Factory,
 					logger *zap.Logger,
 				) error {
 					defer logger.Sync()
@@ -33,7 +35,7 @@ func serverStartCmd() *cobra.Command {
 
 					logger.Debug("server config", zap.Any("config", serverCfg))
 
-					s, err := server.New(serverCfg, logger)
+					s, err := server.New(serverCfg, cmdFactory, logger)
 					if err != nil {
 						return err
 					}

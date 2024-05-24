@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/dockerexec"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
@@ -21,7 +22,7 @@ func TestDockerCommand(t *testing.T) {
 	docker, err := dockerexec.New(&dockerexec.Options{Debug: false, Image: "alpine:3.19"})
 	require.NoError(t, err)
 
-	factory := NewFactory(nil, NewDockerKernel(docker), zaptest.NewLogger(t))
+	factory := NewFactory(&config.Config{}, NewDockerRuntime(docker), zaptest.NewLogger(t))
 
 	// This test case is treated as a warm up. Do not parallelize.
 	t.Run("NoOutput", func(t *testing.T) {
@@ -73,7 +74,7 @@ func TestDockerCommand(t *testing.T) {
 	})
 
 	t.Run("NonZeroExit", func(t *testing.T) {
-		t.Skip("enable when [envCollector] supports kernel")
+		t.Skip("enable when [envCollector] supports [Runtime]")
 
 		t.Parallel()
 

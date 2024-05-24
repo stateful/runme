@@ -8,7 +8,8 @@ stdout '^bar[\s]+bar-baz[\s]+$'
 
 -- experimental/runme.yaml --
 version: v1alpha1
-filename: README.md
+project:
+  filename: README.md
 # log:
 #   enable: true
 

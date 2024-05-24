@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+
+	"github.com/stateful/runme/v3/internal/config"
 )
 
 func testExecuteCommand(
@@ -29,10 +31,12 @@ func testExecuteCommand(
 		Stdin:  input,
 	}
 
-	command := NewFactory(nil, nil, zaptest.NewLogger(t)).Build(cfg, options)
+	command := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t)).Build(cfg, options)
 
-	require.NoError(t, command.Start(context.Background()))
-	assert.NoError(t, command.Wait())
+	err := command.Start(context.Background())
+	require.NoError(t, err)
+	err = command.Wait()
+	assert.NoError(t, err)
 	assert.Equal(t, expectedStdout, stdout.String())
 	assert.Equal(t, expectedStderr, stderr.String())
 }
