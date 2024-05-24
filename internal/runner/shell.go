@@ -15,8 +15,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stateful/runme/v3/internal/document"
 	"github.com/stateful/runme/v3/internal/system"
+	"github.com/stateful/runme/v3/pkg/document"
 )
 
 type Shell struct {

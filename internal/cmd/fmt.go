@@ -13,10 +13,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/stateful/runme/v3/internal/document"
-	"github.com/stateful/runme/v3/internal/document/editor"
-	"github.com/stateful/runme/v3/internal/document/identity"
 	"github.com/stateful/runme/v3/internal/renderer/cmark"
+	"github.com/stateful/runme/v3/pkg/document"
+	"github.com/stateful/runme/v3/pkg/document/editor"
+	"github.com/stateful/runme/v3/pkg/document/identity"
 )
 
 func fmtCmd() *cobra.Command {

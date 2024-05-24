@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/v3/internal/document"
-	"github.com/stateful/runme/v3/internal/document/constants"
-	"github.com/stateful/runme/v3/internal/document/identity"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/internal/version"
+	"github.com/stateful/runme/v3/pkg/document"
+	"github.com/stateful/runme/v3/pkg/document/constants"
+	"github.com/stateful/runme/v3/pkg/document/identity"
 )
 
 var (

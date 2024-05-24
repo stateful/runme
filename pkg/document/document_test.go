@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/v3/internal/document/identity"
 	"github.com/stateful/runme/v3/internal/renderer/cmark"
+	"github.com/stateful/runme/v3/pkg/document/identity"
 )
 
 var testIdentityResolver = identity.NewResolver(identity.DefaultLifecycleIdentity)

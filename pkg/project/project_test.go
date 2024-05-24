@@ -13,8 +13,8 @@ import (
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/filesystem"
-	"github.com/stateful/runme/v3/internal/document"
-	"github.com/stateful/runme/v3/internal/document/identity"
+	"github.com/stateful/runme/v3/pkg/document"
+	"github.com/stateful/runme/v3/pkg/document/identity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
