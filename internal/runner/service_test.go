@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -141,6 +142,9 @@ func readLogMessages() ([]*LogEntry, error) {
 		// N.B. we get a bad file descriptor error when calling Sync on a logger writing to stderr
 		// We can just ignore that.
 		if pathErr, ok := err.(*os.PathError); ok && pathErr.Err == syscall.EBADF {
+			ignoreError = true
+		}
+		if strings.Contains(err.Error(), "/dev/stderr") {
 			ignoreError = true
 		}
 		if !ignoreError {
