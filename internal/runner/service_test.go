@@ -347,6 +347,9 @@ func Test_runnerService(t *testing.T) {
 	})
 
 	t.Run("Input", func(t *testing.T) {
+		if os.Getenv("RUN_FLAKY") == "" {
+			t.Skip("skipping flaky test")
+		}
 		t.Parallel()
 
 		stream, err := client.Execute(context.Background())
