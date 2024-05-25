@@ -57,19 +57,27 @@ jobs:
         run: |
           go build -o runme main.go
           ./runme --version
+      - name: Test All
+        run: |
+          export SHELL=/bin/bash
+          export TZ=UTC
+          make test          
+        if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Test
         run: |
           export SHELL=/bin/bash
           export TZ=UTC
           TAGS="test_with_docker" make test/coverage
           make test/coverage/func
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}      
       # make test should run on all os's because
       # on windows only a subset of the tests run.
       - name: Test
+        # N.B. Set-Timezone is a windows command 
         run: |
           Set-Timezone -Id "UTC" -PassThru
-          make test        
+          make test
+        if: ${{ matrix.os == 'windows-latest' }}        
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: ${{github.actor != 'dependabot[bot]' && matrix.os == 'ubuntu-latest'}}
