@@ -20,7 +20,7 @@ type virtualCommand struct {
 
 	isEchoEnabled bool
 	logger        *zap.Logger
-	stdin         io.ReadCloser // stdin is [Options.Stdin] wrapped in [readCloser].
+	stdin         io.ReadCloser // stdin is [CommandOptions.Stdin] wrapped in [readCloser]
 
 	// cmd is populated when the command is started.
 	cmd *exec.Cmd

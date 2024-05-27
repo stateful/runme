@@ -45,18 +45,21 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 		r.sessions.Add(session)
 	}
 
-	// TODO: extend session with the project, if present.
-
-	exec, err := newExecution(
-		id,
-		req.StoreStdoutInEnv,
-		req.Config,
-		session,
-		logger,
-	)
+	// Load the project.
+	// TODO(adamb): this should come from the runme.yaml in the future.
+	proj, err := convertProtoProjectToProject(req.GetProject())
 	if err != nil {
 		return err
 	}
+
+	exec := newExecution(
+		id,
+		req.StoreStdoutInEnv,
+		req.Config,
+		proj,
+		session,
+		logger,
+	)
 
 	// Start the command and send the initial response with PID.
 	if err := exec.Cmd.Start(ctx); err != nil {

@@ -14,8 +14,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
-	"github.com/stateful/runme/v3/internal/config/autoconfig"
-	"github.com/stateful/runme/v3/internal/dockerexec"
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/rbuffer"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
@@ -58,52 +56,47 @@ func newExecution(
 	id string,
 	storeStdoutInEnv bool,
 	cfg *command.ProgramConfig,
+	proj *project.Project,
 	session *command.Session,
 	logger *zap.Logger,
-) (exec *execution, err error) {
-	err = autoconfig.InvokeForServer(
-		func(docker *dockerexec.Docker, proj *project.Project) error {
-			cmdFactory := command.NewFactory(
-				command.WithDocker(docker),
-				command.WithLogger(logger),
-				command.WithProject(proj),
-			)
-
-			stdin, stdinWriter := io.Pipe()
-			stdout := rbuffer.NewRingBuffer(ringBufferSize)
-			stderr := rbuffer.NewRingBuffer(ringBufferSize)
-
-			cmdOptions := command.CommandOptions{
-				EnableEcho:  true,
-				Session:     session,
-				StdinWriter: stdinWriter,
-				Stdin:       stdin,
-				Stdout:      stdout,
-				Stderr:      stderr,
-			}
-
-			cmd := cmdFactory.Build(cfg, cmdOptions)
-
-			exec = &execution{
-				ID:        id,
-				KnownName: cfg.GetKnownName(),
-				Cmd:       cmd,
-
-				session:          session,
-				storeStdoutInEnv: storeStdoutInEnv,
-
-				stdin:       stdin,
-				stdinWriter: stdinWriter,
-				stdout:      stdout,
-				stderr:      stderr,
-
-				logger: logger,
-			}
-
-			return nil
-		},
+) *execution {
+	cmdFactory := command.NewFactory(
+		command.WithLogger(logger),
+		command.WithProject(proj),
 	)
-	return
+
+	stdin, stdinWriter := io.Pipe()
+	stdout := rbuffer.NewRingBuffer(ringBufferSize)
+	stderr := rbuffer.NewRingBuffer(ringBufferSize)
+
+	cmdOptions := command.CommandOptions{
+		EnableEcho:  true,
+		Session:     session,
+		StdinWriter: stdinWriter,
+		Stdin:       stdin,
+		Stdout:      stdout,
+		Stderr:      stderr,
+	}
+
+	cmd := cmdFactory.Build(cfg, cmdOptions)
+
+	exec := &execution{
+		ID:        id,
+		KnownName: cfg.GetKnownName(),
+		Cmd:       cmd,
+
+		session:          session,
+		storeStdoutInEnv: storeStdoutInEnv,
+
+		stdin:       stdin,
+		stdinWriter: stdinWriter,
+		stdout:      stdout,
+		stderr:      stderr,
+
+		logger: logger,
+	}
+
+	return exec
 }
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
