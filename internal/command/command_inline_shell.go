@@ -15,8 +15,11 @@ type inlineShellCommand struct {
 
 	envCollector *shellEnvCollector
 	logger       *zap.Logger
+	session      *Session
 }
 
+// TODO(adamb): delete this method if the struct continues to
+// satisfy the [commandWithPty] interface.
 func (c *inlineShellCommand) getPty() *os.File {
 	virtualCmd, ok := c.internalCommand.(*virtualCommand)
 	if !ok {
@@ -69,7 +72,7 @@ func (c *inlineShellCommand) build() (string, error) {
 
 	// If the session is provided, we need to collect the environment before and after the script execution.
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
-	if c.Session() != nil {
+	if c.session != nil {
 		c.envCollector = &shellEnvCollector{buf: buf}
 		if err := c.envCollector.Init(); err != nil {
 			return "", err
@@ -92,9 +95,7 @@ func (c *inlineShellCommand) build() (string, error) {
 }
 
 func (c *inlineShellCommand) collectEnv() error {
-	sess := c.Session()
-
-	if sess == nil || c.envCollector == nil {
+	if c.session == nil || c.envCollector == nil {
 		return nil
 	}
 
@@ -102,10 +103,10 @@ func (c *inlineShellCommand) collectEnv() error {
 	if err != nil {
 		return err
 	}
-	if err := sess.SetEnv(changed...); err != nil {
+	if err := c.session.SetEnv(changed...); err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
-	sess.DeleteEnv(deleted...)
+	c.session.DeleteEnv(deleted...)
 
 	return nil
 }

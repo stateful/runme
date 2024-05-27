@@ -2,60 +2,34 @@ package command
 
 import (
 	"os"
-	"os/exec"
 
 	"github.com/stateful/runme/v3/internal/dockerexec"
+	"github.com/stateful/runme/v3/internal/system"
 )
 
-// Runtime represents an execution environment for commands.
-// It abstracts all OS-specific details and provides a unified interface.
-type Runtime interface {
+type runtime interface {
 	Environ() []string
-	GetEnv(string) string
-	LookPath(string) (string, error)
+	LookPathUsingPathEnv(file, pathEnv string) (string, error)
 }
 
-type Host struct{}
+type hostRuntime struct{}
 
-var _ Runtime = (*Host)(nil)
-
-func NewHostRuntime() *Host {
-	return &Host{}
-}
-
-func (Host) Environ() []string {
+func (hostRuntime) Environ() []string {
 	return os.Environ()
 }
 
-func (Host) GetEnv(key string) string {
-	return os.Getenv(key)
+func (hostRuntime) LookPathUsingPathEnv(file, pathEnv string) (string, error) {
+	return system.LookPathUsingPathEnv(file, pathEnv)
 }
 
-func (Host) LookPath(path string) (string, error) {
-	return exec.LookPath(path)
+type dockerRuntime struct {
+	*dockerexec.Docker
 }
 
-type Docker struct {
-	docker *dockerexec.Docker
-}
-
-var _ Runtime = (*Docker)(nil)
-
-func NewDockerRuntime(docker *dockerexec.Docker) *Docker {
-	return &Docker{docker: docker}
-}
-
-func (Docker) Environ() []string {
-	// TODO(adamb): implement
+func (dockerRuntime) Environ() []string {
 	return nil
 }
 
-func (Docker) GetEnv(key string) string {
-	// TODO(adamb): implement
-	return ""
-}
-
-func (Docker) LookPath(path string) (string, error) {
-	// TODO(adamb): implement
-	return path, nil
+func (dockerRuntime) LookPathUsingPathEnv(file, _ string) (string, error) {
+	return file, nil
 }

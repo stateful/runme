@@ -32,7 +32,11 @@ func (s *Session) DeleteEnv(keys ...string) {
 	}
 }
 
-func (s *Session) GetEnv() []string {
+func (s *Session) GetEnv(key string) (string, bool) {
+	return s.envStore.Get(key)
+}
+
+func (s *Session) GetAllEnv() []string {
 	if s == nil {
 		return nil
 	}

@@ -49,10 +49,9 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 
 	exec, err := newExecution(
 		id,
-		r.cmdFactory,
+		req.StoreStdoutInEnv,
 		req.Config,
 		session,
-		req.StoreStdoutInEnv,
 		logger,
 	)
 	if err != nil {

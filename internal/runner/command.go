@@ -104,20 +104,21 @@ type commandConfig struct {
 }
 
 func newCommand(cfg *commandConfig) (*command, error) {
+	var pathEnv string
+
 	// If PATH is set in the session, use it in the system
 	// so that program paths can be resolved correctly.
 	// This is especially important for virtual envs.
-	sys := system.Default
 	if cfg.Session != nil {
-		if pathEnv, err := cfg.Session.envStorer.getEnv("PATH"); err == nil && pathEnv != "" {
-			sys = system.New(system.WithPathEnvGetter(func() string { return pathEnv }))
+		if path, err := cfg.Session.envStorer.getEnv("PATH"); err == nil && path != "" {
+			pathEnv = path
 		}
 	}
 
 	programName, initialArgs := parseFileProgram(cfg.ProgramName)
 	args := initialArgs
 
-	programPath, initialArgs, err := inferFileProgram(sys, programName, cfg.LanguageID)
+	programPath, initialArgs, err := inferFileProgram(pathEnv, programName, cfg.LanguageID)
 	args = append(args, initialArgs...)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -670,11 +671,11 @@ func parseFileProgram(programPath string) (program string, args []string) {
 	return
 }
 
-func inferFileProgram(sys *system.System, programPath string, languageID string) (interpreter string, args []string, err error) {
+func inferFileProgram(pathEnv, programPath, languageID string) (interpreter string, args []string, err error) {
 	if programPath != "" {
-		res, err := sys.LookPath(programPath)
+		res, err := system.LookPathUsingPathEnv(programPath, pathEnv)
 		if err != nil {
-			return "", []string{}, ErrInvalidProgram{
+			return "", []string{}, &ErrInvalidProgram{
 				Program: programPath,
 				inner:   err,
 			}
@@ -684,19 +685,17 @@ func inferFileProgram(sys *system.System, programPath string, languageID string)
 
 	for _, candidate := range programByLanguageID[languageID] {
 		program, args := parseFileProgram(candidate)
-		res, err := sys.LookPath(program)
+		res, err := system.LookPathUsingPathEnv(program, pathEnv)
 		if err == nil {
 			return res, args, nil
 		}
 	}
 
 	// Default to "cat"
-	res, err := sys.LookPath("cat")
+	res, err := system.LookPathUsingPathEnv("cat", pathEnv)
 	if err == nil {
 		return res, args, nil
 	}
 
-	return "", []string{}, ErrInvalidLanguage{
-		LanguageID: languageID,
-	}
+	return "", []string{}, &ErrInvalidLanguage{LanguageID: languageID}
 }

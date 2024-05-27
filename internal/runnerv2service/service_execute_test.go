@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config"
+	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
@@ -28,6 +30,22 @@ func init() {
 	command.SignalToProcessGroup = false
 
 	command.EnvDumpCommand = "env -0"
+
+	// Server uses autoconfig to get necessary dependencies.
+	// One of them, implicit, is [config.Config]. With the default
+	// [config.Loader] it won't be found during testing, so
+	// we need to provide an override.
+	if err := autoconfig.DecorateRoot(func(loader *config.Loader) *config.Loader {
+		fsys := fstest.MapFS{
+			"runme.yaml": {
+				Data: []byte("version: v1alpha1\n"),
+			},
+		}
+		loader.SetConfigRootPath(fsys)
+		return loader
+	}); err != nil {
+		panic(err)
+	}
 }
 
 func Test_conformsOpinionatedEnvVarNaming(t *testing.T) {
@@ -556,6 +574,69 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 	}
 }
 
+func TestRunnerServiceServerExecute_PathInSession(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	require.NoError(t, err)
+
+	// Run the first request with the default PATH.
+	{
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		result := make(chan executeResult)
+		go getExecuteResult(stream, result)
+
+		req := &runnerv2alpha1.ExecuteRequest{
+			Config: &runnerv2alpha1.ProgramConfig{
+				ProgramName: "echo",
+				Arguments:   []string{"-n", "test"},
+				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+			},
+			SessionId: sessionResp.GetSession().GetId(),
+		}
+
+		err = stream.Send(req)
+		require.NoError(t, err)
+		require.Equal(t, "test", string((<-result).Stdout))
+	}
+
+	// Provide a PATH in the session. It will be an empty dir so
+	// the echo command will not be found.
+	{
+		tmpDir := t.TempDir()
+		_, err := client.UpdateSession(context.Background(), &runnerv2alpha1.UpdateSessionRequest{
+			Id:  sessionResp.GetSession().GetId(),
+			Env: []string{"PATH=" + tmpDir},
+		})
+		require.NoError(t, err)
+	}
+
+	// This time the request will fail because the echo command is not found.
+	{
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		result := make(chan executeResult)
+		go getExecuteResult(stream, result)
+
+		req := &runnerv2alpha1.ExecuteRequest{
+			Config: &runnerv2alpha1.ProgramConfig{
+				ProgramName: "echo",
+				Arguments:   []string{"-n", "test"},
+			},
+			SessionId: sessionResp.GetSession().GetId(),
+		}
+
+		err = stream.Send(req)
+		require.NoError(t, err)
+		require.ErrorContains(t, (<-result).Err, "failed program lookup \"echo\"")
+	}
+}
+
 func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
@@ -867,7 +948,7 @@ func testStartRunnerServiceServer(t *testing.T) (
 	t.Helper()
 
 	logger := zaptest.NewLogger(t)
-	factory := command.NewFactory(&config.Config{}, command.NewHostRuntime(), logger)
+	factory := command.NewFactory(command.WithLogger(logger))
 
 	server := grpc.NewServer()
 

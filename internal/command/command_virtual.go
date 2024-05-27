@@ -16,13 +16,14 @@ import (
 )
 
 type virtualCommand struct {
-	internalCommand
+	*base
+
+	isEchoEnabled bool
+	logger        *zap.Logger
+	stdin         io.ReadCloser // stdin is [Options.Stdin] wrapped in [readCloser].
 
 	// cmd is populated when the command is started.
 	cmd *exec.Cmd
-
-	// stdin is [Options.Stdin] wrapped in [readCloser].
-	stdin io.ReadCloser
 
 	pty *os.File
 	tty *os.File
@@ -31,8 +32,6 @@ type virtualCommand struct {
 
 	mu  sync.Mutex // protect err
 	err error
-
-	logger *zap.Logger
 }
 
 func (c *virtualCommand) getPty() *os.File {
@@ -56,7 +55,7 @@ func (c *virtualCommand) Start(ctx context.Context) (err error) {
 		return errors.WithStack(err)
 	}
 
-	if !c.IsEchoEnabled() {
+	if !c.isEchoEnabled {
 		if err := disableEcho(c.tty.Fd()); err != nil {
 			return err
 		}

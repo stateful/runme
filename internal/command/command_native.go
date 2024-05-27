@@ -13,7 +13,7 @@ import (
 var SignalToProcessGroup = true
 
 type nativeCommand struct {
-	internalCommand
+	*base
 
 	cmd *exec.Cmd
 

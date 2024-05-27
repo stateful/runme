@@ -13,7 +13,7 @@ func Cmd() *cobra.Command {
 		Short:  "Commands to manage and call a runme server.",
 		Hidden: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.Invoke(
+			return autoconfig.InvokeForCommand(
 				func(
 					cfg *config.Config,
 				) error {

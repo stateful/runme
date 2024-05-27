@@ -14,7 +14,7 @@ import (
 func convertSessionToRunnerv2alpha1Session(sess *command.Session) *runnerv2alpha1.Session {
 	return &runnerv2alpha1.Session{
 		Id:  sess.ID,
-		Env: sess.GetEnv(),
+		Env: sess.GetAllEnv(),
 		// Metadata: sess.Metadata,
 	}
 }

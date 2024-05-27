@@ -96,7 +96,7 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2alpha1.ResolvePro
 	sensitiveEnvKeys := []string{}
 	session, found, _ := r.getSessionFromRequest(req)
 	if found {
-		env := session.GetEnv()
+		env := session.GetAllEnv()
 		sources = append(sources, command.ProgramResolverSourceFunc(env))
 
 		// sensitiveEnvKeys, err = session.SensitiveEnvKeys()

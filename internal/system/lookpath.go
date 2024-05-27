@@ -1,39 +1,16 @@
 package system
 
 import (
-	"os"
+	"os/exec"
 )
 
-var Default = newDefault()
+func LookPath(file string) (string, error) {
+	return exec.LookPath(file)
+}
 
-func newDefault() *System {
-	return &System{
-		getPathEnv: func() string { return os.Getenv("PATH") },
+func LookPathUsingPathEnv(file, pathEnv string) (string, error) {
+	if pathEnv == "" {
+		return exec.LookPath(file)
 	}
-}
-
-type Option func(*System)
-
-func WithPathEnvGetter(fn func() string) Option {
-	return func(s *System) {
-		s.getPathEnv = fn
-	}
-}
-
-type System struct {
-	getPathEnv func() string
-}
-
-func New(opts ...Option) *System {
-	s := newDefault()
-
-	for _, opt := range opts {
-		opt(s)
-	}
-
-	return s
-}
-
-func (s *System) LookPath(file string) (string, error) {
-	return lookPath(s.getPathEnv(), file)
+	return lookPath(pathEnv, file)
 }

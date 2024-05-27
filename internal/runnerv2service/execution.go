@@ -14,6 +14,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	"github.com/stateful/runme/v3/internal/dockerexec"
+	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/rbuffer"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
@@ -53,44 +56,54 @@ type execution struct {
 
 func newExecution(
 	id string,
-	factory command.Factory,
+	storeStdoutInEnv bool,
 	cfg *command.ProgramConfig,
 	session *command.Session,
-	storeStdoutInEnv bool,
 	logger *zap.Logger,
-) (*execution, error) {
-	stdin, stdinWriter := io.Pipe()
-	stdout := rbuffer.NewRingBuffer(ringBufferSize)
-	stderr := rbuffer.NewRingBuffer(ringBufferSize)
+) (exec *execution, err error) {
+	err = autoconfig.InvokeForServer(
+		func(docker *dockerexec.Docker, proj *project.Project) error {
+			cmdFactory := command.NewFactory(
+				command.WithDocker(docker),
+				command.WithLogger(logger),
+				command.WithProject(proj),
+			)
 
-	cmdOptions := command.Options{
-		EnableEcho:  true,
-		Session:     session,
-		StdinWriter: stdinWriter,
-		Stdin:       stdin,
-		Stdout:      stdout,
-		Stderr:      stderr,
-	}
+			stdin, stdinWriter := io.Pipe()
+			stdout := rbuffer.NewRingBuffer(ringBufferSize)
+			stderr := rbuffer.NewRingBuffer(ringBufferSize)
 
-	cmd := factory.Build(cfg, cmdOptions)
+			cmdOptions := command.CommandOptions{
+				EnableEcho:  true,
+				Session:     session,
+				StdinWriter: stdinWriter,
+				Stdin:       stdin,
+				Stdout:      stdout,
+				Stderr:      stderr,
+			}
 
-	exec := &execution{
-		ID:        id,
-		KnownName: cfg.GetKnownName(),
-		Cmd:       cmd,
+			cmd := cmdFactory.Build(cfg, cmdOptions)
 
-		session:          session,
-		storeStdoutInEnv: storeStdoutInEnv,
+			exec = &execution{
+				ID:        id,
+				KnownName: cfg.GetKnownName(),
+				Cmd:       cmd,
 
-		stdin:       stdin,
-		stdinWriter: stdinWriter,
-		stdout:      stdout,
-		stderr:      stderr,
+				session:          session,
+				storeStdoutInEnv: storeStdoutInEnv,
 
-		logger: logger,
-	}
+				stdin:       stdin,
+				stdinWriter: stdinWriter,
+				stdout:      stdout,
+				stderr:      stderr,
 
-	return exec, nil
+				logger: logger,
+			}
+
+			return nil
+		},
+	)
+	return
 }
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {

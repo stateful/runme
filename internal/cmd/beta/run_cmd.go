@@ -31,14 +31,12 @@ Run all blocks from the "setup" and "teardown" categories:
   runme beta run --category=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.Invoke(
+			return autoconfig.InvokeForCommand(
 				func(
 					cmdFactory command.Factory,
 					filters []project.Filter,
 					logger *zap.Logger,
 					proj *project.Project,
-					runtime command.Runtime,
-					session *command.Session,
 				) error {
 					defer logger.Sync()
 
@@ -66,6 +64,7 @@ Run all blocks from the "setup" and "teardown" categories:
 						return errors.WithStack(err)
 					}
 
+					session := command.NewSession()
 					options := getCommandOptions(cmd, session)
 
 					for _, t := range tasks {
@@ -87,8 +86,8 @@ Run all blocks from the "setup" and "teardown" categories:
 func getCommandOptions(
 	cmd *cobra.Command,
 	sess *command.Session,
-) command.Options {
-	return command.Options{
+) command.CommandOptions {
+	return command.CommandOptions{
 		Session: sess,
 		Stdin:   cmd.InOrStdin(),
 		Stdout:  cmd.OutOrStdout(),
@@ -100,7 +99,7 @@ func runCodeBlock(
 	ctx context.Context,
 	block *document.CodeBlock,
 	factory command.Factory,
-	options command.Options,
+	options command.CommandOptions,
 ) error {
 	// TODO(adamb): [command.Config] is generated exclusively from the [document.CodeBlock].
 	// As we introduce some document- and block-related configs in runme.yaml (root but also nested),

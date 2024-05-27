@@ -19,7 +19,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stateful/runme/v3/internal/runner"
-	"github.com/stateful/runme/v3/internal/system"
 	"github.com/stateful/runme/v3/internal/tui"
 	"go.uber.org/zap"
 )
@@ -102,7 +101,6 @@ func codeServerCmd() *cobra.Command {
 					Stdout: cmd.OutOrStdout(),
 					Stderr: cmd.ErrOrStderr(),
 					Stdin:  stdin,
-					System: system.Default,
 					Logger: zap.NewNop(),
 				}
 

@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	"github.com/stateful/runme/v3/internal/project"
 )
@@ -26,12 +25,11 @@ Print content of commands from the "setup" and "teardown" categories:
   runme beta print --category=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.Invoke(
+			return autoconfig.InvokeForCommand(
 				func(
 					proj *project.Project,
 					filters []project.Filter,
 					logger *zap.Logger,
-					session *command.Session,
 				) error {
 					defer logger.Sync()
 

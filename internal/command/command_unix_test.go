@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/stateful/runme/v3/internal/config"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/document/identity"
@@ -241,7 +240,7 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 func TestCommand_Getters(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	cfg := &ProgramConfig{
 		ProgramName: "sleep",
@@ -249,7 +248,7 @@ func TestCommand_Getters(t *testing.T) {
 		Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 	}
 
-	cmd := factory.Build(cfg, Options{})
+	cmd := factory.Build(cfg, CommandOptions{})
 	require.NoError(t, cmd.Start(context.Background()))
 	require.True(t, cmd.Running())
 	require.Greater(t, cmd.Pid(), 1)
@@ -259,7 +258,7 @@ func TestCommand_Getters(t *testing.T) {
 func TestCommand_InvalidProgram(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	cfg := &ProgramConfig{
 		ProgramName: "invalidProgram",
@@ -271,7 +270,7 @@ func TestCommand_InvalidProgram(t *testing.T) {
 		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 	}
 
-	cmd := factory.Build(cfg, Options{})
+	cmd := factory.Build(cfg, CommandOptions{})
 	err := cmd.Start(context.Background())
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed program lookup \"invalidProgram\"")
@@ -280,7 +279,7 @@ func TestCommand_InvalidProgram(t *testing.T) {
 func TestCommnd_InvalidScript(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
@@ -298,7 +297,7 @@ func TestCommnd_InvalidScript(t *testing.T) {
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)
 
-	cmd := factory.Build(cfg, Options{Stdout: stdout, Stderr: stderr})
+	cmd := factory.Build(cfg, CommandOptions{Stdout: stdout, Stderr: stderr})
 
 	err := cmd.Start(context.Background())
 	require.NoError(t, err)
@@ -314,7 +313,7 @@ func TestCommnd_InvalidScript(t *testing.T) {
 func TestCommand_SetWinsize(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	t.Run("InlineInteractive", func(t *testing.T) {
 		t.Parallel()
@@ -331,7 +330,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 				Interactive: true,
 				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
 			},
-			Options{Stdout: stdout},
+			CommandOptions{Stdout: stdout},
 		)
 
 		err := cmd.Start(context.Background())
@@ -357,7 +356,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 				Interactive: true,
 			},
-			Options{
+			CommandOptions{
 				StdinWriter: stdinW,
 				Stdin:       stdinR,
 				Stdout:      stdout,
@@ -408,15 +407,15 @@ func TestCommand_Session(t *testing.T) {
 
 	sess := NewSession()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
-	setterCmd := factory.Build(setterCfg, Options{Session: sess})
+	setterCmd := factory.Build(setterCfg, CommandOptions{Session: sess})
 	require.NoError(t, setterCmd.Start(context.Background()))
 	require.NoError(t, setterCmd.Wait())
-	require.Equal(t, []string{"TEST_ENV=test1"}, sess.GetEnv())
+	require.Equal(t, []string{"TEST_ENV=test1"}, sess.GetAllEnv())
 
 	stdout := bytes.NewBuffer(nil)
-	getterCmd := factory.Build(getterCfg, Options{Session: sess, Stdout: stdout})
+	getterCmd := factory.Build(getterCfg, CommandOptions{Session: sess, Stdout: stdout})
 	require.NoError(t, getterCmd.Start(context.Background()))
 	require.NoError(t, getterCmd.Wait())
 	require.Equal(t, "TEST_ENV equals test1", stdout.String())
@@ -436,8 +435,8 @@ func TestCommand_SimulateCtrlC(t *testing.T) {
 	stdinR, stdinW := io.Pipe()
 	stdout := bytes.NewBuffer(nil)
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
-	cmd := factory.Build(cfg, Options{Stdin: stdinR, Stdout: stdout})
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
+	cmd := factory.Build(cfg, CommandOptions{Stdin: stdinR, Stdout: stdout})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -475,7 +474,7 @@ func TestCommand_SimulateCtrlC(t *testing.T) {
 func TestCommand_StopWithSignal(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	cfg := &ProgramConfig{
 		ProgramName: "sleep",
@@ -484,7 +483,7 @@ func TestCommand_StopWithSignal(t *testing.T) {
 	}
 
 	t.Run("SIGINT", func(t *testing.T) {
-		cmd := factory.Build(cfg, Options{})
+		cmd := factory.Build(cfg, CommandOptions{})
 		require.NoError(t, cmd.Start(context.Background()))
 
 		errc := make(chan error, 1)
@@ -497,7 +496,7 @@ func TestCommand_StopWithSignal(t *testing.T) {
 	})
 
 	t.Run("SIGKILL", func(t *testing.T) {
-		cmd := factory.Build(cfg, Options{})
+		cmd := factory.Build(cfg, CommandOptions{})
 		require.NoError(t, cmd.Start(context.Background()))
 
 		errc := make(chan error, 1)

@@ -525,6 +525,10 @@ func Test_runnerService(t *testing.T) {
 		)
 	})
 
+	t.Run("ExecuteWithPathEnvInSession", func(t *testing.T) {
+		// TODO
+	})
+
 	t.Run("ExecuteWithTTYCloseSendDirection", func(t *testing.T) {
 		t.Parallel()
 
