@@ -165,13 +165,13 @@ func getLogger(devMode bool, aiLogs bool) (*zap.Logger, error) {
 		cores = append(cores, consoleCore)
 	}
 
-	logFile := ""
+	aiLogFile := ""
 	if aiLogs {
 		aiCore, newLogFile, err := createAICoreLogger()
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		logFile = newLogFile
+		aiLogFile = newLogFile
 		cores = append(cores, aiCore)
 	}
 
@@ -187,7 +187,7 @@ func getLogger(devMode bool, aiLogs bool) (*zap.Logger, error) {
 	// Record the caller of the log message
 	newLogger = newLogger.WithOptions(zap.AddCaller())
 
-	newLogger.Info("Logger initialized", zap.Bool("devMode", devMode), zap.Bool("aiLogs", aiLogs), zap.String("logFile", logFile))
+	newLogger.Info("Logger initialized", zap.Bool("devMode", devMode), zap.Bool("aiLogs", aiLogs), zap.String("aiLogFile", aiLogFile))
 	return newLogger, nil
 }
 
