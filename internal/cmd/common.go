@@ -165,11 +165,13 @@ func getLogger(devMode bool, aiLogs bool) (*zap.Logger, error) {
 		cores = append(cores, consoleCore)
 	}
 
+	logFile := ""
 	if aiLogs {
-		aiCore, err := createAICoreLogger()
+		aiCore, newLogFile, err := createAICoreLogger()
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+		logFile = newLogFile
 		cores = append(cores, aiCore)
 	}
 
@@ -184,6 +186,8 @@ func getLogger(devMode bool, aiLogs bool) (*zap.Logger, error) {
 	newLogger := zap.New(core)
 	// Record the caller of the log message
 	newLogger = newLogger.WithOptions(zap.AddCaller())
+
+	newLogger.Info("Logger initialized", zap.Bool("devMode", devMode), zap.Bool("aiLogs", aiLogs), zap.String("logFile", logFile))
 	return newLogger, nil
 }
 
@@ -235,7 +239,7 @@ func createCoreForConsole(devMode bool) (zapcore.Core, error) {
 // createAICoreLogger creates a core logger that writes logs to files. These logs are always written in JSON
 // format. Their purpose is to capture AI traces that we use for retraining. Since these are supposed to be machine
 // readable they are always written in JSON format.
-func createAICoreLogger() (zapcore.Core, error) {
+func createAICoreLogger() (zapcore.Core, string, error) {
 	// Configure encoder for JSON format
 	c := zap.NewProductionEncoderConfig()
 	// We attach the function key to the logs because that is useful for identifying the function that generated the log.
@@ -245,17 +249,17 @@ func createAICoreLogger() (zapcore.Core, error) {
 
 	configDir := getConfigDir()
 	if configDir == "" {
-		return nil, errors.New("could not determine config directory")
+		return nil, "", errors.New("could not determine config directory")
 	}
 	logDir := filepath.Join(configDir, "logs")
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
 		// Logger won't be setup yet so we can't use it.
 		if _, err := fmt.Fprintf(os.Stdout, "Creating log directory %s\n", logDir); err != nil {
-			return nil, errors.Wrapf(err, "could not write to stdout")
+			return nil, "", errors.Wrapf(err, "could not write to stdout")
 		}
 		err := os.MkdirAll(logDir, 0o750)
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not create log directory %s", logDir)
+			return nil, "", errors.Wrapf(err, "could not create log directory %s", logDir)
 		}
 	}
 
@@ -266,14 +270,14 @@ func createAICoreLogger() (zapcore.Core, error) {
 	// TODO(jeremy): How could we handle invoking the log closer if there is one.
 	oFile, _, err := zap.Open(logFile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not open log file %s", logFile)
+		return nil, logFile, errors.Wrapf(err, "could not open log file %s", logFile)
 	}
 
 	// Force log level to be at least info. Because info is the level at which we capture the logs we need for
 	// tracing.
 	core := zapcore.NewCore(jsonEncoder, zapcore.AddSync(oFile), zapcore.InfoLevel)
 
-	return core, nil
+	return core, logFile, nil
 }
 
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
