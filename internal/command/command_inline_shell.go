@@ -18,8 +18,6 @@ type inlineShellCommand struct {
 	session      *Session
 }
 
-// TODO(adamb): delete this method if the struct continues to
-// satisfy the [commandWithPty] interface.
 func (c *inlineShellCommand) getPty() *os.File {
 	virtualCmd, ok := c.internalCommand.(*virtualCommand)
 	if !ok {

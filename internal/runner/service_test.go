@@ -526,7 +526,53 @@ func Test_runnerService(t *testing.T) {
 	})
 
 	t.Run("ExecuteWithPathEnvInSession", func(t *testing.T) {
-		// TODO
+		t.Parallel()
+
+		// Run the first request with the default PATH.
+		{
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			result := make(chan executeResult)
+			go getExecuteResult(stream, result)
+
+			req := &runnerv1.ExecuteRequest{
+				ProgramName: "echo",
+				Arguments:   []string{"-n", "test"},
+			}
+			err = stream.Send(req)
+			require.NoError(t, err)
+			require.Equal(t, "test", string((<-result).Stdout))
+		}
+
+		// Provide a PATH in the session. It will be an empty dir so
+		// the echo command will not be found.
+		tmpDir := t.TempDir()
+		sessionResp, err := client.CreateSession(
+			context.Background(),
+			&runnerv1.CreateSessionRequest{
+				Envs: []string{"PATH=" + tmpDir},
+			},
+		)
+		require.NoError(t, err)
+
+		// This time the request will fail because the echo command is not found.
+		{
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			result := make(chan executeResult)
+			go getExecuteResult(stream, result)
+
+			req := &runnerv1.ExecuteRequest{
+				ProgramName: "echo",
+				Arguments:   []string{"-n", "test"},
+				SessionId:   sessionResp.Session.Id,
+			}
+			err = stream.Send(req)
+			require.NoError(t, err)
+			require.ErrorContains(t, (<-result).Err, "unable to locate program \"echo\"")
+		}
 	})
 
 	t.Run("ExecuteWithTTYCloseSendDirection", func(t *testing.T) {

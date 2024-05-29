@@ -15,9 +15,9 @@ var SignalToProcessGroup = true
 type nativeCommand struct {
 	*base
 
-	cmd *exec.Cmd
-
 	logger *zap.Logger
+
+	cmd *exec.Cmd
 }
 
 func (c *nativeCommand) Running() bool {

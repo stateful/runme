@@ -574,7 +574,7 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 	}
 }
 
-func TestRunnerServiceServerExecute_PathInSession(t *testing.T) {
+func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)

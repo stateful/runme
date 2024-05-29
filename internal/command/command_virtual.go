@@ -204,7 +204,7 @@ type Winsize pty.Winsize
 func SetWinsize(cmd Command, winsize *Winsize) (err error) {
 	cmdPty, ok := cmd.(commandWithPty)
 	if !ok {
-		return errors.New("unsupported command instance")
+		return errors.New("winsize: unsupported command type")
 	}
 
 	err = pty.Setsize(cmdPty.getPty(), (*pty.Winsize)(winsize))
