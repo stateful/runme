@@ -412,6 +412,10 @@ func (s *Store) InsecureGet(k string) (string, error) {
 		return "", err
 	}
 
+	if res.Value == nil {
+		return "", nil
+	}
+
 	return res.Value.Resolved, nil
 }
 
