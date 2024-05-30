@@ -11,6 +11,16 @@ import (
 	"github.com/graphql-go/graphql/language/ast"
 )
 
+// Constants representing different spec names.
+// These constants are of type SpecName and are assigned string values.
+const (
+	SpecNameOpaque   string = "Opaque"   // SpecNameOpaque specifies an opaque specification.
+	SpecNamePlain    string = "Plain"    // SpecNamePlain specifies a plain specification.
+	SpecNameSecret   string = "Secret"   // SpecNameSecret specifies a secret specification.
+	SpecNamePassword string = "Password" // SpecNamePassword specifies a password specification.
+	SpecNameDefault         = SpecNameOpaque
+)
+
 type specType struct {
 	typ     *graphql.Object
 	resolve graphql.FieldResolveFn
