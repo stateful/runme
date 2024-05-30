@@ -501,29 +501,33 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation), WithSpecs(false))
-	if err != nil {
-		return err
+	if len(newOrUpdated) > 0 {
+		updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation), WithSpecs(false))
+		if err != nil {
+			return err
+		}
+
+		err = updateOpSet.addEnvs("[execution]", newOrUpdated...)
+		if err != nil {
+			return err
+		}
+
+		s.opSets = append(s.opSets, updateOpSet)
 	}
 
-	err = updateOpSet.addEnvs("[execution]", newOrUpdated...)
-	if err != nil {
-		return err
+	if len(deleted) > 0 {
+		deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation), WithSpecs(false))
+		if err != nil {
+			return err
+		}
+
+		err = deleteOpSet.addEnvs("[execution]", deleted...)
+		if err != nil {
+			return err
+		}
+
+		s.opSets = append(s.opSets, deleteOpSet)
 	}
-
-	s.opSets = append(s.opSets, updateOpSet)
-
-	deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation), WithSpecs(false))
-	if err != nil {
-		return err
-	}
-
-	err = deleteOpSet.addEnvs("[execution]", deleted...)
-	if err != nil {
-		return err
-	}
-
-	s.opSets = append(s.opSets, deleteOpSet)
 
 	// s.logger.Debug("opSets size", zap.Int("size", len(s.opSets)))
 
