@@ -13,11 +13,11 @@ import (
 var SignalToProcessGroup = true
 
 type nativeCommand struct {
-	internalCommand
-
-	cmd *exec.Cmd
+	*base
 
 	logger *zap.Logger
+
+	cmd *exec.Cmd
 }
 
 func (c *nativeCommand) Running() bool {

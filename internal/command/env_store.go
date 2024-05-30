@@ -30,6 +30,13 @@ func (s *envStore) Merge(envs ...string) (*envStore, error) {
 	return s, nil
 }
 
+func (s *envStore) Get(k string) (string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	v, ok := s.items[k]
+	return v, ok
+}
+
 func (s *envStore) Set(k, v string) (*envStore, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

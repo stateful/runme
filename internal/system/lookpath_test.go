@@ -1,6 +1,6 @@
 //go:build unix
 
-// TODO(adamb): remove the build flag when [System.LookPath] is implemented for Windows.
+// TODO(adamb): remove the build flag when [LookPathUsingPathEnv] is implemented for Windows.
 
 package system
 
@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,10 +20,7 @@ func TestLookPath(t *testing.T) {
 	err := os.WriteFile(myBinaryPath, []byte{}, 0o111)
 	require.NoError(t, err)
 
-	s := New(
-		WithPathEnvGetter(func() string { return tmp }),
-	)
-	path, err := s.LookPath("my-binary")
+	path, err := LookPathUsingPathEnv("my-binary", tmp)
 	require.NoError(t, err)
-	assert.Equal(t, myBinaryPath, path)
+	require.Equal(t, myBinaryPath, path)
 }

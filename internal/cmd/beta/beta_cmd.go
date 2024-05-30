@@ -27,7 +27,7 @@ All commands are experimental and not yet ready for production use.
 All commands use the runme.yaml configuration file.`,
 		Hidden: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.Invoke(func(cfg *config.Config) error {
+			return autoconfig.InvokeForCommand(func(cfg *config.Config) error {
 				// Override the filename if provided.
 				if cFlags.filename != "" {
 					cfg.ProjectFilename = cFlags.filename

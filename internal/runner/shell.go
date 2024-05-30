@@ -29,7 +29,7 @@ type Shell struct {
 var _ Executable = (*Shell)(nil)
 
 func (s Shell) ProgramPath() string {
-	return resolveShellPath(s.System, s.CustomShell)
+	return resolveShellPath(s.CustomShell)
 }
 
 func (s Shell) ShellType() string {
@@ -149,22 +149,22 @@ func GetCellProgram(languageID string, customShell string, cell *document.CodeBl
 	return
 }
 
-func resolveShellPath(sys *system.System, customShell string) string {
+func resolveShellPath(customShell string) string {
 	if customShell != "" {
-		if path, err := sys.LookPath(customShell); err == nil {
+		if path, err := system.LookPath(customShell); err == nil {
 			return path
 		}
 	}
 
-	return globalShellPath(sys)
+	return globalShellPath()
 }
 
-func globalShellPath(sys *system.System) string {
+func globalShellPath() string {
 	shell, ok := os.LookupEnv("SHELL")
 	if !ok {
 		shell = "sh"
 	}
-	if path, err := sys.LookPath(shell); err == nil {
+	if path, err := system.LookPath(shell); err == nil {
 		return path
 	}
 	return "/bin/sh"

@@ -17,7 +17,7 @@ func serverStopCmd() *cobra.Command {
 		Use:   "stop",
 		Short: "Stop a server.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.Invoke(
+			return autoconfig.InvokeForCommand(
 				func(
 					cfg *config.Config,
 					logger *zap.Logger,

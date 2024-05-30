@@ -18,7 +18,7 @@ func serverStartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start a server.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.Invoke(
+			return autoconfig.InvokeForCommand(
 				func(
 					cfg *config.Config,
 					cmdFactory command.Factory,
