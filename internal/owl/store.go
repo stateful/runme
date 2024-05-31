@@ -209,6 +209,20 @@ func WithSpecs(included bool) OperationSetOption {
 	}
 }
 
+func WithItems(items SetVarItems) OperationSetOption {
+	return func(opSet *OperationSet) error {
+		for _, item := range items {
+			if item.Spec != nil {
+				opSet.specs[item.Var.Key] = &SetVarSpec{Var: item.Var, Spec: item.Spec}
+			}
+			if item.Value != nil {
+				opSet.values[item.Var.Key] = &SetVarValue{Var: item.Var, Value: item.Value}
+			}
+		}
+		return nil
+	}
+}
+
 func (s *OperationSet) addEnvs(source string, envs ...string) error {
 	for _, env := range envs {
 		parts := strings.Split(env, "=")
