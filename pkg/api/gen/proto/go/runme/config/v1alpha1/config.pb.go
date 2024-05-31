@@ -897,8 +897,20 @@ func file_runme_config_v1alpha1_config_proto_init() {
 				return nil
 			}
 		}
-		file_runme_config_v1alpha1_config_proto_msgTypes[2].Exporter = func(v any, i int) any {
+		file_runme_config_v1alpha1_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Config_Env); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_runme_config_v1alpha1_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Config_Filter); i {
 			case 0:
 				return &v.state
 			case 1:

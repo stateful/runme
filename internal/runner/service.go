@@ -870,6 +870,7 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 		es := &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 			Name:          item.Var.Key,
 			Spec:          item.Spec.Name,
+			IsRequired:    item.Spec.Required,
 			Origin:        item.Var.Origin,
 			OriginalValue: item.Value.Original,
 			ResolvedValue: item.Value.Resolved,
