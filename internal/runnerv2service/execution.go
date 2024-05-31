@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/rbuffer"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
@@ -53,17 +54,22 @@ type execution struct {
 
 func newExecution(
 	id string,
-	factory command.Factory,
-	cfg *command.ProgramConfig,
-	session *command.Session,
 	storeStdoutInEnv bool,
+	cfg *command.ProgramConfig,
+	proj *project.Project,
+	session *command.Session,
 	logger *zap.Logger,
-) (*execution, error) {
+) *execution {
+	cmdFactory := command.NewFactory(
+		command.WithLogger(logger),
+		command.WithProject(proj),
+	)
+
 	stdin, stdinWriter := io.Pipe()
 	stdout := rbuffer.NewRingBuffer(ringBufferSize)
 	stderr := rbuffer.NewRingBuffer(ringBufferSize)
 
-	cmdOptions := command.Options{
+	cmdOptions := command.CommandOptions{
 		EnableEcho:  true,
 		Session:     session,
 		StdinWriter: stdinWriter,
@@ -72,7 +78,7 @@ func newExecution(
 		Stderr:      stderr,
 	}
 
-	cmd := factory.Build(cfg, cmdOptions)
+	cmd := cmdFactory.Build(cfg, cmdOptions)
 
 	exec := &execution{
 		ID:        id,
@@ -90,7 +96,7 @@ func newExecution(
 		logger: logger,
 	}
 
-	return exec, nil
+	return exec
 }
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {

@@ -1,5 +1,5 @@
-// autoconfig provides a way to create various instances from the [config.Config] like
-// [project.Project], [command.Session], [zap.Logger].
+// autoconfig provides a way to create instances of objects based on
+// the configuration in runme.yaml.
 //
 // For example, to instantiate [project.Project], you can write:
 //
@@ -24,13 +24,32 @@ import (
 	"github.com/stateful/runme/v3/internal/project"
 )
 
-var container = dig.New()
+var (
+	container    = dig.New()
+	commandScope = container.Scope("command")
+	serverScope  = container.Scope("server")
+)
 
-// Invoke is used to invoke the function with the given dependencies.
+func DecorateRoot(decorator interface{}, opts ...dig.DecorateOption) error {
+	return container.Decorate(decorator, opts...)
+}
+
+// InvokeForCommand is used to invoke the function with the given dependencies.
 // The package will automatically figure out how to instantiate them
 // using the available configuration.
-func Invoke(function interface{}, opts ...dig.InvokeOption) error {
-	err := container.Invoke(function, opts...)
+//
+// Use it only for commands because it supports only singletons
+// created during the program initialization.
+func InvokeForCommand(function interface{}, opts ...dig.InvokeOption) error {
+	err := commandScope.Invoke(function, opts...)
+	return dig.RootCause(err)
+}
+
+// InvokeForServer is similar to InvokeForCommand, but it does not provide
+// all the dependencies, in particular, it does not provide dependencies
+// that differ per request.
+func InvokeForServer(function interface{}, opts ...dig.InvokeOption) error {
+	err := serverScope.Invoke(function, opts...)
 	return dig.RootCause(err)
 }
 
@@ -43,23 +62,39 @@ func mustProvide(err error) {
 func init() {
 	mustProvide(container.Provide(getCommandFactory))
 	mustProvide(container.Provide(getConfigLoader))
+	mustProvide(container.Provide(getDocker))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
 	mustProvide(container.Provide(getRootConfig))
-	mustProvide(container.Provide(getSession))
-	mustProvide(container.Provide(getRuntime))
 	mustProvide(container.Provide(getUserConfigDir))
 }
 
-func getCommandFactory(cfg *config.Config, runtime command.Runtime, logger *zap.Logger) command.Factory {
-	return command.NewFactory(cfg, runtime, logger)
+func getCommandFactory(docker *dockerexec.Docker, logger *zap.Logger, proj *project.Project) command.Factory {
+	return command.NewFactory(
+		command.WithDocker(docker),
+		command.WithLogger(logger),
+		command.WithProject(proj),
+	)
 }
 
 func getConfigLoader() (*config.Loader, error) {
 	// TODO(adamb): change from "./experimental" to "." when the feature is stable and
 	// delete the project root path.
 	return config.NewLoader("runme", "yaml", os.DirFS("./experimental"), config.WithProjectRootPath(os.DirFS("."))), nil
+}
+
+func getDocker(c *config.Config, logger *zap.Logger) (*dockerexec.Docker, error) {
+	if !c.RuntimeDockerEnabled {
+		return nil, nil
+	}
+
+	return dockerexec.New(&dockerexec.Options{
+		BuildContext: c.RuntimeDockerBuildContext,
+		Dockerfile:   c.RuntimeDockerBuildDockerfile,
+		Image:        c.RuntimeDockerImage,
+		Logger:       logger,
+	})
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {
@@ -176,7 +211,7 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.Config, error) {
 	content, err := cfgLoader.RootConfig()
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed to load project configuration")
+		return nil, errors.WithMessage(err, "failed to load root configuration")
 	}
 
 	cfg, err := config.ParseYAML(content)
@@ -194,45 +229,6 @@ func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.
 	}
 
 	return cfg, nil
-}
-
-func getRuntime(c *config.Config, logger *zap.Logger) (command.Runtime, error) {
-	if c.RuntimeDockerEnabled {
-		docker, err := dockerexec.New(&dockerexec.Options{
-			BuildContext: c.RuntimeDockerBuildContext,
-			Dockerfile:   c.RuntimeDockerBuildDockerfile,
-			Image:        c.RuntimeDockerImage,
-			Logger:       logger,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return command.NewDockerRuntime(docker), nil
-	}
-	return command.NewHostRuntime(), nil
-}
-
-func getSession(cfg *config.Config, proj *project.Project) (*command.Session, error) {
-	sess := command.NewSession()
-
-	if cfg.ProjectEnvUseSystemEnv {
-		if err := sess.SetEnv(os.Environ()...); err != nil {
-			return nil, err
-		}
-	}
-
-	if proj != nil {
-		projEnv, err := proj.LoadEnv()
-		if err != nil {
-			return nil, err
-		}
-
-		if err := sess.SetEnv(projEnv...); err != nil {
-			return nil, err
-		}
-	}
-
-	return sess, nil
 }
 
 type UserConfigDir string

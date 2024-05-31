@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
+	"github.com/stateful/runme/v3/internal/project"
 )
 
 type Command interface {
@@ -19,39 +21,32 @@ type Command interface {
 	Wait() error
 }
 
-type baseCommand interface {
-	IsEchoEnabled() bool
+type internalCommandGetters interface {
 	Env() []string
 	ProgramConfig() *ProgramConfig
 	ProgramPath() (string, []string, error)
-	Session() *Session
 	Stdin() io.Reader
-	StdinWriter() io.Writer
 	Stdout() io.Writer
 	Stderr() io.Writer
 }
 
 type internalCommand interface {
 	Command
-	baseCommand
+	internalCommandGetters
 }
 
 type base struct {
-	cfg           *ProgramConfig
-	isEchoEnabled bool
-	runtime       Runtime
-	session       *Session
-	stdin         io.Reader
-	stdinWriter   io.Writer
-	stdout        io.Writer
-	stderr        io.Writer
+	cfg         *ProgramConfig
+	project     *project.Project
+	runtime     runtime
+	session     *Session
+	stdin       io.Reader
+	stdinWriter io.Writer
+	stdout      io.Writer
+	stderr      io.Writer
 }
 
 var _ internalCommand = (*base)(nil)
-
-func (c *base) IsEchoEnabled() bool {
-	return c.isEchoEnabled
-}
 
 func (c *base) Interactive() bool {
 	return c.cfg.Interactive
@@ -63,13 +58,6 @@ func (c *base) Pid() int {
 
 func (c *base) Running() bool {
 	return false
-}
-
-func (c *base) Session() *Session {
-	if c.session == nil {
-		c.session = NewSession()
-	}
-	return c.session
 }
 
 func (c *base) Start(context.Context) error {
@@ -85,13 +73,15 @@ func (c *base) Wait() error {
 }
 
 func (c *base) Env() []string {
-	// The order is important here. If the env is duplicated,
-	// the last one wins.
 	env := c.runtime.Environ()
-	env = append(env, c.cfg.Env...)
-	if c.session != nil {
-		env = append(env, c.session.GetEnv()...)
+
+	if c.project != nil {
+		projEnv, _ := c.project.LoadEnv()
+		env = append(env, projEnv...)
 	}
+
+	env = append(env, c.session.GetAllEnv()...)
+	env = append(env, c.cfg.Env...)
 	return env
 }
 
@@ -115,17 +105,34 @@ func (c *base) ProgramPath() (string, []string, error) {
 	return c.findDefaultProgram(c.cfg.ProgramName, c.cfg.Arguments)
 }
 
+func (c *base) getEnv(key string) string {
+	env := c.Env()
+	for i := len(env) - 1; i >= 0; i-- {
+		e := env[i]
+		prefix := key + "="
+		if strings.HasPrefix(e, prefix) {
+			return e[len(prefix):]
+		}
+	}
+	return ""
+}
+
+func (c *base) lookPath(path string) (string, error) {
+	pathEnv := c.getEnv("PATH")
+	return c.runtime.LookPathUsingPathEnv(path, pathEnv)
+}
+
 func (c *base) findDefaultProgram(name string, args []string) (string, []string, error) {
 	if isShellLanguage(name) {
 		globalShell := shellFromShellPath(c.globalShellPath())
-		res, err := c.runtime.LookPath(globalShell)
+		res, err := c.lookPath(globalShell)
 		if err != nil {
 			return "", nil, errors.Errorf("failed lookup default shell %s", globalShell)
 		}
 		return res, args, nil
 	}
 	// Default to "cat" for shebang++
-	res, err := c.runtime.LookPath("cat")
+	res, err := c.lookPath("cat")
 	if err != nil {
 		return "", nil, errors.Errorf("failed lookup default program cat")
 	}
@@ -136,7 +143,7 @@ func (c *base) findProgramInPath(name string, args []string) (string, []string, 
 	if name == "" {
 		return "", nil, errors.New("program name is empty")
 	}
-	res, err := c.runtime.LookPath(name)
+	res, err := c.lookPath(name)
 	if err != nil {
 		return "", nil, errors.Errorf("failed program lookup %q", name)
 	}
@@ -151,12 +158,12 @@ func (c *base) findProgramInKnownInterpreters(programName string, args []string)
 
 	for _, interpreter := range interpreters {
 		interProgram, interArgs := parseInterpreter(interpreter)
-		if path, err := c.runtime.LookPath(interProgram); err == nil {
+		if path, err := c.lookPath(interProgram); err == nil {
 			return path, append(interArgs, args...), nil
 		}
 	}
 
-	cat, err := c.runtime.LookPath("cat")
+	cat, err := c.lookPath("cat")
 	if err == nil {
 		return cat, nil, nil
 	}
@@ -187,11 +194,11 @@ func (c *base) Stderr() io.Writer {
 }
 
 func (c *base) globalShellPath() string {
-	shell := c.runtime.GetEnv("SHELL")
+	shell := c.getEnv("SHELL")
 	if shell == "" {
 		shell = "sh"
 	}
-	if path, err := c.runtime.LookPath(shell); err == nil {
+	if path, err := c.lookPath(shell); err == nil {
 		return path
 	}
 	return "/bin/sh"

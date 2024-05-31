@@ -16,13 +16,12 @@ import (
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/stateful/runme/v3/internal/command"
-	"github.com/stateful/runme/v3/internal/config"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
 
 func TestServer(t *testing.T) {
 	logger := zaptest.NewLogger(t)
-	factory := command.NewFactory(&config.Config{}, command.NewHostRuntime(), logger)
+	factory := command.NewFactory(command.WithLogger(logger))
 
 	t.Run("tcp", func(t *testing.T) {
 		cfg := &Config{

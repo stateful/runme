@@ -5,12 +5,13 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/config"
+	"github.com/stateful/runme/v3/internal/dockerexec"
+	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/ulid"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
-type Options struct {
+type CommandOptions struct {
 	// EnableEcho enables the echo when typing in the terminal.
 	// It's respected only by interactive commands, i.e. composed
 	// with [virtualCommand].
@@ -23,23 +24,55 @@ type Options struct {
 }
 
 type Factory interface {
-	Build(*ProgramConfig, Options) Command
+	Build(*ProgramConfig, CommandOptions) Command
 }
 
-func NewFactory(_ *config.Config, runtime Runtime, logger *zap.Logger) Factory {
-	return &commandFactory{
-		runtime: runtime,
-		logger:  logger,
+type FactoryOption func(*commandFactory)
+
+func WithDocker(docker *dockerexec.Docker) FactoryOption {
+	return func(f *commandFactory) {
+		f.docker = docker
 	}
 }
 
-type commandFactory struct {
-	_       *config.Config // unused yet
-	runtime Runtime
-	logger  *zap.Logger
+func WithLogger(logger *zap.Logger) FactoryOption {
+	return func(f *commandFactory) {
+		f.logger = logger
+	}
 }
 
-func (f *commandFactory) Build(cfg *ProgramConfig, opts Options) Command {
+func WithProject(proj *project.Project) FactoryOption {
+	return func(f *commandFactory) {
+		f.project = proj
+	}
+}
+
+func NewFactory(opts ...FactoryOption) Factory {
+	f := &commandFactory{}
+	for _, opt := range opts {
+		opt(f)
+	}
+	return f
+}
+
+type commandFactory struct {
+	docker  *dockerexec.Docker // used only for [dockerCommand]
+	logger  *zap.Logger
+	project *project.Project
+}
+
+// Build creates a new command based on the provided [ProgramConfig] and [CommandOptions].
+//
+// There are three types of commands that are :
+//   - [base] - the base command that is used by all other commands. It provides
+//     generic, runtime agnostic functionality. It's not fully functional, though.
+//   - [nativeCommand], [virtualCommand], and [dockerCommand] - are mid-layer commands
+//     built on top of the [base] command. They are fully functional, but they
+//     don't really fit any real world use case. They are runtime specific.
+//   - [inlineCommand], [inlineShellCommand], [terminalCommand], and [fileCommand] - are
+//     high-level commands that are built on top of the mid-layer commands. They implement
+//     real world use cases and are fully functional and can be used by callers.
+func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command {
 	mode := cfg.Mode
 	// For backward compatibility, if the mode is not specified,
 	// we will try to infer it from the language. If it's shell,
@@ -48,12 +81,19 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts Options) Command {
 		mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
 	}
 
+	// Session should be always available. If non is provided,
+	// return a new one.
+	if opts.Session == nil {
+		opts.Session = NewSession()
+	}
+
 	switch mode {
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE:
 		if isShell(cfg) {
 			return &inlineShellCommand{
 				internalCommand: f.buildInternal(cfg, opts),
 				logger:          f.getLogger("InlineShellCommand"),
+				session:         opts.Session,
 			}
 		}
 		return &inlineCommand{
@@ -67,8 +107,10 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts Options) Command {
 		opts.EnableEcho = true
 
 		return &terminalCommand{
-			internalCommand: f.buildVirtual(f.buildBase(cfg, opts)),
+			internalCommand: f.buildVirtual(f.buildBase(cfg, opts), opts),
 			logger:          f.getLogger("TerminalCommand"),
+			session:         opts.Session,
+			stdinWriter:     opts.StdinWriter,
 		}
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_FILE:
 		fallthrough
@@ -80,45 +122,56 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts Options) Command {
 	}
 }
 
-func (f *commandFactory) buildBase(cfg *ProgramConfig, opts Options) *base {
+func (f *commandFactory) buildBase(cfg *ProgramConfig, opts CommandOptions) *base {
+	var runtime runtime
+	if f.docker != nil {
+		runtime = &dockerRuntime{Docker: f.docker}
+	} else {
+		runtime = &hostRuntime{}
+	}
+
 	return &base{
-		cfg:           cfg,
-		isEchoEnabled: opts.EnableEcho,
-		runtime:       f.runtime,
-		session:       opts.Session,
-		stdin:         opts.Stdin,
-		stdinWriter:   opts.StdinWriter,
-		stdout:        opts.Stdout,
-		stderr:        opts.Stderr,
+		cfg:         cfg,
+		project:     f.project,
+		runtime:     runtime,
+		session:     opts.Session,
+		stdin:       opts.Stdin,
+		stdinWriter: opts.StdinWriter,
+		stdout:      opts.Stdout,
+		stderr:      opts.Stderr,
 	}
 }
 
-func (f *commandFactory) buildInternal(cfg *ProgramConfig, opts Options) internalCommand {
+func (f *commandFactory) buildInternal(cfg *ProgramConfig, opts CommandOptions) internalCommand {
 	base := f.buildBase(cfg, opts)
 
-	if k, ok := f.runtime.(*Docker); ok {
-		return &dockerCommand{
-			internalCommand: base,
-			docker:          k.docker,
-			logger:          f.getLogger("DockerCommand"),
-		}
+	if f.docker != nil {
+		return f.buildDocker(base)
 	}
 
 	if base.Interactive() {
-		return f.buildVirtual(base)
+		return f.buildVirtual(base, opts)
 	}
 
 	return f.buildNative(base)
 }
 
-func (f *commandFactory) buildNative(base *base) internalCommand {
-	return &nativeCommand{
-		internalCommand: base,
-		logger:          f.getLogger("NativeCommand"),
+func (f *commandFactory) buildDocker(base *base) internalCommand {
+	return &dockerCommand{
+		base:   base,
+		docker: f.docker,
+		logger: f.getLogger("DockerCommand"),
 	}
 }
 
-func (f *commandFactory) buildVirtual(base *base) internalCommand {
+func (f *commandFactory) buildNative(base *base) internalCommand {
+	return &nativeCommand{
+		base:   base,
+		logger: f.getLogger("NativeCommand"),
+	}
+}
+
+func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) internalCommand {
 	var stdin io.ReadCloser
 
 	if !isNil(base.Stdin()) {
@@ -127,9 +180,10 @@ func (f *commandFactory) buildVirtual(base *base) internalCommand {
 	}
 
 	return &virtualCommand{
-		internalCommand: base,
-		stdin:           stdin,
-		logger:          f.getLogger("VirtualCommand"),
+		base:          base,
+		isEchoEnabled: opts.EnableEcho,
+		logger:        f.getLogger("VirtualCommand"),
+		stdin:         stdin,
 	}
 }
 

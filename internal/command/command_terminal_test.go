@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/stateful/runme/v3/internal/config"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
@@ -22,7 +21,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	session := NewSession()
 	stdinR, stdinW := io.Pipe()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	cmd := factory.Build(
 		&ProgramConfig{
@@ -30,7 +29,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 			Interactive: true,
 			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 		},
-		Options{
+		CommandOptions{
 			Session:     session,
 			StdinWriter: stdinW,
 			Stdin:       stdinR,
@@ -52,13 +51,13 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, cmd.Wait())
-	assert.Equal(t, []string{"TEST_ENV=1"}, session.GetEnv())
+	assert.Equal(t, []string{"TEST_ENV=1"}, session.GetAllEnv())
 }
 
 func TestTerminalCommand_NonInteractive(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	stdinR, stdinW := io.Pipe()
 
@@ -69,7 +68,7 @@ func TestTerminalCommand_NonInteractive(t *testing.T) {
 			ProgramName: "bash",
 			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 		},
-		Options{
+		CommandOptions{
 			StdinWriter: stdinW,
 			Stdin:       stdinR,
 		},
@@ -95,7 +94,7 @@ func TestTerminalCommand_NonInteractive(t *testing.T) {
 func TestTerminalCommand_OptionsStdinWriterNil(t *testing.T) {
 	t.Parallel()
 
-	factory := NewFactory(&config.Config{}, NewHostRuntime(), zaptest.NewLogger(t))
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	cmd := factory.Build(
 		&ProgramConfig{
@@ -103,7 +102,7 @@ func TestTerminalCommand_OptionsStdinWriterNil(t *testing.T) {
 			Interactive: true,
 			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 		},
-		Options{},
+		CommandOptions{},
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)

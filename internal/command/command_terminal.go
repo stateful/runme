@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"github.com/pkg/errors"
@@ -13,6 +14,8 @@ type terminalCommand struct {
 
 	envCollector *shellEnvCollector
 	logger       *zap.Logger
+	session      *Session
+	stdinWriter  io.Writer
 }
 
 func (c *terminalCommand) getPty() *os.File {
@@ -24,7 +27,7 @@ func (c *terminalCommand) getPty() *os.File {
 }
 
 func (c *terminalCommand) Start(ctx context.Context) error {
-	if isNil(c.StdinWriter()) {
+	if isNil(c.stdinWriter) {
 		return errors.New("stdin writer is nil")
 	}
 
@@ -36,7 +39,7 @@ func (c *terminalCommand) Start(ctx context.Context) error {
 
 	// [shellEnvCollector] writes defines a function collecting env and
 	// registers it as a trap directly into the shell interactive session.
-	c.envCollector = &shellEnvCollector{buf: c.StdinWriter()}
+	c.envCollector = &shellEnvCollector{buf: c.stdinWriter}
 	return c.envCollector.Init()
 }
 
@@ -52,9 +55,7 @@ func (c *terminalCommand) Wait() (err error) {
 }
 
 func (c *terminalCommand) collectEnv() error {
-	sess := c.Session()
-
-	if sess == nil || c.envCollector == nil {
+	if c.session == nil || c.envCollector == nil {
 		return nil
 	}
 
@@ -62,11 +63,10 @@ func (c *terminalCommand) collectEnv() error {
 	if err != nil {
 		return err
 	}
-	if err := sess.SetEnv(changed...); err != nil {
+	if err := c.session.SetEnv(changed...); err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
-
-	sess.DeleteEnv(deleted...)
+	c.session.DeleteEnv(deleted...)
 
 	return nil
 }

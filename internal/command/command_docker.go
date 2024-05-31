@@ -10,7 +10,7 @@ import (
 )
 
 type dockerCommand struct {
-	internalCommand
+	*base
 
 	cmd    *dockerexec.Cmd
 	docker *dockerexec.Docker
