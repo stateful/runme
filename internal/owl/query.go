@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/graphql-go/graphql/language/ast"
@@ -52,10 +53,10 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	q, err := NewQuery("Snapshot", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
-			reduceSetOperations(s, vars),
+			reduceSetOperations(s.opSets, vars),
 			reduceWrapValidate(),
-			reduceSepcsAtomic(s),
-			reduceSepcsComplex(s),
+			reduceSepcsAtomic(s.opSets),
+			reduceSepcsComplex(s.opSets),
 			reduceWrapDone(),
 			reduceSnapshot(),
 		},
@@ -99,10 +100,10 @@ func (s *Store) sensitiveKeysQuery(query, vars io.StringWriter) error {
 	q, err := NewQuery("Sensitive", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
-			reduceSetOperations(s, vars),
+			reduceSetOperations(s.opSets, vars),
 			reduceWrapValidate(),
-			reduceSepcsAtomic(s),
-			reduceSepcsComplex(s),
+			reduceSepcsAtomic(s.opSets),
+			reduceSepcsComplex(s.opSets),
 			reduceWrapDone(),
 			reduceSensitive(),
 		},
@@ -178,10 +179,10 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 	q, err := NewQuery("Get", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
-			reduceSetOperations(s, vars),
+			reduceSetOperations(s.opSets, vars),
 			reduceWrapValidate(),
-			reduceSepcsAtomic(s),
-			reduceSepcsComplex(s),
+			reduceSepcsAtomic(s.opSets),
+			reduceSepcsComplex(s.opSets),
 			reduceWrapDone(),
 			reduceGetter(),
 		},
@@ -229,11 +230,11 @@ func reduceWrapDone() QueryNodeReducer {
 	}
 }
 
-func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
+func reduceSetOperations(opSets []*OperationSet, vars io.StringWriter) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		opSetData := make(map[string]SetVarItems, len(store.opSets))
+		opSetData := make(map[string]SetVarItems, len(opSets))
 
-		for i, opSet := range store.opSets {
+		for i, opSet := range opSets {
 			if len(opSet.values) == 0 && len(opSet.specs) == 0 {
 				continue
 			}
@@ -813,19 +814,25 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 	}
 }
 
-func reduceSepcsAtomic(store *Store) QueryNodeReducer {
+func reduceSepcsAtomic(opSets []*OperationSet) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var specKeys []string
 		varSpecs := make(map[string]*SetVarItem)
-		for _, opSet := range store.opSets {
+		for _, opSet := range opSets {
 			if len(opSet.specs) == 0 {
 				continue
 			}
 			for _, s := range opSet.specs {
-				if _, ok := SpecTypes[s.Spec.Name]; !ok {
-					continue
-					// return nil, fmt.Errorf("unknown spec type: %s on %s", s.Spec.Name, s.Var.Key)
+				isTransient := opSet.operation.kind == TransientSetOperation
+				if isTransient {
+					s.Spec.Name = SpecNameDefault
 				}
+
+				if _, ok := SpecTypes[s.Spec.Name]; !ok {
+					// return nil, fmt.Errorf("unknown spec type: %s on %s", s.Spec.Name, s.Var.Key)
+					continue
+				}
+
 				varSpecs[s.Var.Key] = &SetVarItem{
 					Var:  s.Var,
 					Spec: s.Spec,
@@ -834,7 +841,7 @@ func reduceSepcsAtomic(store *Store) QueryNodeReducer {
 			}
 		}
 
-		nextVarSpecs := func(varSpecs map[string]*SetVarItem, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+		reduceVarSpecs := func(varSpecs map[string]*SetVarItem, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
 			var keys []string
 			for _, v := range varSpecs {
 				if v.Spec.Name != spec {
@@ -917,18 +924,18 @@ func reduceSepcsAtomic(store *Store) QueryNodeReducer {
 				continue
 			}
 			prev = specKey
-			nextSelSet = nextVarSpecs(varSpecs, specKey, nextSelSet)
+			nextSelSet = reduceVarSpecs(varSpecs, specKey, nextSelSet)
 		}
 
 		return nextSelSet, nil
 	}
 }
 
-func reduceSepcsComplex(store *Store) QueryNodeReducer {
+func reduceSepcsComplex(opSets []*OperationSet) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		var specKeys []string
+		var varKeys []string
 		varSpecs := make(map[string]*SetVarItem)
-		for _, opSet := range store.opSets {
+		for _, opSet := range opSets {
 			if len(opSet.specs) == 0 {
 				continue
 			}
@@ -940,17 +947,18 @@ func reduceSepcsComplex(store *Store) QueryNodeReducer {
 					Var:  s.Var,
 					Spec: s.Spec,
 				}
-				specKeys = append(specKeys, s.Spec.Name)
+				varKeys = append(varKeys, s.Var.Key)
 			}
 		}
 
-		nextVarSpecs := func(varSpecs map[string]*SetVarItem, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+		reduceNamespacedSpec := func(varSpecs map[string]*SetVarItem, ns string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+			spec := ""
 			var keys []string
+			var items SetVarItems
 			for _, v := range varSpecs {
-				if v.Spec.Name != spec {
-					continue
-				}
+				spec = v.Spec.Name
 				keys = append(keys, v.Var.Key)
+				items = append(items, v)
 			}
 			if len(keys) == 0 {
 				return prevSelSet
@@ -981,12 +989,12 @@ func reduceSepcsComplex(store *Store) QueryNodeReducer {
 				},
 			})
 
-			valuekeys := ast.NewListValue(&ast.ListValue{})
-			for _, name := range keys {
-				valuekeys.Values = append(valuekeys.Values, ast.NewStringValue(&ast.StringValue{
-					Value: name,
-				}))
-			}
+			// valuekeys := ast.NewListValue(&ast.ListValue{})
+			// for _, name := range keys {
+			// 	valuekeys.Values = append(valuekeys.Values, ast.NewStringValue(&ast.StringValue{
+			// 		Value: name,
+			// 	}))
+			// }
 
 			prevSelSet.Selections = append(prevSelSet.Selections,
 				ast.NewField(&ast.Field{
@@ -1002,24 +1010,60 @@ func reduceSepcsComplex(store *Store) QueryNodeReducer {
 								Value: spec,
 							}),
 						}),
+						ast.NewArgument(&ast.Argument{
+							Name: ast.NewName(&ast.Name{
+								Value: "namespace",
+							}),
+							Value: ast.NewStringValue(&ast.StringValue{
+								Value: ns,
+							}),
+						}),
 					},
 					SelectionSet: nextSelSet,
 				}))
+
+			transientOpSet, _ := NewOperationSet(WithOperation(TransientSetOperation), WithItems(items))
+			atomicSelSet, err := reduceSepcsAtomic([]*OperationSet{transientOpSet})(opDef, nextSelSet)
+			// todo: handle error
+			if err == nil {
+				return atomicSelSet
+			}
 
 			return nextSelSet
 		}
 
 		nextSelSet := selSet
 
-		// todo: poor Sebastian's deduplication
-		slices.Sort(specKeys)
-		prev := ""
-		for _, specKey := range specKeys {
-			if prev == specKey {
-				continue
+		slices.Sort(varKeys)
+		namespaced := make(map[string]map[string]*SetVarItem)
+		// todo: generalize
+		breaker := "REDIS"
+		prevSpec := ""
+		for _, specKey := range varKeys {
+			ns := ""
+			parts := strings.Split(specKey, "_")
+			for i, part := range parts {
+				if part == breaker {
+					ns = strings.Join(parts[:i], "_")
+					break
+				}
 			}
-			prev = specKey
-			nextSelSet = nextVarSpecs(varSpecs, specKey, nextSelSet)
+
+			if namespaced[ns] == nil {
+				namespaced[ns] = make(map[string]*SetVarItem)
+			}
+
+			item := varSpecs[specKey]
+			if item.Spec.Name != prevSpec && prevSpec != "" {
+				return nil, fmt.Errorf("complex spec type mismatch in namespace %q: %s != %s", ns, item.Spec.Name, prevSpec)
+			}
+			prevSpec = item.Spec.Name
+
+			namespaced[ns][specKey] = item
+		}
+
+		for ns, vars := range namespaced {
+			nextSelSet = reduceNamespacedSpec(vars, ns, nextSelSet)
 		}
 
 		return nextSelSet, nil

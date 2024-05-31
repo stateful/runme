@@ -67,6 +67,9 @@ func registerSpecFields(fields graphql.Fields) {
 			"name": &graphql.ArgumentConfig{
 				Type: graphql.NewNonNull(graphql.String),
 			},
+			"namespace": &graphql.ArgumentConfig{
+				Type: graphql.NewNonNull(graphql.String),
+			},
 		},
 	}
 }
