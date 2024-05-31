@@ -83,6 +83,23 @@ export interface Config_Project {
     filters: Config_Filter[];
 }
 /**
+ * @generated from protobuf message runme.config.v1alpha1.Config.Env
+ */
+export interface Config_Env {
+    /**
+     * use_system_env indicates whether to use the system environment variables.
+     *
+     * @generated from protobuf field: bool use_system_env = 1;
+     */
+    useSystemEnv: boolean;
+    /**
+     * sources is a list of files with env.
+     *
+     * @generated from protobuf field: repeated string sources = 2;
+     */
+    sources: string[];
+}
+/**
  * @generated from protobuf message runme.config.v1alpha1.Config.Filter
  */
 export interface Config_Filter {
@@ -102,23 +119,6 @@ export interface Config_Filter {
      * @generated from protobuf field: string condition = 2;
      */
     condition: string;
-}
-/**
- * @generated from protobuf message runme.config.v1alpha1.Config.Env
- */
-export interface Config_Env {
-    /**
-     * use_system_env indicates whether to use the system environment variables.
-     *
-     * @generated from protobuf field: bool use_system_env = 1;
-     */
-    useSystemEnv: boolean;
-    /**
-     * sources is a list of files with env.
-     *
-     * @generated from protobuf field: repeated string sources = 2;
-     */
-    sources: string[];
 }
 /**
  * @generated from protobuf message runme.config.v1alpha1.Config.Runtime
@@ -243,13 +243,6 @@ declare class Config_Project$Type extends MessageType<Config_Project> {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Project
  */
 export declare const Config_Project: Config_Project$Type;
-declare class Config_Filter$Type extends MessageType<Config_Filter> {
-    constructor();
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Filter
- */
-export declare const Config_Filter: Config_Filter$Type;
 declare class Config_Env$Type extends MessageType<Config_Env> {
     constructor();
 }
@@ -257,6 +250,13 @@ declare class Config_Env$Type extends MessageType<Config_Env> {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Env
  */
 export declare const Config_Env: Config_Env$Type;
+declare class Config_Filter$Type extends MessageType<Config_Filter> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Filter
+ */
+export declare const Config_Filter: Config_Filter$Type;
 declare class Config_Runtime$Type extends MessageType<Config_Runtime> {
     constructor();
 }

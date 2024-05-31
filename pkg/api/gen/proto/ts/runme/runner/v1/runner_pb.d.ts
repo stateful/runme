@@ -584,27 +584,31 @@ export interface MonitorEnvStoreResponseSnapshot_SnapshotEnv {
      */
     spec: string;
     /**
-     * @generated from protobuf field: string origin = 4;
+     * @generated from protobuf field: bool is_required = 4;
+     */
+    isRequired: boolean;
+    /**
+     * @generated from protobuf field: string origin = 5;
      */
     origin: string;
     /**
-     * @generated from protobuf field: string original_value = 5;
+     * @generated from protobuf field: string original_value = 6;
      */
     originalValue: string;
     /**
-     * @generated from protobuf field: string resolved_value = 6;
+     * @generated from protobuf field: string resolved_value = 7;
      */
     resolvedValue: string;
     /**
-     * @generated from protobuf field: string create_time = 7;
+     * @generated from protobuf field: string create_time = 8;
      */
     createTime: string;
     /**
-     * @generated from protobuf field: string update_time = 8;
+     * @generated from protobuf field: string update_time = 9;
      */
     updateTime: string;
     /**
-     * @generated from protobuf field: repeated runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error errors = 9;
+     * @generated from protobuf field: repeated runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error errors = 10;
      */
     errors: MonitorEnvStoreResponseSnapshot_Error[];
 }
