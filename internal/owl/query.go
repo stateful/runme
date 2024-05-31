@@ -53,7 +53,10 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
 			reduceSetOperations(s, vars),
-			reduceSepcs(s),
+			reduceWrapValidate(),
+			reduceSepcsAtomic(s),
+			reduceSepcsComplex(s),
+			reduceWrapDone(),
 			reduceSnapshot(),
 		},
 	)
@@ -97,7 +100,10 @@ func (s *Store) sensitiveKeysQuery(query, vars io.StringWriter) error {
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
 			reduceSetOperations(s, vars),
-			reduceSepcs(s),
+			reduceWrapValidate(),
+			reduceSepcsAtomic(s),
+			reduceSepcsComplex(s),
+			reduceWrapDone(),
 			reduceSensitive(),
 		},
 	)
@@ -173,7 +179,10 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
 			reduceSetOperations(s, vars),
-			reduceSepcs(s),
+			reduceWrapValidate(),
+			reduceSepcsAtomic(s),
+			reduceSepcsComplex(s),
+			reduceWrapDone(),
 			reduceGetter(),
 		},
 	)
@@ -192,6 +201,32 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 	}
 
 	return nil
+}
+
+func reduceWrapValidate() QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		validateSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
+		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
+			Name: ast.NewName(&ast.Name{
+				Value: "validate",
+			}),
+			SelectionSet: validateSelSet,
+		}))
+		return validateSelSet, nil
+	}
+}
+
+func reduceWrapDone() QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		doneSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
+		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
+			Name: ast.NewName(&ast.Name{
+				Value: "done",
+			}),
+			SelectionSet: doneSelSet,
+		}))
+		return doneSelSet, nil
+	}
 }
 
 func reduceSetOperations(store *Store, vars io.StringWriter) QueryNodeReducer {
@@ -778,7 +813,7 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 	}
 }
 
-func reduceSepcs(store *Store) QueryNodeReducer {
+func reduceSepcsAtomic(store *Store) QueryNodeReducer {
 	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var specKeys []string
 		varSpecs := make(map[string]*SetVarItem)
@@ -788,7 +823,8 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 			}
 			for _, s := range opSet.specs {
 				if _, ok := SpecTypes[s.Spec.Name]; !ok {
-					return nil, fmt.Errorf("unknown spec type: %s on %s", s.Spec.Name, s.Var.Key)
+					continue
+					// return nil, fmt.Errorf("unknown spec type: %s on %s", s.Spec.Name, s.Var.Key)
 				}
 				varSpecs[s.Var.Key] = &SetVarItem{
 					Var:  s.Var,
@@ -871,8 +907,7 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 			return nextSelSet
 		}
 
-		topSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-		nextSelSet := topSelSet
+		nextSelSet := selSet
 
 		// todo: poor Sebastian's deduplication
 		slices.Sort(specKeys)
@@ -885,36 +920,109 @@ func reduceSepcs(store *Store) QueryNodeReducer {
 			nextSelSet = nextVarSpecs(varSpecs, specKey, nextSelSet)
 		}
 
-		doneSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-		nextSelSet.Selections = append(nextSelSet.Selections, ast.NewField(&ast.Field{
-			Name: ast.NewName(&ast.Name{
-				Value: "done",
-			}),
-			SelectionSet: doneSelSet,
-		}))
+		return nextSelSet, nil
+	}
+}
 
-		selSet.Selections = append(selSet.Selections,
-			ast.NewField(&ast.Field{
-				Name: ast.NewName(&ast.Name{
-					Value: "validate",
-				}),
-				// Arguments: []*ast.Argument{
-				// 	ast.NewArgument(&ast.Argument{
-				// 		Name: ast.NewName(&ast.Name{
-				// 			Value: "insecure",
-				// 		}),
-				// 		Value: ast.NewVariable(&ast.Variable{
-				// 			Name: ast.NewName(&ast.Name{
-				// 				Value: "insecure",
-				// 			}),
-				// 		}),
-				// 	}),
-				// },
-				SelectionSet: topSelSet,
-			}),
-		)
+func reduceSepcsComplex(store *Store) QueryNodeReducer {
+	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		var specKeys []string
+		varSpecs := make(map[string]*SetVarItem)
+		for _, opSet := range store.opSets {
+			if len(opSet.specs) == 0 {
+				continue
+			}
+			for _, s := range opSet.specs {
+				if _, ok := SpecTypes[s.Spec.Name]; ok {
+					continue
+				}
+				varSpecs[s.Var.Key] = &SetVarItem{
+					Var:  s.Var,
+					Spec: s.Spec,
+				}
+				specKeys = append(specKeys, s.Spec.Name)
+			}
+		}
 
-		return doneSelSet, nil
+		nextVarSpecs := func(varSpecs map[string]*SetVarItem, spec string, prevSelSet *ast.SelectionSet) *ast.SelectionSet {
+			var keys []string
+			for _, v := range varSpecs {
+				if v.Spec.Name != spec {
+					continue
+				}
+				keys = append(keys, v.Var.Key)
+			}
+			if len(keys) == 0 {
+				return prevSelSet
+			}
+
+			nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
+				Selections: []ast.Selection{
+					ast.NewField(&ast.Field{
+						Name: ast.NewName(&ast.Name{
+							Value: "name",
+						}),
+					}),
+					// ast.NewField(&ast.Field{
+					// 	Name: ast.NewName(&ast.Name{
+					// 		Value: "sensitive",
+					// 	}),
+					// }),
+					// ast.NewField(&ast.Field{
+					// 	Name: ast.NewName(&ast.Name{
+					// 		Value: "mask",
+					// 	}),
+					// }),
+					// ast.NewField(&ast.Field{
+					// 	Name: ast.NewName(&ast.Name{
+					// 		Value: "errors",
+					// 	}),
+					// }),
+				},
+			})
+
+			valuekeys := ast.NewListValue(&ast.ListValue{})
+			for _, name := range keys {
+				valuekeys.Values = append(valuekeys.Values, ast.NewStringValue(&ast.StringValue{
+					Value: name,
+				}))
+			}
+
+			prevSelSet.Selections = append(prevSelSet.Selections,
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: SpecNameDefType,
+					}),
+					Arguments: []*ast.Argument{
+						ast.NewArgument(&ast.Argument{
+							Name: ast.NewName(&ast.Name{
+								Value: "name",
+							}),
+							Value: ast.NewStringValue(&ast.StringValue{
+								Value: spec,
+							}),
+						}),
+					},
+					SelectionSet: nextSelSet,
+				}))
+
+			return nextSelSet
+		}
+
+		nextSelSet := selSet
+
+		// todo: poor Sebastian's deduplication
+		slices.Sort(specKeys)
+		prev := ""
+		for _, specKey := range specKeys {
+			if prev == specKey {
+				continue
+			}
+			prev = specKey
+			nextSelSet = nextVarSpecs(varSpecs, specKey, nextSelSet)
+		}
+
+		return nextSelSet, nil
 	}
 }
 

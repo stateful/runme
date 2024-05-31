@@ -540,3 +540,20 @@ func Test_Store_Get(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, "secret-fake-password", val)
 }
+
+func Test_Store_ComplexSpecs(t *testing.T) {
+	fake := []byte(`GOPATH=/Users/sourishkrout/go
+INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Secret!
+PGPASS=secret-fake-password # Password!
+HOMEBREW_REPOSITORY=/opt/homebrew # Plain
+REDIS_HOST=localhost # Redis!
+REDIS_PORT=6379 # Redis!`)
+
+	store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+	require.NoError(t, err)
+	require.NotNil(t, store)
+
+	val, err := store.InsecureGet("REDIS_HOST")
+	require.NoError(t, err)
+	assert.EqualValues(t, "localhost", val)
+}

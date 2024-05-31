@@ -21,14 +21,18 @@ const (
 	SpecNameDefault         = SpecNameOpaque
 )
 
+const SpecNameDefType string = "Spec"
+
 type specType struct {
-	typ     *graphql.Object
-	resolve graphql.FieldResolveFn
+	typeName   string
+	typeObject *graphql.Object
+	resolveFn  graphql.FieldResolveFn
 }
 
 var (
-	Schema    graphql.Schema
-	SpecTypes map[string]*specType
+	Schema      graphql.Schema
+	SpecTypes   map[string]*specType
+	SpecDefType *specType
 )
 
 var EnvironmentType,
@@ -40,10 +44,10 @@ type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.Se
 
 // todo(sebastian): use gql interface?
 func registerSpecFields(fields graphql.Fields) {
-	for k, v := range SpecTypes {
-		fields[k] = &graphql.Field{
-			Type:    v.typ,
-			Resolve: v.resolve,
+	for _, t := range SpecTypes {
+		fields[t.typeName] = &graphql.Field{
+			Type:    t.typeObject,
+			Resolve: t.resolveFn,
 			Args: graphql.FieldConfigArgument{
 				"keys": &graphql.ArgumentConfig{
 					Type: graphql.NewList(graphql.String),
@@ -54,6 +58,16 @@ func registerSpecFields(fields graphql.Fields) {
 				},
 			},
 		}
+	}
+
+	fields[SpecDefType.typeName] = &graphql.Field{
+		Type:    SpecDefType.typeObject,
+		Resolve: SpecDefType.resolveFn,
+		Args: graphql.FieldConfigArgument{
+			"name": &graphql.ArgumentConfig{
+				Type: graphql.NewNonNull(graphql.String),
+			},
+		},
 	}
 }
 
@@ -121,8 +135,68 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 	})
 
 	return &specType{
-		typ:     typ,
-		resolve: resolver,
+		typeName:   name,
+		typeObject: typ,
+		resolveFn:  resolver,
+	}
+}
+
+func registerSpecDefType(resolver graphql.FieldResolveFn) *specType {
+	name := SpecNameDefType
+	typ := graphql.NewObject(graphql.ObjectConfig{
+		Name: fmt.Sprintf("SpecType%s", name),
+		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
+			fields := graphql.Fields{
+				"name": &graphql.Field{
+					Type: graphql.String,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return name, nil
+					},
+				},
+				"errors": &graphql.Field{
+					Type: graphql.NewList(SpecTypeErrorsType),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						opSet, ok := p.Source.(*OperationSet)
+						if !ok {
+							return nil, errors.New("source is not an OperationSet")
+						}
+
+						// todo(sebastian): move into interface?
+						var verrs []*SetVarError
+						for _, spec := range opSet.specs {
+							if spec.Spec.Error == nil {
+								continue
+							}
+
+							code := spec.Spec.Error.Code()
+							verr := &SetVarError{
+								Code:    int(code),
+								Message: spec.Spec.Error.Message(),
+							}
+							verrs = append(verrs, verr)
+						}
+
+						return verrs, nil
+					},
+				},
+				"done": &graphql.Field{
+					Type: EnvironmentType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
+					},
+				},
+			}
+
+			registerSpecFields(fields)
+
+			return fields
+		}),
+	})
+
+	return &specType{
+		typeName:   name,
+		typeObject: typ,
+		resolveFn:  resolver,
 	}
 }
 
@@ -520,6 +594,11 @@ func init() {
 		}),
 	)
 
+	SpecDefType = registerSpecDefType(
+		func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Source, nil
+		})
+
 	SpecTypeErrorsType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "SpecTypeErrorsType",
 		Fields: graphql.Fields{
@@ -867,8 +946,8 @@ func init() {
 		}),
 	})
 
-	SpecsType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "SpecsType",
+	SpecsListType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "SpecsListType",
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			return graphql.Fields{
 				"list": &graphql.Field{
@@ -913,7 +992,7 @@ func init() {
 						},
 					},
 					"specs": &graphql.Field{
-						Type: SpecsType,
+						Type: SpecsListType,
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 							return p.Info.FieldName, nil
 						},
