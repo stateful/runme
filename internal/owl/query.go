@@ -14,6 +14,8 @@ import (
 	"go.uber.org/zap"
 )
 
+type QueryNodeReducer func([]*OperationSet, *ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
+
 func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	varDefs := []*ast.VariableDefinition{
 		ast.NewVariableDefinition(&ast.VariableDefinition{
