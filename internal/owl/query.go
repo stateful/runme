@@ -50,13 +50,13 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	}
 	s.logger.Debug("snapshot opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted), zap.Int("total", len(s.opSets)))
 
-	q, err := NewQuery("Snapshot", varDefs,
+	q, err := s.NewQuery("Snapshot", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
-			reduceSetOperations(s.opSets, vars),
+			reduceSetOperations(vars),
 			reduceWrapValidate(),
-			reduceSepcsAtomic(s.opSets),
-			reduceSepcsComplex(s.opSets),
+			reduceSepcsAtomic(),
+			reduceSepcsComplex(),
 			reduceWrapDone(),
 			reduceSnapshot(),
 		},
@@ -97,13 +97,13 @@ func (s *Store) sensitiveKeysQuery(query, vars io.StringWriter) error {
 		}),
 	}
 
-	q, err := NewQuery("Sensitive", varDefs,
+	q, err := s.NewQuery("Sensitive", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
-			reduceSetOperations(s.opSets, vars),
+			reduceSetOperations(vars),
 			reduceWrapValidate(),
-			reduceSepcsAtomic(s.opSets),
-			reduceSepcsComplex(s.opSets),
+			reduceSepcsAtomic(),
+			reduceSepcsComplex(),
 			reduceWrapDone(),
 			reduceSensitive(),
 		},
@@ -176,13 +176,13 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 	}
 	s.logger.Debug("getter opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted), zap.Int("total", len(s.opSets)))
 
-	q, err := NewQuery("Get", varDefs,
+	q, err := s.NewQuery("Get", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
-			reduceSetOperations(s.opSets, vars),
+			reduceSetOperations(vars),
 			reduceWrapValidate(),
-			reduceSepcsAtomic(s.opSets),
-			reduceSepcsComplex(s.opSets),
+			reduceSepcsAtomic(),
+			reduceSepcsComplex(),
 			reduceWrapDone(),
 			reduceGetter(),
 		},
@@ -205,7 +205,7 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 }
 
 func reduceWrapValidate() QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		validateSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
 		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
 			Name: ast.NewName(&ast.Name{
@@ -218,7 +218,7 @@ func reduceWrapValidate() QueryNodeReducer {
 }
 
 func reduceWrapDone() QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		doneSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
 		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
 			Name: ast.NewName(&ast.Name{
@@ -230,8 +230,8 @@ func reduceWrapDone() QueryNodeReducer {
 	}
 }
 
-func reduceSetOperations(opSets []*OperationSet, vars io.StringWriter) QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+func reduceSetOperations(vars io.StringWriter) QueryNodeReducer {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		opSetData := make(map[string]SetVarItems, len(opSets))
 
 		for i, opSet := range opSets {
@@ -339,7 +339,7 @@ func reduceSetOperations(opSets []*OperationSet, vars io.StringWriter) QueryNode
 }
 
 func reduceSensitive() QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
 			Selections: []ast.Selection{
 				ast.NewField(&ast.Field{
@@ -444,7 +444,7 @@ func reduceSensitive() QueryNodeReducer {
 }
 
 func reduceGetter() QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
 			Selections: []ast.Selection{
 				ast.NewField(&ast.Field{
@@ -595,7 +595,7 @@ func reduceGetter() QueryNodeReducer {
 }
 
 func reduceSnapshot() QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
 			Selections: []ast.Selection{
 				ast.NewField(&ast.Field{
@@ -746,7 +746,7 @@ func reduceSnapshot() QueryNodeReducer {
 }
 
 func reconcileAsymmetry(store *Store) QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		allSpecs := make(map[string]bool)
 		for _, opSet := range store.opSets {
 			for k := range opSet.specs {
@@ -814,8 +814,8 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 	}
 }
 
-func reduceSepcsAtomic(opSets []*OperationSet) QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+func reduceSepcsAtomic() QueryNodeReducer {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var specKeys []string
 		varSpecs := make(map[string]*SetVarItem)
 		for _, opSet := range opSets {
@@ -931,8 +931,8 @@ func reduceSepcsAtomic(opSets []*OperationSet) QueryNodeReducer {
 	}
 }
 
-func reduceSepcsComplex(opSets []*OperationSet) QueryNodeReducer {
-	return func(opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+func reduceSepcsComplex() QueryNodeReducer {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var varKeys []string
 		varSpecs := make(map[string]*SetVarItem)
 		for _, opSet := range opSets {
@@ -1023,7 +1023,7 @@ func reduceSepcsComplex(opSets []*OperationSet) QueryNodeReducer {
 				}))
 
 			transientOpSet, _ := NewOperationSet(WithOperation(TransientSetOperation), WithItems(items))
-			atomicSelSet, err := reduceSepcsAtomic([]*OperationSet{transientOpSet})(opDef, nextSelSet)
+			atomicSelSet, err := reduceSepcsAtomic()([]*OperationSet{transientOpSet}, opDef, nextSelSet)
 			// todo: handle error
 			if err == nil {
 				return atomicSelSet
@@ -1074,7 +1074,7 @@ type Query struct {
 	doc *ast.Document
 }
 
-func NewQuery(name string, varDefs []*ast.VariableDefinition, reducers []QueryNodeReducer) (*Query, error) {
+func (s *Store) NewQuery(name string, varDefs []*ast.VariableDefinition, reducers []QueryNodeReducer) (*Query, error) {
 	selSet := ast.NewSelectionSet(&ast.SelectionSet{})
 	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
 		Operation: "query",
@@ -1099,7 +1099,7 @@ func NewQuery(name string, varDefs []*ast.VariableDefinition, reducers []QueryNo
 
 	var err error
 	for _, reducer := range reducers {
-		if selSet, err = reducer(opDef, selSet); err != nil {
+		if selSet, err = reducer(s.opSets, opDef, selSet); err != nil {
 			return nil, err
 		}
 	}
