@@ -40,7 +40,7 @@ var EnvironmentType,
 	RenderType,
 	SpecTypeErrorsType *graphql.Object
 
-type QueryNodeReducer func(*ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
+type QueryNodeReducer func([]*OperationSet, *ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
 // todo(sebastian): use gql interface?
 func registerSpecFields(fields graphql.Fields) {
