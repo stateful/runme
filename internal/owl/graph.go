@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/graphql-go/graphql"
-	"github.com/graphql-go/graphql/language/ast"
 )
 
 // Constants representing different spec names.
@@ -39,8 +38,6 @@ var EnvironmentType,
 	ValidateType,
 	RenderType,
 	SpecTypeErrorsType *graphql.Object
-
-type QueryNodeReducer func([]*OperationSet, *ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
 // todo(sebastian): use gql interface?
 func registerSpecFields(fields graphql.Fields) {
