@@ -347,7 +347,7 @@ func Test_runnerService(t *testing.T) {
 	})
 
 	t.Run("Input", func(t *testing.T) {
-		if os.Getenv("RUN_FLAKY") == "" {
+		if skip, err := strconv.ParseBool(os.Getenv("SKIP_FLAKY")); err == nil && skip {
 			t.Skip("skipping flaky test")
 		}
 		t.Parallel()
