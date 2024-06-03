@@ -22,6 +22,7 @@ import (
 	"github.com/stateful/runme/v3/internal/project"
 	"github.com/stateful/runme/v3/internal/runner/client"
 	"github.com/stateful/runme/v3/internal/tui"
+	"github.com/stateful/runme/v3/pkg/document"
 )
 
 type CommandExportExtractMatch struct {
@@ -41,7 +42,7 @@ func runCmd() *cobra.Command {
 		parallel              bool
 		replaceScripts        []string
 		serverAddr            string
-		categories            []string
+		cmdCategories         []string
 		getRunnerOpts         func() ([]client.RunnerOption, error)
 		runIndex              int
 	)
@@ -56,7 +57,7 @@ func runCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runWithIndex := fFileMode && runIndex >= 0
 
-			runMany := runAll || (len(categories) > 0 && len(args) == 0)
+			runMany := runAll || (len(cmdCategories) > 0 && len(args) == 0)
 			if !runMany && len(args) == 0 && !runWithIndex {
 				return errors.New("must provide at least one command to run")
 			}
@@ -86,50 +87,31 @@ func runCmd() *cobra.Command {
 						block := task.CodeBlock
 
 						// Check if to run all and if the block should be excluded
-						if runAll && len(categories) == 0 && block.ExcludeFromRunAll() {
+						if runAll && len(cmdCategories) == 0 && block.ExcludeFromRunAll() {
 							// Skip the task if it should be excluded from run all
 							continue
 						}
 
 						// Check if categories are specified and if the block should be excluded
-						if len(categories) > 0 && block.ExcludeFromRunAll() {
+						if len(cmdCategories) > 0 && block.ExcludeFromRunAll() {
 							// Skip the task if it should be excluded based on categories
 							continue
 						}
 
 						// Check if the block matches any of the specified categories
-						if len(categories) > 0 {
-							bcats := block.Categories()
+						if len(cmdCategories) > 0 {
+							blockCategories := block.Categories()
 							fm, _ := block.Document().Frontmatter()
+							fmCategories := resolveFrontmatterCategories(fm)
 							match := false
-
-							if fm != nil && fm.Category != "" {
-								// Check if the frontmatter category matches any block category
-								for _, bcat := range bcats {
-									if fm.Category == bcat {
-										match = true
-										break
-									}
+							if len(fmCategories) > 0 && containsCategories(fmCategories, cmdCategories) {
+								if len(blockCategories) == 0 {
+									match = true
+								} else {
+									match = containsCategories(fmCategories, blockCategories)
 								}
-								if !match {
-									// Check if the frontmatter category matches any specified category
-									for _, cat := range categories {
-										if fm.Category == cat {
-											match = true
-											break
-										}
-									}
-								}
-							} else {
-								// Check if any block category matches any specified category
-								for _, bcat := range bcats {
-									for _, cat := range categories {
-										if bcat == cat {
-											match = true
-											break
-										}
-									}
-								}
+							} else if containsCategories(blockCategories, cmdCategories) {
+								match = true
 							}
 
 							if !match {
@@ -239,7 +221,7 @@ func runCmd() *cobra.Command {
 				}
 
 				if runMany {
-					err := confirmExecution(cmd, len(runTasks), parallel, categories)
+					err := confirmExecution(cmd, len(runTasks), parallel, cmdCategories)
 					if err != nil {
 						return err
 					}
@@ -267,8 +249,8 @@ func runCmd() *cobra.Command {
 					if runMany && parallel {
 						scriptRunText = "Running"
 						blockNames = []string{blockColor.Sprint("all tasks")}
-						if len(categories) > 0 {
-							blockNames = []string{blockColor.Sprintf("tasks for categories %s", categories)}
+						if len(cmdCategories) > 0 {
+							blockNames = []string{blockColor.Sprintf("tasks for categories %s", cmdCategories)}
 						}
 					}
 
@@ -347,7 +329,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
 	cmd.Flags().BoolVar(&skipPrompts, "skip-prompts", false, "Skip prompting for variables.")
-	cmd.Flags().StringArrayVarP(&categories, "category", "c", nil, "Run from a specific category.")
+	cmd.Flags().StringArrayVarP(&cmdCategories, "category", "c", nil, "Run from a specific category.")
 	cmd.Flags().IntVarP(&runIndex, "index", "i", -1, "Index of command to run, 0-based. (Ignored in project mode)")
 	cmd.PreRun = func(cmd *cobra.Command, args []string) {
 		skipPromptsExplicitly = cmd.Flags().Changed("skip-prompts")
@@ -651,4 +633,20 @@ func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool, categorie
 	}
 
 	return nil
+}
+
+func resolveFrontmatterCategories(fm *document.Frontmatter) []string {
+	if fm != nil && fm.Category != "" {
+		return []string{fm.Category}
+	}
+	return []string{}
+}
+
+func containsCategories(s1 []string, s2 []string) bool {
+	for _, element := range s2 {
+		if strings.Contains(strings.Join(s1, ","), element) {
+			return true
+		}
+	}
+	return false
 }

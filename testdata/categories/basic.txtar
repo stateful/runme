@@ -14,6 +14,11 @@ cmp stdout buzz-bar-list.txt
 ! stderr .
 
 env SHELL=/bin/bash
+exec runme run --all --allow-unnamed --skip-prompts --category solution-2
+cmp stdout doc-category-with-unnamed.txt
+! stderr .
+
+env SHELL=/bin/bash
 exec runme run --all --skip-prompts --category solution-2
 cmp stdout doc-category.txt
 ! stderr .
@@ -65,7 +70,7 @@ $ stty -opost
 $ echo "Deploy solution1"
 ```
 
-```sh {"category":"delete-solution"}
+```sh {"name":"foo","category":"delete-solution"}
 echo "Delete solution"
 ```
 
@@ -78,16 +83,23 @@ category: solution-2
 
 Installation steps for Solution 2:
 
-```sh {"name":"install-solution2"}
+```sh
 $ stty -opost
 $ echo "Install solution2"
 ```
 
 Deployment steps for Solution 2:
 
-```sh {"name":"deploy-solution2"}
+```sh
 $ stty -opost
 $ echo "Deploy solution2"
+```
+
+Post-Deployment steps for Solution 2:
+
+```sh {"name":"post-deployment-2"}
+$ stty -opost
+$ echo "Post-Deployment solution2"
 ```
 
 ```sh {"category":"delete-solution"}
@@ -112,10 +124,15 @@ bar!
  ►  Running task print-buzz...
 buzz!
  ►  ✓ Task print-buzz exited with code 0
--- doc-category.txt --
- ►  Running task install-solution2...
+-- doc-category-with-unnamed.txt --
+ ►  Running task stty-opost...
 Install solution2
- ►  ✓ Task install-solution2 exited with code 0
- ►  Running task deploy-solution2...
+ ►  ✓ Task stty-opost exited with code 0
+ ►  Running task stty-opost-2...
 Deploy solution2
- ►  ✓ Task deploy-solution2 exited with code 0
+ ►  ✓ Task stty-opost-2 exited with code 0
+ ►  Running task post-deployment-2...
+Post-Deployment solution2
+ ►  ✓ Task post-deployment-2 exited with code 0
+-- doc-category.txt --
+Post-Deployment solution2

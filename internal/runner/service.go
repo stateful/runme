@@ -648,7 +648,7 @@ func readLoop(
 func runnerWinsizeToPty(winsize *runnerv1.Winsize) *pty.Winsize {
 	if winsize == nil {
 		// sane default
-		return &pty.Winsize{Cols: 80}
+		return &pty.Winsize{Rows: 24, Cols: 80}
 	}
 
 	return &pty.Winsize{
