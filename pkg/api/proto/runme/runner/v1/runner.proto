@@ -332,19 +332,19 @@ message MonitorEnvStoreResponseSnapshot {
 
     string spec = 3;
 
-    bool is_required = 4;
+    string origin = 4;
 
-    string origin = 5;
+    string original_value = 5;
 
-    string original_value = 6;
+    string resolved_value = 6;
 
-    string resolved_value = 7;
+    string create_time = 7;
 
-    string create_time = 8;
+    string update_time = 8;
 
-    string update_time = 9;
+    repeated Error errors = 9;
 
-    repeated Error errors = 10;
+    bool is_required = 10;
   }
 
   message Error {

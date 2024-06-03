@@ -484,13 +484,13 @@ class MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type extends MessageType {
             { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status", MonitorEnvStoreResponseSnapshot_Status, "STATUS_"] },
             { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "spec", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "is_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 5, name: "origin", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "create_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "update_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "errors", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => MonitorEnvStoreResponseSnapshot_Error }
+            { no: 4, name: "origin", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "create_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "update_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "errors", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => MonitorEnvStoreResponseSnapshot_Error },
+            { no: 10, name: "is_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
 }
