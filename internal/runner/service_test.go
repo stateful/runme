@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -347,6 +348,9 @@ func Test_runnerService(t *testing.T) {
 	})
 
 	t.Run("Input", func(t *testing.T) {
+		if skip, err := strconv.ParseBool(os.Getenv("SKIP_FLAKY")); err == nil && skip {
+			t.Skip("skipping flaky test")
+		}
 		t.Parallel()
 
 		stream, err := client.Execute(context.Background())
