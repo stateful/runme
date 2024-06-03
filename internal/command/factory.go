@@ -173,12 +173,9 @@ func (f *commandFactory) buildNative(base *base) internalCommand {
 
 func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) internalCommand {
 	var stdin io.ReadCloser
-
-	if !isNil(base.Stdin()) {
-		stdin = &readCloser{r: base.Stdin(), done: make(chan struct{})}
-		base.stdin = stdin
+	if in := base.Stdin(); !isNil(in) {
+		stdin = &readCloser{r: in, done: make(chan struct{})}
 	}
-
 	return &virtualCommand{
 		base:          base,
 		isEchoEnabled: opts.EnableEcho,

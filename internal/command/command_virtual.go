@@ -49,6 +49,10 @@ func (c *virtualCommand) Pid() int {
 	return c.cmd.Process.Pid
 }
 
+func (c *virtualCommand) Stdin() io.Reader {
+	return c.stdin
+}
+
 func (c *virtualCommand) Start(ctx context.Context) (err error) {
 	c.pty, c.tty, err = pty.Open()
 	if err != nil {
