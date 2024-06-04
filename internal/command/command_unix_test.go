@@ -108,6 +108,18 @@ func TestCommand(t *testing.T) {
 			expectedStdout: "test\n",
 			expectedStderr: "test\n",
 		},
+		{
+			// This test demonstrates a behaviour for some languages
+			// like TypeScript running with "deno run". In the ideal world,
+			// the caller should handle that and pass "deno" as ProgramName and
+			// "run" in Arguments.
+			name: "MultiWordProgramName",
+			cfg: &runnerv2alpha1.ProgramConfig{
+				ProgramName: "echo -n test",
+				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+			},
+			expectedStdout: "test",
+		},
 	}
 
 	for _, tc := range testCases {

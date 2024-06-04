@@ -123,13 +123,14 @@ func (c *base) lookPath(path string) (string, error) {
 }
 
 func (c *base) findDefaultProgram(name string, args []string) (string, []string, error) {
+	name, normArgs := normalizeProgramName(name)
 	if isShellLanguage(name) {
 		globalShell := shellFromShellPath(c.globalShellPath())
 		res, err := c.lookPath(globalShell)
 		if err != nil {
 			return "", nil, errors.Errorf("failed lookup default shell %s", globalShell)
 		}
-		return res, args, nil
+		return res, append(normArgs, args...), nil
 	}
 	// Default to "cat" for shebang++
 	res, err := c.lookPath("cat")
@@ -140,14 +141,12 @@ func (c *base) findDefaultProgram(name string, args []string) (string, []string,
 }
 
 func (c *base) findProgramInPath(name string, args []string) (string, []string, error) {
-	if name == "" {
-		return "", nil, errors.New("program name is empty")
-	}
+	name, normArgs := normalizeProgramName(name)
 	res, err := c.lookPath(name)
 	if err != nil {
 		return "", nil, errors.Errorf("failed program lookup %q", name)
 	}
-	return res, args, nil
+	return res, append(normArgs, args...), nil
 }
 
 func (c *base) findProgramInKnownInterpreters(programName string, args []string) (string, []string, error) {
@@ -157,7 +156,7 @@ func (c *base) findProgramInKnownInterpreters(programName string, args []string)
 	}
 
 	for _, interpreter := range interpreters {
-		interProgram, interArgs := parseInterpreter(interpreter)
+		interProgram, interArgs := normalizeProgramName(interpreter)
 		if path, err := c.lookPath(interProgram); err == nil {
 			return path, append(interArgs, args...), nil
 		}
@@ -211,20 +210,17 @@ func shellFromShellPath(programPath string) string {
 	return programFile[:len(programFile)-len(filepath.Ext(programFile))]
 }
 
-// parseInterpreter handles cases when the interpreter is, for instance, "deno run".
+// normalizeProgramName handles cases when the program is, for instance, "deno run".
 // Only the first word is a program name and the rest is arguments.
-func parseInterpreter(interpreter string) (program string, args []string) {
-	parts := strings.SplitN(interpreter, " ", 2)
-
+func normalizeProgramName(name string) (_ string, args []string) {
+	parts := strings.SplitN(name, " ", 2)
 	if len(parts) > 0 {
-		program = parts[0]
+		name = parts[0]
 	}
-
 	if len(parts) > 1 {
 		args = strings.Split(parts[1], " ")
 	}
-
-	return
+	return name, args
 }
 
 func inferInterpreterFromLanguage(langID string) []string {

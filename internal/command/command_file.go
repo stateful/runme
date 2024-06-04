@@ -13,10 +13,10 @@ import (
 type fileCommand struct {
 	internalCommand
 
+	logger *zap.Logger
+
 	scriptFile *os.File
 	tempDir    string
-
-	logger *zap.Logger
 }
 
 func (c *fileCommand) Start(ctx context.Context) error {
@@ -71,9 +71,21 @@ func (c *fileCommand) createTempDir() (err error) {
 }
 
 func (c *fileCommand) createScriptFile() (err error) {
-	c.scriptFile, err = os.CreateTemp(c.tempDir, "runme-script-*")
+	pattern := "runme-script-*"
+	if ext := c.scriptFileExt(); ext != "" {
+		pattern += "." + ext
+	}
+	c.scriptFile, err = os.CreateTemp(c.tempDir, pattern)
 	err = errors.WithMessage(err, "failed to create a temporary file for script execution")
 	return
+}
+
+func (c *fileCommand) scriptFileExt() string {
+	cfg := c.ProgramConfig()
+	if ext := cfg.GetFileExtension(); ext != "" {
+		return ext
+	}
+	return inferFileExtension(cfg.GetLanguageId())
 }
 
 func (c *fileCommand) removeTempDir() error {
@@ -89,4 +101,31 @@ func (c *fileCommand) writeScript(script string) error {
 		return errors.WithMessage(err, "failed to write the script to the temporary file")
 	}
 	return errors.WithMessage(c.scriptFile.Close(), "failed to close the temporary file")
+}
+
+var fileExtensionByLanguageID = map[string]string{
+	"js":              "js",
+	"javascript":      "js",
+	"jsx":             "jsx",
+	"javascriptreact": "jsx",
+	"tsx":             "tsx",
+	"typescriptreact": "tsx",
+	"typescript":      "ts",
+	"ts":              "ts",
+	"sh":              "sh",
+	"bash":            "sh",
+	"ksh":             "sh",
+	"zsh":             "sh",
+	"fish":            "sh",
+	"powershell":      "ps1",
+	"cmd":             "bat",
+	"dos":             "bat",
+	"py":              "py",
+	"python":          "py",
+	"ruby":            "rb",
+	"rb":              "rb",
+}
+
+func inferFileExtension(languageID string) string {
+	return fileExtensionByLanguageID[languageID]
 }

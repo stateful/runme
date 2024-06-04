@@ -45,6 +45,10 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+      - name: Setup deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - name: Setup go
         uses: actions/setup-go@v5
         with:
@@ -125,6 +129,10 @@ jobs:
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2.1.1
+        # Skip this test if the PR is created from a fork.
+        # If its created from a fork the PR won't be able to fetch the secrets so
+        # the step will fail.
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
