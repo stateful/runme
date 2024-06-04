@@ -73,7 +73,7 @@ func expectContainLine(t *testing.T, r io.Reader, expected string) {
 			}
 		}
 		require.NoError(t, scanner.Err())
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 400)
 	}
 }
 
