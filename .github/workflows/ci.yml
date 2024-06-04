@@ -21,8 +21,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
-      - name: Setup deno
       - uses: denoland/setup-deno@v1
+      - name: Setup deno
         with:
           deno-version: v1.x
       - name: Install dependencies
