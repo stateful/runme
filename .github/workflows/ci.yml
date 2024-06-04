@@ -21,6 +21,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - name: Install dependencies
         run: make install/dev
       # It duplicates running linter from pre-commit
