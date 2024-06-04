@@ -3,8 +3,11 @@
 package command
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +23,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 
 	session := NewSession()
 	stdinR, stdinW := io.Pipe()
+	stdout := bytes.NewBuffer(nil)
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
@@ -33,6 +37,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 			Session:     session,
 			StdinWriter: stdinW,
 			Stdin:       stdinR,
+			Stdout:      stdout,
 		},
 	)
 
@@ -41,17 +46,35 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 
 	require.NoError(t, cmd.Start(ctx))
 
-	// TODO(adamb): on macOS is is not necessary, but on Linux
-	// we need to wait for the shell to start before we start sending commands.
-	time.Sleep(time.Second)
+	// Terminal command sets up a trap on EXIT.
+	// Wait for it before starting to send commands.
+	expectContainLine(t, stdout, "trap -- \"__cleanup\" EXIT")
 
 	_, err := stdinW.Write([]byte("export TEST_ENV=1\n"))
 	require.NoError(t, err)
+	// Wait for the prompt before sending the next command.
+	expectContainLine(t, stdout, "$")
 	_, err = stdinW.Write([]byte{0x04}) // EOT
 	require.NoError(t, err)
 
 	require.NoError(t, cmd.Wait())
 	assert.Equal(t, []string{"TEST_ENV=1"}, session.GetAllEnv())
+}
+
+func expectContainLine(t *testing.T, r io.Reader, expected string) {
+	t.Helper()
+
+	for {
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.Contains(line, expected) {
+				return
+			}
+		}
+		require.NoError(t, scanner.Err())
+		time.Sleep(time.Millisecond * 400)
+	}
 }
 
 func TestTerminalCommand_NonInteractive(t *testing.T) {
