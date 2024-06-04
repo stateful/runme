@@ -40,4 +40,23 @@ func TestFileCommand(t *testing.T) {
 
 		testExecuteCommand(t, cfg, nil, "test\n", "")
 	})
+
+	// TypeScript runner requires the file extension to be .ts.
+	t.Run("TypeScript", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := &ProgramConfig{
+			LanguageId: "ts",
+			Source: &runnerv2alpha1.ProgramConfig_Script{
+				Script: `function print(message: string): void {
+	console.log(message)
+}
+print("important message")
+`,
+			},
+			Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_FILE,
+		}
+
+		testExecuteCommand(t, cfg, nil, "important message\n", "")
+	})
 }

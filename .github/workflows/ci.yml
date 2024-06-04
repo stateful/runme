@@ -45,6 +45,10 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+      - name: Setup deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - name: Setup go
         uses: actions/setup-go@v5
         with:
