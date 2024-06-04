@@ -20,8 +20,6 @@ const (
 	SpecNameDefault         = SpecNameOpaque
 )
 
-const SpecNameDefType string = "Spec"
-
 type specType struct {
 	typeName   string
 	typeObject *graphql.Object

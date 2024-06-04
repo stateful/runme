@@ -1,82 +1,40 @@
 package owl
 
-import "fmt"
+const SpecNameDefType string = "Spec"
 
-type ValidationError interface {
-	fmt.Stringer
-	VarItem() *SetVarItem
-	Error() string
-	Message() string
-	Key() string
-	SpecName() string
-	Source() string
-	Code() ValidateErrorType
+type SpecDef struct {
+	Name    string
+	Breaker string
+	Items   map[string]*varSpec
 }
 
-type ValidationErrors []ValidationError
-
-type ValidateErrorType uint8
-
-const (
-	ValidateErrorVarRequired ValidateErrorType = iota
-)
-
-type RequiredError struct {
-	varItem *SetVarItem
-	code    ValidateErrorType
+var SpecDefTypes = map[string]*SpecDef{
+	"Redis": {
+		Name:    "Redis",
+		Breaker: "REDIS",
+		Items: map[string]*varSpec{
+			"HOST": {
+				Name:     SpecNamePlain,
+				Required: true,
+			},
+			"PORT": {
+				Name:     SpecNamePlain,
+				Required: true,
+			},
+			"PASSWORD": {
+				Name:     SpecNamePassword,
+				Required: false,
+			},
+		},
+	},
+	"Postgres": {
+		Name:    "Postgres",
+		Breaker: "POSTGRES",
+		Items: map[string]*varSpec{
+			"HOST": {
+				Name:     SpecNamePlain,
+				Required: true,
+			},
+		},
+	},
 }
-
-func NewRequiredError(varItem *SetVarItem) *RequiredError {
-	return &RequiredError{
-		varItem: varItem,
-		code:    ValidateErrorVarRequired,
-	}
-}
-
-func (e RequiredError) VarItem() *SetVarItem {
-	return e.varItem
-}
-
-func (e RequiredError) Error() string {
-	return fmt.Sprintf("Error %v: Variable \"%s\" is unresolved but defined as required by \"%s!\" in \"%s\"",
-		e.Code(),
-		e.Key(),
-		e.SpecName(),
-		e.Source())
-}
-
-func (e RequiredError) Message() string {
-	return e.Error()
-}
-
-func (e RequiredError) String() string {
-	return e.Error()
-}
-
-func (e RequiredError) Code() ValidateErrorType {
-	return e.code
-}
-
-func (e RequiredError) Key() string {
-	return e.varItem.Var.Key
-}
-
-func (e RequiredError) SpecName() string {
-	return e.varItem.Spec.Name
-}
-
-func (e RequiredError) Source() string {
-	if e.varItem.Spec.Operation == nil {
-		return "-"
-	}
-	if e.varItem.Spec.Operation.Source == "" {
-		return "-"
-	}
-	return e.varItem.Spec.Operation.Source
-}
-
-// make sure interfaces are satisfied
-var (
-	_ ValidationError = new(RequiredError)
-	_ error           = new(RequiredError)
-)
