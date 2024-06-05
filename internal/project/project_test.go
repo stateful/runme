@@ -39,13 +39,6 @@ func TestExtractDataFromLoadEvent(t *testing.T) {
 	})
 }
 
-func TestMain(m *testing.M) {
-	testdata.AssertGitProject()
-
-	code := m.Run()
-	os.Exit(code)
-}
-
 func TestNewDirProject(t *testing.T) {
 	t.Run("ProperDirProject", func(t *testing.T) {
 		projectDir := testdata.DirProjectPath()

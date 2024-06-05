@@ -1,6 +1,6 @@
 ! exec runme beta server start &
 # wait for the server to generate certs and start up
-exec sleep 10
+exec sleep 8
 exec runme beta server stop
 wait
 ! stdout .

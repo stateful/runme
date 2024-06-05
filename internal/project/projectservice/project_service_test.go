@@ -4,14 +4,9 @@ import (
 	"context"
 	"io"
 	"net"
-	"os"
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/v3/internal/project/projectservice"
-	"github.com/stateful/runme/v3/internal/project/testdata"
-	"github.com/stateful/runme/v3/internal/project/testutils"
-	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -20,14 +15,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
+
+	"github.com/stateful/runme/v3/internal/project/projectservice"
+	"github.com/stateful/runme/v3/internal/project/testdata"
+	"github.com/stateful/runme/v3/internal/project/testutils"
+	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 )
-
-func TestMain(m *testing.M) {
-	testdata.AssertGitProject()
-
-	code := m.Run()
-	os.Exit(code)
-}
 
 func TestProjectServiceServer_Load(t *testing.T) {
 	t.Parallel()

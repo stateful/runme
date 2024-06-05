@@ -1,4 +1,5 @@
-FROM ubuntu:23.10 as build
+FROM ubuntu:24.04 as build
+
 LABEL maintainer="StatefulHQ <mail@stateful.com>"
 
 RUN mkdir -p /opt/var/runme /opt/bin

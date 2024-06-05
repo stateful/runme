@@ -16,9 +16,12 @@ ifeq ($(RUNME_EXT_BASE),)
 RUNME_EXT_BASE := "../vscode-runme"
 endif
 
+export RUNME_TESTDATA_PATH := $(shell mktemp -d)
+
 .PHONY: build
+build: BUILD_OUTPUT ?= runme
 build:
-	go build -o runme -ldflags="$(LDFLAGS)" main.go
+	go build -o $(BUILD_OUTPUT) -ldflags="$(LDFLAGS)" main.go
 
 .PHONY: wasm
 wasm: WASM_OUTPUT ?= examples/web
@@ -31,33 +34,49 @@ test/execute: PKGS ?= "./..."
 test/execute: RUN ?= .*
 test/execute: RACE ?= false
 test/execute: TAGS ?= "" # e.g. TAGS="test_with_docker"
-test/execute: build test/prep-git-project
+# It depends on the build target because the runme binary
+# is used for tests, for example, "runme env dump".
+test/execute: build
 	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=60s -race=$(RACE) $(PKGS)
 
 .PHONY: test/coverage
 test/coverage: PKGS ?= "./..."
 test/coverage: RUN ?= .*
 test/coverage: TAGS ?= "" # e.g. TAGS="test_with_docker"
-test/coverage: build test/prep-git-project
+# It depends on the build target because the runme binary
+# is used for tests, for example, "runme env dump".
+test/coverage: build
 	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=90s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
 .PHONY: test/prep-git-project
 test/prep-git-project:
-	@cp -r -f internal/project/testdata/git-project/.git.bkp internal/project/testdata/git-project/.git
-	@cp -r -f internal/project/testdata/git-project/.gitignore.bkp internal/project/testdata/git-project/.gitignore
-	@cp -r -f internal/project/testdata/git-project/nested/.gitignore.bkp internal/project/testdata/git-project/nested/.gitignore
+	@cp -r -f internal/project/testdata/* $(RUNME_TESTDATA_PATH)
+	@cp -r -f $(RUNME_TESTDATA_PATH)/git-project/.git.bkp $(RUNME_TESTDATA_PATH)/git-project/.git
+	@cp -r -f $(RUNME_TESTDATA_PATH)/git-project/.gitignore.bkp $(RUNME_TESTDATA_PATH)/git-project/.gitignore
+	@cp -r -f $(RUNME_TESTDATA_PATH)/git-project/nested/.gitignore.bkp $(RUNME_TESTDATA_PATH)/git-project/nested/.gitignore
 
 .PHONY: test/clean-git-project
 test/clean-git-project:
-	@rm -r -f internal/project/testdata/git-project/.git
-	@rm -r -f internal/project/testdata/git-project/.gitignore
-	@rm -r -f internal/project/testdata/git-project/nested/.gitignore
+	@rm -r -f $(RUNME_TESTDATA_PATH)
 
 .PHONY: test
 test: test/prep-git-project test/execute test/clean-git-project
 
 .PHONY: test-coverage
 test-coverage: test/prep-git-project test/coverage test/clean-git-project
+
+.PHONY: test-docker-setup
+test-docker-setup:
+	docker build -t runme-test-env -f ./docker/Dockerfile.runme-test-env .
+	docker volume create dev.runme.test-env-gocache
+
+.PHONY: test-docker-cleanup
+test-docker-cleanup:
+	docker volume rm dev.runme.test-env-gocache
+
+.PHONY: test-docker
+test-docker:
+	@docker run --rm -it -v $(shell pwd):/workspace -v dev.runme.test-env-gocache:/root/.cache/go-build runme-test-env
 
 .PHONY: test/update-snapshots
 test/update-snapshots:
@@ -146,5 +165,5 @@ generate:
 .PHONY: docker
 docker:
 	CGO_ENABLED=0 make build
-	docker build -f Dockerfile.alpine . -t runme:alpine
-	docker build -f Dockerfile.ubuntu . -t runme:ubuntu
+	docker build -f docker/Dockerfile.alpine . -t runme:alpine
+	docker build -f docker/Dockerfile.ubuntu . -t runme:ubuntu
