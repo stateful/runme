@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/v3/internal/project/testdata"
+	"github.com/stateful/runme/v3/internal/project/teststub"
 )
 
 func TestExtractDataFromLoadEvent(t *testing.T) {
@@ -40,22 +40,21 @@ func TestExtractDataFromLoadEvent(t *testing.T) {
 }
 
 func TestNewDirProject(t *testing.T) {
+	testData := teststub.Setup(t, t.TempDir())
+
 	t.Run("ProperDirProject", func(t *testing.T) {
-		projectDir := testdata.DirProjectPath()
-		_, err := NewDirProject(projectDir)
+		_, err := NewDirProject(testData.DirProjectPath())
 		require.NoError(t, err)
 	})
 
 	t.Run("ProperGitProject", func(t *testing.T) {
 		// git-based project is also a dir-based project.
-		gitProjectDir := testdata.GitProjectPath()
-		_, err := NewDirProject(gitProjectDir)
+		_, err := NewDirProject(testData.GitProjectPath())
 		require.NoError(t, err)
 	})
 
 	t.Run("UnknownDir", func(t *testing.T) {
-		testdataDir := testdata.TestdataPath()
-		unknownDir := filepath.Join(testdataDir, "unknown-project")
+		unknownDir := testData.Join("unknown-project")
 		_, err := NewDirProject(unknownDir)
 		require.ErrorIs(t, err, os.ErrNotExist)
 	})
@@ -64,7 +63,7 @@ func TestNewDirProject(t *testing.T) {
 		cwd, err := os.Getwd()
 		require.NoError(t, err)
 
-		projectDir, err := filepath.Rel(cwd, testdata.DirProjectPath())
+		projectDir, err := filepath.Rel(cwd, testData.DirProjectPath())
 		require.NoError(t, err)
 
 		proj, err := NewDirProject(projectDir)
@@ -74,8 +73,11 @@ func TestNewDirProject(t *testing.T) {
 }
 
 func TestNewFileProject(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
 	t.Run("UnknownFile", func(t *testing.T) {
-		fileProject := filepath.Join(testdata.TestdataPath(), "unknown-file.md")
+		fileProject := testData.Join("unknown-file.md")
 		_, err := NewFileProject(fileProject)
 		require.ErrorIs(t, err, os.ErrNotExist)
 	})
@@ -89,7 +91,7 @@ func TestNewFileProject(t *testing.T) {
 		cwd, err := os.Getwd()
 		require.NoError(t, err)
 
-		fileProject, err := filepath.Rel(cwd, testdata.ProjectFilePath())
+		fileProject, err := filepath.Rel(cwd, testData.ProjectFilePath())
 		require.NoError(t, err)
 
 		proj, err := NewFileProject(fileProject)
@@ -98,15 +100,17 @@ func TestNewFileProject(t *testing.T) {
 	})
 
 	t.Run("ProperFileProject", func(t *testing.T) {
-		fileProject := testdata.ProjectFilePath()
-		_, err := NewFileProject(fileProject)
+		_, err := NewFileProject(testData.ProjectFilePath())
 		require.NoError(t, err)
 	})
 }
 
 func TestProjectRoot(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
 	t.Run("GitProject", func(t *testing.T) {
-		gitProjectDir := testdata.GitProjectPath()
+		gitProjectDir := testData.GitProjectPath()
 		p, err := NewDirProject(gitProjectDir)
 		require.NoError(t, err)
 		assert.Equal(t, gitProjectDir, p.Root())
@@ -114,16 +118,18 @@ func TestProjectRoot(t *testing.T) {
 	})
 
 	t.Run("FileProject", func(t *testing.T) {
-		fileProject := testdata.ProjectFilePath()
+		fileProject := testData.ProjectFilePath()
 		p, err := NewFileProject(fileProject)
 		require.NoError(t, err)
-		assert.Equal(t, testdata.TestdataPath(), p.Root())
+		assert.Equal(t, testData.Root(), p.Root())
 		assert.True(t, filepath.IsAbs(p.Root()), "project root is not absolute: %s", p.Root())
 	})
 }
 
 func TestProjectLoad(t *testing.T) {
-	gitProjectDir := testdata.GitProjectPath()
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+	gitProjectDir := testData.GitProjectPath()
 
 	t.Run("GitProject", func(t *testing.T) {
 		p, err := NewDirProject(
@@ -258,7 +264,7 @@ func TestProjectLoad(t *testing.T) {
 		}
 	})
 
-	gitProjectNestedDir := testdata.GitProjectNestedPath()
+	gitProjectNestedDir := testData.GitProjectNestedPath()
 
 	t.Run("GitProjectWithNested", func(t *testing.T) {
 		pRoot1, err := NewDirProject(
@@ -330,7 +336,7 @@ func TestProjectLoad(t *testing.T) {
 		)
 	})
 
-	projectDir := testdata.DirProjectPath()
+	projectDir := testData.DirProjectPath()
 
 	t.Run("DirProject", func(t *testing.T) {
 		p, err := NewDirProject(projectDir)
@@ -415,7 +421,7 @@ func TestProjectLoad(t *testing.T) {
 		)
 	})
 
-	fileProject := testdata.ProjectFilePath()
+	fileProject := testData.ProjectFilePath()
 
 	t.Run("FileProject", func(t *testing.T) {
 		p, err := NewFileProject(fileProject)
@@ -466,7 +472,10 @@ func TestProjectLoad(t *testing.T) {
 }
 
 func TestLoadTasks(t *testing.T) {
-	gitProjectDir := testdata.GitProjectPath()
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
+	gitProjectDir := testData.GitProjectPath()
 	p, err := NewDirProject(gitProjectDir, WithIgnoreFilePatterns(".*.bkp"))
 	require.NoError(t, err)
 
@@ -476,7 +485,10 @@ func TestLoadTasks(t *testing.T) {
 }
 
 func TestLoadEnv(t *testing.T) {
-	gitProjectDir := testdata.GitProjectPath()
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
+	gitProjectDir := testData.GitProjectPath()
 	p, err := NewDirProject(gitProjectDir, WithIgnoreFilePatterns(".*.bkp"), WithEnvFilesReadOrder([]string{".env"}))
 	require.NoError(t, err)
 

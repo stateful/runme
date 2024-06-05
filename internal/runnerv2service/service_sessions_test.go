@@ -9,12 +9,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/v3/internal/project/testdata"
+	"github.com/stateful/runme/v3/internal/project/teststub"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
 // TODO(adamb): add a test case with project.
 func TestRunnerServiceSessions(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
@@ -49,7 +52,7 @@ func TestRunnerServiceSessions(t *testing.T) {
 	})
 
 	t.Run("WithProject", func(t *testing.T) {
-		projectPath := testdata.GitProjectPath()
+		projectPath := testData.GitProjectPath()
 		createResp, err := client.CreateSession(
 			context.Background(),
 			&runnerv2alpha1.CreateSessionRequest{Project: &runnerv2alpha1.Project{Root: projectPath, EnvLoadOrder: []string{".env"}}},

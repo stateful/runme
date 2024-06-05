@@ -16,8 +16,6 @@ ifeq ($(RUNME_EXT_BASE),)
 RUNME_EXT_BASE := "../vscode-runme"
 endif
 
-export RUNME_TESTDATA_PATH := $(shell mktemp -d)
-
 .PHONY: build
 build: BUILD_OUTPUT ?= runme
 build:
@@ -48,22 +46,11 @@ test/coverage: TAGS ?= "" # e.g. TAGS="test_with_docker"
 test/coverage: build
 	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=90s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
-.PHONY: test/prep-git-project
-test/prep-git-project:
-	@cp -r -f internal/project/testdata/* $(RUNME_TESTDATA_PATH)
-	@cp -r -f $(RUNME_TESTDATA_PATH)/git-project/.git.bkp $(RUNME_TESTDATA_PATH)/git-project/.git
-	@cp -r -f $(RUNME_TESTDATA_PATH)/git-project/.gitignore.bkp $(RUNME_TESTDATA_PATH)/git-project/.gitignore
-	@cp -r -f $(RUNME_TESTDATA_PATH)/git-project/nested/.gitignore.bkp $(RUNME_TESTDATA_PATH)/git-project/nested/.gitignore
-
-.PHONY: test/clean-git-project
-test/clean-git-project:
-	@rm -r -f $(RUNME_TESTDATA_PATH)
-
 .PHONY: test
-test: test/prep-git-project test/execute test/clean-git-project
+test: test/execute
 
 .PHONY: test-coverage
-test-coverage: test/prep-git-project test/coverage test/clean-git-project
+test-coverage: test/coverage
 
 .PHONY: test-docker-setup
 test-docker-setup:
