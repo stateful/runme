@@ -181,26 +181,9 @@ func runCmd() *cobra.Command {
 				client.WrapWithCancelReader(),
 			}
 
-			var runner client.Runner
-
-			if serverAddr == "" {
-				localRunner, err := client.NewLocalRunner(runnerOpts...)
-				if err != nil {
-					return err
-				}
-
-				runner = localRunner
-			} else {
-				remoteRunner, err := client.NewRemoteRunner(
-					cmd.Context(),
-					serverAddr,
-					runnerOpts...,
-				)
-				if err != nil {
-					return err
-				}
-
-				runner = remoteRunner
+			runner, err := client.New(cmd.Context(), serverAddr, runnerOpts)
+			if err != nil {
+				return err
 			}
 
 			for _, task := range runTasks {
