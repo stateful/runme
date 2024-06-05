@@ -181,7 +181,7 @@ func runCmd() *cobra.Command {
 				client.WrapWithCancelReader(),
 			}
 
-			runner, err := client.New(cmd.Context(), serverAddr, runnerOpts)
+			runner, err := client.New(cmd.Context(), serverAddr, fSkipRunnerFallback, runnerOpts)
 			if err != nil {
 				return err
 			}

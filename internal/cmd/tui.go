@@ -99,7 +99,7 @@ func tuiCmd() *cobra.Command {
 				client.WithProject(proj),
 			)
 
-			runnerClient, err = client.New(cmd.Context(), serverAddr, runnerOpts)
+			runnerClient, err = client.New(cmd.Context(), serverAddr, fSkipRunnerFallback, runnerOpts)
 			if err != nil {
 				return errors.Wrap(err, "failed to create local runner")
 			}

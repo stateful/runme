@@ -68,7 +68,7 @@ type Runner interface {
 	setSettings(settings *RunnerSettings)
 }
 
-func New(context context.Context, serverAddr string, runnerOpts []RunnerOption) (Runner, error) {
+func New(context context.Context, serverAddr string, fallbackRunner bool, runnerOpts []RunnerOption) (Runner, error) {
 	if serverAddr != "" {
 		// check if serverAddr points at a healthy server
 		healthy, err := isServerHealthy(context, serverAddr, runnerOpts)
@@ -76,14 +76,14 @@ func New(context context.Context, serverAddr string, runnerOpts []RunnerOption) 
 			return nil, errors.Wrap(err, "failed to check health")
 		}
 
-		if healthy {
+		if !fallbackRunner || healthy {
 			remoteRunner, err := NewRemoteRunner(
 				context,
 				serverAddr,
 				runnerOpts...,
 			)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to create local runner")
+				return nil, errors.Wrap(err, "failed to create remote runner")
 			}
 
 			return remoteRunner, nil
@@ -92,7 +92,7 @@ func New(context context.Context, serverAddr string, runnerOpts []RunnerOption) 
 
 	localRunner, err := NewLocalRunner(runnerOpts...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create remote runner")
+		return nil, errors.Wrap(err, "failed to create local runner")
 	}
 
 	return localRunner, nil
