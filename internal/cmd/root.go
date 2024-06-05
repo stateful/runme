@@ -22,6 +22,7 @@ var (
 	fProject               string
 	fProjectIgnorePatterns []string
 	fRespectGitignore      bool
+	fSkipRunnerFallback    bool
 	fInsecure              bool
 	fLogEnabled            bool
 	fLogFilePath           string
@@ -53,6 +54,9 @@ func Root() *cobra.Command {
 			if envProject, ok := os.LookupEnv("RUNME_PROJECT"); ok {
 				fProject = envProject
 			}
+
+			// if insecure is explicitly set irrespective of its value, skip runner fallback
+			fSkipRunnerFallback = !cmd.Flags().Changed("insecure")
 
 			fFileMode = cmd.Flags().Changed("chdir") || cmd.Flags().Changed("filename")
 

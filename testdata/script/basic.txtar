@@ -58,6 +58,18 @@ exec runme run hello-python
 stdout 'Hello from Python'
 ! stderr .
 
+env PATH=/opt/homebrew/bin:$PATH
+env RUNME_SERVER_ADDR="123.0.0.9:12345"
+exec runme run hello-python
+stdout 'Hello from Python'
+! stderr .
+
+env PATH=/opt/homebrew/bin:$PATH
+env RUNME_TLS_DIR=/tmp/invalid/tls
+! exec runme run --insecure=false hello-python
+! stdout .
+stderr 'could not execute command: failed to create remote runner: open /tmp/invalid/tls/cert.pem: no such file or directory'
+
 -- README.md --
 ---
 runme:

@@ -99,26 +99,9 @@ func tuiCmd() *cobra.Command {
 				client.WithProject(proj),
 			)
 
-			if serverAddr != "" {
-				remoteRunner, err := client.NewRemoteRunner(
-					cmd.Context(),
-					serverAddr,
-					runnerOpts...,
-				)
-				if err != nil {
-					return errors.Wrap(err, "failed to create remote runner")
-				}
-
-				runnerClient = remoteRunner
-			} else {
-				localRunner, err := client.NewLocalRunner(
-					runnerOpts...,
-				)
-				if err != nil {
-					return errors.Wrap(err, "failed to create local runner")
-				}
-
-				runnerClient = localRunner
+			runnerClient, err = client.New(cmd.Context(), serverAddr, fSkipRunnerFallback, runnerOpts)
+			if err != nil {
+				return errors.Wrap(err, "failed to create local runner")
 			}
 
 			model := tuiModel{

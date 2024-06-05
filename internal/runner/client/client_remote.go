@@ -21,6 +21,7 @@ import (
 	"github.com/stateful/runme/v3/internal/runner"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
+	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type RemoteRunner struct {
@@ -43,6 +44,28 @@ func (r *RemoteRunner) setSettings(rs *RunnerSettings) {
 	r.RunnerSettings = rs
 }
 
+func isServerHealthy(context context.Context, addr string, runnerOpts []RunnerOption) (bool, error) {
+	r := &RemoteRunner{
+		RunnerSettings: &RunnerSettings{},
+	}
+
+	if err := ApplyOptions(r, runnerOpts...); err != nil {
+		return false, err
+	}
+
+	conn, err := getGrpcConnection(context, addr, r)
+	if err != nil {
+		return false, nil
+	}
+
+	resp, err := healthv1.NewHealthClient(conn).Check(context, &healthv1.HealthCheckRequest{})
+	if err != nil || resp.Status != healthv1.HealthCheckResponse_SERVING {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*RemoteRunner, error) {
 	r := &RemoteRunner{
 		RunnerSettings: &RunnerSettings{},
@@ -52,6 +75,21 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 		return nil, err
 	}
 
+	conn, err := getGrpcConnection(ctx, addr, r)
+	if err != nil {
+		return nil, err
+	}
+
+	r.client = runnerv1.NewRunnerServiceClient(conn)
+
+	if err := r.setupSession(ctx); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func getGrpcConnection(ctx context.Context, addr string, r *RemoteRunner) (*grpc.ClientConn, error) {
 	var creds credentials.TransportCredentials
 
 	if r.insecure {
@@ -70,13 +108,7 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 		return nil, errors.Wrap(err, "failed to connect to gRPC server")
 	}
 
-	r.client = runnerv1.NewRunnerServiceClient(conn)
-
-	if err := r.setupSession(ctx); err != nil {
-		return nil, err
-	}
-
-	return r, nil
+	return conn, nil
 }
 
 func (r *RemoteRunner) setupSession(ctx context.Context) error {
