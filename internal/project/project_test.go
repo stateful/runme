@@ -63,7 +63,10 @@ func TestNewDirProject(t *testing.T) {
 		cwd, err := os.Getwd()
 		require.NoError(t, err)
 
-		projectDir, err := filepath.Rel(cwd, testData.DirProjectPath())
+		projectDir, err := filepath.Rel(
+			cwd,
+			teststub.OriginalPath().DirProjectPath(),
+		)
 		require.NoError(t, err)
 
 		proj, err := NewDirProject(projectDir)
@@ -91,7 +94,10 @@ func TestNewFileProject(t *testing.T) {
 		cwd, err := os.Getwd()
 		require.NoError(t, err)
 
-		fileProject, err := filepath.Rel(cwd, testData.ProjectFilePath())
+		fileProject, err := filepath.Rel(
+			cwd,
+			teststub.OriginalPath().ProjectFilePath(),
+		)
 		require.NoError(t, err)
 
 		proj, err := NewFileProject(fileProject)

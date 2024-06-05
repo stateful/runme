@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Setup(t *testing.T, temp string) TestData {
+func Setup(t *testing.T, temp string) Path {
 	t.Helper()
 
 	testDataSrc := originalTestDataPath()
@@ -34,36 +34,40 @@ func Setup(t *testing.T, temp string) TestData {
 	)
 	require.NoError(t, err)
 
-	return TestData{root: temp}
+	return Path{root: temp}
 }
 
-type TestData struct {
+func OriginalPath() Path {
+	return Path{root: originalTestDataPath()}
+}
+
+type Path struct {
 	root string
 }
 
-func (d TestData) Root() string {
-	return d.root
+func (p Path) Root() string {
+	return p.root
 }
 
-func (d TestData) Join(elems ...string) string {
-	elems = append([]string{d.root}, elems...)
+func (p Path) Join(elems ...string) string {
+	elems = append([]string{p.root}, elems...)
 	return filepath.Join(elems...)
 }
 
-func (d TestData) DirProjectPath() string {
-	return d.Join("dir-project")
+func (p Path) DirProjectPath() string {
+	return p.Join("dir-project")
 }
 
-func (d TestData) GitProjectPath() string {
-	return d.Join("git-project")
+func (p Path) GitProjectPath() string {
+	return p.Join("git-project")
 }
 
-func (d TestData) GitProjectNestedPath() string {
-	return d.Join("git-project", "nested")
+func (p Path) GitProjectNestedPath() string {
+	return p.Join("git-project", "nested")
 }
 
-func (d TestData) ProjectFilePath() string {
-	return d.Join("file-project.md")
+func (p Path) ProjectFilePath() string {
+	return p.Join("file-project.md")
 }
 
 func originalTestDataPath() string {
