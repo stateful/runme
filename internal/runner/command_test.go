@@ -79,6 +79,34 @@ func Test_command(t *testing.T) {
 		assert.Equal(t, "", string(data))
 	})
 
+	t.Run("Shellscript", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			&commandConfig{
+				ProgramName: "",
+				LanguageID:  "shellscript",
+				Stdout:      stdout,
+				Stderr:      stderr,
+				CommandMode: CommandModeTempFile,
+				Script:      `echo "run this as shell script"`,
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Equal(t, "run this as shell script\n", string(data))
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
+	})
+
 	t.Run("JavaScript", func(t *testing.T) {
 		t.Parallel()
 
