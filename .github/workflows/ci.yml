@@ -82,6 +82,7 @@ jobs:
           if-no-files-found: error
 
   test-in-docker:
+    name: Test in Docker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

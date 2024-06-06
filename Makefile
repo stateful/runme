@@ -54,9 +54,9 @@ test-coverage: test/coverage
 
 .PHONY: test-docker-setup
 test-docker-setup:
-	docker build
+	docker build \
 		-t runme-test-env:latest \
-		-f ./docker/Dockerfile.runme-test-env .
+		-f ./docker/runme-test-env.Dockerfile .
 	docker volume create dev.runme.test-env-gocache
 
 .PHONY: test-docker-cleanup
@@ -65,7 +65,7 @@ test-docker-cleanup:
 
 .PHONY: test-docker
 test-docker:
-	@docker run --rm -it \
+	docker run --rm -it \
 		-v $(shell pwd):/workspace \
 		-v dev.runme.test-env-gocache:/root/.cache/go-build \
 		runme-test-env:latest
