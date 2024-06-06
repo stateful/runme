@@ -81,6 +81,20 @@ jobs:
           path: cover.out
           if-no-files-found: error
 
+  test-in-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Test
+        run: |
+          make test-docker-setup
+          make test-docker
+
   build-and-robustness-test:
     name: Test parser against vast amount of READMEs
     runs-on: ubuntu-latest
