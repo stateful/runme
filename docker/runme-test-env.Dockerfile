@@ -25,6 +25,9 @@ RUN curl -fsSL https://deno.land/install.sh | sh \
 # Configure workspace
 WORKDIR /workspace
 
+# Handle permissions when mounting a host directory to /workspace
+RUN git config --global --add safe.directory /workspace
+
 # Populate Go cache. We do it in an old way
 # because --mount is not supported in CMD.
 COPY go.sum go.mod /workspace/
