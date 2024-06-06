@@ -59,6 +59,11 @@ stdout 'Hello from Python'
 ! stderr .
 
 env PATH=/opt/homebrew/bin:$PATH
+exec runme run run-shellscript
+stdout 'Runs as shell script'
+! stderr .
+
+env PATH=/opt/homebrew/bin:$PATH
 env RUNME_SERVER_ADDR="123.0.0.9:12345"
 exec runme run hello-python
 stdout 'Hello from Python'
@@ -169,12 +174,23 @@ def say_hi():
 say_hi()
 ```
 
+-- shellscript.md --
+# Examples
+
+## Shell
+
+This is a basic snippet with shell command:
+
+```shellscript {"name":"run-shellscript"}
+$ echo "Runs as shell script"
+```
 -- golden-list.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
 echo	README.md	echo "Hello, runme!"	With {"name":"hello"} you can annotate it and give it a nice name.	Yes
 hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
 hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
 hello-python	README.md	def say_hi():		Yes
+run-shellscript	shellscript.md	echo "Runs as shell script"	This is a basic snippet with shell command.	Yes
 -- golden-list-allow-unnamed.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
 echo-hello	README.md	echo "Hello, runme!"	This is a basic snippet with shell command.	No
@@ -188,6 +204,7 @@ hello-js-cat	README.md	console.log("Hello, runme, from javascript!")	And it can 
 tempdir	README.md	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	It works with cd, pushd, and similar because all lines are executed as a single script.	No
 package-main	README.md	package main	It can also execute a snippet of Go code.	No
 hello-python	README.md	def say_hi():		Yes
+run-shellscript	shellscript.md	echo "Runs as shell script"	This is a basic snippet with shell command.	Yes
 -- golden-list-json.txt --
 [
   {
@@ -216,6 +233,13 @@ hello-python	README.md	def say_hi():		Yes
     "file": "README.md",
     "first_command": "def say_hi():",
     "description": "",
+    "named": true
+  },
+  {
+    "name": "run-shellscript",
+    "file": "shellscript.md",
+    "first_command": "echo \"Runs as shell script\"",
+    "description": "This is a basic snippet with shell command.",
     "named": true
   }
 ]
