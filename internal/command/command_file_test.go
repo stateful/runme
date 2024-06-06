@@ -27,6 +27,23 @@ func TestFileCommand(t *testing.T) {
 		testExecuteCommand(t, cfg, nil, "test", "")
 	})
 
+	t.Run("Shellscript", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := &ProgramConfig{
+			ProgramName: "",
+			LanguageId:  "shellscript",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{`echo -n "execute shellscript as shell script"`},
+				},
+			},
+			Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_FILE,
+		}
+
+		testExecuteCommand(t, cfg, nil, "execute shellscript as shell script", "")
+	})
+
 	t.Run("Python", func(t *testing.T) {
 		t.Parallel()
 
