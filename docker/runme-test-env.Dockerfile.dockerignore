@@ -1,0 +1,5 @@
+# Ignore all files and folders starting with a dot
+\\.*
+dist
+public
+**/node_modules

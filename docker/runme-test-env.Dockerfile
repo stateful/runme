@@ -22,11 +22,12 @@ ENV DENO_INSTALL=$HOME/.deno
 RUN curl -fsSL https://deno.land/install.sh | sh \
     && cp $DENO_INSTALL/bin/deno /usr/local/bin/deno
 
-
 # Configure workspace
 WORKDIR /workspace
+
+# Populate Go cache. We do it in an old way
+# because --mount is not supported in CMD.
 COPY go.sum go.mod /workspace/
-# Populate cache
 RUN go mod download -x
 
 # Set output for the runmbe binary

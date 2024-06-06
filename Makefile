@@ -19,7 +19,7 @@ endif
 .PHONY: build
 build: BUILD_OUTPUT ?= runme
 build:
-	go build -o $(BUILD_OUTPUT) -ldflags="$(LDFLAGS)" main.go
+	CGO_ENABLED=0 go build -o $(BUILD_OUTPUT) -ldflags="$(LDFLAGS)" main.go
 
 .PHONY: wasm
 wasm: WASM_OUTPUT ?= examples/web
@@ -54,7 +54,9 @@ test-coverage: test/coverage
 
 .PHONY: test-docker-setup
 test-docker-setup:
-	docker build -t runme-test-env -f ./docker/Dockerfile.runme-test-env .
+	docker build
+		-t runme-test-env:latest \
+		-f ./docker/Dockerfile.runme-test-env .
 	docker volume create dev.runme.test-env-gocache
 
 .PHONY: test-docker-cleanup
@@ -63,7 +65,10 @@ test-docker-cleanup:
 
 .PHONY: test-docker
 test-docker:
-	@docker run --rm -it -v $(shell pwd):/workspace -v dev.runme.test-env-gocache:/root/.cache/go-build runme-test-env
+	@docker run --rm -it \
+		-v $(shell pwd):/workspace \
+		-v dev.runme.test-env-gocache:/root/.cache/go-build \
+		runme-test-env:latest
 
 .PHONY: test/update-snapshots
 test/update-snapshots:
@@ -103,7 +108,7 @@ install/dev:
 
 .PHONY: install/goreleaser
 install/goreleaser:
-	go install github.com/goreleaser/goreleaser@v1.15.2
+	go install github.com/goreleaser/goreleaser@v1.26.2
 
 .PHONY: proto/generate
 proto/generate:
