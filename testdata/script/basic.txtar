@@ -50,7 +50,7 @@ stdout 'Hello, runme, from javascript!'
 
 env PATH=/opt/homebrew/bin:$PATH
 exec runme run hello-cat
-stdout 'Hello runme!'
+stdout 'Hello runme'
 ! stderr .
 
 env PATH=/opt/homebrew/bin:$PATH
@@ -134,7 +134,7 @@ console.log("Hello, runme, from javascript!")
 And it can even run a cell with a custom interpreter:
 
 ```js {"interpreter":"cat","name":"hello-cat"}
-Hello runme!
+Hello runme
 ```
 
 It works with `cd`, `pushd`, and similar because all lines are executed as a single script:

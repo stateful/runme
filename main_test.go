@@ -28,31 +28,36 @@ func TestMain(m *testing.M) {
 // https://bitfieldconsulting.com/golang/test-scripts
 func TestRunme(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "testdata/script",
+		Dir:             "testdata/script",
+		ContinueOnError: true,
 	})
 }
 
 func TestRunmeFlags(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "testdata/flags",
+		Dir:             "testdata/flags",
+		ContinueOnError: true,
 	})
 }
 
 func TestRunmeCategories(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "testdata/categories",
+		Dir:             "testdata/categories",
+		ContinueOnError: true,
 	})
 }
 
 func TestRunmeRunAll(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "testdata/runall",
+		Dir:             "testdata/runall",
+		ContinueOnError: true,
 	})
 }
 
 func TestRunmeBeta(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "testdata/beta",
+		Dir:             "testdata/beta",
+		ContinueOnError: true,
 	})
 }
 
