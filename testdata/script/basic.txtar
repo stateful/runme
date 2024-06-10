@@ -188,7 +188,7 @@ $ echo "Runs as shell script"
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
 echo	README.md	echo "Hello, runme!"	With {"name":"hello"} you can annotate it and give it a nice name.	Yes
 hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
-hello-cat	README.md	Hello runme!	And it can even run a cell with a custom interpreter.	Yes
+hello-cat	README.md	Hello runme	And it can even run a cell with a custom interpreter.	Yes
 hello-python	README.md	def say_hi():		Yes
 run-shellscript	shellscript.md	echo "Runs as shell script"	This is a basic snippet with shell command.	Yes
 -- golden-list-allow-unnamed.txt --
@@ -200,7 +200,7 @@ echo	README.md	echo "Hello, runme!"	With {"name":"hello"} you can annotate it an
 echo-1	README.md	echo "1"	It can contain multiple lines too.	No
 echo-hello-3	README.md	echo "Hello, runme! Again!"	Also, the dollar sign is not needed.	No
 hello-js	README.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
-hello-cat	README.md	Hello runme!	And it can even run a cell with a custom interpreter.	Yes
+hello-cat	README.md	Hello runme	And it can even run a cell with a custom interpreter.	Yes
 tempdir	README.md	temp_dir=$(mktemp -d -t "runme-XXXXXXX")	It works with cd, pushd, and similar because all lines are executed as a single script.	No
 package-main	README.md	package main	It can also execute a snippet of Go code.	No
 hello-python	README.md	def say_hi():		Yes
@@ -224,7 +224,7 @@ run-shellscript	shellscript.md	echo "Runs as shell script"	This is a basic snipp
   {
     "name": "hello-cat",
     "file": "README.md",
-    "first_command": "Hello runme!",
+    "first_command": "Hello runme",
     "description": "And it can even run a cell with a custom interpreter.",
     "named": true
   },

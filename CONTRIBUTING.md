@@ -151,23 +151,27 @@ Tests are run with Go's default test runner wrapped in Makefile targets. So, for
 make test
 ```
 
-Watch out, though! Our tests include integration tests which depend on additional software like Python or node.js. If you don't want to install them or tests fail because of different versions, you can run all tests in a Docker container.
-
-First, run `make test-docker-setup` to build an image and create necessary volumes.
-
-Then, you can run tests using the command below. It should advantage of cache so consecutive runs should be quick, just like with `go test`.
+Please notice that our tests include integration tests which depend on additional software like Python or node.js. If you don't want to install them or tests fail because of different versions, you can run all tests in a Docker container:
 
 ```sh
 make test-docker
 ```
 
-Generate HTML representation of coverage profile
+### Coverage
+
+In order to generate a coverage report, run tests using
+
+```sh {"name":"coverage-run"}
+make test-coverage
+```
+
+And then:
 
 ```sh {"id":"01HJVHEVPX2AZJ86999P1MY5H0","name":"coverage-html"}
 make test/coverage/html
 ```
 
-Output coverage profile information for each function
+Output coverage profile information for each function:
 
 ```sh {"id":"01HJVHHNMZRNK0ZGA154A9AJCZ","name":"coverage-func"}
 make test/coverage/func
