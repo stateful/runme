@@ -31,7 +31,7 @@ To request a new feature you should open an [issue](../../issues/new) and summar
 This is an outline of what the workflow for code contributions looks like
 
 - Check the list of open [issues](../../issues). Either assign an existing issue to yourself, or
-   create a new one that you would like work on and discuss your ideas and use cases.
+  create a new one that you would like work on and discuss your ideas and use cases.
 
 It is always best to discuss your plans beforehand, to ensure that your contribution is in line with our goals.
 
@@ -51,7 +51,7 @@ This project uses a `Makefile` to manage build scripts. You will need `make` ins
 
 You will need to have a `go` installation - ideally compatible with the project's current go version (see [go.mod](/go.mod)).
 
-### OSX
+### macOS
 
 If you are using [`homebrew`](https://brew.sh/), you can install the required system modules with the following command:
 
@@ -145,19 +145,33 @@ pre-commit run --files */**
 
 ## Testing
 
-Tests are run with go's default test runner. So, for example, you can run all tests with:
+Tests are run with Go's default test runner wrapped in Makefile targets. So, for example, you can run all tests with:
 
 ```sh {"id":"01HF7BT3HEQBTBM9SSTS88ZSCF"}
 make test
 ```
 
-Generate HTML representation of coverage profile
+Please notice that our tests include integration tests which depend on additional software like Python or node.js. If you don't want to install them or tests fail because of different versions, you can run all tests in a Docker container:
+
+```sh
+make test-docker
+```
+
+### Coverage
+
+In order to generate a coverage report, run tests using
+
+```sh {"name":"coverage-run"}
+make test-coverage
+```
+
+And then:
 
 ```sh {"id":"01HJVHEVPX2AZJ86999P1MY5H0","name":"coverage-html"}
 make test/coverage/html
 ```
 
-Output coverage profile information for each function
+Output coverage profile information for each function:
 
 ```sh {"id":"01HJVHHNMZRNK0ZGA154A9AJCZ","name":"coverage-func"}
 make test/coverage/func

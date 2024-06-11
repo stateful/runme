@@ -4,14 +4,9 @@ import (
 	"context"
 	"io"
 	"net"
-	"os"
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/v3/internal/project/projectservice"
-	"github.com/stateful/runme/v3/internal/project/testdata"
-	"github.com/stateful/runme/v3/internal/project/testutils"
-	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -20,14 +15,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
+
+	"github.com/stateful/runme/v3/internal/project/projectservice"
+	"github.com/stateful/runme/v3/internal/project/teststub"
+	"github.com/stateful/runme/v3/internal/project/testutils"
+	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 )
-
-func TestMain(m *testing.M) {
-	testdata.AssertGitProject()
-
-	code := m.Run()
-	os.Exit(code)
-}
 
 func TestProjectServiceServer_Load(t *testing.T) {
 	t.Parallel()
@@ -39,10 +32,13 @@ func TestProjectServiceServer_Load(t *testing.T) {
 	t.Run("GitProject", func(t *testing.T) {
 		t.Parallel()
 
+		temp := t.TempDir()
+		testData := teststub.Setup(t, temp)
+
 		req := &projectv1.LoadRequest{
 			Kind: &projectv1.LoadRequest_Directory{
 				Directory: &projectv1.DirectoryProjectOptions{
-					Path:                 testdata.GitProjectPath(),
+					Path:                 testData.GitProjectPath(),
 					SkipGitignore:        false,
 					IgnoreFilePatterns:   testutils.IgnoreFilePatternsWithDefaults("ignored.md"),
 					SkipRepoLookupUpward: false,
@@ -61,10 +57,13 @@ func TestProjectServiceServer_Load(t *testing.T) {
 	t.Run("FileProject", func(t *testing.T) {
 		t.Parallel()
 
+		temp := t.TempDir()
+		testData := teststub.Setup(t, temp)
+
 		req := &projectv1.LoadRequest{
 			Kind: &projectv1.LoadRequest_File{
 				File: &projectv1.FileProjectOptions{
-					Path: testdata.ProjectFilePath(),
+					Path: testData.ProjectFilePath(),
 				},
 			},
 		}
@@ -81,6 +80,9 @@ func TestProjectServiceServer_Load(t *testing.T) {
 func TestProjectServiceServer_Load_ErrorWhileSending(t *testing.T) {
 	t.Parallel()
 
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
 	lis, stop := testStartProjectServiceServer(t)
 	t.Cleanup(stop)
 	clientConn, client := testCreateProjectServiceClient(t, lis)
@@ -88,7 +90,7 @@ func TestProjectServiceServer_Load_ErrorWhileSending(t *testing.T) {
 	req := &projectv1.LoadRequest{
 		Kind: &projectv1.LoadRequest_File{
 			File: &projectv1.FileProjectOptions{
-				Path: testdata.ProjectFilePath(),
+				Path: testData.ProjectFilePath(),
 			},
 		},
 	}

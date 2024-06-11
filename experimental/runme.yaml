@@ -64,5 +64,5 @@ server:
 
 log:
   enabled: true
-  path: "/var/tmp/runme.log"
+  path: "/var/log/runme.log"
   verbose: true

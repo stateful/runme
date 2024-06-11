@@ -82,7 +82,7 @@ blobs:
     bucket: "{{ .Env.GS_BUCKET }}"
     ids:
       - cli
-    folder: "{{ .Version }}"
+    directory: "{{ .Version }}"
 
 brews:
   - name: runme
@@ -90,14 +90,14 @@ brews:
       - cli
     homepage: https://runme.dev
     description: "Execute your runbooks, docs, and READMEs."
-    tap:
+    repository:
       owner: stateful
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
     dependencies: []
     skip_upload: auto
-    folder: Formula
+    directory: Formula
     download_strategy: CurlDownloadStrategy
     commit_author:
       name: release-bot
@@ -131,70 +131,85 @@ nfpms:
       - apk
       - rpm
 
-scoop:
-  url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
-  bucket:
-    owner: stateful
-    name: scoop-bucket
-    token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
-  commit_author:
-    name: release-bot
-    email: bot@stateful.com
-  homepage: https://runme.dev
-  description: "Execute your runbooks, docs, and READMEs."
-  skip_upload: auto
+scoops:
+  - url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
+    repository:
+      owner: stateful
+      name: scoop-bucket
+      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
+    commit_author:
+      name: release-bot
+      email: bot@stateful.com
+    homepage: https://runme.dev
+    description: "Execute your runbooks, docs, and READMEs."
+    skip_upload: auto
 
 dockers:
-  - goos: linux
-    goarch: amd64
-    image_templates:
-      - "statefulhq/runme:latest"
+  - image_templates:
       - "statefulhq/runme:{{ .Version }}-alpine-amd64"
-    skip_push: auto
-    dockerfile: Dockerfile.alpine
-  - goos: linux
+    use: buildx
+    dockerfile: docker/alpine.Dockerfile
+    goos: linux
     goarch: amd64
-    image_templates:
-      - "statefulhq/runme:latest"
+    build_flag_templates:
+      - "--platform=linux/amd64"
+    skip_push: auto
+  - image_templates:
       - "statefulhq/runme:{{ .Version }}-ubuntu-amd64"
+    use: buildx
+    dockerfile: docker/ubuntu.Dockerfile
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
     skip_push: auto
-    dockerfile: Dockerfile.ubuntu
-  - goos: linux
+  - image_templates:
+      - "statefulhq/runme:{{ .Version }}-alpine-arm64v8"
+    use: buildx
+    dockerfile: docker/alpine.Dockerfile
+    goos: linux
     goarch: arm64
-    image_templates:
-      - "statefulhq/runme:{{ .Version }}-alpine-arm64"
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
     skip_push: auto
-    dockerfile: Dockerfile.alpine
-  - goos: linux
+  - image_templates:
+      - "statefulhq/runme:{{ .Version }}-ubuntu-arm64v8"
+    use: buildx
+    dockerfile: docker/ubuntu.Dockerfile
+    goos: linux
     goarch: arm64
-    image_templates:
-      - "statefulhq/runme:{{ .Version }}-ubuntu-arm64"
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
     skip_push: auto
-    dockerfile: Dockerfile.ubuntu
 
 docker_manifests:
-  - name_template: 'statefulhq/runme:{{ .Version }}'
+  - name_template: "statefulhq/runme:latest"
+    image_templates:
+      - "statefulhq/runme:{{ .Version }}-alpine-amd64"
+      - "statefulhq/runme:{{ .Version }}-alpine-arm64v8"
+    skip_push: auto
+  - name_template: "statefulhq/runme:latest-alpine"
+    image_templates:
+      - "statefulhq/runme:{{ .Version }}-alpine-amd64"
+      - "statefulhq/runme:{{ .Version }}-alpine-arm64v8"
+    skip_push: auto
+  - name_template: "statefulhq/runme:latest-ubuntu"
+    image_templates:
+      - "statefulhq/runme:{{ .Version }}-ubuntu-amd64"
+      - "statefulhq/runme:{{ .Version }}-ubuntu-arm64v8"
+    skip_push: auto
+  - name_template: "statefulhq/runme:{{ .Version }}"
+    image_templates:
+      - "statefulhq/runme:{{ .Version }}-alpine-amd64"
+      - "statefulhq/runme:{{ .Version }}-alpine-arm64v8"
+    skip_push: auto
+  - name_template: "statefulhq/runme:{{ .Version }}-alpine"
     skip_push: auto
     image_templates:
-    - 'statefulhq/runme:{{ .Version }}-alpine-amd64'
-    - 'statefulhq/runme:{{ .Version }}-alpine-arm64'
-  - name_template: 'statefulhq/runme:latest-alpine'
+      - "statefulhq/runme:{{ .Version }}-alpine-amd64"
+      - "statefulhq/runme:{{ .Version }}-alpine-arm64v8"
+  - name_template: "statefulhq/runme:{{ .Version }}-ubuntu"
     skip_push: auto
     image_templates:
-    - 'statefulhq/runme:{{ .Version }}-alpine-amd64'
-    - 'statefulhq/runme:{{ .Version }}-alpine-arm64'
-  - name_template: 'statefulhq/runme:latest-ubuntu'
-    skip_push: auto
-    image_templates:
-    - 'statefulhq/runme:{{ .Version }}-ubuntu-amd64'
-    - 'statefulhq/runme:{{ .Version }}-ubuntu-arm64'
-  - name_template: 'statefulhq/runme:{{ .Version }}-alpine'
-    skip_push: auto
-    image_templates:
-    - 'statefulhq/runme:{{ .Version }}-alpine-amd64'
-    - 'statefulhq/runme:{{ .Version }}-alpine-arm64'
-  - name_template: 'statefulhq/runme:{{ .Version }}-ubuntu'
-    skip_push: auto
-    image_templates:
-    - 'statefulhq/runme:{{ .Version }}-ubuntu-amd64'
-    - 'statefulhq/runme:{{ .Version }}-ubuntu-arm64'
+      - "statefulhq/runme:{{ .Version }}-ubuntu-amd64"
+      - "statefulhq/runme:{{ .Version }}-ubuntu-arm64v8"

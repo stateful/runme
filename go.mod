@@ -31,6 +31,7 @@ require (
 	github.com/muesli/cancelreader v0.2.2
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/opencontainers/image-spec v1.1.0
+	github.com/otiai10/copy v1.14.0
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/rwtodd/Go.Sed v0.0.0-20240405174034-bb8ed5da0fd0
 	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915

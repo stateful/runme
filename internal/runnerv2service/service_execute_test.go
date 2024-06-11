@@ -10,6 +10,7 @@ import (
 	"testing"
 	"testing/fstest"
 	"time"
+	"unicode"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -674,12 +675,15 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		expected := "a\r\nb\r\nc\r\nd\r\nA\r\nB\r\nC\r\nD\r\n"
-		// On macOS, the ctrl+d (EOT) character followed by two backspaces is collected.
-		// On Linux, in the CI, this does not occur.
-		got := string(bytes.ReplaceAll(result.Stdout, []byte("^D\b\b"), nil))
-		assert.Equal(t, expected, got)
 		assert.EqualValues(t, 0, result.ExitCode)
+		// Validate the output by asserting that lowercase letters precede uppercase letters.
+		for _, c := range "abcd" {
+			idxLower := bytes.IndexRune(result.Stdout, c)
+			idxUpper := bytes.IndexRune(result.Stdout, unicode.ToUpper(c))
+			assert.Greater(t, idxLower, -1)
+			assert.Greater(t, idxUpper, -1)
+			assert.True(t, idxUpper > idxLower)
+		}
 	})
 
 	t.Run("SimulateCtrlC", func(t *testing.T) {

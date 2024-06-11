@@ -145,15 +145,14 @@ func (f *commandFactory) buildBase(cfg *ProgramConfig, opts CommandOptions) *bas
 func (f *commandFactory) buildInternal(cfg *ProgramConfig, opts CommandOptions) internalCommand {
 	base := f.buildBase(cfg, opts)
 
-	if f.docker != nil {
+	switch {
+	case f.docker != nil:
 		return f.buildDocker(base)
-	}
-
-	if base.Interactive() {
+	case base.Interactive():
 		return f.buildVirtual(base, opts)
+	default:
+		return f.buildNative(base)
 	}
-
-	return f.buildNative(base)
 }
 
 func (f *commandFactory) buildDocker(base *base) internalCommand {

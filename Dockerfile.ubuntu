@@ -1,8 +1,0 @@
-FROM ubuntu:23.10 as build
-LABEL maintainer="StatefulHQ <mail@stateful.com>"
-
-RUN mkdir -p /opt/var/runme /opt/bin
-COPY runme /opt/bin/runme
-WORKDIR /opt/var/runme
-
-ENTRYPOINT ["/opt/bin/runme"]
