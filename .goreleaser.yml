@@ -1,5 +1,7 @@
 project_name: runme
 
+version: 2
+
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
