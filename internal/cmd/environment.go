@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/runner/client"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
@@ -55,11 +56,12 @@ func storeCmd() *cobra.Command {
 
 func storeSnapshotCmd() *cobra.Command {
 	var (
-		addr      string
-		tlsDir    string
-		sessionID string
-		limit     int
-		all       bool
+		serverAddr      string
+		sessionID       string
+		sessionStrategy string
+		tlsDir          string
+		limit           int
+		all             bool
 	)
 
 	cmd := cobra.Command{
@@ -74,7 +76,7 @@ func storeSnapshotCmd() *cobra.Command {
 			}
 
 			credentials := credentials.NewTLS(tlsConfig)
-			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(credentials))
+			conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(credentials))
 			if err != nil {
 				return errors.Wrap(err, "failed to connect")
 			}
@@ -82,9 +84,25 @@ func storeSnapshotCmd() *cobra.Command {
 
 			client := runnerv1.NewRunnerServiceClient(conn)
 
-			meClient, err := client.MonitorEnvStore(context.Background(), &runnerv1.MonitorEnvStoreRequest{
+			// todo(sebastian): this should move into API as part of v2
+			if strings.ToLower(sessionStrategy) == "recent" {
+				req := &runnerv1.ListSessionsRequest{}
+				resp, err := client.ListSessions(context.Background(), req)
+				if err != nil {
+					return err
+				}
+				l := len(resp.Sessions)
+				if l == 0 {
+					return errors.New("no sessions found")
+				}
+				// potentially unreliable
+				sessionID = resp.Sessions[l-1].Id
+			}
+
+			req := &runnerv1.MonitorEnvStoreRequest{
 				Session: &runnerv1.Session{Id: sessionID},
-			})
+			}
+			meClient, err := client.MonitorEnvStore(context.Background(), req)
 			if err != nil {
 				return err
 			}
@@ -103,9 +121,16 @@ func storeSnapshotCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&addr, "address", os.Getenv("RUNME_SERVER_ADDR"), "The Server address to connect to, i.e. 127.0.0.1:7865")
-	cmd.Flags().StringVar(&tlsDir, "tlsDir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
+	cmd.Flags().StringVar(&serverAddr, "ServerAddress", os.Getenv("RUNME_SERVER_ADDR"), "The Server ServerAddress to connect to, i.e. 127.0.0.1:7865")
+	cmd.Flags().StringVar(&tlsDir, "TLSDir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
 	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
+	cmd.Flags().StringVar(&sessionStrategy, "session-strategy", func() string {
+		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
+			return val
+		}
+
+		return "manual"
+	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
 	cmd.Flags().IntVar(&limit, "limit", 15, "Limit the number of lines")
 	cmd.Flags().BoolVarP(&all, "all", "A", false, "Show all lines")
 
@@ -209,6 +234,12 @@ func printStore(msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, a
 		if i >= lines && !all {
 			break
 		}
+
+		specless := msgData.Snapshot.Envs[0].Spec != owl.SpecNameOpaque
+		if !all && specless && env.Spec == owl.SpecNameOpaque {
+			break
+		}
+
 		value := env.ResolvedValue
 
 		switch env.Status {
@@ -221,7 +252,8 @@ func printStore(msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, a
 		}
 
 		table.AddField(env.Name)
-		table.AddField(value)
+		stripped := strings.ReplaceAll(strings.ReplaceAll(value, "\n", " "), "\r", "")
+		table.AddField(stripped)
 		table.AddField(env.Spec)
 		table.AddField(env.Origin)
 
