@@ -252,7 +252,8 @@ func printStore(msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, a
 		}
 
 		table.AddField(env.Name)
-		table.AddField(value)
+		stripped := strings.ReplaceAll(strings.ReplaceAll(value, "\n", " "), "\r", "")
+		table.AddField(stripped)
 		table.AddField(env.Spec)
 		table.AddField(env.Origin)
 
