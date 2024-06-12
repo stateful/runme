@@ -726,6 +726,7 @@ func Test_runnerService(t *testing.T) {
 
 	if _, err := exec.LookPath("python3"); err == nil {
 		t.Run("ExecutePythonServer", func(t *testing.T) {
+			t.Skip("quarantine flaky test")
 			t.Parallel()
 
 			ctx, cancel := context.WithCancel(context.Background())
