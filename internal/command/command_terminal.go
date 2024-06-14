@@ -12,7 +12,7 @@ import (
 type terminalCommand struct {
 	internalCommand
 
-	envCollector *shellEnvCollector
+	envCollector shellEnvCollector
 	logger       *zap.Logger
 	session      *Session
 	stdinWriter  io.Writer
@@ -26,7 +26,7 @@ func (c *terminalCommand) getPty() *os.File {
 	return cmdPty.getPty()
 }
 
-func (c *terminalCommand) Start(ctx context.Context) error {
+func (c *terminalCommand) Start(ctx context.Context) (err error) {
 	if isNil(c.stdinWriter) {
 		return errors.New("stdin writer is nil")
 	}
@@ -39,8 +39,8 @@ func (c *terminalCommand) Start(ctx context.Context) error {
 
 	// [shellEnvCollector] writes defines a function collecting env and
 	// registers it as a trap directly into the shell interactive session.
-	c.envCollector = &shellEnvCollector{buf: c.stdinWriter}
-	return c.envCollector.Init()
+	c.envCollector, err = newFileShellEnvCollector(c.stdinWriter)
+	return err
 }
 
 func (c *terminalCommand) Wait() (err error) {
