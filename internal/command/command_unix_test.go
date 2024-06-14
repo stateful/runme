@@ -367,6 +367,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 				ProgramName: "bash",
 				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 				Interactive: true,
+				Env:         []string{"TERM=xterm"},
 			},
 			CommandOptions{
 				StdinWriter: stdinW,
@@ -392,7 +393,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 		_, err = stdinW.Write([]byte{0x04}) // EOT
 		require.NoError(t, err)
 		err = cmd.Wait()
-		require.NoError(t, err)
+		require.NoError(t, err, "command failed due to: %s", stdout.String())
 		require.Contains(t, stdout.String(), "56\r\n45\r\n")
 	})
 }

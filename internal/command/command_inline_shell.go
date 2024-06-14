@@ -13,17 +13,17 @@ import (
 type inlineShellCommand struct {
 	internalCommand
 
-	envCollector *shellEnvCollector
+	envCollector shellEnvCollector
 	logger       *zap.Logger
 	session      *Session
 }
 
 func (c *inlineShellCommand) getPty() *os.File {
-	virtualCmd, ok := c.internalCommand.(*virtualCommand)
+	cmd, ok := c.internalCommand.(commandWithPty)
 	if !ok {
 		return nil
 	}
-	return virtualCmd.pty
+	return cmd.getPty()
 }
 
 func (c *inlineShellCommand) Start(ctx context.Context) error {
@@ -71,8 +71,8 @@ func (c *inlineShellCommand) build() (string, error) {
 	// If the session is provided, we need to collect the environment before and after the script execution.
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
 	if c.session != nil {
-		c.envCollector = &shellEnvCollector{buf: buf}
-		if err := c.envCollector.Init(); err != nil {
+		c.envCollector, err = newFifoShellEnvCollector(buf)
+		if err != nil {
 			return "", err
 		}
 	}

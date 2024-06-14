@@ -20,13 +20,27 @@ func testExecuteCommand(
 ) {
 	t.Helper()
 
+	testExecuteCommandWithSession(t, cfg, nil, input, expectedStdout, expectedStderr)
+}
+
+func testExecuteCommandWithSession(
+	t *testing.T,
+	cfg *ProgramConfig,
+	session *Session,
+	input io.Reader,
+	expectedStdout string,
+	expectedStderr string,
+) {
+	t.Helper()
+
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)
 
 	options := CommandOptions{
-		Stdout: stdout,
-		Stderr: stderr,
-		Stdin:  input,
+		Session: session,
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Stdin:   input,
 	}
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
