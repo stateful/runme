@@ -1,6 +1,6 @@
 env SHELL=/bin/bash
 exec runme fmt --write
-cmp README-FORMATED.md README.md
+cmp README-FORMATTED.md README.md
 ! stderr .
 
 -- README.md --
@@ -21,7 +21,7 @@ echo 1
 ```{"name": "bash-echo-2"}
 echo 2
 ```
--- README-FORMATED.md --
+-- README-FORMATTED.md --
 ---
 runme:
   id: 01HMEC2Y9ZGB0EFGE6TT201V0N

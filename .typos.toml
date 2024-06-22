@@ -1,0 +1,5 @@
+[default]
+extend-ignore-re = [
+    "\"data\":\"\\b[0-9A-Za-z+/]+(=|==)?\\b\"",
+    "thi\\.\\.\\.ice",
+]

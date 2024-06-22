@@ -286,7 +286,7 @@ func TestCommand_InvalidProgram(t *testing.T) {
 	require.Contains(t, err.Error(), "failed program lookup \"invalidProgram\"")
 }
 
-func TestCommnd_InvalidScript(t *testing.T) {
+func TestCommand_InvalidScript(t *testing.T) {
 	t.Parallel()
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
@@ -319,7 +319,7 @@ func TestCommnd_InvalidScript(t *testing.T) {
 
 // TestCommand_SetWinsize validates if it's possible to set the window size for a command.
 // Overall, for any interactive command it should be possible.
-// Check oout command_terminal_test.go for more details.
+// Check out command_terminal_test.go for more details.
 func TestCommand_SetWinsize(t *testing.T) {
 	t.Parallel()
 

@@ -5,6 +5,7 @@ repos:
       - id: check-yaml
         stages: [commit]
       - id: check-json
+        exclude: "^.vscode/"
         stages: [commit]
       - id: check-merge-conflict
         stages: [commit]
@@ -25,6 +26,7 @@ repos:
     rev: v1.22.9
     hooks:
       - id: typos
+        exclude: "^.vscode/|go.mod"
   - repo: local
     hooks:
       - id: go-mod-tidy
