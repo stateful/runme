@@ -14,6 +14,13 @@ exec runme beta run unknown
 ! stdout .
 stderr 'no tasks to run'
 
+# Test exporting env and using it in another task.
+# It works because multiple tasks in a single run
+# share the session.
+exec runme beta run export echo-exported
+stdout exported-value
+! stderr .
+
 -- experimental/runme.yaml --
 version: v1alpha1
 project:
@@ -38,4 +45,12 @@ echo hello-world
 
 ```bash {"name": "echo-env"}
 echo "ENV_IN_ENV=${ENV_IN_ENV}"
+```
+
+```sh {"name": "export"}
+export ENV_EXPORTED=exported-value
+```
+
+```sh {"name": "echo-exported"}
+echo "$ENV_EXPORTED"
 ```

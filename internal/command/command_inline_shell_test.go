@@ -1,3 +1,6 @@
+//go:build !windows
+// +build !windows
+
 package command
 
 import (
@@ -10,6 +13,21 @@ import (
 
 func TestInlineShellCommand_CollectingEnv(t *testing.T) {
 	t.Parallel()
+
+	t.Run("Fifo", func(t *testing.T) {
+		testInlineShellCommandCollectingEnv(t, true)
+	})
+
+	t.Run("NonFifo", func(t *testing.T) {
+		testInlineShellCommandCollectingEnv(t, false)
+	})
+}
+
+func testInlineShellCommandCollectingEnv(t *testing.T, forceFifo bool) {
+	t.Helper()
+
+	useFifoShellEnvCollector = forceFifo
+
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
 		Source: &runnerv2alpha1.ProgramConfig_Script{
