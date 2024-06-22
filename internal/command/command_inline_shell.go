@@ -13,6 +13,7 @@ import (
 type inlineShellCommand struct {
 	internalCommand
 
+	debug        bool
 	envCollector shellEnvCollector
 	logger       *zap.Logger
 	session      *Session
@@ -120,7 +121,11 @@ func (c *inlineShellCommand) shellOptions() (string, error) {
 	// TODO(mxs): powershell and DOS are missing
 	switch shell {
 	case "zsh", "ksh", "bash":
-		return "set -e -o pipefail", nil
+		result := "set -e -o pipefail"
+		if c.debug {
+			result += " -x"
+		}
+		return result, nil
 	case "sh":
 		return "set -e", nil
 	default:

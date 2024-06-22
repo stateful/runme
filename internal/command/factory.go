@@ -29,6 +29,12 @@ type Factory interface {
 
 type FactoryOption func(*commandFactory)
 
+func WithDebug() FactoryOption {
+	return func(f *commandFactory) {
+		f.debug = true
+	}
+}
+
 func WithDocker(docker *dockerexec.Docker) FactoryOption {
 	return func(f *commandFactory) {
 		f.docker = docker
@@ -56,6 +62,7 @@ func NewFactory(opts ...FactoryOption) Factory {
 }
 
 type commandFactory struct {
+	debug   bool
 	docker  *dockerexec.Docker // used only for [dockerCommand]
 	logger  *zap.Logger
 	project *project.Project
@@ -91,6 +98,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE:
 		if isShell(cfg) {
 			return &inlineShellCommand{
+				debug:           f.debug,
 				internalCommand: f.buildInternal(cfg, opts),
 				logger:          f.getLogger("InlineShellCommand"),
 				session:         opts.Session,
