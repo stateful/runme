@@ -39,7 +39,7 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 
 	// [shellEnvCollector] writes defines a function collecting env and
 	// registers it as a trap directly into the shell interactive session.
-	c.envCollector, err = newFileShellEnvCollector(c.stdinWriter)
+	c.envCollector, err = buildShellEnvCollector(c.stdinWriter)
 	return err
 }
 

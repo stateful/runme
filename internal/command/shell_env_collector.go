@@ -7,22 +7,26 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 )
 
-// EnvDumpCommand is a command that dumps the environment variables.
-// It is declared as a var, because it must be replaced in tests.
-// Equivalent is `env -0`.
-var EnvDumpCommand = func() string {
-	path, err := os.Executable()
-	if err != nil {
-		panic(errors.WithMessage(err, "failed to get the executable path"))
-	}
-	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
-}()
+var (
+	// EnvDumpCommand is a command that dumps the environment variables.
+	// It is declared as a var, because it must be replaced in tests.
+	// Equivalent is `env -0`.
+	EnvDumpCommand = func() string {
+		path, err := os.Executable()
+		if err != nil {
+			panic(errors.WithMessage(err, "failed to get the executable path"))
+		}
+		return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
+	}()
+
+	// useFifoShellEnvCollector is a flag that forces
+	// the FIFO-based shell env collector when possible.
+	useFifoShellEnvCollector = true
+)
 
 // shellEnvCollector collects the environment variables from a shell script or session (terminal mode).
 // It writes a shell command that dumps the initial environment variables. Then, it configures a trap
@@ -30,76 +34,6 @@ var EnvDumpCommand = func() string {
 // dumps to find the changed and deleted variables.
 type shellEnvCollector interface {
 	Collect() (changed, deleted []string, _ error)
-}
-
-type fifoShellEnvCollector struct {
-	*fsShellEnvCollector
-	startEnv     []string
-	exitEnv      []string
-	readersGroup *errgroup.Group
-}
-
-func newFifoShellEnvCollector(w io.Writer) (*fifoShellEnvCollector, error) {
-	c := &fifoShellEnvCollector{
-		fsShellEnvCollector: &fsShellEnvCollector{
-			onStartFile: "env_start.fifo",
-			onExitFile:  "env_end.fifo",
-			w:           w,
-		},
-		readersGroup: new(errgroup.Group),
-	}
-	if err := c.init(); err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
-func (c *fifoShellEnvCollector) init() error {
-	err := c.fsShellEnvCollector.init()
-	if err != nil {
-		return err
-	}
-
-	err = c.createFifo(c.onStartPath())
-	if err != nil {
-		return errors.WithMessage(err, "failed to create the start FIFO")
-	}
-
-	err = c.createFifo(c.onExitPath())
-	if err != nil {
-		return errors.WithMessage(err, "failed to create the exit FIFO")
-	}
-
-	c.readersGroup.Go(func() (err error) {
-		c.startEnv, err = c.read(c.onStartPath())
-		return err
-	})
-
-	c.readersGroup.Go(func() (err error) {
-		c.exitEnv, err = c.read(c.onExitPath())
-		return err
-	})
-
-	return nil
-}
-
-func (c *fifoShellEnvCollector) Collect() (changed, deleted []string, err error) {
-	defer func() {
-		if cErr := c.cleanup(); cErr != nil && err == nil {
-			err = cErr
-		}
-	}()
-
-	if err := c.readersGroup.Wait(); err != nil {
-		return nil, nil, err
-	}
-
-	return c.diff(c.startEnv, c.exitEnv)
-}
-
-func (c *fifoShellEnvCollector) createFifo(name string) error {
-	err := syscall.Mkfifo(name, 0o600)
-	return errors.WithMessage(err, "failed to create a FIFO")
 }
 
 type fileShellEnvCollector struct {

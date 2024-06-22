@@ -11,6 +11,10 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+func init() {
+	EnvDumpCommand = "env -0"
+}
+
 func testExecuteCommand(
 	t *testing.T,
 	cfg *ProgramConfig,

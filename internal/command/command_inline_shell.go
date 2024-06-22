@@ -71,7 +71,7 @@ func (c *inlineShellCommand) build() (string, error) {
 	// If the session is provided, we need to collect the environment before and after the script execution.
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
 	if c.session != nil {
-		c.envCollector, err = newFifoShellEnvCollector(buf)
+		c.envCollector, err = buildShellEnvCollector(buf)
 		if err != nil {
 			return "", err
 		}
