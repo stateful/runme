@@ -71,7 +71,8 @@ func (c *fileShellEnvCollector) Collect() (changed, deleted []string, err error)
 		return
 	}
 
-	return c.diff(startEnv, endEnv)
+	changed, deleted, err = c.diff(startEnv, endEnv)
+	return
 }
 
 type fsShellEnvCollector struct {

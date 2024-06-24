@@ -26,6 +26,7 @@ repos:
     rev: v1.22.9
     hooks:
       - id: typos
+        args: ["--diff", "--force-exclude"]
         exclude: "^.vscode/|go.mod"
   - repo: local
     hooks:
