@@ -80,7 +80,8 @@ func (c *fifoShellEnvCollector) Collect() (changed, deleted []string, err error)
 		return nil, nil, err
 	}
 
-	return c.diff(c.startEnv, c.exitEnv)
+	changed, deleted, err = c.diff(c.startEnv, c.exitEnv)
+	return
 }
 
 func (c *fifoShellEnvCollector) createFifo(name string) error {

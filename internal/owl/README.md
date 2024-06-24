@@ -29,7 +29,7 @@ version = 'v3'
 
 The **.env.example** frontend/facade:
 
-```ini {"id":"01HS8C1ON0T7BGJA0T6TT2G68R","interpreter":"cat"}
+```ini {"id":"01HS8C1PN0T7BGJA0T6TT2G68R","interpreter":"cat"}
 JWT_SECRET=Secret to sign authed JWT tokens # Secret!
 ANON_KEY=Secret to sign anonymous JWT tokens # Secret!
 SERVICE_ROLE_KEY=JWT to assume the service role # JWT
