@@ -3,12 +3,13 @@ package owl
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/graphql-go/graphql"
 	"github.com/stateful/godotenv"
@@ -97,6 +98,54 @@ func (res SetVarItems) sortbyKey() {
 	})
 }
 
+func (res SetVarItems) getSensitiveKeys(data interface{}) ([]string, error) {
+	validate, err := extractDataKey(data, "validate")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to extract validate key")
+	}
+
+	m, ok := validate.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("not a map")
+	}
+
+	specsSensitivity := make(map[string]bool)
+	var recurse func(map[string]interface{}, string)
+	recurse = func(m map[string]interface{}, parentName string) {
+		_, found := specsSensitivity[parentName]
+		if !found && parentName != "" {
+			specsSensitivity[parentName] = true
+		}
+		for k, v := range m {
+			// truly sensitive secrets require both mask & sensitive to be true
+			if k == "mask" || k == "sensitive" {
+				specsSensitivity[parentName] = specsSensitivity[parentName] && v.(bool)
+			}
+
+			if k == "done" {
+				break
+			}
+
+			n, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			recurse(n, k)
+		}
+	}
+	recurse(m, "")
+
+	var filtered []string
+	for _, item := range res {
+		if specsSensitivity[item.Spec.Name] {
+			filtered = append(filtered, item.Var.Key)
+		}
+	}
+
+	return filtered, nil
+}
+
 func (res SetVarItems) sort() {
 	slices.SortFunc(res, func(i, j *SetVarItem) int {
 		if i.Spec == nil {
@@ -156,6 +205,20 @@ func WithOperation(operation setOperationKind) OperationSetOption {
 func WithSpecs(included bool) OperationSetOption {
 	return func(opSet *OperationSet) error {
 		opSet.hasSpecs = included
+		return nil
+	}
+}
+
+func WithItems(items SetVarItems) OperationSetOption {
+	return func(opSet *OperationSet) error {
+		for _, item := range items {
+			if item.Spec != nil {
+				opSet.specs[item.Var.Key] = &SetVarSpec{Var: item.Var, Spec: item.Spec}
+			}
+			if item.Value != nil {
+				opSet.values[item.Var.Key] = &SetVarValue{Var: item.Var, Value: item.Value}
+			}
+		}
 		return nil
 	}
 }
@@ -363,6 +426,10 @@ func (s *Store) InsecureGet(k string) (string, error) {
 		return "", err
 	}
 
+	if res.Value == nil {
+		return "", nil
+	}
+
 	return res.Value.Resolved, nil
 }
 
@@ -388,12 +455,12 @@ func (s *Store) SensitiveKeys() ([]string, error) {
 	defer s.mu.RUnlock()
 
 	var query, vars bytes.Buffer
-	err := s.sensitiveQuery(&query, &vars)
+	err := s.sensitiveKeysQuery(&query, &vars)
 	if err != nil {
 		return nil, err
 	}
 
-	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
+	// s.logger.Debug("sensitive keys query", zap.String("query", query.String()))
 	// _, _ = fmt.Println(query.String())
 
 	var varValues map[string]interface{}
@@ -436,10 +503,9 @@ func (s *Store) SensitiveKeys() ([]string, error) {
 	}
 
 	keyResults.sortbyKey()
-
-	keys := make([]string, 0, len(keyResults))
-	for _, item := range keyResults {
-		keys = append(keys, item.Var.Key)
+	keys, err := keyResults.getSensitiveKeys(result.Data)
+	if err != nil {
+		return nil, err
 	}
 
 	return keys, nil
@@ -449,29 +515,33 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation), WithSpecs(false))
-	if err != nil {
-		return err
+	if len(newOrUpdated) > 0 {
+		updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation), WithSpecs(false))
+		if err != nil {
+			return err
+		}
+
+		err = updateOpSet.addEnvs("[execution]", newOrUpdated...)
+		if err != nil {
+			return err
+		}
+
+		s.opSets = append(s.opSets, updateOpSet)
 	}
 
-	err = updateOpSet.addEnvs("[execution]", newOrUpdated...)
-	if err != nil {
-		return err
+	if len(deleted) > 0 {
+		deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation), WithSpecs(false))
+		if err != nil {
+			return err
+		}
+
+		err = deleteOpSet.addEnvs("[execution]", deleted...)
+		if err != nil {
+			return err
+		}
+
+		s.opSets = append(s.opSets, deleteOpSet)
 	}
-
-	s.opSets = append(s.opSets, updateOpSet)
-
-	deleteOpSet, err := NewOperationSet(WithOperation(DeleteSetOperation), WithSpecs(false))
-	if err != nil {
-		return err
-	}
-
-	err = deleteOpSet.addEnvs("[execution]", deleted...)
-	if err != nil {
-		return err
-	}
-
-	s.opSets = append(s.opSets, deleteOpSet)
 
 	// s.logger.Debug("opSets size", zap.Int("size", len(s.opSets)))
 

@@ -343,6 +343,8 @@ message MonitorEnvStoreResponseSnapshot {
     string update_time = 8;
 
     repeated Error errors = 9;
+
+    bool is_required = 10;
   }
 
   message Error {
