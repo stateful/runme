@@ -553,6 +553,7 @@ PUBSUB_REDIS_HOST=127.0.0.3 # Redis!
 PUBSUB_REDIS_PORT=6379 # Redis!
 RATELIMITER_REDIS_HOST=127.0.0.4 # Redis
 GCLOUD_2_REDIS_HOST=127.0.0.5 # Redis
+REDIS_PASSWORD=fake-redis-password # Redis!
 REDIS_HOST=localhost # Redis!
 REDIS_PORT=6379 # Redis!`)
 

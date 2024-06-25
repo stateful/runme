@@ -38,6 +38,12 @@ type OperationSet struct {
 	values    map[string]*SetVarValue
 }
 
+type ComplexOperationSet struct {
+	*OperationSet
+	Name      string
+	Namespace string
+}
+
 type setVarOperation struct {
 	Order  uint             `json:"-"`
 	Kind   setOperationKind `json:"kind"`
@@ -55,6 +61,9 @@ type varSpec struct {
 	Name        string           `json:"name"`
 	Required    bool             `json:"required"`
 	Description string           `json:"description"`
+	Complex     string           `json:"-"`
+	Namespace   string           `json:"-"`
+	Rules       string           `json:"validator,omitempty"`
 	Operation   *setVarOperation `json:"operation"`
 	Error       ValidationError  `json:"-"`
 	Checked     bool             `json:"checked"`
@@ -556,7 +565,7 @@ func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
 	}
 
 	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
-	// _, _ = fmt.Println(query.String())
+	_, _ = fmt.Println(query.String())
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
@@ -581,6 +590,9 @@ func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
 	if result.HasErrors() {
 		return nil, fmt.Errorf("graphql errors %s", result.Errors)
 	}
+
+	// rj, _ := json.MarshalIndent(result.Data, "", " ")
+	// fmt.Println(string(rj))
 
 	val, err := extractDataKey(result.Data, "snapshot")
 	if err != nil {

@@ -95,9 +95,15 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 				"errors": &graphql.Field{
 					Type: graphql.NewList(SpecTypeErrorsType),
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						opSet, ok := p.Source.(*OperationSet)
-						if !ok {
-							return nil, errors.New("source is not an OperationSet")
+						var opSet *OperationSet
+
+						switch p.Source.(type) {
+						case *OperationSet:
+							opSet = p.Source.(*OperationSet)
+						case *ComplexOperationSet:
+							opSet = p.Source.(*ComplexOperationSet).OperationSet
+						default:
+							return nil, errors.New("source does not contain an OperationSet")
 						}
 
 						// todo(sebastian): move into interface?
@@ -121,6 +127,19 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 				"done": &graphql.Field{
 					Type: EnvironmentType,
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						var opSet *OperationSet
+
+						switch p.Source.(type) {
+						case *OperationSet:
+							return p.Source, nil
+						case *ComplexOperationSet:
+							opSet = p.Source.(*ComplexOperationSet).OperationSet
+						default:
+							return nil, errors.New("source does not contain an OperationSet")
+						}
+
+						validatorComplexSpec(opSet)
+
 						return p.Source, nil
 					},
 				},
@@ -139,6 +158,15 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
+func validatorComplexSpec(opSet *OperationSet) {
+	for _, spec := range opSet.specs {
+		if spec.Spec.Complex == "" || spec.Spec.Namespace == "" {
+			continue
+		}
+		fmt.Println(spec.Spec.Namespace, spec.Spec.Complex, spec.Var.Key)
+	}
+}
+
 func registerComplexType(resolver graphql.FieldResolveFn) *specType {
 	name := ComplexSpecType
 	typ := graphql.NewObject(graphql.ObjectConfig{
@@ -154,9 +182,15 @@ func registerComplexType(resolver graphql.FieldResolveFn) *specType {
 				"errors": &graphql.Field{
 					Type: graphql.NewList(SpecTypeErrorsType),
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						opSet, ok := p.Source.(*OperationSet)
-						if !ok {
-							return nil, errors.New("source is not an OperationSet")
+						var opSet *OperationSet
+
+						switch p.Source.(type) {
+						case *OperationSet:
+							opSet = p.Source.(*OperationSet)
+						case *ComplexOperationSet:
+							opSet = p.Source.(*ComplexOperationSet).OperationSet
+						default:
+							return nil, errors.New("source does not contain an OperationSet")
 						}
 
 						// todo(sebastian): move into interface?
@@ -205,7 +239,23 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 		insecure := p.Args["insecure"].(bool)
 		keysArg := p.Args["keys"].([]interface{})
 
-		opSet := p.Source.(*OperationSet)
+		var opSet *OperationSet
+		complexName := ""
+		complexNs := ""
+
+		switch p.Source.(type) {
+		case *OperationSet:
+			opSet = p.Source.(*OperationSet)
+			complexName = ""
+			complexNs = ""
+		case *ComplexOperationSet:
+			opSet = p.Source.(*ComplexOperationSet).OperationSet
+			complexName = p.Source.(*ComplexOperationSet).Name
+			complexNs = p.Source.(*ComplexOperationSet).Namespace
+		default:
+			return nil, errors.New("source does not contain an OperationSet")
+		}
+
 		for _, kArg := range keysArg {
 			k := kArg.(string)
 			val, valOk := opSet.values[k]
@@ -214,6 +264,9 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 				// todo(sebastian): superfluous keys are only possible in hand-written queries
 				continue
 			}
+
+			spec.Spec.Complex = complexName
+			spec.Spec.Namespace = complexNs
 
 			// skip if last known status was DELETED
 			if valOk && val.Value.Status == "DELETED" {
@@ -258,8 +311,10 @@ func resolveSensitiveKeys() graphql.FieldResolveFn {
 			return sensitive, nil
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
+		case *ComplexOperationSet:
+			opSet = p.Source.(*ComplexOperationSet).OperationSet
 		default:
-			return nil, errors.New("source is not an OperationSet")
+			return nil, errors.New("source does not contain an OperationSet")
 		}
 
 		for _, v := range opSet.values {
@@ -294,8 +349,10 @@ func resolveDotEnv() graphql.FieldResolveFn {
 			return dotenv, nil
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
+		case *ComplexOperationSet:
+			opSet = p.Source.(*ComplexOperationSet).OperationSet
 		default:
-			return nil, errors.New("source is not an OperationSet")
+			return nil, errors.New("source does not contain an OperationSet")
 		}
 
 		var buf bytes.Buffer
@@ -334,8 +391,10 @@ func resolveGetter() graphql.FieldResolveFn {
 			return kv, nil
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
+		case *ComplexOperationSet:
+			opSet = p.Source.(*ComplexOperationSet).OperationSet
 		default:
-			return nil, errors.New("source is not an OperationSet")
+			return nil, errors.New("source is does not contain an OperationSet")
 		}
 
 		val, ok := opSet.values[key]
@@ -368,8 +427,10 @@ func resolveSnapshot() graphql.FieldResolveFn {
 			return snapshot, nil
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
+		case *ComplexOperationSet:
+			opSet = p.Source.(*ComplexOperationSet).OperationSet
 		default:
-			return nil, errors.New("source is not an OperationSet")
+			return nil, errors.New("source does not contain an OperationSet")
 		}
 
 		// todo(sebastian): this should really be up the graph
@@ -594,6 +655,24 @@ func init() {
 
 	ComplexType = registerComplexType(
 		func(p graphql.ResolveParams) (interface{}, error) {
+			name := p.Args["name"].(string)
+			ns := p.Args["namespace"].(string)
+
+			switch p.Source.(type) {
+			case *OperationSet:
+				return &ComplexOperationSet{
+					OperationSet: p.Source.(*OperationSet),
+					Name:         name,
+					Namespace:    ns,
+				}, nil
+			case *ComplexOperationSet:
+				complexOpSet := p.Source.(*ComplexOperationSet)
+				complexOpSet.Name = name
+				complexOpSet.Namespace = ns
+			default:
+				return nil, errors.New("source does not contain an OperationSet")
+			}
+
 			return p.Source, nil
 		})
 

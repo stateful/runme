@@ -15,14 +15,17 @@ var SpecDefTypes = map[string]*SpecDef{
 		Items: map[string]*varSpec{
 			"HOST": {
 				Name:     SpecNamePlain,
+				Rules:    "required,min=4,max=32",
 				Required: true,
 			},
 			"PORT": {
 				Name:     SpecNamePlain,
+				Rules:    "required,min=4,max=32",
 				Required: true,
 			},
 			"PASSWORD": {
 				Name:     SpecNamePassword,
+				Rules:    "required,min=4,max=32",
 				Required: false,
 			},
 		},
@@ -33,6 +36,7 @@ var SpecDefTypes = map[string]*SpecDef{
 		Items: map[string]*varSpec{
 			"HOST": {
 				Name:     SpecNamePlain,
+				Rules:    "required,min=4,max=32",
 				Required: true,
 			},
 		},
