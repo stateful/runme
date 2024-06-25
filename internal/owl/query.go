@@ -1006,7 +1006,7 @@ func reduceSepcsComplex() QueryNodeReducer {
 			prevSelSet.Selections = append(prevSelSet.Selections,
 				ast.NewField(&ast.Field{
 					Name: ast.NewName(&ast.Name{
-						Value: SpecNameDefType,
+						Value: ComplexSpecType,
 					}),
 					Arguments: []*ast.Argument{
 						ast.NewArgument(&ast.Argument{

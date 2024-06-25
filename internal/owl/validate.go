@@ -1,6 +1,6 @@
 package owl
 
-const SpecNameDefType string = "Spec"
+const ComplexSpecType string = "Complex"
 
 type SpecDef struct {
 	Name    string

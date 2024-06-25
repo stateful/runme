@@ -29,7 +29,7 @@ type specType struct {
 var (
 	Schema      graphql.Schema
 	SpecTypes   map[string]*specType
-	SpecDefType *specType
+	ComplexType *specType
 )
 
 var EnvironmentType,
@@ -55,9 +55,9 @@ func registerSpecFields(fields graphql.Fields) {
 		}
 	}
 
-	fields[SpecDefType.typeName] = &graphql.Field{
-		Type:    SpecDefType.typeObject,
-		Resolve: SpecDefType.resolveFn,
+	fields[ComplexType.typeName] = &graphql.Field{
+		Type:    ComplexType.typeObject,
+		Resolve: ComplexType.resolveFn,
 		Args: graphql.FieldConfigArgument{
 			"name": &graphql.ArgumentConfig{
 				Type: graphql.NewNonNull(graphql.String),
@@ -139,8 +139,8 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
-func registerSpecDefType(resolver graphql.FieldResolveFn) *specType {
-	name := SpecNameDefType
+func registerComplexType(resolver graphql.FieldResolveFn) *specType {
+	name := ComplexSpecType
 	typ := graphql.NewObject(graphql.ObjectConfig{
 		Name: fmt.Sprintf("SpecType%s", name),
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
@@ -592,7 +592,7 @@ func init() {
 		}),
 	)
 
-	SpecDefType = registerSpecDefType(
+	ComplexType = registerComplexType(
 		func(p graphql.ResolveParams) (interface{}, error) {
 			return p.Source, nil
 		})
