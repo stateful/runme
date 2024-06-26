@@ -39,15 +39,21 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 	}
 
 	var docID bytes.Buffer
+	raw, err := frontmatter.Marshal(identityResolver.DocumentEnabled(), &docID)
 	// Additionally, put raw frontmatter in notebook's metadata.
 	// TODO(adamb): handle the error.
-	raw, err := frontmatter.Marshal(identityResolver.DocumentEnabled(), &docID)
 	if err == nil && len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
 	// Store document ID in metadata to bridge state where frontmatter with identity wasn't saved yet.
-	if docID.Len() > 0 {
+	if err == nil && docID.Len() > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = docID.String()
+	}
+	// Include new frontmatter in notebook to bridge state where a new file/doc was created but not serialized yet.
+	if notebook.Frontmatter == nil {
+		if fm, err := document.ParseFrontmatter(raw); err == nil {
+			notebook.Frontmatter = fm
+		}
 	}
 
 	return notebook, nil

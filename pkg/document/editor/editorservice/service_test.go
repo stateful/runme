@@ -292,6 +292,34 @@ func Test_RunmelessFrontmatter(t *testing.T) {
 	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 }
 
+func Test_NewFile_EmptyDocument_WithIdentityAll(t *testing.T) {
+	doc := ""
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_ALL
+
+	dResp, err := deserialize(client, doc, identity)
+	assert.NoError(t, err)
+
+	rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+	assert.True(t, ok)
+	assert.Len(t, dResp.Notebook.Metadata, 3)
+	assert.Regexp(t, versionRegex, rawFrontmatter, "Wrong version")
+
+	assert.NotNil(t, dResp.Notebook.Frontmatter)
+	prasedRunmeID := dResp.Notebook.Frontmatter.Runme.Id
+	assert.Contains(t, rawFrontmatter, "id: "+prasedRunmeID+"\n")
+
+	sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+	assert.NoError(t, err)
+
+	content := string(sResp.Result)
+
+	assert.Contains(t, content, "runme:\n")
+	assert.Contains(t, content, "id: "+prasedRunmeID+"\n")
+	assert.Contains(t, content, "version: v")
+	assert.Regexp(t, "^---\n", content)
+}
+
 func Test_parserServiceServer_Ast(t *testing.T) {
 	t.Run("Metadata", func(t *testing.T) {
 		os.Setenv("RUNME_AST_METADATA", "true")
