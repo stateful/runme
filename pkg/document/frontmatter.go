@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	stderrors "errors"
+	"io"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/pkg/errors"
@@ -89,19 +90,31 @@ func newFrontmatter() *Frontmatter {
 
 // Marshal returns a marshaled frontmatter including triple-dashed lines and a document ID.
 // If the identity is required, but Frontmatter is nil, a new one including ID is created.
-func (f *Frontmatter) Marshal(requireIdentity bool) ([]byte, string, error) {
+func (f *Frontmatter) Marshal(requireIdentity bool, docID io.StringWriter) ([]byte, error) {
 	if f == nil {
-		f = newFrontmatter()
-		f.ensureID()
 		if !requireIdentity {
-			// Return ephemeral document ID for internal metadata.
-			return nil, f.Runme.ID, nil
+			// Return a new document ID for ephemeral usage.
+			_, err := docID.WriteString(ulid.GenerateID())
+			return nil, err
+		}
+		f = newFrontmatter()
+	}
+
+	b, err := f.marshal(requireIdentity)
+	if err != nil {
+		return nil, err
+	}
+
+	if docID != nil && !f.Runme.IsEmpty() {
+		if _, err := docID.WriteString(f.Runme.ID); err != nil {
+			return nil, err
 		}
 	}
-	return f.marshal(requireIdentity)
+
+	return b, nil
 }
 
-func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, string, error) {
+func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 	if requireIdentity {
 		f.ensureID()
 	}
@@ -111,7 +124,7 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, string, error) {
 		m := make(map[string]interface{})
 
 		if err := yaml.Unmarshal([]byte(f.raw), &m); err != nil {
-			return nil, "", errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
 
 		if !f.Runme.IsEmpty() {
@@ -122,19 +135,19 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, string, error) {
 		encoder := yaml.NewEncoder(&buf)
 		encoder.SetIndent(2)
 		if err := encoder.Encode(m); err != nil {
-			return nil, "", errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
 		if err := encoder.Close(); err != nil {
-			return nil, "", errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
 
-		return append(append([]byte("---\n"), buf.Bytes()...), []byte("---")...), f.Runme.ID, nil
+		return append(append([]byte("---\n"), buf.Bytes()...), []byte("---")...), nil
 
 	case frontmatterFormatJSON:
 		m := make(map[string]interface{})
 
 		if err := json.Unmarshal([]byte(f.raw), &m); err != nil {
-			return nil, "", errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
 
 		if !f.Runme.IsEmpty() {
@@ -143,15 +156,15 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, string, error) {
 
 		data, err := json.Marshal(m)
 		if err != nil {
-			return nil, "", errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
-		return append(append([]byte("---\n"), data...), []byte("\n---")...), f.Runme.ID, nil
+		return append(append([]byte("---\n"), data...), []byte("\n---")...), nil
 
 	case frontmatterFormatTOML:
 		m := make(map[string]interface{})
 
 		if err := toml.Unmarshal([]byte(f.raw), &m); err != nil {
-			return nil, "", errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
 
 		if !f.Runme.IsEmpty() {
@@ -160,9 +173,9 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, string, error) {
 
 		data, err := toml.Marshal(m)
 		if err != nil {
-			return nil, "", errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
-		return append(append([]byte("+++\n"), data...), []byte("+++")...), f.Runme.ID, nil
+		return append(append([]byte("+++\n"), data...), []byte("+++")...), nil
 
 	default:
 		panic("invariant: Frontmatter created with invalid format")

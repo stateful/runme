@@ -88,10 +88,11 @@ First paragraph
 
 		frontmatter, err := doc.Frontmatter()
 		require.NoError(t, err)
-		marshaledFrontmatter, docID, err := frontmatter.Marshal(testIdentityResolver.DocumentEnabled())
+		var docID bytes.Buffer
+		marshaledFrontmatter, err := frontmatter.Marshal(testIdentityResolver.DocumentEnabled(), &docID)
 		require.NoError(t, err)
 		assert.Regexp(t, `---\nkey: value\nrunme:\n  id: .*\n  version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+|\d+)\n---`, string(marshaledFrontmatter))
-		assert.Len(t, docID, 26)
+		assert.Len(t, docID.String(), 26)
 	})
 
 	t.Run("Format", func(t *testing.T) {

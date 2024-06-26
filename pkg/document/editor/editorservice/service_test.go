@@ -93,6 +93,7 @@ func Test_IdentityUnspecified(t *testing.T) {
 
 		dResp, err := deserialize(client, tt.content, identity)
 		assert.NoError(t, err)
+		assert.Contains(t, dResp.Notebook.Metadata, "runme.dev/id")
 
 		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 		if tt.hasExtraFrontmatter {
@@ -217,6 +218,7 @@ func Test_IdentityCell(t *testing.T) {
 	for _, tt := range tests {
 		dResp, err := deserialize(client, tt.content, identity)
 		assert.NoError(t, err)
+		assert.Contains(t, dResp.Notebook.Metadata, "runme.dev/id")
 
 		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 
@@ -268,7 +270,7 @@ func Test_RunmelessFrontmatter(t *testing.T) {
 	rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 
 	assert.True(t, ok)
-	assert.Len(t, dResp.Notebook.Metadata, 3)
+	assert.Len(t, dResp.Notebook.Metadata, 2)
 	assert.Contains(t, rawFrontmatter, "prop: value\n")
 	assert.NotContains(t, rawFrontmatter, "id: \"123\"\n")
 	assert.NotRegexp(t, versionRegex, rawFrontmatter, "Wrong version")
