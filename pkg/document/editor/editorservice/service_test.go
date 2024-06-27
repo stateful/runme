@@ -320,6 +320,35 @@ func Test_NewFile_EmptyDocument_WithIdentityAll(t *testing.T) {
 	assert.Regexp(t, "^---\n", content)
 }
 
+func Test_EphemeralIdentity(t *testing.T) {
+	doc := strings.Join([]string{
+		"# Test identity integration with extension",
+		"```sh\ngh auth --help\n```",
+	}, "\n")
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED
+
+	dResp, err := deserialize(client, doc, identity)
+	assert.NoError(t, err)
+
+	assert.Len(t, dResp.Notebook.Metadata, 2)
+	assert.Len(t, dResp.Notebook.Cells, 2)
+	assert.NotContains(t, dResp.Notebook.Cells[1].Metadata, "id")
+	assert.Contains(t, dResp.Notebook.Cells[1].Metadata, "runme.dev/id")
+
+	sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+	assert.NoError(t, err)
+
+	content := string(sResp.Result)
+
+	assert.NotContains(t, content, "{\"id\":\"")
+	assert.NotContains(t, dResp.Notebook.Metadata, "id")
+	assert.NotContains(t, content, "runme:\n")
+	assert.NotContains(t, content, "id: ")
+	assert.NotContains(t, content, "version: v")
+	assert.NotRegexp(t, "^---\n", content)
+}
+
 func Test_parserServiceServer_Ast(t *testing.T) {
 	t.Run("Metadata", func(t *testing.T) {
 		os.Setenv("RUNME_AST_METADATA", "true")
@@ -439,7 +468,9 @@ func deserialize(client parserv1.ParserServiceClient, content string, idt parser
 }
 
 func serializeWithIdentityPersistence(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, idt parserv1.RunmeIdentity) (*parserv1.SerializeResponse, error) {
-	persistIdentityLikeExtension(notebook)
+	if idt == parserv1.RunmeIdentity_RUNME_IDENTITY_ALL || idt == parserv1.RunmeIdentity_RUNME_IDENTITY_CELL {
+		persistIdentityLikeExtension(notebook)
+	}
 	return client.Serialize(
 		context.Background(),
 		&parserv1.SerializeRequest{

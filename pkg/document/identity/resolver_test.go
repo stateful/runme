@@ -46,10 +46,22 @@ func TestIdentityResolver(t *testing.T) {
 		assert.True(t, resolver.DocumentEnabled())
 	})
 
-	t.Run("GetCellID", func(t *testing.T) {
+	t.Run("GetCellID_IdentityRequired", func(t *testing.T) {
 		id := "01HF53Z4RCVPRANKFBZYMS72QW"
 		ulid.MockGenerator(id)
 		resolver := NewResolver(CellLifecycleIdentity)
+		obj := struct{}{}
+		attributes := map[string]string{"id": id}
+		id, ok := resolver.GetCellID(obj, attributes)
+
+		assert.True(t, ok)
+		assert.NotEmpty(t, id)
+	})
+
+	t.Run("GetCellID_IdentityNotRequired", func(t *testing.T) {
+		id := "01J1D6BDDD767E819NV8W7YQC2"
+		ulid.MockGenerator(id)
+		resolver := NewResolver(UnspecifiedLifecycleIdentity)
 		obj := struct{}{}
 		attributes := map[string]string{"id": id}
 		id, ok := resolver.GetCellID(obj, attributes)
