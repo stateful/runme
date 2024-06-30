@@ -40,7 +40,8 @@ func TestExtractDataFromLoadEvent(t *testing.T) {
 }
 
 func TestNewDirProject(t *testing.T) {
-	testData := teststub.Setup(t, t.TempDir())
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
 
 	t.Run("ProperDirProject", func(t *testing.T) {
 		_, err := NewDirProject(testData.DirProjectPath())
@@ -135,6 +136,7 @@ func TestProjectRoot(t *testing.T) {
 func TestProjectLoad(t *testing.T) {
 	temp := t.TempDir()
 	testData := teststub.Setup(t, temp)
+
 	gitProjectDir := testData.GitProjectPath()
 
 	t.Run("GitProject", func(t *testing.T) {

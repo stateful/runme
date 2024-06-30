@@ -156,9 +156,3 @@ update-gql-schema:
 .PHONY: generate
 generate:
 	go generate ./...
-
-.PHONY: docker
-docker:
-	CGO_ENABLED=0 make build
-	docker build -f docker/Dockerfile.alpine . -t runme:alpine
-	docker build -f docker/Dockerfile.ubuntu . -t runme:ubuntu
