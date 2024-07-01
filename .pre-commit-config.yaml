@@ -3,23 +3,53 @@ repos:
     rev: v4.5.0
     hooks:
       - id: check-yaml
+        stages: [commit]
+      - id: check-json
+        exclude: "^.vscode/"
+        stages: [commit]
+      - id: check-merge-conflict
+        stages: [commit]
+      - id: check-case-conflict
+        stages: [commit]
+      - id: detect-private-key
+        stages: [commit]
       - id: end-of-file-fixer
+        stages: [commit]
       - id: trailing-whitespace
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+        stages: [commit]
+  - repo: https://github.com/crate-ci/committed
+    rev: v1.0.20
     hooks:
-      - id: codespell
-        args: ["-L=ndoes,nd,clen"] # 2x words that are preceeded with "\n"; cLen
-        exclude: (package.*\.json$|go\.sum|pkg/api/gen)
-  - repo: https://github.com/TekWizely/pre-commit-golang
-    rev: v1.0.0-rc.1
+      - id: committed
+        stages: [commit-msg]
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.22.9
     hooks:
-      - id: go-fumpt
-        exclude: (^pkg/api/gen/.*$|^internal/client/graphql/query/generated.go$)
-      - id: go-build-mod
+      - id: typos
+        args: ["--diff", "--force-exclude"]
+        exclude: "^.vscode/|go.mod"
+  - repo: local
+    hooks:
       - id: go-mod-tidy
-      - id: go-revive-repo-mod
-      - id: go-staticcheck-mod
-        exclude: (^expect/.*$|^internal/client/graphql/query/generated.go$)
-      - id: go-sec-repo-mod
-        args: ["-exclude=G204,G304,G404", "-exclude-generated"]
+        name: go mod tidy
+        entry: go
+        args: ["mod", "tidy"]
+        language: system
+        types: [go]
+        pass_filenames: false
+        stages: [commit]
+      - id: lint
+        name: lint
+        entry: make
+        args: ["lint"]
+        language: system
+        types: [go]
+        pass_filenames: false
+        stages: [commit]
+      - id: build
+        name: build
+        entry: make
+        language: system
+        types: [go]
+        pass_filenames: false
+        stages: [commit]

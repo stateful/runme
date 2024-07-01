@@ -597,7 +597,7 @@ func (o output) Clone() (result output) {
 }
 
 // readLoop uses two sets of buffers in order to avoid allocating
-// new memory over and over and putting more presure on GC.
+// new memory over and over and putting more pressure on GC.
 // When the first set is read, it is sent to a channel called `results`.
 // `results` should be an unbuffered channel. When a consumer consumes
 // from the channel, the loop is unblocked and it moves on to read

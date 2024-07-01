@@ -19,8 +19,6 @@ import (
 )
 
 func init() {
-	EnvDumpCommand = "env -0"
-
 	// Set to false to disable sending signals to process groups in tests.
 	// This can be turned on if setSysProcAttrPgid() is called in Start().
 	SignalToProcessGroup = false
@@ -288,7 +286,7 @@ func TestCommand_InvalidProgram(t *testing.T) {
 	require.Contains(t, err.Error(), "failed program lookup \"invalidProgram\"")
 }
 
-func TestCommnd_InvalidScript(t *testing.T) {
+func TestCommand_InvalidScript(t *testing.T) {
 	t.Parallel()
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
@@ -321,7 +319,7 @@ func TestCommnd_InvalidScript(t *testing.T) {
 
 // TestCommand_SetWinsize validates if it's possible to set the window size for a command.
 // Overall, for any interactive command it should be possible.
-// Check oout command_terminal_test.go for more details.
+// Check out command_terminal_test.go for more details.
 func TestCommand_SetWinsize(t *testing.T) {
 	t.Parallel()
 
@@ -367,6 +365,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 				ProgramName: "bash",
 				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
 				Interactive: true,
+				Env:         []string{"TERM=xterm"},
 			},
 			CommandOptions{
 				StdinWriter: stdinW,
@@ -392,7 +391,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 		_, err = stdinW.Write([]byte{0x04}) // EOT
 		require.NoError(t, err)
 		err = cmd.Wait()
-		require.NoError(t, err)
+		require.NoError(t, err, "command failed due to: %s", stdout.String())
 		require.Contains(t, stdout.String(), "56\r\n45\r\n")
 	})
 }

@@ -95,7 +95,14 @@ fmt:
 
 .PHONY: lint
 lint:
-	@revive -config revive.toml -formatter stylish -exclude integration/subject/... ./...
+	@gofumpt -d .
+	@revive \
+		-config revive.toml \
+		-formatter stylish \
+		-exclude integration/subject/... \
+		./...
+	@staticcheck ./...
+	@gosec -quiet -exclude=G204,G304,G404 -exclude-generated ./...
 
 .PHONY: pre-commit
 pre-commit: build wasm test lint
