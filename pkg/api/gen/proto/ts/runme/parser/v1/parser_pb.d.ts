@@ -229,6 +229,10 @@ export interface Frontmatter {
      * @generated from protobuf field: string category = 5;
      */
     category: string;
+    /**
+     * @generated from protobuf field: string terminal_rows = 6;
+     */
+    terminalRows: string;
 }
 /**
  * @generated from protobuf message runme.parser.v1.DeserializeRequestOptions
