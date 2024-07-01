@@ -15,6 +15,7 @@ func Setup(t *testing.T, temp string) Path {
 
 	testDataSrc := originalTestDataPath()
 	require.NoError(t, copy.Copy(testDataSrc, temp))
+	Cleanup(t, temp)
 
 	err := os.Rename(
 		filepath.Join(temp, "git-project", ".git.bkp"),
@@ -35,6 +36,13 @@ func Setup(t *testing.T, temp string) Path {
 	require.NoError(t, err)
 
 	return Path{root: temp}
+}
+
+func Cleanup(t *testing.T, temp string) {
+	t.Helper()
+
+	err := os.RemoveAll(filepath.Join(temp, "git-project", ".git"))
+	require.NoError(t, err)
 }
 
 func OriginalPath() Path {

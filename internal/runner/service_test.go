@@ -1083,7 +1083,6 @@ func Test_runnerService(t *testing.T) {
 	})
 
 	t.Run("ExecuteStoreLastOutput", func(t *testing.T) {
-		t.Parallel()
 		s, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{})
 		require.NoError(t, err)
 

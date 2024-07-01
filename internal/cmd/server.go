@@ -97,7 +97,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
 
-			const maxMsgSize = 4 * 1024 * 1024 // 4 MiB
+			const maxMsgSize = 100 * 1024 * 1024 // 100 MiB
 
 			server := grpc.NewServer(
 				grpc.MaxRecvMsgSize(maxMsgSize),
