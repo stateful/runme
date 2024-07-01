@@ -228,7 +228,8 @@ class Frontmatter$Type extends MessageType {
             { no: 2, name: "cwd", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "skip_prompts", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 4, name: "runme", kind: "message", T: () => FrontmatterRunme },
-            { no: 5, name: "category", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "category", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "terminal_rows", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }

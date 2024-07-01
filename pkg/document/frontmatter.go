@@ -54,11 +54,12 @@ func (m *RunmeMetadata) IsEmpty() bool {
 }
 
 type Frontmatter struct {
-	Runme       *RunmeMetadata `yaml:"runme,omitempty"`
-	Shell       string         `yaml:"shell"`
-	Cwd         string         `yaml:"cwd"`
-	Category    string         `yaml:"category"`
-	SkipPrompts bool           `yaml:"skipPrompts,omitempty"`
+	Runme        *RunmeMetadata `yaml:"runme,omitempty"`
+	Shell        string         `yaml:"shell"`
+	Cwd          string         `yaml:"cwd"`
+	Category     string         `yaml:"category"`
+	TerminalRows string         `yaml:"terminalRows"`
+	SkipPrompts  bool           `yaml:"skipPrompts,omitempty"`
 
 	format string
 	raw    string // using string to be able to compare using ==

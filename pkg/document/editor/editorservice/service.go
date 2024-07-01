@@ -57,11 +57,11 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 
 	if notebook.Frontmatter != nil {
 		frontmatter = &parserv1.Frontmatter{
-			Shell:       notebook.Frontmatter.Shell,
-			Cwd:         notebook.Frontmatter.Cwd,
-			SkipPrompts: notebook.Frontmatter.SkipPrompts,
-			// todo(sebastian): impl logic for doc category (runme#369)
-			Category: notebook.Frontmatter.Category,
+			Shell:        notebook.Frontmatter.Shell,
+			Cwd:          notebook.Frontmatter.Cwd,
+			SkipPrompts:  notebook.Frontmatter.SkipPrompts,
+			Category:     notebook.Frontmatter.Category,
+			TerminalRows: notebook.Frontmatter.TerminalRows,
 		}
 
 		runme := parserv1.FrontmatterRunme{}

@@ -61,19 +61,6 @@ class Config_Project$Type extends MessageType {
  */
 export const Config_Project = new Config_Project$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class Config_Filter$Type extends MessageType {
-    constructor() {
-        super("runme.config.v1alpha1.Config.Filter", [
-            { no: 1, name: "type", kind: "enum", T: () => ["runme.config.v1alpha1.Config.FilterType", Config_FilterType, "FILTER_TYPE_"], options: { "buf.validate.field": { enum: { definedOnly: true } } } },
-            { no: 2, name: "condition", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "1024" } } } }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Filter
- */
-export const Config_Filter = new Config_Filter$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class Config_Env$Type extends MessageType {
     constructor() {
         super("runme.config.v1alpha1.Config.Env", [
@@ -86,6 +73,19 @@ class Config_Env$Type extends MessageType {
  * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Env
  */
 export const Config_Env = new Config_Env$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Config_Filter$Type extends MessageType {
+    constructor() {
+        super("runme.config.v1alpha1.Config.Filter", [
+            { no: 1, name: "type", kind: "enum", T: () => ["runme.config.v1alpha1.Config.FilterType", Config_FilterType, "FILTER_TYPE_"], options: { "buf.validate.field": { enum: { definedOnly: true } } } },
+            { no: 2, name: "condition", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "1024" } } } }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.config.v1alpha1.Config.Filter
+ */
+export const Config_Filter = new Config_Filter$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Config_Runtime$Type extends MessageType {
     constructor() {
