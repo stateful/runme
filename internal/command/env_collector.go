@@ -15,6 +15,8 @@ import (
 const (
 	envStartFileName = ".env_start"
 	envEndFileName   = ".env_end"
+
+	maxScannerBufferSizeInBytes = 1024 * 1024 * 1024
 )
 
 // EnvDumpCommand is a command that dumps the environment variables.
@@ -133,7 +135,18 @@ func (c *shellEnvCollector) readEnvFromFile(name string) (result []string, _ err
 	}
 	defer func() { _ = f.Close() }()
 
+	fileInfo, err := f.Stat()
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to get the file info of the env file %q", name)
+	}
+
+	scannerBufferSizeInBytes := fileInfo.Size()
+	if scannerBufferSizeInBytes > maxScannerBufferSizeInBytes {
+		return nil, errors.Errorf("the env file %q is too big: %d bytes", name, scannerBufferSizeInBytes)
+	}
+
 	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 4096), int(scannerBufferSizeInBytes)) // 4096 is taken from bufio as the initial buffer size
 	scanner.Split(splitNull)
 
 	for scanner.Scan() {
