@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var inlineShellCommandUseFifoShellEnvCollector = true
+
 type inlineShellCommand struct {
 	internalCommand
 
@@ -72,7 +74,7 @@ func (c *inlineShellCommand) build() (string, error) {
 	// If the session is provided, we need to collect the environment before and after the script execution.
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
 	if c.session != nil {
-		c.envCollector, err = buildShellEnvCollector(buf)
+		c.envCollector, err = newShellEnvCollectorFactory(inlineShellCommandUseFifoShellEnvCollector).Build(buf)
 		if err != nil {
 			return "", err
 		}

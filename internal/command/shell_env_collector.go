@@ -23,10 +23,31 @@ var (
 		return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
 	}()
 
-	// useFifoShellEnvCollector is a flag that forces
-	// the FIFO-based shell env collector when possible.
-	useFifoShellEnvCollector = true
+	errFifoCreate = errors.New("failed to create fifo")
 )
+
+type shellEnvCollectorFactory struct {
+	useFifo bool
+}
+
+func newShellEnvCollectorFactory(useFifo bool) *shellEnvCollectorFactory {
+	return &shellEnvCollectorFactory{useFifo: useFifo}
+}
+
+func (f *shellEnvCollectorFactory) Build(w io.Writer) (shellEnvCollector, error) {
+	if f.useFifo {
+		collector, err := newFifoShellEnvCollector(w)
+		if err == nil {
+			return collector, nil
+		}
+		if !errors.Is(err, errFifoCreate) {
+			return nil, err
+		}
+		// If the FIFO collector failed to create the FIFOs,
+		// fallback to the file-based collector.
+	}
+	return newFileShellEnvCollector(w)
+}
 
 // shellEnvCollector collects the environment variables from a shell script or session (terminal mode).
 // It writes a shell command that dumps the initial environment variables. Then, it configures a trap

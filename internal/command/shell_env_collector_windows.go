@@ -1,7 +1,11 @@
 package command
 
-import "io"
+import (
+	"io"
 
-func buildShellEnvCollector(w io.Writer) (shellEnvCollector, error) {
-	return newFileShellEnvCollector(w)
+	"github.com/pkg/errors"
+)
+
+func newFifoShellEnvCollector(io.Writer) (shellEnvCollector, error) {
+	return nil, errors.Wrap(errFifoCreate, "fifo unsupported")
 }

@@ -11,13 +11,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func buildShellEnvCollector(w io.Writer) (shellEnvCollector, error) {
-	if useFifoShellEnvCollector {
-		return newFifoShellEnvCollector(w)
-	}
-	return newFileShellEnvCollector(w)
-}
-
 type fifoShellEnvCollector struct {
 	*fsShellEnvCollector
 	startEnv     []string
@@ -48,12 +41,12 @@ func (c *fifoShellEnvCollector) init() error {
 
 	err = c.createFifo(c.onStartPath())
 	if err != nil {
-		return errors.WithMessage(err, "failed to create the start FIFO")
+		return errors.WithMessagef(errFifoCreate, "failed to create the start FIFO: %s", err)
 	}
 
 	err = c.createFifo(c.onExitPath())
 	if err != nil {
-		return errors.WithMessage(err, "failed to create the exit FIFO")
+		return errors.WithMessagef(errFifoCreate, "failed to create the exit FIFO: %s", err)
 	}
 
 	c.readersGroup.Go(func() (err error) {
