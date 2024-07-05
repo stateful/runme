@@ -2,6 +2,7 @@ package editor
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -25,9 +26,10 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 		return nil, err
 	}
 
-	frontmatter, err := doc.Frontmatter()
+	frontmatter := doc.Frontmatter()
+	err = doc.FrontmatterError()
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
 	}
 
 	notebook := &Notebook{
@@ -39,8 +41,7 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 	}
 
 	// Additionally, put raw frontmatter in notebook's metadata.
-	// TODO(adamb): handle the error.
-	if raw, err := frontmatter.Marshal(identityResolver.DocumentEnabled()); err == nil && len(raw) > 0 {
+	if raw := doc.FrontMatterRaw(); len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
 
@@ -57,17 +58,17 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]by
 	var err error
 	var frontmatter *document.Frontmatter
 
-	// Serialize frontmatter.
-	if intro, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]; ok {
+	// Serialize parsed frontmatter.
+	intro, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)]
+	if ok {
 		raw := []byte(intro)
 
 		frontmatter, err = document.ParseFrontmatter(raw)
 		if err != nil {
-			return nil, err
+			fmt.Println(err)
 		}
 	}
 
-	var raw []byte
 	if outputMetadata != nil && outputMetadata.Session.GetID() != "" {
 		if frontmatter == nil {
 			frontmatter = document.NewYAMLFrontmatter()
@@ -80,6 +81,12 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]by
 		frontmatter.Runme.Document = outputMetadata.Document
 	}
 
+	var raw []byte
+	// retain raw frontmatter even if parsing failed due to invalidity
+	if len(intro) > 0 {
+		raw = []byte(intro)
+	}
+
 	if frontmatter != nil {
 		// if the deserializer didn't add the ID first, it means it's not required
 		requireIdentity := !frontmatter.Runme.IsEmpty() && frontmatter.Runme.ID != ""
@@ -87,7 +94,9 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]by
 		if err != nil {
 			return nil, err
 		}
+	}
 
+	if len(raw) > 0 {
 		lb := document.DetectLineBreak(raw)
 		result = append(
 			raw,

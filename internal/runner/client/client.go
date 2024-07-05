@@ -277,7 +277,8 @@ func WrapWithCancelReader() RunnerOption {
 
 func ResolveDirectory(parentDir string, task project.Task) string {
 	// TODO(adamb): consider handling this error or add a comment it can be skipped.
-	fmtr, _ := task.CodeBlock.Document().Frontmatter()
+	doc := task.CodeBlock.Document()
+	fmtr := doc.Frontmatter()
 	if fmtr == nil {
 		fmtr = &document.Frontmatter{}
 	}

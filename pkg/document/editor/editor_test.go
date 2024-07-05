@@ -197,6 +197,49 @@ A paragraph
 	)
 }
 
+func TestEditor_FrontmatterWithoutRunme(t *testing.T) {
+	data := []byte(`+++
+prop1 = 'val1'
+prop2 = 'val2'
++++
+
+# Example
+
+A paragraph
+`)
+	notebook, err := Deserialize(data, identityResolverNone)
+	require.NoError(t, err)
+	result, err := Serialize(notebook, nil)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		string(data),
+		string(result),
+	)
+}
+
+func TestEditor_RetainInvalidFrontmatter(t *testing.T) {
+	data := []byte(`+++
+title = '{{ replace .File.ContentBaseName "-" " " | title }}'
+date = {{ .Date }}
+draft = true
++++
+
+# Example
+
+A paragraph
+`)
+	notebook, err := Deserialize(data, identityResolverNone)
+	require.NoError(t, err)
+	result, err := Serialize(notebook, nil)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		string(data),
+		string(result),
+	)
+}
+
 func TestEditor_SessionOutput(t *testing.T) {
 	data := []byte(fmt.Sprintf(`+++
 prop1 = 'val1'

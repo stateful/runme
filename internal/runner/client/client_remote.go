@@ -181,7 +181,9 @@ func (r *RemoteRunner) ResolveProgram(ctx context.Context, mode runnerv1.Resolve
 
 func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 	block := task.CodeBlock
-	fmtr, err := task.CodeBlock.Document().Frontmatter()
+	doc := task.CodeBlock.Document()
+	fmtr := doc.Frontmatter()
+	err := doc.FrontmatterError()
 	if err != nil {
 		return err
 	}

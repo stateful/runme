@@ -182,20 +182,24 @@ func (f *Frontmatter) ensureID() {
 	}
 }
 
-func (d *Document) Frontmatter() (*Frontmatter, error) {
+func (d *Document) Frontmatter() *Frontmatter {
 	d.splitSource()
-
-	if d.splitSourceErr != nil {
-		return nil, d.splitSourceErr
-	}
 
 	d.parseFrontmatter()
 
-	if d.parseFrontmatterErr != nil {
-		return nil, d.parseFrontmatterErr
+	return d.frontmatter
+}
+
+func (d *Document) FrontmatterError() error {
+	if d.splitSourceErr != nil {
+		return d.splitSourceErr
 	}
 
-	return d.frontmatter, nil
+	if d.parseFrontmatterErr != nil {
+		return d.parseFrontmatterErr
+	}
+
+	return nil
 }
 
 func (d *Document) parseFrontmatter() {

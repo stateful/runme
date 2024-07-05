@@ -116,6 +116,10 @@ func (d *Document) splitAndParse() error {
 	return nil
 }
 
+func (d *Document) FrontMatterRaw() []byte {
+	return d.frontmatterRaw
+}
+
 // splitSource splits source into FrontMatter and content.
 // TODO(adamb): replace it with an extension to goldmark.
 // Example: https://github.com/abhinav/goldmark-frontmatter

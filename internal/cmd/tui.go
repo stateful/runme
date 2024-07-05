@@ -139,10 +139,11 @@ func tuiCmd() *cobra.Command {
 
 				task := result.task
 
-				fmtr, err := task.CodeBlock.Document().Frontmatter()
-				if err != nil {
+				doc := task.CodeBlock.Document()
+				if err := doc.FrontmatterError(); err != nil {
 					return err
 				}
+				fmtr := doc.Frontmatter()
 
 				if fmtr != nil && !fmtr.SkipPrompts {
 					err = promptEnvVars(cmd, runnerClient, task)
