@@ -290,6 +290,45 @@ func Test_RunmelessFrontmatter(t *testing.T) {
 	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 }
 
+func Test_RetainInvalidFrontmatter(t *testing.T) {
+	doc := strings.Join([]string{
+		"+++",
+		"invalid frontmatter",
+		"+++",
+		"",
+		documentWithoutFrontmatter,
+	}, "\n")
+
+	identity := parserv1.RunmeIdentity_RUNME_IDENTITY_ALL
+
+	dResp, err := deserialize(client, doc, identity)
+	assert.NoError(t, err)
+
+	rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+
+	assert.True(t, ok)
+	assert.Len(t, dResp.Notebook.Metadata, 2)
+	assert.Contains(t, rawFrontmatter, "invalid frontmatter")
+	assert.NotContains(t, rawFrontmatter, "id: ")
+	assert.NotRegexp(t, versionRegex, rawFrontmatter, "Wrong version")
+
+	sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+	assert.NoError(t, err)
+
+	content := string(sResp.Result)
+
+	assert.NotContains(t, content, "runme:\n")
+	assert.NotContains(t, content, "id: \n")
+	assert.NotContains(t, content, "version: v")
+	assert.Contains(t, content, "invalid frontmatter")
+	assert.Regexp(t, "^\\+\\+\\+\n", content)
+	assert.NotRegexp(t, "^\n\n", content)
+
+	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"foo\"}\n")
+	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
+	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
+}
+
 func Test_parserServiceServer_Ast(t *testing.T) {
 	t.Run("Metadata", func(t *testing.T) {
 		os.Setenv("RUNME_AST_METADATA", "true")
