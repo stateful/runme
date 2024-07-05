@@ -2,11 +2,11 @@ package editor
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/document/constants"
@@ -18,7 +18,7 @@ const (
 	DocumentID     = "id"
 )
 
-func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Notebook, error) {
+func Deserialize(log *zap.Logger, data []byte, identityResolver *identity.IdentityResolver) (*Notebook, error) {
 	// Deserialize content to cells.
 	doc := document.New(data, identityResolver)
 	node, err := doc.Root()
@@ -27,9 +27,10 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 	}
 
 	frontmatter := doc.Frontmatter()
-	err = doc.FrontmatterError()
-	if err != nil {
-		fmt.Println(err)
+	fmErr := doc.FrontmatterError()
+	// non-fatal error
+	if fmErr != nil {
+		log.Warn("failed to parse frontmatter", zap.Error(fmErr))
 	}
 
 	notebook := &Notebook{
@@ -40,8 +41,13 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 		},
 	}
 
-	// Additionally, put raw frontmatter in notebook's metadata.
-	if raw := doc.FrontMatterRaw(); len(raw) > 0 {
+	// Additionally, put raw frontmatter in notebook's metadata, no matter invalid or valid
+	// TODO(adamb): handle the error.
+	if raw, err := frontmatter.Marshal(identityResolver.DocumentEnabled()); err == nil && len(raw) > 0 {
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
+	}
+	// if parsing frontmatter failed put unparsed frontmatter in notebook's metadata to avoid earsing it with "default frontmatter"
+	if raw := doc.FrontMatterRaw(); fmErr != nil && len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
 
@@ -53,7 +59,7 @@ func Deserialize(data []byte, identityResolver *identity.IdentityResolver) (*Not
 	return notebook, nil
 }
 
-func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]byte, error) {
+func Serialize(log *zap.Logger, notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]byte, error) {
 	var result []byte
 	var err error
 	var frontmatter *document.Frontmatter
@@ -64,8 +70,9 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]by
 		raw := []byte(intro)
 
 		frontmatter, err = document.ParseFrontmatter(raw)
+		// non-fatal error
 		if err != nil {
-			fmt.Println(err)
+			log.Warn("failed to parse frontmatter", zap.Error(err))
 		}
 	}
 
