@@ -17,9 +17,9 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/project/projectservice"
-	"github.com/stateful/runme/v3/internal/project/teststub"
-	"github.com/stateful/runme/v3/internal/project/testutils"
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
+	"github.com/stateful/runme/v3/pkg/project/teststub"
+	"github.com/stateful/runme/v3/pkg/project/testutils"
 )
 
 func TestProjectServiceServer_Load(t *testing.T) {

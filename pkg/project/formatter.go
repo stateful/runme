@@ -3,12 +3,6 @@ package project
 import (
 	"bytes"
 	"encoding/json"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stateful/runme/v3/internal/renderer/cmark"
@@ -17,60 +11,25 @@ import (
 	"github.com/stateful/runme/v3/pkg/document/identity"
 )
 
-type funcOutput func(string, []byte) error
+type FuncOutput func(string, []byte) error
 
-func Format(files []string, basePath string, flatten bool, formatJSON bool, write bool, outputter funcOutput) error {
-	for _, relFile := range files {
-		data, err := readMarkdown(basePath, []string{relFile})
+func FormatFiles(files []string, flatten bool, formatJSON bool, write bool, outputter FuncOutput) error {
+	for _, file := range files {
+		data, err := readMarkdown(file)
 		if err != nil {
 			return err
 		}
 
-		var formatted []byte
-		identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
-
-		if flatten {
-			notebook, err := editor.Deserialize(data, editor.Options{IdentityResolver: identityResolver})
-			if err != nil {
-				return errors.Wrap(err, "failed to deserialize")
-			}
-
-			if formatJSON {
-				var buf bytes.Buffer
-				enc := json.NewEncoder(&buf)
-				enc.SetIndent("", "  ")
-				if err := enc.Encode(notebook); err != nil {
-					return errors.Wrap(err, "failed to encode to JSON")
-				}
-				formatted = buf.Bytes()
-			} else {
-				if identityResolver.CellEnabled() {
-					notebook.ForceLifecycleIdentities()
-				}
-
-				formatted, err = editor.Serialize(notebook, nil, editor.Options{})
-				if err != nil {
-					return errors.Wrap(err, "failed to serialize")
-				}
-			}
-		} else {
-			doc := document.New(data, identityResolver)
-			astNode, err := doc.RootAST()
-			if err != nil {
-				return errors.Wrap(err, "failed to parse source")
-			}
-			formatted, err = cmark.Render(astNode, data)
-			if err != nil {
-				return errors.Wrap(err, "failed to render")
-			}
+		formatted, err := formatFile(data, flatten, formatJSON)
+		if err != nil {
+			return err
 		}
 
 		if write {
-			err = writeMarkdown(basePath, []string{relFile}, formatted)
+			err = writeMarkdown(file, formatted)
 		} else {
-			err = outputter(relFile, formatted)
+			err = outputter(file, formatted)
 		}
-
 		if err != nil {
 			return err
 		}
@@ -79,64 +38,41 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 	return nil
 }
 
-func writeMarkdown(basePath string, args []string, data []byte) error {
-	arg := ""
-	if len(args) == 1 {
-		arg = args[0]
-	}
+func formatFile(data []byte, flatten bool, formatJSON bool) ([]byte, error) {
+	identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
+	var formatted []byte
 
-	if arg == "-" {
-		return errors.New("cannot write to stdin")
-	}
-
-	if strings.HasPrefix(arg, "https://") {
-		return errors.New("cannot write to HTTP location")
-	}
-
-	fullFilename := filepath.Join(basePath, arg)
-	if fullFilename == "" {
-		return nil
-	}
-	err := WriteMarkdownFile(fullFilename, nil, data)
-	return errors.Wrapf(err, "failed to write to %s", fullFilename)
-}
-
-func readMarkdown(basePath string, args []string) ([]byte, error) {
-	arg := ""
-	if len(args) == 1 {
-		arg = args[0]
-	}
-
-	var (
-		data []byte
-		err  error
-	)
-
-	if arg == "-" {
-		data, err = io.ReadAll(os.Stdin)
+	if flatten {
+		notebook, err := editor.Deserialize(data, editor.Options{IdentityResolver: identityResolver})
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to read from stdin")
+			return nil, errors.Wrap(err, "failed to deserialize")
 		}
-	} else if strings.HasPrefix(arg, "https://") {
-		client := http.Client{
-			Timeout: time.Second * 5,
-		}
-		resp, err := client.Get(arg)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get a file %q", arg)
-		}
-		defer func() { _ = resp.Body.Close() }()
-		data, err = io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to read body")
+
+		if formatJSON {
+			var buf bytes.Buffer
+			enc := json.NewEncoder(&buf)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(notebook); err != nil {
+				return nil, errors.Wrap(err, "failed to encode to JSON")
+			}
+			formatted = buf.Bytes()
+		} else {
+			formatted, err = editor.Serialize(notebook, nil, editor.Options{IdentityResolver: identityResolver})
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to serialize")
+			}
 		}
 	} else {
-		filePath := filepath.Join(basePath, arg)
-		data, err = ReadMarkdownFile(filePath, nil)
+		doc := document.New(data, identityResolver)
+		astNode, err := doc.RootAST()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read from file %q", arg)
+			return nil, errors.Wrap(err, "failed to parse source")
+		}
+		formatted, err = cmark.Render(astNode, data)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to render")
 		}
 	}
 
-	return data, nil
+	return formatted, nil
 }
