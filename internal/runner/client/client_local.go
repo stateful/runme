@@ -89,8 +89,7 @@ func (r *LocalRunner) setupSession() error {
 func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
 	block := task.CodeBlock
 	doc := task.CodeBlock.Document()
-	fmtr := doc.Frontmatter()
-	err := doc.FrontmatterError()
+	fmtr, err := doc.FrontmatterWithError()
 	if err != nil {
 		return nil, err
 	}

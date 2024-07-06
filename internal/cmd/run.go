@@ -188,8 +188,8 @@ func runCmd() *cobra.Command {
 
 			for _, task := range runTasks {
 				doc := task.CodeBlock.Document()
-				fmtr := doc.Frontmatter()
-				if err := doc.FrontmatterError(); err != nil {
+				fmtr, err := doc.FrontmatterWithError()
+				if err != nil {
 					return err
 				}
 				if fmtr != nil && fmtr.SkipPrompts {

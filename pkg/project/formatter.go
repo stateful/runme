@@ -15,14 +15,11 @@ import (
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/document/editor"
 	"github.com/stateful/runme/v3/pkg/document/identity"
-	"go.uber.org/zap"
 )
 
 type funcOutput func(string, []byte) error
 
 func Format(files []string, basePath string, flatten bool, formatJSON bool, write bool, outputter funcOutput) error {
-	logger := zap.NewNop()
-
 	for _, relFile := range files {
 		data, err := readMarkdown(basePath, []string{relFile})
 		if err != nil {
@@ -33,7 +30,7 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 		identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
 
 		if flatten {
-			notebook, err := editor.Deserialize(logger, data, identityResolver)
+			notebook, err := editor.Deserialize(data, editor.Options{IdentityResolver: identityResolver})
 			if err != nil {
 				return errors.Wrap(err, "failed to deserialize")
 			}
@@ -51,7 +48,7 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 					notebook.ForceLifecycleIdentities()
 				}
 
-				formatted, err = editor.Serialize(logger, notebook, nil)
+				formatted, err = editor.Serialize(notebook, nil, editor.Options{})
 				if err != nil {
 					return errors.Wrap(err, "failed to serialize")
 				}

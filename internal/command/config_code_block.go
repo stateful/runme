@@ -46,8 +46,7 @@ func (b *configBuilder) dir() string {
 	var dirs []string
 
 	doc := b.block.Document()
-	err := doc.FrontmatterError()
-	fmtr := doc.Frontmatter()
+	fmtr, err := doc.FrontmatterWithError()
 	if err == nil && fmtr != nil && fmtr.Cwd != "" {
 		dirs = append(dirs, fmtr.Cwd)
 	}
@@ -70,8 +69,7 @@ func (b *configBuilder) programPath() (programPath string) {
 	// If the language is a shell language, check frontmatter for shell overwrite.
 	if isShellLanguage(language) {
 		doc := b.block.Document()
-		fmtr := doc.Frontmatter()
-		err := doc.FrontmatterError()
+		fmtr, err := doc.FrontmatterWithError()
 		if err == nil && fmtr != nil && fmtr.Shell != "" {
 			programPath = fmtr.Shell
 		}

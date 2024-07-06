@@ -116,7 +116,7 @@ func (d *Document) splitAndParse() error {
 	return nil
 }
 
-func (d *Document) FrontMatterRaw() []byte {
+func (d *Document) FrontmatterRaw() []byte {
 	return d.frontmatterRaw
 }
 

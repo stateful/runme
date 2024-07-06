@@ -18,19 +18,30 @@ const (
 	DocumentID     = "id"
 )
 
-func Deserialize(log *zap.Logger, data []byte, identityResolver *identity.IdentityResolver) (*Notebook, error) {
+type Options struct {
+	IdentityResolver *identity.IdentityResolver
+	LoggerInstance   *zap.Logger
+}
+
+func (o Options) Logger() *zap.Logger {
+	if o.LoggerInstance == nil {
+		o.LoggerInstance = zap.NewNop()
+	}
+	return o.LoggerInstance
+}
+
+func Deserialize(data []byte, opts Options) (*Notebook, error) {
 	// Deserialize content to cells.
-	doc := document.New(data, identityResolver)
+	doc := document.New(data, opts.IdentityResolver)
 	node, err := doc.Root()
 	if err != nil {
 		return nil, err
 	}
 
-	frontmatter := doc.Frontmatter()
-	fmErr := doc.FrontmatterError()
+	frontmatter, fmErr := doc.FrontmatterWithError()
 	// non-fatal error
 	if fmErr != nil {
-		log.Warn("failed to parse frontmatter", zap.Error(fmErr))
+		opts.Logger().Warn("failed to parse frontmatter", zap.Error(fmErr))
 	}
 
 	notebook := &Notebook{
@@ -43,23 +54,23 @@ func Deserialize(log *zap.Logger, data []byte, identityResolver *identity.Identi
 
 	// Additionally, put raw frontmatter in notebook's metadata, no matter invalid or valid
 	// TODO(adamb): handle the error.
-	if raw, err := frontmatter.Marshal(identityResolver.DocumentEnabled()); err == nil && len(raw) > 0 {
+	if raw, err := frontmatter.Marshal(opts.IdentityResolver.DocumentEnabled()); err == nil && len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
 	// if parsing frontmatter failed put unparsed frontmatter in notebook's metadata to avoid earsing it with "default frontmatter"
-	if raw := doc.FrontMatterRaw(); fmErr != nil && len(raw) > 0 {
+	if raw := doc.FrontmatterRaw(); fmErr != nil && len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
 
 	// Store internal ephemeral document ID if the document lifecycle ID is disabled.
-	if !identityResolver.DocumentEnabled() {
-		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = identityResolver.EphemeralDocumentID()
+	if !opts.IdentityResolver.DocumentEnabled() {
+		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = opts.IdentityResolver.EphemeralDocumentID()
 	}
 
 	return notebook, nil
 }
 
-func Serialize(log *zap.Logger, notebook *Notebook, outputMetadata *document.RunmeMetadata) ([]byte, error) {
+func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata, opts Options) ([]byte, error) {
 	var result []byte
 	var err error
 	var frontmatter *document.Frontmatter
@@ -72,7 +83,7 @@ func Serialize(log *zap.Logger, notebook *Notebook, outputMetadata *document.Run
 		frontmatter, err = document.ParseFrontmatter(raw)
 		// non-fatal error
 		if err != nil {
-			log.Warn("failed to parse frontmatter", zap.Error(err))
+			opts.Logger().Warn("failed to parse frontmatter", zap.Error(err))
 		}
 	}
 

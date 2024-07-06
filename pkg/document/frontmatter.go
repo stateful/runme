@@ -190,16 +190,18 @@ func (d *Document) Frontmatter() *Frontmatter {
 	return d.frontmatter
 }
 
-func (d *Document) FrontmatterError() error {
+func (d *Document) FrontmatterWithError() (*Frontmatter, error) {
+	fmtr := d.Frontmatter()
+
 	if d.splitSourceErr != nil {
-		return d.splitSourceErr
+		return nil, d.splitSourceErr
 	}
 
 	if d.parseFrontmatterErr != nil {
-		return d.parseFrontmatterErr
+		return nil, d.parseFrontmatterErr
 	}
 
-	return nil
+	return fmtr, nil
 }
 
 func (d *Document) parseFrontmatter() {
