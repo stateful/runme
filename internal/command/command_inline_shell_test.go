@@ -15,18 +15,18 @@ func TestInlineShellCommand_CollectingEnv(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Fifo", func(t *testing.T) {
-		testInlineShellCommandCollectingEnv(t, true)
+		useEnvCollectorFifo = true
+		testInlineShellCommandCollectingEnv(t)
 	})
 
 	t.Run("NonFifo", func(t *testing.T) {
-		testInlineShellCommandCollectingEnv(t, false)
+		useEnvCollectorFifo = false
+		testInlineShellCommandCollectingEnv(t)
 	})
 }
 
-func testInlineShellCommandCollectingEnv(t *testing.T, forceFifo bool) {
+func testInlineShellCommandCollectingEnv(t *testing.T) {
 	t.Helper()
-
-	useEnvCollectorFifo = forceFifo
 
 	cfg := &ProgramConfig{
 		ProgramName: "bash",

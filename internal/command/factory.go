@@ -11,7 +11,7 @@ import (
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
-var useEnvCollectorFifo = false
+var useEnvCollectorFifo = true
 
 type CommandOptions struct {
 	// EnableEcho enables the echo when typing in the terminal.
