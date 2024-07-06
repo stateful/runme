@@ -11,6 +11,8 @@ import (
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
+var useEnvCollectorFifo = false
+
 type CommandOptions struct {
 	// EnableEcho enables the echo when typing in the terminal.
 	// It's respected only by interactive commands, i.e. composed
@@ -88,8 +90,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 		mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
 	}
 
-	// Session should be always available. If non is provided,
-	// return a new one.
+	// Session should be always available.
 	if opts.Session == nil {
 		opts.Session = NewSession()
 	}
@@ -97,8 +98,15 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 	switch mode {
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE:
 		if isShell(cfg) {
+			collector, err := f.getEnvCollector()
+			if err != nil {
+				// TODO(adamb): handle the error
+				err = nil
+			}
+
 			return &inlineShellCommand{
 				debug:           f.debug,
+				envCollector:    collector,
 				internalCommand: f.buildInternal(cfg, opts),
 				logger:          f.getLogger("InlineShellCommand"),
 				session:         opts.Session,
@@ -109,6 +117,12 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 			logger:          f.getLogger("InlineCommand"),
 		}
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL:
+		collector, err := f.getEnvCollector()
+		if err != nil {
+			// TODO(adamb): handle the error
+			err = nil
+		}
+
 		// For terminal commands, we always want them to be interactive.
 		cfg.Interactive = true
 		// And echo typed characters.
@@ -116,6 +130,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 
 		return &terminalCommand{
 			internalCommand: f.buildVirtual(f.buildBase(cfg, opts), opts),
+			envCollector:    collector,
 			logger:          f.getLogger("TerminalCommand"),
 			session:         opts.Session,
 			stdinWriter:     opts.StdinWriter,
@@ -189,6 +204,15 @@ func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) internalC
 		logger:        f.getLogger("VirtualCommand"),
 		stdin:         stdin,
 	}
+}
+
+func (f *commandFactory) getEnvCollector() (envCollector, error) {
+	collectorFactory := newEnvCollectorFactory(
+		envCollectorFactoryOptions{
+			useFifo: useEnvCollectorFifo,
+		},
+	)
+	return collectorFactory.Build()
 }
 
 func (f *commandFactory) getLogger(name string) *zap.Logger {

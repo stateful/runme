@@ -26,7 +26,7 @@ func TestInlineShellCommand_CollectingEnv(t *testing.T) {
 func testInlineShellCommandCollectingEnv(t *testing.T, forceFifo bool) {
 	t.Helper()
 
-	inlineShellCommandUseFifoShellEnvCollector = forceFifo
+	useEnvCollectorFifo = forceFifo
 
 	cfg := &ProgramConfig{
 		ProgramName: "bash",

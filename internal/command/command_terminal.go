@@ -12,7 +12,7 @@ import (
 type terminalCommand struct {
 	internalCommand
 
-	envCollector shellEnvCollector
+	envCollector envCollector
 	logger       *zap.Logger
 	session      *Session
 	stdinWriter  io.Writer
@@ -39,8 +39,14 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 
 	// [shellEnvCollector] writes defines a function collecting env and
 	// registers it as a trap directly into the shell interactive session.
-	c.envCollector, err = newShellEnvCollectorFactory(true).Build(c.stdinWriter)
-	return err
+	opts := envCollectorFactoryOptions{
+		useFifo: useEnvCollectorFifo,
+	}
+	c.envCollector, err = newEnvCollectorFactory(opts).Build()
+	if err != nil {
+		return err
+	}
+	return c.envCollector.SetOnShell(c.stdinWriter)
 }
 
 func (c *terminalCommand) Wait() (err error) {
@@ -59,13 +65,16 @@ func (c *terminalCommand) collectEnv() error {
 		return nil
 	}
 
-	changed, deleted, err := c.envCollector.Collect()
+	changed, deleted, err := c.envCollector.Diff()
 	if err != nil {
 		return err
 	}
-	if err := c.session.SetEnv(changed...); err != nil {
+
+	err = c.session.SetEnv(changed...)
+	if err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
+
 	c.session.DeleteEnv(deleted...)
 
 	return nil

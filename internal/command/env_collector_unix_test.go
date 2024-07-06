@@ -1,3 +1,6 @@
+//go:build !windows
+// +build !windows
+
 package command
 
 import (
@@ -7,10 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEnvCollectorFile(t *testing.T) {
+func TestEnvCollectorFifo(t *testing.T) {
 	t.Parallel()
 
-	collector, err := newEnvCollectorFile(scanEnv)
+	collector, err := newEnvCollectorFifo(scanEnv)
 	require.NoError(t, err)
 
 	err = os.WriteFile(collector.prePath(), []byte("ENV_1=1"), 0o600)

@@ -2,35 +2,112 @@ package command
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
 
-type envCollectorStorer interface {
-	Cleanup() error
-	Open(string) (io.ReadCloser, error)
-	PrePath() string
-	PostPath() string
+const maxScannerBufferSizeInBytes = 1024 * 1024 * 1024
+
+// EnvDumpCommand is a command that dumps the environment variables.
+// It is declared as a var, because it must be replaced in tests.
+// Equivalent is `env -0`.
+var EnvDumpCommand = func() string {
+	path, err := os.Executable()
+	if err != nil {
+		panic(errors.WithMessage(err, "failed to get the executable path"))
+	}
+	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
+}()
+
+type envCollector interface {
+	Diff() (changed []string, deleted []string, _ error)
+	SetOnShell(io.Writer) error
 }
 
-type envCollector struct {
-	storer envCollectorStorer
+type envScanner func(io.Reader) ([]string, error)
+
+type envCollectorFactoryOptions struct {
+	encryptionEnabled bool
+	encryptionKey     []byte
+	encryptionNonce   []byte
+	useFifo           bool
+}
+type envCollectorFactory struct {
+	opts envCollectorFactoryOptions
 }
 
-func newEnvCollector(s envCollectorStorer) *envCollector {
-	return &envCollector{storer: s}
+func newEnvCollectorFactory(opts envCollectorFactoryOptions) *envCollectorFactory {
+	return &envCollectorFactory{
+		opts: opts,
+	}
 }
 
-func (c *envCollector) Diff() (changed []string, deleted []string, _ error) {
-	initial, err := c.collect(c.storer.PrePath())
+func (f *envCollectorFactory) Build() (envCollector, error) {
+	scanner := scanEnv
+
+	if f.opts.encryptionEnabled {
+		scanner = func(r io.Reader) ([]string, error) {
+			enc, err := NewEnvDecryptor(f.opts.encryptionKey, f.opts.encryptionNonce, r)
+			if err != nil {
+				return nil, err
+			}
+			return scanEnv(enc)
+		}
+	}
+
+	if f.opts.useFifo {
+		return newEnvCollectorFifo(scanner)
+	}
+
+	return newEnvCollectorFile(scanner)
+}
+
+type envCollectorFile struct {
+	*tempDirectory
+
+	scanner envScanner
+}
+
+var _ envCollector = (*envCollectorFile)(nil)
+
+func newEnvCollectorFile(scanner envScanner) (*envCollectorFile, error) {
+	temp, err := newTempDirectory()
+	if err != nil {
+		return nil, err
+	}
+
+	return &envCollectorFile{
+		tempDirectory: temp,
+		scanner:       scanner,
+	}, nil
+}
+
+func (c *envCollectorFile) Diff() (changed []string, deleted []string, _ error) {
+	defer c.cleanup()
+
+	initialReader, err := c.open(c.prePath())
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = initialReader.Close() }()
+
+	initial, err := c.scanner(initialReader)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	final, err := c.collect(c.storer.PostPath())
+	finalReader, err := c.open(c.postPath())
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = finalReader.Close() }()
+
+	final, err := c.scanner(finalReader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -38,29 +115,16 @@ func (c *envCollector) Diff() (changed []string, deleted []string, _ error) {
 	return diffEnvs(initial, final)
 }
 
-func (c *envCollector) collect(path string) ([]string, error) {
-	r, err := c.storer.Open(path)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to open the env file")
-	}
-	defer r.Close()
-	return c.scan(r)
+func (c *envCollectorFile) SetOnShell(shell io.Writer) error {
+	return setOnShell(shell, c.prePath(), c.postPath())
 }
 
-func (c *envCollector) scan(r io.Reader) (result []string, err error) {
-	scanner := bufio.NewScanner(r)
-	scanner.Split(splitNull)
+func (c *envCollectorFile) prePath() string {
+	return c.join(".env_pre")
+}
 
-	for scanner.Scan() {
-		result = append(result, scanner.Text())
-	}
-
-	err = errors.Wrap(scanner.Err(), "failed to scan env stream")
-	if err != nil {
-		return
-	}
-
-	return result, nil
+func (c *envCollectorFile) postPath() string {
+	return c.join(".env_post")
 }
 
 func diffEnvs(initial, final []string) (changed, deleted []string, err error) {
@@ -80,26 +144,35 @@ func diffEnvs(initial, final []string) (changed, deleted []string, err error) {
 	return
 }
 
-type envCollectorFileStorer struct {
-	*tempDirectory
-}
+func scanEnv(r io.Reader) ([]string, error) {
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 4096), int(maxScannerBufferSizeInBytes)) // 4096 is taken from bufio as the initial buffer size
+	scanner.Split(splitNull)
 
-var _ envCollectorStorer = (*envCollectorFileStorer)(nil)
-
-func newEnvCollectorFileStorer() (*envCollectorFileStorer, error) {
-	temp, err := newTempDirectory()
-	if err != nil {
-		return nil, err
+	var result []string
+	for scanner.Scan() {
+		result = append(result, scanner.Text())
 	}
-	return &envCollectorFileStorer{tempDirectory: temp}, nil
+	if err := scanner.Err(); err != nil {
+		return nil, errors.Wrap(err, "failed to scan env stream")
+	}
+	return result, nil
 }
 
-func (c *envCollectorFileStorer) PrePath() string {
-	return c.Join(".env_pre")
-}
-
-func (c *envCollectorFileStorer) PostPath() string {
-	return c.Join(".env_post")
+func splitNull(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexByte(data, 0); i >= 0 {
+		// We have a full null-terminated line.
+		return i + 1, data[0:i], nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+	// Request more data.
+	return 0, nil, nil
 }
 
 type tempDirectory struct {
@@ -114,15 +187,15 @@ func newTempDirectory() (*tempDirectory, error) {
 	return c, nil
 }
 
-func (m *tempDirectory) Cleanup() error {
+func (m *tempDirectory) cleanup() error {
 	return m.removeTempDir()
 }
 
-func (m *tempDirectory) Join(name string) string {
+func (m *tempDirectory) join(name string) string {
 	return filepath.Join(m.dir, name)
 }
 
-func (*tempDirectory) Open(name string) (io.ReadCloser, error) {
+func (*tempDirectory) open(name string) (io.ReadCloser, error) {
 	f, err := os.OpenFile(name, os.O_RDONLY, 0o600)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to open the env file %q", name)
