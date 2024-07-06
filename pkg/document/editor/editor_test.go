@@ -31,9 +31,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestEditor(t *testing.T) {
-	notebook, err := Deserialize(testDataNested, identityResolverNone)
+	notebook, err := Deserialize(testDataNested, Options{IdentityResolver: identityResolverNone})
 	require.NoError(t, err)
-	result, err := Serialize(notebook, nil)
+	result, err := Serialize(notebook, nil, Options{})
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -47,12 +47,12 @@ func TestEditor_List(t *testing.T) {
 2. Item 2
 3. Item 3
 `)
-	notebook, err := Deserialize(data, identityResolverNone)
+	notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
 	require.NoError(t, err)
 
 	notebook.Cells[0].Value = "1. Item 1\n2. Item 2\n"
 
-	newData, err := Serialize(notebook, nil)
+	newData, err := Serialize(notebook, nil, Options{})
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -62,7 +62,7 @@ func TestEditor_List(t *testing.T) {
 		string(newData),
 	)
 
-	newData, err = Serialize(notebook, nil)
+	newData, err = Serialize(notebook, nil, Options{})
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -76,7 +76,7 @@ func TestEditor_List(t *testing.T) {
 func TestEditor_CodeBlock(t *testing.T) {
 	t.Run("ProvideGeneratedName", func(t *testing.T) {
 		data := []byte("```sh\necho 1\n```\n")
-		notebook, err := Deserialize(data, identityResolverNone)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)
 		cell := notebook.Cells[0]
 		assert.Equal(
@@ -94,14 +94,14 @@ func TestEditor_CodeBlock(t *testing.T) {
 			t,
 			cell.Metadata["name"],
 		)
-		result, err := Serialize(notebook, nil)
+		result, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
 
 	t.Run("PreserveName", func(t *testing.T) {
 		data := []byte("```sh {\"name\":\"name1\"}\necho 1\n```\n")
-		notebook, err := Deserialize(data, identityResolverNone)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)
 		cell := notebook.Cells[0]
 		assert.Equal(
@@ -120,7 +120,7 @@ func TestEditor_CodeBlock(t *testing.T) {
 			cell.Metadata["name"],
 			"name1",
 		)
-		result, err := Serialize(notebook, nil)
+		result, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
 	})
@@ -137,7 +137,7 @@ Paragraph 1 with a link [Link1](https://example.com 'Link Title 1') and a second
 	err := os.Setenv("RUNME_AST_METADATA", "true")
 	require.NoError(t, err)
 
-	notebook, err := Deserialize(data, identityResolverNone)
+	notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
 	require.NoError(t, err)
 	require.NotEmpty(t, notebook.Metadata)
 
@@ -186,9 +186,52 @@ version = '%s'
 
 A paragraph
 `, testMockID, version.BaseVersion()))
-	notebook, err := Deserialize(data, identityResolverNone)
+	notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
 	require.NoError(t, err)
-	result, err := Serialize(notebook, nil)
+	result, err := Serialize(notebook, nil, Options{})
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		string(data),
+		string(result),
+	)
+}
+
+func TestEditor_FrontmatterWithoutRunme(t *testing.T) {
+	data := []byte(`+++
+prop1 = 'val1'
+prop2 = 'val2'
++++
+
+# Example
+
+A paragraph
+`)
+	notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+	require.NoError(t, err)
+	result, err := Serialize(notebook, nil, Options{})
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		string(data),
+		string(result),
+	)
+}
+
+func TestEditor_RetainInvalidFrontmatter(t *testing.T) {
+	data := []byte(`+++
+title = '{{ replace .File.ContentBaseName "-" " " | title }}'
+date = {{ .Date }}
+draft = true
++++
+
+# Example
+
+A paragraph
+`)
+	notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+	require.NoError(t, err)
+	result, err := Serialize(notebook, nil, Options{})
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -211,7 +254,7 @@ version = '%s'
 
 A paragraph
 `, testMockID, version.BaseVersion()))
-	notebook, err := Deserialize(data, identityResolverNone)
+	notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
 	require.NoError(t, err)
 
 	sid := "01HJP23P1R57BPGEA17QDJXJE"
@@ -224,7 +267,7 @@ A paragraph
 		},
 		Document: &document.RunmeMetadataDocument{RelativePath: rpath},
 	}
-	result, err := Serialize(notebook, outputMetadata)
+	result, err := Serialize(notebook, outputMetadata, Options{})
 	require.NoError(t, err)
 	assert.Contains(
 		t,
@@ -232,7 +275,7 @@ A paragraph
 		string(sid),
 	)
 
-	sessionNb, err := Deserialize(result, identityResolverAll)
+	sessionNb, err := Deserialize(result, Options{IdentityResolver: identityResolverAll})
 	require.NoError(t, err)
 
 	sess := sessionNb.Frontmatter.Runme.Session
@@ -250,7 +293,7 @@ func TestEditor_Newlines(t *testing.T) {
 This will test final line breaks`)
 
 	t.Run("No line breaks", func(t *testing.T) {
-		notebook, err := Deserialize(data, identityResolverNone)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)
 
 		assert.Equal(
@@ -259,7 +302,7 @@ This will test final line breaks`)
 			"0",
 		)
 
-		actual, err := Serialize(notebook, nil)
+		actual, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 		assert.Equal(
 			t,
@@ -271,7 +314,7 @@ This will test final line breaks`)
 	t.Run("Single line break", func(t *testing.T) {
 		withLineBreaks := append(data, byte('\n'))
 
-		notebook, err := Deserialize(withLineBreaks, identityResolverNone)
+		notebook, err := Deserialize(withLineBreaks, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)
 
 		assert.Equal(
@@ -280,7 +323,7 @@ This will test final line breaks`)
 			"1",
 		)
 
-		actual, err := Serialize(notebook, nil)
+		actual, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 		assert.Equal(
 			t,
@@ -292,7 +335,7 @@ This will test final line breaks`)
 	t.Run("7 line breaks", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
 
-		notebook, err := Deserialize(withLineBreaks, identityResolverNone)
+		notebook, err := Deserialize(withLineBreaks, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)
 
 		assert.Equal(
@@ -301,7 +344,7 @@ This will test final line breaks`)
 			"7",
 		)
 
-		actual, err := Serialize(notebook, nil)
+		actual, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 		assert.Equal(
 			t,

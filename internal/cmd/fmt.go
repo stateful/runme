@@ -72,6 +72,10 @@ func fmtCmd() *cobra.Command {
 type funcOutput func(string, []byte) error
 
 func fmtFiles(files []string, flatten bool, formatJSON bool, write bool, outputter funcOutput) error {
+	logger, err := getLogger(false, false)
+	if err != nil {
+		return err
+	}
 	identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
 
 	for _, file := range files {
@@ -83,7 +87,7 @@ func fmtFiles(files []string, flatten bool, formatJSON bool, write bool, outputt
 		var formatted []byte
 
 		if flatten {
-			notebook, err := editor.Deserialize(data, identityResolver)
+			notebook, err := editor.Deserialize(data, editor.Options{LoggerInstance: logger, IdentityResolver: identityResolver})
 			if err != nil {
 				return errors.Wrap(err, "failed to deserialize")
 			}
@@ -97,7 +101,7 @@ func fmtFiles(files []string, flatten bool, formatJSON bool, write bool, outputt
 				}
 				formatted = buf.Bytes()
 			} else {
-				formatted, err = editor.Serialize(notebook, nil)
+				formatted, err = editor.Serialize(notebook, nil, editor.Options{LoggerInstance: logger})
 				if err != nil {
 					return errors.Wrap(err, "failed to serialize")
 				}

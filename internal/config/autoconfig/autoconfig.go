@@ -186,7 +186,8 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 			}))
 		case config.FilterTypeDocument:
 			filters = append(filters, project.Filter(func(t project.Task) (bool, error) {
-				fmtr, err := t.CodeBlock.Document().Frontmatter()
+				doc := t.CodeBlock.Document()
+				fmtr, err := doc.FrontmatterWithError()
 				if err != nil {
 					return false, err
 				}

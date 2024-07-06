@@ -30,7 +30,7 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 		identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
 
 		if flatten {
-			notebook, err := editor.Deserialize(data, identityResolver)
+			notebook, err := editor.Deserialize(data, editor.Options{IdentityResolver: identityResolver})
 			if err != nil {
 				return errors.Wrap(err, "failed to deserialize")
 			}
@@ -48,7 +48,7 @@ func Format(files []string, basePath string, flatten bool, formatJSON bool, writ
 					notebook.ForceLifecycleIdentities()
 				}
 
-				formatted, err = editor.Serialize(notebook, nil)
+				formatted, err = editor.Serialize(notebook, nil, editor.Options{})
 				if err != nil {
 					return errors.Wrap(err, "failed to serialize")
 				}

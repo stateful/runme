@@ -139,7 +139,8 @@ func tuiCmd() *cobra.Command {
 
 				task := result.task
 
-				fmtr, err := task.CodeBlock.Document().Frontmatter()
+				doc := task.CodeBlock.Document()
+				fmtr, err := doc.FrontmatterWithError()
 				if err != nil {
 					return err
 				}

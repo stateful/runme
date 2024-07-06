@@ -101,7 +101,7 @@ func runCmd() *cobra.Command {
 						// Check if the block matches any of the specified categories
 						if len(cmdCategories) > 0 {
 							blockCategories := block.Categories()
-							fm, _ := block.Document().Frontmatter()
+							fm := block.Document().Frontmatter()
 							fmCategories := resolveFrontmatterCategories(fm)
 							match := false
 							if len(fmCategories) > 0 && containsCategories(fmCategories, cmdCategories) {
@@ -187,7 +187,8 @@ func runCmd() *cobra.Command {
 			}
 
 			for _, task := range runTasks {
-				fmtr, err := task.CodeBlock.Document().Frontmatter()
+				doc := task.CodeBlock.Document()
+				fmtr, err := doc.FrontmatterWithError()
 				if err != nil {
 					return err
 				}

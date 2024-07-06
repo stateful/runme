@@ -491,8 +491,9 @@ func getCodeBlocksFromFile(path string) (document.CodeBlocks, error) {
 func getCodeBlocks(data []byte) (document.CodeBlocks, error) {
 	identityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
 	d := document.New(data, identityResolver)
+	fmtr, err := d.FrontmatterWithError()
 
-	if f, err := d.Frontmatter(); err == nil && f != nil && !f.Runme.IsEmpty() && f.Runme.Session.GetID() != "" {
+	if err == nil && fmtr != nil && !fmtr.Runme.IsEmpty() && fmtr.Runme.Session.GetID() != "" {
 		return nil, nil
 	}
 

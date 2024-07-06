@@ -86,7 +86,7 @@ First paragraph
 		assert.Equal(t, []byte("First paragraph"), doc.Content())
 		assert.Equal(t, 20, doc.ContentOffset())
 
-		frontmatter, err := doc.Frontmatter()
+		frontmatter, err := doc.FrontmatterWithError()
 		require.NoError(t, err)
 		marshaledFrontmatter, err := frontmatter.Marshal(testIdentityResolver.DocumentEnabled())
 		require.NoError(t, err)
@@ -141,7 +141,7 @@ shell = "fish"
 				_, err := doc.Root()
 				require.NoError(t, err)
 
-				frontmatter, err := doc.Frontmatter()
+				frontmatter, err := doc.FrontmatterWithError()
 				assert.NoError(t, err)
 				assert.Equal(t, "fish", frontmatter.Shell)
 			})
@@ -162,7 +162,7 @@ shell = "fish"
 		err := doc.Parse()
 		require.NoError(t, err)
 
-		frontmatter, err := doc.Frontmatter()
+		frontmatter, err := doc.FrontmatterWithError()
 		assert.ErrorContains(t, err, "failed to parse frontmatter content: yaml: line 3: found unexpected end of stream")
 		assert.Nil(t, frontmatter)
 	})
