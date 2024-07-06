@@ -77,7 +77,7 @@ func TestProjectServiceServer_Load(t *testing.T) {
 	})
 }
 
-func TestProjectServiceServer_Load_ErrorWhileSending(t *testing.T) {
+func TestProjectServiceServer_Load_ClientConnClosed(t *testing.T) {
 	t.Parallel()
 
 	temp := t.TempDir()
@@ -98,8 +98,10 @@ func TestProjectServiceServer_Load_ErrorWhileSending(t *testing.T) {
 	loadClient, err := client.Load(context.Background(), req)
 	require.NoError(t, err)
 
-	err = clientConn.Close()
-	require.NoError(t, err)
+	errc := make(chan error, 1)
+	go func() {
+		errc <- clientConn.Close()
+	}()
 
 	for {
 		_, err := loadClient.Recv()
@@ -108,6 +110,8 @@ func TestProjectServiceServer_Load_ErrorWhileSending(t *testing.T) {
 			break
 		}
 	}
+
+	require.NoError(t, <-errc)
 }
 
 func collectLoadEventTypes(client projectv1.ProjectService_LoadClient) ([]projectv1.LoadEventType, error) {
