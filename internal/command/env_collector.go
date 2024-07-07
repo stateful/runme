@@ -20,16 +20,22 @@ const (
 	envCollectorEncNonceEnvName = "RUNME_ENCRYPTION_NONCE"
 )
 
-// EnvDumpCommand is a command that dumps the environment variables.
-// It is declared as a var, because it must be replaced in tests.
-// Equivalent is `env -0`.
-var EnvDumpCommand = func() string {
+// envDumpCommand is a command that dumps the environment variables.
+var envDumpCommand = func() string {
 	path, err := os.Executable()
 	if err != nil {
 		panic(errors.WithMessage(err, "failed to get the executable path"))
 	}
 	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
 }()
+
+func SetEnvDumpCommand(cmd string) {
+	envDumpCommand = cmd
+	// When overriding [envDumpCommand], we disable the encryption.
+	// There is no way to test the encryption if the dump command
+	// is not controlled.
+	envCollectorEnableEncryption = false
+}
 
 type envCollectorFactoryOptions struct {
 	encryptionEnabled bool

@@ -13,15 +13,12 @@ import (
 
 func init() {
 	// Switch from "runme env" to "env -0" for the tests.
-	// This is because the "runme env" command is not available
+	// This is because the "runme" program is not available
 	// in the test environment.
 	//
 	// TODO(adamb): this can be changed. runme must be built
 	// in the test environment and put into the PATH.
-	EnvDumpCommand = "env -0"
-
-	// We don't have a way to test encryption using overriden [EnvDumpCommand].
-	envCollectorEnableEncryption = false
+	SetEnvDumpCommand("env -0")
 }
 
 func testExecuteCommand(

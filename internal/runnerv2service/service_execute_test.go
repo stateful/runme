@@ -30,7 +30,7 @@ func init() {
 	// This can be turned on if setSysProcAttrPgid() is called in Start().
 	command.SignalToProcessGroup = false
 
-	command.EnvDumpCommand = "env -0"
+	command.SetEnvDumpCommand("env -0")
 
 	// Server uses autoconfig to get necessary dependencies.
 	// One of them, implicit, is [config.Config]. With the default
