@@ -31,6 +31,11 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 		return errors.New("stdin writer is nil")
 	}
 
+	cfg := c.ProgramConfig()
+	if c.envCollector != nil {
+		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
+	}
+
 	c.logger.Info("starting a terminal command")
 	if err := c.internalCommand.Start(ctx); err != nil {
 		return err
