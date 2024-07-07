@@ -80,17 +80,17 @@ func (f *envCollectorFactory) Build() (envCollector, error) {
 }
 
 func (f *envCollectorFactory) generateEncryptionKeyAndNonce() ([]byte, []byte, error) {
-	encKey, err := createEnvEncryptionKey()
+	key, err := createEnvEncryptionKey()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the encryption key")
 	}
 
-	encNonce, err := createEnvEncryptionKey()
+	nonce, err := createEnvEncryptionNonce()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the encryption nonce")
 	}
 
-	return encKey, encNonce, nil
+	return key, nonce, nil
 }
 
 type envCollector interface {
@@ -167,6 +167,9 @@ func (c *envCollectorFile) Diff() (changed []string, deleted []string, _ error) 
 }
 
 func (c *envCollectorFile) ExtraEnv() []string {
+	if c.encKey == nil || c.encNonce == nil {
+		return nil
+	}
 	return []string{
 		envCollectorEncKeyEnvName + "=" + hex.EncodeToString(c.encKey),
 		envCollectorEncNonceEnvName + "=" + hex.EncodeToString(c.encNonce),

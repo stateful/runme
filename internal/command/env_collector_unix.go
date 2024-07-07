@@ -79,6 +79,9 @@ func (c *envCollectorFifo) Diff() (changed []string, deleted []string, _ error) 
 }
 
 func (c *envCollectorFifo) ExtraEnv() []string {
+	if c.encKey == nil || c.encNonce == nil {
+		return nil
+	}
 	return []string{
 		"RUNME_ENCRYPTION_KEY=" + hex.EncodeToString(c.encKey),
 		"RUNME_ENCRYPTION_NONCE=" + hex.EncodeToString(c.encNonce),

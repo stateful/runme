@@ -19,6 +19,9 @@ func init() {
 	// TODO(adamb): this can be changed. runme must be built
 	// in the test environment and put into the PATH.
 	EnvDumpCommand = "env -0"
+
+	// We don't have a way to test encryption using overriden [EnvDumpCommand].
+	envCollectorEnableEncryption = false
 }
 
 func testExecuteCommand(
