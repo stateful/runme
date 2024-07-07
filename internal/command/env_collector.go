@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	runtimestd "runtime"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -73,7 +74,7 @@ func (f *envCollectorFactory) Build() (envCollector, error) {
 		}
 	}
 
-	if f.opts.useFifo {
+	if f.opts.useFifo && runtimestd.GOOS != "windows" {
 		return newEnvCollectorFifo(scanner, encKey, encNonce)
 	}
 
