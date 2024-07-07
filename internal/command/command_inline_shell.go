@@ -38,6 +38,10 @@ func (c *inlineShellCommand) Start(ctx context.Context) error {
 	cfg := c.ProgramConfig()
 	cfg.Arguments = append(cfg.Arguments, "-c", script)
 
+	if c.envCollector != nil {
+		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
+	}
+
 	return c.internalCommand.Start(ctx)
 }
 
@@ -73,7 +77,7 @@ func (c *inlineShellCommand) build() (string, error) {
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
 	if c.session != nil {
 		opts := envCollectorFactoryOptions{
-			useFifo: useEnvCollectorFifo,
+			useFifo: envCollectorUseFifo,
 		}
 
 		c.envCollector, err = newEnvCollectorFactory(opts).Build()

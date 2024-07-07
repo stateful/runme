@@ -11,21 +11,21 @@ import (
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
-func TestInlineShellCommand_CollectingEnv(t *testing.T) {
+func TestInlineShellCommand_CollectEnv(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Fifo", func(t *testing.T) {
-		useEnvCollectorFifo = true
-		testInlineShellCommandCollectingEnv(t)
+		envCollectorUseFifo = true
+		testInlineShellCommandCollectEnv(t)
 	})
 
 	t.Run("NonFifo", func(t *testing.T) {
-		useEnvCollectorFifo = false
-		testInlineShellCommandCollectingEnv(t)
+		envCollectorUseFifo = false
+		testInlineShellCommandCollectEnv(t)
 	})
 }
 
-func testInlineShellCommandCollectingEnv(t *testing.T) {
+func testInlineShellCommandCollectEnv(t *testing.T) {
 	t.Helper()
 
 	cfg := &ProgramConfig{

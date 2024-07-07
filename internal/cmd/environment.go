@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -10,18 +11,20 @@ import (
 	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/go-gh/pkg/tableprinter"
 	"github.com/pkg/errors"
-
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/runner/client"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
-var osEnviron = os.Environ
+var newOSEnvironReader = func() (io.Reader, error) {
+	return command.NewEnvProducerFromEnv()
+}
 
 func environmentCmd() *cobra.Command {
 	cmd := cobra.Command{
@@ -204,9 +207,12 @@ func environmentDumpCmd() *cobra.Command {
 				return errors.New("must be run in insecure mode; enable by running with --insecure flag")
 			}
 
-			dumped := getDumpedEnvironment()
+			producer, err := newOSEnvironReader()
+			if err != nil {
+				return err
+			}
 
-			_, _ = cmd.OutOrStdout().Write([]byte(dumped))
+			_, _ = io.Copy(cmd.OutOrStdout(), producer)
 
 			return nil
 		},
@@ -268,8 +274,4 @@ func printStore(msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, a
 	}
 
 	return table.Render()
-}
-
-func getDumpedEnvironment() string {
-	return strings.Join(osEnviron(), "\x00")
 }

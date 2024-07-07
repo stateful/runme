@@ -40,7 +40,7 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 	// [shellEnvCollector] writes defines a function collecting env and
 	// registers it as a trap directly into the shell interactive session.
 	opts := envCollectorFactoryOptions{
-		useFifo: useEnvCollectorFifo,
+		useFifo: envCollectorUseFifo,
 	}
 	c.envCollector, err = newEnvCollectorFactory(opts).Build()
 	if err != nil {

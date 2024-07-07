@@ -3,6 +3,7 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,7 +12,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-const maxScannerBufferSizeInBytes = 1024 * 1024 * 1024
+const maxScannerBufferSizeInBytes = 1024 * 1024 * 1024 // 1GB
+
+const (
+	envCollectorEncKeyEnvName   = "RUNME_ENCRYPTION_KEY"
+	envCollectorEncNonceEnvName = "RUNME_ENCRYPTION_NONCE"
+)
 
 // EnvDumpCommand is a command that dumps the environment variables.
 // It is declared as a var, because it must be replaced in tests.
@@ -24,19 +30,11 @@ var EnvDumpCommand = func() string {
 	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
 }()
 
-type envCollector interface {
-	Diff() (changed []string, deleted []string, _ error)
-	SetOnShell(io.Writer) error
-}
-
-type envScanner func(io.Reader) ([]string, error)
-
 type envCollectorFactoryOptions struct {
 	encryptionEnabled bool
-	encryptionKey     []byte
-	encryptionNonce   []byte
 	useFifo           bool
 }
+
 type envCollectorFactory struct {
 	opts envCollectorFactoryOptions
 }
@@ -50,32 +48,84 @@ func newEnvCollectorFactory(opts envCollectorFactoryOptions) *envCollectorFactor
 func (f *envCollectorFactory) Build() (envCollector, error) {
 	scanner := scanEnv
 
+	var (
+		encKey   []byte
+		encNonce []byte
+	)
+
 	if f.opts.encryptionEnabled {
+		var err error
+		encKey, encNonce, err = f.generateEncryptionKeyAndNonce()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if f.opts.encryptionEnabled {
+		scannerPrev := scanner
+
 		scanner = func(r io.Reader) ([]string, error) {
-			enc, err := NewEnvDecryptor(f.opts.encryptionKey, f.opts.encryptionNonce, r)
+			enc, err := NewEnvDecryptor(encKey, encNonce, r)
 			if err != nil {
 				return nil, err
 			}
-			return scanEnv(enc)
+			return scannerPrev(enc)
 		}
 	}
 
 	if f.opts.useFifo {
-		return newEnvCollectorFifo(scanner)
+		return newEnvCollectorFifo(scanner, encKey, encNonce)
 	}
 
-	return newEnvCollectorFile(scanner)
+	return newEnvCollectorFile(scanner, encKey, encNonce)
 }
+
+func (f *envCollectorFactory) generateEncryptionKeyAndNonce() ([]byte, []byte, error) {
+	encKey, err := CreateKey()
+	if err != nil {
+		return nil, nil, errors.WithMessage(err, "failed to create the encryption key")
+	}
+
+	encNonce, err := CreateKey()
+	if err != nil {
+		return nil, nil, errors.WithMessage(err, "failed to create the encryption nonce")
+	}
+
+	return encKey, encNonce, nil
+}
+
+type envCollector interface {
+	// Diff compares the environment variables before and after the command execution.
+	// It returns the list of env that were changed and deleted.
+	Diff() (changed []string, deleted []string, _ error)
+
+	// ExtraEnv provides a list of extra environment variables that should be set
+	// before the command execution.
+	ExtraEnv() []string
+
+	// SetOnShell writes additional commands to the shell session
+	// in order to collect the environment variables after
+	// the command execution.
+	SetOnShell(io.Writer) error
+}
+
+type envScanner func(io.Reader) ([]string, error)
 
 type envCollectorFile struct {
 	*tempDirectory
 
-	scanner envScanner
+	encKey   []byte
+	encNonce []byte
+	scanner  envScanner
 }
 
 var _ envCollector = (*envCollectorFile)(nil)
 
-func newEnvCollectorFile(scanner envScanner) (*envCollectorFile, error) {
+func newEnvCollectorFile(
+	scanner envScanner,
+	encKey []byte,
+	encNonce []byte,
+) (*envCollectorFile, error) {
 	temp, err := newTempDirectory()
 	if err != nil {
 		return nil, err
@@ -83,6 +133,8 @@ func newEnvCollectorFile(scanner envScanner) (*envCollectorFile, error) {
 
 	return &envCollectorFile{
 		tempDirectory: temp,
+		encKey:        encKey,
+		encNonce:      encNonce,
 		scanner:       scanner,
 	}, nil
 }
@@ -113,6 +165,13 @@ func (c *envCollectorFile) Diff() (changed []string, deleted []string, _ error) 
 	}
 
 	return diffEnvs(initial, final)
+}
+
+func (c *envCollectorFile) ExtraEnv() []string {
+	return []string{
+		envCollectorEncKeyEnvName + "=" + hex.EncodeToString(c.encKey),
+		envCollectorEncNonceEnvName + "=" + hex.EncodeToString(c.encNonce),
+	}
 }
 
 func (c *envCollectorFile) SetOnShell(shell io.Writer) error {
@@ -146,7 +205,8 @@ func diffEnvs(initial, final []string) (changed, deleted []string, err error) {
 
 func scanEnv(r io.Reader) ([]string, error) {
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 4096), int(maxScannerBufferSizeInBytes)) // 4096 is taken from bufio as the initial buffer size
+	// 4096 is taken from bufio as the initial buffer size.
+	scanner.Buffer(make([]byte, 4096), int(maxScannerBufferSizeInBytes))
 	scanner.Split(splitNull)
 
 	var result []string

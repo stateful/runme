@@ -4,6 +4,7 @@
 package command
 
 import (
+	"encoding/hex"
 	"io"
 	"syscall"
 
@@ -11,18 +12,18 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var errFifoCreate = errors.New("failed to create a fifo")
-
 type envCollectorFifo struct {
 	*tempDirectory
 
+	encKey       []byte
+	encNonce     []byte
 	preEnv       []string
 	postEnv      []string
 	readersGroup *errgroup.Group
 	scanner      envScanner
 }
 
-func newEnvCollectorFifo(scanner envScanner) (*envCollectorFifo, error) {
+func newEnvCollectorFifo(scanner envScanner, encKey, encNonce []byte) (*envCollectorFifo, error) {
 	temp, err := newTempDirectory()
 	if err != nil {
 		return nil, err
@@ -30,6 +31,8 @@ func newEnvCollectorFifo(scanner envScanner) (*envCollectorFifo, error) {
 
 	c := &envCollectorFifo{
 		tempDirectory: temp,
+		encKey:        encKey,
+		encNonce:      encNonce,
 		readersGroup:  new(errgroup.Group),
 		scanner:       scanner,
 	}
@@ -41,40 +44,30 @@ func newEnvCollectorFifo(scanner envScanner) (*envCollectorFifo, error) {
 	return c, nil
 }
 
-func (c *envCollectorFifo) init() (err error) {
-	err = c.createFifo(c.prePath())
+func (c *envCollectorFifo) init() error {
+	err := c.createFifo(c.prePath())
 	if err != nil {
-		err = errors.WithMessagef(errFifoCreate, "failed to create the start fifo: %s", err)
-		return
+		return errors.Wrap(err, "failed to create the pre-execute fifo")
 	}
 
 	err = c.createFifo(c.postPath())
 	if err != nil {
-		err = errors.WithMessagef(errFifoCreate, "failed to create the exit fifo: %s", err)
-		return
+		return errors.Wrap(err, "failed to create the post-exit fifo")
 	}
 
 	c.readersGroup.Go(func() error {
-		r, err := c.open(c.prePath())
-		if err != nil {
-			return err
-		}
-		defer r.Close()
-		c.preEnv, err = scanEnv(r)
+		var err error
+		c.preEnv, err = c.read(c.prePath())
 		return err
 	})
 
 	c.readersGroup.Go(func() error {
-		r, err := c.open(c.postPath())
-		if err != nil {
-			return err
-		}
-		defer r.Close()
-		c.postEnv, err = c.scanner(r)
+		var err error
+		c.postEnv, err = c.read(c.postPath())
 		return err
 	})
 
-	return
+	return nil
 }
 
 func (c *envCollectorFifo) Diff() (changed []string, deleted []string, _ error) {
@@ -83,6 +76,13 @@ func (c *envCollectorFifo) Diff() (changed []string, deleted []string, _ error) 
 		return nil, nil, err
 	}
 	return diffEnvs(c.preEnv, c.postEnv)
+}
+
+func (c *envCollectorFifo) ExtraEnv() []string {
+	return []string{
+		"RUNME_ENCRYPTION_KEY=" + hex.EncodeToString(c.encKey),
+		"RUNME_ENCRYPTION_NONCE=" + hex.EncodeToString(c.encNonce),
+	}
 }
 
 func (c *envCollectorFifo) SetOnShell(shell io.Writer) error {
@@ -100,4 +100,13 @@ func (c *envCollectorFifo) postPath() string {
 func (*envCollectorFifo) createFifo(name string) error {
 	err := syscall.Mkfifo(name, 0o600)
 	return errors.WithMessage(err, "failed to create a FIFO")
+}
+
+func (c *envCollectorFifo) read(path string) ([]string, error) {
+	r, err := c.open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return c.scanner(r)
 }
