@@ -13,9 +13,9 @@ func TestEnvEncryptorDecryptor(t *testing.T) {
 
 	source := "ENV_1=1\\0ENV_2=2"
 
-	key, err := CreateKey()
+	key, err := createEnvEncryptionKey()
 	require.NoError(t, err)
-	nonce, err := CreateNonce()
+	nonce, err := createEnvEncryptionNonce()
 	require.NoError(t, err)
 
 	encryptor, err := NewEnvEncryptor(key, nonce, strings.NewReader(source))

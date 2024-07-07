@@ -61,7 +61,7 @@ func (d *EnvDecryptor) Read(p []byte) (n int, err error) {
 	return 0, io.EOF
 }
 
-func CreateKey() ([]byte, error) {
+func createEnvEncryptionKey() ([]byte, error) {
 	key := make([]byte, 32)
 	_, err := cryptorand.Read(key)
 	if err != nil {
@@ -70,7 +70,7 @@ func CreateKey() ([]byte, error) {
 	return key, nil
 }
 
-func CreateNonce() ([]byte, error) {
+func createEnvEncryptionNonce() ([]byte, error) {
 	nonce := make([]byte, aes.BlockSize)
 	_, err := cryptorand.Read(nonce)
 	if err != nil {

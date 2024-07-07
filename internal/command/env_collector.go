@@ -56,15 +56,13 @@ func (f *envCollectorFactory) Build() (envCollector, error) {
 
 	if f.opts.encryptionEnabled {
 		var err error
+
 		encKey, encNonce, err = f.generateEncryptionKeyAndNonce()
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	if f.opts.encryptionEnabled {
 		scannerPrev := scanner
-
 		scanner = func(r io.Reader) ([]string, error) {
 			enc, err := NewEnvDecryptor(encKey, encNonce, r)
 			if err != nil {
@@ -82,12 +80,12 @@ func (f *envCollectorFactory) Build() (envCollector, error) {
 }
 
 func (f *envCollectorFactory) generateEncryptionKeyAndNonce() ([]byte, []byte, error) {
-	encKey, err := CreateKey()
+	encKey, err := createEnvEncryptionKey()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the encryption key")
 	}
 
-	encNonce, err := CreateKey()
+	encNonce, err := createEnvEncryptionKey()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the encryption nonce")
 	}
