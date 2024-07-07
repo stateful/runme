@@ -46,17 +46,16 @@ func testExecuteCommandWithSession(
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)
 
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 	options := CommandOptions{
 		Session: session,
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Stdin:   input,
 	}
-
-	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
-	command := factory.Build(cfg, options)
-
-	err := command.Start(context.Background())
+	command, err := factory.Build(cfg, options)
+	require.NoError(t, err)
+	err = command.Start(context.Background())
 	require.NoError(t, err)
 	err = command.Wait()
 	assert.NoError(t, err)

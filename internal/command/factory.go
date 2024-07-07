@@ -29,7 +29,7 @@ type CommandOptions struct {
 }
 
 type Factory interface {
-	Build(*ProgramConfig, CommandOptions) Command
+	Build(*ProgramConfig, CommandOptions) (Command, error)
 }
 
 type FactoryOption func(*commandFactory)
@@ -84,7 +84,7 @@ type commandFactory struct {
 //   - [inlineCommand], [inlineShellCommand], [terminalCommand], and [fileCommand] - are
 //     high-level commands that are built on top of the mid-layer commands. They implement
 //     real world use cases and are fully functional and can be used by callers.
-func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command {
+func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command, error) {
 	mode := cfg.Mode
 	// For backward compatibility, if the mode is not specified,
 	// we will try to infer it from the language. If it's shell,
@@ -103,8 +103,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 		if isShell(cfg) {
 			collector, err := f.getEnvCollector()
 			if err != nil {
-				// TODO(adamb): handle the error
-				err = nil
+				return nil, err
 			}
 
 			return &inlineShellCommand{
@@ -113,17 +112,16 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 				internalCommand: f.buildInternal(cfg, opts),
 				logger:          f.getLogger("InlineShellCommand"),
 				session:         opts.Session,
-			}
+			}, nil
 		}
 		return &inlineCommand{
 			internalCommand: f.buildInternal(cfg, opts),
 			logger:          f.getLogger("InlineCommand"),
-		}
+		}, nil
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL:
 		collector, err := f.getEnvCollector()
 		if err != nil {
-			// TODO(adamb): handle the error
-			err = nil
+			return nil, err
 		}
 
 		// For terminal commands, we always want them to be interactive.
@@ -137,14 +135,14 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 			logger:          f.getLogger("TerminalCommand"),
 			session:         opts.Session,
 			stdinWriter:     opts.StdinWriter,
-		}
+		}, nil
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_FILE:
 		fallthrough
 	default:
 		return &fileCommand{
 			internalCommand: f.buildInternal(cfg, opts),
 			logger:          f.getLogger("FileCommand"),
-		}
+		}, nil
 	}
 }
 

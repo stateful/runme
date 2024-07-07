@@ -59,7 +59,7 @@ func newExecution(
 	proj *project.Project,
 	session *command.Session,
 	logger *zap.Logger,
-) *execution {
+) (*execution, error) {
 	cmdFactory := command.NewFactory(
 		command.WithLogger(logger),
 		command.WithProject(proj),
@@ -78,7 +78,10 @@ func newExecution(
 		Stderr:      stderr,
 	}
 
-	cmd := cmdFactory.Build(cfg, cmdOptions)
+	cmd, err := cmdFactory.Build(cfg, cmdOptions)
+	if err != nil {
+		return nil, err
+	}
 
 	exec := &execution{
 		ID:        id,
@@ -96,7 +99,7 @@ func newExecution(
 		logger: logger,
 	}
 
-	return exec
+	return exec, nil
 }
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {

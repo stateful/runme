@@ -25,7 +25,7 @@ func TestDockerCommand(t *testing.T) {
 
 	// This test case is treated as a warm up. Do not parallelize.
 	t.Run("NoOutput", func(t *testing.T) {
-		cmd := factory.Build(
+		cmd, err := factory.Build(
 			&ProgramConfig{
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "test"},
@@ -34,6 +34,7 @@ func TestDockerCommand(t *testing.T) {
 			},
 			CommandOptions{},
 		)
+		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 	})
@@ -41,7 +42,7 @@ func TestDockerCommand(t *testing.T) {
 	t.Run("Output", func(t *testing.T) {
 		t.Parallel()
 		stdout := bytes.NewBuffer(nil)
-		cmd := factory.Build(
+		cmd, err := factory.Build(
 			&ProgramConfig{
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "test"},
@@ -50,6 +51,7 @@ func TestDockerCommand(t *testing.T) {
 			},
 			CommandOptions{Stdout: stdout},
 		)
+		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
 		require.NoError(t, cmd.Wait())
 		assert.Equal(t, "test", stdout.String())
@@ -57,7 +59,7 @@ func TestDockerCommand(t *testing.T) {
 
 	t.Run("Running", func(t *testing.T) {
 		t.Parallel()
-		cmd := factory.Build(
+		cmd, err := factory.Build(
 			&ProgramConfig{
 				ProgramName: "sleep",
 				Arguments:   []string{"1"},
@@ -65,8 +67,8 @@ func TestDockerCommand(t *testing.T) {
 			},
 			CommandOptions{},
 		)
-		err := cmd.Start(context.Background())
 		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
 		require.True(t, cmd.Running())
 		require.Greater(t, cmd.Pid(), 0)
 		require.NoError(t, cmd.Wait())
@@ -77,7 +79,7 @@ func TestDockerCommand(t *testing.T) {
 
 		t.Parallel()
 
-		cmd := factory.Build(
+		cmd, err := factory.Build(
 			&ProgramConfig{
 				ProgramName: "sh",
 				Arguments:   []string{"-c", "exit 11"},
@@ -85,6 +87,7 @@ func TestDockerCommand(t *testing.T) {
 			},
 			CommandOptions{},
 		)
+		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
 		// TODO(adamb): wait should return non-nil error due to non-zero exit code.
 		require.NoError(t, cmd.Wait())

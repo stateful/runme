@@ -27,7 +27,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
-	cmd := factory.Build(
+	cmd, err := factory.Build(
 		&ProgramConfig{
 			ProgramName: "bash",
 			Interactive: true,
@@ -40,6 +40,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 			Stdout:      stdout,
 		},
 	)
+	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -50,7 +51,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	// Wait for it before starting to send commands.
 	expectContainLine(t, stdout, "trap -- \"__cleanup\" EXIT")
 
-	_, err := stdinW.Write([]byte("export TEST_ENV=1\n"))
+	_, err = stdinW.Write([]byte("export TEST_ENV=1\n"))
 	require.NoError(t, err)
 	// Wait for the prompt before sending the next command.
 	expectContainLine(t, stdout, "$")
@@ -86,7 +87,7 @@ func TestTerminalCommand_NonInteractive(t *testing.T) {
 
 	// Even if the [ProgramConfig] specifies that the command is non-interactive,
 	// the factory should recognize it and change it to interactive.
-	cmd := factory.Build(
+	cmd, err := factory.Build(
 		&ProgramConfig{
 			ProgramName: "bash",
 			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
@@ -96,6 +97,7 @@ func TestTerminalCommand_NonInteractive(t *testing.T) {
 			Stdin:       stdinR,
 		},
 	)
+	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -105,7 +107,7 @@ func TestTerminalCommand_NonInteractive(t *testing.T) {
 	// TODO(adamb): on macOS is is not necessary, but on Linux
 	// we need to wait for the shell to start before we start sending commands.
 	time.Sleep(time.Second)
-	_, err := stdinW.Write([]byte("echo -n test\n"))
+	_, err = stdinW.Write([]byte("echo -n test\n"))
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -119,7 +121,7 @@ func TestTerminalCommand_OptionsStdinWriterNil(t *testing.T) {
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
-	cmd := factory.Build(
+	cmd, err := factory.Build(
 		&ProgramConfig{
 			ProgramName: "bash",
 			Interactive: true,
@@ -127,6 +129,7 @@ func TestTerminalCommand_OptionsStdinWriterNil(t *testing.T) {
 		},
 		CommandOptions{},
 	)
+	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

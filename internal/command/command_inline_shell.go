@@ -75,16 +75,7 @@ func (c *inlineShellCommand) build() (string, error) {
 
 	// If the session is provided, we need to collect the environment before and after the script execution.
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
-	if c.session != nil {
-		opts := envCollectorFactoryOptions{
-			useFifo: envCollectorUseFifo,
-		}
-
-		c.envCollector, err = newEnvCollectorFactory(opts).Build()
-		if err != nil {
-			return "", err
-		}
-
+	if c.envCollector != nil {
 		err = c.envCollector.SetOnShell(buf)
 		if err != nil {
 			return "", err
@@ -107,7 +98,7 @@ func (c *inlineShellCommand) build() (string, error) {
 }
 
 func (c *inlineShellCommand) collectEnv() error {
-	if c.session == nil || c.envCollector == nil {
+	if c.envCollector == nil {
 		return nil
 	}
 

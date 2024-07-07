@@ -37,16 +37,10 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 	}
 	c.logger.Info("a terminal command started")
 
-	// [shellEnvCollector] writes defines a function collecting env and
-	// registers it as a trap directly into the shell interactive session.
-	opts := envCollectorFactoryOptions{
-		useFifo: envCollectorUseFifo,
+	if c.envCollector != nil {
+		return c.envCollector.SetOnShell(c.stdinWriter)
 	}
-	c.envCollector, err = newEnvCollectorFactory(opts).Build()
-	if err != nil {
-		return err
-	}
-	return c.envCollector.SetOnShell(c.stdinWriter)
+	return nil
 }
 
 func (c *terminalCommand) Wait() (err error) {
@@ -61,7 +55,7 @@ func (c *terminalCommand) Wait() (err error) {
 }
 
 func (c *terminalCommand) collectEnv() error {
-	if c.session == nil || c.envCollector == nil {
+	if c.envCollector == nil {
 		return nil
 	}
 

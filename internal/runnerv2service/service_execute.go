@@ -52,7 +52,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 		return err
 	}
 
-	exec := newExecution(
+	exec, err := newExecution(
 		id,
 		req.StoreStdoutInEnv,
 		req.Config,
@@ -60,6 +60,9 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 		session,
 		logger,
 	)
+	if err != nil {
+		return err
+	}
 
 	// Start the command and send the initial response with PID.
 	if err := exec.Cmd.Start(ctx); err != nil {
