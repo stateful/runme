@@ -13,14 +13,13 @@ import (
 )
 
 type envCollectorFifo struct {
-	*tempDirectory
-
 	encKey       []byte
 	encNonce     []byte
 	preEnv       []string
 	postEnv      []string
 	readersGroup *errgroup.Group
 	scanner      envScanner
+	temp         *tempDirectory
 }
 
 func newEnvCollectorFifo(scanner envScanner, encKey, encNonce []byte) (*envCollectorFifo, error) {
@@ -30,11 +29,11 @@ func newEnvCollectorFifo(scanner envScanner, encKey, encNonce []byte) (*envColle
 	}
 
 	c := &envCollectorFifo{
-		tempDirectory: temp,
-		encKey:        encKey,
-		encNonce:      encNonce,
-		readersGroup:  new(errgroup.Group),
-		scanner:       scanner,
+		encKey:       encKey,
+		encNonce:     encNonce,
+		readersGroup: new(errgroup.Group),
+		scanner:      scanner,
+		temp:         temp,
 	}
 
 	if c.init() != nil {
@@ -71,7 +70,7 @@ func (c *envCollectorFifo) init() error {
 }
 
 func (c *envCollectorFifo) Diff() (changed []string, deleted []string, _ error) {
-	defer c.cleanup()
+	defer c.temp.Cleanup()
 	if err := c.readersGroup.Wait(); err != nil {
 		return nil, nil, err
 	}
@@ -93,11 +92,11 @@ func (c *envCollectorFifo) SetOnShell(shell io.Writer) error {
 }
 
 func (c *envCollectorFifo) prePath() string {
-	return c.join("env_pre.fifo")
+	return c.temp.Join("env_pre.fifo")
 }
 
 func (c *envCollectorFifo) postPath() string {
-	return c.join("env_post.fifo")
+	return c.temp.Join("env_post.fifo")
 }
 
 func (*envCollectorFifo) createFifo(name string) error {
@@ -106,7 +105,7 @@ func (*envCollectorFifo) createFifo(name string) error {
 }
 
 func (c *envCollectorFifo) read(path string) ([]string, error) {
-	r, err := c.open(path)
+	r, err := c.temp.Open(path)
 	if err != nil {
 		return nil, err
 	}

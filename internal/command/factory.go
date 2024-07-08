@@ -20,8 +20,13 @@ type CommandOptions struct {
 	// EnableEcho enables the echo when typing in the terminal.
 	// It's respected only by interactive commands, i.e. composed
 	// with [virtualCommand].
-	EnableEcho  bool
-	Session     *Session
+	EnableEcho bool
+
+	// Session is used to share the state between commands.
+	// If none is provided, an empty one will be used.
+	Session *Session
+
+	// StdinWriter is used by [terminalCommand].
 	StdinWriter io.Writer
 	Stdin       io.Reader
 	Stdout      io.Writer
@@ -34,12 +39,16 @@ type Factory interface {
 
 type FactoryOption func(*commandFactory)
 
+// WithDebug enables additional debug information.
+// For example, for shell commands it prints out
+// commands before execution.
 func WithDebug() FactoryOption {
 	return func(f *commandFactory) {
 		f.debug = true
 	}
 }
 
+// WithDocker provides a docker client for docker commands.
 func WithDocker(docker *dockerexec.Docker) FactoryOption {
 	return func(f *commandFactory) {
 		f.docker = docker
@@ -68,7 +77,7 @@ func NewFactory(opts ...FactoryOption) Factory {
 
 type commandFactory struct {
 	debug   bool
-	docker  *dockerexec.Docker // used only for [dockerCommand]
+	docker  *dockerexec.Docker
 	logger  *zap.Logger
 	project *project.Project
 }
@@ -155,14 +164,13 @@ func (f *commandFactory) buildBase(cfg *ProgramConfig, opts CommandOptions) *bas
 	}
 
 	return &base{
-		cfg:         cfg,
-		project:     f.project,
-		runtime:     runtime,
-		session:     opts.Session,
-		stdin:       opts.Stdin,
-		stdinWriter: opts.StdinWriter,
-		stdout:      opts.Stdout,
-		stderr:      opts.Stderr,
+		cfg:     cfg,
+		project: f.project,
+		runtime: runtime,
+		session: opts.Session,
+		stdin:   opts.Stdin,
+		stdout:  opts.Stdout,
+		stderr:  opts.Stderr,
 	}
 }
 

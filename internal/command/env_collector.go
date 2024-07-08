@@ -3,11 +3,9 @@ package command
 import (
 	"bufio"
 	"bytes"
-	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
-	runtimestd "runtime"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -37,68 +35,6 @@ func SetEnvDumpCommand(cmd string) {
 	envCollectorEnableEncryption = false
 }
 
-type envCollectorFactoryOptions struct {
-	encryptionEnabled bool
-	useFifo           bool
-}
-
-type envCollectorFactory struct {
-	opts envCollectorFactoryOptions
-}
-
-func newEnvCollectorFactory(opts envCollectorFactoryOptions) *envCollectorFactory {
-	return &envCollectorFactory{
-		opts: opts,
-	}
-}
-
-func (f *envCollectorFactory) Build() (envCollector, error) {
-	scanner := scanEnv
-
-	var (
-		encKey   []byte
-		encNonce []byte
-	)
-
-	if f.opts.encryptionEnabled {
-		var err error
-
-		encKey, encNonce, err = f.generateEncryptionKeyAndNonce()
-		if err != nil {
-			return nil, err
-		}
-
-		scannerPrev := scanner
-		scanner = func(r io.Reader) ([]string, error) {
-			enc, err := NewEnvDecryptor(encKey, encNonce, r)
-			if err != nil {
-				return nil, err
-			}
-			return scannerPrev(enc)
-		}
-	}
-
-	if f.opts.useFifo && runtimestd.GOOS != "windows" {
-		return newEnvCollectorFifo(scanner, encKey, encNonce)
-	}
-
-	return newEnvCollectorFile(scanner, encKey, encNonce)
-}
-
-func (f *envCollectorFactory) generateEncryptionKeyAndNonce() ([]byte, []byte, error) {
-	key, err := createEnvEncryptionKey()
-	if err != nil {
-		return nil, nil, errors.WithMessage(err, "failed to create the encryption key")
-	}
-
-	nonce, err := createEnvEncryptionNonce()
-	if err != nil {
-		return nil, nil, errors.WithMessage(err, "failed to create the encryption nonce")
-	}
-
-	return key, nonce, nil
-}
-
 type envCollector interface {
 	// Diff compares the environment variables before and after the command execution.
 	// It returns the list of env that were changed and deleted.
@@ -115,84 +51,6 @@ type envCollector interface {
 }
 
 type envScanner func(io.Reader) ([]string, error)
-
-type envCollectorFile struct {
-	*tempDirectory
-
-	encKey   []byte
-	encNonce []byte
-	scanner  envScanner
-}
-
-var _ envCollector = (*envCollectorFile)(nil)
-
-func newEnvCollectorFile(
-	scanner envScanner,
-	encKey []byte,
-	encNonce []byte,
-) (*envCollectorFile, error) {
-	temp, err := newTempDirectory()
-	if err != nil {
-		return nil, err
-	}
-
-	return &envCollectorFile{
-		tempDirectory: temp,
-		encKey:        encKey,
-		encNonce:      encNonce,
-		scanner:       scanner,
-	}, nil
-}
-
-func (c *envCollectorFile) Diff() (changed []string, deleted []string, _ error) {
-	defer c.cleanup()
-
-	initialReader, err := c.open(c.prePath())
-	if err != nil {
-		return nil, nil, err
-	}
-	defer func() { _ = initialReader.Close() }()
-
-	initial, err := c.scanner(initialReader)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	finalReader, err := c.open(c.postPath())
-	if err != nil {
-		return nil, nil, err
-	}
-	defer func() { _ = finalReader.Close() }()
-
-	final, err := c.scanner(finalReader)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return diffEnvs(initial, final)
-}
-
-func (c *envCollectorFile) ExtraEnv() []string {
-	if c.encKey == nil || c.encNonce == nil {
-		return nil
-	}
-	return []string{
-		envCollectorEncKeyEnvName + "=" + hex.EncodeToString(c.encKey),
-		envCollectorEncNonceEnvName + "=" + hex.EncodeToString(c.encNonce),
-	}
-}
-
-func (c *envCollectorFile) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, c.prePath(), c.postPath())
-}
-
-func (c *envCollectorFile) prePath() string {
-	return c.join(".env_pre")
-}
-
-func (c *envCollectorFile) postPath() string {
-	return c.join(".env_post")
-}
 
 func diffEnvs(initial, final []string) (changed, deleted []string, err error) {
 	envStoreWithInitial := newEnvStore()
@@ -255,15 +113,15 @@ func newTempDirectory() (*tempDirectory, error) {
 	return c, nil
 }
 
-func (m *tempDirectory) cleanup() error {
+func (m *tempDirectory) Cleanup() error {
 	return m.removeTempDir()
 }
 
-func (m *tempDirectory) join(name string) string {
+func (m *tempDirectory) Join(name string) string {
 	return filepath.Join(m.dir, name)
 }
 
-func (*tempDirectory) open(name string) (io.ReadCloser, error) {
+func (*tempDirectory) Open(name string) (io.ReadCloser, error) {
 	f, err := os.OpenFile(name, os.O_RDONLY, 0o600)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to open the env file %q", name)

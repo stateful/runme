@@ -36,14 +36,13 @@ type internalCommand interface {
 }
 
 type base struct {
-	cfg         *ProgramConfig
-	project     *project.Project
-	runtime     runtime
-	session     *Session
-	stdin       io.Reader
-	stdinWriter io.Writer
-	stdout      io.Writer
-	stderr      io.Writer
+	cfg     *ProgramConfig
+	project *project.Project
+	runtime runtime
+	session *Session
+	stdin   io.Reader
+	stdout  io.Writer
+	stderr  io.Writer
 }
 
 var _ internalCommand = (*base)(nil)
@@ -172,10 +171,6 @@ func (c *base) findProgramInKnownInterpreters(programName string, args []string)
 
 func (c *base) Stdin() io.Reader {
 	return c.stdin
-}
-
-func (c *base) StdinWriter() io.Writer {
-	return c.stdinWriter
 }
 
 func (c *base) Stdout() io.Writer {
