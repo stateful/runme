@@ -147,12 +147,11 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 }
 
 func Test_Store_Specless(t *testing.T) {
-	t.Skip("Restore fixture data")
 	t.Parallel()
 
-	rawEnvLocal, err := os.ReadFile("../../pkg/project/test_project/.env.local")
+	rawEnvLocal, err := os.ReadFile("testdata/project/.env.local")
 	require.NoError(t, err)
-	rawEnv, err := os.ReadFile("../../pkg/project/test_project/.env")
+	rawEnv, err := os.ReadFile("testdata/project/.env")
 	require.NoError(t, err)
 
 	store, err := NewStore(
