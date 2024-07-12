@@ -12,6 +12,10 @@ var (
 	Commit       = "unknown"
 )
 
+func BaseVersionInfo() string {
+	return fmt.Sprintf("%s (%s) on %s", BuildVersion, Commit, BuildDate)
+}
+
 // BaseVersion returns the base version of the application.
 func BaseVersion() string {
 	v, err := semver.NewVersion(BuildVersion)

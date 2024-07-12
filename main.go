@@ -16,7 +16,7 @@ func main() {
 
 func root() (status int) {
 	root := cmd.Root()
-	root.Version = fmt.Sprintf("%s (%s) on %s", version.BuildVersion, version.Commit, version.BuildDate)
+	root.Version = version.BaseVersionInfo()
 
 	rootWithCPUProfile(func() {
 		if err := root.Execute(); err != nil {

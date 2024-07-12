@@ -19,6 +19,7 @@ import (
 	"github.com/stateful/runme/v3/internal/runner/client"
 	"github.com/stateful/runme/v3/internal/tui"
 	"github.com/stateful/runme/v3/internal/tui/prompt"
+	"github.com/stateful/runme/v3/internal/version"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/document/identity"
@@ -187,7 +188,9 @@ func getLogger(devMode bool, aiLogs bool) (*zap.Logger, error) {
 	// Record the caller of the log message
 	newLogger = newLogger.WithOptions(zap.AddCaller())
 
-	newLogger.Info("Logger initialized", zap.Bool("devMode", devMode), zap.Bool("aiLogs", aiLogs), zap.String("aiLogFile", aiLogFile))
+	versionInfo := version.BaseVersionInfo()
+
+	newLogger.Info("Logger initialized", zap.String("versionInfo", versionInfo), zap.Bool("devMode", devMode), zap.Bool("aiLogs", aiLogs), zap.String("aiLogFile", aiLogFile))
 	return newLogger, nil
 }
 
