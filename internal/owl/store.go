@@ -42,6 +42,7 @@ type ComplexOperationSet struct {
 	*OperationSet
 	Name      string
 	Namespace string
+	Keys      []string
 }
 
 type setVarOperation struct {

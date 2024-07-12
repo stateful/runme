@@ -65,6 +65,9 @@ func registerSpecFields(fields graphql.Fields) {
 			"namespace": &graphql.ArgumentConfig{
 				Type: graphql.NewNonNull(graphql.String),
 			},
+			"keys": &graphql.ArgumentConfig{
+				Type: graphql.NewList(graphql.String),
+			},
 		},
 	}
 }
@@ -127,18 +130,21 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 				"done": &graphql.Field{
 					Type: EnvironmentType,
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						var opSet *OperationSet
+						// var opSet *OperationSet
 
-						switch p.Source.(type) {
-						case *OperationSet:
-							return p.Source, nil
-						case *ComplexOperationSet:
-							opSet = p.Source.(*ComplexOperationSet).OperationSet
-						default:
-							return nil, errors.New("source does not contain an OperationSet")
-						}
+						// switch p.Source.(type) {
+						// case *OperationSet:
+						// 	return p.Source, nil
+						// case *ComplexOperationSet:
+						// 	opSet = p.Source.(*ComplexOperationSet).OperationSet
+						// default:
+						// 	return nil, errors.New("source does not contain an OperationSet")
+						// }
 
-						validatorComplexSpec(opSet)
+						// err := validatorComplexSpec(opSet)
+						// if err != nil {
+						// 	return nil, err
+						// }
 
 						return p.Source, nil
 					},
@@ -158,13 +164,35 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 	}
 }
 
-func validatorComplexSpec(opSet *OperationSet) {
+func validatorComplexSpec(opSet *OperationSet) error {
+	var namespaces []string
 	for _, spec := range opSet.specs {
 		if spec.Spec.Complex == "" || spec.Spec.Namespace == "" {
 			continue
 		}
-		fmt.Println(spec.Spec.Namespace, spec.Spec.Complex, spec.Var.Key)
+
+		found := false
+		for _, ns := range namespaces {
+			if ns == spec.Spec.Namespace {
+				found = true
+			}
+		}
+
+		if found {
+			continue
+		}
+
+		namespaces = append(namespaces, spec.Spec.Namespace)
 	}
+
+	// for _, ns := range namespaces {
+	// 	err := opSet.validateComplexSpec(ns)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+
+	return nil
 }
 
 func registerComplexType(resolver graphql.FieldResolveFn) *specType {
@@ -657,23 +685,47 @@ func init() {
 		func(p graphql.ResolveParams) (interface{}, error) {
 			name := p.Args["name"].(string)
 			ns := p.Args["namespace"].(string)
+			keys := p.Args["keys"].([]interface{})
+
+			var complexOpSet *ComplexOperationSet
 
 			switch p.Source.(type) {
 			case *OperationSet:
-				return &ComplexOperationSet{
+				complexOpSet = &ComplexOperationSet{
 					OperationSet: p.Source.(*OperationSet),
 					Name:         name,
 					Namespace:    ns,
-				}, nil
+				}
 			case *ComplexOperationSet:
-				complexOpSet := p.Source.(*ComplexOperationSet)
-				complexOpSet.Name = name
-				complexOpSet.Namespace = ns
+				complexOpSet = p.Source.(*ComplexOperationSet)
 			default:
 				return nil, errors.New("source does not contain an OperationSet")
 			}
 
-			return p.Source, nil
+			var valuekeys []string
+			for _, k := range keys {
+				v, ok := k.(string)
+				if !ok {
+					continue
+				}
+				valuekeys = append(valuekeys, v)
+			}
+
+			complexOpSet.Name = name
+			complexOpSet.Namespace = ns
+			complexOpSet.Keys = valuekeys
+
+			validationErrs, err := complexOpSet.validate()
+			if err != nil {
+				return nil, err
+			}
+
+			for _, verr := range validationErrs {
+				key := verr.VarItem().Var.Key
+				complexOpSet.specs[key].Spec.Error = verr
+			}
+
+			return complexOpSet, nil
 		})
 
 	SpecTypeErrorsType = graphql.NewObject(graphql.ObjectConfig{

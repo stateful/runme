@@ -996,12 +996,12 @@ func reduceSepcsComplex() QueryNodeReducer {
 				},
 			})
 
-			// valuekeys := ast.NewListValue(&ast.ListValue{})
-			// for _, name := range keys {
-			// 	valuekeys.Values = append(valuekeys.Values, ast.NewStringValue(&ast.StringValue{
-			// 		Value: name,
-			// 	}))
-			// }
+			valuekeys := ast.NewListValue(&ast.ListValue{})
+			for _, name := range keys {
+				valuekeys.Values = append(valuekeys.Values, ast.NewStringValue(&ast.StringValue{
+					Value: name,
+				}))
+			}
 
 			prevSelSet.Selections = append(prevSelSet.Selections,
 				ast.NewField(&ast.Field{
@@ -1024,6 +1024,12 @@ func reduceSepcsComplex() QueryNodeReducer {
 							Value: ast.NewStringValue(&ast.StringValue{
 								Value: ns,
 							}),
+						}),
+						ast.NewArgument(&ast.Argument{
+							Name: ast.NewName(&ast.Name{
+								Value: "keys",
+							}),
+							Value: valuekeys,
 						}),
 					},
 					SelectionSet: nextSelSet,

@@ -2,25 +2,6 @@ package owl
 
 import "fmt"
 
-type ValidationError interface {
-	fmt.Stringer
-	VarItem() *SetVarItem
-	Error() string
-	Message() string
-	Key() string
-	SpecName() string
-	Source() string
-	Code() ValidateErrorType
-}
-
-type ValidationErrors []ValidationError
-
-type ValidateErrorType uint8
-
-const (
-	ValidateErrorVarRequired ValidateErrorType = iota
-)
-
 type RequiredError struct {
 	varItem *SetVarItem
 	code    ValidateErrorType
@@ -38,7 +19,7 @@ func (e RequiredError) VarItem() *SetVarItem {
 }
 
 func (e RequiredError) Error() string {
-	return fmt.Sprintf("Error %v: Variable \"%s\" is unresolved but defined as required by \"%s!\" in \"%s\"",
+	return fmt.Sprintf("Error %v: Variable \"%s\" is unresolved but declared as required by \"%s!\" in \"%s\"",
 		e.Code(),
 		e.Key(),
 		e.SpecName(),
