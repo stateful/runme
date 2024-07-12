@@ -130,22 +130,6 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 				"done": &graphql.Field{
 					Type: EnvironmentType,
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						// var opSet *OperationSet
-
-						// switch p.Source.(type) {
-						// case *OperationSet:
-						// 	return p.Source, nil
-						// case *ComplexOperationSet:
-						// 	opSet = p.Source.(*ComplexOperationSet).OperationSet
-						// default:
-						// 	return nil, errors.New("source does not contain an OperationSet")
-						// }
-
-						// err := validatorComplexSpec(opSet)
-						// if err != nil {
-						// 	return nil, err
-						// }
-
 						return p.Source, nil
 					},
 				},
@@ -162,37 +146,6 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 		typeObject: typ,
 		resolveFn:  resolver,
 	}
-}
-
-func validatorComplexSpec(opSet *OperationSet) error {
-	var namespaces []string
-	for _, spec := range opSet.specs {
-		if spec.Spec.Complex == "" || spec.Spec.Namespace == "" {
-			continue
-		}
-
-		found := false
-		for _, ns := range namespaces {
-			if ns == spec.Spec.Namespace {
-				found = true
-			}
-		}
-
-		if found {
-			continue
-		}
-
-		namespaces = append(namespaces, spec.Spec.Namespace)
-	}
-
-	// for _, ns := range namespaces {
-	// 	err := opSet.validateComplexSpec(ns)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	return nil
 }
 
 func registerComplexType(resolver graphql.FieldResolveFn) *specType {

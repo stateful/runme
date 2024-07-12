@@ -49,7 +49,7 @@ func (e TagFailedError) Error() string {
 	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed tag validation \"%s\" required by \"%s!\" declared in \"%s\"",
 		e.Code(),
 		e.Key(),
-		e.tag,
+		e.Tag(),
 		e.SpecName(),
 		e.Source())
 }
@@ -68,6 +68,10 @@ func (e TagFailedError) Code() ValidateErrorType {
 
 func (e TagFailedError) Key() string {
 	return e.varItem.Var.Key
+}
+
+func (e TagFailedError) Tag() string {
+	return e.tag
 }
 
 func (e TagFailedError) SpecName() string {
