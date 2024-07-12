@@ -21,7 +21,7 @@ import (
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/dockerexec"
-	"github.com/stateful/runme/v3/internal/project"
+	"github.com/stateful/runme/v3/pkg/project"
 )
 
 var (

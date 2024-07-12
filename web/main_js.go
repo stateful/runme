@@ -46,7 +46,7 @@ func deserialize(this js.Value, args []js.Value) any {
 
 		go func() {
 			identity := identity.NewResolver(identity.DefaultLifecycleIdentity)
-			notebook, err := editor.Deserialize([]byte(source), identity)
+			notebook, err := editor.Deserialize([]byte(source), editor.Options{IdentityResolver: identity})
 			if err != nil {
 				reject.Invoke(toJSError(err))
 				return
@@ -81,7 +81,7 @@ func serialize(this js.Value, args []js.Value) any {
 				reject.Invoke(toJSError(err))
 				return
 			}
-			result, err := editor.Serialize(&notebook, nil)
+			result, err := editor.Serialize(&notebook, nil, editor.Options{})
 			if err != nil {
 				reject.Invoke(toJSError(err))
 				return

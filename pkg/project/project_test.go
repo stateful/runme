@@ -1,356 +1,517 @@
 package project
 
 import (
-	"fmt"
+	"context"
 	"os"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"testing"
 
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-billy/v5/osfs"
-	"github.com/go-git/go-billy/v5/util"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/storage/filesystem"
-	"github.com/stateful/runme/v3/pkg/document"
-	"github.com/stateful/runme/v3/pkg/document/identity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/stateful/runme/v3/pkg/project/teststub"
 )
 
-var (
-	identityResolverNone = identity.NewResolver(identity.UnspecifiedLifecycleIdentity)
-	pfs                  = projectDir()
-)
+func TestExtractDataFromLoadEvent(t *testing.T) {
+	t.Run("MatchingTypes", func(t *testing.T) {
+		event := LoadEvent{
+			Type: LoadEventFoundDir,
+			Data: LoadEventFoundDirData{
+				Path: "/some/path",
+			},
+		}
 
-func Test_CodeBlocks(t *testing.T) {
-	t.Run("LookupWithFile", func(t *testing.T) {
-		lfs, err := pfs.Chroot("../")
+		data := ExtractDataFromLoadEvent[LoadEventFoundDirData](event)
+		assert.Equal(t, "/some/path", data.Path)
+	})
+
+	t.Run("NotMatchingTypes", func(t *testing.T) {
+		event := LoadEvent{
+			Type: LoadEventFoundDir,
+			Data: LoadEventFoundDirData{
+				Path: "/some/path",
+			},
+		}
+
+		require.Panics(t, func() {
+			ExtractDataFromLoadEvent[LoadEventStartedWalkData](event)
+		})
+	})
+}
+
+func TestNewDirProject(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
+	t.Run("ProperDirProject", func(t *testing.T) {
+		_, err := NewDirProject(testData.DirProjectPath())
+		require.NoError(t, err)
+	})
+
+	t.Run("ProperGitProject", func(t *testing.T) {
+		// git-based project is also a dir-based project.
+		_, err := NewDirProject(testData.GitProjectPath())
+		require.NoError(t, err)
+	})
+
+	t.Run("UnknownDir", func(t *testing.T) {
+		unknownDir := testData.Join("unknown-project")
+		_, err := NewDirProject(unknownDir)
+		require.ErrorIs(t, err, os.ErrNotExist)
+	})
+
+	t.Run("RelativePathConvertedToAbsolute", func(t *testing.T) {
+		cwd, err := os.Getwd()
 		require.NoError(t, err)
 
-		blocks := make(CodeBlocks, 0)
+		projectDir, err := filepath.Rel(
+			cwd,
+			teststub.OriginalPath().DirProjectPath(),
+		)
+		require.NoError(t, err)
 
-		for _, file := range []string{"TEST.md", "TEST2.md"} {
-			bytes, err := util.ReadFile(lfs, file)
-			require.NoError(t, err)
+		proj, err := NewDirProject(projectDir)
+		require.NoError(t, err)
+		assert.True(t, filepath.IsAbs(proj.Root()), "project root is not absolute: %s", proj.Root())
+	})
+}
 
-			doc := document.New(bytes, identityResolverNone)
-			node, err := doc.Root()
-			require.NoError(t, err)
+func TestNewFileProject(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
 
-			parsedBlocks := document.CollectCodeBlocks(node)
+	t.Run("UnknownFile", func(t *testing.T) {
+		fileProject := testData.Join("unknown-file.md")
+		_, err := NewFileProject(fileProject)
+		require.ErrorIs(t, err, os.ErrNotExist)
+	})
 
-			for _, block := range parsedBlocks {
-				blocks = append(blocks, CodeBlock{
-					Block: block,
-					File:  file,
-				})
+	t.Run("UnknownFileAndRelativePath", func(t *testing.T) {
+		_, err := NewFileProject("unknown-file.md")
+		require.ErrorIs(t, err, os.ErrNotExist)
+	})
+
+	t.Run("RelativePathConvertedToAbsolute", func(t *testing.T) {
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+
+		fileProject, err := filepath.Rel(
+			cwd,
+			teststub.OriginalPath().ProjectFilePath(),
+		)
+		require.NoError(t, err)
+
+		proj, err := NewFileProject(fileProject)
+		require.NoError(t, err)
+		assert.True(t, filepath.IsAbs(proj.Root()), "project root is not absolute: %s", proj.Root())
+	})
+
+	t.Run("ProperFileProject", func(t *testing.T) {
+		_, err := NewFileProject(testData.ProjectFilePath())
+		require.NoError(t, err)
+	})
+}
+
+func TestProjectRoot(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
+	t.Run("GitProject", func(t *testing.T) {
+		gitProjectDir := testData.GitProjectPath()
+		p, err := NewDirProject(gitProjectDir)
+		require.NoError(t, err)
+		assert.Equal(t, gitProjectDir, p.Root())
+		assert.True(t, filepath.IsAbs(p.Root()), "project root is not absolute: %s", p.Root())
+	})
+
+	t.Run("FileProject", func(t *testing.T) {
+		fileProject := testData.ProjectFilePath()
+		p, err := NewFileProject(fileProject)
+		require.NoError(t, err)
+		assert.Equal(t, testData.Root(), p.Root())
+		assert.True(t, filepath.IsAbs(p.Root()), "project root is not absolute: %s", p.Root())
+	})
+}
+
+func TestProjectLoad(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
+	gitProjectDir := testData.GitProjectPath()
+
+	t.Run("GitProject", func(t *testing.T) {
+		p, err := NewDirProject(
+			gitProjectDir,
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+		)
+		require.NoError(t, err)
+
+		eventc := make(chan LoadEvent)
+
+		events := make([]LoadEvent, 0)
+		doneReadingEvents := make(chan struct{})
+		go func() {
+			defer close(doneReadingEvents)
+			for e := range eventc {
+				events = append(events, e)
 			}
+		}()
+
+		p.Load(context.Background(), eventc, false)
+		<-doneReadingEvents
+
+		expectedEvents := []LoadEventType{
+			LoadEventStartedWalk,
+			LoadEventFoundDir,  // "."
+			LoadEventFoundFile, // "git-ignored.md"
+			LoadEventFoundFile, // "ignored.md"
+			LoadEventFoundDir,  // "nested"
+			LoadEventFoundFile, // "nested/git-ignored.md"
+			LoadEventFoundFile, // "readme.md"
+			LoadEventFinishedWalk,
+			LoadEventStartedParsingDocument,  // "git-ignored.md"
+			LoadEventFinishedParsingDocument, // "git-ignored.md"
+			LoadEventFoundTask,
+			LoadEventStartedParsingDocument,  // "nested/git-ignored.md"
+			LoadEventFinishedParsingDocument, // "nested/git-ignored.md"
+			LoadEventFoundTask,
+			LoadEventStartedParsingDocument,  // "ignored.md"
+			LoadEventFinishedParsingDocument, // "ignored.md"
+			LoadEventFoundTask,
+			LoadEventStartedParsingDocument,  // "readme.md"
+			LoadEventFinishedParsingDocument, // "readme.md"
+			LoadEventFoundTask,
+			LoadEventFoundTask,
 		}
-
+		require.EqualValues(
+			t,
+			expectedEvents,
+			mapLoadEvents(events, func(le LoadEvent) LoadEventType { return le.Type }),
+			"collected events: %+v",
+			events,
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundDir,
+				Data: LoadEventFoundDirData{Path: gitProjectDir},
+			},
+			events[1],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "git-ignored.md")},
+			},
+			events[2],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "ignored.md")},
+			},
+			events[3],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundDir,
+				Data: LoadEventFoundDirData{Path: filepath.Join(gitProjectDir, "nested")},
+			},
+			events[4],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "nested", "git-ignored.md")},
+			},
+			events[5],
+		)
+		assert.Equal(
+			t,
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "readme.md")},
+			},
+			events[6],
+		)
+		assert.Equal(
+			t,
+			filepath.Join(gitProjectDir, "git-ignored.md"),
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[10]).Task.DocumentPath,
+		)
+		assert.Equal(
+			t,
+			filepath.Join(gitProjectDir, "ignored.md"),
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[13]).Task.DocumentPath,
+		)
+		assert.Equal(
+			t,
+			filepath.Join(gitProjectDir, "nested", "git-ignored.md"),
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[16]).Task.DocumentPath,
+		)
+		// Unnamed task
 		{
-			res, err := blocks.LookupWithFile("TEST", "echo-hi")
-			require.NoError(t, err)
-			assert.Equal(t, 2, len(res))
+			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[19])
 
-			for _, fileBlock := range res {
-				assert.Equal(t, "echo-hi", fileBlock.Block.Name())
+			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
+			assert.Equal(t, "echo-hello", data.Task.CodeBlock.Name())
+			assert.True(t, data.Task.CodeBlock.IsUnnamed())
+		}
+		// Named task
+		{
+			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[20])
+
+			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
+			assert.Equal(t, "my-task", data.Task.CodeBlock.Name())
+			assert.False(t, data.Task.CodeBlock.IsUnnamed())
+		}
+	})
+
+	gitProjectNestedDir := testData.GitProjectNestedPath()
+
+	t.Run("GitProjectWithNested", func(t *testing.T) {
+		pRoot1, err := NewDirProject(
+			gitProjectDir,
+			WithFindRepoUpward(), // not needed, but let's check if it's noop in this case
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+		)
+		require.NoError(t, err)
+
+		pRoot2, err := NewDirProject(
+			gitProjectDir,
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+		)
+		require.NoError(t, err)
+
+		pNested, err := NewDirProject(gitProjectNestedDir,
+			WithFindRepoUpward(),
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+		)
+		require.NoError(t, err)
+
+		require.EqualValues(t, pRoot1.fs.Root(), pRoot2.fs.Root())
+		require.EqualValues(t, pRoot1.fs.Root(), pNested.fs.Root())
+	})
+
+	t.Run("DirProjectWithRespectGitignoreAndIgnorePatterns", func(t *testing.T) {
+		p, err := NewDirProject(
+			gitProjectDir,
+			WithRespectGitignore(true),
+			WithIgnoreFilePatterns(".git.bkp"),
+			WithIgnoreFilePatterns(".gitignore.bkp"),
+			WithIgnoreFilePatterns("ignored.md"),
+		)
+		require.NoError(t, err)
+
+		eventc := make(chan LoadEvent)
+
+		events := make([]LoadEvent, 0)
+		doneReadingEvents := make(chan struct{})
+		go func() {
+			defer close(doneReadingEvents)
+			for e := range eventc {
+				events = append(events, e)
 			}
+		}()
+
+		p.Load(context.Background(), eventc, false)
+		<-doneReadingEvents
+
+		expectedEvents := []LoadEventType{
+			LoadEventStartedWalk,
+			LoadEventFoundDir,  // "."
+			LoadEventFoundDir,  // "nested"
+			LoadEventFoundFile, // "readme.md"
+			LoadEventFinishedWalk,
+			LoadEventStartedParsingDocument,  // "readme.md"
+			LoadEventFinishedParsingDocument, // "readme.md"
+			LoadEventFoundTask,               // unnamed; echo-hello
+			LoadEventFoundTask,               // named; my-task
 		}
-
-		{
-			res, err := blocks.LookupWithFile("TEST.md", "echo-hi")
-			require.NoError(t, err)
-			assert.Equal(t, 1, len(res))
-		}
-	})
-}
-
-func Test_directoryGitProject(t *testing.T) {
-	pfs.MkdirAll(".git", os.FileMode(0o700))
-	defer util.RemoveAll(pfs, ".git")
-
-	dotgitFs, err := pfs.Chroot(".git")
-	require.NoError(t, err)
-
-	storage := filesystem.NewStorage(dotgitFs, nil)
-
-	_, err = git.Init(storage, nil)
-	require.NoError(t, err)
-
-	proj, err := NewDirectoryProject(pfs.Root(), true, true, true, []string{})
-	require.NoError(t, err)
-	require.NotNil(t, proj.repo)
-
-	wt, err := proj.repo.Worktree()
-	require.NoError(t, err)
-	t.Log(wt.Filesystem.Root())
-
-	util.WriteFile(pfs, ".gitignore", []byte("IGNORED.md\nignored"), os.FileMode(int(0o700)))
-	defer pfs.Remove(".gitignore")
-
-	t.Run("LoadEnvs", func(t *testing.T) {
-		proj.SetEnvLoadOrder([]string{".env.local", ".env"})
-
-		envs, err := proj.LoadEnvs()
-		require.NoError(t, err)
-
-		assert.Equal(t, map[string]string{
-			"SECRET_1": "secret1_overridden",
-			"SECRET_2": "secret2",
-			"SECRET_3": "secret3",
-		}, envs)
-	})
-
-	t.Run("LoadTask", func(t *testing.T) {
-		tasks := collectTaskMessages(proj, false)
-		require.NoError(t, err)
-
-		i := 0
-		nextMsg := func() (result interface{}) {
-			result = tasks[i]
-			i++
-			return
-		}
-
-		assert.Equal(t, LoadTaskStatusSearchingFiles{}, nextMsg())
-		assert.Equal(t, LoadTaskSearchingFolder{Folder: filepath.FromSlash(".")}, nextMsg())
-		assert.Equal(t, LoadTaskSearchingFolder{Folder: filepath.FromSlash("src")}, nextMsg())
-		assert.Equal(t, LoadTaskFoundFile{Filename: filepath.FromSlash("src/DOCS.md")}, nextMsg())
-		assert.Equal(t, LoadTaskFoundFile{Filename: filepath.FromSlash("README.md")}, nextMsg())
-		assert.Equal(t, LoadTaskStatusParsingFiles{}, nextMsg())
-
-		assert.Equal(t, LoadTaskParsingFile{Filename: filepath.FromSlash("src/DOCS.md")}, nextMsg())
-
-		{
-			msg := nextMsg().(LoadTaskFoundTask)
-			assert.Equal(t, "echo-chao", msg.Task.Block.Name())
-		}
-
-		assert.Equal(t, LoadTaskParsingFile{Filename: filepath.FromSlash("README.md")}, nextMsg())
-
-		{
-			msg := nextMsg().(LoadTaskFoundTask)
-			assert.Equal(t, "echo-hello", msg.Task.Block.Name())
-		}
-
-		assert.Equal(t, 10, len(tasks))
-	})
-
-	t.Run("LoadProjectTasks", func(t *testing.T) {
-		tasks, err := LoadProjectTasks(proj)
-		require.NoError(t, err)
-
-		assert.Equal(t, 2, len(tasks))
-
-		blocks := make(map[string]CodeBlock)
-
-		for _, task := range tasks {
-			blocks[task.Block.Name()] = task
-		}
-
-		assert.Equal(
+		require.EqualValues(
 			t,
-			convertLine("echo hello"),
-			string(blocks["echo-hello"].Block.Content()),
-		)
-
-		assert.Equal(
-			t,
-			convertLine("echo chao"),
-			string(blocks["echo-chao"].Block.Content()),
-		)
-
-		assert.Equal(
-			t,
-			"README.md",
-			string(blocks["echo-hello"].File),
-		)
-
-		assert.Equal(
-			t,
-			convertFilePath("src/DOCS.md"),
-			string(blocks["echo-chao"].File),
+			expectedEvents,
+			mapLoadEvents(events, func(le LoadEvent) LoadEventType { return le.Type }),
+			"found events: %#+v", events,
 		)
 	})
-}
 
-func Test_directoryBareProject(t *testing.T) {
-	proj, err := NewDirectoryProject(pfs.Root(), false, true, true, []string{})
-	require.NoError(t, err)
+	projectDir := testData.DirProjectPath()
 
-	t.Run("LoadEnvs", func(t *testing.T) {
-		proj.SetEnvLoadOrder([]string{".env.local", ".env"})
-
-		envs, err := proj.LoadEnvs()
+	t.Run("DirProject", func(t *testing.T) {
+		p, err := NewDirProject(projectDir)
 		require.NoError(t, err)
 
-		assert.Equal(t, map[string]string{
-			"SECRET_1": "secret1_overridden",
-			"SECRET_2": "secret2",
-			"SECRET_3": "secret3",
-		}, envs)
+		eventc := make(chan LoadEvent)
+
+		events := make([]LoadEvent, 0)
+		doneReadingEvents := make(chan struct{})
+		go func() {
+			defer close(doneReadingEvents)
+			for e := range eventc {
+				events = append(events, e)
+			}
+		}()
+
+		p.Load(context.Background(), eventc, false)
+		<-doneReadingEvents
+
+		expectedEvents := []LoadEventType{
+			LoadEventStartedWalk,
+			LoadEventFoundDir,  // "."
+			LoadEventFoundFile, // "ignored.md"
+			LoadEventFoundFile, // "readme.md"
+			LoadEventFoundFile, // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
+			LoadEventFinishedWalk,
+			LoadEventStartedParsingDocument,  // "ignored.md"
+			LoadEventFinishedParsingDocument, // "ignored.md"
+			LoadEventFoundTask,
+			LoadEventStartedParsingDocument,  // "readme.md"
+			LoadEventFinishedParsingDocument, // "readme.md"
+			LoadEventFoundTask,               // unnamed; echo-hello
+			LoadEventFoundTask,               // named; my-task
+			LoadEventStartedParsingDocument,  // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
+			LoadEventFinishedParsingDocument, // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
+		}
+		require.EqualValues(
+			t,
+			expectedEvents,
+			mapLoadEvents(events, func(le LoadEvent) LoadEventType { return le.Type }),
+		)
 	})
 
-	// TODO(mxs): test LoadTasks directly
-	t.Run("LoadProjectTasks", func(t *testing.T) {
-		tasks, err := LoadProjectTasks(proj)
+	t.Run("DirProjectWithRespectGitignoreAndIgnorePatterns", func(t *testing.T) {
+		p, err := NewDirProject(
+			projectDir,
+			WithIgnoreFilePatterns("ignored.md"),
+		)
 		require.NoError(t, err)
 
-		assert.Equal(t, 4, len(tasks))
+		eventc := make(chan LoadEvent)
 
-		blocks := make(map[string]CodeBlock)
+		events := make([]LoadEvent, 0)
+		doneReadingEvents := make(chan struct{})
+		go func() {
+			defer close(doneReadingEvents)
+			for e := range eventc {
+				events = append(events, e)
+			}
+		}()
 
-		for _, task := range tasks {
-			blocks[fmt.Sprintf("%s:%s", task.File, task.Block.Name())] = task
+		p.Load(context.Background(), eventc, false)
+		<-doneReadingEvents
+
+		expectedEvents := []LoadEventType{
+			LoadEventStartedWalk,
+			LoadEventFoundDir,  // "."
+			LoadEventFoundFile, // "readme.md"
+			LoadEventFoundFile, // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
+			LoadEventFinishedWalk,
+			LoadEventStartedParsingDocument,  // "readme.md"
+			LoadEventFinishedParsingDocument, // "readme.md"
+			LoadEventFoundTask,               // unnamed; echo-hello
+			LoadEventFoundTask,               // named; my-task
+			LoadEventStartedParsingDocument,  // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
+			LoadEventFinishedParsingDocument, // "session-01HJS35FZ2K0JBWPVAXPMMVTGN.md"
 		}
-
-		assert.Equal(
+		require.EqualValues(
 			t,
-			convertLine("echo hello"),
-			string(blocks["README.md:echo-hello"].Block.Content()),
+			expectedEvents,
+			mapLoadEvents(events, func(le LoadEvent) LoadEventType { return le.Type }),
+		)
+	})
+
+	fileProject := testData.ProjectFilePath()
+
+	t.Run("FileProject", func(t *testing.T) {
+		p, err := NewFileProject(fileProject)
+		require.NoError(t, err)
+
+		eventc := make(chan LoadEvent)
+
+		events := make([]LoadEvent, 0)
+		doneReadingEvents := make(chan struct{})
+		go func() {
+			defer close(doneReadingEvents)
+			for e := range eventc {
+				events = append(events, e)
+			}
+		}()
+
+		p.Load(context.Background(), eventc, false)
+		<-doneReadingEvents
+
+		expectedEvents := []LoadEventType{
+			LoadEventStartedWalk,
+			LoadEventFoundFile, // "file-project.md"
+			LoadEventFinishedWalk,
+			LoadEventStartedParsingDocument,  // "file-project.md"
+			LoadEventFinishedParsingDocument, // "file-project.md"
+			LoadEventFoundTask,
+		}
+		require.EqualValues(
+			t,
+			expectedEvents,
+			mapLoadEvents(events, func(le LoadEvent) LoadEventType { return le.Type }),
 		)
 
 		assert.Equal(
 			t,
-			convertLine("echo chao"),
-			string(blocks[convertFilePath("src/DOCS.md:echo-chao")].Block.Content()),
+			LoadEvent{
+				Type: LoadEventFoundFile,
+				Data: LoadEventFoundFileData{Path: fileProject},
+			},
+			events[1],
 		)
-
 		assert.Equal(
 			t,
-			convertLine("echo ignored"),
-			string(blocks["IGNORED.md:echo-ignored"].Block.Content()),
-		)
-
-		assert.Equal(
-			t,
-			convertLine("echo hi"),
-			string(blocks[convertFilePath("ignored/README.md:echo-hi")].Block.Content()),
+			fileProject,
+			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[5]).Task.DocumentPath,
 		)
 	})
 }
 
-func Test_singleFileProject(t *testing.T) {
-	proj := NewSingleFileProject(filepath.Join(pfs.Root(), "README.md"), true, true)
+func TestLoadTasks(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
 
-	t.Run("LoadEnvs", func(t *testing.T) {
-		envs, err := proj.LoadEnvs()
-		require.NoError(t, err)
-		assert.Nil(t, envs)
-	})
+	gitProjectDir := testData.GitProjectPath()
+	p, err := NewDirProject(gitProjectDir, WithIgnoreFilePatterns(".*.bkp"))
+	require.NoError(t, err)
 
-	t.Run("LoadTasks", func(t *testing.T) {
-		tasks := collectTaskMessages(proj, false)
-
-		i := 0
-		nextMsg := func() (result interface{}) {
-			result = tasks[i]
-			i++
-			return
-		}
-
-		assert.Equal(t, LoadTaskStatusSearchingFiles{}, nextMsg())
-		assert.Equal(t, LoadTaskSearchingFolder{Folder: "."}, nextMsg())
-		assert.Equal(t, LoadTaskFoundFile{Filename: filepath.FromSlash("README.md")}, nextMsg())
-
-		assert.Equal(t, LoadTaskStatusParsingFiles{}, nextMsg())
-
-		assert.Equal(t, LoadTaskParsingFile{Filename: filepath.FromSlash("README.md")}, nextMsg())
-
-		{
-			msg := nextMsg().(LoadTaskFoundTask)
-			assert.Equal(t, "echo-hello", msg.Task.Block.Name())
-		}
-
-		assert.Equal(t, len(tasks), 6)
-	})
-
-	t.Run("LoadProjectTasks", func(t *testing.T) {
-		tasks, err := LoadProjectTasks(proj)
-		require.NoError(t, err)
-
-		assert.Equal(t, 1, len(tasks))
-		assert.Equal(t, tasks[0].File, "README.md")
-	})
+	tasks, err := LoadTasks(context.Background(), p)
+	require.NoError(t, err)
+	assert.Len(t, tasks, 5)
 }
 
-func Test_codeBlockFrontmatter(t *testing.T) {
-	cwd, err := os.Getwd()
+func TestLoadEnv(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+
+	gitProjectDir := testData.GitProjectPath()
+	p, err := NewDirProject(gitProjectDir, WithIgnoreFilePatterns(".*.bkp"), WithEnvFilesReadOrder([]string{".env"}))
 	require.NoError(t, err)
 
-	proj, err := NewDirectoryProject(filepath.Join(cwd, "../../", "examples", "frontmatter", "shells"), false, true, true, []string{})
+	env, err := p.LoadEnv()
 	require.NoError(t, err)
+	assert.Len(t, env, 1)
+	assert.Equal(t, "PROJECT_ENV_FROM_DOTFILE=1", env[0])
+}
 
-	tasks, err := LoadProjectTasks(proj)
-	require.NoError(t, err)
+func mapLoadEvents[T any](events []LoadEvent, fn func(LoadEvent) T) []T {
+	result := make([]T, 0, len(events))
 
-	t.Log(tasks)
-
-	taskMemo := make(map[string]FileCodeBlock)
-
-	for _, task := range tasks {
-		taskMemo[filepath.Base(task.GetFile())] = task
+	for _, e := range events {
+		result = append(result, fn(e))
 	}
 
-	assert.Equal(t, "bash", taskMemo["BASH.md"].GetFrontmatter().Shell)
-	assert.Equal(t, "ksh", taskMemo["KSH.md"].GetFrontmatter().Shell)
-	assert.Equal(t, "zsh", taskMemo["ZSH.md"].GetFrontmatter().Shell)
-}
-
-func Test_codeBlockSkipPromptsFrontmatter(t *testing.T) {
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-
-	proj, err := NewDirectoryProject(filepath.Join(cwd, "../../", "examples", "frontmatter", "skipPrompts"), false, true, true, []string{})
-	require.NoError(t, err)
-
-	tasks, err := LoadProjectTasks(proj)
-	require.NoError(t, err)
-
-	t.Log(tasks)
-
-	taskMemo := make(map[string]FileCodeBlock)
-
-	for _, task := range tasks {
-		taskMemo[filepath.Base(task.GetFile())] = task
-	}
-
-	assert.Equal(t, taskMemo["DISABLED.md"].GetFrontmatter().SkipPrompts, false)
-	assert.Equal(t, taskMemo["ENABLED.md"].GetFrontmatter().SkipPrompts, true)
-	assert.Equal(t, taskMemo["NONE.md"].GetFrontmatter().SkipPrompts, false)
-}
-
-func projectDir() billy.Filesystem {
-	_, b, _, _ := runtime.Caller(0)
-	root := filepath.Join(
-		filepath.Dir(b),
-		"test_project",
-	)
-
-	return osfs.New(root)
-}
-
-func convertFilePath(p string) string {
-	return strings.ReplaceAll(p, "/", string(filepath.Separator))
-}
-
-func convertLine(p string) string {
-	if runtime.GOOS == "windows" {
-		p += "\r"
-	}
-
-	return p
-}
-
-func collectTaskMessages(proj Project, filesOnly bool) (result []interface{}) {
-	channel := make(chan interface{})
-	go proj.LoadTasks(filesOnly, channel)
-
-	for msg := range channel {
-		result = append(result, msg)
-	}
-
-	return
+	return result
 }
