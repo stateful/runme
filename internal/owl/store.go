@@ -566,7 +566,7 @@ func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
 	}
 
 	// s.logger.Debug("snapshot query", zap.String("query", query.String()))
-	_, _ = fmt.Println(query.String())
+	// _, _ = fmt.Println(query.String())
 
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
