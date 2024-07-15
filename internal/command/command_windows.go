@@ -21,11 +21,11 @@ func closeOnExec(uintptr) {
 	// noop
 }
 
-func disableEcho(fd uintptr) error {
+func disableEcho(uintptr) error {
 	return errors.New("Error: Environment not supported! " +
 		"Runme currently doesn't support PowerShell. " +
 		"Please go to https://github.com/stateful/runme/issues/173 to follow progress on this " +
 		"and join our Discord server at https://discord.gg/runme if you have further questions!")
 }
 
-func signalPgid(pid int, sig os.Signal) error { return errors.New("unsupported") }
+func signalPgid(int, os.Signal) error { return errors.New("unsupported") }

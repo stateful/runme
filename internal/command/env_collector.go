@@ -3,7 +3,6 @@ package command
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,17 +11,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	envStartFileName = ".env_start"
-	envEndFileName   = ".env_end"
+const maxScannerBufferSizeInBytes = 1024 * 1024 * 1024 // 1GB
 
-	maxScannerBufferSizeInBytes = 1024 * 1024 * 1024
+const (
+	envCollectorEncKeyEnvName   = "RUNME_ENCRYPTION_KEY"
+	envCollectorEncNonceEnvName = "RUNME_ENCRYPTION_NONCE"
 )
 
-// EnvDumpCommand is a command that dumps the environment variables.
-// It is declared as a var, because it must be replaced in tests.
-// Equivalent is `env -0`.
-var EnvDumpCommand = func() string {
+// envDumpCommand is a command that dumps the environment variables.
+var envDumpCommand = func() string {
 	path, err := os.Executable()
 	if err != nil {
 		panic(errors.WithMessage(err, "failed to get the executable path"))
@@ -30,133 +27,61 @@ var EnvDumpCommand = func() string {
 	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
 }()
 
-// shellEnvCollector collects the environment variables from a shell script or session.
-// It writes a shell command that dumps the initial environment variables into a file.
-// Then, it configures a trap on the EXIT signal which will dump the environment variables again
-// on exit.
-//
-// TODO(adamb): change the implementation to use tmpfs.
-type shellEnvCollector struct {
-	buf         io.Writer // where to write the shell commands
-	collectable bool      // true only if the collector is initialized
-	tempDir     string    // where to store the env files
-
-	owningTempDir bool
+func SetEnvDumpCommand(cmd string) {
+	envDumpCommand = cmd
+	// When overriding [envDumpCommand], we disable the encryption.
+	// There is no way to test the encryption if the dump command
+	// is not controlled.
+	envCollectorEnableEncryption = false
 }
 
-func (c *shellEnvCollector) Init() error {
-	info, err := os.Stat(c.tempDir)
-	if err != nil && !os.IsNotExist(err) {
-		return errors.WithMessage(err, "failed to check the temporary dir")
-	} else if err != nil && os.IsNotExist(err) {
-		if err := c.createTempDir(); err != nil {
-			return err
-		}
-	} else if !info.IsDir() {
-		return errors.New("the temporary dir is not a directory")
-	}
+type envCollector interface {
+	// Diff compares the environment variables before and after the command execution.
+	// It returns the list of env that were changed and deleted.
+	Diff() (changed []string, deleted []string, _ error)
 
-	// First, dump all env at the beginning, so that a diff can be calculated.
-	_, err = c.buf.Write(
-		[]byte(
-			fmt.Sprintf("%s > %s\n", EnvDumpCommand, filepath.Join(c.tempDir, envStartFileName)),
-		),
-	)
-	if err != nil {
-		return err
-	}
-	// Then, set a trap on EXIT to dump all env at the end.
-	_, err = setEnvDumpTrapOnExit(
-		c.buf,
-		fmt.Sprintf("%s > %s", EnvDumpCommand, filepath.Join(c.tempDir, envEndFileName)),
-	)
-	if err != nil {
-		return err
-	}
+	// ExtraEnv provides a list of extra environment variables that should be set
+	// before the command execution.
+	ExtraEnv() []string
 
-	c.collectable = true
-
-	return nil
+	// SetOnShell writes additional commands to the shell session
+	// in order to collect the environment variables after
+	// the command execution.
+	SetOnShell(io.Writer) error
 }
 
-func (c *shellEnvCollector) Collect() (changed, deleted []string, _ error) {
-	if !c.collectable {
-		return nil, nil, nil
-	}
+type envScanner func(io.Reader) ([]string, error)
 
-	defer func() {
-		_ = c.removeTempDir()
-	}()
-
-	startEnv, err := c.readEnvFromFile(envStartFileName)
+func diffEnvs(initial, final []string) (changed, deleted []string, err error) {
+	envStoreWithInitial := newEnvStore()
+	_, err = envStoreWithInitial.Merge(initial...)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithMessage(err, "failed to create the store with initial env")
 	}
 
-	endEnv, err := c.readEnvFromFile(envEndFileName)
+	envStoreWithFinal := newEnvStore()
+	_, err = envStoreWithFinal.Merge(final...)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithMessage(err, "failed to create the store with final env")
 	}
 
-	startEnvStore := newEnvStore()
-	if _, err := startEnvStore.Merge(startEnv...); err != nil {
-		return nil, nil, errors.WithMessage(err, "failed to create the start env store")
-	}
-
-	endEnvStore := newEnvStore()
-	if _, err := endEnvStore.Merge(endEnv...); err != nil {
-		return nil, nil, errors.WithMessage(err, "failed to create the end env store")
-	}
-
-	changed, _, deleted = diffEnvStores(startEnvStore, endEnvStore)
+	changed, _, deleted = diffEnvStores(envStoreWithInitial, envStoreWithFinal)
 	return
 }
 
-func (c *shellEnvCollector) createTempDir() (err error) {
-	c.tempDir, err = os.MkdirTemp("", "runme-*")
-	if err != nil {
-		return errors.WithMessage(err, "failed to create a temporary dir")
-	}
-	c.owningTempDir = true
-	return nil
-}
-
-func (c *shellEnvCollector) removeTempDir() error {
-	if !c.owningTempDir {
-		return nil
-	}
-	return errors.WithMessage(os.RemoveAll(c.tempDir), "failed to remove the temporary dir")
-}
-
-func (c *shellEnvCollector) readEnvFromFile(name string) (result []string, _ error) {
-	f, err := os.Open(filepath.Join(c.tempDir, name))
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to open the env file %q", name)
-	}
-	defer func() { _ = f.Close() }()
-
-	fileInfo, err := f.Stat()
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to get the file info of the env file %q", name)
-	}
-
-	scannerBufferSizeInBytes := fileInfo.Size()
-	if scannerBufferSizeInBytes > maxScannerBufferSizeInBytes {
-		return nil, errors.Errorf("the env file %q is too big: %d bytes", name, scannerBufferSizeInBytes)
-	}
-
-	scanner := bufio.NewScanner(f)
-	scanner.Buffer(make([]byte, 4096), int(scannerBufferSizeInBytes)) // 4096 is taken from bufio as the initial buffer size
+func scanEnv(r io.Reader) ([]string, error) {
+	scanner := bufio.NewScanner(r)
+	// 4096 is taken from bufio as the initial buffer size.
+	scanner.Buffer(make([]byte, 4096), int(maxScannerBufferSizeInBytes))
 	scanner.Split(splitNull)
 
+	var result []string
 	for scanner.Scan() {
 		result = append(result, scanner.Text())
 	}
-
 	if err := scanner.Err(); err != nil {
-		return nil, errors.WithMessagef(err, "failed to scan the env file %q", name)
+		return nil, errors.Wrap(err, "failed to scan env stream")
 	}
-
 	return result, nil
 }
 
@@ -176,16 +101,57 @@ func splitNull(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	return 0, nil, nil
 }
 
-func setEnvDumpTrapOnExit(w io.Writer, cmd string) (int, error) {
-	bw := bulkWriter{Writer: w}
-	bw.Write(
-		[]byte(
-			fmt.Sprintf(
-				"__cleanup() {\nrv=$?\n%s\nexit $rv\n}\n",
-				cmd,
-			),
-		),
-	)
-	bw.Write([]byte("trap -- \"__cleanup\" EXIT\n"))
-	return bw.Done()
+type tempDirectory struct {
+	dir string
+}
+
+func newTempDirectory() (*tempDirectory, error) {
+	c := &tempDirectory{}
+	if err := c.ensureTempDir(); err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func (m *tempDirectory) Cleanup() error {
+	return m.removeTempDir()
+}
+
+func (m *tempDirectory) Join(name string) string {
+	return filepath.Join(m.dir, name)
+}
+
+func (*tempDirectory) Open(name string) (io.ReadCloser, error) {
+	f, err := os.OpenFile(name, os.O_RDONLY, 0o600)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to open the env file %q", name)
+	}
+	return f, nil
+}
+
+func (m *tempDirectory) ensureTempDir() error {
+	info, err := os.Stat(m.dir)
+	if err != nil && !os.IsNotExist(err) {
+		return errors.WithMessage(err, "failed to check the temporary dir")
+	}
+	if err != nil && os.IsNotExist(err) {
+		return m.createTempDir()
+	}
+	if !info.IsDir() {
+		return errors.New("the temporary dir is not a directory")
+	}
+	return nil
+}
+
+func (m *tempDirectory) createTempDir() (err error) {
+	m.dir, err = os.MkdirTemp("", "runme-*")
+	if err != nil {
+		return errors.WithMessage(err, "failed to create a temporary dir")
+	}
+	return nil
+}
+
+func (m *tempDirectory) removeTempDir() error {
+	err := os.RemoveAll(m.dir)
+	return errors.WithMessage(err, "failed to remove the temporary dir")
 }

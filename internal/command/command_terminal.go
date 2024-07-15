@@ -12,7 +12,7 @@ import (
 type terminalCommand struct {
 	internalCommand
 
-	envCollector *shellEnvCollector
+	envCollector envCollector
 	logger       *zap.Logger
 	session      *Session
 	stdinWriter  io.Writer
@@ -26,9 +26,14 @@ func (c *terminalCommand) getPty() *os.File {
 	return cmdPty.getPty()
 }
 
-func (c *terminalCommand) Start(ctx context.Context) error {
+func (c *terminalCommand) Start(ctx context.Context) (err error) {
 	if isNil(c.stdinWriter) {
 		return errors.New("stdin writer is nil")
+	}
+
+	cfg := c.ProgramConfig()
+	if c.envCollector != nil {
+		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
 	}
 
 	c.logger.Info("starting a terminal command")
@@ -37,10 +42,10 @@ func (c *terminalCommand) Start(ctx context.Context) error {
 	}
 	c.logger.Info("a terminal command started")
 
-	// [shellEnvCollector] writes defines a function collecting env and
-	// registers it as a trap directly into the shell interactive session.
-	c.envCollector = &shellEnvCollector{buf: c.stdinWriter}
-	return c.envCollector.Init()
+	if c.envCollector != nil {
+		return c.envCollector.SetOnShell(c.stdinWriter)
+	}
+	return nil
 }
 
 func (c *terminalCommand) Wait() (err error) {
@@ -55,17 +60,20 @@ func (c *terminalCommand) Wait() (err error) {
 }
 
 func (c *terminalCommand) collectEnv() error {
-	if c.session == nil || c.envCollector == nil {
+	if c.envCollector == nil {
 		return nil
 	}
 
-	changed, deleted, err := c.envCollector.Collect()
+	changed, deleted, err := c.envCollector.Diff()
 	if err != nil {
 		return err
 	}
-	if err := c.session.SetEnv(changed...); err != nil {
+
+	err = c.session.SetEnv(changed...)
+	if err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
+
 	c.session.DeleteEnv(deleted...)
 
 	return nil

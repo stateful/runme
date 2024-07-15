@@ -11,12 +11,22 @@ import (
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
+var (
+	envCollectorEnableEncryption = true
+	envCollectorUseFifo          = true
+)
+
 type CommandOptions struct {
 	// EnableEcho enables the echo when typing in the terminal.
 	// It's respected only by interactive commands, i.e. composed
 	// with [virtualCommand].
-	EnableEcho  bool
-	Session     *Session
+	EnableEcho bool
+
+	// Session is used to share the state between commands.
+	// If none is provided, an empty one will be used.
+	Session *Session
+
+	// StdinWriter is used by [terminalCommand].
 	StdinWriter io.Writer
 	Stdin       io.Reader
 	Stdout      io.Writer
@@ -24,11 +34,21 @@ type CommandOptions struct {
 }
 
 type Factory interface {
-	Build(*ProgramConfig, CommandOptions) Command
+	Build(*ProgramConfig, CommandOptions) (Command, error)
 }
 
 type FactoryOption func(*commandFactory)
 
+// WithDebug enables additional debug information.
+// For example, for shell commands it prints out
+// commands before execution.
+func WithDebug() FactoryOption {
+	return func(f *commandFactory) {
+		f.debug = true
+	}
+}
+
+// WithDocker provides a docker client for docker commands.
 func WithDocker(docker *dockerexec.Docker) FactoryOption {
 	return func(f *commandFactory) {
 		f.docker = docker
@@ -56,7 +76,8 @@ func NewFactory(opts ...FactoryOption) Factory {
 }
 
 type commandFactory struct {
-	docker  *dockerexec.Docker // used only for [dockerCommand]
+	debug   bool
+	docker  *dockerexec.Docker
 	logger  *zap.Logger
 	project *project.Project
 }
@@ -72,7 +93,7 @@ type commandFactory struct {
 //   - [inlineCommand], [inlineShellCommand], [terminalCommand], and [fileCommand] - are
 //     high-level commands that are built on top of the mid-layer commands. They implement
 //     real world use cases and are fully functional and can be used by callers.
-func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command {
+func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command, error) {
 	mode := cfg.Mode
 	// For backward compatibility, if the mode is not specified,
 	// we will try to infer it from the language. If it's shell,
@@ -81,8 +102,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 		mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
 	}
 
-	// Session should be always available. If non is provided,
-	// return a new one.
+	// Session should be always available.
 	if opts.Session == nil {
 		opts.Session = NewSession()
 	}
@@ -90,17 +110,29 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 	switch mode {
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE:
 		if isShell(cfg) {
+			collector, err := f.getEnvCollector()
+			if err != nil {
+				return nil, err
+			}
+
 			return &inlineShellCommand{
+				debug:           f.debug,
+				envCollector:    collector,
 				internalCommand: f.buildInternal(cfg, opts),
 				logger:          f.getLogger("InlineShellCommand"),
 				session:         opts.Session,
-			}
+			}, nil
 		}
 		return &inlineCommand{
 			internalCommand: f.buildInternal(cfg, opts),
 			logger:          f.getLogger("InlineCommand"),
-		}
+		}, nil
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL:
+		collector, err := f.getEnvCollector()
+		if err != nil {
+			return nil, err
+		}
+
 		// For terminal commands, we always want them to be interactive.
 		cfg.Interactive = true
 		// And echo typed characters.
@@ -108,17 +140,18 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) Command 
 
 		return &terminalCommand{
 			internalCommand: f.buildVirtual(f.buildBase(cfg, opts), opts),
+			envCollector:    collector,
 			logger:          f.getLogger("TerminalCommand"),
 			session:         opts.Session,
 			stdinWriter:     opts.StdinWriter,
-		}
+		}, nil
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_FILE:
 		fallthrough
 	default:
 		return &fileCommand{
 			internalCommand: f.buildInternal(cfg, opts),
 			logger:          f.getLogger("FileCommand"),
-		}
+		}, nil
 	}
 }
 
@@ -131,14 +164,13 @@ func (f *commandFactory) buildBase(cfg *ProgramConfig, opts CommandOptions) *bas
 	}
 
 	return &base{
-		cfg:         cfg,
-		project:     f.project,
-		runtime:     runtime,
-		session:     opts.Session,
-		stdin:       opts.Stdin,
-		stdinWriter: opts.StdinWriter,
-		stdout:      opts.Stdout,
-		stderr:      opts.Stderr,
+		cfg:     cfg,
+		project: f.project,
+		runtime: runtime,
+		session: opts.Session,
+		stdin:   opts.Stdin,
+		stdout:  opts.Stdout,
+		stderr:  opts.Stderr,
 	}
 }
 
@@ -181,6 +213,21 @@ func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) internalC
 		logger:        f.getLogger("VirtualCommand"),
 		stdin:         stdin,
 	}
+}
+
+// TODO(adamb): env collector (fifo) might need a context which will unblock it when the command finishes.
+// Otherwise, it won't know when to finish waiting for the output from env producer.
+func (f *commandFactory) getEnvCollector() (envCollector, error) {
+	if f.docker != nil {
+		return nil, nil
+	}
+	collectorFactory := newEnvCollectorFactory(
+		envCollectorFactoryOptions{
+			encryptionEnabled: envCollectorEnableEncryption,
+			useFifo:           envCollectorUseFifo,
+		},
+	)
+	return collectorFactory.Build()
 }
 
 func (f *commandFactory) getLogger(name string) *zap.Logger {

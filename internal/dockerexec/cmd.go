@@ -3,6 +3,7 @@ package dockerexec
 import (
 	"context"
 	"io"
+	"sync"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -118,7 +119,11 @@ func (c *Cmd) Start() error {
 
 	c.ioErrC = make(chan error, 2)
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		var err error
 		if c.TTY {
 			_, err = io.Copy(c.Stdout, hijack.Reader)
@@ -128,11 +133,19 @@ func (c *Cmd) Start() error {
 		c.ioErrC <- errors.WithStack(err)
 	}()
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
+		var err error
 		if c.Stdin != nil {
-			_, err := io.Copy(hijack.Conn, c.Stdin)
-			c.ioErrC <- errors.WithStack(err)
+			_, err = io.Copy(hijack.Conn, c.Stdin)
 		}
+		c.ioErrC <- errors.WithStack(err)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(c.ioErrC)
 	}()
 
 	inspect, err := c.docker.client.ContainerInspect(c.ctx, c.containerID)
@@ -171,12 +184,20 @@ func (c *Cmd) Wait() error {
 		if resp.Error != nil {
 			c.ProcessState.ErrorMessage = resp.Error.Message
 		}
+
+		if c.ProcessState.ExitCode > 0 {
+			err = errors.Errorf("exit code %d due to error %q", c.ProcessState.ExitCode, c.ProcessState.ErrorMessage)
+		}
 	case err = <-c.waitErrC:
 		err = errors.WithStack(err)
 	}
 
-	if err == nil {
-		err = <-c.ioErrC
+	for errIO := range c.ioErrC {
+		if err == nil {
+			err = errIO
+		} else {
+			c.logger.Info("ignoring IO error as there was an earlier error", zap.Error(errIO))
+		}
 	}
 
 	return err

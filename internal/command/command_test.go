@@ -11,6 +11,16 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+func init() {
+	// Switch from "runme env" to "env -0" for the tests.
+	// This is because the "runme" program is not available
+	// in the test environment.
+	//
+	// TODO(adamb): this can be changed. runme must be built
+	// in the test environment and put into the PATH.
+	SetEnvDumpCommand("env -0")
+}
+
 func testExecuteCommand(
 	t *testing.T,
 	cfg *ProgramConfig,
@@ -20,19 +30,32 @@ func testExecuteCommand(
 ) {
 	t.Helper()
 
+	testExecuteCommandWithSession(t, cfg, nil, input, expectedStdout, expectedStderr)
+}
+
+func testExecuteCommandWithSession(
+	t *testing.T,
+	cfg *ProgramConfig,
+	session *Session,
+	input io.Reader,
+	expectedStdout string,
+	expectedStderr string,
+) {
+	t.Helper()
+
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)
 
-	options := CommandOptions{
-		Stdout: stdout,
-		Stderr: stderr,
-		Stdin:  input,
-	}
-
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
-	command := factory.Build(cfg, options)
-
-	err := command.Start(context.Background())
+	options := CommandOptions{
+		Session: session,
+		Stdout:  stdout,
+		Stderr:  stderr,
+		Stdin:   input,
+	}
+	command, err := factory.Build(cfg, options)
+	require.NoError(t, err)
+	err = command.Start(context.Background())
 	require.NoError(t, err)
 	err = command.Wait()
 	assert.NoError(t, err)

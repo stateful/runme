@@ -115,8 +115,12 @@ func runCodeBlock(
 	if err != nil {
 		return err
 	}
-	cmd := factory.Build(cfg, options)
-	if err := cmd.Start(ctx); err != nil {
+	cmd, err := factory.Build(cfg, options)
+	if err != nil {
+		return err
+	}
+	err = cmd.Start(ctx)
+	if err != nil {
 		return err
 	}
 	return cmd.Wait()

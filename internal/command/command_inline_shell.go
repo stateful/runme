@@ -13,17 +13,18 @@ import (
 type inlineShellCommand struct {
 	internalCommand
 
-	envCollector *shellEnvCollector
+	debug        bool
+	envCollector envCollector
 	logger       *zap.Logger
 	session      *Session
 }
 
 func (c *inlineShellCommand) getPty() *os.File {
-	virtualCmd, ok := c.internalCommand.(*virtualCommand)
+	cmd, ok := c.internalCommand.(commandWithPty)
 	if !ok {
 		return nil
 	}
-	return virtualCmd.pty
+	return cmd.getPty()
 }
 
 func (c *inlineShellCommand) Start(ctx context.Context) error {
@@ -36,6 +37,10 @@ func (c *inlineShellCommand) Start(ctx context.Context) error {
 
 	cfg := c.ProgramConfig()
 	cfg.Arguments = append(cfg.Arguments, "-c", script)
+
+	if c.envCollector != nil {
+		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
+	}
 
 	return c.internalCommand.Start(ctx)
 }
@@ -70,9 +75,9 @@ func (c *inlineShellCommand) build() (string, error) {
 
 	// If the session is provided, we need to collect the environment before and after the script execution.
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
-	if c.session != nil {
-		c.envCollector = &shellEnvCollector{buf: buf}
-		if err := c.envCollector.Init(); err != nil {
+	if c.envCollector != nil {
+		err = c.envCollector.SetOnShell(buf)
+		if err != nil {
 			return "", err
 		}
 	}
@@ -93,17 +98,20 @@ func (c *inlineShellCommand) build() (string, error) {
 }
 
 func (c *inlineShellCommand) collectEnv() error {
-	if c.session == nil || c.envCollector == nil {
+	if c.envCollector == nil {
 		return nil
 	}
 
-	changed, deleted, err := c.envCollector.Collect()
+	changed, deleted, err := c.envCollector.Diff()
 	if err != nil {
 		return err
 	}
-	if err := c.session.SetEnv(changed...); err != nil {
+
+	err = c.session.SetEnv(changed...)
+	if err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
+
 	c.session.DeleteEnv(deleted...)
 
 	return nil
@@ -120,7 +128,11 @@ func (c *inlineShellCommand) shellOptions() (string, error) {
 	// TODO(mxs): powershell and DOS are missing
 	switch shell {
 	case "zsh", "ksh", "bash":
-		return "set -e -o pipefail", nil
+		result := "set -e -o pipefail"
+		if c.debug {
+			result += " -x"
+		}
+		return result, nil
 	case "sh":
 		return "set -e", nil
 	default:
