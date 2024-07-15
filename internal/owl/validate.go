@@ -180,12 +180,12 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			return nil, fmt.Errorf("complex item not found: %s", itemKey)
 		}
 
-		data := make(map[string]interface{}, 1)
-		rules := make(map[string]interface{}, 1)
-
 		if val.Value.Resolved == "" && !item.Required {
 			continue
 		}
+
+		data := make(map[string]interface{}, 1)
+		rules := make(map[string]interface{}, 1)
 
 		data[val.Var.Key] = val.Value.Resolved
 		rules[val.Var.Key] = item.Rules
