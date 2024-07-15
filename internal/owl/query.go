@@ -816,7 +816,7 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 	}
 }
 
-func reduceSpecsAtomic(ns string, parent *SpecDef) QueryNodeReducer {
+func reduceSpecsAtomic(ns string, parent *ComplexDef) QueryNodeReducer {
 	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var specKeys []string
 		varSpecs := make(map[string]*SetVarItem)

@@ -31,13 +31,15 @@ type TagFailedError struct {
 	varItem *SetVarItem
 	code    ValidateErrorType
 	tag     string
+	item    string
 }
 
-func NewTagFailedError(varItem *SetVarItem, tag string) *TagFailedError {
+func NewTagFailedError(varItem *SetVarItem, tag string, item string) *TagFailedError {
 	return &TagFailedError{
 		varItem: varItem,
 		code:    ValidateErrorTagFailed,
 		tag:     tag,
+		item:    item,
 	}
 }
 
@@ -46,11 +48,12 @@ func (e TagFailedError) VarItem() *SetVarItem {
 }
 
 func (e TagFailedError) Error() string {
-	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed tag validation \"%s\" required by \"%s!\" declared in \"%s\"",
+	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed tag validation \"%s\" required by \"%s->%s\" declared in \"%s\"",
 		e.Code(),
 		e.Key(),
 		e.Tag(),
 		e.SpecName(),
+		e.Item(),
 		e.Source())
 }
 
@@ -78,6 +81,10 @@ func (e TagFailedError) SpecName() string {
 	return e.varItem.Spec.Name
 }
 
+func (e TagFailedError) Item() string {
+	return e.item
+}
+
 func (e TagFailedError) Source() string {
 	if e.varItem.Spec.Operation == nil {
 		return "-"
@@ -96,7 +103,7 @@ var (
 
 const ComplexSpecType string = "Complex"
 
-type SpecDef struct {
+type ComplexDef struct {
 	Name    string
 	Breaker string
 	Items   map[string]*varSpec
@@ -104,7 +111,7 @@ type SpecDef struct {
 
 var validator = valid.New()
 
-var ComplexDefTypes = map[string]*SpecDef{
+var ComplexDefTypes = map[string]*ComplexDef{
 	"Redis": {
 		Name:    "Redis",
 		Breaker: "REDIS",
@@ -140,8 +147,8 @@ var ComplexDefTypes = map[string]*SpecDef{
 }
 
 func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
-	data := make(map[string]interface{})
-	rules := make(map[string]interface{})
+	var validationErrs ValidationErrors
+
 	for _, k := range s.Keys {
 		spec, ok := s.specs[k]
 		if !ok {
@@ -167,28 +174,34 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			return nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
 		}
 
-		typkey := (parts[len(parts)-1])
+		itemKey := (parts[len(parts)-1])
+		data := make(map[string]interface{}, 1)
+		rules := make(map[string]interface{}, 1)
 		data[val.Var.Key] = val.Value.Resolved
-		rules[val.Var.Key] = typ.Items[typkey].Rules
-	}
+		rules[val.Var.Key] = typ.Items[itemKey].Rules
 
-	fields := validator.ValidateMap(data, rules)
-	var validationErrs ValidationErrors
+		field := validator.ValidateMap(data, rules)
 
-	for key, errs := range fields {
-		verrs, ok := errs.(valid.ValidationErrors)
-		if !ok {
-			return nil, fmt.Errorf("unexpected error type: %T", errs)
-		}
-		for _, err := range verrs {
-			val := s.values[key]
-			spec := s.specs[key]
-			validationErrs = append(validationErrs,
-				NewTagFailedError(
-					&SetVarItem{Var: val.Var, Value: val.Value, Spec: spec.Spec},
-					err.Tag(),
-				),
-			)
+		for key, errs := range field {
+			verrs, ok := errs.(valid.ValidationErrors)
+			if !ok {
+				return nil, fmt.Errorf("unexpected error type: %T", errs)
+			}
+			for _, err := range verrs {
+				val := s.values[key]
+				spec := s.specs[key]
+				validationErrs = append(validationErrs,
+					NewTagFailedError(
+						&SetVarItem{
+							Var:   val.Var,
+							Value: val.Value,
+							Spec:  spec.Spec,
+						},
+						err.Tag(),
+						itemKey,
+					),
+				)
+			}
 		}
 	}
 

@@ -83,14 +83,14 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 		assert.EqualValues(t, "REDIS_HOST", snapshot[4].Var.Key)
 		assert.EqualValues(t, "12345", snapshot[4].Value.Resolved)
 		assert.EqualValues(t,
-			`Error 1: The value of variable "REDIS_HOST" failed tag validation "ip|hostname" required by "Redis!" declared in ".env.example"`,
+			`Error 1: The value of variable "REDIS_HOST" failed tag validation "ip|hostname" required by "Redis->HOST" declared in ".env.example"`,
 			snapshot[4].Errors[0].Message,
 		)
 
 		assert.EqualValues(t, "REDIS_PORT", snapshot[5].Var.Key)
 		assert.EqualValues(t, "invalid-port", snapshot[5].Value.Resolved)
 		assert.EqualValues(t,
-			`Error 1: The value of variable "REDIS_PORT" failed tag validation "number" required by "Redis!" declared in ".env.example"`,
+			`Error 1: The value of variable "REDIS_PORT" failed tag validation "number" required by "Redis->PORT" declared in ".env.example"`,
 			snapshot[5].Errors[0].Message,
 		)
 	})
