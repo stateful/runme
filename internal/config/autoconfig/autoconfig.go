@@ -11,6 +11,7 @@
 package autoconfig
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -89,12 +90,22 @@ func getDocker(c *config.Config, logger *zap.Logger) (*dockerexec.Docker, error)
 		return nil, nil
 	}
 
-	return dockerexec.New(&dockerexec.Options{
+	d, err := dockerexec.New(&dockerexec.Options{
 		BuildContext: c.RuntimeDockerBuildContext,
 		Dockerfile:   c.RuntimeDockerBuildDockerfile,
 		Image:        c.RuntimeDockerImage,
 		Logger:       logger,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.EnsureImage(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return d, nil
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {

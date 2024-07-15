@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -23,10 +23,9 @@ type Options struct {
 }
 
 func New(opts *Options) (*Docker, error) {
-	// Typically, the version is dicted by the Docker API version in the CI (GitHub Actions).
-	c, err := client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.43"))
+	c, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	logger := opts.Logger
@@ -44,10 +43,6 @@ func New(opts *Options) (*Docker, error) {
 		image:        opts.Image,
 		logger:       logger,
 		rnd:          rnd,
-	}
-
-	if err := d.buildOrPullImage(context.Background()); err != nil {
-		return nil, err
 	}
 
 	return d, nil
@@ -77,6 +72,10 @@ func (d *Docker) CommandContext(ctx context.Context, program string, args ...str
 	}
 }
 
+func (d *Docker) EnsureImage(ctx context.Context) error {
+	return d.buildOrPullImage(ctx)
+}
+
 func (d *Docker) containerUniqueName() string {
 	var hash [4]byte
 	_, _ = d.rnd.Read(hash[:])
@@ -96,7 +95,7 @@ func (d *Docker) buildImage(context.Context) error {
 
 func (d *Docker) pullImage(ctx context.Context) error {
 	filters := filters.NewArgs(filters.Arg("reference", d.image))
-	result, err := d.client.ImageList(ctx, types.ImageListOptions{Filters: filters})
+	result, err := d.client.ImageList(ctx, image.ListOptions{Filters: filters})
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -105,7 +104,7 @@ func (d *Docker) pullImage(ctx context.Context) error {
 		return nil
 	}
 
-	resp, err := d.client.ImagePull(ctx, d.image, types.ImagePullOptions{})
+	resp, err := d.client.ImagePull(ctx, d.image, image.PullOptions{})
 	if err != nil {
 		return errors.WithStack(err)
 	}

@@ -20,6 +20,8 @@ func TestDockerCommand(t *testing.T) {
 
 	docker, err := dockerexec.New(&dockerexec.Options{Debug: false, Image: "alpine:3.19"})
 	require.NoError(t, err)
+	err = docker.EnsureImage(context.Background())
+	require.NoError(t, err)
 
 	factory := NewFactory(WithDocker(docker), WithLogger(zaptest.NewLogger(t)))
 

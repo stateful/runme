@@ -21,6 +21,8 @@ func TestDockerCommandContext(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
+	err = docker.EnsureImage(context.Background())
+	require.NoError(t, err)
 
 	// Do not parallelize the warmup step.
 	t.Run("Warmup", func(t *testing.T) {
