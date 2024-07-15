@@ -75,8 +75,6 @@ func TestDockerCommand(t *testing.T) {
 	})
 
 	t.Run("NonZeroExit", func(t *testing.T) {
-		t.Skip("enable when [envCollector] supports [Runtime]")
-
 		t.Parallel()
 
 		cmd, err := factory.Build(
@@ -89,8 +87,6 @@ func TestDockerCommand(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
-		// TODO(adamb): wait should return non-nil error due to non-zero exit code.
-		require.NoError(t, cmd.Wait())
-		require.Equal(t, 11, cmd.(*dockerCommand).cmd.ProcessState.ExitCode)
+		require.Error(t, cmd.Wait(), "exit code 11 due to error \"\"")
 	})
 }

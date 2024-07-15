@@ -215,7 +215,12 @@ func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) internalC
 	}
 }
 
+// TODO(adamb): env collector (fifo) might need a context which will unblock it when the command finishes.
+// Otherwise, it won't know when to finish waiting for the output from env producer.
 func (f *commandFactory) getEnvCollector() (envCollector, error) {
+	if f.docker != nil {
+		return nil, nil
+	}
 	collectorFactory := newEnvCollectorFactory(
 		envCollectorFactoryOptions{
 			encryptionEnabled: envCollectorEnableEncryption,
