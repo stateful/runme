@@ -118,17 +118,17 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		Items: map[string]*varSpec{
 			"HOST": {
 				Name:     SpecNamePlain,
-				Rules:    "required,ip|hostname",
+				Rules:    "ip|hostname",
 				Required: true,
 			},
 			"PORT": {
 				Name:     SpecNamePlain,
-				Rules:    "required,number",
+				Rules:    "number",
 				Required: true,
 			},
 			"PASSWORD": {
 				Name:     SpecNamePassword,
-				Rules:    "required,min=18,max=32",
+				Rules:    "min=18,max=32",
 				Required: false,
 			},
 		},
@@ -175,10 +175,20 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 		}
 
 		itemKey := (parts[len(parts)-1])
+		item, ok := typ.Items[itemKey]
+		if !ok {
+			return nil, fmt.Errorf("complex item not found: %s", itemKey)
+		}
+
 		data := make(map[string]interface{}, 1)
 		rules := make(map[string]interface{}, 1)
+
+		if val.Value.Resolved == "" && !item.Required {
+			continue
+		}
+
 		data[val.Var.Key] = val.Value.Resolved
-		rules[val.Var.Key] = typ.Items[itemKey].Rules
+		rules[val.Var.Key] = item.Rules
 
 		field := validator.ValidateMap(data, rules)
 

@@ -64,11 +64,12 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 		assert.EqualValues(t, "GCLOUD_2_REDIS_HOST", snapshot[0].Var.Key)
 		assert.EqualValues(t, "127.0.0.5", snapshot[0].Value.Resolved)
 	})
+}
 
-	t.Run("Validation errors for invalid env values", func(t *testing.T) {
+func Test_Store_ComplexValidation(t *testing.T) {
+	t.Run("Invalid env values", func(t *testing.T) {
 		fake := []byte(`GOPATH=/Users/sourishkrout/go
 	INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Secret!
-	PGPASS=too-short # Password!
 	HOMEBREW_REPOSITORY=/opt/homebrew # Plain
 	REDIS_HOST=12345 # Redis!
 	REDIS_PORT=invalid-port # Redis!`)
@@ -80,18 +81,18 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 		require.NoError(t, err)
 
 		snapshot.sortbyKey()
-		assert.EqualValues(t, "REDIS_HOST", snapshot[4].Var.Key)
-		assert.EqualValues(t, "12345", snapshot[4].Value.Resolved)
+		assert.EqualValues(t, "REDIS_HOST", snapshot[3].Var.Key)
+		assert.EqualValues(t, "12345", snapshot[3].Value.Resolved)
 		assert.EqualValues(t,
 			`Error 1: The value of variable "REDIS_HOST" failed tag validation "ip|hostname" required by "Redis->HOST" declared in ".env.example"`,
-			snapshot[4].Errors[0].Message,
+			snapshot[3].Errors[0].Message,
 		)
 
-		assert.EqualValues(t, "REDIS_PORT", snapshot[5].Var.Key)
-		assert.EqualValues(t, "invalid-port", snapshot[5].Value.Resolved)
+		assert.EqualValues(t, "REDIS_PORT", snapshot[4].Var.Key)
+		assert.EqualValues(t, "invalid-port", snapshot[4].Value.Resolved)
 		assert.EqualValues(t,
 			`Error 1: The value of variable "REDIS_PORT" failed tag validation "number" required by "Redis->PORT" declared in ".env.example"`,
-			snapshot[5].Errors[0].Message,
+			snapshot[4].Errors[0].Message,
 		)
 	})
 }
