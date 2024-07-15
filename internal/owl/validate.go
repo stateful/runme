@@ -132,7 +132,7 @@ var ComplexDefTypes = map[string]*SpecDef{
 		Items: map[string]*varSpec{
 			"HOST": {
 				Name:     SpecNamePlain,
-				Rules:    "required,min=4,max=32",
+				Rules:    "required,ip|hostname",
 				Required: true,
 			},
 		},
