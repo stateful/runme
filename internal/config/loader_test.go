@@ -55,7 +55,7 @@ func TestLoader_ChainConfigs(t *testing.T) {
 		fsys := fstest.MapFS{}
 		loader := NewLoader("runme", "yaml", fsys, WithLogger(zaptest.NewLogger(t)))
 		result, err := loader.FindConfigChain("")
-		require.NoError(t, err)
+		require.ErrorIs(t, err, ErrRootConfigNotFound)
 		require.Nil(t, result)
 	})
 

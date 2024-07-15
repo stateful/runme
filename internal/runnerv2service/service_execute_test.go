@@ -42,7 +42,7 @@ func init() {
 				Data: []byte("version: v1alpha1\n"),
 			},
 		}
-		loader.SetConfigRootPath(fsys)
+		loader.SetConfigRootPaths(fsys)
 		return loader
 	}); err != nil {
 		panic(err)

@@ -80,9 +80,13 @@ func getCommandFactory(docker *dockerexec.Docker, logger *zap.Logger, proj *proj
 }
 
 func getConfigLoader() (*config.Loader, error) {
-	// TODO(adamb): change from "./experimental" to "." when the feature is stable and
-	// delete the project root path.
-	return config.NewLoader("runme", "yaml", os.DirFS("./experimental"), config.WithProjectRootPath(os.DirFS("."))), nil
+	// TODO(adamb): delete "./experimental" when the feature is stable.
+	return config.NewLoader(
+		"runme",
+		"yaml",
+		os.DirFS("."),
+		config.WithAdditionalConfigPath(os.DirFS("./experimental")),
+	), nil
 }
 
 func getDocker(c *config.Config, logger *zap.Logger) (*dockerexec.Docker, error) {

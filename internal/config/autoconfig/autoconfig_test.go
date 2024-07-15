@@ -21,7 +21,7 @@ func TestInvokeForCommand_Config(t *testing.T) {
 				Data: []byte(fmt.Sprintf("version: v1alpha1\nproject:\n  filename: %s\n", "README.md")),
 			},
 		}
-		loader.SetConfigRootPath(fsys)
+		loader.SetConfigRootPaths(fsys)
 		return nil
 	})
 	require.NoError(t, err)
