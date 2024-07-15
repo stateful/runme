@@ -104,7 +104,7 @@ type SpecDef struct {
 
 var validator = valid.New()
 
-var SpecDefTypes = map[string]*SpecDef{
+var ComplexDefTypes = map[string]*SpecDef{
 	"Redis": {
 		Name:    "Redis",
 		Breaker: "REDIS",
@@ -145,31 +145,26 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 	for _, k := range s.Keys {
 		spec, ok := s.specs[k]
 		if !ok {
-			// should these be errors?
-			continue
+			return nil, fmt.Errorf("spec not found for key: %s", k)
 		}
 
 		if spec.Var.Key != k {
-			// should these be errors?
 			continue
 		}
 
-		typ, ok := SpecDefTypes[spec.Spec.Name]
+		typ, ok := ComplexDefTypes[spec.Spec.Name]
 		if !ok {
-			// should these be errors?
-			continue
+			return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
 		}
 
 		val, ok := s.values[spec.Var.Key]
 		if !ok {
-			// should these be errors?
-			continue
+			return nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
 		}
 
 		parts := strings.Split(val.Var.Key, typ.Breaker+"_")
 		if len(parts) < 2 {
-			// should these be errors?
-			continue
+			return nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
 		}
 
 		typkey := (parts[len(parts)-1])

@@ -1035,7 +1035,7 @@ func reduceSepcsComplex() QueryNodeReducer {
 					SelectionSet: nextSelSet,
 				}))
 
-			specDef := SpecDefTypes[spec]
+			specDef := ComplexDefTypes[spec]
 
 			transientOpSet, _ := NewOperationSet(WithOperation(TransientSetOperation), WithItems(items))
 			atomicSelSet, err := reduceSpecsAtomic(ns, specDef)([]*OperationSet{transientOpSet}, opDef, nextSelSet)
@@ -1057,7 +1057,7 @@ func reduceSepcsComplex() QueryNodeReducer {
 			ns := ""
 
 			item := varSpecs[specKey]
-			specDef, ok := SpecDefTypes[item.Spec.Name]
+			specDef, ok := ComplexDefTypes[item.Spec.Name]
 			if !ok {
 				return nil, fmt.Errorf("unknown complex spec type: %s on %s", item.Spec.Name, item.Var.Key)
 			}
