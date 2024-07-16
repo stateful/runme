@@ -2,6 +2,7 @@ package owl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/stateful/godotenv"
+	commandpkg "github.com/stateful/runme/v3/internal/command"
 	"go.uber.org/zap"
 )
 
@@ -521,9 +523,19 @@ func (s *Store) SensitiveKeys() ([]string, error) {
 	return keys, nil
 }
 
-func (s *Store) Update(newOrUpdated, deleted []string) error {
+func (s *Store) Update(context context.Context, newOrUpdated, deleted []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	execInfo, ok := context.Value(commandpkg.ExecutionInfoKey).(*commandpkg.ExecutionInfo)
+	if !ok {
+		return errors.New("execution info not found in context")
+	}
+
+	execRef := fmt.Sprintf("#%s", execInfo.KnownID)
+	if execInfo.KnownName != "" {
+		execRef = fmt.Sprintf("#%s", execInfo.KnownName)
+	}
 
 	if len(newOrUpdated) > 0 {
 		updateOpSet, err := NewOperationSet(WithOperation(UpdateSetOperation), WithSpecs(false))
@@ -531,7 +543,7 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 			return err
 		}
 
-		err = updateOpSet.addEnvs("[execution]", newOrUpdated...)
+		err = updateOpSet.addEnvs(execRef, newOrUpdated...)
 		if err != nil {
 			return err
 		}
@@ -545,7 +557,7 @@ func (s *Store) Update(newOrUpdated, deleted []string) error {
 			return err
 		}
 
-		err = deleteOpSet.addEnvs("[execution]", deleted...)
+		err = deleteOpSet.addEnvs(execRef, deleted...)
 		if err != nil {
 			return err
 		}

@@ -18,9 +18,9 @@ type envStorer interface {
 	getEnv(string) (string, error)
 	envs() ([]string, error)
 	sensitiveEnvKeys() ([]string, error)
-	addEnvs(envs []string) error
-	updateStore(envs []string, newOrUpdated []string, deleted []string) error
-	setEnv(k string, v string) error
+	addEnvs(context context.Context, envs []string) error
+	updateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error
+	setEnv(context context.Context, k string, v string) error
 	subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error
 	complete()
 }
@@ -65,20 +65,20 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 	return s, nil
 }
 
-func (s *Session) UpdateStore(envs []string, newOrUpdated []string, deleted []string) error {
-	return s.envStorer.updateStore(envs, newOrUpdated, deleted)
+func (s *Session) UpdateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error {
+	return s.envStorer.updateStore(context, envs, newOrUpdated, deleted)
 }
 
-func (s *Session) AddEnvs(envs []string) error {
-	return s.envStorer.addEnvs(envs)
+func (s *Session) AddEnvs(context context.Context, envs []string) error {
+	return s.envStorer.addEnvs(context, envs)
 }
 
 func (s *Session) SensitiveEnvKeys() ([]string, error) {
 	return s.envStorer.sensitiveEnvKeys()
 }
 
-func (s *Session) SetEnv(k string, v string) error {
-	return s.envStorer.setEnv(k, v)
+func (s *Session) SetEnv(context context.Context, k string, v string) error {
+	return s.envStorer.setEnv(context, k, v)
 }
 
 func (s *Session) Envs() ([]string, error) {
@@ -121,7 +121,7 @@ func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
 	}
 }
 
-func (es *runnerEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
+func (es *runnerEnvStorer) subscribe(_ context.Context, snapshotc chan<- owl.SetVarItems) error {
 	defer close(snapshotc)
 	return fmt.Errorf("not available for runner env store")
 }
@@ -130,7 +130,7 @@ func (es *runnerEnvStorer) complete() {
 	// noop
 }
 
-func (es *runnerEnvStorer) addEnvs(envs []string) error {
+func (es *runnerEnvStorer) addEnvs(_ context.Context, envs []string) error {
 	es.envStore.Add(envs...)
 	return nil
 }
@@ -152,12 +152,12 @@ func (es *runnerEnvStorer) envs() ([]string, error) {
 	return envs, nil
 }
 
-func (es *runnerEnvStorer) setEnv(k string, v string) error {
+func (es *runnerEnvStorer) setEnv(_ context.Context, k string, v string) error {
 	_, err := es.envStore.Set(k, v)
 	return err
 }
 
-func (es *runnerEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {
+func (es *runnerEnvStorer) updateStore(_ context.Context, envs []string, newOrUpdated []string, deleted []string) error {
 	es.envStore = newEnvStore(envs...).Add(newOrUpdated...).Delete(deleted...)
 	return nil
 }
@@ -227,7 +227,7 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	}, nil
 }
 
-func (es *owlEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error {
+func (es *owlEnvStorer) subscribe(context context.Context, snapshotc chan<- owl.SetVarItems) error {
 	defer es.mu.Unlock()
 	es.mu.Lock()
 	es.logger.Debug("subscribed to owl store")
@@ -235,7 +235,7 @@ func (es *owlEnvStorer) subscribe(ctx context.Context, snapshotc chan<- owl.SetV
 	es.subscribers = append(es.subscribers, snapshotc)
 
 	go func() {
-		<-ctx.Done()
+		<-context.Done()
 		err := es.unsubscribe(snapshotc)
 		if err != nil {
 			es.logger.Error("unsubscribe from owl store failed", zap.Error(err))
@@ -298,16 +298,16 @@ func (es *owlEnvStorer) notifySubscribers() {
 	}
 }
 
-func (es *owlEnvStorer) updateStore(envs []string, newOrUpdated []string, deleted []string) error {
-	if err := es.owlStore.Update(newOrUpdated, deleted); err != nil {
+func (es *owlEnvStorer) updateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error {
+	if err := es.owlStore.Update(context, newOrUpdated, deleted); err != nil {
 		return err
 	}
 	es.notifySubscribers()
 	return nil
 }
 
-func (es *owlEnvStorer) addEnvs(envs []string) error {
-	if err := es.owlStore.Update(envs, nil); err != nil {
+func (es *owlEnvStorer) addEnvs(context context.Context, envs []string) error {
+	if err := es.owlStore.Update(context, envs, nil); err != nil {
 		return err
 	}
 	es.notifySubscribers()
@@ -326,9 +326,9 @@ func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {
 	return vals, nil
 }
 
-func (es *owlEnvStorer) setEnv(k string, v string) error {
+func (es *owlEnvStorer) setEnv(context context.Context, k string, v string) error {
 	// todo(sebastian): add checking env length inside Update
-	err := es.owlStore.Update([]string{fmt.Sprintf("%s=%s", k, v)}, nil)
+	err := es.owlStore.Update(context, []string{fmt.Sprintf("%s=%s", k, v)}, nil)
 	if err != nil {
 		return err
 	}

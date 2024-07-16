@@ -32,6 +32,7 @@ func (s TempFile) DryRun(ctx context.Context, w io.Writer) {
 
 func (s *TempFile) Run(ctx context.Context) error {
 	cmd, err := newCommand(
+		ctx,
 		&commandConfig{
 			ProgramName: s.ProgramName,
 			LanguageID:  s.LanguageID,

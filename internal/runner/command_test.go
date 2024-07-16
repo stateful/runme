@@ -32,6 +32,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Stdout:      stdout,
@@ -59,6 +60,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Stdout:      stdout,
@@ -86,6 +88,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "",
 				LanguageID:  "shellscript",
@@ -114,6 +117,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "",
 				LanguageID:  "js",
@@ -142,6 +146,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "/usr/bin/env node",
 				LanguageID:  "js",
@@ -170,6 +175,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "",
 				LanguageID:  "sql",
@@ -200,6 +206,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Tty:         true,
@@ -231,6 +238,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Tty:         true,
@@ -266,6 +274,7 @@ func Test_command(t *testing.T) {
 		_, _ = stdin.WriteString("hello")
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Stdin:       stdin,
@@ -295,6 +304,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Tty:         true,
@@ -337,6 +347,7 @@ func Test_command(t *testing.T) {
 		_, _ = stdin.WriteString("hello")
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Stdin:       stdin,
@@ -371,6 +382,7 @@ func Test_command(t *testing.T) {
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Tty:         true,
@@ -427,6 +439,7 @@ func Test_command(t *testing.T) {
 		require.NoError(t, err)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Session:     session,
@@ -473,6 +486,7 @@ func Test_command(t *testing.T) {
 		stdin := new(bytes.Buffer)
 
 		cmd, err := newCommand(
+			context.Background(),
 			&commandConfig{
 				ProgramName: "bash",
 				Stdout:      stdout,
@@ -502,6 +516,7 @@ func Test_command_Stop(t *testing.T) {
 	t.Parallel()
 
 	cmd, err := newCommand(
+		context.Background(),
 		&commandConfig{
 			ProgramName: "bash",
 			Stdin:       bytes.NewBuffer(nil),
@@ -529,6 +544,7 @@ func Test_command_Stop(t *testing.T) {
 
 func Test_exitCodeFromErr(t *testing.T) {
 	cmd, err := newCommand(
+		context.Background(),
 		&commandConfig{
 			ProgramName: "bash",
 			Tty:         true,

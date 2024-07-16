@@ -30,6 +30,7 @@ func (s ShellRaw) DryRun(ctx context.Context, w io.Writer) {
 
 func (s ShellRaw) Run(ctx context.Context) error {
 	cmd, err := newCommand(
+		ctx,
 		&commandConfig{
 			ProgramName: s.ProgramPath(),
 			Directory:   s.Dir,

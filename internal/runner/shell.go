@@ -51,6 +51,7 @@ func (s Shell) DryRun(ctx context.Context, w io.Writer) {
 
 func (s *Shell) Run(ctx context.Context) error {
 	cmd, err := newCommand(
+		ctx,
 		&commandConfig{
 			ProgramName: s.ProgramPath(),
 			Directory:   s.Dir,
