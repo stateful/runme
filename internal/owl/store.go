@@ -54,7 +54,7 @@ type setVarOperation struct {
 type varValue struct {
 	Original  string           `json:"original,omitempty"`
 	Resolved  string           `json:"resolved,omitempty"`
-	Status    string           `json:"status"`
+	Status    string           `json:"status,omitempty"`
 	Operation *setVarOperation `json:"operation"`
 }
 
