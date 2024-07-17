@@ -213,22 +213,22 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
 		}
 
-		varValue, ok := s.values[spec.Var.Key]
+		val, ok := s.values[spec.Var.Key]
 		if !ok {
 			return nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
 		}
 
-		varKeyParts := strings.Split(varValue.Var.Key, complexType.Breaker+"_")
+		varKeyParts := strings.Split(val.Var.Key, complexType.Breaker+"_")
 		if len(varKeyParts) < 2 {
-			return nil, fmt.Errorf("invalid key not matching complex item: %s", varValue.Var.Key)
+			return nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
 		}
 
 		complexItemKey := (varKeyParts[len(varKeyParts)-1])
 		verrs, err := complexType.Validate(
 			complexItemKey,
 			&SetVarItem{
-				Var:   varValue.Var,
-				Value: varValue.Value,
+				Var:   val.Var,
+				Value: val.Value,
 				Spec:  spec.Spec,
 			})
 		if err != nil {
