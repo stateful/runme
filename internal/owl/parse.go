@@ -99,5 +99,5 @@ func upperFirstLetter(s string) string {
 
 	// Convert the first character to uppercase
 	// Concatenate it with the rest of the string
-	return strings.ToUpper(string(s[0])) + strings.ToLower((s[1:]))
+	return strings.ToUpper(string(s[0])) + (s[1:])
 }

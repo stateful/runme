@@ -103,6 +103,7 @@ func TestUnmarshal(t *testing.T) {
 		`quotedEmpty="" # Plain`,
 		`quoted="Foo bar baz" # Plain`,
 		`unquoted=unquoted value # Plain`,
+		`database=unquoted value # DatabaseUrl`,
 	}
 
 	expectedValues := map[string]string{
@@ -110,12 +111,14 @@ func TestUnmarshal(t *testing.T) {
 		"quotedEmpty": "",
 		"quoted":      "Foo bar baz",
 		"unquoted":    "unquoted value",
+		"database":    "unquoted value",
 	}
 	expectedComments := map[string]string{
 		"naked":       "Plain",
 		"quotedEmpty": "Plain",
 		"quoted":      "Plain",
 		"unquoted":    "Plain",
+		"database":    "DatabaseUrl",
 	}
 
 	bytes := []byte(strings.Join(lines, "\n"))
