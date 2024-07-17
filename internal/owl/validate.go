@@ -159,36 +159,36 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			continue
 		}
 
-		typ, ok := ComplexDefTypes[spec.Spec.Name]
+		complexType, ok := ComplexDefTypes[spec.Spec.Name]
 		if !ok {
 			return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
 		}
 
-		val, ok := s.values[spec.Var.Key]
+		varValue, ok := s.values[spec.Var.Key]
 		if !ok {
 			return nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
 		}
 
-		parts := strings.Split(val.Var.Key, typ.Breaker+"_")
-		if len(parts) < 2 {
-			return nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
+		varKeyParts := strings.Split(varValue.Var.Key, complexType.Breaker+"_")
+		if len(varKeyParts) < 2 {
+			return nil, fmt.Errorf("invalid key not matching complex item: %s", varValue.Var.Key)
 		}
 
-		itemKey := (parts[len(parts)-1])
-		item, ok := typ.Items[itemKey]
+		complexItemKey := (varKeyParts[len(varKeyParts)-1])
+		complexItem, ok := complexType.Items[complexItemKey]
 		if !ok {
-			return nil, fmt.Errorf("complex item not found: %s", itemKey)
+			return nil, fmt.Errorf("complex item not found: %s", complexItemKey)
 		}
 
-		if val.Value.Resolved == "" && !item.Required {
+		if varValue.Value.Resolved == "" && !complexItem.Required {
 			continue
 		}
 
 		data := make(map[string]interface{}, 1)
 		rules := make(map[string]interface{}, 1)
 
-		data[val.Var.Key] = val.Value.Resolved
-		rules[val.Var.Key] = item.Rules
+		data[varValue.Var.Key] = varValue.Value.Resolved
+		rules[varValue.Var.Key] = complexItem.Rules
 
 		field := validator.ValidateMap(data, rules)
 
@@ -208,7 +208,7 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 							Spec:  spec.Spec,
 						},
 						err.Tag(),
-						itemKey,
+						complexItemKey,
 					),
 				)
 			}
