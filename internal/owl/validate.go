@@ -103,13 +103,60 @@ var (
 
 const ComplexSpecType string = "Complex"
 
+var validator = valid.New()
+
 type ComplexDef struct {
-	Name    string
-	Breaker string
-	Items   map[string]*varSpec
+	Name      string
+	Breaker   string
+	Items     map[string]*varSpec
+	Validator func(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error)
 }
 
-var validator = valid.New()
+func (cd *ComplexDef) Validate(itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
+	complexItem, ok := cd.Items[itemKey]
+	if !ok {
+		return nil, fmt.Errorf("complex item not found: %s", itemKey)
+	}
+
+	if varItem.Value.Resolved == "" && !complexItem.Required {
+		return nil, nil
+	}
+
+	return cd.Validator(complexItem, itemKey, varItem)
+}
+
+func TagValidator(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
+	data := make(map[string]interface{}, 1)
+	rules := make(map[string]interface{}, 1)
+
+	data[varItem.Var.Key] = varItem.Value.Resolved
+	rules[varItem.Var.Key] = item.Rules
+
+	field := validator.ValidateMap(data, rules)
+
+	var validationErrs ValidationErrors
+	for _, errs := range field {
+		verrs, ok := errs.(valid.ValidationErrors)
+		if !ok {
+			return nil, fmt.Errorf("unexpected error type: %T", errs)
+		}
+		for _, err := range verrs {
+			validationErrs = append(validationErrs,
+				NewTagFailedError(
+					&SetVarItem{
+						Var:   varItem.Var,
+						Value: varItem.Value,
+						Spec:  varItem.Spec,
+					},
+					err.Tag(),
+					itemKey,
+				),
+			)
+		}
+	}
+
+	return validationErrs, nil
+}
 
 var ComplexDefTypes = map[string]*ComplexDef{
 	"Redis": {
@@ -132,6 +179,7 @@ var ComplexDefTypes = map[string]*ComplexDef{
 				Required: false,
 			},
 		},
+		Validator: TagValidator,
 	},
 	"Postgres": {
 		Name:    "Postgres",
@@ -143,6 +191,7 @@ var ComplexDefTypes = map[string]*ComplexDef{
 				Required: true,
 			},
 		},
+		Validator: TagValidator,
 	},
 }
 
@@ -175,44 +224,17 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 		}
 
 		complexItemKey := (varKeyParts[len(varKeyParts)-1])
-		complexItem, ok := complexType.Items[complexItemKey]
-		if !ok {
-			return nil, fmt.Errorf("complex item not found: %s", complexItemKey)
+		verrs, err := complexType.Validate(
+			complexItemKey,
+			&SetVarItem{
+				Var:   varValue.Var,
+				Value: varValue.Value,
+				Spec:  spec.Spec,
+			})
+		if err != nil {
+			return nil, err
 		}
-
-		if varValue.Value.Resolved == "" && !complexItem.Required {
-			continue
-		}
-
-		data := make(map[string]interface{}, 1)
-		rules := make(map[string]interface{}, 1)
-
-		data[varValue.Var.Key] = varValue.Value.Resolved
-		rules[varValue.Var.Key] = complexItem.Rules
-
-		field := validator.ValidateMap(data, rules)
-
-		for key, errs := range field {
-			verrs, ok := errs.(valid.ValidationErrors)
-			if !ok {
-				return nil, fmt.Errorf("unexpected error type: %T", errs)
-			}
-			for _, err := range verrs {
-				val := s.values[key]
-				spec := s.specs[key]
-				validationErrs = append(validationErrs,
-					NewTagFailedError(
-						&SetVarItem{
-							Var:   val.Var,
-							Value: val.Value,
-							Spec:  spec.Spec,
-						},
-						err.Tag(),
-						complexItemKey,
-					),
-				)
-			}
-		}
+		validationErrs = append(validationErrs, verrs...)
 	}
 
 	return validationErrs, nil
