@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	valid "github.com/go-playground/validator/v10"
+	"github.com/xo/dburl"
 )
 
 type ValidationError interface {
@@ -22,9 +23,83 @@ type ValidationErrors []ValidationError
 
 type ValidateErrorType uint8
 
+//revive:disable:var-naming
 const (
 	ValidateErrorVarRequired ValidateErrorType = iota
 	ValidateErrorTagFailed
+	ValidateErrorDatabaseUrl
+)
+
+type DatabaseUrlError struct {
+	varItem *SetVarItem
+	code    ValidateErrorType
+	item    string
+	error   error
+}
+
+func NewDatabaseUrlError(varItem *SetVarItem, err error, item string) *DatabaseUrlError {
+	return &DatabaseUrlError{
+		varItem: varItem,
+		code:    ValidateErrorDatabaseUrl,
+		item:    item,
+		error:   err,
+	}
+}
+
+//revive:enable:var-naming
+
+func (e DatabaseUrlError) VarItem() *SetVarItem {
+	return e.varItem
+}
+
+func (e DatabaseUrlError) Error() string {
+	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed Database URL validation \"%s\" required by \"%s->%s\" declared in \"%s\"",
+		e.Code(),
+		e.Key(),
+		e.error.Error(),
+		e.SpecName(),
+		e.Item(),
+		e.Source())
+}
+
+func (e DatabaseUrlError) Message() string {
+	return e.Error()
+}
+
+func (e DatabaseUrlError) String() string {
+	return e.Error()
+}
+
+func (e DatabaseUrlError) Code() ValidateErrorType {
+	return e.code
+}
+
+func (e DatabaseUrlError) Key() string {
+	return e.varItem.Var.Key
+}
+
+func (e DatabaseUrlError) SpecName() string {
+	return e.varItem.Spec.Name
+}
+
+func (e DatabaseUrlError) Item() string {
+	return e.item
+}
+
+func (e DatabaseUrlError) Source() string {
+	if e.varItem.Spec.Operation == nil {
+		return "-"
+	}
+	if e.varItem.Spec.Operation.Source == "" {
+		return "-"
+	}
+	return e.varItem.Spec.Operation.Source
+}
+
+// make sure interfaces are satisfied
+var (
+	_ ValidationError = new(DatabaseUrlError)
+	_ error           = new(DatabaseUrlError)
 )
 
 type TagFailedError struct {
@@ -158,6 +233,26 @@ func TagValidator(item *varSpec, itemKey string, varItem *SetVarItem) (Validatio
 	return validationErrs, nil
 }
 
+func DatabaseValidator(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
+	var validationErrs ValidationErrors
+
+	_, err := dburl.Parse(varItem.Value.Resolved)
+	if err != nil {
+		validationErrs = append(validationErrs,
+			NewDatabaseUrlError(
+				&SetVarItem{
+					Var:   varItem.Var,
+					Value: varItem.Value,
+					Spec:  varItem.Spec,
+				},
+				err,
+				itemKey,
+			))
+	}
+
+	return validationErrs, nil
+}
+
 var ComplexDefTypes = map[string]*ComplexDef{
 	"Redis": {
 		Name:    "Redis",
@@ -192,6 +287,18 @@ var ComplexDefTypes = map[string]*ComplexDef{
 			},
 		},
 		Validator: TagValidator,
+	},
+	"Database": {
+		Name:    "Database",
+		Breaker: "DATABASE",
+		Items: map[string]*varSpec{
+			"URL": {
+				Name:     SpecNameSecret,
+				Rules:    "url",
+				Required: true,
+			},
+		},
+		Validator: DatabaseValidator,
 	},
 }
 

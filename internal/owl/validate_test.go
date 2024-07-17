@@ -66,7 +66,7 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 	})
 }
 
-func Test_Store_ComplexValidation(t *testing.T) {
+func Test_Store_ComplexWithTagValidation(t *testing.T) {
 	t.Run("Invalid env values", func(t *testing.T) {
 		fake := []byte(`GOPATH=/Users/sourishkrout/go
 	INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Secret!
@@ -93,6 +93,59 @@ func Test_Store_ComplexValidation(t *testing.T) {
 		assert.EqualValues(t,
 			`Error 1: The value of variable "REDIS_PORT" failed tag validation "number" required by "Redis->PORT" declared in ".env.example"`,
 			snapshot[4].Errors[0].Message,
+		)
+	})
+}
+
+func Test_Store_ComplexWithDbUrlValidation(t *testing.T) {
+	t.Run("Valid", func(t *testing.T) {
+		fake := []byte(`GOPATH=/Users/sourishkrout/go
+	DATABASE_URL=postgres://platform:platform@localhost:5432/platform # Database`)
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+		snapshot.sortbyKey()
+		require.Len(t, snapshot[0].Errors, 0)
+	})
+
+	t.Run("Invalid scheme", func(t *testing.T) {
+		fake := []byte(`GOPATH=/Users/sourishkrout/go
+	DATABASE_URL=abcdef://platform:platform@localhost:5432/platform # Database`)
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+
+		snapshot.sortbyKey()
+		assert.EqualValues(t, "DATABASE_URL", snapshot[0].Var.Key)
+		assert.EqualValues(t, "abc...orm", snapshot[0].Value.Resolved)
+		assert.EqualValues(t,
+			`Error 2: The value of variable "DATABASE_URL" failed Database URL validation "unknown database scheme" required by "Database->URL" declared in ".env.example"`,
+			snapshot[0].Errors[0].Message,
+		)
+	})
+
+	t.Run("Invalid format", func(t *testing.T) {
+		fake := []byte(`GOPATH=/Users/sourishkrout/go
+	DATABASE_URL=this-is-not-a-database-url # Database`)
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+
+		snapshot.sortbyKey()
+		assert.EqualValues(t, "DATABASE_URL", snapshot[0].Var.Key)
+		assert.EqualValues(t, "thi...url", snapshot[0].Value.Resolved)
+		assert.EqualValues(t,
+			`Error 2: The value of variable "DATABASE_URL" failed Database URL validation "invalid database scheme" required by "Database->URL" declared in ".env.example"`,
+			snapshot[0].Errors[0].Message,
 		)
 	})
 }
