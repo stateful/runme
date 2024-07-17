@@ -53,7 +53,7 @@ func (e DatabaseUrlError) VarItem() *SetVarItem {
 }
 
 func (e DatabaseUrlError) Error() string {
-	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed Database URL validation \"%s\" required by \"%s->%s\" declared in \"%s\"",
+	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed DatabaseUrl validation \"%s\" required by \"%s->%s\" declared in \"%s\"",
 		e.Code(),
 		e.Key(),
 		e.error.Error(),
@@ -288,8 +288,8 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		},
 		Validator: TagValidator,
 	},
-	"Database": {
-		Name:    "Database",
+	"DatabaseUrl": {
+		Name:    "DatabaseUrl",
 		Breaker: "DATABASE",
 		Items: map[string]*varSpec{
 			"URL": {
