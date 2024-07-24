@@ -48,7 +48,7 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 		}
 	}
 
-	// todo(sebastian): perhaps it make sense to write this message at the TTY-level?
+	// todo(sebastian): good enough for prototype; it makes more sense to write this message at the TTY-level
 	initMsg := []byte(" clear\n # Runme: This terminal forked your session. " +
 		"Upon exit exported environment variables will be rolled up into the session.\n\n")
 	_, err = c.stdinWriter.Write(initMsg)
