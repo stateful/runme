@@ -6,17 +6,19 @@ import (
 )
 
 type envCollectorFile struct {
-	encKey   []byte
-	encNonce []byte
-	scanner  envScanner
-	temp     *tempDirectory
+	termInitMessage []byte
+	encKey          []byte
+	encNonce        []byte
+	scanner         envScanner
+	temp            *tempDirectory
 }
 
 var _ envCollector = (*envCollectorFile)(nil)
 
 func newEnvCollectorFile(
 	scanner envScanner,
-	encKey []byte,
+	initMessage,
+	encKey,
 	encNonce []byte,
 ) (*envCollectorFile, error) {
 	temp, err := newTempDirectory()
@@ -25,10 +27,11 @@ func newEnvCollectorFile(
 	}
 
 	return &envCollectorFile{
-		encKey:   encKey,
-		encNonce: encNonce,
-		scanner:  scanner,
-		temp:     temp,
+		termInitMessage: initMessage,
+		encKey:          encKey,
+		encNonce:        encNonce,
+		scanner:         scanner,
+		temp:            temp,
 	}, nil
 }
 
@@ -71,7 +74,7 @@ func (c *envCollectorFile) ExtraEnv() []string {
 }
 
 func (c *envCollectorFile) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, c.prePath(), c.postPath())
+	return setOnShell(shell, c.termInitMessage, c.prePath(), c.postPath())
 }
 
 func (c *envCollectorFile) prePath() string {

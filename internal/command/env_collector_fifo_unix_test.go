@@ -13,7 +13,7 @@ import (
 func TestEnvCollectorFifo(t *testing.T) {
 	t.Parallel()
 
-	collector, err := newEnvCollectorFifo(scanEnv, nil, nil)
+	collector, err := newEnvCollectorFifo(scanEnv, nil, nil, nil)
 	require.NoError(t, err)
 
 	err = os.WriteFile(collector.prePath(), []byte("ENV_1=1"), 0o600)

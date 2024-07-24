@@ -13,27 +13,34 @@ import (
 )
 
 type envCollectorFifo struct {
-	encKey       []byte
-	encNonce     []byte
-	preEnv       []string
-	postEnv      []string
-	readersGroup *errgroup.Group
-	scanner      envScanner
-	temp         *tempDirectory
+	termInitMessage []byte
+	encKey          []byte
+	encNonce        []byte
+	preEnv          []string
+	postEnv         []string
+	readersGroup    *errgroup.Group
+	scanner         envScanner
+	temp            *tempDirectory
 }
 
-func newEnvCollectorFifo(scanner envScanner, encKey, encNonce []byte) (*envCollectorFifo, error) {
+func newEnvCollectorFifo(
+	scanner envScanner,
+	initMessage,
+	encKey,
+	encNonce []byte,
+) (*envCollectorFifo, error) {
 	temp, err := newTempDirectory()
 	if err != nil {
 		return nil, err
 	}
 
 	c := &envCollectorFifo{
-		encKey:       encKey,
-		encNonce:     encNonce,
-		readersGroup: new(errgroup.Group),
-		scanner:      scanner,
-		temp:         temp,
+		termInitMessage: initMessage,
+		encKey:          encKey,
+		encNonce:        encNonce,
+		readersGroup:    new(errgroup.Group),
+		scanner:         scanner,
+		temp:            temp,
 	}
 
 	if c.init() != nil {
@@ -88,7 +95,7 @@ func (c *envCollectorFifo) ExtraEnv() []string {
 }
 
 func (c *envCollectorFifo) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, c.prePath(), c.postPath())
+	return setOnShell(shell, c.termInitMessage, c.prePath(), c.postPath())
 }
 
 func (c *envCollectorFifo) prePath() string {
