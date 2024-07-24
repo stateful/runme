@@ -14,7 +14,7 @@ func TestSetOnShell(t *testing.T) {
 	t.Parallel()
 
 	buf := new(bytes.Buffer)
-	msg := []byte("Terminal init message")
+	msg := "Terminal init message"
 
 	err := setOnShell(buf, msg, "prePath", "postPath")
 	require.NoError(t, err)

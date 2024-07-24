@@ -13,11 +13,11 @@ import (
 )
 
 type envCollectorFifo struct {
-	termInitMessage []byte
 	encKey          []byte
 	encNonce        []byte
 	preEnv          []string
 	postEnv         []string
+	termInitMessage string
 	readersGroup    *errgroup.Group
 	scanner         envScanner
 	temp            *tempDirectory
@@ -25,7 +25,7 @@ type envCollectorFifo struct {
 
 func newEnvCollectorFifo(
 	scanner envScanner,
-	initMessage,
+	initMessage string,
 	encKey,
 	encNonce []byte,
 ) (*envCollectorFifo, error) {

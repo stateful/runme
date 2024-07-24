@@ -6,9 +6,9 @@ import (
 )
 
 type envCollectorFile struct {
-	termInitMessage []byte
 	encKey          []byte
 	encNonce        []byte
+	termInitMessage string
 	scanner         envScanner
 	temp            *tempDirectory
 }
@@ -17,7 +17,7 @@ var _ envCollector = (*envCollectorFile)(nil)
 
 func newEnvCollectorFile(
 	scanner envScanner,
-	initMessage,
+	initMessage string,
 	encKey,
 	encNonce []byte,
 ) (*envCollectorFile, error) {

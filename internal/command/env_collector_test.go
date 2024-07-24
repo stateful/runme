@@ -10,7 +10,7 @@ import (
 func TestEnvCollectorFile(t *testing.T) {
 	t.Parallel()
 
-	collector, err := newEnvCollectorFile(scanEnv, nil, nil, nil)
+	collector, err := newEnvCollectorFile(scanEnv, "", nil, nil)
 	require.NoError(t, err)
 
 	err = os.WriteFile(collector.prePath(), []byte("ENV_1=1"), 0o600)
