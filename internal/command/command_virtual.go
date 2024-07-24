@@ -81,7 +81,11 @@ func (c *virtualCommand) Start(ctx context.Context) (err error) {
 	c.cmd.Stdout = c.tty
 	c.cmd.Stderr = c.tty
 
-	setSysProcAttrCtty(c.cmd)
+	// Create a new session and set the controlling terminal to tty.
+	// The new process group is created automatically so that sending
+	// a signal to the command will affect the whole group.
+	setSysProcAttrCtty(c.cmd, 3) // 3 is the index of the i-th element in ExtraFiles
+	c.cmd.ExtraFiles = []*os.File{c.tty}
 
 	c.logger.Info("starting a virtual command", zap.Any("config", redactConfig(c.ProgramConfig())))
 	if err := c.cmd.Start(); err != nil {
@@ -137,14 +141,20 @@ func (c *virtualCommand) Start(ctx context.Context) (err error) {
 func (c *virtualCommand) Signal(sig os.Signal) error {
 	c.logger.Info("stopping the virtual command with signal", zap.String("signal", sig.String()))
 
-	// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
-	if err := signalPgid(c.cmd.Process.Pid, sig); err != nil {
-		c.logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
-		if err := c.cmd.Process.Signal(sig); err != nil {
-			c.logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
-			return errors.WithStack(c.cmd.Process.Kill())
+	if SignalToProcessGroup {
+		// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
+		err := signalPgid(c.cmd.Process.Pid, sig)
+		if err == nil {
+			return nil
 		}
+		c.logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
 	}
+
+	if err := c.cmd.Process.Signal(sig); err != nil {
+		c.logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
+		return errors.WithStack(c.cmd.Process.Kill())
+	}
+
 	return nil
 }
 

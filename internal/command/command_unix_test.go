@@ -18,12 +18,6 @@ import (
 	"github.com/stateful/runme/v3/pkg/document/identity"
 )
 
-func init() {
-	// Set to false to disable sending signals to process groups in tests.
-	// This can be turned on if setSysProcAttrPgid() is called in Start().
-	SignalToProcessGroup = false
-}
-
 func TestCommand(t *testing.T) {
 	testCases := []struct {
 		name           string

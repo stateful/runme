@@ -69,14 +69,9 @@ func (c *nativeCommand) Start(ctx context.Context) (err error) {
 	c.cmd.Stdout = c.Stdout()
 	c.cmd.Stderr = c.Stderr()
 
-	// Set the process group ID of the program.
-	// It is helpful to stop the program and its
-	// children.
-	// Note that Setsid set in setSysProcAttrCtty()
-	// already starts a new process group.
-	// Warning: it does not work with interactive programs
-	// like "python", hence, it's commented out.
-	// setSysProcAttrPgid(c.cmd)
+	// Creating a new process group is required to properly replicate a behaviour
+	// similar to CTRL-C in the terminal, which sends a SIGINT to the whole group.
+	setSysProcAttrPgid(c.cmd)
 
 	c.logger.Info("starting a native command", zap.Any("config", redactConfig(c.ProgramConfig())))
 	if err := c.cmd.Start(); err != nil {

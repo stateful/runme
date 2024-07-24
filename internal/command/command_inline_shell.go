@@ -49,11 +49,11 @@ func (c *inlineShellCommand) Wait() error {
 	err := c.internalCommand.Wait()
 
 	if c.envCollector != nil {
-		if cErr := c.collectEnv(); cErr != nil {
-			c.logger.Info("failed to collect the environment", zap.Error(cErr))
-			if err == nil {
-				err = cErr
-			}
+		c.logger.Info("collecting the environment after the script execution")
+		cErr := c.collectEnv()
+		c.logger.Info("collected the environment after the script execution", zap.Error(cErr))
+		if cErr != nil && err == nil {
+			err = cErr
 		}
 	}
 

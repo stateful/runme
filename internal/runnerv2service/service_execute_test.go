@@ -26,10 +26,6 @@ import (
 )
 
 func init() {
-	// Set to false to disable sending signals to process groups in tests.
-	// This can be turned on if setSysProcAttrPgid() is called in Start().
-	command.SignalToProcessGroup = false
-
 	command.SetEnvDumpCommand("env -0")
 
 	// Server uses autoconfig to get necessary dependencies.
@@ -717,7 +713,6 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		err = stream.Send(&runnerv2alpha1.ExecuteRequest{InputData: []byte{0x03}})
 		assert.NoError(t, err)
 
-		// terminate shell
 		time.Sleep(time.Millisecond * 500)
 		err = stream.Send(&runnerv2alpha1.ExecuteRequest{InputData: []byte{0x04}})
 		assert.NoError(t, err)
@@ -846,7 +841,6 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 			},
 			Interactive: true,
 		},
-		InputData: []byte("a\n"),
 	})
 	require.NoError(t, err)
 
@@ -859,7 +853,7 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 		})
 		errc <- err
 	}()
-	require.NoError(t, <-errc)
+	assert.NoError(t, <-errc)
 
 	result := <-execResult
 
