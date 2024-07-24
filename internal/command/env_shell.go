@@ -5,10 +5,12 @@ import (
 	"io"
 )
 
-func setOnShell(shell io.Writer, message, prePath, postPath string) error {
+func setOnShell(shell io.Writer, prePath, postPath string) error {
 	var err error
+
 	// Prefix commands with a space to avoid polluting the shell history.
 	skipShellHistory := " "
+
 	// First, dump all env at the beginning, so that a diff can be calculated.
 	_, err = shell.Write([]byte(skipShellHistory + envDumpCommand + " > " + prePath + "\n"))
 	if err != nil {
@@ -23,18 +25,6 @@ func setOnShell(shell io.Writer, message, prePath, postPath string) error {
 		},
 		[]byte{'\n'},
 	))
-	if err != nil {
-		return err
-	}
-	_, err = shell.Write([]byte(skipShellHistory + "clear\n"))
-	if err != nil {
-		return err
-	}
 
-	if len(message) == 0 {
-		return nil
-	}
-
-	_, err = shell.Write([]byte(skipShellHistory + message))
 	return err
 }

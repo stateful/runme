@@ -48,15 +48,11 @@ func (f *envCollectorFactory) Build() (envCollector, error) {
 		}
 	}
 
-	// todo(sebastian): perhaps it make sense to write this message at the TTY-level?
-	termInitMessage := ("# Runme: This terminal forked your session. " +
-		"Upon exit exported environment variables will be rolled up into the session.\n\n")
-
 	if f.opts.useFifo && runtimestd.GOOS != "windows" {
-		return newEnvCollectorFifo(scanner, termInitMessage, encKey, encNonce)
+		return newEnvCollectorFifo(scanner, encKey, encNonce)
 	}
 
-	return newEnvCollectorFile(scanner, termInitMessage, encKey, encNonce)
+	return newEnvCollectorFile(scanner, encKey, encNonce)
 }
 
 func (f *envCollectorFactory) generateEncryptionKeyAndNonce() ([]byte, []byte, error) {
