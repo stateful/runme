@@ -48,8 +48,12 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 		}
 	}
 
+	if _, err := c.stdinWriter.Write([]byte(" eval $(runme beta env source --silent --subtle --export)\n clear\n")); err != nil {
+		return err
+	}
+
 	// todo(sebastian): good enough for prototype; it makes more sense to write this message at the TTY-level
-	initMsg := []byte(" clear\n # Runme: This terminal forked your session. " +
+	initMsg := []byte(" # Runme: This terminal forked your session. " +
 		"Upon exit exported environment variables will be rolled up into the session.\n\n")
 	_, err = c.stdinWriter.Write(initMsg)
 

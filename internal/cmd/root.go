@@ -24,6 +24,7 @@ var (
 	fRespectGitignore      bool
 	fSkipRunnerFallback    bool
 	fInsecure              bool
+	fSubtle                bool
 	fLogEnabled            bool
 	fLogFilePath           string
 	fExtensionHandle       string
@@ -84,7 +85,8 @@ func Root() *cobra.Command {
 
 	pflags.StringVar(&fChdir, "chdir", getCwd(), "Switch to a different working directory before executing the command")
 	pflags.StringVar(&fFileName, "filename", "README.md", "Name of the README file")
-	pflags.BoolVar(&fInsecure, "insecure", false, "Run command in insecure-mode")
+	pflags.BoolVar(&fInsecure, "insecure", false, "Explicitly allow insecure operations to prevent misuse")
+	pflags.BoolVar(&fSubtle, "subtle", false, "Explicitly allow delicate operations to prevent misuse")
 
 	pflags.StringVar(&fProject, "project", "", "Root project to find runnable tasks")
 	pflags.BoolVar(&fRespectGitignore, "git-ignore", true, "Whether to respect .gitignore file(s) in project")

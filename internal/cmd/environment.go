@@ -204,7 +204,7 @@ func environmentDumpCmd() *cobra.Command {
 		Long:  "Dumps all environment variables to stdout as a list of K=V separated by null terminators",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !fInsecure {
-				return errors.New("must be run in insecure mode; enable by running with --insecure flag")
+				return errors.New("must be run in insecure mode to prevent misuse; enable by adding --insecure flag")
 			}
 
 			producer, err := newOSEnvironReader()

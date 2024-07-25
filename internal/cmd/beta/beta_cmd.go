@@ -1,6 +1,8 @@
 package beta
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -10,8 +12,10 @@ import (
 )
 
 type commonFlags struct {
+	silent     bool
 	categories []string
 	filename   string
+	subtle     bool
 }
 
 func BetaCmd() *cobra.Command {
@@ -27,7 +31,7 @@ All commands are experimental and not yet ready for production use.
 All commands use the runme.yaml configuration file.`,
 		Hidden: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(func(cfg *config.Config) error {
+			err := autoconfig.InvokeForCommand(func(cfg *config.Config) error {
 				// Override the filename if provided.
 				if cFlags.filename != "" {
 					cfg.ProjectFilename = cFlags.filename
@@ -44,6 +48,10 @@ All commands use the runme.yaml configuration file.`,
 
 				return nil
 			})
+			if !cFlags.silent && err != nil {
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", err)
+			}
+			return nil
 		},
 	}
 
@@ -54,6 +62,8 @@ All commands use the runme.yaml configuration file.`,
 	pFlags := cmd.PersistentFlags()
 	pFlags.StringVar(&cFlags.filename, "filename", "", "Name of the Markdown file to run blocks from.")
 	pFlags.StringSliceVar(&cFlags.categories, "category", nil, "Run blocks only from listed categories.")
+	pFlags.BoolVar(&cFlags.silent, "silent", false, "Silent mode. Do not error messages.")
+	pFlags.BoolVar(&cFlags.subtle, "subtle", false, "Explicitly allow delicate operations to prevent misuse")
 
 	// Hide all persistent flags from the root command.
 	// "beta" is a completely different set of commands and
@@ -73,6 +83,7 @@ All commands use the runme.yaml configuration file.`,
 	cmd.AddCommand(printCmd(cFlags))
 	cmd.AddCommand(server.Cmd())
 	cmd.AddCommand(runCmd(cFlags))
+	cmd.AddCommand(envCmd(cFlags))
 
 	return &cmd
 }
