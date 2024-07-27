@@ -13,7 +13,7 @@ import (
 
 var (
 	envCollectorEnableEncryption = true
-	envCollectorUseFifo          = true
+	envCollectorUseFifo          = false
 )
 
 type CommandOptions struct {
@@ -127,6 +127,35 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 			internalCommand: f.buildInternal(cfg, opts),
 			logger:          f.getLogger("InlineCommand"),
 		}, nil
+
+	case runnerv2alpha1.CommandMode_COMMAND_MODE_CLI:
+		base := f.buildBase(cfg, opts)
+
+		// In order to support interactive commands like runme-in-runme,
+		// a native command is needed and creation of a new process ID
+		// should be disabled.
+		internal := f.buildNative(base)
+		internal.disableNewProcessID = true
+
+		if isShell(cfg) {
+			collector, err := f.getEnvCollector()
+			if err != nil {
+				return nil, err
+			}
+
+			return &inlineShellCommand{
+				debug:           f.debug,
+				envCollector:    collector,
+				internalCommand: internal,
+				logger:          f.getLogger("InlineShellCommand"),
+				session:         opts.Session,
+			}, nil
+		}
+		return &inlineCommand{
+			internalCommand: internal,
+			logger:          f.getLogger("InlineCommand"),
+		}, nil
+
 	case runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL:
 		collector, err := f.getEnvCollector()
 		if err != nil {
@@ -187,7 +216,7 @@ func (f *commandFactory) buildInternal(cfg *ProgramConfig, opts CommandOptions) 
 	}
 }
 
-func (f *commandFactory) buildDocker(base *base) internalCommand {
+func (f *commandFactory) buildDocker(base *base) *dockerCommand {
 	return &dockerCommand{
 		base:   base,
 		docker: f.docker,
@@ -195,14 +224,14 @@ func (f *commandFactory) buildDocker(base *base) internalCommand {
 	}
 }
 
-func (f *commandFactory) buildNative(base *base) internalCommand {
+func (f *commandFactory) buildNative(base *base) *nativeCommand {
 	return &nativeCommand{
 		base:   base,
 		logger: f.getLogger("NativeCommand"),
 	}
 }
 
-func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) internalCommand {
+func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) *virtualCommand {
 	var stdin io.ReadCloser
 	if in := base.Stdin(); !isNil(in) {
 		stdin = &readCloser{r: in, done: make(chan struct{})}

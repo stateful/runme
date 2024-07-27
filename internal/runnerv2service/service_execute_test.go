@@ -860,6 +860,25 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 	// TODO(adamb): There should be no error.
 	assert.Contains(t, result.Err.Error(), "signal: interrupt")
 	assert.Equal(t, 130, result.ExitCode)
+
+	// Send one more request to make sure that the server
+	// is still running after sending SIGINT.
+	stream, err = client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult = make(chan executeResult)
+	go getExecuteResult(stream, execResult)
+
+	err = stream.Send(&runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "echo",
+			Arguments:   []string{"-n", "1"},
+			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+		},
+	})
+	require.NoError(t, err)
+	result = <-execResult
+	assert.Equal(t, "1", string(result.Stdout))
 }
 
 func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
