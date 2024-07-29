@@ -9,13 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// SignalToProcessGroup is used in tests to disable sending signals to a process group.
-var SignalToProcessGroup = true
-
 type nativeCommand struct {
 	*base
 
-	logger *zap.Logger
+	disableNewProcessID bool
+	logger              *zap.Logger
 
 	cmd *exec.Cmd
 }
@@ -34,6 +32,7 @@ func (c *nativeCommand) Pid() int {
 func (c *nativeCommand) Start(ctx context.Context) (err error) {
 	stdin := c.Stdin()
 
+	// TODO(adamb): include explanation why it is needed.
 	if f, ok := stdin.(*os.File); ok && f != nil {
 		// Duplicate /dev/stdin.
 		newStdinFd, err := dup(f.Fd())
@@ -41,14 +40,6 @@ func (c *nativeCommand) Start(ctx context.Context) (err error) {
 			return errors.Wrap(err, "failed to dup stdin")
 		}
 		closeOnExec(newStdinFd)
-
-		// Setting stdin to the non-block mode fails on the simple "read" command.
-		// On the other hand, it allows to use SetReadDeadline().
-		// It turned out it's not needed, but keeping the code here for now.
-		// if err := syscall.SetNonblock(newStdinFd, true); err != nil {
-		// 	return nil, errors.Wrap(err, "failed to set new stdin fd in non-blocking mode")
-		// }
-
 		stdin = os.NewFile(uintptr(newStdinFd), "")
 	}
 
@@ -69,38 +60,39 @@ func (c *nativeCommand) Start(ctx context.Context) (err error) {
 	c.cmd.Stdout = c.Stdout()
 	c.cmd.Stderr = c.Stderr()
 
-	// Set the process group ID of the program.
-	// It is helpful to stop the program and its
-	// children.
-	// Note that Setsid set in setSysProcAttrCtty()
-	// already starts a new process group.
-	// Warning: it does not work with interactive programs
-	// like "python", hence, it's commented out.
-	// setSysProcAttrPgid(c.cmd)
+	if !c.disableNewProcessID {
+		// Creating a new process group is required to properly replicate a behaviour
+		// similar to CTRL-C in the terminal, which sends a SIGINT to the whole group.
+		setSysProcAttrPgid(c.cmd)
+	}
 
-	c.logger.Info("starting a native command", zap.Any("config", redactConfig(c.ProgramConfig())))
+	c.logger.Info("starting", zap.Any("config", redactConfig(c.ProgramConfig())))
 	if err := c.cmd.Start(); err != nil {
 		return errors.WithStack(err)
 	}
-	c.logger.Info("a native command started")
+	c.logger.Info("started")
 
 	return nil
 }
 
 func (c *nativeCommand) Signal(sig os.Signal) error {
-	c.logger.Info("stopping the native command with a signal", zap.Stringer("signal", sig))
+	c.logger.Info("stopping with signal", zap.Stringer("signal", sig))
 
-	if SignalToProcessGroup {
+	if !c.disableNewProcessID {
+		c.logger.Info("signaling to the process group", zap.Stringer("signal", sig))
 		// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
 		err := signalPgid(c.cmd.Process.Pid, sig)
 		if err == nil {
 			return nil
 		}
-		c.logger.Info("failed to terminate process group; trying Process.Signal()", zap.Error(err))
+		c.logger.Info("failed to signal the process group; trying regular signaling", zap.Error(err))
 	}
 
 	if err := c.cmd.Process.Signal(sig); err != nil {
-		c.logger.Info("failed to signal process; trying Process.Kill()", zap.Error(err))
+		if sig == os.Kill {
+			return errors.WithStack(err)
+		}
+		c.logger.Info("failed to signal the process; trying kill signal", zap.Error(err))
 		return errors.WithStack(c.cmd.Process.Kill())
 	}
 
@@ -108,7 +100,7 @@ func (c *nativeCommand) Signal(sig os.Signal) error {
 }
 
 func (c *nativeCommand) Wait() (err error) {
-	c.logger.Info("waiting for the native command to finish")
+	c.logger.Info("waiting for finish")
 
 	var stderr []byte
 	err = errors.WithStack(c.cmd.Wait())
@@ -119,7 +111,7 @@ func (c *nativeCommand) Wait() (err error) {
 		}
 	}
 
-	c.logger.Info("the native command finished", zap.Error(err), zap.ByteString("stderr", stderr))
+	c.logger.Info("finished", zap.Error(err), zap.ByteString("stderr", stderr))
 
 	return
 }

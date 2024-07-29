@@ -9,6 +9,7 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/project"
 )
@@ -115,6 +116,9 @@ func runCodeBlock(
 	if err != nil {
 		return err
 	}
+
+	cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_CLI
+
 	cmd, err := factory.Build(cfg, options)
 	if err != nil {
 		return err

@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func setSysProcAttrCtty(cmd *exec.Cmd) {}
+func setSysProcAttrCtty(cmd *exec.Cmd, tty int) {}
 
 func setSysProcAttrPgid(cmd *exec.Cmd) {}
 

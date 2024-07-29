@@ -122,7 +122,6 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	}(req)
 
 	exitCode, waitErr := exec.Wait(ctx, srv)
-
 	logger.Info("command finished", zap.Int("exitCode", exitCode), zap.Error(waitErr))
 
 	var finalExitCode *wrapperspb.UInt32Value

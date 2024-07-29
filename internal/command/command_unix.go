@@ -12,12 +12,20 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func setSysProcAttrCtty(cmd *exec.Cmd) {
+func setSysProcAttrCtty(cmd *exec.Cmd, tty int) {
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
-	cmd.SysProcAttr.Setsid = true
+	cmd.SysProcAttr.Ctty = tty
 	cmd.SysProcAttr.Setctty = true
+	cmd.SysProcAttr.Setsid = true
+}
+
+func setSysProcAttrPgid(cmd *exec.Cmd) {
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Setpgid = true
 }
 
 func disableEcho(fd uintptr) error {

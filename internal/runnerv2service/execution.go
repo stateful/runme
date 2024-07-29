@@ -158,6 +158,8 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 	waitErr := e.Cmd.Wait()
 	exitCode := exitCodeFromErr(waitErr)
 
+	e.logger.Info("command finished", zap.Int("exitCode", exitCode), zap.Error(waitErr))
+
 	e.closeIO()
 
 	// If waitErr is not nil, only log the errors but return waitErr.
