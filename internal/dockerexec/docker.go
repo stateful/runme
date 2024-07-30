@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -96,7 +96,7 @@ func (d *Docker) buildImage(context.Context) error {
 
 func (d *Docker) pullImage(ctx context.Context) error {
 	filters := filters.NewArgs(filters.Arg("reference", d.image))
-	result, err := d.client.ImageList(ctx, types.ImageListOptions{Filters: filters})
+	result, err := d.client.ImageList(ctx, image.ListOptions{Filters: filters})
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -105,7 +105,7 @@ func (d *Docker) pullImage(ctx context.Context) error {
 		return nil
 	}
 
-	resp, err := d.client.ImagePull(ctx, d.image, types.ImagePullOptions{})
+	resp, err := d.client.ImagePull(ctx, d.image, image.PullOptions{})
 	if err != nil {
 		return errors.WithStack(err)
 	}
