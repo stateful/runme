@@ -101,8 +101,8 @@ func envSourceCmd(cflags *commonFlags) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&serverAddr, "ServerAddress", os.Getenv("RUNME_SERVER_ADDR"), "The Server ServerAddress to connect to, i.e. 127.0.0.1:7865")
-	cmd.Flags().StringVar(&tlsDir, "TLSDir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
+	cmd.Flags().StringVar(&serverAddr, "server-address", os.Getenv("RUNME_SERVER_ADDR"), "The Server ServerAddress to connect to, i.e. 127.0.0.1:7865")
+	cmd.Flags().StringVar(&tlsDir, "tls-dir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
 	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
 	cmd.Flags().StringVar(&sessionStrategy, "session-strategy", func() string {
 		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
