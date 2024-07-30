@@ -115,6 +115,7 @@ install/dev:
 	go install honnef.co/go/tools/cmd/staticcheck@v0.4.6
 	go install mvdan.cc/gofumpt@v0.6.0
 	go install github.com/icholy/gomajor@v0.9.5
+	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
 
 .PHONY: install/goreleaser
 install/goreleaser:
