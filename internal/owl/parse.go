@@ -6,16 +6,6 @@ import (
 	"strings"
 )
 
-// Constants representing different specification names.
-// These constants are of type SpecName and are assigned string values.
-const (
-	SpecNameOpaque   string = "Opaque"   // SpecNameOpaque specifies an opaque specification.
-	SpecNamePlain    string = "Plain"    // SpecNamePlain specifies a plain specification.
-	SpecNameSecret   string = "Secret"   // SpecNameSecret specifies a secret specification.
-	SpecNamePassword string = "Password" // SpecNamePassword specifies a password specification.
-	SpecNameDefault         = SpecNameOpaque
-)
-
 // Spec represents the available configuration options and their flags.
 type Spec struct {
 	Name     string
@@ -109,5 +99,5 @@ func upperFirstLetter(s string) string {
 
 	// Convert the first character to uppercase
 	// Concatenate it with the rest of the string
-	return strings.ToUpper(string(s[0])) + strings.ToLower((s[1:]))
+	return strings.ToUpper(string(s[0])) + (s[1:])
 }

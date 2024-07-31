@@ -607,6 +607,10 @@ export interface MonitorEnvStoreResponseSnapshot_SnapshotEnv {
      * @generated from protobuf field: repeated runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error errors = 9;
      */
     errors: MonitorEnvStoreResponseSnapshot_Error[];
+    /**
+     * @generated from protobuf field: bool is_required = 10;
+     */
+    isRequired: boolean;
 }
 /**
  * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error

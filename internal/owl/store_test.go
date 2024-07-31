@@ -83,7 +83,7 @@ func Test_Store(t *testing.T) {
 		require.NotNil(t, store)
 
 		var query, vars bytes.Buffer
-		err = store.sensitiveQuery(&query, &vars)
+		err = store.sensitiveKeysQuery(&query, &vars)
 		require.NoError(t, err)
 
 		fmt.Println(query.String())
@@ -147,12 +147,11 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 }
 
 func Test_Store_Specless(t *testing.T) {
-	t.Skip("Restore fixture data")
 	t.Parallel()
 
-	rawEnvLocal, err := os.ReadFile("../../pkg/project/test_project/.env.local")
+	rawEnvLocal, err := os.ReadFile("testdata/project/.env.local")
 	require.NoError(t, err)
-	rawEnv, err := os.ReadFile("../../pkg/project/test_project/.env")
+	rawEnv, err := os.ReadFile("testdata/project/.env")
 	require.NoError(t, err)
 
 	store, err := NewStore(
@@ -418,7 +417,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, "UNRESOLVED", snapshot2.Value.Status)
 		require.Greater(t, len(snapshot2.Errors), 0)
 		require.EqualValues(t, snapshot2.Errors[0].Code, 0)
-		require.EqualValues(t, snapshot2.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"INSTRUMENTATION_KEY\" is unresolved but defined as required by \"Secret!\" in \".env.example\""})
+		require.EqualValues(t, snapshot2.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"INSTRUMENTATION_KEY\" is unresolved but declared as required by \"Secret!\" in \".env.example\""})
 
 		snapshot3 := snapshot[3]
 		require.EqualValues(t, "PGPASS", snapshot3.Var.Key)
@@ -428,7 +427,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 		require.EqualValues(t, "", snapshot3.Value.Original)
 		require.EqualValues(t, "UNRESOLVED", snapshot3.Value.Status)
 		require.Greater(t, len(snapshot3.Errors), 0)
-		require.EqualValues(t, snapshot3.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but defined as required by \"Password!\" in \".env.example\""})
+		require.EqualValues(t, snapshot3.Errors[0], &SetVarError{Code: 0, Message: "Error 0: Variable \"PGPASS\" is unresolved but declared as required by \"Password!\" in \".env.example\""})
 	})
 }
 

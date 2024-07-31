@@ -206,7 +206,8 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 }
 
 func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error {
-	logger := r.logger.With(zap.String("_id", ulid.GenerateID()))
+	_id := ulid.GenerateID()
+	logger := r.logger.With(zap.String("_id", _id))
 
 	logger.Info("running Execute in runnerService")
 
@@ -220,6 +221,13 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		logger.Info("failed to receive a request", zap.Error(err))
 		return errors.WithStack(err)
 	}
+
+	execInfo := &commandpkg.ExecutionInfo{
+		RunID:     _id,
+		KnownName: req.GetKnownName(),
+		KnownID:   req.GetKnownId(),
+	}
+	ctx := commandpkg.ContextWithExecutionInfo(srv.Context(), execInfo)
 
 	// We want to always log the request because it is used for AI training.
 	// see: https://github.com/stateful/runme/issues/574
@@ -255,7 +263,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		}
 
 		if len(req.Envs) > 0 {
-			err := sess.AddEnvs(req.Envs)
+			err := sess.AddEnvs(ctx, req.Envs)
 			if err != nil {
 				return err
 			}
@@ -304,7 +312,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	logger.Debug("command config", zap.Any("cfg", cfg))
-	cmd, err := newCommand(cfg)
+	cmd, err := newCommand(ctx, cfg)
 	if err != nil {
 		var errInvalidLanguage ErrInvalidLanguage
 		if errors.As(err, &errInvalidLanguage) {
@@ -343,10 +351,10 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return err
 	}
 
-	cmdCtx := srv.Context()
+	cmdCtx := ctx
 
 	if req.Background {
-		cmdCtx = context.Background()
+		cmdCtx = commandpkg.ContextWithExecutionInfo(context.Background(), execInfo)
 	}
 
 	if err := cmd.StartWithOpts(cmdCtx, &startOpts{}); err != nil {
@@ -518,14 +526,14 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if storeStdout {
-		err := sess.SetEnv("__", string(stdoutMem))
+		err := sess.SetEnv(ctx, "__", string(stdoutMem))
 		if err != nil {
 			logger.Sugar().Errorf("%v", err)
 		}
 
 		knownName := req.GetKnownName()
 		if knownName != "" && runnerConformsOpinionatedEnvVarNaming(knownName) {
-			err = sess.SetEnv(knownName, string(stdoutMem))
+			err = sess.SetEnv(ctx, knownName, string(stdoutMem))
 			if err != nil {
 				logger.Warn("failed to set env", zap.Error(err))
 			}
@@ -870,6 +878,7 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 		es := &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 			Name:          item.Var.Key,
 			Spec:          item.Spec.Name,
+			IsRequired:    item.Spec.Required,
 			Origin:        item.Var.Origin,
 			OriginalValue: item.Value.Original,
 			ResolvedValue: item.Value.Resolved,

@@ -2,6 +2,8 @@ module github.com/stateful/runme/v3
 
 go 1.22
 
+// replace github.com/stateful/godotenv => ../godotenv
+
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
 	github.com/Masterminds/semver/v3 v3.2.1
@@ -36,6 +38,7 @@ require (
 	github.com/rwtodd/Go.Sed v0.0.0-20240405174034-bb8ed5da0fd0
 	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915
 	github.com/vektah/gqlparser/v2 v2.5.16
+	github.com/xo/dburl v0.23.2
 	github.com/yuin/goldmark v1.7.4
 	go.uber.org/dig v1.17.1
 	go.uber.org/multierr v1.11.0

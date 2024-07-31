@@ -51,9 +51,10 @@ type command struct {
 
 	tempScriptFile string
 
-	wg  sync.WaitGroup
-	mu  sync.Mutex
-	err error
+	context context.Context
+	wg      sync.WaitGroup
+	mu      sync.Mutex
+	err     error
 
 	logger *zap.Logger
 }
@@ -103,7 +104,7 @@ type commandConfig struct {
 	Logger *zap.Logger
 }
 
-func newCommand(cfg *commandConfig) (*command, error) {
+func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 	var pathEnv string
 
 	// If PATH is set in the session, use it in the system
@@ -244,6 +245,7 @@ func newCommand(cfg *commandConfig) (*command, error) {
 	args = append(args, cfg.Args...)
 
 	cmd := &command{
+		context:        context,
 		ProgramPath:    programPath,
 		Args:           append(args, extraArgs...),
 		Directory:      directory,
@@ -501,7 +503,7 @@ func (c *command) collectEnvs() {
 		newEnvStore(endEnvs...),
 	)
 
-	err = c.Session.UpdateStore(c.cmd.Env, newOrUpdated, deleted)
+	err = c.Session.UpdateStore(c.context, c.cmd.Env, newOrUpdated, deleted)
 	c.seterr(err)
 }
 
