@@ -139,7 +139,11 @@ jobs:
         with:
           name: coverage
           path: .
-
+      - name: 🐛 Debug Build
+        uses: stateful/vscode-server-action@v1
+        if: failure()
+        with:
+          timeout: "300000"
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2.1.1
         # Skip this test if the PR is created from a fork.
