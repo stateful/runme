@@ -2,6 +2,7 @@ package beta
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -31,6 +32,10 @@ All commands are experimental and not yet ready for production use.
 All commands use the runme.yaml configuration file.`,
 		Hidden: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if cFlags.silent {
+				cmd.SetErr(io.Discard)
+			}
+
 			err := autoconfig.InvokeForCommand(func(cfg *config.Config) error {
 				// Override the filename if provided.
 				if cFlags.filename != "" {
@@ -48,9 +53,12 @@ All commands use the runme.yaml configuration file.`,
 
 				return nil
 			})
-			if !cFlags.silent && err != nil {
+
+			// print the error to stderr but don't return it
+			if err != nil {
 				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", err)
 			}
+
 			return nil
 		},
 	}

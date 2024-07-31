@@ -42,6 +42,7 @@ func envSourceCmd(cflags *commonFlags) *cobra.Command {
 		Short: "Source environment variables from session",
 		Long:  "Source environment variables from session",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// discard any stderr in silent mode
 			if !cflags.subtle {
 				return errors.New("must be run in subtle mode to prevent misuse; enable by adding --subtle flag")
 			}
