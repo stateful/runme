@@ -41,7 +41,7 @@ func shellCmd() *cobra.Command {
 
 			printfInfo("runme: starting backloop communication on %s", sockPath)
 
-			errC := make(chan error, 1)
+			errc := make(chan error, 1)
 
 			go func() {
 				for {
@@ -60,12 +60,12 @@ func shellCmd() *cobra.Command {
 							continue
 						}
 						if err := session.Send(line); err != nil {
-							errC <- err
+							errc <- err
 							return
 						}
 					}
 
-					errC <- scanner.Err()
+					errc <- scanner.Err()
 
 					_ = conn.Close()
 				}
@@ -76,7 +76,7 @@ func shellCmd() *cobra.Command {
 			select {
 			case <-session.Done():
 				return session.Err()
-			case err := <-errC:
+			case err := <-errc:
 				return err
 			}
 		},
