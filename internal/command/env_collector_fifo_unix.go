@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -84,30 +83,23 @@ func (c *envCollectorFifo) init() error {
 }
 
 func (c *envCollectorFifo) Diff() (changed []string, deleted []string, _ error) {
-	defer c.cleanup()
+	defer c.temp.Cleanup()
 
-	errc := make(chan error, 3)
+	g := new(errgroup.Group)
 
-	go func() {
-		err := c.ensureReaderDone(c.prePath())
-		errc <- err
-	}()
+	g.Go(func() error {
+		return c.ensureReaderDone(c.prePath())
+	})
 
-	go func() {
-		err := c.ensureReaderDone(c.postPath())
-		errc <- err
-	}()
+	g.Go(func() error {
+		return c.ensureReaderDone(c.postPath())
+	})
 
-	go func() {
-		err := c.readersGroup.Wait()
-		errc <- err
-	}()
-
-	var err error
-	for i := 0; i < 3; i++ {
-		err = multierr.Append(err, <-errc)
+	if err := g.Wait(); err != nil {
+		return nil, nil, err
 	}
-	if err != nil {
+
+	if err := c.readersGroup.Wait(); err != nil {
 		return nil, nil, err
 	}
 
@@ -136,25 +128,13 @@ func (c *envCollectorFifo) postPath() string {
 	return c.temp.Join("env_post.fifo")
 }
 
-func (c *envCollectorFifo) cleanup() error {
-	return c.temp.Cleanup()
-}
-
 func (*envCollectorFifo) createFifo(name string) error {
 	err := syscall.Mkfifo(name, 0o600)
 	return errors.WithMessage(err, "failed to create a FIFO")
 }
 
-func (*envCollectorFifo) open(name string) (*os.File, error) {
-	f, err := os.OpenFile(name, os.O_RDONLY, 0o600)
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to open (read-only) fifo %q", name)
-	}
-	return f, nil
-}
-
 func (c *envCollectorFifo) read(path string) ([]string, error) {
-	r, err := c.open(path)
+	r, err := c.temp.Open(path)
 	if err != nil {
 		return nil, err
 	}
