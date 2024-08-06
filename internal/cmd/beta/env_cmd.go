@@ -43,8 +43,8 @@ func envSourceCmd(cflags *commonFlags) *cobra.Command {
 		Long:  "Source environment variables from session",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// discard any stderr in silent mode
-			if !cflags.subtle {
-				return errors.New("must be run in subtle mode to prevent misuse; enable by adding --subtle flag")
+			if !cflags.insecure {
+				return errors.New("must be run in insecure mode to prevent misuse; enable by adding --insecure flag")
 			}
 
 			tlsConfig, err := runmetls.LoadClientConfigFromDir(tlsDir)

@@ -43,12 +43,12 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 	c.logger.Info("a terminal command started")
 
 	if c.envCollector != nil {
-		if err = c.envCollector.SetOnShell(c.stdinWriter); err != nil {
+		if err := c.envCollector.SetOnShell(c.stdinWriter); err != nil {
 			return err
 		}
 	}
 
-	if _, err := c.stdinWriter.Write([]byte(" eval $(runme beta env source --silent --subtle --export)\n clear\n")); err != nil {
+	if _, err := c.stdinWriter.Write([]byte(" eval $(runme beta env source --silent --insecure --export)\n clear\n")); err != nil {
 		return err
 	}
 
