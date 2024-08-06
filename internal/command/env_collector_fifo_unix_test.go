@@ -26,3 +26,13 @@ func TestEnvCollectorFifo(t *testing.T) {
 	require.Equal(t, []string{"ENV_2=2"}, changedEnv)
 	require.Equal(t, []string{"ENV_1"}, deletedEnv)
 }
+
+func TestEnvCollectorFifoWithoutWriter(t *testing.T) {
+	t.Parallel()
+
+	collector, err := newEnvCollectorFifo(scanEnv, nil, nil)
+	require.NoError(t, err)
+
+	_, _, err = collector.Diff()
+	require.NoError(t, err)
+}
