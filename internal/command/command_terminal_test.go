@@ -55,7 +55,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	require.NoError(t, err)
 	// Wait for the prompt before sending the next command.
 	expectContainLine(t, stdout, "$")
-	_, err = stdinW.Write([]byte{0x04}) // EOT
+	_, err = stdinW.Write([]byte("exit\n"))
 	require.NoError(t, err)
 
 	require.NoError(t, cmd.Wait())

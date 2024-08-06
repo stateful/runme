@@ -89,7 +89,7 @@ func splitNull(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
-	if i := bytes.IndexByte(data, 0); i >= 0 {
+	if i := bytes.IndexByte(data, byte(0)); i >= 0 {
 		// We have a full null-terminated line.
 		return i + 1, data[0:i], nil
 	}

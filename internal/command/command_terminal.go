@@ -43,9 +43,21 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 	c.logger.Info("a terminal command started")
 
 	if c.envCollector != nil {
-		return c.envCollector.SetOnShell(c.stdinWriter)
+		if err := c.envCollector.SetOnShell(c.stdinWriter); err != nil {
+			return err
+		}
 	}
-	return nil
+
+	if _, err := c.stdinWriter.Write([]byte(" eval $(runme beta env source --silent --insecure --export)\n clear\n")); err != nil {
+		return err
+	}
+
+	// todo(sebastian): good enough for prototype; it makes more sense to write this message at the TTY-level
+	initMsg := []byte(" # Runme: This terminal forked your session. " +
+		"Upon exit exported environment variables will be rolled up into the session.\n\n")
+	_, err = c.stdinWriter.Write(initMsg)
+
+	return err
 }
 
 func (c *terminalCommand) Wait() (err error) {

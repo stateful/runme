@@ -3,6 +3,7 @@ package runnerv2service
 import (
 	"context"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -44,6 +45,8 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2alpha1.C
 	}
 
 	r.sessions.Add(sess)
+
+	r.logger.Debug("created session", zap.String("id", sess.ID))
 
 	return &runnerv2alpha1.CreateSessionResponse{
 		Session: convertSessionToRunnerv2alpha1Session(sess),

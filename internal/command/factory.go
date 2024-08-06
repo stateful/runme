@@ -13,7 +13,7 @@ import (
 
 var (
 	envCollectorEnableEncryption = true
-	envCollectorUseFifo          = false
+	envCollectorUseFifo          = true
 )
 
 type CommandOptions struct {
