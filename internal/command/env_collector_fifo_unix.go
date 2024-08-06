@@ -28,7 +28,11 @@ type envCollectorFifo struct {
 	temp         *tempDirectory
 }
 
-func newEnvCollectorFifo(scanner envScanner, encKey, encNonce []byte) (*envCollectorFifo, error) {
+func newEnvCollectorFifo(
+	scanner envScanner,
+	encKey,
+	encNonce []byte,
+) (*envCollectorFifo, error) {
 	temp, err := newTempDirectory()
 	if err != nil {
 		return nil, err

@@ -16,7 +16,7 @@ var _ envCollector = (*envCollectorFile)(nil)
 
 func newEnvCollectorFile(
 	scanner envScanner,
-	encKey []byte,
+	encKey,
 	encNonce []byte,
 ) (*envCollectorFile, error) {
 	temp, err := newTempDirectory()
