@@ -1,4 +1,5 @@
 exec chmod 000 secret
+exec chmod 000 CONTRIBUTING.md
 exec runme ls --ignore-pattern=secret
 cmp stdout output.txt
 ! stderr .
@@ -6,6 +7,12 @@ cmp stdout output.txt
 -- secret/README.md --
 
 ```sh {"name":"secret-command"}
+$ echo "This is a secret command"
+```
+
+-- CONTRIBUTING.md --
+
+```sh {"name":"contributing-cell"}
 $ echo "This is a secret command"
 ```
 
