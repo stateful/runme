@@ -396,15 +396,15 @@ func (a *Auth) serveHTTP(ln net.Listener) (string, <-chan error) {
 	mux.Handle("/manual", http.HandlerFunc(a.manualCallbackHandler))
 
 	server := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
-	errC := make(chan error, 1)
+	errc := make(chan error, 1)
 
 	go func() {
 		if err := server.Serve(ln); err != nil {
-			errC <- err
+			errc <- err
 		}
 	}()
 
-	return fmt.Sprintf("http://%s", ln.Addr().String()), errC
+	return fmt.Sprintf("http://%s", ln.Addr().String()), errc
 }
 
 var cliAuthStatusPage = func() url.URL {
