@@ -367,6 +367,7 @@ func (p *Project) loadFromDirectory(
 	err := util.Walk(p.fs, ".", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			if errors.Is(err, os.ErrPermission) {
+				p.logger.Warn("permission denied", zap.String("path", path), zap.Error(err))
 				if info.IsDir() {
 					return filepath.SkipDir
 				}
@@ -461,6 +462,11 @@ func (p *Project) extractTasksFromFile(
 	})
 
 	if err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			p.logger.Warn("permission denied", zap.String("path", path), zap.Error(err))
+			return
+		}
+
 		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventError,
 			Data: LoadEventErrorData{Err: err},
@@ -489,9 +495,6 @@ func (p *Project) extractTasksFromFile(
 func getCodeBlocksFromFile(path string) (document.CodeBlocks, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		if errors.Is(err, os.ErrPermission) {
-			return document.CodeBlocks{}, nil
-		}
 		return nil, err
 	}
 	return getCodeBlocks(data)
