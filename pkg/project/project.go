@@ -366,6 +366,12 @@ func (p *Project) loadFromDirectory(
 
 	err := util.Walk(p.fs, ".", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
+			if errors.Is(err, os.ErrPermission) {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
 			return err
 		}
 
