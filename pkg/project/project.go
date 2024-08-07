@@ -489,6 +489,9 @@ func (p *Project) extractTasksFromFile(
 func getCodeBlocksFromFile(path string) (document.CodeBlocks, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			return document.CodeBlocks{}, nil
+		}
 		return nil, err
 	}
 	return getCodeBlocks(data)
