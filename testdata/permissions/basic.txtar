@@ -1,6 +1,6 @@
 exec chmod 000 secret
 exec chmod 000 CONTRIBUTING.md
-exec runme ls --ignore-pattern=secret
+exec runme ls
 cmp stdout output.txt
 ! stderr .
 
