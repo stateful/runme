@@ -169,6 +169,12 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 		return nil, errors.WithStack(err)
 	}
 
+	if _, err := os.Stat(filepath.Dir(certFile)); errors.Is(err, fs.ErrNotExist) {
+		if err := os.MkdirAll(filepath.Dir(certFile), tlsDirMode); err != nil {
+			return nil, errors.Wrap(err, "failed to create TLS directory")
+		}
+	}
+
 	if err := os.WriteFile(certFile, caPEM.Bytes(), tlsFileMode); err != nil {
 		return nil, errors.Wrap(err, "failed to write CA")
 	}
