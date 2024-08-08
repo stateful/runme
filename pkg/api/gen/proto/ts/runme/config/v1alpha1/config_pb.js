@@ -9,6 +9,7 @@
 // tslint:disable
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
+import { BoolValue } from "../../../google/protobuf/wrappers_pb";
 /**
  * @generated from protobuf enum runme.config.v1alpha1.Config.FilterType
  */
@@ -48,9 +49,9 @@ class Config_Project$Type extends MessageType {
         super("runme.config.v1alpha1.Config.Project", [
             { no: 1, name: "root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "filename", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "find_repo_upward", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "find_repo_upward", kind: "message", T: () => BoolValue },
             { no: 4, name: "ignore_paths", kind: "scalar", jsonName: "ignore", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "disable_gitignore", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "disable_gitignore", kind: "message", T: () => BoolValue },
             { no: 6, name: "env", kind: "message", T: () => Config_Env },
             { no: 7, name: "filters", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => Config_Filter }
         ]);
@@ -64,7 +65,7 @@ export const Config_Project = new Config_Project$Type();
 class Config_Env$Type extends MessageType {
     constructor() {
         super("runme.config.v1alpha1.Config.Env", [
-            { no: 1, name: "use_system_env", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 1, name: "use_system_env", kind: "message", T: () => BoolValue },
             { no: 2, name: "sources", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -102,7 +103,7 @@ export const Config_Runtime = new Config_Runtime$Type();
 class Config_Docker$Type extends MessageType {
     constructor() {
         super("runme.config.v1alpha1.Config.Docker", [
-            { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 1, name: "enabled", kind: "message", T: () => BoolValue },
             { no: 2, name: "image", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "build", kind: "message", T: () => Config_Docker_Build }
         ]);
@@ -142,7 +143,7 @@ export const Config_Server = new Config_Server$Type();
 class Config_Server_TLS$Type extends MessageType {
     constructor() {
         super("runme.config.v1alpha1.Config.Server.TLS", [
-            { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 1, name: "enabled", kind: "message", T: () => BoolValue },
             { no: 2, name: "cert_file", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "key_file", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -156,9 +157,9 @@ export const Config_Server_TLS = new Config_Server_TLS$Type();
 class Config_Log$Type extends MessageType {
     constructor() {
         super("runme.config.v1alpha1.Config.Log", [
-            { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 1, name: "enabled", kind: "message", T: () => BoolValue },
             { no: 2, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "verbose", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 3, name: "verbose", kind: "message", T: () => BoolValue }
         ]);
     }
 }

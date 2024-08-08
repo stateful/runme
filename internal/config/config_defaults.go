@@ -1,10 +1,10 @@
-# EXPERIMENTAL: This is a work in progress and may change at any time.
-# The idea behind runme.yaml is to provide a way to define consistent
-# configuration per project, regardless whether blocks from Markdown
-# are executed in VS Code or using the runme CLI.
-#
-# You can test it with the "runme beta" commands.
-version: v1alpha1
+package config
+
+var ConfigDefaults Config
+
+func init() {
+	// todo(sebastian): use inline file for easier editing
+	yaml := []byte(`version: v1alpha1
 
 # Settings that apply on at the project level.
 project:
@@ -33,16 +33,16 @@ project:
   # "condition" must return a boolean value.
   # You can learn about the syntax at https://expr-lang.org/docs/language-definition.
   # Available fields are defined in [config.FilterDocumentEnv] and [config.FilterBlockEnv].
-  filters:
-    # Do not allow unnamed code blocks.
-    # - type: "FILTER_TYPE_BLOCK"
-    #   condition: "is_named"
-    # Do not allow code blocks without a language.
-    - type: "FILTER_TYPE_BLOCK"
-      condition: "language != ''"
-    # Do not allow code blocks starting with "test".
-    - type: "FILTER_TYPE_BLOCK"
-      condition: "!hasPrefix(name, 'test')"
+  # filters:
+  #   # Do not allow unnamed code blocks.
+  #   # - type: "FILTER_TYPE_BLOCK"
+  #   #   condition: "is_named"
+  #   # Do not allow code blocks without a language.
+  #   - type: "FILTER_TYPE_BLOCK"
+  #     condition: "language != ''"
+  #   # Do not allow code blocks starting with "test".
+  #   - type: "FILTER_TYPE_BLOCK"
+  #     condition: "!hasPrefix(name, 'test')"
 
 runtime:
   # Optional Docker configuration to run code blocks in a container.
@@ -63,6 +63,15 @@ server:
     # key_file: "/path/to/key.pem"
 
 log:
-  enabled: true
+  enabled: false
   path: "/tmp/runme.log"
-  verbose: true
+  verbose: false
+`)
+
+	cfg, err := ParseYAML(yaml)
+	if err != nil {
+		panic(err)
+	}
+
+	ConfigDefaults = *cfg
+}
