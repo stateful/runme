@@ -157,6 +157,7 @@ type MonitorEnvStoreResponseSnapshot_SnapshotEnv {
 	status: MonitorEnvStoreResponseSnapshot_Status
 	name: String
 	spec: String
+	isRequired: Boolean
 	origin: String
 	originalValue: String
 	resolvedValue: String

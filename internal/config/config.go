@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gopkg.in/yaml.v3"
 
 	configv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/config/v1alpha1"
@@ -40,6 +41,10 @@ type Config struct {
 	LogEnabled bool
 	LogPath    string
 	LogVerbose bool
+}
+
+func Defaults() Config {
+	return ConfigDefaults
 }
 
 func ParseYAML(data []byte) (*Config, error) {
@@ -125,32 +130,39 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 		})
 	}
 
-	cfg := &Config{
-		ProjectRoot:             project.GetRoot(),
-		ProjectFilename:         project.GetFilename(),
-		ProjectFindRepoUpward:   project.GetFindRepoUpward(),
-		ProjectIgnorePaths:      project.GetIgnorePaths(),
-		ProjectDisableGitignore: project.GetDisableGitignore(),
-		ProjectEnvUseSystemEnv:  project.GetEnv().GetUseSystemEnv(),
-		ProjectEnvSources:       project.GetEnv().GetSources(),
-		ProjectFilters:          filters,
+	cfg := Defaults()
+	cfg.ProjectRoot = project.GetRoot()
+	cfg.ProjectFilename = project.GetFilename()
+	cfg.ProjectFindRepoUpward = unwrapBool(project.GetFindRepoUpward(), cfg.ProjectFindRepoUpward)
+	cfg.ProjectIgnorePaths = project.GetIgnorePaths()
+	cfg.ProjectDisableGitignore = unwrapBool(project.GetDisableGitignore(), cfg.ProjectDisableGitignore)
+	cfg.ProjectEnvUseSystemEnv = unwrapBool(project.GetEnv().GetUseSystemEnv(), cfg.ProjectEnvUseSystemEnv)
+	cfg.ProjectEnvSources = project.GetEnv().GetSources()
+	cfg.ProjectFilters = filters
 
-		RuntimeDockerEnabled:         runtime.GetDocker().GetEnabled(),
-		RuntimeDockerImage:           runtime.GetDocker().GetImage(),
-		RuntimeDockerBuildContext:    runtime.GetDocker().GetBuild().GetContext(),
-		RuntimeDockerBuildDockerfile: runtime.GetDocker().GetBuild().GetDockerfile(),
+	cfg.RuntimeDockerEnabled = unwrapBool(runtime.GetDocker().GetEnabled(), cfg.RuntimeDockerEnabled)
+	cfg.RuntimeDockerImage = runtime.GetDocker().GetImage()
+	cfg.RuntimeDockerBuildContext = runtime.GetDocker().GetBuild().GetContext()
+	cfg.RuntimeDockerBuildDockerfile = runtime.GetDocker().GetBuild().GetDockerfile()
 
-		ServerAddress:     server.GetAddress(),
-		ServerTLSEnabled:  server.GetTls().GetEnabled(),
-		ServerTLSCertFile: server.GetTls().GetCertFile(),
-		ServerTLSKeyFile:  server.GetTls().GetKeyFile(),
+	cfg.ServerAddress = server.GetAddress()
+	cfg.ServerTLSEnabled = unwrapBool(server.GetTls().GetEnabled(), cfg.ServerTLSEnabled)
+	cfg.ServerTLSCertFile = server.GetTls().GetCertFile()
+	cfg.ServerTLSKeyFile = server.GetTls().GetKeyFile()
 
-		LogEnabled: log.GetEnabled(),
-		LogPath:    log.GetPath(),
-		LogVerbose: log.GetVerbose(),
+	cfg.LogEnabled = unwrapBool(log.GetEnabled(), cfg.LogEnabled)
+	cfg.LogPath = log.GetPath()
+	cfg.LogVerbose = unwrapBool(log.GetVerbose(), cfg.LogVerbose)
+
+	return &cfg, nil
+}
+
+func unwrapBool(wrappedVal *wrapperspb.BoolValue, defaultVal bool) bool {
+	if wrappedVal != nil {
+		return wrappedVal.Value
 	}
 
-	return cfg, nil
+	return defaultVal
 }
 
 func validateConfig(cfg *Config) error {
