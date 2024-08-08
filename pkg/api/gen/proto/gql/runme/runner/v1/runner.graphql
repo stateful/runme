@@ -235,6 +235,7 @@ type MonitorEnvStoreResponseSnapshot_SnapshotEnv {
 	createTime: String
 	updateTime: String
 	errors: [MonitorEnvStoreResponseSnapshot_Error!]
+	isRequired: Boolean
 }
 enum MonitorEnvStoreResponseSnapshot_Status {
 	STATUS_UNSPECIFIED

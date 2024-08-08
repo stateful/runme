@@ -4,6 +4,7 @@
 // tslint:disable
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
+import { BoolValue } from "../../../google/protobuf/wrappers_pb";
 /**
  * Config describes the configuration of the runme tools, including CLI, server, and clients like VS Code extension.
  *
@@ -52,9 +53,9 @@ export interface Config_Project {
      * find_repo_upward indicates whether to find the nearest Git repository upward.
      * This is useful to, for example, recognize .gitignore files.
      *
-     * @generated from protobuf field: bool find_repo_upward = 3;
+     * @generated from protobuf field: google.protobuf.BoolValue find_repo_upward = 3;
      */
-    findRepoUpward: boolean;
+    findRepoUpward?: BoolValue;
     /**
      * ignore_paths is a list of paths to ignore relative to dir.
      *
@@ -64,9 +65,9 @@ export interface Config_Project {
     /**
      * disable_gitignore indicates whether to disable the .gitignore file.
      *
-     * @generated from protobuf field: bool disable_gitignore = 5;
+     * @generated from protobuf field: google.protobuf.BoolValue disable_gitignore = 5;
      */
-    disableGitignore: boolean;
+    disableGitignore?: BoolValue;
     /**
      * env is the environment variables configuration.
      *
@@ -89,9 +90,9 @@ export interface Config_Env {
     /**
      * use_system_env indicates whether to use the system environment variables.
      *
-     * @generated from protobuf field: bool use_system_env = 1;
+     * @generated from protobuf field: google.protobuf.BoolValue use_system_env = 1;
      */
-    useSystemEnv: boolean;
+    useSystemEnv?: BoolValue;
     /**
      * sources is a list of files with env.
      *
@@ -134,9 +135,9 @@ export interface Config_Runtime {
  */
 export interface Config_Docker {
     /**
-     * @generated from protobuf field: bool enabled = 1;
+     * @generated from protobuf field: google.protobuf.BoolValue enabled = 1;
      */
-    enabled: boolean;
+    enabled?: BoolValue;
     /**
      * @generated from protobuf field: string image = 2;
      */
@@ -177,9 +178,9 @@ export interface Config_Server {
  */
 export interface Config_Server_TLS {
     /**
-     * @generated from protobuf field: bool enabled = 1;
+     * @generated from protobuf field: google.protobuf.BoolValue enabled = 1;
      */
-    enabled: boolean;
+    enabled?: BoolValue;
     /**
      * @generated from protobuf field: string cert_file = 2;
      */
@@ -196,9 +197,9 @@ export interface Config_Log {
     /**
      * enabled indicates whether to enable logging.
      *
-     * @generated from protobuf field: bool enabled = 1;
+     * @generated from protobuf field: google.protobuf.BoolValue enabled = 1;
      */
-    enabled: boolean;
+    enabled?: BoolValue;
     /**
      * path is the path to the log output file.
      *
@@ -208,9 +209,9 @@ export interface Config_Log {
     /**
      * verbose is the verbosity level of the log.
      *
-     * @generated from protobuf field: bool verbose = 3;
+     * @generated from protobuf field: google.protobuf.BoolValue verbose = 3;
      */
-    verbose: boolean;
+    verbose?: BoolValue;
 }
 /**
  * @generated from protobuf enum runme.config.v1alpha1.Config.FilterType

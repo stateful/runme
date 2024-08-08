@@ -26,7 +26,7 @@ func TestParseYAML(t *testing.T) {
 project:
   filename: REAEDME.md
 `,
-			expectedConfig: &Config{ProjectFilename: "REAEDME.md"},
+			expectedConfig: &Config{ProjectFilename: "REAEDME.md", ProjectFindRepoUpward: true, ServerTLSEnabled: true},
 		},
 		{
 			name: "root and filename",
@@ -35,7 +35,7 @@ project:
   root: "."
   filename: README.md
 `,
-			expectedConfig: &Config{ProjectRoot: ".", ProjectFilename: "README.md"},
+			expectedConfig: &Config{ProjectRoot: ".", ProjectFilename: "README.md", ProjectFindRepoUpward: true, ServerTLSEnabled: true},
 		},
 		{
 			name: "validate filter type",
@@ -144,5 +144,7 @@ log:
 		LogEnabled: true,
 		LogPath:    "/var/tmp/runme.log",
 		LogVerbose: true,
+
+		ServerTLSEnabled: true,
 	}
 )
