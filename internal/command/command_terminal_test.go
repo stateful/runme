@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 func TestTerminalCommand_EnvPropagation(t *testing.T) {
@@ -31,7 +31,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 		&ProgramConfig{
 			ProgramName: "bash",
 			Interactive: true,
-			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
+			Mode:        runnerv2.CommandMode_COMMAND_MODE_TERMINAL,
 		},
 		CommandOptions{
 			Session:     session,
@@ -90,7 +90,7 @@ func TestTerminalCommand_NonInteractive(t *testing.T) {
 	cmd, err := factory.Build(
 		&ProgramConfig{
 			ProgramName: "bash",
-			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
+			Mode:        runnerv2.CommandMode_COMMAND_MODE_TERMINAL,
 		},
 		CommandOptions{
 			StdinWriter: stdinW,
@@ -125,7 +125,7 @@ func TestTerminalCommand_OptionsStdinWriterNil(t *testing.T) {
 		&ProgramConfig{
 			ProgramName: "bash",
 			Interactive: true,
-			Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
+			Mode:        runnerv2.CommandMode_COMMAND_MODE_TERMINAL,
 		},
 		CommandOptions{},
 	)

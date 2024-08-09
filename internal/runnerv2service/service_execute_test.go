@@ -22,7 +22,7 @@ import (
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 func init() {
@@ -88,17 +88,17 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	req := &runnerv2alpha1.ExecuteRequest{
-		Config: &runnerv2alpha1.ProgramConfig{
+	req := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
 			ProgramName: "bash",
-			Source: &runnerv2alpha1.ProgramConfig_Commands{
-				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						"echo test | tee >(cat >&2)",
 					},
 				},
 			},
-			Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+			Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 		},
 	}
 
@@ -162,11 +162,11 @@ func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
 	execResult := make(chan executeResult)
 	go getExecuteResult(stream, execResult)
 
-	req := &runnerv2alpha1.ExecuteRequest{
-		Config: &runnerv2alpha1.ProgramConfig{
+	req := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
 			ProgramName: "bash",
-			Source: &runnerv2alpha1.ProgramConfig_Commands{
-				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						// Echo JSON to stderr and plain text to stdout.
 						// Only the plain text should be detected.
@@ -195,7 +195,7 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
-	sessionResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
 	require.NotNil(t, sessionResp.Session)
 
@@ -205,11 +205,11 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	execResult1 := make(chan executeResult)
 	go getExecuteResult(stream1, execResult1)
 
-	req1 := &runnerv2alpha1.ExecuteRequest{
-		Config: &runnerv2alpha1.ProgramConfig{
+	req1 := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
 			ProgramName: "bash",
-			Source: &runnerv2alpha1.ProgramConfig_Commands{
-				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						"echo test | tee >(cat >&2)",
 					},
@@ -237,11 +237,11 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	execResult2 := make(chan executeResult)
 	go getExecuteResult(stream2, execResult2)
 
-	req2 := &runnerv2alpha1.ExecuteRequest{
-		Config: &runnerv2alpha1.ProgramConfig{
+	req2 := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
 			ProgramName: "bash",
-			Source: &runnerv2alpha1.ProgramConfig_Commands{
-				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						"echo $__",
 					},
@@ -267,7 +267,7 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
-	sessionResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
 	require.NotNil(t, sessionResp.Session)
 
@@ -277,11 +277,11 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 	execResult1 := make(chan executeResult)
 	go getExecuteResult(stream1, execResult1)
 
-	req1 := &runnerv2alpha1.ExecuteRequest{
-		Config: &runnerv2alpha1.ProgramConfig{
+	req1 := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
 			ProgramName: "bash",
-			Source: &runnerv2alpha1.ProgramConfig_Commands{
-				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						"echo test | tee >(cat >&2)",
 					},
@@ -310,11 +310,11 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 	execResult2 := make(chan executeResult)
 	go getExecuteResult(stream2, execResult2)
 
-	req2 := &runnerv2alpha1.ExecuteRequest{
-		Config: &runnerv2alpha1.ProgramConfig{
+	req2 := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
 			ProgramName: "bash",
-			Source: &runnerv2alpha1.ProgramConfig_Commands{
-				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						"echo $TEST_VAR",
 					},
@@ -342,16 +342,16 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		programConfig  *runnerv2alpha1.ProgramConfig
+		programConfig  *runnerv2.ProgramConfig
 		inputData      []byte
 		expectedOutput string
 	}{
 		{
 			name: "Basic",
-			programConfig: &runnerv2alpha1.ProgramConfig{
+			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"echo test",
 						},
@@ -362,10 +362,10 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		},
 		{
 			name: "BasicInteractive",
-			programConfig: &runnerv2alpha1.ProgramConfig{
+			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"echo test",
 						},
@@ -377,10 +377,10 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		},
 		{
 			name: "BasicSleep",
-			programConfig: &runnerv2alpha1.ProgramConfig{
+			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"echo 1",
 							"sleep 1",
@@ -393,10 +393,10 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		},
 		{
 			name: "BasicInput",
-			programConfig: &runnerv2alpha1.ProgramConfig{
+			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"read name",
 							"echo \"My name is $name\"",
@@ -410,10 +410,10 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		},
 		{
 			name: "BasicInputInteractive",
-			programConfig: &runnerv2alpha1.ProgramConfig{
+			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"read name",
 							"echo \"My name is $name\"",
@@ -427,10 +427,10 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		},
 		{
 			name: "Python",
-			programConfig: &runnerv2alpha1.ProgramConfig{
+			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "",
 				LanguageId:  "py",
-				Source: &runnerv2alpha1.ProgramConfig_Script{
+				Source: &runnerv2.ProgramConfig_Script{
 					Script: "print('test')",
 				},
 				Interactive: true,
@@ -439,9 +439,9 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		},
 		{
 			name: "Javascript",
-			programConfig: &runnerv2alpha1.ProgramConfig{
+			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "node",
-				Source: &runnerv2alpha1.ProgramConfig_Script{
+				Source: &runnerv2.ProgramConfig_Script{
 					Script: "console.log('1');\nconsole.log('2');",
 				},
 			},
@@ -449,10 +449,10 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 		},
 		{
 			name: "Javascript_inferred",
-			programConfig: &runnerv2alpha1.ProgramConfig{
+			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "",
 				LanguageId:  "js",
-				Source: &runnerv2alpha1.ProgramConfig_Script{
+				Source: &runnerv2.ProgramConfig_Script{
 					Script: "console.log('1');\nconsole.log('2');",
 				},
 			},
@@ -472,7 +472,7 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 			execResult := make(chan executeResult)
 			go getExecuteResult(stream, execResult)
 
-			req := &runnerv2alpha1.ExecuteRequest{
+			req := &runnerv2.ExecuteRequest{
 				Config: tc.programConfig,
 			}
 
@@ -497,7 +497,7 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
-	sessResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	sessResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
 
 	// Step 1: execute the first command in the terminal mode with bash,
@@ -509,17 +509,17 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 		execResult := make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		err = stream.Send(&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"bash",
 						},
 					},
 				},
-				Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
+				Mode: runnerv2.CommandMode_COMMAND_MODE_TERMINAL,
 			},
 			SessionId: sessResp.GetSession().GetId(),
 		})
@@ -528,11 +528,11 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 		time.Sleep(time.Second)
 
 		// Export some variables so that it can be tested if they are collected.
-		req := &runnerv2alpha1.ExecuteRequest{InputData: []byte("export TEST_ENV=TEST_VALUE\n")}
+		req := &runnerv2.ExecuteRequest{InputData: []byte("export TEST_ENV=TEST_VALUE\n")}
 		err = stream.Send(req)
 		require.NoError(t, err)
 		// Signal the end of input.
-		req = &runnerv2alpha1.ExecuteRequest{InputData: []byte{0x04}}
+		req = &runnerv2.ExecuteRequest{InputData: []byte{0x04}}
 		err = stream.Send(req)
 		require.NoError(t, err)
 
@@ -549,17 +549,17 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 		execResult := make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		err = stream.Send(&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"echo -n $TEST_ENV",
 						},
 					},
 				},
-				Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			SessionId: sessResp.GetSession().GetId(),
 		})
@@ -576,7 +576,7 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
-	sessionResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
 
 	// Run the first request with the default PATH.
@@ -587,11 +587,11 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 		result := make(chan executeResult)
 		go getExecuteResult(stream, result)
 
-		req := &runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		req := &runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "test"},
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			SessionId: sessionResp.GetSession().GetId(),
 		}
@@ -605,7 +605,7 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 	// the echo command will not be found.
 	{
 		tmpDir := t.TempDir()
-		_, err := client.UpdateSession(context.Background(), &runnerv2alpha1.UpdateSessionRequest{
+		_, err := client.UpdateSession(context.Background(), &runnerv2.UpdateSessionRequest{
 			Id:  sessionResp.GetSession().GetId(),
 			Env: []string{"PATH=" + tmpDir},
 		})
@@ -620,8 +620,8 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 		result := make(chan executeResult)
 		go getExecuteResult(stream, result)
 
-		req := &runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		req := &runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "test"},
 			},
@@ -646,11 +646,11 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		execResult := make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		err = stream.Send(&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"cat - | tr a-z A-Z",
 						},
@@ -663,7 +663,7 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, data := range [][]byte{[]byte("b\n"), []byte("c\n"), []byte("d\n"), {0x04}} {
-			req := &runnerv2alpha1.ExecuteRequest{InputData: data}
+			req := &runnerv2.ExecuteRequest{InputData: data}
 			err = stream.Send(req)
 			assert.NoError(t, err)
 		}
@@ -689,11 +689,11 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		execResult := make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		err = stream.Send(&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"bash",
 						},
@@ -705,16 +705,16 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		require.NoError(t, err)
 
 		time.Sleep(time.Millisecond * 500)
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{InputData: []byte("sleep 30")})
+		err = stream.Send(&runnerv2.ExecuteRequest{InputData: []byte("sleep 30")})
 		assert.NoError(t, err)
 
 		// cancel sleep
 		time.Sleep(time.Millisecond * 500)
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{InputData: []byte{0x03}})
+		err = stream.Send(&runnerv2.ExecuteRequest{InputData: []byte{0x03}})
 		assert.NoError(t, err)
 
 		time.Sleep(time.Millisecond * 500)
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{InputData: []byte{0x04}})
+		err = stream.Send(&runnerv2.ExecuteRequest{InputData: []byte{0x04}})
 		assert.NoError(t, err)
 
 		result := <-execResult
@@ -731,11 +731,11 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		execResult := make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		err = stream.Send(&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "sleep",
 				Arguments:   []string{"30"},
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 		})
 		require.NoError(t, err)
@@ -764,11 +764,11 @@ func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 			execResult := make(chan executeResult)
 			go getExecuteResult(stream, execResult)
 
-			err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-				Config: &runnerv2alpha1.ProgramConfig{
+			err = stream.Send(&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
 					ProgramName: "bash",
-					Source: &runnerv2alpha1.ProgramConfig_Commands{
-						Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
 							Items: []string{
 								"echo -n \"$TEST_ENV\"",
 								"export TEST_ENV=hello-2",
@@ -794,18 +794,18 @@ func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 			execResult := make(chan executeResult)
 			go getExecuteResult(stream, execResult)
 
-			err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-				Config: &runnerv2alpha1.ProgramConfig{
+			err = stream.Send(&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
 					ProgramName: "bash",
-					Source: &runnerv2alpha1.ProgramConfig_Commands{
-						Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
 							Items: []string{
 								"echo -n \"$TEST_ENV\"",
 							},
 						},
 					},
 				},
-				SessionStrategy: runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT,
+				SessionStrategy: runnerv2.SessionStrategy_SESSION_STRATEGY_MOST_RECENT,
 			})
 			require.NoError(t, err)
 
@@ -828,11 +828,11 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 	execResult := make(chan executeResult)
 	go getExecuteResult(stream, execResult)
 
-	err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-		Config: &runnerv2alpha1.ProgramConfig{
+	err = stream.Send(&runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
 			ProgramName: "bash",
-			Source: &runnerv2alpha1.ProgramConfig_Commands{
-				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						"echo 1",
 						"sleep 30",
@@ -848,8 +848,8 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 	go func() {
 		defer close(errc)
 		time.Sleep(time.Second)
-		err := stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Stop: runnerv2alpha1.ExecuteStop_EXECUTE_STOP_INTERRUPT,
+		err := stream.Send(&runnerv2.ExecuteRequest{
+			Stop: runnerv2.ExecuteStop_EXECUTE_STOP_INTERRUPT,
 		})
 		errc <- err
 	}()
@@ -869,11 +869,11 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 		execResult = make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		err = stream.Send(&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "1"},
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 		})
 		require.NoError(t, err)
@@ -898,11 +898,11 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 		execResult := make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		err = stream.Send(&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"tput lines",
 							"tput cols",
@@ -931,11 +931,11 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 		execResult := make(chan executeResult)
 		go getExecuteResult(stream, execResult)
 
-		err = stream.Send(&runnerv2alpha1.ExecuteRequest{
-			Config: &runnerv2alpha1.ProgramConfig{
+		err = stream.Send(&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"sleep 3", // wait for the winsize to be set
 							"tput lines",
@@ -946,7 +946,7 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 				Interactive: true,
 				Env:         []string{"TERM=linux"},
 			},
-			Winsize: &runnerv2alpha1.Winsize{
+			Winsize: &runnerv2.Winsize{
 				Cols: 200,
 				Rows: 64,
 			},
@@ -974,7 +974,7 @@ func testStartRunnerServiceServer(t *testing.T) (
 
 	runnerService, err := NewRunnerService(factory, logger)
 	require.NoError(t, err)
-	runnerv2alpha1.RegisterRunnerServiceServer(server, runnerService)
+	runnerv2.RegisterRunnerServiceServer(server, runnerService)
 
 	lis := bufconn.Listen(1024 << 10)
 	go server.Serve(lis)
@@ -985,7 +985,7 @@ func testStartRunnerServiceServer(t *testing.T) (
 func testCreateRunnerServiceClient(
 	t *testing.T,
 	lis interface{ Dial() (net.Conn, error) },
-) (*grpc.ClientConn, runnerv2alpha1.RunnerServiceClient) {
+) (*grpc.ClientConn, runnerv2.RunnerServiceClient) {
 	t.Helper()
 
 	conn, err := grpc.Dial(
@@ -997,7 +997,7 @@ func testCreateRunnerServiceClient(
 	)
 	require.NoError(t, err)
 
-	return conn, runnerv2alpha1.NewRunnerServiceClient(conn)
+	return conn, runnerv2.NewRunnerServiceClient(conn)
 }
 
 type executeResult struct {
@@ -1009,7 +1009,7 @@ type executeResult struct {
 }
 
 func getExecuteResult(
-	stream runnerv2alpha1.RunnerService_ExecuteClient,
+	stream runnerv2.RunnerService_ExecuteClient,
 	resultc chan<- executeResult,
 ) {
 	result := executeResult{ExitCode: -1}

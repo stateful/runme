@@ -4,12 +4,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 // ProgramConfig contains a serializable configuration for a command.
 // It's agnostic to the runtime or particular execution settings.
-type ProgramConfig = runnerv2alpha1.ProgramConfig
+type ProgramConfig = runnerv2.ProgramConfig
 
 // redactConfig returns a new [ProgramConfig] instance and copies only fields considered safe.
 // Useful for logging.

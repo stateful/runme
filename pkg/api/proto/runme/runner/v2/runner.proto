@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package runme.runner.v2alpha1;
+package runme.runner.v2;
 
 import "google/protobuf/wrappers.proto";
-import "runme/runner/v2alpha1/config.proto";
+import "runme/runner/v2/config.proto";
 
-option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1;runnerv2alpha1";
+option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2;runnerv2";
 
 message Project {
   // root is a root directory of the project.
@@ -123,7 +123,7 @@ message Winsize {
 }
 
 message ExecuteRequest {
-  runme.runner.v2alpha1.ProgramConfig config = 1;
+  runme.runner.v2.ProgramConfig config = 1;
 
   // input_data is a byte array that will be send as input
   // to the program.

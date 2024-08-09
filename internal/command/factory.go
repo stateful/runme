@@ -7,7 +7,7 @@ import (
 
 	"github.com/stateful/runme/v3/internal/dockerexec"
 	"github.com/stateful/runme/v3/internal/ulid"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
@@ -98,8 +98,8 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 	// For backward compatibility, if the mode is not specified,
 	// we will try to infer it from the language. If it's shell,
 	// we default it to inline.
-	if mode == runnerv2alpha1.CommandMode_COMMAND_MODE_UNSPECIFIED && isShell(cfg) {
-		mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
+	if mode == runnerv2.CommandMode_COMMAND_MODE_UNSPECIFIED && isShell(cfg) {
+		mode = runnerv2.CommandMode_COMMAND_MODE_INLINE
 	}
 
 	// Session should be always available.
@@ -108,7 +108,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 	}
 
 	switch mode {
-	case runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE:
+	case runnerv2.CommandMode_COMMAND_MODE_INLINE:
 		if isShell(cfg) {
 			collector, err := f.getEnvCollector()
 			if err != nil {
@@ -128,7 +128,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 			logger:          f.getLogger("InlineCommand"),
 		}, nil
 
-	case runnerv2alpha1.CommandMode_COMMAND_MODE_CLI:
+	case runnerv2.CommandMode_COMMAND_MODE_CLI:
 		base := f.buildBase(cfg, opts)
 
 		// In order to support interactive commands like runme-in-runme,
@@ -156,7 +156,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 			logger:          f.getLogger("InlineCommand"),
 		}, nil
 
-	case runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL:
+	case runnerv2.CommandMode_COMMAND_MODE_TERMINAL:
 		collector, err := f.getEnvCollector()
 		if err != nil {
 			return nil, err
@@ -174,7 +174,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 			session:         opts.Session,
 			stdinWriter:     opts.StdinWriter,
 		}, nil
-	case runnerv2alpha1.CommandMode_COMMAND_MODE_FILE:
+	case runnerv2.CommandMode_COMMAND_MODE_FILE:
 		fallthrough
 	default:
 		return &fileCommand{

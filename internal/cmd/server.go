@@ -21,7 +21,7 @@ import (
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 )
 
@@ -119,7 +119,7 @@ The kernel is used to run long running processes like shells and interacting wit
 				if err != nil {
 					return err
 				}
-				runnerv2alpha1.RegisterRunnerServiceServer(server, runnerServicev2)
+				runnerv2.RegisterRunnerServiceServer(server, runnerServicev2)
 			}
 
 			healthcheck := health.NewServer()

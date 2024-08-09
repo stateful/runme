@@ -11,10 +11,10 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/stateful/runme/v3/internal/ulid"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
-func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) error {
+func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error {
 	ctx := srv.Context()
 	id := ulid.GenerateID()
 	logger := r.logger.With(zap.String("id", id))
@@ -68,7 +68,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	if err := exec.Cmd.Start(ctx); err != nil {
 		return err
 	}
-	if err := srv.Send(&runnerv2alpha1.ExecuteResponse{
+	if err := srv.Send(&runnerv2.ExecuteResponse{
 		Pid: &wrapperspb.UInt32Value{Value: uint32(exec.Cmd.Pid())},
 	}); err != nil {
 		return err
@@ -77,7 +77,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 	// From the initial request, only the config is used to create a new execution.
 	// The rest of fields like InputData, Winsize, Stop are handled in this goroutine,
 	// and then the goroutine continues to read the next requests.
-	go func(initialReq *runnerv2alpha1.ExecuteRequest) {
+	go func(initialReq *runnerv2.ExecuteRequest) {
 		req := initialReq
 
 		for {
@@ -129,7 +129,7 @@ func (r *runnerService) Execute(srv runnerv2alpha1.RunnerService_ExecuteServer) 
 		finalExitCode = wrapperspb.UInt32(uint32(exitCode))
 	}
 
-	if err := srv.Send(&runnerv2alpha1.ExecuteResponse{
+	if err := srv.Send(&runnerv2.ExecuteResponse{
 		ExitCode: finalExitCode,
 	}); err != nil {
 		logger.Info("failed to send exit code", zap.Error(err))

@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	runmetls "github.com/stateful/runme/v3/internal/tls"
-	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 func envCmd(cflags *commonFlags) *cobra.Command {

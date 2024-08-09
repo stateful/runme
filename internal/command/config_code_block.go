@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document"
 )
 
@@ -26,15 +26,15 @@ func (b *configBuilder) Build() (*ProgramConfig, error) {
 	}
 
 	if isShell(cfg) {
-		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE
-		cfg.Source = &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+		cfg.Mode = runnerv2.CommandMode_COMMAND_MODE_INLINE
+		cfg.Source = &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{
 				Items: b.block.Lines(),
 			},
 		}
 	} else {
-		cfg.Mode = runnerv2alpha1.CommandMode_COMMAND_MODE_FILE
-		cfg.Source = &runnerv2alpha1.ProgramConfig_Script{
+		cfg.Mode = runnerv2.CommandMode_COMMAND_MODE_FILE
+		cfg.Source = &runnerv2.ProgramConfig_Script{
 			Script: strings.Join(b.block.Lines(), "\n"),
 		}
 	}

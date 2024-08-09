@@ -8,12 +8,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/stateful/runme/v3/internal/command"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
-func convertSessionToRunnerv2alpha1Session(sess *command.Session) *runnerv2alpha1.Session {
-	return &runnerv2alpha1.Session{
+func convertSessionToRunnerv2alpha1Session(sess *command.Session) *runnerv2.Session {
+	return &runnerv2.Session{
 		Id:  sess.ID,
 		Env: sess.GetAllEnv(),
 		// Metadata: sess.Metadata,
@@ -21,7 +21,7 @@ func convertSessionToRunnerv2alpha1Session(sess *command.Session) *runnerv2alpha
 }
 
 // TODO(adamb): this function should not return nil project and nil error at the same time.
-func convertProtoProjectToProject(runnerProj *runnerv2alpha1.Project) (*project.Project, error) {
+func convertProtoProjectToProject(runnerProj *runnerv2.Project) (*project.Project, error) {
 	if runnerProj == nil {
 		return nil, nil
 	}
@@ -35,7 +35,7 @@ func convertProtoProjectToProject(runnerProj *runnerv2alpha1.Project) (*project.
 	return project.NewDirProject(runnerProj.Root, opts...)
 }
 
-func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2alpha1.CreateSessionRequest) (*runnerv2alpha1.CreateSessionResponse, error) {
+func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2.CreateSessionRequest) (*runnerv2.CreateSessionResponse, error) {
 	r.logger.Info("running CreateSession in runnerService")
 
 	sess := command.NewSession()
@@ -48,12 +48,12 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2alpha1.C
 
 	r.logger.Debug("created session", zap.String("id", sess.ID))
 
-	return &runnerv2alpha1.CreateSessionResponse{
+	return &runnerv2.CreateSessionResponse{
 		Session: convertSessionToRunnerv2alpha1Session(sess),
 	}, nil
 }
 
-func (r *runnerService) GetSession(_ context.Context, req *runnerv2alpha1.GetSessionRequest) (*runnerv2alpha1.GetSessionResponse, error) {
+func (r *runnerService) GetSession(_ context.Context, req *runnerv2.GetSessionRequest) (*runnerv2.GetSessionResponse, error) {
 	r.logger.Info("running GetSession in runnerService")
 
 	sess, ok := r.sessions.Get(req.Id)
@@ -61,25 +61,25 @@ func (r *runnerService) GetSession(_ context.Context, req *runnerv2alpha1.GetSes
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
 
-	return &runnerv2alpha1.GetSessionResponse{
+	return &runnerv2.GetSessionResponse{
 		Session: convertSessionToRunnerv2alpha1Session(sess),
 	}, nil
 }
 
-func (r *runnerService) ListSessions(_ context.Context, req *runnerv2alpha1.ListSessionsRequest) (*runnerv2alpha1.ListSessionsResponse, error) {
+func (r *runnerService) ListSessions(_ context.Context, req *runnerv2.ListSessionsRequest) (*runnerv2.ListSessionsResponse, error) {
 	r.logger.Info("running ListSessions in runnerService")
 
 	sessions := r.sessions.List()
 
-	runnerSessions := make([]*runnerv2alpha1.Session, 0, len(sessions))
+	runnerSessions := make([]*runnerv2.Session, 0, len(sessions))
 	for _, s := range sessions {
 		runnerSessions = append(runnerSessions, convertSessionToRunnerv2alpha1Session(s))
 	}
 
-	return &runnerv2alpha1.ListSessionsResponse{Sessions: runnerSessions}, nil
+	return &runnerv2.ListSessionsResponse{Sessions: runnerSessions}, nil
 }
 
-func (r *runnerService) UpdateSession(_ context.Context, req *runnerv2alpha1.UpdateSessionRequest) (*runnerv2alpha1.UpdateSessionResponse, error) {
+func (r *runnerService) UpdateSession(_ context.Context, req *runnerv2.UpdateSessionRequest) (*runnerv2.UpdateSessionResponse, error) {
 	r.logger.Info("running UpdateSession in runnerService")
 
 	sess, ok := r.sessions.Get(req.Id)
@@ -91,10 +91,10 @@ func (r *runnerService) UpdateSession(_ context.Context, req *runnerv2alpha1.Upd
 		return nil, err
 	}
 
-	return &runnerv2alpha1.UpdateSessionResponse{Session: convertSessionToRunnerv2alpha1Session(sess)}, nil
+	return &runnerv2.UpdateSessionResponse{Session: convertSessionToRunnerv2alpha1Session(sess)}, nil
 }
 
-func (r *runnerService) DeleteSession(_ context.Context, req *runnerv2alpha1.DeleteSessionRequest) (*runnerv2alpha1.DeleteSessionResponse, error) {
+func (r *runnerService) DeleteSession(_ context.Context, req *runnerv2.DeleteSessionRequest) (*runnerv2.DeleteSessionResponse, error) {
 	r.logger.Info("running DeleteSession in runnerService")
 
 	deleted := r.sessions.Delete(req.Id)
@@ -103,12 +103,12 @@ func (r *runnerService) DeleteSession(_ context.Context, req *runnerv2alpha1.Del
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
 
-	return &runnerv2alpha1.DeleteSessionResponse{}, nil
+	return &runnerv2.DeleteSessionResponse{}, nil
 }
 
 type updateRequest interface {
 	GetEnv() []string
-	GetProject() *runnerv2alpha1.Project
+	GetProject() *runnerv2.Project
 }
 
 func (r *runnerService) updateSession(sess *command.Session, req updateRequest) error {

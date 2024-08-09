@@ -15,7 +15,7 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/rbuffer"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
@@ -116,14 +116,14 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 		errc <- readSendLoop(
 			e.stdout,
 			sender,
-			func(b []byte) *runnerv2alpha1.ExecuteResponse {
+			func(b []byte) *runnerv2.ExecuteResponse {
 				if len(b) == 0 {
 					return nil
 				}
 
 				_, _ = lastStdout.Write(b)
 
-				resp := &runnerv2alpha1.ExecuteResponse{StdoutData: b}
+				resp := &runnerv2.ExecuteResponse{StdoutData: b}
 
 				if !firstStdoutSent {
 					if detected := mimetype.Detect(b); detected != nil {
@@ -144,11 +144,11 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 		errc <- readSendLoop(
 			e.stderr,
 			sender,
-			func(b []byte) *runnerv2alpha1.ExecuteResponse {
+			func(b []byte) *runnerv2.ExecuteResponse {
 				if len(b) == 0 {
 					return nil
 				}
-				resp := &runnerv2alpha1.ExecuteResponse{StderrData: b}
+				resp := &runnerv2.ExecuteResponse{StderrData: b}
 				e.logger.Debug("sending stderr data", zap.Any("resp", resp))
 				return resp
 			},
@@ -217,7 +217,7 @@ func (e *execution) Write(p []byte) (int, error) {
 	return n, errors.WithStack(err)
 }
 
-func (e *execution) SetWinsize(size *runnerv2alpha1.Winsize) error {
+func (e *execution) SetWinsize(size *runnerv2.Winsize) error {
 	if size == nil {
 		return nil
 	}
@@ -233,13 +233,13 @@ func (e *execution) SetWinsize(size *runnerv2alpha1.Winsize) error {
 	)
 }
 
-func (e *execution) Stop(stop runnerv2alpha1.ExecuteStop) (err error) {
+func (e *execution) Stop(stop runnerv2.ExecuteStop) (err error) {
 	switch stop {
-	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_UNSPECIFIED:
+	case runnerv2.ExecuteStop_EXECUTE_STOP_UNSPECIFIED:
 		// continue
-	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_INTERRUPT:
+	case runnerv2.ExecuteStop_EXECUTE_STOP_INTERRUPT:
 		err = e.Cmd.Signal(os.Interrupt)
-	case runnerv2alpha1.ExecuteStop_EXECUTE_STOP_KILL:
+	case runnerv2.ExecuteStop_EXECUTE_STOP_KILL:
 		err = e.Cmd.Signal(os.Kill)
 	default:
 		err = errors.New("unknown stop signal")
@@ -282,10 +282,10 @@ func conformsOpinionatedEnvVarNaming(knownName string) bool {
 }
 
 type sender interface {
-	Send(*runnerv2alpha1.ExecuteResponse) error
+	Send(*runnerv2.ExecuteResponse) error
 }
 
-func readSendLoop(reader io.Reader, sender sender, fn func([]byte) *runnerv2alpha1.ExecuteResponse) error {
+func readSendLoop(reader io.Reader, sender sender, fn func([]byte) *runnerv2.ExecuteResponse) error {
 	limitedReader := io.LimitReader(reader, msgBufferSize)
 
 	for {
