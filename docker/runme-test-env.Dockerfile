@@ -17,35 +17,24 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
-ENV HOME=/home/runme
-ENV WORKSPACE=/home/runme/workspace
-ENV TMPDIR=$HOME/tmp
-
-RUN adduser --system --group runme
-RUN mkdir -p $WORKSPACE
-RUN mkdir -p $TMPDIR
-RUN chown -R runme:runme $HOME
-
 # Install deno
 ENV DENO_INSTALL=$HOME/.deno
-RUN curl -fsSL https://deno.land/install.sh | sh
-
-USER runme
+RUN curl -fsSL https://deno.land/install.sh | sh \
+    && cp $DENO_INSTALL/bin/deno /usr/local/bin/deno
 
 # Configure workspace
-WORKDIR $WORKSPACE
+WORKDIR /workspace
 
 # Handle permissions when mounting a host directory to /workspace
-RUN git config --global --add safe.directory $WORKSPACE
+RUN git config --global --add safe.directory /workspace
 
 # Populate Go cache. We do it in an old way
 # because --mount is not supported in CMD.
-COPY go.sum go.mod $WORKSPACE/
+COPY go.sum go.mod /workspace/
 RUN go mod download -x
 
 # Set output for the runmbe binary
-ENV BUILD_OUTPUT=$HOME/bin/runme
-ENV PATH=$HOME/.deno/bin:$HOME/bin:$PATH
+ENV BUILD_OUTPUT=/usr/local/bin/runme
 # Enable testing with race detector
 ENV RACE=false
 

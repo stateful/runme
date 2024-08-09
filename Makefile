@@ -69,7 +69,7 @@ test-docker/cleanup:
 .PHONY: test-docker/run
 test-docker/run:
 	docker run --rm \
-		-v $(shell pwd):/home/runme/workspace \
+		-v $(shell pwd):/workspace \
 		-v dev.runme.test-env-gocache:/root/.cache/go-build \
 		runme-test-env:latest
 
