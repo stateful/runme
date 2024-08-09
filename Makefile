@@ -59,9 +59,6 @@ test-docker: test-docker/setup test-docker/run
 test-docker/setup:
 	docker build \
 		-t runme-test-env:latest \
-		--no-cache \
-		--build-arg DOCKER_UID=$(shell id -u) \
-		--build-arg DOCKER_GID=$(shell id -g) \
 		-f ./docker/runme-test-env.Dockerfile .
 	docker volume create dev.runme.test-env-gocache
 
@@ -72,8 +69,8 @@ test-docker/cleanup:
 .PHONY: test-docker/run
 test-docker/run:
 	docker run --rm \
-		-v $(shell pwd):/home/runme/workspace \
-		-v dev.runme.test-env-gocache:/home/runme/.cache/go-build \
+		-v $(shell pwd):/workspace \
+		-v dev.runme.test-env-gocache:/root/.cache/go-build \
 		runme-test-env:latest
 
 .PHONY: test/update-snapshots
