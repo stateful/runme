@@ -33,6 +33,13 @@ func TestRunme(t *testing.T) {
 	})
 }
 
+func TestRunmeFilePermissions(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir:             "testdata/permissions",
+		ContinueOnError: true,
+	})
+}
+
 func TestRunmeFlags(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/flags",
