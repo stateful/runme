@@ -365,21 +365,22 @@ func (p *Project) loadFromDirectory(
 	p.send(ctx, eventc, LoadEvent{Type: LoadEventStartedWalk})
 
 	err := util.Walk(p.fs, ".", func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			if errors.Is(err, os.ErrPermission) {
-				p.logger.Warn("permission denied", zap.String("path", path), zap.Error(err))
-				if info.IsDir() {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			return err
-		}
-
 		ignored := ignoreMatcher.Match(
 			strings.Split(path, string(filepath.Separator)),
 			info.IsDir(),
 		)
+
+		switch err.(type) {
+		case nil:
+		case *os.PathError:
+			if !ignored {
+				p.logger.Warn("path error", zap.String("path", path), zap.Error(err))
+			}
+			ignored = true
+		default:
+			return err
+		}
+
 		if !ignored {
 			absPath := p.fs.Join(p.fs.Root(), path)
 
@@ -461,12 +462,12 @@ func (p *Project) extractTasksFromFile(
 		Data: LoadEventFinishedParsingDocumentData{Path: path},
 	})
 
-	if err != nil {
-		if errors.Is(err, os.ErrPermission) {
-			p.logger.Warn("permission denied", zap.String("path", path), zap.Error(err))
-			return
-		}
-
+	switch err.(type) {
+	case nil:
+	case *os.PathError:
+		p.logger.Warn("path error", zap.String("path", path), zap.Error(err))
+		return
+	default:
 		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventError,
 			Data: LoadEventErrorData{Err: err},
