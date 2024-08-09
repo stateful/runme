@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"os"
 	"os/exec"
@@ -16,42 +15,6 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 	"github.com/stretchr/testify/require"
 )
-
-func isDocker() bool {
-	if _, err := os.Stat("/.dockerenv"); err == nil {
-		return true
-	}
-
-	paths := []string{"/proc/1/cgroup", "/proc/self/cgroup"}
-	for _, path := range paths {
-		file, err := os.Open(path)
-		if err != nil {
-			continue
-		}
-
-		scanner := bufio.NewScanner(file)
-		isDocker := false
-		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "docker") || strings.Contains(scanner.Text(), "kubepods") {
-				isDocker = true
-				break
-			}
-		}
-
-		if err := scanner.Err(); err != nil {
-			_ = file.Close()
-			return false
-		}
-
-		_ = file.Close()
-
-		if isDocker {
-			return true
-		}
-	}
-
-	return false
-}
 
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
@@ -71,10 +34,6 @@ func TestRunme(t *testing.T) {
 }
 
 func TestRunmeFilePermissions(t *testing.T) {
-	if isDocker() {
-		return
-	}
-
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/permissions",
 		ContinueOnError: true,
