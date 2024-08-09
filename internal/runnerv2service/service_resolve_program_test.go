@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 // todo(sebastian): port test cases from v1
@@ -20,23 +20,23 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 
 	testCases := []struct {
 		name    string
-		request *runnerv2alpha1.ResolveProgramRequest
+		request *runnerv2.ResolveProgramRequest
 	}{
 		{
 			name: "WithScript",
-			request: &runnerv2alpha1.ResolveProgramRequest{
+			request: &runnerv2.ResolveProgramRequest{
 				Env: []string{"TEST_RESOLVED=value"},
-				Source: &runnerv2alpha1.ResolveProgramRequest_Script{
+				Source: &runnerv2.ResolveProgramRequest_Script{
 					Script: "export TEST_RESOLVED=default\nexport TEST_UNRESOLVED",
 				},
 			},
 		},
 		{
 			name: "WithCommands",
-			request: &runnerv2alpha1.ResolveProgramRequest{
+			request: &runnerv2.ResolveProgramRequest{
 				Env: []string{"TEST_RESOLVED=value"},
-				Source: &runnerv2alpha1.ResolveProgramRequest_Commands{
-					Commands: &runnerv2alpha1.ResolveProgramCommandList{
+				Source: &runnerv2.ResolveProgramRequest_Commands{
+					Commands: &runnerv2.ResolveProgramCommandList{
 						Lines: []string{"export TEST_RESOLVED=default", "export TEST_UNRESOLVED"},
 					},
 				},
@@ -44,10 +44,10 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 		},
 		{
 			name: "WithAdditionalEnv",
-			request: &runnerv2alpha1.ResolveProgramRequest{
+			request: &runnerv2.ResolveProgramRequest{
 				Env: []string{"TEST_RESOLVED=value", "TEST_EXTRA=value"},
-				Source: &runnerv2alpha1.ResolveProgramRequest_Commands{
-					Commands: &runnerv2alpha1.ResolveProgramCommandList{
+				Source: &runnerv2.ResolveProgramRequest_Commands{
+					Commands: &runnerv2.ResolveProgramCommandList{
 						Lines: []string{"export TEST_RESOLVED=default", "export TEST_UNRESOLVED"},
 					},
 				},
@@ -60,23 +60,23 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 			resp, err := client.ResolveProgram(context.Background(), tc.request)
 			require.NoError(t, err)
 			require.Len(t, resp.Vars, 2)
-			require.Equal(t, resp.Commands, (*runnerv2alpha1.ResolveProgramCommandList)(nil))
+			require.Equal(t, resp.Commands, (*runnerv2.ResolveProgramCommandList)(nil))
 			require.Greater(t, len(resp.Script), 0)
 			require.EqualValues(
 				t,
-				&runnerv2alpha1.ResolveProgramResponse_VarResult{
+				&runnerv2.ResolveProgramResponse_VarResult{
 					Name:          "TEST_RESOLVED",
 					OriginalValue: "default",
 					ResolvedValue: "value",
-					Status:        runnerv2alpha1.ResolveProgramResponse_STATUS_RESOLVED,
+					Status:        runnerv2.ResolveProgramResponse_STATUS_RESOLVED,
 				},
 				resp.Vars[0],
 			)
 			require.EqualValues(
 				t,
-				&runnerv2alpha1.ResolveProgramResponse_VarResult{
+				&runnerv2.ResolveProgramResponse_VarResult{
 					Name:   "TEST_UNRESOLVED",
-					Status: runnerv2alpha1.ResolveProgramResponse_STATUS_UNSPECIFIED,
+					Status: runnerv2.ResolveProgramResponse_STATUS_UNSPECIFIED,
 				},
 				resp.Vars[1],
 			)
@@ -92,10 +92,10 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
-	request := &runnerv2alpha1.ResolveProgramRequest{
+	request := &runnerv2.ResolveProgramRequest{
 		Env: []string{"FILE_NAME=my-file.txt"},
-		Source: &runnerv2alpha1.ResolveProgramRequest_Commands{
-			Commands: &runnerv2alpha1.ResolveProgramCommandList{
+		Source: &runnerv2.ResolveProgramRequest_Commands{
+			Commands: &runnerv2.ResolveProgramCommandList{
 				Lines: []string{
 					"export FILE_NAME=default.txt",
 					"cat >\"$FILE_NAME\" <<EOF",
@@ -109,14 +109,14 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 	resp, err := client.ResolveProgram(context.Background(), request)
 	require.NoError(t, err)
 	require.Len(t, resp.Vars, 1)
-	require.Equal(t, resp.Commands, (*runnerv2alpha1.ResolveProgramCommandList)(nil))
+	require.Equal(t, resp.Commands, (*runnerv2.ResolveProgramCommandList)(nil))
 	require.Greater(t, len(resp.Script), 0)
 	require.True(
 		t,
 		proto.Equal(
-			&runnerv2alpha1.ResolveProgramResponse_VarResult{
+			&runnerv2.ResolveProgramResponse_VarResult{
 				Name:          "FILE_NAME",
-				Status:        runnerv2alpha1.ResolveProgramResponse_STATUS_RESOLVED,
+				Status:        runnerv2.ResolveProgramResponse_STATUS_RESOLVED,
 				OriginalValue: "default.txt",
 				ResolvedValue: "my-file.txt",
 			},

@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/stateful/runme/v3/internal/dockerexec"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 )
 
 func TestDockerCommand(t *testing.T) {
@@ -30,7 +29,7 @@ func TestDockerCommand(t *testing.T) {
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "test"},
 				Interactive: true,
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			CommandOptions{},
 		)
@@ -47,7 +46,7 @@ func TestDockerCommand(t *testing.T) {
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "test"},
 				Interactive: true,
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			CommandOptions{Stdout: stdout},
 		)
@@ -63,7 +62,7 @@ func TestDockerCommand(t *testing.T) {
 			&ProgramConfig{
 				ProgramName: "sleep",
 				Arguments:   []string{"1"},
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			CommandOptions{},
 		)
@@ -81,7 +80,7 @@ func TestDockerCommand(t *testing.T) {
 			&ProgramConfig{
 				ProgramName: "sh",
 				Arguments:   []string{"-c", "exit 11"},
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			CommandOptions{},
 		)

@@ -6,18 +6,18 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/stateful/runme/v3/internal/command"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 type runnerService struct {
-	runnerv2alpha1.UnimplementedRunnerServiceServer
+	runnerv2.UnimplementedRunnerServiceServer
 
 	cmdFactory command.Factory
 	sessions   *command.SessionList
 	logger     *zap.Logger
 }
 
-func NewRunnerService(factory command.Factory, logger *zap.Logger) (runnerv2alpha1.RunnerServiceServer, error) {
+func NewRunnerService(factory command.Factory, logger *zap.Logger) (runnerv2.RunnerServiceServer, error) {
 	sessions, err := command.NewSessionList()
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func NewRunnerService(factory command.Factory, logger *zap.Logger) (runnerv2alph
 
 type requestWithSession interface {
 	GetSessionId() string
-	GetSessionStrategy() runnerv2alpha1.SessionStrategy
+	GetSessionStrategy() runnerv2.SessionStrategy
 }
 
 func (r *runnerService) getSessionFromRequest(req requestWithSession) (*command.Session, bool, error) {
@@ -44,14 +44,14 @@ func (r *runnerService) getSessionFromRequest(req requestWithSession) (*command.
 	)
 
 	switch req.GetSessionStrategy() {
-	case runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
+	case runnerv2.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
 		if req.GetSessionId() != "" {
 			session, found = r.sessions.Get(req.GetSessionId())
 			if !found {
 				return nil, false, status.Errorf(codes.NotFound, "session %q not found", req.GetSessionId())
 			}
 		}
-	case runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
+	case runnerv2.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
 		session, found = r.sessions.Newest()
 	}
 
@@ -65,7 +65,7 @@ func (r *runnerService) getOrCreateSessionFromRequest(req requestWithSession) (_
 	)
 
 	switch req.GetSessionStrategy() {
-	case runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
+	case runnerv2.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
 		if req.GetSessionId() != "" {
 			session, found = r.sessions.Get(req.GetSessionId())
 			if !found {
@@ -74,7 +74,7 @@ func (r *runnerService) getOrCreateSessionFromRequest(req requestWithSession) (_
 		} else {
 			session = command.NewSession()
 		}
-	case runnerv2alpha1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
+	case runnerv2.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
 		session, found = r.sessions.Newest()
 		if !found {
 			session = command.NewSession()
