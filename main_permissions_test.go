@@ -49,6 +49,7 @@ func isDocker() bool {
 
 func TestRunmeFilePermissions(t *testing.T) {
 	if isDocker() {
+		t.Skip("Skipping test as it is running in a Docker container")
 		return
 	}
 

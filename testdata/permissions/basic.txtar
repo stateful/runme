@@ -18,10 +18,15 @@ $ echo "This is a secret command"
 
 -- README.md --
 
-```sh {"name":"command"}
-$ echo "Hello, runme!"
+```sh {"name":"command1"}
+$ echo "Hello, runme 1!"
+```
+
+```sh {"name":"command2"}
+$ echo "Hello, runme 2!"
 ```
 
 -- output.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
-command	README.md	echo "Hello, runme!"		Yes
+command1	README.md	echo "Hello, runme 1!"		Yes
+command2	README.md	echo "Hello, runme 2!"		Yes
