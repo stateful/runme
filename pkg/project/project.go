@@ -376,7 +376,7 @@ func (p *Project) loadFromDirectory(
 			if !ignored {
 				p.logger.Warn("path error", zap.String("path", path), zap.Error(err))
 			}
-			return err
+			ignored = true
 		default:
 			return err
 		}
@@ -403,10 +403,7 @@ func (p *Project) loadFromDirectory(
 
 		return nil
 	})
-
-	switch err.(type) {
-	case nil, *os.PathError:
-	default:
+	if err != nil {
 		p.send(ctx, eventc, LoadEvent{
 			Type: LoadEventError,
 			Data: LoadEventErrorData{Err: err},
