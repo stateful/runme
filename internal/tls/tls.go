@@ -169,13 +169,7 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	if _, err := os.Stat(filepath.Dir(certFile)); errors.Is(err, fs.ErrNotExist) {
-		if err := os.MkdirAll(filepath.Dir(certFile), tlsDirMode); err != nil {
-			return nil, errors.Wrap(err, "failed to create TLS directory")
-		}
-	}
-
-	if err := os.WriteFile(certFile, caPEM.Bytes(), tlsFileMode); err != nil {
+	if err := writeFileWithDir(certFile, caPEM.Bytes(), tlsFileMode); err != nil {
 		return nil, errors.Wrap(err, "failed to write CA")
 	}
 
@@ -187,7 +181,7 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	if err := os.WriteFile(keyFile, privKeyPEM.Bytes(), tlsFileMode); err != nil {
+	if err := writeFileWithDir(keyFile, privKeyPEM.Bytes(), tlsFileMode); err != nil {
 		return nil, errors.Wrap(err, "failed to write private key")
 	}
 
@@ -212,6 +206,17 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 	}
 
 	return tlsConfig, nil
+}
+
+func writeFileWithDir(nameWithPath string, data []byte, perm fs.FileMode) error {
+	if _, err := os.Stat(filepath.Dir(nameWithPath)); errors.Is(err, fs.ErrNotExist) {
+		if err := os.MkdirAll(filepath.Dir(nameWithPath), tlsDirMode); err != nil {
+			return errors.Wrap(err, "failed to create TLS directory")
+		}
+	}
+
+	err := os.WriteFile(nameWithPath, data, perm)
+	return errors.Wrap(err, "failed to write file")
 }
 
 func validateTLSConfig(config *tls.Config) (ttl time.Duration, _ error) {
