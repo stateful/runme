@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/bufbuild/protovalidate-go"
@@ -173,7 +174,7 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 }
 
 func setIfHasValue[T any](prop *T, val interface{ GetValue() T }) {
-	if val != nil {
+	if val != nil && !reflect.ValueOf(val).IsNil() {
 		*prop = val.GetValue()
 	}
 }
