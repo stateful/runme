@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gopkg.in/yaml.v3"
 
 	configv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/config/v1alpha1"
@@ -133,36 +132,34 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 	cfg := Defaults()
 	cfg.ProjectRoot = project.GetRoot()
 	cfg.ProjectFilename = project.GetFilename()
-	cfg.ProjectFindRepoUpward = unwrapBool(project.GetFindRepoUpward(), cfg.ProjectFindRepoUpward)
+	setIfHasValue(&cfg.ProjectFindRepoUpward, project.GetFindRepoUpward())
 	cfg.ProjectIgnorePaths = project.GetIgnorePaths()
-	cfg.ProjectDisableGitignore = unwrapBool(project.GetDisableGitignore(), cfg.ProjectDisableGitignore)
-	cfg.ProjectEnvUseSystemEnv = unwrapBool(project.GetEnv().GetUseSystemEnv(), cfg.ProjectEnvUseSystemEnv)
+	setIfHasValue(&cfg.ProjectDisableGitignore, project.GetDisableGitignore())
+	setIfHasValue(&cfg.ProjectEnvUseSystemEnv, project.GetEnv().GetUseSystemEnv())
 	cfg.ProjectEnvSources = project.GetEnv().GetSources()
 	cfg.ProjectFilters = filters
 
-	cfg.RuntimeDockerEnabled = unwrapBool(runtime.GetDocker().GetEnabled(), cfg.RuntimeDockerEnabled)
+	setIfHasValue(&cfg.RuntimeDockerEnabled, runtime.GetDocker().GetEnabled())
 	cfg.RuntimeDockerImage = runtime.GetDocker().GetImage()
 	cfg.RuntimeDockerBuildContext = runtime.GetDocker().GetBuild().GetContext()
 	cfg.RuntimeDockerBuildDockerfile = runtime.GetDocker().GetBuild().GetDockerfile()
 
 	cfg.ServerAddress = server.GetAddress()
-	cfg.ServerTLSEnabled = unwrapBool(server.GetTls().GetEnabled(), cfg.ServerTLSEnabled)
+	setIfHasValue(&cfg.ServerTLSEnabled, server.GetTls().GetEnabled())
 	cfg.ServerTLSCertFile = server.GetTls().GetCertFile()
 	cfg.ServerTLSKeyFile = server.GetTls().GetKeyFile()
 
-	cfg.LogEnabled = unwrapBool(log.GetEnabled(), cfg.LogEnabled)
+	setIfHasValue(&cfg.LogEnabled, log.GetEnabled())
 	cfg.LogPath = log.GetPath()
-	cfg.LogVerbose = unwrapBool(log.GetVerbose(), cfg.LogVerbose)
+	setIfHasValue(&cfg.LogVerbose, log.GetVerbose())
 
 	return &cfg, nil
 }
 
-func unwrapBool(wrappedVal *wrapperspb.BoolValue, defaultVal bool) bool {
-	if wrappedVal != nil {
-		return wrappedVal.Value
+func setIfHasValue[T any](prop *T, val interface{ GetValue() T }) {
+	if val != nil {
+		*prop = val.GetValue()
 	}
-
-	return defaultVal
 }
 
 func validateConfig(cfg *Config) error {
