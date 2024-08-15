@@ -148,3 +148,20 @@ log:
 		ServerTLSEnabled: true,
 	}
 )
+
+func TestCloneConfig(t *testing.T) {
+	original := defaults
+	clone := original.Clone()
+
+	opts := cmpopts.EquateEmpty()
+	require.True(
+		t,
+		cmp.Equal(&original, clone, opts),
+		"%s",
+		cmp.Diff(&original, clone, opts),
+	)
+	require.False(t, &original == clone)
+	require.False(t, &original.ProjectIgnorePaths == &clone.ProjectIgnorePaths)
+	require.False(t, &original.ProjectEnvSources == &clone.ProjectEnvSources)
+	require.False(t, &original.ProjectFilters == &clone.ProjectFilters)
+}

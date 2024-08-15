@@ -219,7 +219,7 @@ func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.
 			return nil, err
 		}
 	case config.ErrRootConfigNotFound:
-		cfg = &config.ConfigDefaults
+		cfg = config.Defaults()
 	default:
 		return nil, errors.WithMessage(err, "failed to load root configuration")
 	}

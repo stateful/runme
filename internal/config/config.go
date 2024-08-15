@@ -42,8 +42,24 @@ type Config struct {
 	LogVerbose bool
 }
 
-func Defaults() Config {
-	return ConfigDefaults
+func (c *Config) Clone() *Config {
+	clone := *c
+	clone.ProjectIgnorePaths = make([]string, len(c.ProjectIgnorePaths))
+	copy(clone.ProjectIgnorePaths, c.ProjectIgnorePaths)
+	clone.ProjectEnvSources = make([]string, len(c.ProjectEnvSources))
+	copy(clone.ProjectEnvSources, c.ProjectEnvSources)
+	clone.ProjectFilters = make([]*Filter, len(c.ProjectFilters))
+	for i, f := range c.ProjectFilters {
+		clone.ProjectFilters[i] = &Filter{
+			Type:      f.Type,
+			Condition: f.Condition,
+		}
+	}
+	return &clone
+}
+
+func Defaults() *Config {
+	return defaults.Clone()
 }
 
 func ParseYAML(data []byte) (*Config, error) {
@@ -153,7 +169,7 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 	cfg.LogPath = log.GetPath()
 	setIfHasValue(&cfg.LogVerbose, log.GetVerbose())
 
-	return &cfg, nil
+	return cfg, nil
 }
 
 func setIfHasValue[T any](prop *T, val interface{ GetValue() T }) {

@@ -1,6 +1,6 @@
 package config
 
-var ConfigDefaults Config
+var defaults Config
 
 func init() {
 	// todo(sebastian): use inline file for easier editing
@@ -73,5 +73,5 @@ log:
 		panic(err)
 	}
 
-	ConfigDefaults = *cfg
+	defaults = *cfg
 }
