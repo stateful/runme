@@ -194,9 +194,9 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 func (f *commandFactory) buildBase(cfg *ProgramConfig, opts CommandOptions) *base {
 	runtime := f.runtime
 
-	if runtime == nil && f.docker != nil {
+	if isNil(runtime) && f.docker != nil {
 		runtime = &dockerRuntime{Docker: f.docker}
-	} else if runtime == nil {
+	} else if isNil(runtime) {
 		runtime = &hostRuntime{useSystem: true}
 	}
 
