@@ -6,4 +6,4 @@ package command
 // including equal sign and NUL separators.
 //
 // This size is an artificial limit as Linux and macOS do not have a real limit.
-const MaxEnvironSizeInBytes = 128 * 1000 * 1000 // 128 MB
+var MaxEnvironSizeInBytes = 128 * 1000 * 1000 // 128 MB

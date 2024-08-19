@@ -4,8 +4,10 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -67,6 +69,48 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 		envCollectorUseFifo = false
 		testInlineShellCommandCollectEnv(t)
 	})
+}
+
+func TestInlineShellCommand_LimitEnvironSize(t *testing.T) {
+	t.Parallel()
+
+	prevMaxSize := MaxEnvironSizeInBytes
+	MaxEnvironSizeInBytes = 4096
+	defer func() { MaxEnvironSizeInBytes = prevMaxSize }()
+
+	cfg := &ProgramConfig{
+		ProgramName: "bash",
+		Source: &runnerv2alpha1.ProgramConfig_Commands{
+			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Items: []string{
+					"echo -n $" + StoreStdoutEnvName,
+				},
+			},
+		},
+		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_FILE,
+	}
+
+	factory := NewFactory(
+		WithLogger(zaptest.NewLogger(t)),
+		WithRuntime(&hostRuntime{}), // stub runtime and do not include environ
+	)
+
+	sess := NewSession()
+	err := sess.SetEnv(
+		StoreStdoutEnvName + "=" + strings.Repeat("a", MaxEnvironSizeInBytes),
+	)
+	require.NoError(t, err)
+
+	stdout := bytes.NewBuffer(nil)
+
+	command, err := factory.Build(cfg, CommandOptions{Session: sess, Stdout: stdout})
+	require.NoError(t, err)
+	err = command.Start(context.Background())
+	require.NoError(t, err)
+	err = command.Wait()
+	require.NoError(t, err)
+	expectedLen := MaxEnvironSizeInBytes - len(StoreStdoutEnvName) - 1 // subtract len("<KEY>=")
+	require.Equal(t, expectedLen, stdout.Len())
 }
 
 func testInlineShellCommandCollectEnv(t *testing.T) {

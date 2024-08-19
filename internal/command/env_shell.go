@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+const StoreStdoutEnvName = "__"
+
 func setOnShell(shell io.Writer, prePath, postPath string) error {
 	var err error
 

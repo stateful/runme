@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -260,6 +261,80 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	assert.EqualValues(t, 0, result.ExitCode)
 	assert.Equal(t, "test\n", string(result.Stdout))
 	assert.Contains(t, result.MimeType, "text/plain")
+}
+
+func TestRunnerServiceServerExecute_StoreLastStdoutExceedsLimit(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2alpha1.CreateSessionRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, sessionResp.Session)
+
+	stream1, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult1 := make(chan executeResult)
+	go getExecuteResult(stream1, execResult1)
+
+	maxSize := command.MaxEnvironSizeInBytes
+	command.MaxEnvironSizeInBytes = 4096
+	defer func() { command.MaxEnvironSizeInBytes = maxSize }()
+
+	req1 := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo -n \"" + strings.Repeat("a", command.MaxEnvironSizeInBytes) + "\"",
+					},
+				},
+			},
+		},
+		SessionId:        sessionResp.GetSession().GetId(),
+		StoreStdoutInEnv: true,
+	}
+
+	err = stream1.Send(req1)
+	assert.NoError(t, err)
+
+	result1 := <-execResult1
+	assert.NoError(t, result1.Err)
+	assert.EqualValues(t, 0, result1.ExitCode)
+
+	// subsequent req to check last stored value
+	stream2, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult2 := make(chan executeResult)
+	go getExecuteResult(stream2, execResult2)
+
+	req2 := &runnerv2alpha1.ExecuteRequest{
+		Config: &runnerv2alpha1.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2alpha1.ProgramConfig_Commands{
+				Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+					Items: []string{
+						"echo -n $__",
+					},
+				},
+			},
+		},
+		SessionId: sessionResp.GetSession().GetId(),
+	}
+
+	err = stream2.Send(req2)
+	assert.NoError(t, err)
+
+	result2 := <-execResult2
+	assert.NoError(t, result2.Err)
+	assert.EqualValues(t, 0, result2.ExitCode)
+	expected := string(result1.Stdout[len(result1.Stdout)-len(result2.Stdout):])
+	got := string(result2.Stdout)
+	assert.True(t, strings.Count(expected, "a") > 0)
+	assert.EqualValues(t, expected, got)
 }
 
 func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
