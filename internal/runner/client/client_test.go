@@ -134,7 +134,7 @@ func TestResolveProgramLocal(t *testing.T) {
 				},
 			},
 			ExpectedScript: `#
-# VARIABLE set in smart env store
+# VARIABLE set in managed env store
 # "export VARIABLE=Foo"
 
 `,
@@ -150,7 +150,7 @@ func TestResolveProgramLocal(t *testing.T) {
 				},
 			},
 			ExpectedScript: `#
-# VARIABLE set in smart env store
+# VARIABLE set in managed env store
 # "export VARIABLE=Foo"
 
 `,
@@ -166,7 +166,7 @@ func TestResolveProgramLocal(t *testing.T) {
 				},
 			},
 			ExpectedScript: `#
-# VARIABLE set in smart env store
+# VARIABLE set in managed env store
 # "export VARIABLE=Foo"
 
 `,

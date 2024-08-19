@@ -127,7 +127,7 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 		t,
 		[]string{
 			"#",
-			"# FILE_NAME set in smart env store",
+			"# FILE_NAME set in managed env store",
 			"# \"export FILE_NAME=default.txt\"",
 			"",
 			"cat >\"$FILE_NAME\" <<EOF",

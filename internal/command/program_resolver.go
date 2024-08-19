@@ -356,7 +356,7 @@ func (r *ProgramResolver) modifyStmt(stmt *syntax.Stmt, decl *syntax.DeclClause)
 
 	stmt.Comments = append(stmt.Comments,
 		syntax.Comment{Text: "\n"},
-		syntax.Comment{Text: fmt.Sprintf(" %s set in smart env store", decl.Args[0].Name.Value)},
+		syntax.Comment{Text: fmt.Sprintf(" %s set in managed env store", decl.Args[0].Name.Value)},
 		syntax.Comment{Text: fmt.Sprintf(" %q", exportStmt.String())},
 	)
 
