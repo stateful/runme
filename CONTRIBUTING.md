@@ -86,7 +86,7 @@ Following is some documentation on the different build targets `runme` has, and 
 
 #### CLI
 
-CLI is built with:
+Build the CLI:
 
 ```sh {"id":"01HF7BT3HEQBTBM9SSTFD1C6N4","interactive":"false","name":"build"}
 make build
