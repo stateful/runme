@@ -186,7 +186,7 @@ In order to generate a coverage report, run tests using
 make test-coverage
 ```
 
-And then:
+And then, for the html coverage report, run:
 
 ```sh {"id":"01HJVHEVPX2AZJ86999P1MY5H0"}
 make test/coverage/html
