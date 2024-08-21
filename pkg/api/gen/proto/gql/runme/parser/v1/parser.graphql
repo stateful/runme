@@ -8,7 +8,7 @@ directive @ParserService on FIELD_DEFINITION
 type BoolValue {
 	"""
 	 The bool value.
-
+	
 	"""
 	value: Boolean
 }
@@ -21,7 +21,7 @@ type BoolValue {
 input BoolValueInput {
 	"""
 	 The bool value.
-
+	
 	"""
 	value: Boolean
 }
@@ -156,7 +156,7 @@ input FrontmatterRunmeInput {
 type Int64Value {
 	"""
 	 The int64 value.
-
+	
 	"""
 	value: Int
 }
@@ -169,7 +169,7 @@ type Int64Value {
 input Int64ValueInput {
 	"""
 	 The int64 value.
-
+	
 	"""
 	value: Int
 }
@@ -209,7 +209,7 @@ type Query {
 enum RunmeIdentity {
 	"""
 	 aka NONE
-
+	
 	"""
 	RUNME_IDENTITY_UNSPECIFIED
 	RUNME_IDENTITY_ALL
@@ -262,7 +262,7 @@ input TextRangeInput {
 type UInt32Value {
 	"""
 	 The uint32 value.
-
+	
 	"""
 	value: Int
 }
@@ -275,7 +275,7 @@ type UInt32Value {
 input UInt32ValueInput {
 	"""
 	 The uint32 value.
-
+	
 	"""
 	value: Int
 }

@@ -17,25 +17,25 @@ enum CommandMode {
 input CreateSessionRequestInput {
 	"""
 	 metadata is a map of client specific metadata.
-
+	
 	"""
 	metadata: [CreateSessionRequest_MetadataEntryInput!]
 	"""
 	 env field provides an initial set of environment variables
 	 for a newly created session.
-
+	
 	"""
 	env: [String!]
 	"""
 	 project from which to load environment variables.
 	 They will be appended to the list from the env field.
 	 The env field has a higher priority.
-
+	
 	"""
 	project: ProjectInput
 	"""
 	 optional selection of which env store implementation to sue
-
+	
 	"""
 	envStoreType: SessionEnvStoreType
 }
@@ -54,73 +54,73 @@ input ExecuteRequestInput {
 	"""
 	 input_data is a byte array that will be send as input
 	 to the program.
-
+	
 	"""
 	inputData: Bytes
 	"""
 	 stop requests the running process to be stopped.
 	 It is allowed only in the consecutive calls.
-
+	
 	"""
 	stop: ExecuteStop
 	"""
 	 sets pty winsize
 	 has no effect in non-interactive mode
-
+	
 	"""
 	winsize: WinsizeInput
 	"""
 	 session_id indicates in which Session the program should execute.
 	 Executing in a Session might provide additional context like
 	 environment variables.
-
+	
 	"""
 	sessionId: String
 	"""
 	 session_strategy is a strategy for selecting the session.
-
+	
 	"""
 	sessionStrategy: SessionStrategy
 	"""
 	 project used to load environment variables from .env files.
-
+	
 	"""
 	project: ProjectInput
 	"""
 	 store_stdout_in_env, if true, will store the stdout under well known name
 	 and the last ran block in the environment variable `__`.
-
+	
 	"""
 	storeStdoutInEnv: Boolean
 }
 type ExecuteResponse {
 	"""
 	 exit_code is sent only in the final message.
-
+	
 	"""
 	exitCode: UInt32Value
 	"""
 	 stdout_data contains bytes from stdout since the last response.
-
+	
 	"""
 	stdoutData: Bytes
 	"""
 	 stderr_data contains bytes from stderr since the last response.
-
+	
 	"""
 	stderrData: Bytes
 	"""
 	 pid contains the process' PID.
-
+	
 	 This is only sent once in an initial response for background processes.
-
+	
 	"""
 	pid: UInt32Value
 	"""
 	 mime_type is a detected MIME type of the stdout_data.
-
+	
 	 This is only sent once in the first response containing stdout_data.
-
+	
 	"""
 	mimeType: String
 }
@@ -157,6 +157,7 @@ type MonitorEnvStoreResponseSnapshot_SnapshotEnv {
 	status: MonitorEnvStoreResponseSnapshot_Status
 	name: String
 	spec: String
+	isRequired: Boolean
 	origin: String
 	originalValue: String
 	resolvedValue: String
@@ -178,7 +179,7 @@ enum MonitorEnvStoreType {
 	"""
 	 possible expansion to have a "timeline" view
 	 MONITOR_ENV_STORE_TYPE_TIMELINE = 2;
-
+	
 	"""
 	MONITOR_ENV_STORE_TYPE_SNAPSHOT
 }
@@ -191,12 +192,12 @@ type Mutation {
 	"""
 	 Execute executes a program. Examine "ExecuteRequest" to explore
 	 configuration options.
-
+	
 	 It's a bidirectional stream RPC method. It expects the first
 	 "ExecuteRequest" to contain details of a program to execute.
 	 Subsequent "ExecuteRequest" should only contain "input_data" as
 	 other fields will be ignored.
-
+	
 	"""
 	runnerServiceExecute(in: ExecuteRequestInput): ExecuteResponse
 	"""
@@ -204,7 +205,7 @@ type Mutation {
 	 using the provided sources, which can be a list of environment variables,
 	 a session, or a project.
 	 For now, the resolved variables are only the exported ones using `export`.
-
+	
 	"""
 	runnerServiceResolveProgram(in: ResolveProgramRequestInput): ResolveProgramResponse
 }
@@ -219,75 +220,75 @@ input ProgramConfigInput {
 	 If it's not a path (relative or absolute), the runner
 	 will try to resolve the name.
 	 For example: "sh", "/bin/bash".
-
+	
 	"""
 	programName: String
 	"""
 	 arguments is a list of arguments passed to the program.
-
+	
 	"""
 	arguments: [String!]
 	"""
 	 directory to execute the program in.
-
+	
 	"""
 	directory: String
 	"""
 	 language_id associated with script to allow interpreter
 	 detection if no specific interpreter program is provided.
-
+	
 	"""
 	languageId: String
 	"""
 	 background indicates a background process
 	 required to handle running background tasks via CLI in C/I
-
+	
 	"""
 	background: Boolean
 	"""
 	 file_extension associated with script. Some interpreters are strict
 	 about file extensions, such as tsc which requires "ts" extension.
-
+	
 	"""
 	fileExtension: String
 	"""
 	 env is a list of additional environment variables
 	 that will be injected to the executed program.
-
+	
 	"""
 	env: [String!]
 	"""
 	 commands are commands to be executed by the program.
 	 The commands are joined and executed as a script.
-
+	
 	"""
 	commands: ProgramConfig_CommandListInput @ProgramConfigSource
 	"""
 	 script is code to be executed by the program.
 	 Individual lines are joined with the new line character.
-
+	
 	"""
 	script: String @ProgramConfigSource
 	"""
 	 interactive, if true, uses a pseudo-tty to execute the program.
 	 Otherwise, the program is executed using in-memory buffers for I/O.
-
+	
 	"""
 	interactive: Boolean
 	"""
 	 TODO(adamb): understand motivation for this. In theory, source
 	 should tell whether to execute it inline or as a file.
-
+	
 	"""
 	mode: CommandMode
 	"""
 	 optional well known id for cell/block
-
+	
 	"""
 	knownId: String
 	"""
 	 optional well known name for cell/block
-
+	
 	"""
 	knownName: String
 }
@@ -296,7 +297,7 @@ input ProgramConfig_CommandListInput {
 	 commands are commands to be executed by the program.
 	 The commands are joined and executed as a script.
 	 For example: ["echo 'Hello, World'", "ls -l /etc"].
-
+	
 	"""
 	items: [String!]
 }
@@ -305,13 +306,13 @@ input ProjectInput {
 	 root is a root directory of the project.
 	 The semantic is the same as for the "--project"
 	 flag in "runme".
-
+	
 	"""
 	root: String
 	"""
 	 env_load_order is list of environment files
 	 to try and load env from.
-
+	
 	"""
 	envLoadOrder: [String!]
 }
@@ -323,7 +324,7 @@ type ResolveProgramCommandList {
 	 commands are commands to be executed by the program.
 	 The commands are joined and executed as a script.
 	 For example: ["echo 'Hello, World'", "ls -l /etc"].
-
+	
 	"""
 	lines: [String!]
 }
@@ -332,7 +333,7 @@ input ResolveProgramCommandListInput {
 	 commands are commands to be executed by the program.
 	 The commands are joined and executed as a script.
 	 For example: ["echo 'Hello, World'", "ls -l /etc"].
-
+	
 	"""
 	lines: [String!]
 }
@@ -340,42 +341,42 @@ input ResolveProgramRequestInput {
 	"""
 	 commands are commands to be executed by the program.
 	 The commands are joined and executed as a script.
-
+	
 	"""
 	commands: ResolveProgramCommandListInput @ResolveProgramRequestSource
 	"""
 	 script is code to be executed by the program.
 	 Individual lines are joined with the new line character.
-
+	
 	"""
 	script: String @ResolveProgramRequestSource
 	"""
 	 mode determines how variables resolution occurs.
 	 It is usually based on document or cell annotation config.
-
+	
 	"""
 	mode: ResolveProgramRequest_Mode
 	"""
 	 env is a list of explicit environment variables that will be used
 	 to resolve the environment variables found in the source.
-
+	
 	"""
 	env: [String!]
 	"""
 	 session_id indicates which session is the source of
 	 environment variables. If not provided, the most recent
 	 session can be used using session_strategy.
-
+	
 	"""
 	sessionId: String
 	"""
 	 session_strategy is a strategy for selecting the session.
-
+	
 	"""
 	sessionStrategy: SessionStrategy
 	"""
 	 project used to load environment variables from .env files.
-
+	
 	"""
 	project: ProjectInput
 }
@@ -384,18 +385,18 @@ enum ResolveProgramRequest_Mode {
 	 unspecified is auto (default) which prompts for all
 	 unresolved environment variables.
 	 Subsequent runs will likely resolve via the session.
-
+	
 	"""
 	MODE_UNSPECIFIED
 	"""
 	 prompt always means to prompt for all environment variables.
-
+	
 	"""
 	MODE_PROMPT_ALL
 	"""
 	 skip means to not prompt for any environment variables.
 	 All variables will be marked as resolved.
-
+	
 	"""
 	MODE_SKIP_ALL
 }
@@ -403,7 +404,7 @@ type ResolveProgramResponse {
 	script: String
 	"""
 	 use script until commands normalization is implemented
-
+	
 	"""
 	commands: ResolveProgramCommandList
 	vars: [ResolveProgramResponse_VarResult!]
@@ -411,42 +412,42 @@ type ResolveProgramResponse {
 enum ResolveProgramResponse_Status {
 	"""
 	 unspecified is the default value and it means unresolved.
-
+	
 	"""
 	STATUS_UNSPECIFIED
 	"""
 	 resolved means that the variable is resolved.
-
+	
 	"""
 	STATUS_RESOLVED
 	"""
 	 unresolved with message means that the variable is unresolved
 	 but it contains a message. E.g. FOO=this is message.
-
+	
 	"""
 	STATUS_UNRESOLVED_WITH_MESSAGE
 	"""
 	 unresolved with placeholder means that the variable is unresolved
 	 but it contains a placeholder. E.g. FOO="this is placeholder".
-
+	
 	"""
 	STATUS_UNRESOLVED_WITH_PLACEHOLDER
 	"""
 	 unresolved with secret means that the variable is unresolved
 	 and it requires treatment as a secret.
-
+	
 	"""
 	STATUS_UNRESOLVED_WITH_SECRET
 }
 type ResolveProgramResponse_VarResult {
 	"""
 	 prompt indicates the resolution status of the env variable.
-
+	
 	"""
 	status: ResolveProgramResponse_Status
 	"""
 	 name is the name of the environment variable.
-
+	
 	"""
 	name: String
 	"""
@@ -454,13 +455,13 @@ type ResolveProgramResponse_VarResult {
 	 It might be a value that is assigned to the variable in the script,
 	 like FOO=bar or FOO=${FOO:-bar}.
 	 If the variable is not assigned, it is an empty string.
-
+	
 	"""
 	originalValue: String
 	"""
 	 resolved_value is a value of the environment variable resolved from a source.
 	 If it is an empty string, it means that the environment variable is not resolved.
-
+	
 	"""
 	resolvedValue: String
 }
@@ -470,12 +471,12 @@ type Session {
 	 env keeps track of session environment variables.
 	 They can be modified by executing programs which
 	 alter them through "export" and "unset" commands.
-
+	
 	"""
 	env: [String!]
 	"""
 	 metadata is a map of client specific metadata.
-
+	
 	"""
 	metadata: [Session_MetadataEntry!]
 }
@@ -486,12 +487,12 @@ type Session {
 enum SessionEnvStoreType {
 	"""
 	 uses default env store
-
+	
 	"""
 	SESSION_ENV_STORE_TYPE_UNSPECIFIED
 	"""
 	 uses owl store
-
+	
 	"""
 	SESSION_ENV_STORE_TYPE_OWL
 }
@@ -501,12 +502,12 @@ input SessionInput {
 	 env keeps track of session environment variables.
 	 They can be modified by executing programs which
 	 alter them through "export" and "unset" commands.
-
+	
 	"""
 	env: [String!]
 	"""
 	 metadata is a map of client specific metadata.
-
+	
 	"""
 	metadata: [Session_MetadataEntryInput!]
 }
@@ -519,13 +520,13 @@ enum SessionStrategy {
 	"""
 	 Uses the session_id field to determine the session.
 	 If none is present, a new session is created.
-
+	
 	"""
 	SESSION_STRATEGY_UNSPECIFIED
 	"""
 	 Uses the most recent session on the server.
 	 If there is none, a new one is created.
-
+	
 	"""
 	SESSION_STRATEGY_MOST_RECENT
 }
@@ -542,12 +543,12 @@ type Subscription {
 	"""
 	 Execute executes a program. Examine "ExecuteRequest" to explore
 	 configuration options.
-
+	
 	 It's a bidirectional stream RPC method. It expects the first
 	 "ExecuteRequest" to contain details of a program to execute.
 	 Subsequent "ExecuteRequest" should only contain "input_data" as
 	 other fields will be ignored.
-
+	
 	"""
 	runnerServiceExecute(in: ExecuteRequestInput): ExecuteResponse
 }
@@ -560,7 +561,7 @@ type Subscription {
 type UInt32Value {
 	"""
 	 The uint32 value.
-
+	
 	"""
 	value: Int
 }
@@ -568,20 +569,20 @@ input UpdateSessionRequestInput {
 	id: String
 	"""
 	 metadata is a map of client specific metadata.
-
+	
 	"""
 	metadata: [UpdateSessionRequest_MetadataEntryInput!]
 	"""
 	 env field provides an initial set of environment variables
 	 for a newly created session.
-
+	
 	"""
 	env: [String!]
 	"""
 	 project from which to load environment variables.
 	 They will be appended to the list from the env field.
 	 The env field has a higher priority.
-
+	
 	"""
 	project: ProjectInput
 }

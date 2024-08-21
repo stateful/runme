@@ -1,8 +1,4 @@
-"""
- The AIService service is used to provide assistant capabilities to Runme.
-
-"""
-directive @AIService on FIELD_DEFINITION
+directive @ReporterService on FIELD_DEFINITION
 """
  Wrapper message for `bool`.
 
@@ -115,6 +111,14 @@ input ExecutionSummaryTimingInput {
 	startTime: Int64ValueInput
 	endTime: Int64ValueInput
 }
+type Frontmatter {
+	shell: String
+	cwd: String
+	skipPrompts: Boolean
+	runme: FrontmatterRunme
+	category: String
+	terminalRows: String
+}
 input FrontmatterInput {
 	shell: String
 	cwd: String
@@ -123,16 +127,15 @@ input FrontmatterInput {
 	category: String
 	terminalRows: String
 }
+type FrontmatterRunme {
+	id: String
+	version: String
+	session: RunmeSession
+}
 input FrontmatterRunmeInput {
 	id: String
 	version: String
 	session: RunmeSessionInput
-}
-input GenerateCellsRequestInput {
-	notebook: NotebookInput
-}
-type GenerateCellsResponse {
-	cells: [Cell!]
 }
 """
  Wrapper message for `int64`.
@@ -161,16 +164,21 @@ input Int64ValueInput {
 	value: Int
 }
 type Mutation {
-	"""
-	 GenerateCells uses the AI to generate cells to insert into the notebook.
-	
-	"""
-	aIServiceGenerateCells(in: GenerateCellsRequestInput): GenerateCellsResponse
+	reporterServiceTransform(in: TransformRequestInput): TransformResponse
+}
+type Notebook {
+	cells: [Cell!]
+	metadata: [Notebook_MetadataEntry!]
+	frontmatter: Frontmatter
 }
 input NotebookInput {
 	cells: [CellInput!]
 	metadata: [Notebook_MetadataEntryInput!]
 	frontmatter: FrontmatterInput
+}
+type Notebook_MetadataEntry {
+	key: String
+	value: String
 }
 input Notebook_MetadataEntryInput {
 	key: String
@@ -187,6 +195,46 @@ input ProcessInfoExitReasonInput {
 type Query {
 	dummy: Boolean
 }
+type ReporterDevice {
+	macAddress: String
+	hostname: String
+	platform: String
+	release: String
+	arch: String
+	vendor: String
+	shell: String
+	vsAppHost: String
+	vsAppName: String
+	vsAppSessionId: String
+	vsMachineId: String
+}
+type ReporterExtension {
+	autoSave: Boolean
+	git: ReporterGit
+	file: ReporterFile
+	session: ReporterSession
+	device: ReporterDevice
+}
+type ReporterFile {
+	path: String
+	content: Bytes
+}
+type ReporterGit {
+	repository: String
+	branch: String
+	commit: String
+}
+type ReporterSession {
+	plainOutput: Bytes
+	maskedOutput: Bytes
+}
+type RunmeSession {
+	id: String
+	document: RunmeSessionDocument
+}
+type RunmeSessionDocument {
+	relativePath: String
+}
 input RunmeSessionDocumentInput {
 	relativePath: String
 }
@@ -201,6 +249,32 @@ type TextRange {
 input TextRangeInput {
 	start: Int
 	end: Int
+}
+input TransformRequestInput {
+	notebook: NotebookInput
+	autoSave: Boolean
+	repository: String
+	branch: String
+	commit: String
+	filePath: String
+	fileContent: Bytes
+	plainOutput: Bytes
+	maskedOutput: Bytes
+	macAddress: String
+	hostname: String
+	platform: String
+	release: String
+	arch: String
+	vendor: String
+	shell: String
+	vsAppHost: String
+	vsAppName: String
+	vsAppSessionId: String
+	vsMachineId: String
+}
+type TransformResponse {
+	notebook: Notebook
+	extension: ReporterExtension
 }
 """
  Wrapper message for `uint32`.
