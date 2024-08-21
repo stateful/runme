@@ -339,8 +339,12 @@ func (m tuiModel) View() string {
 				intro = strings.Join(words[:max], " ") + "..."
 			}
 
+			if len(intro) > 0 {
+				intro = ": " + intro
+			}
+
 			identifier := fmt.Sprintf(
-				"%s %s: %s",
+				"%s %s%s",
 				name,
 				filename,
 				intro,
