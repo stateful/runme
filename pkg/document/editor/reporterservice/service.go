@@ -1,4 +1,4 @@
-package reporterService
+package reporterservice
 
 import (
 	"context"
@@ -20,7 +20,6 @@ func NewReporterServiceServer(logger *zap.Logger) reporterv1.ReporterServiceServ
 }
 
 func (s *reporterServiceServer) Transform(ctx context.Context, req *reporterv1.TransformRequest) (*reporterv1.TransformResponse, error) {
-	// chequear mimeypet, id, sessionid, path
 
 	var notebook = &parserv1.Notebook{
 		Metadata:    req.Notebook.Metadata,
