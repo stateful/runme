@@ -12,7 +12,7 @@ directive @AIService on FIELD_DEFINITION
 type BoolValue {
 	"""
 	 The bool value.
-	
+
 	"""
 	value: Boolean
 }
@@ -25,7 +25,7 @@ type BoolValue {
 input BoolValueInput {
 	"""
 	 The bool value.
-	
+
 	"""
 	value: Boolean
 }
@@ -143,7 +143,7 @@ type GenerateCellsResponse {
 type Int64Value {
 	"""
 	 The int64 value.
-	
+
 	"""
 	value: Int
 }
@@ -156,14 +156,14 @@ type Int64Value {
 input Int64ValueInput {
 	"""
 	 The int64 value.
-	
+
 	"""
 	value: Int
 }
 type Mutation {
 	"""
 	 GenerateCells uses the AI to generate cells to insert into the notebook.
-	
+
 	"""
 	aIServiceGenerateCells(in: GenerateCellsRequestInput): GenerateCellsResponse
 }
@@ -211,7 +211,7 @@ input TextRangeInput {
 type UInt32Value {
 	"""
 	 The uint32 value.
-	
+
 	"""
 	value: Int
 }
@@ -224,7 +224,7 @@ type UInt32Value {
 input UInt32ValueInput {
 	"""
 	 The uint32 value.
-	
+
 	"""
 	value: Int
 }

@@ -3,24 +3,24 @@ directive @ProjectService on FIELD_DEFINITION
 input DirectoryProjectOptionsInput {
 	"""
 	 Path to a directory containing the project.
-	
+
 	"""
 	path: String
 	"""
 	 If true, .gitignore file is ignored, as well as .git/info/exclude.
-	
+
 	"""
 	skipGitignore: Boolean
 	"""
 	 A list of file patterns, compatible with .gitignore syntax,
 	 to ignore.
-	
+
 	"""
 	ignoreFilePatterns: [String!]
 	"""
 	 If true, it disables lookuping up for .git folder
 	 in the parent directories.
-	
+
 	"""
 	skipRepoLookupUpward: Boolean
 }
@@ -99,7 +99,7 @@ type Query {
 enum RunmeIdentity {
 	"""
 	 aka NONE
-	
+
 	"""
 	RUNME_IDENTITY_UNSPECIFIED
 	RUNME_IDENTITY_ALL
@@ -110,7 +110,7 @@ type Subscription {
 	"""
 	 Load creates a new project, walks it, and streams events
 	 about found directories, files, and code blocks.
-	
+
 	"""
 	projectServiceLoad(in: LoadRequestInput): LoadResponse
 }
