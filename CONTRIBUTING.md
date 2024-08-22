@@ -198,14 +198,6 @@ Output coverage profile information for each function:
 make test/coverage/func
 ```
 
-## CI/CD
-
-```sh {"id":"01J5XTG2WKVR4WG7B2FNPF6VZT","name":"ci-test","promptEnv":"no"}
-export SHELL="/bin/bash"
-export TZ="UTC"
-TAGS="test_with_docker" make test/coverage
-make test/coverage/func
-```
 
 ## Generated Files
 
