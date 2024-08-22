@@ -64,12 +64,10 @@ jobs:
           go build -o runme main.go
           ./runme --version
       - name: Test
-        uses: stateful/runme-action@v1
+        uses: stateful/runme-action@v2
         with:
           serverAddress: ${{ env.RUNME_SERVER_ADDR }}
-          run: |
-            runme --version
-            runme run ci-test
+          workflows: ci-test
         env:
           NO_COLOR: true
           FROM_CI: true
