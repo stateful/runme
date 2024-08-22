@@ -62,11 +62,14 @@ jobs:
           go build -o runme main.go
           ./runme --version
       - name: Test
-        run: |
-          export SHELL=/bin/bash
-          export TZ=UTC
-          TAGS="test_with_docker" make test/coverage
-          make test/coverage/func
+        uses: stateful/runme-action@v1
+        with:
+          serverAddress: ${{ vars.RUNME_ADDRESS }}
+          run: runme run ci-test
+        env:
+          NO_COLOR: true
+          FROM_CI: true
+          RUNME_SERVER_ADDR: ${{ vars.RUNME_ADDRESS }}
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Test
         run: |
