@@ -62,7 +62,7 @@ jobs:
           go build -o runme main.go
           ./runme --version
       - name: Test
-        uses: stateful/runme-action@v1
+        uses: stateful/runme-action@v2
         with:
           serverAddress: ${{ vars.RUNME_ADDRESS }}
           run: runme run ci-test
