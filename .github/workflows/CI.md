@@ -1,13 +1,14 @@
 ---
 cwd: ../..
 shell: bash
+skipPrompts: true
 ---
 
 ## CI/CD
 
 Run all tests with coverage reports.
 
-```sh {"id":"01J5XTG2WKVR4WG7B2FNPF6VZT","name":"ci-test","promptEnv":"no"}
+```sh {"id":"01J5XTG2WKVR4WG7B2FNPF6VZT","name":"ci-test"}
 export SHELL="/bin/bash"
 export TZ="UTC"
 TAGS="test_with_docker" make test/coverage

@@ -79,6 +79,7 @@ test/update-snapshots:
 
 .PHONY: test/robustness
 test/robustness:
+	./runme --version
 	find "$$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --project {} > /dev/null
 
 .PHONY: coverage/html

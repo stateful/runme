@@ -40,8 +40,6 @@ jobs:
         go: ["1.22"]
         os: [ubuntu-latest, windows-latest]
     name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
-    env:
-      RUNME_SERVER_ADDR: 0.0.0.0:7899
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,15 +57,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Build
-        run: |
-          go build -o runme main.go
-          ./runme --version
       - name: Test
         uses: stateful/runme-action@v2
         with:
-          serverAddress: ${{ env.RUNME_SERVER_ADDR }}
-          workflows: ci-test
+          workflows: |
+            build
+            ci-test
         env:
           NO_COLOR: true
           FROM_CI: true
@@ -116,12 +111,12 @@ jobs:
           go-version: ">=1.22"
       - name: Install dependencies
         run: make install/dev
-      - name: Build
-        run: |
-          go build -o runme main.go
-          ./runme --version
-      - name: Run robustness test
-        run: make test/robustness
+      - name: Build and test parser
+        uses: stateful/runme-action@v2
+        with:
+          workflows: |
+            build
+            ci-test-robustness
         timeout-minutes: 5
       - name: 🐛 Debug Build
         uses: stateful/vscode-server-action@v1.1.0
