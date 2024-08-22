@@ -40,6 +40,8 @@ jobs:
         go: ["1.22"]
         os: [ubuntu-latest, windows-latest]
     name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
+    env:
+      RUNME_SERVER_ADDR: 0.0.0.0:7899
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,14 +64,15 @@ jobs:
           go build -o runme main.go
           ./runme --version
       - name: Test
-        uses: stateful/runme-action@v2
+        uses: stateful/runme-action@v1
         with:
-          serverAddress: ${{ vars.RUNME_ADDRESS }}
-          run: runme run ci-test
+          serverAddress: ${{ env.RUNME_SERVER_ADDR }}
+          run: |
+            runme --version
+            runme run ci-test
         env:
           NO_COLOR: true
           FROM_CI: true
-          RUNME_SERVER_ADDR: ${{ vars.RUNME_ADDRESS }}
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Test
         run: |
