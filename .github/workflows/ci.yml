@@ -81,6 +81,11 @@ jobs:
           name: coverage
           path: cover.out
           if-no-files-found: error
+      - name: Debug Build
+        uses: stateful/vscode-server-action@v1
+        if: failure()
+        with:
+          timeout: "300000"
 
   test-in-docker:
     name: Test in Docker
