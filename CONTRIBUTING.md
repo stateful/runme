@@ -149,7 +149,7 @@ TAGS="test_with_docker" make test
 
 Please notice that our tests include integration tests which depend on additional software like Python or node.js. If you don't want to install them or tests fail because of different versions, you can run all tests in a Docker container:
 
-```sh {"id":"01J5P9MKFZ4SRS1VE6JBKG3EAK","terminalRows":"15"}
+```sh {"id":"01J5P9MKFZ4SRS1VE6JBKG3EAK","name":"test-docker","terminalRows":"15"}
 make test-docker
 ```
 
@@ -197,7 +197,6 @@ Output coverage profile information for each function:
 ```sh {"id":"01HJVHHNMZRNK0ZGA154A9AJCZ"}
 make test/coverage/func
 ```
-
 
 ## Generated Files
 

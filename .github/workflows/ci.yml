@@ -57,12 +57,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Build
+        uses: stateful/runme-action@v2
+        with:
+          workflows: build
       - name: Test
         uses: stateful/runme-action@v2
         with:
-          workflows: |
-            build
-            ci-test
+          workflows: ci-test
         env:
           NO_COLOR: true
           FROM_CI: true
@@ -92,6 +94,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
       - name: Test
         run: make test-docker
+      - name: Test parser
+        uses: stateful/runme-action@v2
+        with:
+          workflows: test-docker
 
   build-and-robustness-test:
     name: Test parser against vast amount of READMEs
@@ -114,8 +120,7 @@ jobs:
       - name: Build
         uses: stateful/runme-action@v2
         with:
-          workflows: |
-            build
+          workflows: build
       - name: Test parser
         uses: stateful/runme-action@v2
         with:
