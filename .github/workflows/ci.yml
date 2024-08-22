@@ -58,9 +58,9 @@ jobs:
         with:
           node-version: 20
       - name: Build
-        uses: stateful/runme-action@v2
-        with:
-          workflows: build
+        run: |
+          go build -o runme main.go
+          ./runme --version
       - name: Test
         uses: stateful/runme-action@v2
         with:
