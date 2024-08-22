@@ -111,7 +111,12 @@ jobs:
           go-version: ">=1.22"
       - name: Install dependencies
         run: make install/dev
-      - name: Build and test parser
+      - name: Build
+        uses: stateful/runme-action@v2
+        with:
+          workflows: |
+            build
+      - name: Test parser
         uses: stateful/runme-action@v2
         with:
           workflows: |
