@@ -207,6 +207,11 @@ type ReporterDevice {
 	vsAppName: String
 	vsAppSessionId: String
 	vsMachineId: String
+	vsMetadata: [ReporterDevice_VsMetadataEntry!]
+}
+type ReporterDevice_VsMetadataEntry {
+	key: String
+	value: String
 }
 type ReporterExtension {
 	autoSave: Boolean
@@ -271,6 +276,11 @@ input TransformRequestInput {
 	vsAppName: String
 	vsAppSessionId: String
 	vsMachineId: String
+	vsMetadata: [TransformRequest_VsMetadataEntryInput!]
+}
+input TransformRequest_VsMetadataEntryInput {
+	key: String
+	value: String
 }
 type TransformResponse {
 	notebook: Notebook

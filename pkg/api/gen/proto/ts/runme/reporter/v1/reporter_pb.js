@@ -34,7 +34,8 @@ class TransformRequest$Type extends MessageType {
             { no: 17, name: "vs_app_host", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 18, name: "vs_app_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 19, name: "vs_app_session_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "vs_machine_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 20, name: "vs_machine_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "vs_metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
 }
@@ -125,7 +126,8 @@ class ReporterDevice$Type extends MessageType {
             { no: 8, name: "vs_app_host", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "vs_app_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "vs_app_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "vs_machine_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 11, name: "vs_machine_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "vs_metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
 }

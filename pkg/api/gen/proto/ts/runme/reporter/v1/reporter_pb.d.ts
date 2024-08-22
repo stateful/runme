@@ -89,6 +89,12 @@ export interface TransformRequest {
      * @generated from protobuf field: optional string vs_machine_id = 20;
      */
     vsMachineId?: string;
+    /**
+     * @generated from protobuf field: map<string, string> vs_metadata = 21;
+     */
+    vsMetadata: {
+        [key: string]: string;
+    };
 }
 /**
  * @generated from protobuf message runme.reporter.v1.TransformResponse
@@ -219,6 +225,12 @@ export interface ReporterDevice {
      * @generated from protobuf field: string vs_machine_id = 11;
      */
     vsMachineId: string;
+    /**
+     * @generated from protobuf field: map<string, string> vs_metadata = 12;
+     */
+    vsMetadata: {
+        [key: string]: string;
+    };
 }
 declare class TransformRequest$Type extends MessageType<TransformRequest> {
     constructor();

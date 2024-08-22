@@ -27,6 +27,7 @@ message TransformRequest {
   optional string vs_app_name = 18;
   optional string vs_app_session_id = 19;
   optional string vs_machine_id = 20;
+  map<string, string> vs_metadata = 21;
 }
 
 message TransformResponse {
@@ -70,6 +71,7 @@ message ReporterDevice {
   string vs_app_name = 9;
   string vs_app_session_id = 10;
   string vs_machine_id = 11;
+  map<string, string> vs_metadata = 12;
 }
 
 service ReporterService {

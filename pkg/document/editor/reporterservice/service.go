@@ -87,6 +87,7 @@ func (s *reporterServiceServer) Transform(ctx context.Context, req *reporterv1.T
 				VsAppName:      *req.VsAppName,
 				VsAppSessionId: *req.VsAppSessionId,
 				VsMachineId:    *req.VsMachineId,
+				VsMetadata:     req.VsMetadata,
 			},
 		},
 	}, nil
