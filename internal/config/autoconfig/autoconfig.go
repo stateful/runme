@@ -210,22 +210,26 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 }
 
 func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.Config, error) {
-	content, err := cfgLoader.RootConfig()
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to load root configuration")
-	}
+	var cfg *config.Config
 
-	cfg, err := config.ParseYAML(content)
-	if err != nil {
-		return nil, err
+	content, err := cfgLoader.RootConfig()
+	switch err {
+	case nil:
+		if cfg, err = config.ParseYAML(content); err != nil {
+			return nil, err
+		}
+	case config.ErrRootConfigNotFound:
+		cfg = config.Defaults()
+	default:
+		return nil, errors.WithMessage(err, "failed to load root configuration")
 	}
 
 	if cfg.ServerTLSEnabled {
 		if cfg.ServerTLSCertFile == "" {
-			cfg.ServerTLSCertFile = filepath.Join(string(userCfgDir), "cert.pem")
+			cfg.ServerTLSCertFile = filepath.Join(string(userCfgDir), "runme", "tls", "cert.pem")
 		}
 		if cfg.ServerTLSKeyFile == "" {
-			cfg.ServerTLSKeyFile = filepath.Join(string(userCfgDir), "key.pem")
+			cfg.ServerTLSKeyFile = filepath.Join(string(userCfgDir), "runme", "tls", "key.pem")
 		}
 	}
 
