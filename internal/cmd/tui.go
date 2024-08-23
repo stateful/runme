@@ -324,7 +324,7 @@ func (m tuiModel) View() string {
 				name += " (unnamed)"
 			}
 
-			relFilename := getRelativePath(getCwd(), task.DocumentPath)
+			relFilename := project.GetRelativePath(getCwd(), task.DocumentPath)
 			filename := ansi.Color(relFilename, "white+d")
 
 			if active {
@@ -334,7 +334,7 @@ func (m tuiModel) View() string {
 			intro := block.Intro()
 			words := strings.Split(intro, " ")
 			// todo(sebastian): this likely only works well for English
-			max := 9 - len(strings.Split(relFilename, fmt.Sprint(filepath.Separator)))
+			max := 9 - len(strings.Split(relFilename, string(filepath.Separator)))
 			if len(words) > max {
 				intro = strings.Join(words[:max], " ") + "..."
 			}

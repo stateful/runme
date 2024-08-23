@@ -16,6 +16,7 @@ import (
 type projectLoader struct {
 	allowUnknown bool
 	allowUnnamed bool
+	cwd          string
 	ctx          context.Context
 	w            io.Writer
 	r            io.Reader
@@ -32,6 +33,7 @@ func newProjectLoader(cmd *cobra.Command, allowUnknown, allowUnnamed bool) (*pro
 	return &projectLoader{
 		allowUnknown: allowUnknown,
 		allowUnnamed: allowUnnamed,
+		cwd:          getCwd(),
 		ctx:          cmd.Context(),
 		w:            cmd.OutOrStdout(),
 		r:            cmd.InOrStdin(),
@@ -44,8 +46,16 @@ func (pl projectLoader) LoadFiles(proj *project.Project) ([]string, error) {
 	return files, err
 }
 
-func (pl projectLoader) LoadTasks(proj *project.Project) ([]project.Task, error) {
+func (pl projectLoader) loadSorted(proj *project.Project) ([]project.Task, error) {
 	_, tasks, err := pl.load(proj, false)
+
+	project.SortByProximity(tasks, pl.cwd)
+
+	return tasks, err
+}
+
+func (pl projectLoader) LoadTasks(proj *project.Project) ([]project.Task, error) {
+	tasks, err := pl.loadSorted(proj)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +82,7 @@ func (pl projectLoader) LoadTasks(proj *project.Project) ([]project.Task, error)
 }
 
 func (pl projectLoader) LoadAllTasks(proj *project.Project) ([]project.Task, error) {
-	_, tasks, err := pl.load(proj, false)
+	tasks, err := pl.loadSorted(proj)
 	return tasks, err
 }
 

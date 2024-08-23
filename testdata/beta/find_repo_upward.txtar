@@ -47,8 +47,8 @@ echo root-ignored
 
 -- result-ls.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
-root-hello	../README.md	echo root-hello		Yes
 nested-hello	README.md	echo nested-hello		Yes
+root-hello	../README.md	echo root-hello		Yes
 -- result-print.txt --
 # ../README.md:root-hello
 echo root-hello

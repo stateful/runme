@@ -57,7 +57,7 @@ func listCmd() *cobra.Command {
 			for _, task := range tasks {
 				block := task.CodeBlock
 				lines := block.Lines()
-				relPath := getRelativePath(getCwd(), task.DocumentPath)
+				relPath := project.GetRelativePath(getCwd(), task.DocumentPath)
 				r := row{
 					Name:         block.Name(),
 					File:         relPath,

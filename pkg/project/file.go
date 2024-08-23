@@ -4,11 +4,20 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 )
+
+func GetRelativePath(cwd, path string) string {
+	relPath, err := filepath.Rel(cwd, path)
+	if err != nil {
+		relPath = path
+	}
+	return relPath
+}
 
 func readMarkdown(source string) ([]byte, error) {
 	var (
