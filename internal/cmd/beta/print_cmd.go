@@ -63,7 +63,7 @@ Print content of commands from the "setup" and "teardown" categories:
 
 func printTasksContent(w io.Writer, tasks []project.Task) error {
 	for _, t := range tasks {
-		_, err := w.Write([]byte("# " + relativePathToCwd(t.DocumentPath) + ":" + t.CodeBlock.Name() + "\n"))
+		_, err := w.Write([]byte("# " + project.GetRelativePath(getCwd(), t.DocumentPath) + ":" + t.CodeBlock.Name() + "\n"))
 		if err != nil {
 			return errors.WithStack(err)
 		}

@@ -2,7 +2,10 @@ package project
 
 import (
 	"context"
+	"path/filepath"
 	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -73,6 +76,19 @@ func LoadTasks(ctx context.Context, p *Project) ([]Task, error) {
 	}
 
 	return result, err
+}
+
+// SortByProximity sorts tasks by promximity to the cwd
+func SortByProximity(tasks []Task, cwd string) {
+	slices.SortStableFunc(tasks, func(a, b Task) int {
+		aRelToCwd := GetRelativePath(cwd, a.DocumentPath)
+		bRelToCwd := GetRelativePath(cwd, b.DocumentPath)
+
+		aLevels := len(strings.Split(aRelToCwd, string(filepath.Separator)))
+		bLevels := len(strings.Split(bRelToCwd, string(filepath.Separator)))
+
+		return aLevels - bLevels
+	})
 }
 
 type Filter func(Task) (bool, error)
