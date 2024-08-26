@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/document/identity"
 )
@@ -33,7 +33,7 @@ func TestCommand(t *testing.T) {
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "test"},
 				Interactive: true,
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			expectedStdout: "test",
 		},
@@ -43,7 +43,7 @@ func TestCommand(t *testing.T) {
 				ProgramName: "echo",
 				Arguments:   []string{"-n", "test"},
 				Interactive: true,
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			expectedStdout: "test",
 		},
@@ -51,10 +51,10 @@ func TestCommand(t *testing.T) {
 			name: "ShellScript",
 			cfg: &ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Script{
+				Source: &runnerv2.ProgramConfig_Script{
 					Script: "#!/usr/local/bin/bash\n\nset -x -e -o pipefail\n\necho -n test\n",
 				},
-				Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			expectedStdout: "test",
 			expectedStderr: "+ echo -n test\n+ __cleanup\n+ rv=0\n+ env -0\n+ exit 0\n",
@@ -63,10 +63,10 @@ func TestCommand(t *testing.T) {
 			name: "Input",
 			cfg: &ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Script{
+				Source: &runnerv2.ProgramConfig_Script{
 					Script: "read line; echo $line | tr a-z A-Z",
 				},
-				Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			input:          []byte("test\n"),
 			expectedStdout: "TEST\n",
@@ -75,27 +75,27 @@ func TestCommand(t *testing.T) {
 			name: "InputInteractive",
 			cfg: &ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Script{
+				Source: &runnerv2.ProgramConfig_Script{
 					Script: "read line; echo $line | tr a-z A-Z",
 				},
 				Interactive: true,
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			input:          []byte("test\n"),
 			expectedStdout: "TEST\r\n",
 		},
 		{
 			name: "StdoutStderr",
-			cfg: &runnerv2alpha1.ProgramConfig{
+			cfg: &runnerv2.ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
 							"echo test | tee >(cat >&2)",
 						},
 					},
 				},
-				Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			expectedStdout: "test\n",
 			expectedStderr: "test\n",
@@ -106,9 +106,9 @@ func TestCommand(t *testing.T) {
 			// the caller should handle that and pass "deno" as ProgramName and
 			// "run" in Arguments.
 			name: "MultiWordProgramName",
-			cfg: &runnerv2alpha1.ProgramConfig{
+			cfg: &runnerv2.ProgramConfig{
 				ProgramName: "echo -n test",
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			expectedStdout: "test",
 		},
@@ -249,7 +249,7 @@ func TestCommand_Getters(t *testing.T) {
 	cfg := &ProgramConfig{
 		ProgramName: "sleep",
 		Arguments:   []string{"1"},
-		Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+		Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 
 	cmd, err := factory.Build(cfg, CommandOptions{})
@@ -267,12 +267,12 @@ func TestCommand_InvalidProgram(t *testing.T) {
 
 	cfg := &ProgramConfig{
 		ProgramName: "invalidProgram",
-		Source: &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+		Source: &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{
 				Items: []string{"echo -n test"},
 			},
 		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 
 	cmd, err := factory.Build(cfg, CommandOptions{})
@@ -289,15 +289,15 @@ func TestCommand_InvalidScript(t *testing.T) {
 
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
-		Source: &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+		Source: &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{
 				Items: []string{
 					"failhereplease",
 					"echo executed",
 				},
 			},
 		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 
 	stdout := bytes.NewBuffer(nil)
@@ -330,13 +330,13 @@ func TestCommand_SetWinsize(t *testing.T) {
 		cmd, err := factory.Build(
 			&ProgramConfig{
 				ProgramName: "bash",
-				Source: &runnerv2alpha1.ProgramConfig_Commands{
-					Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{"sleep 1", "tput cols -T linux", "tput lines -T linux"},
 					},
 				},
 				Interactive: true,
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			CommandOptions{Stdout: stdout},
 		)
@@ -362,7 +362,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 		cmd, err := factory.Build(
 			&ProgramConfig{
 				ProgramName: "bash",
-				Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_TERMINAL,
+				Mode:        runnerv2.CommandMode_COMMAND_MODE_TERMINAL,
 				Interactive: true,
 				Env:         []string{"TERM=xterm"},
 			},
@@ -399,21 +399,21 @@ func TestCommand_SetWinsize(t *testing.T) {
 func TestCommand_Session(t *testing.T) {
 	setterCfg := &ProgramConfig{
 		ProgramName: "bash",
-		Source: &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+		Source: &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{
 				Items: []string{"export TEST_ENV=test1"},
 			},
 		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 	getterCfg := &ProgramConfig{
 		ProgramName: "bash",
-		Source: &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+		Source: &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{
 				Items: []string{"echo -n \"TEST_ENV equals $TEST_ENV\""},
 			},
 		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 
 	sess := NewSession()
@@ -493,7 +493,7 @@ func TestCommand_StopWithSignal(t *testing.T) {
 	cfg := &ProgramConfig{
 		ProgramName: "sleep",
 		Arguments:   []string{"10"},
-		Mode:        runnerv2alpha1.CommandMode_COMMAND_MODE_INLINE,
+		Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 
 	t.Run("SIGINT", func(t *testing.T) {

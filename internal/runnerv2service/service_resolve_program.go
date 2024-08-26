@@ -10,10 +10,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/stateful/runme/v3/internal/command"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
-func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.ResolveProgramRequest) (*runnerv2alpha1.ResolveProgramResponse, error) {
+func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2.ResolveProgramRequest) (*runnerv2.ResolveProgramResponse, error) {
 	r.logger.Info("running ResolveProgram in runnerService")
 
 	resolver, err := r.getProgramResolverFromReq(req)
@@ -41,12 +41,12 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 	modifiedScript := modifiedScriptBuf.String()
 
 	// todo(sebastian): figure out how to return commands
-	response := &runnerv2alpha1.ResolveProgramResponse{
+	response := &runnerv2.ResolveProgramResponse{
 		Script: modifiedScript,
 	}
 
 	for _, item := range result.Variables {
-		ritem := &runnerv2alpha1.ResolveProgramResponse_VarResult{
+		ritem := &runnerv2.ResolveProgramResponse_VarResult{
 			Name:          item.Name,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
@@ -54,15 +54,15 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 
 		switch item.Status {
 		case command.ProgramResolverStatusResolved:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_RESOLVED
+			ritem.Status = runnerv2.ResolveProgramResponse_STATUS_RESOLVED
 		case command.ProgramResolverStatusUnresolvedWithMessage:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE
+			ritem.Status = runnerv2.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE
 		case command.ProgramResolverStatusUnresolvedWithPlaceholder:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER
+			ritem.Status = runnerv2.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER
 		case command.ProgramResolverStatusUnresolvedWithSecret:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET
+			ritem.Status = runnerv2.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET
 		default:
-			ritem.Status = runnerv2alpha1.ResolveProgramResponse_STATUS_UNSPECIFIED
+			ritem.Status = runnerv2.ResolveProgramResponse_STATUS_UNSPECIFIED
 		}
 
 		response.Vars = append(response.Vars, ritem)
@@ -71,7 +71,7 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2alpha1.
 	return response, nil
 }
 
-func (r *runnerService) getProgramResolverFromReq(req *runnerv2alpha1.ResolveProgramRequest) (*command.ProgramResolver, error) {
+func (r *runnerService) getProgramResolverFromReq(req *runnerv2.ResolveProgramRequest) (*command.ProgramResolver, error) {
 	// Add explicitly passed env as a source.
 	sources := []command.ProgramResolverSource{
 		command.ProgramResolverSourceFunc(req.Env),
@@ -108,9 +108,9 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2alpha1.ResolvePro
 	mode := command.ProgramResolverModeAuto
 
 	switch req.GetMode() {
-	case runnerv2alpha1.ResolveProgramRequest_MODE_PROMPT_ALL:
+	case runnerv2.ResolveProgramRequest_MODE_PROMPT_ALL:
 		mode = command.ProgramResolverModePromptAll
-	case runnerv2alpha1.ResolveProgramRequest_MODE_SKIP_ALL:
+	case runnerv2.ResolveProgramRequest_MODE_SKIP_ALL:
 		mode = command.ProgramResolverModeSkipAll
 	}
 

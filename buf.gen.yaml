@@ -1,4 +1,5 @@
 version: v2
+clean: true
 plugins:
   # Remote plugin. You can switch to a local one by using "go".
   - remote: buf.build/protocolbuffers/go
