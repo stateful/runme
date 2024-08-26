@@ -26,7 +26,7 @@ func TestParseYAML(t *testing.T) {
 project:
   filename: REAEDME.md
 `,
-			expectedConfig: &Config{ProjectFilename: "REAEDME.md"},
+			expectedConfig: &Config{ProjectFilename: "REAEDME.md", ProjectFindRepoUpward: true, ServerTLSEnabled: true},
 		},
 		{
 			name: "root and filename",
@@ -35,7 +35,7 @@ project:
   root: "."
   filename: README.md
 `,
-			expectedConfig: &Config{ProjectRoot: ".", ProjectFilename: "README.md"},
+			expectedConfig: &Config{ProjectRoot: ".", ProjectFilename: "README.md", ProjectFindRepoUpward: true, ServerTLSEnabled: true},
 		},
 		{
 			name: "validate filter type",
@@ -144,5 +144,24 @@ log:
 		LogEnabled: true,
 		LogPath:    "/var/tmp/runme.log",
 		LogVerbose: true,
+
+		ServerTLSEnabled: true,
 	}
 )
+
+func TestCloneConfig(t *testing.T) {
+	original := defaults
+	clone := original.Clone()
+
+	opts := cmpopts.EquateEmpty()
+	require.True(
+		t,
+		cmp.Equal(&original, clone, opts),
+		"%s",
+		cmp.Diff(&original, clone, opts),
+	)
+	require.False(t, &original == clone)
+	require.False(t, &original.ProjectIgnorePaths == &clone.ProjectIgnorePaths)
+	require.False(t, &original.ProjectEnvSources == &clone.ProjectEnvSources)
+	require.False(t, &original.ProjectFilters == &clone.ProjectFilters)
+}

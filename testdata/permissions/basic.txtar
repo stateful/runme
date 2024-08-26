@@ -1,0 +1,32 @@
+exec chmod 000 secret
+exec chmod 000 CONTRIBUTING.md
+exec runme ls
+cmp stdout output.txt
+! stderr .
+
+-- secret/README.md --
+
+```sh {"name":"secret-command"}
+$ echo "This is a secret command"
+```
+
+-- CONTRIBUTING.md --
+
+```sh {"name":"contributing-cell"}
+$ echo "This is a secret command"
+```
+
+-- README.md --
+
+```sh {"name":"command1"}
+$ echo "Hello, runme 1!"
+```
+
+```sh {"name":"command2"}
+$ echo "Hello, runme 2!"
+```
+
+-- output.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+command1	README.md	echo "Hello, runme 1!"		Yes
+command2	README.md	echo "Hello, runme 2!"		Yes

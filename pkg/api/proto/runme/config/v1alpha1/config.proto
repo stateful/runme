@@ -3,6 +3,7 @@ syntax = "proto3";
 package runme.config.v1alpha1;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/wrappers.proto";
 
 option go_package = "github.com/stateful/runme/pkg/api/gen/proto/go/runme/config/v1alpha1;configv1alpha1";
 
@@ -30,13 +31,13 @@ message Config {
 
     // find_repo_upward indicates whether to find the nearest Git repository upward.
     // This is useful to, for example, recognize .gitignore files.
-    bool find_repo_upward = 3;
+    google.protobuf.BoolValue find_repo_upward = 3;
 
     // ignore_paths is a list of paths to ignore relative to dir.
     repeated string ignore_paths = 4 [json_name = "ignore"];
 
     // disable_gitignore indicates whether to disable the .gitignore file.
-    bool disable_gitignore = 5;
+    google.protobuf.BoolValue disable_gitignore = 5;
 
     // env is the environment variables configuration.
     Env env = 6;
@@ -49,7 +50,7 @@ message Config {
 
   message Env {
     // use_system_env indicates whether to use the system environment variables.
-    bool use_system_env = 1;
+    google.protobuf.BoolValue use_system_env = 1;
 
     // sources is a list of files with env.
     repeated string sources = 2;
@@ -81,7 +82,7 @@ message Config {
   }
 
   message Docker {
-    bool enabled = 1;
+    google.protobuf.BoolValue enabled = 1;
 
     string image = 2;
 
@@ -99,7 +100,7 @@ message Config {
     TLS tls = 2;
 
     message TLS {
-      bool enabled = 1;
+      google.protobuf.BoolValue enabled = 1;
       string cert_file = 2;
       string key_file = 3;
     }
@@ -107,12 +108,12 @@ message Config {
 
   message Log {
     // enabled indicates whether to enable logging.
-    bool enabled = 1;
+    google.protobuf.BoolValue enabled = 1;
 
     // path is the path to the log output file.
     string path = 2;
 
     // verbose is the verbosity level of the log.
-    bool verbose = 3;
+    google.protobuf.BoolValue verbose = 3;
   }
 }

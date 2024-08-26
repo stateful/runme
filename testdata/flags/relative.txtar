@@ -76,9 +76,9 @@ say_hi()
 ```
 -- very/deeply/relative.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+count	sub.md	echo "1"	It can contain multiple lines too.	Yes
+again	../another.md	echo "Hello, runme! Again!"		Yes
+echo	nested/file.md	echo "Hello, runme!"		Yes
 hello-js	../../root.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
 hello-js-cat	../../root.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
 hello-python	../../root.md	def say_hi():		Yes
-again	../another.md	echo "Hello, runme! Again!"		Yes
-echo	nested/file.md	echo "Hello, runme!"		Yes
-count	sub.md	echo "1"	It can contain multiple lines too.	Yes

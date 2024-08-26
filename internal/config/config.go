@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/bufbuild/protovalidate-go"
@@ -40,6 +41,26 @@ type Config struct {
 	LogEnabled bool
 	LogPath    string
 	LogVerbose bool
+}
+
+func (c *Config) Clone() *Config {
+	clone := *c
+	clone.ProjectIgnorePaths = make([]string, len(c.ProjectIgnorePaths))
+	copy(clone.ProjectIgnorePaths, c.ProjectIgnorePaths)
+	clone.ProjectEnvSources = make([]string, len(c.ProjectEnvSources))
+	copy(clone.ProjectEnvSources, c.ProjectEnvSources)
+	clone.ProjectFilters = make([]*Filter, len(c.ProjectFilters))
+	for i, f := range c.ProjectFilters {
+		clone.ProjectFilters[i] = &Filter{
+			Type:      f.Type,
+			Condition: f.Condition,
+		}
+	}
+	return &clone
+}
+
+func Defaults() *Config {
+	return defaults.Clone()
 }
 
 func ParseYAML(data []byte) (*Config, error) {
@@ -125,32 +146,37 @@ func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
 		})
 	}
 
-	cfg := &Config{
-		ProjectRoot:             project.GetRoot(),
-		ProjectFilename:         project.GetFilename(),
-		ProjectFindRepoUpward:   project.GetFindRepoUpward(),
-		ProjectIgnorePaths:      project.GetIgnorePaths(),
-		ProjectDisableGitignore: project.GetDisableGitignore(),
-		ProjectEnvUseSystemEnv:  project.GetEnv().GetUseSystemEnv(),
-		ProjectEnvSources:       project.GetEnv().GetSources(),
-		ProjectFilters:          filters,
+	cfg := Defaults()
+	cfg.ProjectRoot = project.GetRoot()
+	cfg.ProjectFilename = project.GetFilename()
+	setIfHasValue(&cfg.ProjectFindRepoUpward, project.GetFindRepoUpward())
+	cfg.ProjectIgnorePaths = project.GetIgnorePaths()
+	setIfHasValue(&cfg.ProjectDisableGitignore, project.GetDisableGitignore())
+	setIfHasValue(&cfg.ProjectEnvUseSystemEnv, project.GetEnv().GetUseSystemEnv())
+	cfg.ProjectEnvSources = project.GetEnv().GetSources()
+	cfg.ProjectFilters = filters
 
-		RuntimeDockerEnabled:         runtime.GetDocker().GetEnabled(),
-		RuntimeDockerImage:           runtime.GetDocker().GetImage(),
-		RuntimeDockerBuildContext:    runtime.GetDocker().GetBuild().GetContext(),
-		RuntimeDockerBuildDockerfile: runtime.GetDocker().GetBuild().GetDockerfile(),
+	setIfHasValue(&cfg.RuntimeDockerEnabled, runtime.GetDocker().GetEnabled())
+	cfg.RuntimeDockerImage = runtime.GetDocker().GetImage()
+	cfg.RuntimeDockerBuildContext = runtime.GetDocker().GetBuild().GetContext()
+	cfg.RuntimeDockerBuildDockerfile = runtime.GetDocker().GetBuild().GetDockerfile()
 
-		ServerAddress:     server.GetAddress(),
-		ServerTLSEnabled:  server.GetTls().GetEnabled(),
-		ServerTLSCertFile: server.GetTls().GetCertFile(),
-		ServerTLSKeyFile:  server.GetTls().GetKeyFile(),
+	cfg.ServerAddress = server.GetAddress()
+	setIfHasValue(&cfg.ServerTLSEnabled, server.GetTls().GetEnabled())
+	cfg.ServerTLSCertFile = server.GetTls().GetCertFile()
+	cfg.ServerTLSKeyFile = server.GetTls().GetKeyFile()
 
-		LogEnabled: log.GetEnabled(),
-		LogPath:    log.GetPath(),
-		LogVerbose: log.GetVerbose(),
-	}
+	setIfHasValue(&cfg.LogEnabled, log.GetEnabled())
+	cfg.LogPath = log.GetPath()
+	setIfHasValue(&cfg.LogVerbose, log.GetVerbose())
 
 	return cfg, nil
+}
+
+func setIfHasValue[T any](prop *T, val interface{ GetValue() T }) {
+	if val != nil && !reflect.ValueOf(val).IsNil() {
+		*prop = val.GetValue()
+	}
 }
 
 func validateConfig(cfg *Config) error {

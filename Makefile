@@ -79,6 +79,7 @@ test/update-snapshots:
 
 .PHONY: test/robustness
 test/robustness:
+	./runme --version
 	find "$$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --project {} > /dev/null
 
 .PHONY: coverage/html
@@ -110,11 +111,11 @@ pre-commit: build wasm test lint
 
 .PHONY: install/dev
 install/dev:
-	go install github.com/mgechev/revive@v1.3.7
-	go install github.com/securego/gosec/v2/cmd/gosec@v2.19.0
-	go install honnef.co/go/tools/cmd/staticcheck@v0.4.6
-	go install mvdan.cc/gofumpt@v0.6.0
-	go install github.com/icholy/gomajor@v0.9.5
+	go install github.com/mgechev/revive@v1.3.9
+	go install github.com/securego/gosec/v2/cmd/gosec@v2.20.0
+	go install honnef.co/go/tools/cmd/staticcheck@v0.5.1
+	go install mvdan.cc/gofumpt@v0.7.0
+	go install github.com/icholy/gomajor@v0.13.1
 	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
 
 .PHONY: install/goreleaser

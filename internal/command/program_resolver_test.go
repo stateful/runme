@@ -28,7 +28,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
-			modifiedProgram: "#\n# TEST_NO_VALUE set in smart env store\n# \"export TEST_NO_VALUE\"\n\n",
+			modifiedProgram: "#\n# TEST_NO_VALUE set in managed env store\n# \"export TEST_NO_VALUE\"\n\n",
 		},
 		{
 			name:    "empty value",
@@ -42,7 +42,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
-			modifiedProgram: "#\n# TEST_EMPTY_VALUE set in smart env store\n# \"export TEST_EMPTY_VALUE=\"\n\n",
+			modifiedProgram: "#\n# TEST_EMPTY_VALUE set in managed env store\n# \"export TEST_EMPTY_VALUE=\"\n\n",
 		},
 		{
 			name:    "string value",
@@ -57,7 +57,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
-			modifiedProgram: "#\n# TEST_STRING_VALUE set in smart env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
+			modifiedProgram: "#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
 		},
 		{
 			name:    "string value with equal sign",
@@ -72,7 +72,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
-			modifiedProgram: "#\n# TEST_STRING_VALUE_WITH_EQUAL_SIGN set in smart env store\n# \"export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2\"\n\n",
+			modifiedProgram: "#\n# TEST_STRING_VALUE_WITH_EQUAL_SIGN set in managed env store\n# \"export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2\"\n\n",
 		},
 		{
 			name:    "string double quoted value empty",
@@ -86,7 +86,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
-			modifiedProgram: "#\n# TEST_STRING_DBL_QUOTED_VALUE_EMPTY set in smart env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE_EMPTY=\\\"\\\"\"\n\n",
+			modifiedProgram: "#\n# TEST_STRING_DBL_QUOTED_VALUE_EMPTY set in managed env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE_EMPTY=\\\"\\\"\"\n\n",
 		},
 		{
 			name:    "string double quoted value",
@@ -101,7 +101,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
-			modifiedProgram: "#\n# TEST_STRING_DBL_QUOTED_VALUE set in smart env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE=\\\"value\\\"\"\n\n",
+			modifiedProgram: "#\n# TEST_STRING_DBL_QUOTED_VALUE set in managed env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE=\\\"value\\\"\"\n\n",
 		},
 		{
 			name:    "string single quoted value empty",
@@ -115,7 +115,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
-			modifiedProgram: "#\n# TEST_STRING_SGL_QUOTED_VALUE_EMPTY set in smart env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''\"\n\n",
+			modifiedProgram: "#\n# TEST_STRING_SGL_QUOTED_VALUE_EMPTY set in managed env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''\"\n\n",
 		},
 		{
 			name:    "string single quoted value",
@@ -130,7 +130,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
-			modifiedProgram: "#\n# TEST_STRING_SGL_QUOTED_VALUE set in smart env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE='value'\"\n\n",
+			modifiedProgram: "#\n# TEST_STRING_SGL_QUOTED_VALUE set in managed env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE='value'\"\n\n",
 		},
 		{
 			name:            "parameter expression",
@@ -217,7 +217,7 @@ func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
 		},
 		result,
 	)
-	require.EqualValues(t, "#\n# MY_ENV set in smart env store\n# \"export MY_ENV=default\"\n\n", buf.String())
+	require.EqualValues(t, "#\n# MY_ENV set in managed env store\n# \"export MY_ENV=default\"\n\n", buf.String())
 }
 
 func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
@@ -245,7 +245,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 			},
 			result,
 		)
-		require.EqualValues(t, "#\n# MY_ENV set in smart env store\n# \"export MY_ENV=message value\"\n\n", buf.String())
+		require.EqualValues(t, "#\n# MY_ENV set in managed env store\n# \"export MY_ENV=message value\"\n\n", buf.String())
 	})
 
 	t.Run("Prompt with placeholder", func(t *testing.T) {
@@ -272,7 +272,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 			},
 			result,
 		)
-		require.EqualValues(t, "#\n# MY_ENV set in smart env store\n# \"export MY_ENV=\\\"placeholder value\\\"\"\n\n", buf.String())
+		require.EqualValues(t, "#\n# MY_ENV set in managed env store\n# \"export MY_ENV=\\\"placeholder value\\\"\"\n\n", buf.String())
 	})
 }
 
@@ -312,6 +312,6 @@ func TestProgramResolverResolve_SensitiveEnvKeys(t *testing.T) {
 			},
 			result,
 		)
-		require.EqualValues(t, "#\n# MY_PASSWORD set in smart env store\n# \"export MY_PASSWORD=super-secret\"\n#\n# MY_SECRET set in smart env store\n# \"export MY_SECRET=also-secret\"\n#\n# MY_PLAIN set in smart env store\n# \"export MY_PLAIN=text\"\n\n", buf.String())
+		require.EqualValues(t, "#\n# MY_PASSWORD set in managed env store\n# \"export MY_PASSWORD=super-secret\"\n#\n# MY_SECRET set in managed env store\n# \"export MY_SECRET=also-secret\"\n#\n# MY_PLAIN set in managed env store\n# \"export MY_PLAIN=text\"\n\n", buf.String())
 	})
 }

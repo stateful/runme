@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"math"
+	"path/filepath"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -295,7 +296,7 @@ func (m tuiModel) Init() tea.Cmd {
 
 const (
 	tab                   = "  "
-	defaultVisibleEntries = 5
+	defaultVisibleEntries = 6
 )
 
 func (m tuiModel) View() string {
@@ -319,21 +320,34 @@ func (m tuiModel) View() string {
 
 		{
 			name := block.Name()
-
 			if block.IsUnnamed() {
 				name += " (unnamed)"
 			}
 
-			filename := ansi.Color(getRelativePath(getCwd(), task.DocumentPath), "white+d")
+			relFilename := project.GetRelativePath(getCwd(), task.DocumentPath)
+			filename := ansi.Color(relFilename, "white+d")
 
 			if active {
-				name = ansi.Color(name, "white+b")
+				name = ansi.Color(name, "white+ub")
+			}
+
+			intro := block.Intro()
+			words := strings.Split(intro, " ")
+			// todo(sebastian): this likely only works well for English
+			max := 9 - len(strings.Split(relFilename, string(filepath.Separator)))
+			if len(words) > max {
+				intro = strings.Join(words[:max], " ") + "..."
+			}
+
+			if len(intro) > 0 {
+				intro = ": " + intro
 			}
 
 			identifier := fmt.Sprintf(
-				"%s %s",
+				"%s %s%s",
 				name,
 				filename,
+				intro,
 			)
 
 			line += identifier + "\n"

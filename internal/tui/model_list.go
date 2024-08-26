@@ -268,7 +268,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				cmdSlice := []string{"git", "checkout", "-b", m.selected.Suggestion()}
-				fmt.Printf("Output: %s", cmdSlice)
+				_, _ = fmt.Printf("Output: %s", cmdSlice)
 
 				cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
 				cmd.Dir = cwd
@@ -300,7 +300,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case confirmMsg:
 		m.confirmed = true
-		fmt.Printf("Output: %s", msg.response)
+		_, _ = fmt.Printf("Output: %s", msg.response)
 		return m, tea.Quit
 
 	case errorMsg:

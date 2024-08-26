@@ -73,16 +73,16 @@ func TestPromptEnvVars(t *testing.T) {
 			assert.NoError(t, err)
 
 			expectedLines := `#
-# VAR_NAME1 set in smart env store
+# VAR_NAME1 set in managed env store
 # "export VAR_NAME1='Placeholder 1'"
 #
-# VAR_NAME2 set in smart env store
+# VAR_NAME2 set in managed env store
 # "export VAR_NAME2=\"Placeholder 2\""
 #
-# VAR_NAME3 set in smart env store
+# VAR_NAME3 set in managed env store
 # "export VAR_NAME3=\"\""
 #
-# VAR_NAME4 set in smart env store
+# VAR_NAME4 set in managed env store
 # "export VAR_NAME4=Message"
 
 
