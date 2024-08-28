@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package runme.reporter.v1;
+package runme.reporter.v1alpha1;
 
 import "runme/parser/v1/parser.proto";
 
-option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1;reporterv1";
+option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1alpha1;reporterv1alpha1";
 
 message TransformRequest {
   runme.parser.v1.Notebook notebook = 1;

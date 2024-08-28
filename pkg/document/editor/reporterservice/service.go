@@ -6,20 +6,20 @@ import (
 	"go.uber.org/zap"
 
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	reporterv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1"
+	reporterv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1alpha1"
 )
 
 type reporterServiceServer struct {
-	reporterv1.UnimplementedReporterServiceServer
+	reporterv1alpha1.UnimplementedReporterServiceServer
 
 	logger *zap.Logger
 }
 
-func NewReporterServiceServer(logger *zap.Logger) reporterv1.ReporterServiceServer {
+func NewReporterServiceServer(logger *zap.Logger) reporterv1alpha1.ReporterServiceServer {
 	return &reporterServiceServer{logger: logger}
 }
 
-func (s *reporterServiceServer) Transform(ctx context.Context, req *reporterv1.TransformRequest) (*reporterv1.TransformResponse, error) {
+func (s *reporterServiceServer) Transform(ctx context.Context, req *reporterv1alpha1.TransformRequest) (*reporterv1alpha1.TransformResponse, error) {
 
 	var notebook = &parserv1.Notebook{
 		Metadata:    req.Notebook.Metadata,
@@ -58,24 +58,24 @@ func (s *reporterServiceServer) Transform(ctx context.Context, req *reporterv1.T
 
 	}
 
-	return &reporterv1.TransformResponse{
+	return &reporterv1alpha1.TransformResponse{
 		Notebook: notebook,
-		Extension: &reporterv1.ReporterExtension{
+		Extension: &reporterv1alpha1.ReporterExtension{
 			AutoSave: *req.Extension.AutoSave,
-			Git: &reporterv1.ReporterGit{
+			Git: &reporterv1alpha1.ReporterGit{
 				Repository: *req.Extension.Repository,
 				Branch:     *req.Extension.Branch,
 				Commit:     *req.Extension.Commit,
 			},
-			File: &reporterv1.ReporterFile{
+			File: &reporterv1alpha1.ReporterFile{
 				Path:    *req.Extension.FilePath,
 				Content: req.Extension.FileContent,
 			},
-			Session: &reporterv1.ReporterSession{
+			Session: &reporterv1alpha1.ReporterSession{
 				PlainOutput:  req.Extension.PlainOutput,
 				MaskedOutput: req.Extension.MaskedOutput,
 			},
-			Device: &reporterv1.ReporterDevice{
+			Device: &reporterv1alpha1.ReporterDevice{
 				MacAddress:     *req.Extension.MacAddress,
 				Hostname:       *req.Extension.Hostname,
 				Platform:       *req.Extension.Platform,

@@ -20,7 +20,7 @@ import (
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
-	reporterv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1"
+	reporterv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1alpha1"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
@@ -107,7 +107,7 @@ The kernel is used to run long running processes like shells and interacting wit
 			)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			projectv1.RegisterProjectServiceServer(server, projectservice.NewProjectServiceServer(logger))
-			reporterv1.RegisterReporterServiceServer(server, reporterservice.NewReporterServiceServer(logger))
+			reporterv1alpha1.RegisterReporterServiceServer(server, reporterservice.NewReporterServiceServer(logger))
 			if enableRunner {
 				runnerServicev1, err := runner.NewRunnerService(logger)
 				if err != nil {

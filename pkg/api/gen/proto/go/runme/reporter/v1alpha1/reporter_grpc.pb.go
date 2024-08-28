@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: runme/reporter/v1/reporter.proto
+// source: runme/reporter/v1alpha1/reporter.proto
 
-package reporterv1
+package reporterv1alpha1
 
 import (
 	context "context"
@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ReporterService_Transform_FullMethodName = "/runme.reporter.v1.ReporterService/Transform"
+	ReporterService_Transform_FullMethodName = "/runme.reporter.v1alpha1.ReporterService/Transform"
 )
 
 // ReporterServiceClient is the client API for ReporterService service.
@@ -108,7 +108,7 @@ func _ReporterService_Transform_Handler(srv interface{}, ctx context.Context, de
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ReporterService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "runme.reporter.v1.ReporterService",
+	ServiceName: "runme.reporter.v1alpha1.ReporterService",
 	HandlerType: (*ReporterServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -117,5 +117,5 @@ var ReporterService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "runme/reporter/v1/reporter.proto",
+	Metadata: "runme/reporter/v1alpha1/reporter.proto",
 }

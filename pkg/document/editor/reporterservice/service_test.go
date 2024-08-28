@@ -9,14 +9,14 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	reporterv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1"
+	reporterv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1alpha1"
 )
 
 func TestTransform(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	server := NewReporterServiceServer(logger)
 
-	req := &reporterv1.TransformRequest{
+	req := &reporterv1alpha1.TransformRequest{
 		Notebook: &parserv1.Notebook{
 			Metadata: map[string]string{
 				"key1": "value1",
@@ -89,7 +89,7 @@ func TestTransform(t *testing.T) {
 				},
 			},
 		},
-		Extension: &reporterv1.TransformRequestExtension{
+		Extension: &reporterv1alpha1.TransformRequestExtension{
 			AutoSave:       boolPtr(true),
 			Repository:     stringPtr("repo-url"),
 			Branch:         stringPtr("main"),
