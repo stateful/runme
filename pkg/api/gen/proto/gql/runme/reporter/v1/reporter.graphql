@@ -255,8 +255,7 @@ input TextRangeInput {
 	start: Int
 	end: Int
 }
-input TransformRequestInput {
-	notebook: NotebookInput
+input TransformRequestExtensionInput {
 	autoSave: Boolean
 	repository: String
 	branch: String
@@ -276,11 +275,15 @@ input TransformRequestInput {
 	vsAppName: String
 	vsAppSessionId: String
 	vsMachineId: String
-	vsMetadata: [TransformRequest_VsMetadataEntryInput!]
+	vsMetadata: [TransformRequestExtension_VsMetadataEntryInput!]
 }
-input TransformRequest_VsMetadataEntryInput {
+input TransformRequestExtension_VsMetadataEntryInput {
 	key: String
 	value: String
+}
+input TransformRequestInput {
+	notebook: NotebookInput
+	extension: TransformRequestExtensionInput
 }
 type TransformResponse {
 	notebook: Notebook

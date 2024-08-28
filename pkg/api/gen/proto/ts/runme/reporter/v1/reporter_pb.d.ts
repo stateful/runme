@@ -14,6 +14,15 @@ export interface TransformRequest {
      */
     notebook?: Notebook;
     /**
+     * @generated from protobuf field: runme.reporter.v1.TransformRequestExtension extension = 2;
+     */
+    extension?: TransformRequestExtension;
+}
+/**
+ * @generated from protobuf message runme.reporter.v1.TransformRequestExtension
+ */
+export interface TransformRequestExtension {
+    /**
      * @generated from protobuf field: optional bool auto_save = 2;
      */
     autoSave?: boolean;
@@ -239,6 +248,13 @@ declare class TransformRequest$Type extends MessageType<TransformRequest> {
  * @generated MessageType for protobuf message runme.reporter.v1.TransformRequest
  */
 export declare const TransformRequest: TransformRequest$Type;
+declare class TransformRequestExtension$Type extends MessageType<TransformRequestExtension> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.reporter.v1.TransformRequestExtension
+ */
+export declare const TransformRequestExtension: TransformRequestExtension$Type;
 declare class TransformResponse$Type extends MessageType<TransformResponse> {
     constructor();
 }

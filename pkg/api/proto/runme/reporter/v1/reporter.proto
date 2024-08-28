@@ -8,6 +8,10 @@ option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/rep
 
 message TransformRequest {
   runme.parser.v1.Notebook notebook = 1;
+  TransformRequestExtension extension = 2;
+}
+
+message TransformRequestExtension {
   optional bool auto_save = 2;
   optional string repository = 3;
   optional string branch = 4;

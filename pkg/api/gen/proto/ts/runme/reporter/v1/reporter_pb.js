@@ -16,6 +16,18 @@ class TransformRequest$Type extends MessageType {
     constructor() {
         super("runme.reporter.v1.TransformRequest", [
             { no: 1, name: "notebook", kind: "message", T: () => Notebook },
+            { no: 2, name: "extension", kind: "message", T: () => TransformRequestExtension }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.reporter.v1.TransformRequest
+ */
+export const TransformRequest = new TransformRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TransformRequestExtension$Type extends MessageType {
+    constructor() {
+        super("runme.reporter.v1.TransformRequestExtension", [
             { no: 2, name: "auto_save", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
             { no: 3, name: "repository", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "branch", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
@@ -40,9 +52,9 @@ class TransformRequest$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.reporter.v1.TransformRequest
+ * @generated MessageType for protobuf message runme.reporter.v1.TransformRequestExtension
  */
-export const TransformRequest = new TransformRequest$Type();
+export const TransformRequestExtension = new TransformRequestExtension$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class TransformResponse$Type extends MessageType {
     constructor() {
