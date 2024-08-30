@@ -4,22 +4,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
-
-	"go.uber.org/zap/zapcore"
-
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/runner/client"
 	"github.com/stateful/runme/v3/internal/tui"
 	"github.com/stateful/runme/v3/internal/tui/prompt"
-	"github.com/stateful/runme/v3/internal/version"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/document/identity"
@@ -33,7 +28,7 @@ func getIdentityResolver() *identity.IdentityResolver {
 }
 
 func getProject() (*project.Project, error) {
-	logger, err := getLogger(false, false)
+	logger, err := getLogger(false)
 	if err != nil {
 		return nil, err
 	}
@@ -152,135 +147,38 @@ func getCodeBlocks() (document.CodeBlocks, error) {
 	return document.CollectCodeBlocks(node), nil
 }
 
-func getLogger(devMode bool, aiLogs bool) (*zap.Logger, error) {
-	if !fLogEnabled && !aiLogs {
-		return zap.NewNop(), nil
-	}
-
-	cores := make([]zapcore.Core, 0, 2)
-	if fLogEnabled {
-		consoleCore, err := createCoreForConsole(devMode)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		cores = append(cores, consoleCore)
-	}
-
-	aiLogFile := ""
-	if aiLogs {
-		aiCore, newLogFile, err := createAICoreLogger()
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		aiLogFile = newLogFile
-		cores = append(cores, aiCore)
-	}
-
-	if len(cores) == 0 {
-		return zap.NewNop(), nil
-	}
-
-	// Create a multi-core logger with different encodings
-	core := zapcore.NewTee(cores...)
-
-	// Create the logger
-	newLogger := zap.New(core)
-	// Record the caller of the log message
-	newLogger = newLogger.WithOptions(zap.AddCaller())
-
-	versionInfo := version.BaseVersionInfo()
-
-	newLogger.Info("Logger initialized", zap.String("versionInfo", versionInfo), zap.Bool("devMode", devMode), zap.Bool("aiLogs", aiLogs), zap.String("aiLogFile", aiLogFile))
-	return newLogger, nil
-}
-
-// createCorForConsole creates a zapcore.Core for console output.
-func createCoreForConsole(devMode bool) (zapcore.Core, error) {
+func getLogger(devMode bool) (*zap.Logger, error) {
 	if !fLogEnabled {
-		return zapcore.NewNopCore(), nil
+		return zap.NewNop(), nil
 	}
 
-	encoderConfig := zap.NewProductionEncoderConfig()
-	lvl := zap.NewAtomicLevelAt(zap.InfoLevel)
+	config := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Development: false,
+		Sampling: &zap.SamplingConfig{
+			Initial:    100,
+			Thereafter: 100,
+		},
+		Encoding:         "json",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
 
 	if devMode {
-		lvl = zap.NewAtomicLevelAt(zap.DebugLevel)
-		encoderConfig = zap.NewDevelopmentEncoderConfig()
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		config.Development = true
+		config.Encoding = "console"
+		config.EncoderConfig = zap.NewDevelopmentEncoderConfig()
 	}
 
-	path := "stderr"
 	if fLogFilePath != "" {
-		path = fLogFilePath
+		config.OutputPaths = []string{fLogFilePath}
+		config.ErrorOutputPaths = []string{fLogFilePath}
 	}
 
-	oFile, _, err := zap.Open(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not create writer for console logger")
-	}
-
-	var encoder zapcore.Encoder
-	if devMode {
-		encoder = zapcore.NewConsoleEncoder(encoderConfig)
-	} else {
-		encoder = zapcore.NewJSONEncoder(encoderConfig)
-	}
-
-	core := zapcore.NewCore(encoder, zapcore.AddSync(oFile), lvl)
-
-	if !devMode {
-		// For non-dev mode, add sampling.
-		core = zapcore.NewSamplerWithOptions(
-			core,
-			time.Second,
-			100,
-			100,
-		)
-	}
-	return core, nil
-}
-
-// createAICoreLogger creates a core logger that writes logs to files. These logs are always written in JSON
-// format. Their purpose is to capture AI traces that we use for retraining. Since these are supposed to be machine
-// readable they are always written in JSON format.
-func createAICoreLogger() (zapcore.Core, string, error) {
-	// Configure encoder for JSON format
-	c := zap.NewProductionEncoderConfig()
-	// We attach the function key to the logs because that is useful for identifying the function that generated the log.
-	c.FunctionKey = "function"
-
-	jsonEncoder := zapcore.NewJSONEncoder(c)
-
-	configDir := getConfigDir()
-	if configDir == "" {
-		return nil, "", errors.New("could not determine config directory")
-	}
-	logDir := filepath.Join(configDir, "logs")
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		// Logger won't be setup yet so we can't use it.
-		if _, err := fmt.Fprintf(os.Stdout, "Creating log directory %s\n", logDir); err != nil {
-			return nil, "", errors.Wrapf(err, "could not write to stdout")
-		}
-		err := os.MkdirAll(logDir, 0o750)
-		if err != nil {
-			return nil, "", errors.Wrapf(err, "could not create log directory %s", logDir)
-		}
-	}
-
-	// We need to set a unique file name for the logs as a way of dealing with log rotation.
-	name := fmt.Sprintf("logs.%s.json", time.Now().Format("2006-01-02T15:04:05"))
-	logFile := filepath.Join(logDir, name)
-
-	// TODO(jeremy): How could we handle invoking the log closer if there is one.
-	oFile, _, err := zap.Open(logFile)
-	if err != nil {
-		return nil, logFile, errors.Wrapf(err, "could not open log file %s", logFile)
-	}
-
-	// Force log level to be at least info. Because info is the level at which we capture the logs we need for
-	// tracing.
-	core := zapcore.NewCore(jsonEncoder, zapcore.AddSync(oFile), zapcore.InfoLevel)
-
-	return core, logFile, nil
+	l, err := config.Build()
+	return l, errors.WithStack(err)
 }
 
 func validCmdNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
