@@ -551,11 +551,3 @@ func captureVariable(cmd *cobra.Command, ip *prompt.InputParams) (string, error)
 
 	return val, nil
 }
-
-func getRelativePath(base string, documentPath string) string {
-	relPath, err := filepath.Rel(base, documentPath)
-	if err != nil {
-		relPath = documentPath
-	}
-	return relPath
-}

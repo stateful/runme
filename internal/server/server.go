@@ -19,7 +19,7 @@ import (
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
-	runnerv2alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2alpha1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 )
 
@@ -92,7 +92,7 @@ func New(
 	if err != nil {
 		return nil, err
 	}
-	runnerv2alpha1.RegisterRunnerServiceServer(grpcServer, runnerService)
+	runnerv2.RegisterRunnerServiceServer(grpcServer, runnerService)
 
 	// Register health service.
 	healthcheck := health.NewServer()

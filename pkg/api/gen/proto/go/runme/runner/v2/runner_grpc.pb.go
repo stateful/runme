@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: runme/runner/v2alpha1/runner.proto
+// source: runme/runner/v2/runner.proto
 
-package runnerv2alpha1
+package runnerv2
 
 import (
 	context "context"
@@ -19,14 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RunnerService_CreateSession_FullMethodName   = "/runme.runner.v2alpha1.RunnerService/CreateSession"
-	RunnerService_GetSession_FullMethodName      = "/runme.runner.v2alpha1.RunnerService/GetSession"
-	RunnerService_ListSessions_FullMethodName    = "/runme.runner.v2alpha1.RunnerService/ListSessions"
-	RunnerService_UpdateSession_FullMethodName   = "/runme.runner.v2alpha1.RunnerService/UpdateSession"
-	RunnerService_DeleteSession_FullMethodName   = "/runme.runner.v2alpha1.RunnerService/DeleteSession"
-	RunnerService_MonitorEnvStore_FullMethodName = "/runme.runner.v2alpha1.RunnerService/MonitorEnvStore"
-	RunnerService_Execute_FullMethodName         = "/runme.runner.v2alpha1.RunnerService/Execute"
-	RunnerService_ResolveProgram_FullMethodName  = "/runme.runner.v2alpha1.RunnerService/ResolveProgram"
+	RunnerService_CreateSession_FullMethodName   = "/runme.runner.v2.RunnerService/CreateSession"
+	RunnerService_GetSession_FullMethodName      = "/runme.runner.v2.RunnerService/GetSession"
+	RunnerService_ListSessions_FullMethodName    = "/runme.runner.v2.RunnerService/ListSessions"
+	RunnerService_UpdateSession_FullMethodName   = "/runme.runner.v2.RunnerService/UpdateSession"
+	RunnerService_DeleteSession_FullMethodName   = "/runme.runner.v2.RunnerService/DeleteSession"
+	RunnerService_MonitorEnvStore_FullMethodName = "/runme.runner.v2.RunnerService/MonitorEnvStore"
+	RunnerService_Execute_FullMethodName         = "/runme.runner.v2.RunnerService/Execute"
+	RunnerService_ResolveProgram_FullMethodName  = "/runme.runner.v2.RunnerService/ResolveProgram"
 )
 
 // RunnerServiceClient is the client API for RunnerService service.
@@ -362,7 +362,7 @@ func _RunnerService_ResolveProgram_Handler(srv interface{}, ctx context.Context,
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var RunnerService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "runme.runner.v2alpha1.RunnerService",
+	ServiceName: "runme.runner.v2.RunnerService",
 	HandlerType: (*RunnerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -403,5 +403,5 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "runme/runner/v2alpha1/runner.proto",
+	Metadata: "runme/runner/v2/runner.proto",
 }
