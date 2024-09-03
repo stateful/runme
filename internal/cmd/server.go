@@ -20,11 +20,9 @@ import (
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
-	reporterv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1alpha1"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
-	"github.com/stateful/runme/v3/pkg/document/editor/reporterservice"
 )
 
 func serverCmd() *cobra.Command {
@@ -107,7 +105,8 @@ The kernel is used to run long running processes like shells and interacting wit
 			)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			projectv1.RegisterProjectServiceServer(server, projectservice.NewProjectServiceServer(logger))
-			reporterv1alpha1.RegisterReporterServiceServer(server, reporterservice.NewReporterServiceServer(logger))
+			// todo(sebastian): decided to forgo the reporter service for now
+			// reporterv1alpha1.RegisterReporterServiceServer(server, reporterservice.NewReporterServiceServer(logger))
 			if enableRunner {
 				runnerServicev1, err := runner.NewRunnerService(logger)
 				if err != nil {
