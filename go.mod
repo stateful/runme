@@ -1,6 +1,6 @@
 module github.com/stateful/runme/v3
 
-go 1.22
+go 1.22.0
 
 // replace github.com/stateful/godotenv => ../godotenv
 
