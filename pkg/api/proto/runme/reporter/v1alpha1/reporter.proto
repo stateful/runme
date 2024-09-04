@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package runme.reporter.v1alpha1;
+
+import "runme/parser/v1/parser.proto";
+
+option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1alpha1;reporterv1alpha1";
+
+message TransformRequest {
+  runme.parser.v1.Notebook notebook = 1;
+  TransformRequestExtension extension = 2;
+}
+
+message TransformRequestExtension {
+  optional bool auto_save = 2;
+  optional string repository = 3;
+  optional string branch = 4;
+  optional string commit = 5;
+  optional string file_path = 6;
+  optional bytes file_content = 7;
+  optional bytes plain_output = 8;
+  optional bytes masked_output = 9;
+  optional string mac_address = 10;
+  optional string hostname = 11;
+  optional string platform = 12;
+  optional string release = 13;
+  optional string arch = 14;
+  optional string vendor = 15;
+  optional string shell = 16;
+  optional string vs_app_host = 17;
+  optional string vs_app_name = 18;
+  optional string vs_app_session_id = 19;
+  optional string vs_machine_id = 20;
+  map<string, string> vs_metadata = 21;
+}
+
+message TransformResponse {
+  runme.parser.v1.Notebook notebook = 1;
+  ReporterExtension extension = 2;
+}
+
+message ReporterExtension {
+  bool auto_save = 1;
+  ReporterGit git = 2;
+  ReporterFile file = 3;
+  ReporterSession session = 4;
+  ReporterDevice device = 5;
+}
+
+message ReporterGit {
+  string repository = 1;
+  string branch = 2;
+  string commit = 3;
+}
+
+message ReporterSession {
+  bytes plain_output = 1;
+  bytes masked_output = 2;
+}
+
+message ReporterFile {
+  string path = 1;
+  bytes content = 2;
+}
+
+message ReporterDevice {
+  string mac_address = 1;
+  string hostname = 2;
+  string platform = 3;
+  string release = 4;
+  string arch = 5;
+  string vendor = 6;
+  string shell = 7;
+  string vs_app_host = 8;
+  string vs_app_name = 9;
+  string vs_app_session_id = 10;
+  string vs_machine_id = 11;
+  map<string, string> vs_metadata = 12;
+}
+
+service ReporterService {
+  rpc Transform(TransformRequest) returns (TransformResponse);
+}

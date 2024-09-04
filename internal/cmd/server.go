@@ -105,6 +105,8 @@ The kernel is used to run long running processes like shells and interacting wit
 			)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			projectv1.RegisterProjectServiceServer(server, projectservice.NewProjectServiceServer(logger))
+			// todo(sebastian): decided to forgo the reporter service for now
+			// reporterv1alpha1.RegisterReporterServiceServer(server, reporterservice.NewReporterServiceServer(logger))
 			if enableRunner {
 				runnerServicev1, err := runner.NewRunnerService(logger)
 				if err != nil {
