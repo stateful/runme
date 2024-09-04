@@ -10,24 +10,26 @@ import (
 var ErrClosed = errors.New("buffer closed")
 
 type RingBuffer struct {
-	mu     sync.Mutex
-	buf    []byte
-	size   int
-	r      int // next position to read
-	w      int // next position to write
-	isFull bool
-	closed *atomic.Bool
-	close  chan struct{}
-	more   chan struct{}
+	mu         sync.Mutex
+	buf        []byte
+	size       int
+	r          int // next position to read
+	w          int // next position to write
+	isFull     bool
+	writeTrims *atomic.Int64
+	closed     *atomic.Bool
+	close      chan struct{}
+	more       chan struct{}
 }
 
 func NewRingBuffer(size int) *RingBuffer {
 	return &RingBuffer{
-		buf:    make([]byte, size),
-		size:   size,
-		closed: &atomic.Bool{},
-		close:  make(chan struct{}),
-		more:   make(chan struct{}),
+		buf:        make([]byte, size),
+		size:       size,
+		writeTrims: &atomic.Int64{},
+		closed:     &atomic.Bool{},
+		close:      make(chan struct{}),
+		more:       make(chan struct{}),
 	}
 }
 
@@ -124,6 +126,7 @@ func (b *RingBuffer) Write(p []byte) (n int, err error) {
 func (b *RingBuffer) write(p []byte) (n int, err error) {
 	if len(p) > b.size {
 		p = p[len(p)-b.size:]
+		b.writeTrims.Add(1)
 	}
 
 	var avail int
@@ -137,6 +140,7 @@ func (b *RingBuffer) write(p []byte) (n int, err error) {
 
 	if len(p) >= avail {
 		b.isFull = true
+		b.writeTrims.Add(1)
 		b.r = b.w
 		c := copy(b.buf[b.w:], p)
 		b.w = copy(b.buf[0:], p[c:])
@@ -167,4 +171,8 @@ func (b *RingBuffer) write(p []byte) (n int, err error) {
 	}
 
 	return n, err
+}
+
+func (b *RingBuffer) Trims() int64 {
+	return b.writeTrims.Load()
 }

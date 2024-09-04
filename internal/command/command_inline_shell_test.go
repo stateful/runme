@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/stateful/runme/v3/internal/command/testdata"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
@@ -80,14 +82,14 @@ func TestInlineShellCommand_LimitEnvironSize(t *testing.T) {
 
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
-		Source: &runnerv2alpha1.ProgramConfig_Commands{
-			Commands: &runnerv2alpha1.ProgramConfig_CommandList{
+		Source: &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{
 				Items: []string{
 					"echo -n $" + StoreStdoutEnvName,
 				},
 			},
 		},
-		Mode: runnerv2alpha1.CommandMode_COMMAND_MODE_FILE,
+		Mode: runnerv2.CommandMode_COMMAND_MODE_FILE,
 	}
 
 	factory := NewFactory(
@@ -111,6 +113,43 @@ func TestInlineShellCommand_LimitEnvironSize(t *testing.T) {
 	require.NoError(t, err)
 	expectedLen := MaxEnvironSizeInBytes - len(StoreStdoutEnvName) - 1 // subtract len("<KEY>=")
 	require.Equal(t, expectedLen, stdout.Len())
+}
+
+func TestInlineShellCommand_LargeOutput(t *testing.T) {
+	t.Parallel()
+
+	temp := t.TempDir()
+	fileName := filepath.Join(temp, "large_output.json.gzip")
+	err := os.WriteFile(fileName, testdata.Users1MGzip, 0o644)
+	require.NoError(t, err)
+
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
+	sess := NewSession()
+
+	cfg := &ProgramConfig{
+		ProgramName: "bash",
+		Source: &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{
+				Items: []string{
+					"cat " + fileName,
+				},
+			},
+		},
+		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
+	}
+
+	stdout := bytes.NewBuffer(nil)
+
+	command, err := factory.Build(cfg, CommandOptions{Session: sess, Stdout: stdout})
+	require.NoError(t, err)
+
+	err = command.Start(context.Background())
+	require.NoError(t, err)
+	err = command.Wait()
+	require.NoError(t, err)
+
+	require.NoError(t, err)
+	assert.EqualValues(t, testdata.Users1MGzip, stdout.Bytes())
 }
 
 func testInlineShellCommandCollectEnv(t *testing.T) {

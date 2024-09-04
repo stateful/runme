@@ -16,8 +16,7 @@ import (
 
 func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error {
 	ctx := srv.Context()
-	id := ulid.GenerateID()
-	logger := r.logger.With(zap.String("id", id))
+	logger := r.logger.With(zap.String("id", ulid.GenerateID()))
 
 	logger.Info("running Execute in runnerService")
 
@@ -38,11 +37,12 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	if err != nil {
 		return err
 	}
-	if err := session.SetEnv(req.Config.Env...); err != nil {
-		return err
-	}
 	if !existed {
 		r.sessions.Add(session)
+	}
+
+	if err := session.SetEnv(req.Config.Env...); err != nil {
+		return err
 	}
 
 	// Load the project.
@@ -53,12 +53,11 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	}
 
 	exec, err := newExecution(
-		id,
-		req.StoreStdoutInEnv,
 		req.Config,
 		proj,
 		session,
 		logger,
+		req.StoreStdoutInEnv,
 	)
 	if err != nil {
 		return err

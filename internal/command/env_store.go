@@ -7,11 +7,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// func envPairSize(k, v string) int {
-// 	// +2 for the '=' and '\0' separators
-// 	return len(k) + len(v) + 2
-// }
-
 type envStore struct {
 	mu    sync.RWMutex
 	items map[string]string
@@ -39,23 +34,8 @@ func (s *envStore) Get(k string) (string, bool) {
 
 func (s *envStore) Set(k, v string) (*envStore, error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// environSize := envPairSize(k, v)
-
-	// for key, value := range s.items {
-	// 	if key == k {
-	// 		continue
-	// 	}
-	// 	environSize += envPairSize(key, value)
-	// }
-
-	// if environSize > MaxEnvironSizeInBytes {
-	// 	return s, errors.New("could not set environment variable, environment size limit exceeded")
-	// }
-
 	s.items[k] = v
-
+	s.mu.Unlock()
 	return s, nil
 }
 
