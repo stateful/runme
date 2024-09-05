@@ -229,15 +229,13 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 	ctx := commandpkg.ContextWithExecutionInfo(srv.Context(), execInfo)
 
-	// We want to always log the request because it is used for AI training.
-	// see: https://github.com/stateful/runme/issues/574
 	if req.KnownId != "" {
 		logger = logger.With(zap.String("knownID", req.KnownId))
 	}
 	if req.KnownName != "" {
 		logger = logger.With(zap.String("knownName", req.KnownName))
 	}
-	logger.Info("received initial request", zap.Any("req", zapProto(req, logger)))
+	logger.Debug("received initial request", zap.Any("req", zapProto(req, logger)))
 
 	createSession := func(envs []string) (*Session, error) {
 		// todo(sebastian): owl store?
