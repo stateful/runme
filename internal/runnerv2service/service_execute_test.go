@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -271,6 +270,11 @@ func TestRunnerServiceServerExecute_StoreLastStdoutExceedsLimit(t *testing.T) {
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
+	temp := t.TempDir()
+	fileName := filepath.Join(temp, "large_output.json.gzip")
+	err := os.WriteFile(fileName, testdata.Users1MGzip, 0o644)
+	require.NoError(t, err)
+
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
 	require.NotNil(t, sessionResp.Session)
@@ -281,17 +285,13 @@ func TestRunnerServiceServerExecute_StoreLastStdoutExceedsLimit(t *testing.T) {
 	execResult1 := make(chan executeResult)
 	go getExecuteResult(stream1, execResult1)
 
-	maxSize := command.MaxEnvironSizeInBytes
-	command.MaxEnvironSizeInBytes = 4096
-	defer func() { command.MaxEnvironSizeInBytes = maxSize }()
-
 	req1 := &runnerv2.ExecuteRequest{
 		Config: &runnerv2.ProgramConfig{
 			ProgramName: "bash",
 			Source: &runnerv2.ProgramConfig_Commands{
 				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
-						"echo -n \"" + strings.Repeat("a", command.MaxEnvironSizeInBytes) + "\"",
+						"cat " + fileName,
 					},
 				},
 			},
@@ -334,10 +334,10 @@ func TestRunnerServiceServerExecute_StoreLastStdoutExceedsLimit(t *testing.T) {
 	result2 := <-execResult2
 	assert.NoError(t, result2.Err)
 	assert.EqualValues(t, 0, result2.ExitCode)
-	expected := string(result1.Stdout[len(result1.Stdout)-len(result2.Stdout):])
-	got := string(result2.Stdout)
-	assert.True(t, strings.Count(expected, "a") > 0)
-	assert.EqualValues(t, expected, got)
+	expected, err := os.ReadFile(fileName)
+	require.NoError(t, err)
+	got := result2.Stdout // stdout is trimmed and should be the suffix of the complete output
+	assert.True(t, bytes.HasSuffix(expected, got))
 }
 
 func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {

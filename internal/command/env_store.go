@@ -4,8 +4,16 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
 )
+
+const (
+	MaxEnvironSizeInBytes = 8 * 1024 * 1024  // 8MB
+	MaxEnvSizeInBytes     = 1024*1024 - 1024 // 1MB - 1KB
+)
+
+var ErrEnvTooLarge = errors.New("env too large")
 
 type envStore struct {
 	mu    sync.RWMutex
@@ -33,6 +41,9 @@ func (s *envStore) Get(k string) (string, bool) {
 }
 
 func (s *envStore) Set(k, v string) (*envStore, error) {
+	if len(k)+len(v) > MaxEnvSizeInBytes {
+		return s, ErrEnvTooLarge
+	}
 	s.mu.Lock()
 	s.items[k] = v
 	s.mu.Unlock()
