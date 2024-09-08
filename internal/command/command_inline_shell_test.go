@@ -73,15 +73,14 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 	})
 }
 
-func TestInlineShellCommand_LimitEnvironSize(t *testing.T) {
+func TestInlineShellCommand_MaxEnvSize(t *testing.T) {
 	t.Parallel()
 
-	const stdoutPrefix = StoreStdoutEnvName + "="
+	envName := "TEST"
+	envValue := strings.Repeat("a", MaxEnvSizeInBytes-len(envName)-1)
 
 	sess := NewSession()
-	err := sess.SetEnv(
-		stdoutPrefix + strings.Repeat("a", MaxEnvSizeInBytes-len(stdoutPrefix)),
-	)
+	err := sess.SetEnv(envName + "=" + envValue)
 	require.NoError(t, err)
 
 	cfg := &ProgramConfig{
@@ -89,7 +88,7 @@ func TestInlineShellCommand_LimitEnvironSize(t *testing.T) {
 		Source: &runnerv2.ProgramConfig_Commands{
 			Commands: &runnerv2.ProgramConfig_CommandList{
 				Items: []string{
-					"echo -n $" + StoreStdoutEnvName,
+					"echo -n $" + envName,
 				},
 			},
 		},
@@ -103,12 +102,13 @@ func TestInlineShellCommand_LimitEnvironSize(t *testing.T) {
 
 	command, err := factory.Build(cfg, CommandOptions{Session: sess, Stdout: stdout})
 	require.NoError(t, err)
+
 	err = command.Start(context.Background())
 	require.NoError(t, err)
 	err = command.Wait()
 	require.NoError(t, err)
-	expectedLen := MaxEnvSizeInBytes - len(stdoutPrefix)
-	require.Equal(t, expectedLen, stdout.Len())
+
+	assert.Equal(t, envValue, stdout.String())
 }
 
 func TestInlineShellCommand_LargeOutput(t *testing.T) {

@@ -154,7 +154,7 @@ func newExecution(
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 	lastStdout := io.Discard
 	if e.storeStdoutInEnv {
-		b := rbuffer.NewRingBuffer(command.MaxEnvironSizeInBytes)
+		b := rbuffer.NewRingBuffer(command.MaxEnvSizeInBytes)
 		defer func() {
 			_ = b.Close()
 			e.storeOutputInEnv(b)

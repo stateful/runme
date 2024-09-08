@@ -265,14 +265,14 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	assert.Contains(t, result.MimeType, "text/plain")
 }
 
-func TestRunnerServiceServerExecute_StoreLastStdoutExceedsLimit(t *testing.T) {
+func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
 	temp := t.TempDir()
-	fileName := filepath.Join(temp, "large_output.json.gzip")
-	err := os.WriteFile(fileName, testdata.Users1MGzip, 0o644)
+	fileName := filepath.Join(temp, "large_output.json")
+	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
 	require.NoError(t, err)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
@@ -337,6 +337,7 @@ func TestRunnerServiceServerExecute_StoreLastStdoutExceedsLimit(t *testing.T) {
 	expected, err := os.ReadFile(fileName)
 	require.NoError(t, err)
 	got := result2.Stdout // stdout is trimmed and should be the suffix of the complete output
+	assert.Greater(t, len(got), 0)
 	assert.True(t, bytes.HasSuffix(expected, got))
 }
 
