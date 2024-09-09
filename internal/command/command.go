@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/pkg/project"
 )
@@ -37,8 +38,9 @@ type internalCommand interface {
 
 type base struct {
 	cfg     *ProgramConfig
+	logger  *zap.Logger
 	project *project.Project
-	runtime runtime
+	runtime Runtime
 	session *Session
 	stdin   io.Reader
 	stdout  io.Writer
@@ -75,12 +77,20 @@ func (c *base) Env() []string {
 	env := c.runtime.Environ()
 
 	if c.project != nil {
-		projEnv, _ := c.project.LoadEnv()
+		projEnv, err := c.project.LoadEnv()
+		if err != nil {
+			c.logger.Warn("failed to load project env", zap.Error(err))
+		}
 		env = append(env, projEnv...)
 	}
 
 	env = append(env, c.session.GetAllEnv()...)
 	env = append(env, c.cfg.Env...)
+
+	if err := c.limitEnviron(env); err != nil {
+		c.logger.Error("environment size exceeds the limit", zap.Error(err))
+	}
+
 	return env
 }
 
@@ -102,6 +112,40 @@ func (c *base) ProgramPath() (string, []string, error) {
 	}
 
 	return c.findDefaultProgram(c.cfg.ProgramName, c.cfg.Arguments)
+}
+
+func (c *base) limitEnviron(environ []string) error {
+	const stdoutPrefix = StoreStdoutEnvName + "="
+
+	stdoutEnvIdx := -1
+	size := 0
+	for idx, e := range environ {
+		size += len(e)
+
+		if strings.HasPrefix(e, stdoutPrefix) {
+			stdoutEnvIdx = idx
+		}
+	}
+
+	if size <= MaxEnvironSizeInBytes {
+		return nil
+	}
+
+	c.logger.Warn("environment size exceeds the limit", zap.Int("size", size), zap.Int("limit", MaxEnvironSizeInBytes))
+
+	if stdoutEnvIdx == -1 {
+		return errors.New("env is too large; no stdout env to trim")
+	}
+
+	stdoutCap := MaxEnvironSizeInBytes - size + len(environ[stdoutEnvIdx])
+	if stdoutCap < 0 {
+		return errors.New("env is too large even if trimming stdout env")
+	}
+
+	key, value := splitEnv(environ[stdoutEnvIdx])
+	environ[stdoutEnvIdx] = CreateEnv(key, value[len(value)-stdoutCap:])
+
+	return nil
 }
 
 func (c *base) getEnv(key string) string {

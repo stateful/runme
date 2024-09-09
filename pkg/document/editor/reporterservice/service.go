@@ -20,8 +20,7 @@ func NewReporterServiceServer(logger *zap.Logger) reporterv1alpha1.ReporterServi
 }
 
 func (s *reporterServiceServer) Transform(ctx context.Context, req *reporterv1alpha1.TransformRequest) (*reporterv1alpha1.TransformResponse, error) {
-
-	var notebook = &parserv1.Notebook{
+	notebook := &parserv1.Notebook{
 		Metadata:    req.Notebook.Metadata,
 		Frontmatter: req.Notebook.Frontmatter,
 		Cells:       make([]*parserv1.Cell, len(req.Notebook.Cells)),

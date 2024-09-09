@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -20,10 +22,6 @@ import (
 )
 
 const (
-	// ringBufferSize limits the size of the ring buffers
-	// that sit between a command and the handler.
-	ringBufferSize = 8192 << 10 // 8 MiB
-
 	// msgBufferSize limits the size of data chunks
 	// sent by the handler to clients. It's smaller
 	// intentionally as typically the messages are
@@ -33,32 +31,87 @@ const (
 	msgBufferSize = 2048 << 10 // 2 MiB
 )
 
-// Only allow uppercase letters, digits and underscores, min three chars
-var OpininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
+var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
+
+type buffer struct {
+	mu     *sync.Mutex
+	b      *bytes.Buffer
+	closed *atomic.Bool
+	close  chan struct{}
+	more   chan struct{}
+}
+
+var _ io.WriteCloser = (*buffer)(nil)
+
+func newBuffer() *buffer {
+	return &buffer{
+		mu:     &sync.Mutex{},
+		b:      bytes.NewBuffer(make([]byte, 0, msgBufferSize)),
+		closed: &atomic.Bool{},
+		close:  make(chan struct{}),
+		more:   make(chan struct{}),
+	}
+}
+
+func (b *buffer) Write(p []byte) (int, error) {
+	if b.closed.Load() {
+		return 0, errors.New("closed")
+	}
+
+	b.mu.Lock()
+	n, err := b.b.Write(p)
+	b.mu.Unlock()
+
+	select {
+	case b.more <- struct{}{}:
+	default:
+	}
+
+	return n, err
+}
+
+func (b *buffer) Close() error {
+	if b.closed.CompareAndSwap(false, true) {
+		close(b.close)
+	}
+	return nil
+}
+
+func (b *buffer) Read(p []byte) (int, error) {
+	b.mu.Lock()
+	n, err := b.b.Read(p)
+	b.mu.Unlock()
+
+	if err != nil && errors.Is(err, io.EOF) && !b.closed.Load() {
+		select {
+		case <-b.more:
+		case <-b.close:
+			return n, io.EOF
+		}
+		return n, nil
+	}
+
+	return n, err
+}
 
 type execution struct {
-	ID        string
-	KnownName string
-	Cmd       command.Command
-
+	Cmd              command.Command
+	knownName        string
+	logger           *zap.Logger
 	session          *command.Session
+	stdin            io.Reader
+	stdinWriter      io.WriteCloser
+	stdout           *buffer
+	stderr           *buffer
 	storeStdoutInEnv bool
-
-	stdin       io.Reader
-	stdinWriter io.WriteCloser
-	stdout      *rbuffer.RingBuffer
-	stderr      *rbuffer.RingBuffer
-
-	logger *zap.Logger
 }
 
 func newExecution(
-	id string,
-	storeStdoutInEnv bool,
 	cfg *command.ProgramConfig,
 	proj *project.Project,
 	session *command.Session,
 	logger *zap.Logger,
+	storeStdoutInEnv bool,
 ) (*execution, error) {
 	cmdFactory := command.NewFactory(
 		command.WithLogger(logger),
@@ -66,8 +119,8 @@ func newExecution(
 	)
 
 	stdin, stdinWriter := io.Pipe()
-	stdout := rbuffer.NewRingBuffer(ringBufferSize)
-	stderr := rbuffer.NewRingBuffer(ringBufferSize)
+	stdout := newBuffer()
+	stderr := newBuffer()
 
 	cmdOptions := command.CommandOptions{
 		EnableEcho:  true,
@@ -84,30 +137,30 @@ func newExecution(
 	}
 
 	exec := &execution{
-		ID:        id,
-		KnownName: cfg.GetKnownName(),
-		Cmd:       cmd,
-
+		Cmd:              cmd,
+		knownName:        cfg.GetKnownName(),
+		logger:           logger,
 		session:          session,
+		stdin:            stdin,
+		stdinWriter:      stdinWriter,
+		stdout:           stdout,
+		stderr:           stderr,
 		storeStdoutInEnv: storeStdoutInEnv,
-
-		stdin:       stdin,
-		stdinWriter: stdinWriter,
-		stdout:      stdout,
-		stderr:      stderr,
-
-		logger: logger,
 	}
 
 	return exec, nil
 }
 
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
-	lastStdout := rbuffer.NewRingBuffer(command.MaxEnvironSizeInBytes)
-	defer func() {
-		_ = lastStdout.Close()
-		e.storeOutputInEnv(lastStdout)
-	}()
+	lastStdout := io.Discard
+	if e.storeStdoutInEnv {
+		b := rbuffer.NewRingBuffer(command.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
+		defer func() {
+			_ = b.Close()
+			e.storeOutputInEnv(b)
+		}()
+		lastStdout = b
+	}
 
 	firstStdoutSent := false
 	errc := make(chan error, 2)
@@ -121,7 +174,10 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 					return nil
 				}
 
-				_, _ = lastStdout.Write(b)
+				_, err := lastStdout.Write(b)
+				if err != nil {
+					e.logger.Warn("failed to write last output", zap.Error(err))
+				}
 
 				resp := &runnerv2.ExecuteResponse{StdoutData: b}
 
@@ -131,13 +187,13 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 						resp.MimeType = detected.String()
 					}
 				}
-
 				firstStdoutSent = true
 
-				e.logger.Debug("sending stdout data", zap.Any("resp", resp))
+				e.logger.Debug("sending stdout data", zap.Int("len", len(resp.StdoutData)))
 
 				return resp
 			},
+			e.logger.With(zap.String("source", "stdout")),
 		)
 	}()
 	go func() {
@@ -152,6 +208,7 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 				e.logger.Debug("sending stderr data", zap.Any("resp", resp))
 				return resp
 			},
+			e.logger.With(zap.String("source", "stderr")),
 		)
 	}()
 
@@ -259,52 +316,62 @@ func (e *execution) closeIO() {
 }
 
 func (e *execution) storeOutputInEnv(r io.Reader) {
-	if !e.storeStdoutInEnv {
+	b, err := io.ReadAll(r)
+	if err != nil {
+		e.logger.Warn("failed to read last output", zap.Error(err))
 		return
 	}
 
-	b, _ := io.ReadAll(r)
 	sanitized := bytes.ReplaceAll(b, []byte{'\000'}, nil)
-
-	if err := e.session.SetEnv("__=" + string(sanitized)); err != nil {
-		e.logger.Info("failed to store last output", zap.Error(err))
+	env := command.CreateEnv(command.StoreStdoutEnvName, string(sanitized))
+	if err := e.session.SetEnv(env); err != nil {
+		e.logger.Warn("failed to store last output", zap.Error(err))
 	}
 
-	if e.KnownName != "" && conformsOpinionatedEnvVarNaming(e.KnownName) {
-		if err := e.session.SetEnv(e.KnownName + "=" + string(sanitized)); err != nil {
-			e.logger.Info("failed to store output under known name", zap.String("known_name", e.KnownName), zap.Error(err))
+	if e.knownName != "" && matchesOpinionatedEnvVarNaming(e.knownName) {
+		if err := e.session.SetEnv(e.knownName + "=" + string(sanitized)); err != nil {
+			e.logger.Warn("failed to store output under known name", zap.String("known_name", e.knownName), zap.Error(err))
 		}
 	}
 }
 
-func conformsOpinionatedEnvVarNaming(knownName string) bool {
-	return OpininatedEnvVarNamingRegexp.MatchString(knownName)
+func matchesOpinionatedEnvVarNaming(knownName string) bool {
+	return opininatedEnvVarNamingRegexp.MatchString(knownName)
 }
 
 type sender interface {
 	Send(*runnerv2.ExecuteResponse) error
 }
 
-func readSendLoop(reader io.Reader, sender sender, fn func([]byte) *runnerv2.ExecuteResponse) error {
-	limitedReader := io.LimitReader(reader, msgBufferSize)
+func readSendLoop(
+	reader io.Reader,
+	sender sender,
+	fn func([]byte) *runnerv2.ExecuteResponse,
+	logger *zap.Logger,
+) error {
+	buf := make([]byte, msgBufferSize)
 
 	for {
-		buf := make([]byte, msgBufferSize)
-		n, err := limitedReader.Read(buf)
+		eof := false
+		n, err := reader.Read(buf)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil
+			if !errors.Is(err, io.EOF) {
+				return errors.WithStack(err)
 			}
-			return errors.WithStack(err)
+			eof = true
 		}
-		if n == 0 {
-			continue
+
+		logger.Info("readSendLoop", zap.Int("n", n))
+
+		if n == 0 && eof {
+			return nil
 		}
 
 		msg := fn(buf[:n])
 		if msg == nil {
-			return nil
+			continue
 		}
+
 		err = sender.Send(msg)
 		if err != nil {
 			return errors.WithStack(err)

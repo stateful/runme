@@ -231,11 +231,12 @@ func isNil(val any) bool {
 
 	v := reflect.ValueOf(val)
 
-	if v.Type().Kind() == reflect.Struct {
+	switch v.Type().Kind() {
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Pointer, reflect.UnsafePointer:
+		return v.IsNil()
+	default:
 		return false
 	}
-
-	return reflect.ValueOf(val).IsNil()
 }
 
 // readCloser wraps [io.Reader] into [io.ReadCloser].

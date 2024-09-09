@@ -7,6 +7,8 @@ import (
 	"context"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -20,6 +22,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/command/testdata"
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
@@ -49,34 +52,34 @@ func Test_conformsOpinionatedEnvVarNaming(t *testing.T) {
 	t.Parallel()
 
 	t.Run("valid", func(t *testing.T) {
-		assert.True(t, conformsOpinionatedEnvVarNaming("TEST"))
-		assert.True(t, conformsOpinionatedEnvVarNaming("ABC"))
-		assert.True(t, conformsOpinionatedEnvVarNaming("TEST_ABC"))
-		assert.True(t, conformsOpinionatedEnvVarNaming("ABC_123"))
+		assert.True(t, matchesOpinionatedEnvVarNaming("TEST"))
+		assert.True(t, matchesOpinionatedEnvVarNaming("ABC"))
+		assert.True(t, matchesOpinionatedEnvVarNaming("TEST_ABC"))
+		assert.True(t, matchesOpinionatedEnvVarNaming("ABC_123"))
 	})
 
 	t.Run("lowercase is invalid", func(t *testing.T) {
-		assert.False(t, conformsOpinionatedEnvVarNaming("test"))
-		assert.False(t, conformsOpinionatedEnvVarNaming("abc"))
-		assert.False(t, conformsOpinionatedEnvVarNaming("test_abc"))
-		assert.False(t, conformsOpinionatedEnvVarNaming("abc_123"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("test"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("abc"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("test_abc"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("abc_123"))
 	})
 
 	t.Run("too short", func(t *testing.T) {
-		assert.False(t, conformsOpinionatedEnvVarNaming("AB"))
-		assert.False(t, conformsOpinionatedEnvVarNaming("T"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("AB"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("T"))
 	})
 
 	t.Run("numbers only is invalid", func(t *testing.T) {
-		assert.False(t, conformsOpinionatedEnvVarNaming("123"))
-		assert.False(t, conformsOpinionatedEnvVarNaming("8761123"))
-		assert.False(t, conformsOpinionatedEnvVarNaming("138761123"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("123"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("8761123"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("138761123"))
 	})
 
 	t.Run("invalid characters", func(t *testing.T) {
-		assert.False(t, conformsOpinionatedEnvVarNaming("ABC_%^!"))
-		assert.False(t, conformsOpinionatedEnvVarNaming("&^%$"))
-		assert.False(t, conformsOpinionatedEnvVarNaming("A@#$%"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("ABC_%^!"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("&^%$"))
+		assert.False(t, matchesOpinionatedEnvVarNaming("A@#$%"))
 	})
 }
 
@@ -260,6 +263,122 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	assert.EqualValues(t, 0, result.ExitCode)
 	assert.Equal(t, "test\n", string(result.Stdout))
 	assert.Contains(t, result.MimeType, "text/plain")
+}
+
+func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
+	temp := t.TempDir()
+	fileName := filepath.Join(temp, "large_output.json")
+	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
+	require.NoError(t, err)
+
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, sessionResp.Session)
+
+	stream1, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult1 := make(chan executeResult)
+	go getExecuteResult(stream1, execResult1)
+
+	req1 := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
+					Items: []string{
+						"cat " + fileName,
+					},
+				},
+			},
+		},
+		SessionId:        sessionResp.GetSession().GetId(),
+		StoreStdoutInEnv: true,
+	}
+
+	err = stream1.Send(req1)
+	assert.NoError(t, err)
+
+	result1 := <-execResult1
+	assert.NoError(t, result1.Err)
+	assert.EqualValues(t, 0, result1.ExitCode)
+
+	// subsequent req to check last stored value
+	stream2, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult2 := make(chan executeResult)
+	go getExecuteResult(stream2, execResult2)
+
+	req2 := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
+					Items: []string{
+						"echo -n $" + command.StoreStdoutEnvName,
+					},
+				},
+			},
+		},
+		SessionId: sessionResp.GetSession().GetId(),
+	}
+
+	err = stream2.Send(req2)
+	assert.NoError(t, err)
+
+	result2 := <-execResult2
+	assert.NoError(t, result2.Err)
+	assert.EqualValues(t, 0, result2.ExitCode)
+
+	expected, err := os.ReadFile(fileName)
+	require.NoError(t, err)
+	got := result2.Stdout // stdout is trimmed and should be the suffix of the complete output
+	assert.Greater(t, len(got), 0)
+	assert.True(t, bytes.HasSuffix(expected, got))
+}
+
+func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
+	temp := t.TempDir()
+	fileName := filepath.Join(temp, "large_output.json")
+	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
+	require.NoError(t, err)
+
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	stream, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	execResult := make(chan executeResult)
+	go getExecuteResult(stream, execResult)
+
+	req := &runnerv2.ExecuteRequest{
+		Config: &runnerv2.ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
+					Items: []string{
+						"cat " + fileName,
+					},
+				},
+			},
+		},
+	}
+	err = stream.Send(req)
+	assert.NoError(t, err)
+
+	result := <-execResult
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+	fileSize, err := os.Stat(fileName)
+	assert.NoError(t, err)
+	assert.EqualValues(t, fileSize.Size(), len(result.Stdout))
 }
 
 func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {

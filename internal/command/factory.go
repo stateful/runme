@@ -67,6 +67,12 @@ func WithProject(proj *project.Project) FactoryOption {
 	}
 }
 
+func WithRuntime(r Runtime) FactoryOption {
+	return func(f *commandFactory) {
+		f.runtime = r
+	}
+}
+
 func NewFactory(opts ...FactoryOption) Factory {
 	f := &commandFactory{}
 	for _, opt := range opts {
@@ -80,6 +86,7 @@ type commandFactory struct {
 	docker  *dockerexec.Docker
 	logger  *zap.Logger
 	project *project.Project
+	runtime Runtime
 }
 
 // Build creates a new command based on the provided [ProgramConfig] and [CommandOptions].
@@ -185,15 +192,17 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 }
 
 func (f *commandFactory) buildBase(cfg *ProgramConfig, opts CommandOptions) *base {
-	var runtime runtime
-	if f.docker != nil {
+	runtime := f.runtime
+
+	if isNil(runtime) && f.docker != nil {
 		runtime = &dockerRuntime{Docker: f.docker}
-	} else {
-		runtime = &hostRuntime{}
+	} else if isNil(runtime) {
+		runtime = &hostRuntime{useSystem: true}
 	}
 
 	return &base{
 		cfg:     cfg,
+		logger:  f.getLogger("Base"),
 		project: f.project,
 		runtime: runtime,
 		session: opts.Session,

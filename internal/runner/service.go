@@ -524,7 +524,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	if storeStdout {
-		err := sess.SetEnv(ctx, "__", string(stdoutMem))
+		err := sess.SetEnv(ctx, commandpkg.StoreStdoutEnvName, string(stdoutMem))
 		if err != nil {
 			logger.Sugar().Errorf("%v", err)
 		}

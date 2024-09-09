@@ -5,6 +5,16 @@ import (
 	"io"
 )
 
+const StoreStdoutEnvName = "__"
+
+func CreateEnv(key, value string) string {
+	return createEnv(key, value)
+}
+
+func createEnv(key, value string) string {
+	return key + "=" + value
+}
+
 func setOnShell(shell io.Writer, prePath, postPath string) error {
 	var err error
 
