@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	MaxEnvironSizeInBytes = 1024*1024 - 1024
-	MaxEnvSizeInBytes     = MaxEnvironSizeInBytes
+	MaxEnvSizeInBytes     = 128*1024 - 128
+	MaxEnvironSizeInBytes = MaxEnvSizeInBytes * 8
 )
 
 var ErrEnvTooLarge = errors.New("env too large")

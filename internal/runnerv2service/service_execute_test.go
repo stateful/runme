@@ -266,14 +266,14 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
-	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
-
 	temp := t.TempDir()
 	fileName := filepath.Join(temp, "large_output.json")
 	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
 	require.NoError(t, err)
+
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -334,6 +334,7 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 	result2 := <-execResult2
 	assert.NoError(t, result2.Err)
 	assert.EqualValues(t, 0, result2.ExitCode)
+
 	expected, err := os.ReadFile(fileName)
 	require.NoError(t, err)
 	got := result2.Stdout // stdout is trimmed and should be the suffix of the complete output
@@ -343,8 +344,8 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 
 func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
 	temp := t.TempDir()
-	fileName := filepath.Join(temp, "large_output.json.gzip")
-	err := os.WriteFile(fileName, testdata.Users1MGzip, 0o644)
+	fileName := filepath.Join(temp, "large_output.json")
+	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
 	require.NoError(t, err)
 
 	lis, stop := testStartRunnerServiceServer(t)

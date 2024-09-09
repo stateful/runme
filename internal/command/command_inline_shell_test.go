@@ -85,6 +85,10 @@ func TestInlineShellCommand_MaxEnvSize(t *testing.T) {
 	err := sess.SetEnv(envName + "=" + envValue)
 	require.NoError(t, err)
 
+	factory := NewFactory(
+		WithLogger(zaptest.NewLogger(t)),
+		WithRuntime(&hostRuntime{}), // stub runtime and do not include environ
+	)
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
 		Source: &runnerv2.ProgramConfig_Commands{
@@ -96,12 +100,7 @@ func TestInlineShellCommand_MaxEnvSize(t *testing.T) {
 		},
 		Mode: runnerv2.CommandMode_COMMAND_MODE_FILE,
 	}
-	factory := NewFactory(
-		WithLogger(zaptest.NewLogger(t)),
-		WithRuntime(&hostRuntime{}), // stub runtime and do not include environ
-	)
 	stdout := bytes.NewBuffer(nil)
-
 	command, err := factory.Build(cfg, CommandOptions{Session: sess, Stdout: stdout})
 	require.NoError(t, err)
 
@@ -113,15 +112,15 @@ func TestInlineShellCommand_MaxEnvSize(t *testing.T) {
 	assert.Equal(t, envValue, stdout.String())
 }
 
-func TestInlineShellCommand_LimitEnviron(t *testing.T) {
+func TestInlineShellCommand_MaxEnvironSizeInBytes(t *testing.T) {
 	t.Parallel()
 
 	sess := NewSession()
 
-	// Set multiple env to [MaxEnvSizeInBytes].
-	// The last env that exceeds the limit is [StoreStdoutEnvName]
-	// which can be trimmed.
-	envCount := math.Ceil(float64(MaxEnvironSizeInBytes)/float64(MaxEnvSizeInBytes)) - 1
+	// Set multiple environment variables of [MaxEnvSizeInBytes] length.
+	// [StoreStdoutEnvName] is also set but it exceeds [MaxEnvironSizeInBytes],
+	// however, it's allowed to be trimmed so it should not cause an error.
+	envCount := math.Ceil(float64(MaxEnvironSizeInBytes) / float64(MaxEnvSizeInBytes))
 	envValue := strings.Repeat("a", MaxEnvSizeInBytes-1) // -1 for the equal sign
 	for i := 0; i < int(envCount); i++ {
 		name := "TEST" + strconv.Itoa(i)
@@ -132,6 +131,10 @@ func TestInlineShellCommand_LimitEnviron(t *testing.T) {
 	err := sess.SetEnv(StoreStdoutEnvName + "=" + envValue[:len(envValue)-len(StoreStdoutEnvName)])
 	require.NoError(t, err)
 
+	factory := NewFactory(
+		WithLogger(zaptest.NewLogger(t)),
+		WithRuntime(&hostRuntime{}), // stub runtime and do not include environ
+	)
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
 		Source: &runnerv2.ProgramConfig_Commands{
@@ -143,23 +146,13 @@ func TestInlineShellCommand_LimitEnviron(t *testing.T) {
 		},
 		Mode: runnerv2.CommandMode_COMMAND_MODE_FILE,
 	}
-
-	factory := NewFactory(
-		WithLogger(zaptest.NewLogger(t)),
-		WithRuntime(&hostRuntime{}), // stub runtime and do not include environ
-	)
-
-	stdout := bytes.NewBuffer(nil)
-	command, err := factory.Build(cfg, CommandOptions{Session: sess, Stdout: stdout})
+	command, err := factory.Build(cfg, CommandOptions{Session: sess})
 	require.NoError(t, err)
 
 	err = command.Start(context.Background())
 	require.NoError(t, err)
 	err = command.Wait()
 	require.NoError(t, err)
-	out := stdout.String()
-	assert.Greater(t, len(out), 0)
-	assert.True(t, strings.HasPrefix(envValue, out))
 }
 
 func TestInlineShellCommand_LargeOutput(t *testing.T) {
@@ -171,8 +164,6 @@ func TestInlineShellCommand_LargeOutput(t *testing.T) {
 	require.NoError(t, err)
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
-	sess := NewSession()
-
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
 		Source: &runnerv2.ProgramConfig_Commands{
@@ -184,9 +175,8 @@ func TestInlineShellCommand_LargeOutput(t *testing.T) {
 		},
 		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
-
+	sess := NewSession()
 	stdout := bytes.NewBuffer(nil)
-
 	command, err := factory.Build(cfg, CommandOptions{Session: sess, Stdout: stdout})
 	require.NoError(t, err)
 

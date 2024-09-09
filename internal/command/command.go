@@ -137,7 +137,7 @@ func (c *base) limitEnviron(env []string) error {
 		return errors.New("env is too large")
 	}
 
-	stdoutCap := MaxEnvironSizeInBytes - size + len(env[stdoutIdx]) - len(stdoutPrefix)
+	stdoutCap := MaxEnvironSizeInBytes - size + len(env[stdoutIdx])
 	if stdoutCap < 0 {
 		return errors.New("env is too large")
 	}
