@@ -114,16 +114,16 @@ func (c *base) ProgramPath() (string, []string, error) {
 	return c.findDefaultProgram(c.cfg.ProgramName, c.cfg.Arguments)
 }
 
-func (c *base) limitEnviron(env []string) error {
+func (c *base) limitEnviron(environ []string) error {
 	const stdoutPrefix = StoreStdoutEnvName + "="
 
+	stdoutEnvIdx := -1
 	size := 0
-	stdoutIdx := -1
-	for idx, e := range env {
+	for idx, e := range environ {
 		size += len(e)
 
 		if strings.HasPrefix(e, stdoutPrefix) {
-			stdoutIdx = idx
+			stdoutEnvIdx = idx
 		}
 	}
 
@@ -133,17 +133,17 @@ func (c *base) limitEnviron(env []string) error {
 
 	c.logger.Warn("environment size exceeds the limit", zap.Int("size", size), zap.Int("limit", MaxEnvironSizeInBytes))
 
-	if stdoutIdx == -1 {
-		return errors.New("env is too large")
+	if stdoutEnvIdx == -1 {
+		return errors.New("env is too large; no stdout env to trim")
 	}
 
-	stdoutCap := MaxEnvironSizeInBytes - size + len(env[stdoutIdx])
+	stdoutCap := MaxEnvironSizeInBytes - size + len(environ[stdoutEnvIdx])
 	if stdoutCap < 0 {
-		return errors.New("env is too large")
+		return errors.New("env is too large even if trimming stdout env")
 	}
 
-	key, value := splitEnv(env[stdoutIdx])
-	env[stdoutIdx] = key + "=" + value[len(value)-stdoutCap:]
+	key, value := splitEnv(environ[stdoutEnvIdx])
+	environ[stdoutEnvIdx] = CreateEnv(key, value[len(value)-stdoutCap:])
 
 	return nil
 }

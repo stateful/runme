@@ -320,7 +320,7 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 			Source: &runnerv2.ProgramConfig_Commands{
 				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
-						"echo -n $__",
+						"echo -n $" + command.StoreStdoutEnvName,
 					},
 				},
 			},

@@ -78,11 +78,11 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 func TestInlineShellCommand_MaxEnvSize(t *testing.T) {
 	t.Parallel()
 
-	envName := "TEST"
-	envValue := strings.Repeat("a", MaxEnvSizeInBytes-len(envName)-1)
-
 	sess := NewSession()
-	err := sess.SetEnv(envName + "=" + envValue)
+
+	envName := "TEST"
+	envValue := strings.Repeat("a", MaxEnvSizeInBytes-len(envName)-1) // -1 for the "=" sign
+	err := sess.SetEnv(createEnv(envName, envValue))
 	require.NoError(t, err)
 
 	factory := NewFactory(
@@ -125,10 +125,10 @@ func TestInlineShellCommand_MaxEnvironSizeInBytes(t *testing.T) {
 	for i := 0; i < int(envCount); i++ {
 		name := "TEST" + strconv.Itoa(i)
 		value := envValue[:len(envValue)-len(name)]
-		err := sess.SetEnv(name + "=" + value)
+		err := sess.SetEnv(createEnv(name, value))
 		require.NoError(t, err)
 	}
-	err := sess.SetEnv(StoreStdoutEnvName + "=" + envValue[:len(envValue)-len(StoreStdoutEnvName)])
+	err := sess.SetEnv(createEnv(StoreStdoutEnvName, envValue[:len(envValue)-len(StoreStdoutEnvName)]))
 	require.NoError(t, err)
 
 	factory := NewFactory(
@@ -159,8 +159,8 @@ func TestInlineShellCommand_LargeOutput(t *testing.T) {
 	t.Parallel()
 
 	temp := t.TempDir()
-	fileName := filepath.Join(temp, "large_output.json.gzip")
-	err := os.WriteFile(fileName, testdata.Users1MGzip, 0o644)
+	fileName := filepath.Join(temp, "large_output.json")
+	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
 	require.NoError(t, err)
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
@@ -185,8 +185,10 @@ func TestInlineShellCommand_LargeOutput(t *testing.T) {
 	err = command.Wait()
 	require.NoError(t, err)
 
+	expected, err := os.ReadFile(fileName)
 	require.NoError(t, err)
-	assert.EqualValues(t, testdata.Users1MGzip, stdout.Bytes())
+	got := stdout.Bytes()
+	assert.EqualValues(t, expected, got)
 }
 
 func testInlineShellCommandCollectEnv(t *testing.T) {
