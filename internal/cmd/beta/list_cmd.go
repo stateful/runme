@@ -107,7 +107,11 @@ func renderTasksAsTableForCmd(cmd *cobra.Command, tasks []project.Task) error {
 			named = "No"
 		}
 
-		table.AddField(task.CodeBlock.Name())
+		name := task.CodeBlock.Name()
+		if !task.CodeBlock.ExcludeFromRunAll() {
+			name = name + "*"
+		}
+		table.AddField(name)
 		table.AddField(project.GetRelativePath(getCwd(), task.DocumentPath))
 		table.AddField(renderLineFromLines(task.CodeBlock.Lines()))
 		table.AddField(task.CodeBlock.Intro())
