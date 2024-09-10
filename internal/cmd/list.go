@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -70,7 +71,14 @@ func listCmd() *cobra.Command {
 				rows = append(rows, r)
 			}
 			if !formatJSON {
-				return displayTable(io, rows)
+				err := displayTable(io, rows)
+
+				if !io.IsStderrTTY() {
+					return err
+				}
+
+				_, _ = fmt.Fprintf(io.ErrOut, "\n*) Included when running all via \"run --all\"\n")
+				return err
 			}
 
 			return displayJSON(io, rows)
