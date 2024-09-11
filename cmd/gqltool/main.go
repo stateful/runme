@@ -7,16 +7,13 @@ import (
 	"log" // revive:disable-line
 	"os"
 
-	"github.com/stateful/runme/v3/internal/auth"
 	"github.com/stateful/runme/v3/internal/client"
 	"github.com/stateful/runme/v3/internal/client/graphql"
-	"github.com/stateful/runme/v3/internal/cmd"
-	"golang.org/x/oauth2"
 )
 
 var (
-	apiURL   = flag.String("api-url", "https://api.stateful.com", "The API base address")
-	tokenDir = flag.String("token-dir", cmd.GetUserConfigHome(), "The directory with tokens")
+	apiURL = flag.String("api-url", "http://localhost:4000", "The API base address")
+	// tokenDir = flag.String("token-dir", cmd.GetUserConfigHome(), "The directory with tokens")
 )
 
 func init() {
@@ -24,10 +21,11 @@ func init() {
 }
 
 func main() {
-	httpClient := client.NewHTTPClient(nil, client.WithTokenGetter(func() (string, error) {
-		a := auth.New(oauth2.Config{}, *apiURL, &auth.DiskStorage{Location: *tokenDir})
-		return a.GetToken(context.Background())
-	}))
+	// httpClient := client.NewHTTPClient(nil, client.WithTokenGetter(func() (string, error) {
+	// 	a := auth.New(oauth2.Config{}, *apiURL, &auth.DiskStorage{Location: *tokenDir})
+	// 	return a.GetToken(context.Background())
+	// }))
+	httpClient := client.NewHTTPClient(nil)
 	client, err := graphql.New(*apiURL+"/graphql", httpClient)
 	if err != nil {
 		log.Fatal(err)

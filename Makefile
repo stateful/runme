@@ -159,8 +159,8 @@ release/publish: install/goreleaser
 
 .PHONY: update-gql-schema
 update-gql-schema:
-	@go run ./cmd/gqltool/main.go > ./client/graphql/schema/introspection_query_result.json
-	@cd ./client/graphql/schema && npm run convert
+	@go run ./cmd/gqltool/main.go > ./internal/client/graphql/schema/introspection_query_result.json
+	@cd ./internal/client/graphql/schema && npm run convert
 
 .PHONY: generate
 generate:

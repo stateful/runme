@@ -334,7 +334,7 @@ func setRunnerFlags(cmd *cobra.Command, serverAddr *string) func() ([]client.Run
 	return getRunOpts
 }
 
-type runFunc func(context.Context) error
+type RunFunc func(context.Context) error
 
 var defaultTLSDir = filepath.Join(GetUserConfigHome(), "tls")
 
