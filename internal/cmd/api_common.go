@@ -6,16 +6,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/henvic/httpretty"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stateful/runme/v3/internal/auth"
 	"github.com/stateful/runme/v3/internal/client"
-	"github.com/stateful/runme/v3/internal/client/graphql/query"
 	"github.com/stateful/runme/v3/internal/log"
 	"github.com/stateful/runme/v3/internal/version"
 	"golang.org/x/oauth2"
@@ -125,7 +122,7 @@ func newAuth() auth.Authorizer {
 	}
 }
 
-func newAPIClient(ctx context.Context, auth auth.Authorizer) *http.Client {
+func NewAPIClient(ctx context.Context, auth auth.Authorizer) *http.Client {
 	opts := []client.Option{
 		client.WithTokenGetter(func() (string, error) {
 			return auth.GetToken(ctx)
@@ -177,7 +174,7 @@ func newAuthClient() *http.Client {
 	return client.NewHTTPClient(nil, opts...)
 }
 
-func graphqlEndpoint() string {
+func GraphqlEndpoint() string {
 	return getAPIURL() + "/graphql"
 }
 
@@ -206,17 +203,4 @@ func recoverableWithLogin(err error) bool {
 		return false
 	}
 	return errors.Is(err, auth.ErrNotFound)
-}
-
-func trackInputFromCmd(cmd *cobra.Command, args []string) query.TrackInput {
-	fragments := append([]string{"cli", "command"}, strings.Split(cmd.CommandPath(), " ")...)
-	fragments = append(fragments, args...)
-
-	return query.TrackInput{
-		Events: []query.TrackEvent{
-			{
-				Event: strings.Join(fragments, "/"),
-			},
-		},
-	}
 }
