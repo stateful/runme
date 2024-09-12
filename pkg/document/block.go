@@ -102,12 +102,16 @@ func (b *CodeBlock) Background() bool {
 	return val
 }
 
-func (b *CodeBlock) Categories() []string {
-	cat, ok := b.Attributes()["category"]
+func (b *CodeBlock) Tags() []string {
+	tag, ok := b.Attributes()["category"]
+	if !ok {
+		tag, ok = b.Attributes()["tag"]
+	}
+
 	if !ok {
 		return nil
 	}
-	return strings.Split(cat, ",")
+	return strings.Split(tag, ",")
 }
 
 func (b *CodeBlock) Clone() *CodeBlock {

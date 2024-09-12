@@ -128,6 +128,7 @@ type Frontmatter {
 	runme: FrontmatterRunme
 	category: String
 	terminalRows: String
+	tag: String
 }
 input FrontmatterInput {
 	shell: String
@@ -136,6 +137,7 @@ input FrontmatterInput {
 	runme: FrontmatterRunmeInput
 	category: String
 	terminalRows: String
+	tag: String
 }
 type FrontmatterRunme {
 	id: String

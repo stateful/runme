@@ -27,12 +27,12 @@ func listCmd(*commonFlags) *cobra.Command {
 		Long: `List commands by optionally providing their names delimited by space.
 The names are interpreted as glob patterns.
 
-The --category option additionally filters the list of tasks to execute by category.`,
+The --tag option additionally filters the list of tasks to execute by tag.`,
 		Example: `List all blocks starting with the "generate-" prefix:
   runme beta list "generate-*"
 
-List all blocks from the "setup" and "teardown" categories:
-  runme beta list --category=setup,teardown
+List all blocks from the "setup" and "teardown" tags:
+  runme beta list --tag=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.InvokeForCommand(

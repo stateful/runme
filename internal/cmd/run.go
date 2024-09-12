@@ -43,6 +43,7 @@ func runCmd() *cobra.Command {
 		replaceScripts        []string
 		serverAddr            string
 		cmdCategories         []string
+		cmdTags               []string
 		getRunnerOpts         func() ([]client.RunnerOption, error)
 		runIndex              int
 	)
@@ -57,7 +58,11 @@ func runCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runWithIndex := fFileMode && runIndex >= 0
 
-			runMany := runAll || (len(cmdCategories) > 0 && len(args) == 0)
+			if len(cmdCategories) > 0 {
+				cmdTags = append(cmdTags, cmdCategories...)
+			}
+
+			runMany := runAll || (len(cmdTags) > 0 && len(args) == 0)
 			if !runMany && len(args) == 0 && !runWithIndex {
 				return errors.New("must provide at least one command to run")
 			}
@@ -87,35 +92,35 @@ func runCmd() *cobra.Command {
 						block := task.CodeBlock
 
 						// Check if to run all and if the block should be excluded
-						if runAll && len(cmdCategories) == 0 && block.ExcludeFromRunAll() {
+						if runAll && len(cmdTags) == 0 && block.ExcludeFromRunAll() {
 							// Skip the task if it should be excluded from run all
 							continue
 						}
 
 						// Check if categories are specified and if the block should be excluded
-						if len(cmdCategories) > 0 && block.ExcludeFromRunAll() {
+						if len(cmdTags) > 0 && block.ExcludeFromRunAll() {
 							// Skip the task if it should be excluded based on categories
 							continue
 						}
 
-						// Check if the block matches any of the specified categories
-						if len(cmdCategories) > 0 {
-							blockCategories := block.Categories()
+						// Check if the block matches any of the specified tags
+						if len(cmdTags) > 0 {
+							blockTags := block.Tags()
 							fm := block.Document().Frontmatter()
-							fmCategories := resolveFrontmatterCategories(fm)
+							fmTags := resolveFrontmatterTags(fm)
 							match := false
-							if len(fmCategories) > 0 && containsCategories(fmCategories, cmdCategories) {
-								if len(blockCategories) == 0 {
+							if len(fmTags) > 0 && containsCategories(fmTags, cmdTags) {
+								if len(blockTags) == 0 {
 									match = true
 								} else {
-									match = containsCategories(fmCategories, blockCategories)
+									match = containsCategories(fmTags, blockTags)
 								}
-							} else if containsCategories(blockCategories, cmdCategories) {
+							} else if containsCategories(blockTags, cmdTags) {
 								match = true
 							}
 
 							if !match {
-								// Skip the task if it doesn't match any specified category
+								// Skip the task if it doesn't match any specified tags
 								continue
 							}
 						}
@@ -150,7 +155,7 @@ func runCmd() *cobra.Command {
 			}
 
 			if len(runTasks) == 0 {
-				return errors.New("No tasks to execute with the category provided")
+				return errors.New("No tasks to execute with the tag provided")
 			}
 
 			ctx, cancel := ctxWithSigCancel(cmd.Context())
@@ -205,7 +210,7 @@ func runCmd() *cobra.Command {
 				}
 
 				if runMany {
-					err := confirmExecution(cmd, len(runTasks), parallel, cmdCategories)
+					err := confirmExecution(cmd, len(runTasks), parallel, cmdTags)
 					if err != nil {
 						return err
 					}
@@ -233,8 +238,8 @@ func runCmd() *cobra.Command {
 					if runMany && parallel {
 						scriptRunText = "Running"
 						blockNames = []string{blockColor.Sprint("all tasks")}
-						if len(cmdCategories) > 0 {
-							blockNames = []string{blockColor.Sprintf("tasks for categories %s", cmdCategories)}
+						if len(cmdTags) > 0 {
+							blockNames = []string{blockColor.Sprintf("tasks for tag %s", cmdTags)}
 						}
 					}
 
@@ -314,7 +319,9 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
 	cmd.Flags().BoolVar(&skipPrompts, "skip-prompts", false, "Skip prompting for variables.")
 	cmd.Flags().StringArrayVarP(&cmdCategories, "category", "c", nil, "Run from a specific category.")
+	cmd.Flags().StringArrayVarP(&cmdTags, "tag", "t", nil, "Run from a specific tag.")
 	cmd.Flags().IntVarP(&runIndex, "index", "i", -1, "Index of command to run, 0-based. (Ignored in project mode)")
+	_ = cmd.Flags().MarkDeprecated("category", "use --tag instead")
 	cmd.PreRun = func(cmd *cobra.Command, args []string) {
 		skipPromptsExplicitly = cmd.Flags().Changed("skip-prompts")
 	}
@@ -619,11 +626,21 @@ func confirmExecution(cmd *cobra.Command, numTasks int, parallel bool, categorie
 	return nil
 }
 
-func resolveFrontmatterCategories(fm *document.Frontmatter) []string {
-	if fm != nil && fm.Category != "" {
-		return []string{fm.Category}
+func resolveFrontmatterTags(fm *document.Frontmatter) []string {
+	if fm == nil {
+		return []string{}
 	}
-	return []string{}
+
+	tags := []string{}
+	if fm.Tag != "" {
+		tags = append(tags, fm.Tag)
+	}
+
+	if fm.Category != "" {
+		tags = append(tags, fm.Category)
+	}
+
+	return tags
 }
 
 func containsCategories(s1 []string, s2 []string) bool {

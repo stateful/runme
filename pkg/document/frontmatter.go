@@ -58,6 +58,7 @@ type Frontmatter struct {
 	Shell        string         `yaml:"shell"`
 	Cwd          string         `yaml:"cwd"`
 	Category     string         `yaml:"category"`
+	Tag          string         `yaml:"tag"`
 	TerminalRows string         `yaml:"terminalRows"`
 	SkipPrompts  bool           `yaml:"skipPrompts,omitempty"`
 

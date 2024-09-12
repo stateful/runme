@@ -24,12 +24,12 @@ The names are interpreted as glob patterns.
 
 In the case of multiple commands, they are executed one-by-one in the order they appear in the document.
 
-The --category option additionally filters the list of tasks to execute by category.`,
+The --tag option additionally filters the list of tasks to execute by tag.`,
 		Example: `Run all blocks starting with the "generate-" prefix:
   runme beta run "generate-*"
 
-Run all blocks from the "setup" and "teardown" categories:
-  runme beta run --category=setup,teardown
+Run all blocks from the "setup" and "teardown" tags:
+  runme beta run --tag=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.InvokeForCommand(

@@ -14,6 +14,7 @@ import (
 
 type commonFlags struct {
 	categories []string
+	tags       []string
 	filename   string
 	insecure   bool
 	silent     bool
@@ -69,9 +70,11 @@ All commands use the runme.yaml configuration file.`,
 	// to alter the configuration file.
 	pFlags := cmd.PersistentFlags()
 	pFlags.StringSliceVar(&cFlags.categories, "category", nil, "Run blocks only from listed categories.")
+	pFlags.StringSliceVar(&cFlags.tags, "tag", nil, "Run blocks only from listed categories.")
 	pFlags.StringVar(&cFlags.filename, "filename", "", "Name of the Markdown file to run blocks from.")
 	pFlags.BoolVar(&cFlags.insecure, "insecure", false, "Explicitly allow delicate operations to prevent misuse")
 	pFlags.BoolVar(&cFlags.silent, "silent", false, "Silent mode. Do not print error messages.")
+	_ = pFlags.MarkDeprecated("category", "use --tag instead")
 
 	// Hide all persistent flags from the root command.
 	// "beta" is a completely different set of commands and
