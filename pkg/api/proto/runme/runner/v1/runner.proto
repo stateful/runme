@@ -255,6 +255,9 @@ message ResolveProgramRequest {
   // project used to load environment variables from .env files.
   optional Project project = 7;
 
+  // language id associated with script
+  string language_id = 8;
+
   enum Mode {
     // unspecified is auto (default) which prompts for all
     // unresolved environment variables.

@@ -67,7 +67,7 @@ func (b *configBuilder) programPath() (programPath string) {
 	language := b.block.Language()
 
 	// If the language is a shell language, check frontmatter for shell overwrite.
-	if isShellLanguage(language) {
+	if IsShellLanguage(language) {
 		doc := b.block.Document()
 		fmtr, err := doc.FrontmatterWithError()
 		if err == nil && fmtr != nil && fmtr.Shell != "" {
