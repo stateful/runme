@@ -25,7 +25,8 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 		{
 			name: "WithScript",
 			request: &runnerv2.ResolveProgramRequest{
-				Env: []string{"TEST_RESOLVED=value"},
+				Env:        []string{"TEST_RESOLVED=value"},
+				LanguageId: "bash",
 				Source: &runnerv2.ResolveProgramRequest_Script{
 					Script: "export TEST_RESOLVED=default\nexport TEST_UNRESOLVED",
 				},
@@ -34,7 +35,8 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 		{
 			name: "WithCommands",
 			request: &runnerv2.ResolveProgramRequest{
-				Env: []string{"TEST_RESOLVED=value"},
+				Env:        []string{"TEST_RESOLVED=value"},
+				LanguageId: "bash",
 				Source: &runnerv2.ResolveProgramRequest_Commands{
 					Commands: &runnerv2.ResolveProgramCommandList{
 						Lines: []string{"export TEST_RESOLVED=default", "export TEST_UNRESOLVED"},
@@ -45,7 +47,8 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 		{
 			name: "WithAdditionalEnv",
 			request: &runnerv2.ResolveProgramRequest{
-				Env: []string{"TEST_RESOLVED=value", "TEST_EXTRA=value"},
+				Env:        []string{"TEST_RESOLVED=value", "TEST_EXTRA=value"},
+				LanguageId: "bash",
 				Source: &runnerv2.ResolveProgramRequest_Commands{
 					Commands: &runnerv2.ResolveProgramCommandList{
 						Lines: []string{"export TEST_RESOLVED=default", "export TEST_UNRESOLVED"},
@@ -93,7 +96,8 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 	_, client := testCreateRunnerServiceClient(t, lis)
 
 	request := &runnerv2.ResolveProgramRequest{
-		Env: []string{"FILE_NAME=my-file.txt"},
+		Env:        []string{"FILE_NAME=my-file.txt"},
+		LanguageId: "bash",
 		Source: &runnerv2.ResolveProgramRequest_Commands{
 			Commands: &runnerv2.ResolveProgramCommandList{
 				Lines: []string{
@@ -136,4 +140,41 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 		},
 		resp.Commands.Lines,
 	)
+}
+
+func TestRunnerResolveProgram_OnlyShellLanguages(t *testing.T) {
+	lis, stop := testStartRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testCreateRunnerServiceClient(t, lis)
+
+	t.Run("Javascript passed as script", func(t *testing.T) {
+		script := "console.log('test');"
+		request := &runnerv2.ResolveProgramRequest{
+			Env:        []string{"TEST_RESOLVED=value"},
+			LanguageId: "javascript",
+			Source: &runnerv2.ResolveProgramRequest_Script{
+				Script: script,
+			},
+		}
+
+		resp, err := client.ResolveProgram(context.Background(), request)
+		require.NoError(t, err)
+		require.Len(t, resp.Vars, 0)
+		require.Equal(t, script, resp.Script)
+	})
+
+	t.Run("Python passed as commands", func(t *testing.T) {
+		script := "print('test')"
+		request := &runnerv2.ResolveProgramRequest{
+			LanguageId: "py",
+			Source: &runnerv2.ResolveProgramRequest_Commands{
+				Commands: &runnerv2.ResolveProgramCommandList{Lines: []string{script}},
+			},
+		}
+
+		resp, err := client.ResolveProgram(context.Background(), request)
+		require.NoError(t, err)
+		require.Len(t, resp.Vars, 0)
+		require.Equal(t, script, resp.Script)
+	})
 }

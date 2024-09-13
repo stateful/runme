@@ -432,6 +432,12 @@ export interface ResolveProgramRequest {
      * @generated from protobuf field: optional runme.runner.v1.Project project = 7;
      */
     project?: Project;
+    /**
+     * language id associated with script
+     *
+     * @generated from protobuf field: string language_id = 8;
+     */
+    languageId: string;
 }
 /**
  * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.Mode

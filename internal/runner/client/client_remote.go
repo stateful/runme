@@ -166,6 +166,7 @@ func (r *RemoteRunner) ResolveProgram(ctx context.Context, mode runnerv1.Resolve
 		Env:             envs,
 		Mode:            mode,
 		Project:         ConvertToRunnerProject(r.project),
+		LanguageId:      language,
 		Source: &runnerv1.ResolveProgramRequest_Script{
 			Script: script,
 		},

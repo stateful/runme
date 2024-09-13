@@ -165,6 +165,7 @@ func (r *LocalRunner) ResolveProgram(ctx context.Context, mode runnerv1.ResolveP
 		Mode:            mode,
 		SessionStrategy: r.sessionStrategy,
 		Project:         ConvertToRunnerProject(r.project),
+		LanguageId:      language,
 		Source: &runnerv1.ResolveProgramRequest_Script{
 			Script: script,
 		},
