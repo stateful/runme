@@ -1,0 +1,16 @@
+exec runme run py-test
+stdout 'Hello, runme, from python!'
+! stderr .
+
+exec runme run sh-test
+stdout 'Hello, runme, from shell!'
+! stderr .
+
+-- SHEBANG.md --
+```py {"name":"py-test"}
+print("Hello, runme, from python!")
+```
+
+```sh {"name":"sh-test"}
+echo "Hello, runme, from shell!"
+```
