@@ -40,10 +40,10 @@ func TestConfigFilter(t *testing.T) {
 		{
 			name:      "intersection function in block env",
 			typ:       FilterTypeBlock,
-			extra:     map[string]interface{}{"categories": []string{"test"}},
-			condition: "len(intersection(categories, extra.categories)) > 0",
+			extra:     map[string]interface{}{"tags": []string{"test"}},
+			condition: "len(intersection(tags, extra.tags)) > 0",
 			env: FilterBlockEnv{
-				Categories: []string{"test", "test1", "test2"},
+				Tags: []string{"test", "test1", "test2"},
 			},
 			expectedResult: true,
 		},
