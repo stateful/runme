@@ -110,7 +110,7 @@ func (b *CodeBlock) Tags() []string {
 		superset = append(superset, strings.Split(categories, ",")...)
 	}
 
-	tags, ok := b.Attributes()["tags"]
+	tags, ok := b.Attributes()["tag"]
 	if ok {
 		superset = append(superset, strings.Split(tags, ",")...)
 	}
