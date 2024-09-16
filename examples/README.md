@@ -98,16 +98,16 @@ username = admin
 password = admin
 ```
 
-## Categories
+## Tags
 
-```sh {"category":"a","id":"01HF7BT3HD84GWTQB8ZT8D9SVW","name":"a"}
-echo "Category A"
+```sh {"tag":"a","id":"01HF7BT3HD84GWTQB8ZT8D9SVW","name":"a"}
+echo "Tag A"
 ```
 
-```sh {"category":"a,b","id":"01HF7BT3HD84GWTQB8ZVF8JVKF","name":"b"}
-echo "Category A,B"
+```sh {"tag":"a,b","id":"01HF7BT3HD84GWTQB8ZVF8JVKF","name":"b"}
+echo "Tag A,B"
 ```
 
-```sh {"category":"a,b,c","id":"01HF7BT3HD84GWTQB8ZY0GBA06","name":"c"}
-echo "Category A,B,C"
+```sh {"tag":"a,b,c","id":"01HF7BT3HD84GWTQB8ZY0GBA06","name":"c"}
+echo "Tag A,B,C"
 ```

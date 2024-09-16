@@ -95,6 +95,7 @@ message Frontmatter {
   FrontmatterRunme runme = 4;
   string category = 5;
   string terminal_rows = 6;
+  string tag = 7;
 }
 
 message DeserializeRequestOptions {

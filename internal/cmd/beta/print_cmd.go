@@ -21,8 +21,8 @@ The names are interpreted as glob patterns.`,
 		Example: `Print content of commands starting with the "generate-" prefix:
   runme beta print "generate-*"
 
-Print content of commands from the "setup" and "teardown" categories:
-  runme beta print --category=setup,teardown
+Print content of commands from the "setup" and "teardown" tags:
+  runme beta print --tag=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.InvokeForCommand(
