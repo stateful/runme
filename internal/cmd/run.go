@@ -109,13 +109,13 @@ func runCmd() *cobra.Command {
 							fm := block.Document().Frontmatter()
 							fmTags := resolveFrontmatterTags(fm)
 							match := false
-							if len(fmTags) > 0 && containsCategories(fmTags, cmdTags) {
+							if len(fmTags) > 0 && containsTags(fmTags, cmdTags) {
 								if len(blockTags) == 0 {
 									match = true
 								} else {
-									match = containsCategories(fmTags, blockTags)
+									match = containsTags(fmTags, blockTags)
 								}
-							} else if containsCategories(blockTags, cmdTags) {
+							} else if containsTags(blockTags, cmdTags) {
 								match = true
 							}
 
@@ -643,7 +643,7 @@ func resolveFrontmatterTags(fm *document.Frontmatter) []string {
 	return tags
 }
 
-func containsCategories(s1 []string, s2 []string) bool {
+func containsTags(s1 []string, s2 []string) bool {
 	for _, element := range s2 {
 		if strings.Contains(strings.Join(s1, ","), element) {
 			return true
