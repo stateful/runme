@@ -93,6 +93,7 @@ message Frontmatter {
   string cwd = 2;
   bool skip_prompts = 3;
   FrontmatterRunme runme = 4;
+  // Deprecated category in favor of Tag
   string category = 5;
   string terminal_rows = 6;
   string tag = 7;

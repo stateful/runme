@@ -33,3 +33,15 @@ func TestBlock_Clone(t *testing.T) {
 	block.value[0] = 'a'
 	assert.NotEqual(t, block.value[0], clone.value[0])
 }
+
+func TestBlock_Tags(t *testing.T) {
+	t.Run("Superset including legacy categories", func(t *testing.T) {
+		block := &CodeBlock{
+			attributes: map[string]string{
+				"category": "cat1,cat2",
+				"tags":     "tag1,tag2",
+			},
+		}
+		assert.Equal(t, []string{"cat1", "cat2", "tag1", "tag2"}, block.Tags())
+	})
+}

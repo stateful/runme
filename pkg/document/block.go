@@ -103,15 +103,19 @@ func (b *CodeBlock) Background() bool {
 }
 
 func (b *CodeBlock) Tags() []string {
-	tag, ok := b.Attributes()["category"]
-	if !ok {
-		tag, ok = b.Attributes()["tag"]
+	var superset []string
+
+	categories, ok := b.Attributes()["category"]
+	if ok {
+		superset = append(superset, strings.Split(categories, ",")...)
 	}
 
-	if !ok {
-		return nil
+	tags, ok := b.Attributes()["tags"]
+	if ok {
+		superset = append(superset, strings.Split(tags, ",")...)
 	}
-	return strings.Split(tag, ",")
+
+	return superset
 }
 
 func (b *CodeBlock) Clone() *CodeBlock {

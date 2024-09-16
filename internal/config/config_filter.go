@@ -34,7 +34,6 @@ type FilterDocumentEnv struct {
 // Without it, all variables start with capitalized letters.
 type FilterBlockEnv struct {
 	Background             bool     `expr:"background"`
-	Tags                   []string `expr:"tags"`
 	CloseTerminalOnSuccess bool     `expr:"close_terminal_on_success"`
 	Cwd                    string   `expr:"cwd"`
 	ExcludeFromRunAll      bool     `expr:"exclude_from_run_all"`
@@ -43,6 +42,7 @@ type FilterBlockEnv struct {
 	Language               string   `expr:"language"`
 	Name                   string   `expr:"name"`
 	PromptEnv              bool     `expr:"prompt_env"`
+	Tags                   []string `expr:"tags"`
 }
 
 type filterDocumentWithExtraEnv struct {
