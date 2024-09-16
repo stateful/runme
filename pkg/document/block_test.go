@@ -39,7 +39,7 @@ func TestBlock_Tags(t *testing.T) {
 		block := &CodeBlock{
 			attributes: map[string]string{
 				"category": "cat1,cat2",
-				"tags":     "tag1,tag2",
+				"tag":      "tag1,tag2",
 			},
 		}
 		assert.Equal(t, []string{"cat1", "cat2", "tag1", "tag2"}, block.Tags())
