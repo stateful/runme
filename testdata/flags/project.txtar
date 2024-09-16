@@ -93,10 +93,10 @@ say_hi()
 ```
 -- gitupwards.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
-echo	file.md	echo "Hello, runme!"		Yes
-hello-js	../root.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
-hello-js-cat	../root.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
-hello-python	../root.md	def say_hi():		Yes
+echo*	file.md	echo "Hello, runme!"		Yes
+hello-js*	../root.md	console.log("Hello, runme, from javascript!")	It can even run scripting languages.	Yes
+hello-js-cat*	../root.md	console.log("Hello, runme, from javascript!")	And it can even run a cell with a custom interpreter.	Yes
+hello-python*	../root.md	def say_hi():		Yes
 -- projectset.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
-echo	nested/file.md	echo "Hello, runme!"		Yes
+echo*	nested/file.md	echo "Hello, runme!"		Yes

@@ -26,7 +26,7 @@ echo nested-hello
 
 -- result-ls.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
-nested-hello	nested/README.md	echo nested-hello		Yes
+nested-hello*	nested/README.md	echo nested-hello		Yes
 -- result-print.txt --
 # nested/README.md:nested-hello
 echo nested-hello

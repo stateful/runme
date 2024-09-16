@@ -3,6 +3,7 @@ package beta
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/jsonpretty"
@@ -107,7 +108,11 @@ func renderTasksAsTableForCmd(cmd *cobra.Command, tasks []project.Task) error {
 			named = "No"
 		}
 
-		table.AddField(task.CodeBlock.Name())
+		name := task.CodeBlock.Name()
+		if !task.CodeBlock.ExcludeFromRunAll() {
+			name = name + "*"
+		}
+		table.AddField(name)
 		table.AddField(project.GetRelativePath(getCwd(), task.DocumentPath))
 		table.AddField(renderLineFromLines(task.CodeBlock.Lines()))
 		table.AddField(task.CodeBlock.Intro())
@@ -115,7 +120,14 @@ func renderTasksAsTableForCmd(cmd *cobra.Command, tasks []project.Task) error {
 		table.EndRow()
 	}
 
-	return errors.WithStack(table.Render())
+	err = errors.WithStack(table.Render())
+
+	if !term.IsTTY() {
+		return err
+	}
+
+	_, _ = fmt.Fprintf(term.ErrOut(), "\n*) Included when running all via \"run --all\"\n")
+	return err
 }
 
 // TODO(adamb): output should be well-defined. It's questionable whether

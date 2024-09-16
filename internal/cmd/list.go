@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -21,6 +22,7 @@ type row struct {
 	FirstCommand string `json:"first_command"`
 	Description  string `json:"description"`
 	Named        bool   `json:"named"`
+	RunAll       bool   `json:"run_all"`
 }
 
 func listCmd() *cobra.Command {
@@ -64,11 +66,19 @@ func listCmd() *cobra.Command {
 					FirstCommand: shell.TryGetNonCommentLine(lines),
 					Description:  block.Intro(),
 					Named:        !block.IsUnnamed(),
+					RunAll:       !block.ExcludeFromRunAll(),
 				}
 				rows = append(rows, r)
 			}
 			if !formatJSON {
-				return displayTable(io, rows)
+				err := displayTable(io, rows)
+
+				if !io.IsStderrTTY() {
+					return err
+				}
+
+				_, _ = fmt.Fprintf(io.ErrOut, "\n*) Included when running all via \"run --all\"\n")
+				return err
 			}
 
 			return displayJSON(io, rows)
@@ -97,7 +107,11 @@ func displayTable(io *iostreams.IOStreams, rows []row) error {
 		if !row.Named {
 			named = "No"
 		}
-		table.AddField(row.Name)
+		name := row.Name
+		if row.RunAll {
+			name += "*"
+		}
+		table.AddField(name)
 		table.AddField(row.File)
 		table.AddField(row.FirstCommand)
 		table.AddField(row.Description)

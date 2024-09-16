@@ -28,5 +28,5 @@ $ echo "Hello, runme 2!"
 
 -- output.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
-command1	README.md	echo "Hello, runme 1!"		Yes
-command2	README.md	echo "Hello, runme 2!"		Yes
+command1*	README.md	echo "Hello, runme 1!"		Yes
+command2*	README.md	echo "Hello, runme 2!"		Yes
