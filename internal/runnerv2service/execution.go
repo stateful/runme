@@ -28,7 +28,7 @@ const (
 	// small.
 	// In the future, it might be worth to implement
 	// variable-sized buffers.
-	msgBufferSize = 2048 << 10 // 2 MiB
+	msgBufferSize = 2 * 1024 * 1024 // 2 MiB
 )
 
 var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
