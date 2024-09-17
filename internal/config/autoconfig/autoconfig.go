@@ -98,6 +98,7 @@ func getClient(cfg *config.Config, logger *zap.Logger) (*runnerv2client.Client, 
 
 	return runnerv2client.New(
 		cfg.Server.Address,
+		logger,
 		opts...,
 	)
 }
