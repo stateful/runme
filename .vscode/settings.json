@@ -13,7 +13,8 @@
             "--proto_path=/usr/local/include/protoc"
         ]
     },
-    "go.buildTags": "test_with_docker"
+    "go.buildTags": "test_with_docker",
+    "makefile.configureOnOpen": false
     // Uncomment if you want to work on files in ./web.
     // "go.buildTags": "js,wasm",
     // Uncomment if you want to check compilation errors on Windows.

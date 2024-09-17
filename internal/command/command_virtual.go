@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"reflect"
 	"sync"
 	"syscall"
 
@@ -222,21 +221,6 @@ func SetWinsize(cmd Command, winsize *Winsize) (err error) {
 
 	err = pty.Setsize(cmdPty.getPty(), (*pty.Winsize)(winsize))
 	return errors.WithStack(err)
-}
-
-func isNil(val any) bool {
-	if val == nil {
-		return true
-	}
-
-	v := reflect.ValueOf(val)
-
-	switch v.Type().Kind() {
-	case reflect.Chan, reflect.Func, reflect.Map, reflect.Pointer, reflect.UnsafePointer:
-		return v.IsNil()
-	default:
-		return false
-	}
 }
 
 // readCloser wraps [io.Reader] into [io.ReadCloser].
