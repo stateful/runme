@@ -3,6 +3,7 @@ package beta
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/jsonpretty"
@@ -27,12 +28,12 @@ func listCmd(*commonFlags) *cobra.Command {
 		Long: `List commands by optionally providing their names delimited by space.
 The names are interpreted as glob patterns.
 
-The --category option additionally filters the list of tasks to execute by category.`,
+The --tag option additionally filters the list of tasks to execute by tag.`,
 		Example: `List all blocks starting with the "generate-" prefix:
   runme beta list "generate-*"
 
-List all blocks from the "setup" and "teardown" categories:
-  runme beta list --category=setup,teardown
+List all blocks from the "setup" and "teardown" tags:
+  runme beta list --tag=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.InvokeForCommand(
@@ -107,7 +108,11 @@ func renderTasksAsTableForCmd(cmd *cobra.Command, tasks []project.Task) error {
 			named = "No"
 		}
 
-		table.AddField(task.CodeBlock.Name())
+		name := task.CodeBlock.Name()
+		if !task.CodeBlock.ExcludeFromRunAll() {
+			name = name + "*"
+		}
+		table.AddField(name)
 		table.AddField(project.GetRelativePath(getCwd(), task.DocumentPath))
 		table.AddField(renderLineFromLines(task.CodeBlock.Lines()))
 		table.AddField(task.CodeBlock.Intro())
@@ -115,7 +120,14 @@ func renderTasksAsTableForCmd(cmd *cobra.Command, tasks []project.Task) error {
 		table.EndRow()
 	}
 
-	return errors.WithStack(table.Render())
+	err = errors.WithStack(table.Render())
+
+	if !term.IsTTY() {
+		return err
+	}
+
+	_, _ = fmt.Fprintf(term.ErrOut(), "\n*) Included when running all via \"run --all\"\n")
+	return err
 }
 
 // TODO(adamb): output should be well-defined. It's questionable whether

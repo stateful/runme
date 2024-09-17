@@ -1,0 +1,41 @@
+env SHELL=/bin/bash
+exec runme run --all --category=foo --filename=PROMPTS.md
+cmp stdout foo-bar-list.txt
+! stderr .
+
+-- PROMPTS.md --
+
+```sh {"id":"01HQQZ50CYM981N6X20VMRJYXV","promptEnv":""}
+echo "<empty>"
+```
+
+```sh {"id":"01HQQZ60MHZEDTXWG70PMXZNHH","promptEnv":"auto"}
+echo "auto"
+```
+
+```sh {"id":"01HQQZ6WBD82EQ39ZR7N49XV7B","promptEnv":"yes"}
+echo "yes"
+```
+
+```sh {"id":"01HQQZ7AYPP87D1MB6D06G9BTX","promptEnv":"no"}
+echo "no"
+```
+
+-- foo-bar-list.txt --
+ ►  Running task set-env...
+ ►  ✓ Task set-env exited with code 0
+ ►  Running task print-foo...
+foo!
+ ►  ✓ Task print-foo exited with code 0
+ ►  Running task print-bar...
+bar!
+ ►  ✓ Task print-bar exited with code 0
+-- bar-list.txt --
+bar!
+-- buzz-bar-list.txt --
+ ►  Running task print-bar...
+bar!
+ ►  ✓ Task print-bar exited with code 0
+ ►  Running task print-buzz...
+buzz!
+ ►  ✓ Task print-buzz exited with code 0

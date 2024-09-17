@@ -1,0 +1,45 @@
+exec runme beta run --filename TAGS.md --tag=foo
+stdout '^foo[\s]+$'
+! stderr .
+
+exec runme beta run --tag=bar,baz
+stdout '^bar[\s]+bar-baz[\s]+$'
+! stderr .
+
+exec runme beta run --tag=foo-cat
+stdout '^foo[\s]+$'
+! stderr .
+
+exec runme beta run --tag=bar-cat,baz-cat
+stdout '^bar[\s]+bar-baz[\s]+$'
+! stderr .
+
+-- TAGS.md --
+```sh {"tag": "foo", "name": "foo"}
+echo foo
+```
+
+```sh {"tag": "bar", "name": "bar"}
+echo bar
+```
+
+```sh {"tag": "bar,baz", "name":"bar-baz"}
+echo bar-baz
+```
+
+-- CATEGORIES.md --
+# Categories are now tags
+
+Make sure the annotations continue to work though
+
+```sh {"category": "foo-cat", "name": "foo"}
+echo foo
+```
+
+```sh {"category": "bar-cat", "name": "bar"}
+echo bar
+```
+
+```sh {"category": "bar-cat,baz-cat", "name":"bar-baz"}
+echo bar-baz
+```

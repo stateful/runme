@@ -167,7 +167,7 @@ func (c *base) lookPath(path string) (string, error) {
 
 func (c *base) findDefaultProgram(name string, args []string) (string, []string, error) {
 	name, normArgs := normalizeProgramName(name)
-	if isShellLanguage(name) {
+	if IsShellLanguage(name) {
 		globalShell := shellFromShellPath(c.globalShellPath())
 		res, err := c.lookPath(globalShell)
 		if err != nil {

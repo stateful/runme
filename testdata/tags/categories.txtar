@@ -1,29 +1,32 @@
 env SHELL=/bin/bash
 exec runme run --all --category=foo --filename=CATEGORIES.md
 cmp stdout foo-bar-list.txt
-! stderr .
+stderr 'Flag --category has been deprecated, use --tag instead'
 
 env SHELL=/bin/bash
 exec runme run --all --category=bar --filename=CATEGORIES.md
 cmp stdout bar-list.txt
-! stderr .
+stderr 'Flag --category has been deprecated, use --tag instead'
 
 env SHELL=/bin/bash
 exec runme run -c buzz -c bar --filename=CATEGORIES.md
 cmp stdout buzz-bar-list.txt
-! stderr .
+stderr 'Flag --category has been deprecated, use --tag instead'
 
 env SHELL=/bin/bash
 exec runme run --all --allow-unnamed --skip-prompts --category solution-2
 cmp stdout doc-category-with-unnamed.txt
-! stderr .
+stderr 'Flag --category has been deprecated, use --tag instead'
 
 env SHELL=/bin/bash
 exec runme run --all --skip-prompts --category solution-2
 cmp stdout doc-category.txt
-! stderr .
+stderr 'Flag --category has been deprecated, use --tag instead'
 
 -- CATEGORIES.md --
+## Categories are now tags
+
+Make sure they continue to work though
 
 ```bash {"category":"foo","name":"set-env"}
 $ export ENV="foo!"

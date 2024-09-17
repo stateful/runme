@@ -102,12 +102,20 @@ func (b *CodeBlock) Background() bool {
 	return val
 }
 
-func (b *CodeBlock) Categories() []string {
-	cat, ok := b.Attributes()["category"]
-	if !ok {
-		return nil
+func (b *CodeBlock) Tags() []string {
+	var superset []string
+
+	categories, ok := b.Attributes()["category"]
+	if ok {
+		superset = append(superset, strings.Split(categories, ",")...)
 	}
-	return strings.Split(cat, ",")
+
+	tags, ok := b.Attributes()["tag"]
+	if ok {
+		superset = append(superset, strings.Split(tags, ",")...)
+	}
+
+	return superset
 }
 
 func (b *CodeBlock) Clone() *CodeBlock {

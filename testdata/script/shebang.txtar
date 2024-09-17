@@ -1,0 +1,39 @@
+env PATH=/usr/bin/:$PATH
+exec runme run py-test
+stdout 'Hello, runme, from python!'
+! stderr .
+
+env PATH=/usr/bin/:$PATH
+exec runme run rb-test
+stdout 'Hello, runme, from ruby!'
+! stderr .
+
+exec runme run sh-test
+stdout 'Hello, runme, from shell!'
+! stderr .
+
+env PATH=/opt/homebrew/bin:$PATH
+exec runme run js-test
+stdout 'Hello, runme, from javascript!'
+! stderr .
+
+-- SHEBANG.md --
+---
+shell: bash
+---
+
+```py {"name":"py-test"}
+print("Hello, runme, from python!")
+```
+
+```rb {"name":"rb-test"}
+print("Hello, runme, from ruby!")
+```
+
+```sh {"name":"sh-test"}
+echo "Hello, runme, from shell!"
+```
+
+```js {"name":"js-test"}
+console.log("Hello, runme, from javascript!")
+```

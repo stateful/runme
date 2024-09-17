@@ -61,6 +61,7 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			Cwd:          notebook.Frontmatter.Cwd,
 			SkipPrompts:  notebook.Frontmatter.SkipPrompts,
 			Category:     notebook.Frontmatter.Category,
+			Tag:          notebook.Frontmatter.Tag,
 			TerminalRows: notebook.Frontmatter.TerminalRows,
 		}
 

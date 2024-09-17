@@ -1,0 +1,19 @@
+# prints an asterisk next to included tasks
+exec runme beta list
+cmp stdout result-list.txt
+! stderr .
+
+-- INCLUDED.md --
+```sh {"name": "included"}
+echo included
+```
+
+-- EXCLUDED.md --
+```sh {"name": "excluded", "excludeFromRunAll": true}
+echo excluded
+```
+
+-- result-list.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+excluded	EXCLUDED.md	echo excluded		Yes
+included*	INCLUDED.md	echo included		Yes

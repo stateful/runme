@@ -40,9 +40,9 @@ func TestRunmeFlags(t *testing.T) {
 	})
 }
 
-func TestRunmeCategories(t *testing.T) {
+func TestRunmeTags(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir:             "testdata/categories",
+		Dir:             "testdata/tags",
 		ContinueOnError: true,
 	})
 }

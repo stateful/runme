@@ -399,7 +399,8 @@ class ResolveProgramRequest$Type extends MessageType {
             { no: 4, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v2.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
-            { no: 7, name: "project", kind: "message", T: () => Project }
+            { no: 7, name: "project", kind: "message", T: () => Project },
+            { no: 8, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }

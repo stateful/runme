@@ -171,7 +171,6 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 			filters = append(filters, project.Filter(func(t project.Task) (bool, error) {
 				env := config.FilterBlockEnv{
 					Background: t.CodeBlock.Background(),
-					Categories: t.CodeBlock.Categories(),
 					// TODO(adamb): implement this in the code block.
 					// CloseTerminalOnSuccess: t.CodeBlock.CloseTerminalOnSuccess(),
 					Cwd:               t.CodeBlock.Cwd(),
@@ -181,6 +180,7 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 					Language:          t.CodeBlock.Language(),
 					Name:              t.CodeBlock.Name(),
 					PromptEnv:         t.CodeBlock.PromptEnv(),
+					Tags:              t.CodeBlock.Tags(),
 				}
 				return filter.Evaluate(env)
 			}))

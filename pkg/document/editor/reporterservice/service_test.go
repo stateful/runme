@@ -36,6 +36,7 @@ func TestTransform(t *testing.T) {
 					},
 				},
 				Category:     "category",
+				Tag:          "tag",
 				TerminalRows: "10",
 			},
 			Cells: []*parserv1.Cell{

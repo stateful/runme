@@ -25,10 +25,10 @@ func redactConfig(cfg *ProgramConfig) *ProgramConfig {
 }
 
 func isShell(cfg *ProgramConfig) bool {
-	return isShellProgram(filepath.Base(cfg.ProgramName)) || isShellLanguage(cfg.LanguageId)
+	return IsShellProgram(filepath.Base(cfg.ProgramName)) || IsShellLanguage(cfg.LanguageId)
 }
 
-func isShellProgram(programName string) bool {
+func IsShellProgram(programName string) bool {
 	switch strings.ToLower(programName) {
 	case "sh", "bash", "zsh", "ksh", "shell":
 		return true
@@ -40,7 +40,7 @@ func isShellProgram(programName string) bool {
 }
 
 // TODO(adamb): this function is used for two quite different inputs: program name and language ID.
-func isShellLanguage(languageID string) bool {
+func IsShellLanguage(languageID string) bool {
 	switch strings.ToLower(languageID) {
 	// shellscripts
 	// TODO(adamb): breaking change: shellscript was removed to indicate

@@ -379,6 +379,11 @@ input ResolveProgramRequestInput {
 
 	"""
 	project: ProjectInput
+	"""
+	 language id associated with script
+
+	"""
+	languageId: String
 }
 enum ResolveProgramRequest_Mode {
 	"""

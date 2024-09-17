@@ -16,34 +16,44 @@ import (
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2.ResolveProgramRequest) (*runnerv2.ResolveProgramResponse, error) {
 	r.logger.Info("running ResolveProgram in runnerService")
 
+	// todo(sebastian): reenable once extension includes it in request
+	// if req.GetLanguageId() == "" {
+	// 	return nil, status.Error(codes.InvalidArgument, "language id is required")
+	// }
+
 	resolver, err := r.getProgramResolverFromReq(req)
 	if err != nil {
 		return nil, err
 	}
 
 	var (
-		result            *command.ProgramResolverResult
 		modifiedScriptBuf bytes.Buffer
 	)
 
-	if script := req.GetScript(); script != "" {
-		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf)
-	} else if commands := req.GetCommands(); commands != nil && len(commands.Lines) > 0 {
-		script := strings.Join(commands.Lines, "\n")
-		result, err = resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf)
-	} else {
-		err = status.Error(codes.InvalidArgument, "either script or commands must be provided")
-	}
-	if err != nil {
-		return nil, err
+	script := req.GetScript()
+	if commands := req.GetCommands(); script == "" && len(commands.Lines) > 0 {
+		script = strings.Join(commands.Lines, "\n")
 	}
 
-	modifiedScript := modifiedScriptBuf.String()
+	if script == "" {
+		return nil, status.Error(codes.InvalidArgument, "either script or commands must be provided")
+	}
 
 	// todo(sebastian): figure out how to return commands
 	response := &runnerv2.ResolveProgramResponse{
-		Script: modifiedScript,
+		Script: script,
 	}
+
+	// return early if it's not a shell language
+	if !command.IsShellLanguage(req.GetLanguageId()) {
+		return response, nil
+	}
+
+	result, err := resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf)
+	if err != nil {
+		return nil, err
+	}
+	response.Script = modifiedScriptBuf.String()
 
 	for _, item := range result.Variables {
 		ritem := &runnerv2.ResolveProgramResponse_VarResult{

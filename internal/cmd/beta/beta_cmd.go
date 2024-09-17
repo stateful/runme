@@ -13,10 +13,10 @@ import (
 )
 
 type commonFlags struct {
-	categories []string
-	filename   string
-	insecure   bool
-	silent     bool
+	tags     []string
+	filename string
+	insecure bool
+	silent   bool
 }
 
 func BetaCmd() *cobra.Command {
@@ -42,12 +42,12 @@ All commands use the runme.yaml configuration file.`,
 					cfg.ProjectFilename = cFlags.filename
 				}
 
-				// Add a filter to run only tasks from the specified categories.
-				if len(cFlags.categories) > 0 {
+				// Add a filter to run only tasks from the specified tags.
+				if len(cFlags.tags) > 0 {
 					cfg.ProjectFilters = append(cfg.ProjectFilters, &config.Filter{
 						Type:      config.FilterTypeBlock,
-						Condition: `len(intersection(categories, extra.categories)) > 0`,
-						Extra:     map[string]interface{}{"categories": cFlags.categories},
+						Condition: `len(intersection(tags, extra.tags)) > 0`,
+						Extra:     map[string]interface{}{"tags": cFlags.tags},
 					})
 				}
 
@@ -68,7 +68,7 @@ All commands use the runme.yaml configuration file.`,
 	// Use them sparingly and only for the cases when it does not make sense
 	// to alter the configuration file.
 	pFlags := cmd.PersistentFlags()
-	pFlags.StringSliceVar(&cFlags.categories, "category", nil, "Run blocks only from listed categories.")
+	pFlags.StringSliceVar(&cFlags.tags, "tag", nil, "Run blocks only from listed tags.")
 	pFlags.StringVar(&cFlags.filename, "filename", "", "Name of the Markdown file to run blocks from.")
 	pFlags.BoolVar(&cFlags.insecure, "insecure", false, "Explicitly allow delicate operations to prevent misuse")
 	pFlags.BoolVar(&cFlags.silent, "silent", false, "Silent mode. Do not print error messages.")

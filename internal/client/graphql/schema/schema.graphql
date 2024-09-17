@@ -1,2148 +1,1697 @@
-type Query {
-  codingSpans(startTime: DateTime = null, endTime: DateTime = null, pageSize: Int! = 20, pageToken: String = null, sort: [CodingSpanSort!] = null): CodingSpanList! @deprecated(reason: "Don't use in production")
-  day(date: Date = null): Day
-  days(startDate: Date = null, endDate: Date = null, pageSize: Int! = 7, pageToken: String = null, sort: [DaySort!] = null): DayList!
-  dayRangeSummary(startDate: Date = null, endDate: Date = null): DayRangeSummary!
-  feed: Feed!
-  notificationsSummary: NotificationsSummary!
-  profile(id: String = null, usernameOrId: String = null): Profile
-  profiles(pageSize: Int! = 20, pageToken: String = null, includeUser: Boolean! = false): ProfileList!
-  profilesAll(sharingFields: GetAllProfilesSharingFieldsInput = null, pageSize: Int! = 20, pageToken: String = null, includeUser: Boolean! = false): ProfileList!
-  sessionSpans(startTime: DateTime = null, endTime: DateTime = null, pageSize: Int! = 20, pageToken: String = null, sort: [SessionSpanSort!] = null): SessionSpanList!
-  standup(date: Date = null, includeUpcoming: Boolean! = false): Standup
-  standups(pageSize: Int! = 10, includeUpcoming: Boolean! = false): StandupList!
-  suggestedBranchnames(query: SuggestedBranchInput!): SuggestedBranchResponse!
-  track(input: TrackInput!): TrackPayload
-  user: User
-}
+directive @requireAuth(roles: [RoleEnum], permissions: [PermissionEnum]) on FIELD_DEFINITION
 
-type CodingSpanList {
-  nextPageToken: String
-  data: [CodingSpan!]!
-}
+directive @requireAuthNullify(roles: [RoleEnum], permissions: [PermissionEnum]) on FIELD_DEFINITION
 
-type CodingSpan implements SpanAbstract {
-  startTime: DateTime!
-  endTime: DateTime!
-  durationMs: Int! @deprecated(reason: "Use durationSeconds")
-  durationSeconds: Int!
-  file: CodingSpanProjectFile
-  language: CodingSpanLanguage
-  gitBranch: CodingSpanProjectGitBranch
-}
+directive @skipAuth on FIELD_DEFINITION
 
-interface SpanAbstract {
-  startTime: DateTime!
-  endTime: DateTime!
-  durationMs: Int! @deprecated(reason: "Use durationSeconds")
-  durationSeconds: Int!
-}
-
-scalar DateTime
-
-type CodingSpanProjectFile implements ProjectFileAbstract {
-  path: String!
-  name: String!
-}
-
-interface ProjectFileAbstract {
-  path: String!
-  name: String!
-}
-
-type CodingSpanLanguage implements LanguageAbstract {
-  id: String!
-  displayName: String!
-}
-
-interface LanguageAbstract {
-  id: String!
-  displayName: String!
-}
-
-type CodingSpanProjectGitBranch implements ProjectGitBranchAbstract {
-  name: String!
-}
-
-interface ProjectGitBranchAbstract {
-  name: String!
-}
-
-input CodingSpanSort {
-  field: CodingSpanSortField!
-  order: SortOrder!
-}
-
-enum CodingSpanSortField {
-  TIME
-}
-
-enum SortOrder {
-  ASC
-  DESC
-}
-
-type Day {
-  date: Date!
-  timezone: String
-  startTime: DateTime
-  endTime: DateTime
-  workStartTime: DateTime
-  workEndTime: DateTime
-  standupTime: DateTime
-  standupTimezone: String
-  targetCodingDurationMs: Int @deprecated(reason: "Use targetCodingDurationSeconds")
-  targetRestCount: Int
-  targetRestDurationMs: Int @deprecated(reason: "Use targetRestDurationSeconds")
-  restCount: Int
-  restDurationMs: Int @deprecated(reason: "Use restDurationSeconds")
-  codingDuration: CodingDuration
-  sessionsSummary: DaySessionsSummary
-  score: Int
-  rating: Int
-  ratingNote: String
-  targetCodingDurationSeconds: Int
-  targetRestDurationSeconds: Int
-  restDurationSeconds: Int
-  languages: DayLanguageList!
-  projects: DayProjectList!
-  hours: DayHourList!
-  flowScore: Int @deprecated(reason: "Replaced by score")
-  scoreBreakdown: DayScore
-  userAnnotations(sort: [UserAnnotationSort!] = null, pageSize: Int! = 20, pageToken: String = null): UserAnnotationList!
-}
+scalar BigInt
 
 scalar Date
 
-type CodingDuration {
-  totalMs: Int! @deprecated(reason: "Use totalSeconds")
-  readingMs: Int @deprecated(reason: "Use readingSeconds")
-  writingMs: Int @deprecated(reason: "Use writingSeconds")
-  totalSeconds: Int!
-  readingSeconds: Int
-  writingSeconds: Int
-}
-
-type DaySessionsSummary {
-  count: Int!
-  meanMs: Float! @deprecated(reason: "Use meanSeconds")
-  maxMs: Int! @deprecated(reason: "Use maxSeconds")
-  meanSeconds: Float!
-  maxSeconds: Int!
-}
-
-type DayLanguageList {
-  data: [DayLanguage!]!
-}
-
-type DayLanguage implements LanguageAbstract {
-  id: String!
-  displayName: String!
-  codingDuration: CodingDuration
-}
-
-type DayProjectList {
-  data: [DayProject!]!
-}
-
-type DayProject implements ProjectAbstract {
-  id: UUID!
-  name: String!
-  displayName: String!
-  shortName: String!
-  gitUrl: String
-  url: String
-  codingDuration: CodingDuration
-  gitBranches: DayProjectGitBranchList!
-  files: DayProjectFileList!
-}
-
-interface ProjectAbstract {
-  id: UUID!
-  name: String!
-  displayName: String!
-  shortName: String!
-  gitUrl: String
-  url: String
-}
-
-scalar UUID
-
-type DayProjectGitBranchList {
-  data: [DayProjectGitBranch!]!
-}
-
-type DayProjectGitBranch implements ProjectGitBranchAbstract {
-  name: String!
-  codingDuration: CodingDuration
-  files: DayProjectFileList!
-}
-
-type DayProjectFileList {
-  data: [DayProjectFile!]!
-}
-
-type DayProjectFile implements ProjectFileAbstract {
-  path: String!
-  name: String!
-  codingDuration: CodingDuration
-}
-
-type DayHourList {
-  data: [DayHour!]!
-}
-
-type DayHour {
-  time: DateTime
-  codingDuration: CodingDuration
-}
-
-type DayScore {
-  points: Int!
-  contributors: [DayScoreContributor!]!
-}
-
-type DayScoreContributor {
-  name: String!
-  possiblePoints: Int!
-  points: Int!
-  hints: [DayScoreContributorHint!]
-  displayName: String!
-}
-
-type DayScoreContributorHint {
-  name: String!
-  unit: String!
-  targetValue: Float!
-  currentValue: Float!
-}
-
-type UserAnnotationList {
-  nextPageToken: String
-  data: [UserAnnotation!]!
-}
-
-type UserAnnotation {
-  id: String!
-  type: AnnotationType!
-  date: Date!
-  dates: [Date!]!
-  content: String!
-  file: UserAnnotationProjectFile
-  gitBranch: UserAnnotationProjectGitBranch
-  gitCommit: String
-  completeTime: DateTime
-  deleteTime: DateTime
-  hideTime: DateTime
-  createTime: DateTime!
-  updateTime: DateTime!
-  project: UserAnnotationProject
-  completed: Boolean!
-  deleted: Boolean!
-  hidden: Boolean!
-}
-
-enum AnnotationType {
-  DAY_NOTE
-  NOTE
-  TODO
-}
-
-type UserAnnotationProjectFile implements ProjectFileAbstract {
-  path: String!
-  name: String!
-  line: Int
-}
-
-type UserAnnotationProjectGitBranch implements ProjectGitBranchAbstract {
-  name: String!
-}
-
-type UserAnnotationProject implements ProjectAbstract {
-  id: UUID!
-  name: String!
-  displayName: String!
-  shortName: String!
-  gitUrl: String
-  url: String
-}
-
-input UserAnnotationSort {
-  field: UserAnnotationSortField!
-  order: SortOrder!
-}
-
-enum UserAnnotationSortField {
-  CREATE_TIME
-  DATE
-  TYPE
-  UPDATE_TIME
-}
-
-type DayList {
-  nextPageToken: String
-  data: [Day!]!
-}
-
-input DaySort {
-  field: DaySortField!
-  order: SortOrder!
-}
-
-enum DaySortField {
-  DATE
-}
-
-type DayRangeSummary {
-  startDate: Date!
-  endDate: Date!
-  codingDuration: CodingDuration
-  dayCount: Int!
-  languages: DayLanguageList!
-  projects: DayProjectList!
-  rating: DayRatingSummary
-  score: DayScoreSummary
-  sessions: DaySessionsSummary
-}
-
-type DayRatingSummary {
-  count: Int!
-  min: Int!
-  max: Int!
-  mean: Float!
-}
-
-type DayScoreSummary {
-  count: Int!
-  min: Int!
-  max: Int!
-  mean: Int!
-}
-
-type Feed {
-  item(id: UUID = null): FeedItem
-  items(pageSize: Int! = 20, pageToken: String = null, showShareable: Boolean = null, showSticky: Boolean = null, showDismissed: Boolean = false, showDeleted: Boolean = false, showFollowing: Boolean! = true): FeedItemList!
-  itemCategories(pageSize: Int! = 20, pageToken: String = null): FeedItemCategoryList!
-  itemTypes(pageSize: Int! = 20, pageToken: String = null, all: Boolean! = false): FeedItemTypeList!
-}
-
-union FeedItem = BadgeRecommendationFeedItem | CliRecommendationFeedItem | DayNoteFeedItem | DefaultCalendarFeedItem | FacepileFeedItem | FeedRecommendationFeedItem | GitBranchRecommendationFeedItem | InviteFriendFeedItem | PerfectScoreDayFeedItem | PersonalizeSettingsFeedItem | RateMyDayFeedItem | SharingRecommendationFeedItem | SlackRecommendationFeedItem | StreakCodingDurationFeedItem | StreakLanguageFeedItem | StreakRatingFeedItem | StreakScoreFeedItem | SummaryDailyFeedItem | SummaryMonthlyFeedItem | SummaryWeeklyFeedItem | UserFeedbackFeedItem | UserRecommendationFeedItem | WebhookRecommendationFeedItem
-
-type BadgeRecommendationFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-}
-
-interface FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-}
-
-type FeedItemType {
-  id: UUID!
-  name: String!
-  displayName: String!
-  category: FeedItemCategory
-  settings: FeedItemTypeSettings!
-}
-
-type FeedItemCategory {
-  id: UUID!
-  name: String!
-  displayName: String!
-  settings: FeedItemCategorySettings!
-}
-
-type FeedItemCategorySettings {
-  disabled: Boolean!
-  sharing: SharingLevel
-}
-
-enum SharingLevel {
-  ONLY_ME
-  FRIENDS
-  FOLLOWERS
-  EVERYONE
-}
-
-type FeedItemTypeSettings {
-  disabled: Boolean!
-  sharing: SharingLevel
-}
-
-type Profile implements UserAbstract {
-  id: String!
-  name: String
-  displayName: String
-  photoUrl: String
-  bio: String
-  company: String
-  linkedin: String
-  twitter: String
-  siteUrl: String
-  publicUrl: String
-  github: ProfileGitHub
-  following: Boolean!
-  follower: Boolean!
-  dnd: UserDND
-  projects(pageSize: Int! = 20, pageToken: String = null): ProfileProjectList
-  status: UserStatus
-  workDay: ProfileWorkDay
-}
-
-interface UserAbstract {
-  id: String!
-  name: String
-  displayName: String
-  photoUrl: String
-  bio: String
-  company: String
-  linkedin: String
-  twitter: String
-  siteUrl: String
-  publicUrl: String
-}
-
-type ProfileGitHub implements GitHubUserAbstract {
-  id: String!
-  username: String
-}
-
-interface GitHubUserAbstract {
-  id: String!
-  username: String
-}
-
-type UserDND {
-  active: Boolean!
-  startTime: DateTime
-  expireTime: DateTime
-}
-
-type ProfileProjectList {
-  nextPageToken: String
-  data: [ProfileProject!]!
-}
-
-type ProfileProject implements ProjectAbstract {
-  id: UUID!
-  name: String!
-  displayName: String!
-  shortName: String!
-  gitUrl: String
-  url: String
-}
-
-type UserStatus {
-  latestActivityTime: DateTime
-  durationMs: Int @deprecated(reason: "Use durationSeconds")
-  durationSeconds: Int
-  project: UserStatusProject
-  activity: UserStatusActivity
-}
-
-type UserStatusProject {
-  name: String
-  displayName: String
-  shortName: String
-  file: UserStatusProjectFile
-  language: UserStatusLanguage
-  gitBranch: UserStatusProjectGitBranch
-}
-
-type UserStatusProjectFile {
-  name: String
-}
-
-type UserStatusLanguage implements LanguageAbstract {
-  id: String!
-  displayName: String!
-}
-
-type UserStatusProjectGitBranch implements ProjectGitBranchAbstract {
-  name: String!
-}
-
-type UserStatusActivity {
-  displayName: String!
-}
-
-type ProfileWorkDay {
-  startTime: DateTime
-  endTime: DateTime
-}
-
-type FeedItemReaction {
-  name: FeedItemReactionName!
-  count: Int!
-  me: Boolean!
-  recent: [Profile!]!
-}
-
-enum FeedItemReactionName {
-  CROSSED_FINGERS
-  EYES
-  HEART
-  LAUGHING
-  ROCKET
-  TADA
-  THUMBSUP
-}
-
-type CliRecommendationFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  setupCliMilestone: UserMilestone
-}
-
-type UserMilestone {
-  name: String!
-  status: UserMilestoneStatus!
-  unsnoozeTime: DateTime
-  completeAllowed: Boolean!
-  skipAllowed: Boolean!
-  snoozeAllowed: Boolean!
-}
-
-enum UserMilestoneStatus {
-  UNCOMPLETED
-  COMPLETED
-  SKIPPED
-  SNOOZED
-}
-
-type DayNoteFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  note: UserAnnotation
-}
-
-type DefaultCalendarFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  calendar: UserCalendar
-}
-
-type UserCalendar {
-  id: UUID!
-  type: CalendarType!
-  origin: CalendarOriginType!
-  name: String
-  description: String
-  secret: UUID
-  sinceWeeks: Int!
-  createTime: DateTime!
-  updateTime: DateTime!
-  calendarUrl: String!
-  public: Boolean!
-}
-
-enum CalendarType {
-  HOTHOURS
-}
-
-enum CalendarOriginType {
-  FEEDER
-  USER
-}
-
-type FacepileFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-}
-
-type FeedRecommendationFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  itemCategories(pageSize: Int! = 20, pageToken: String = null): FeedItemCategoryList!
-  itemTypes(pageSize: Int! = 20, pageToken: String = null, all: Boolean! = false): FeedItemTypeList!
-}
-
-type FeedItemCategoryList {
-  nextPageToken: String
-  data: [FeedItemCategory!]!
-}
-
-type FeedItemTypeList {
-  nextPageToken: String
-  data: [FeedItemType!]!
-}
-
-type GitBranchRecommendationFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  configurePenalizeGitBranchUsageMilestone: UserMilestone
-}
-
-type InviteFriendFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-}
-
-type PerfectScoreDayFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  count: Int!
-}
-
-type PersonalizeSettingsFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  viewPersonalizationMilestone: UserMilestone
-}
-
-type RateMyDayFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-}
-
-type SharingRecommendationFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-}
-
-type SlackRecommendationFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  configureSlackMilestone: UserMilestone
-}
-
-type StreakCodingDurationFeedItem implements StreakFeedItemAbstract & FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  count: Int!
-  days: [Date!]
-}
-
-interface StreakFeedItemAbstract implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  count: Int!
-  days: [Date!]
-}
-
-type StreakLanguageFeedItem implements StreakFeedItemAbstract & FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  count: Int!
-  days: [Date!]
-  language: String!
-}
-
-type StreakRatingFeedItem implements StreakFeedItemAbstract & FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  count: Int!
-  days: [Date!]
-  threshold: Int
-}
-
-type StreakScoreFeedItem implements StreakFeedItemAbstract & FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  count: Int!
-  days: [Date!]
-  threshold: Int
-}
-
-type SummaryDailyFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  day: Date
-}
-
-type SummaryMonthlyFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  days: [Date!]
-}
-
-type SummaryWeeklyFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  days: [Date!]
-}
-
-type UserFeedbackFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-}
-
-type UserRecommendationFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-}
-
-type WebhookRecommendationFeedItem implements FeedItemAbstract {
-  id: UUID!
-  time: DateTime!
-  shareable: Boolean
-  dismissTime: DateTime
-  expireTime: DateTime
-  deleteTime: DateTime
-  type: FeedItemType
-  owner: Boolean!
-  profile: Profile
-  reactions: [FeedItemReaction!]
-  snoozable: Boolean!
-  dismissed: Boolean!
-  deleted: Boolean!
-  configureWebhookMilestone: UserMilestone
-}
-
-type FeedItemList {
-  nextPageToken: String
-  data: [FeedItem!]!
-}
-
-type NotificationsSummary {
-  count: Int!
-}
-
-type ProfileList {
-  nextPageToken: String
-  data: [Profile!]!
-}
-
-input GetAllProfilesSharingFieldsInput {
-  activity: GetAllProfilesSharingLevel = null
-  dnd: GetAllProfilesSharingLevel = null
-  feed: GetAllProfilesSharingLevel = null
-  file: GetAllProfilesSharingLevel = null
-  gitBranch: GetAllProfilesSharingLevel = null
-  language: GetAllProfilesSharingLevel = null
-  profile: GetAllProfilesSharingLevel = null
-  project: GetAllProfilesSharingLevel = null
-  schedule: GetAllProfilesSharingLevel = null
-  status: GetAllProfilesSharingLevel = null
-}
-
-enum GetAllProfilesSharingLevel {
-  FOLLOWERS
-  EVERYONE
-}
-
-type SessionSpanList {
-  nextPageToken: String
-  data: [SessionSpan!]!
-}
-
-type SessionSpan implements SpanAbstract {
-  startTime: DateTime!
-  endTime: DateTime!
-  durationMs: Int! @deprecated(reason: "Use durationSeconds")
-  durationSeconds: Int!
-}
-
-input SessionSpanSort {
-  field: SessionSpanSortField!
-  order: SortOrder!
-}
-
-enum SessionSpanSortField {
-  TIME
-}
-
-type Standup {
-  date: Date!
-  time: Time!
-  timezone: String!
-  day: Day @deprecated(reason: "Replaced by days")
-  days: StandupDayList!
-  dayCount: Int!
-  codingDuration: CodingDuration
-  languages: DayLanguageList!
-  projects: DayProjectList!
-  rating: DayRatingSummary
-  score: DayScoreSummary
-  userAnnotations(sort: [UserAnnotationSort!] = null, pageSize: Int! = 20, pageToken: String = null): UserAnnotationList!
-}
-
 scalar Time
 
-type StandupDayList {
-  data: [Day!]!
+scalar DateTime
+
+scalar JSON
+
+scalar JSONObject
+
+scalar Byte
+
+type Redwood {
+  version: String
+  currentUser: JSON
+  prismaVersion: String
 }
 
-type StandupList {
-  data: [Standup!]!
+type Query {
+  redwood: Redwood
+  assistant: Assistant
+  searchKnowledgeBase(input: SearchKnowledgeBaseInput): [KnowledgeBaseResult]
+  bookmarks: [Bookmark!]!
+  cellOutput(id: String!): CellOutput
+  totalCellOutputs(filters: CellOutputFilter): Int!
+  cells(filters: CellOutputFilter): [Cell!]!
+  cell(id: String!, filters: CellOutputFilter): Cell
+  conversations(referenceId: String, referenceTable: String): [Conversation!]!
+  conversation(id: String!): Conversation
+  environments: [Environment!]!
+  userEnvironments: [Environment!]!
+  environment(id: String!): Environment
+  githubInstallation: GithubInstallation
+  groups: [Group!]!
+  group(id: String!): Group
+  invitation(id: String!): Invitation!
+  logTypes: [LogType!]!
+  logs(page: Int!, take: Int, filters: JSON): PaginatedLogs!
+  log(id: String!): Log
+  notebookMetadata(id: String!): NotebookMetadata
+  notebookMetadataOutput(id: String!): NotebookMetadataOutput
+  notebooks(filters: NotebookFilter): [Notebook]
+  notebook(filters: NotebookFilter, id: String!): Notebook
+  totalNotebooks(filters: NotebookFilter): Int!
+  notifications(page: Int!, take: Int, filters: JSON): PaginatedNotifications!
+  organizations: [Organization!]!
+  organization(id: String!): Organization
+  roles: [Role!]!
+  slackInstallation: SlackInstallation
+  getSlackChannels: [SlackChannel]
+  cellSuccessRateStats(filters: AnalyticFilterInput!): AxisStat!
+  activityLogStats(filters: AnalyticFilterInput!): AxisStat!
+  notebookActivityStats(filters: AnalyticFilterInput!): AxisStat!
+  sharedActivityStats(filters: AnalyticFilterInput!): AxisStat!
+  conversationActivityStats(filters: AnalyticFilterInput!): AxisStat!
+  markdownsStats(filters: AnalyticFilterInput!): AxisStat!
+  tags: [Tag!]!
+  me: User
+  workflows(page: Int!, take: Int, fileName: String, all: Boolean): PaginatedWorkflows!
+  workflow(id: String!): Workflow!
 }
 
-type SuggestedBranchResponse {
-  data: [SuggestedBranch!]!
+type Subscription {
+  chat: ChatMessage
 }
 
-type SuggestedBranch {
-  name: String!
-}
-
-input SuggestedBranchInput {
-  description: String!
-  repoBranches: [BranchSuggestionInput!]!
-  userBranches: [BranchSuggestionInput!]!
-}
-
-input BranchSuggestionInput {
-  branch: String!
-  description: String!
-}
-
-type TrackPayload {
-  errors: [TrackError!]!
-}
-
-type TrackError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-interface UserError {
-  message: String!
-  field: [String!]
-}
-
-input TrackInput {
-  events: [TrackEvent!]!
-}
-
-input TrackEvent {
-  event: String!
-  attributes: [TrackEventAttribute!] = null
-}
-
-input TrackEventAttribute {
-  key: String!
-  stringValue: String = null
-  booleanValue: Boolean = null
-  intValue: Int = null
-  floatValue: Float = null
-}
-
-type User implements UserAbstract {
+type Access {
   id: String!
-  name: String
-  displayName: String
-  photoUrl: String
-  bio: String
-  company: String
-  linkedin: String
-  twitter: String
-  siteUrl: String
-  publicUrl: String
-  github: UserGitHub
-  email: String
-  emailVerified: Boolean
-  timezone: String
-  dndEnabled: Boolean
-  dndUnpauseTime: DateTime
-  annotations(startDate: Date = null, endDate: Date = null, projectId: UUID = null, projectGitUrl: String = null, types: [AnnotationType!] = null, showDeleted: Boolean = null, showHidden: Boolean = null, showCompleted: Boolean = null, query: String = null, sort: [UserAnnotationSort!] = null, pageSize: Int! = 20, pageToken: String = null): UserAnnotationList!
-  calendars(pageSize: Int! = 100, pageToken: String = null): UserCalendarList!
-  connections(pageSize: Int! = 100, pageToken: String = null, types: [ConnectionType!] = null): ConnectionList!
-  dataAliased: Boolean!
-  dataSummary: UserDataSummary!
-  dnd: UserDND
-  friends(pageSize: Int! = 5, pageToken: String = null): ProfileList! @deprecated(reason: "Replaced by relationships")
-  hooks(pageSize: Int! = 100, pageToken: String = null, deliveryTypes: [HookDeliveryType!] = null): HookList!
-  milestones(statuses: [UserMilestoneStatus!] = null): [UserMilestone!]!
-  presence: UserPresence!
-  projects(pageSize: Int! = 100, pageToken: String = null): UserProjectList!
-  recentSpaces(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserRecentSpaceList!
-  relationships(pageSize: Int! = 20, pageToken: String = null, showFollowers: Boolean = null, showFollowing: Boolean = null, activityWindowDays: Int = null, activityWindowMins: Int = null): ProfileList!
-  settings: UserSettings!
-  status: UserStatus
-  today: Date!
-  sessions(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserSessionList!
-  vscodeSessions(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserVSCodeSessionList!
+  userId: String
+  user: User
+  groupId: String
+  group: Group
+  sharedById: String!
+  sharedBy: User!
+  organizationId: String!
+  organization: Organization!
+  createTime: DateTime!
+  updateTime: DateTime!
 }
 
-type UserGitHub implements GitHubUserAbstract {
+type AccessCellOutput {
   id: String!
-  username: String
-}
-
-type UserCalendarList {
-  nextPageToken: String
-  data: [UserCalendar!]!
-}
-
-type ConnectionList {
-  nextPageToken: String
-  data: [Connection!]!
-}
-
-type Connection {
-  id: UUID!
-  type: ConnectionType!
-  name: String
-  disabled: Boolean!
+  cellOutputId: String!
+  cellOutput: CellOutput
+  accessId: String!
+  access: Access
+  organizationId: String!
+  organization: Organization
   createTime: DateTime!
   updateTime: DateTime!
-  hooks: ConnectionHookList!
 }
 
-enum ConnectionType {
-  GITHUB
-  SLACK
-}
-
-type ConnectionHookList {
-  data: [Hook!]!
-}
-
-union Hook = HookSlackDnd | HookSlackStatus | HookWeb
-
-type HookSlackDnd implements HookAbstract {
-  id: UUID!
-  deliveryType: HookDeliveryType!
-  name: String
-  disabled: Boolean!
-  createTime: DateTime!
-  updateTime: DateTime!
-  connection: Connection
-}
-
-interface HookAbstract {
-  id: UUID!
-  deliveryType: HookDeliveryType!
-  name: String
-  disabled: Boolean!
-  createTime: DateTime!
-  updateTime: DateTime!
-  connection: Connection
-}
-
-enum HookDeliveryType {
-  SLACK_DND
-  SLACK_STATUS
-  WEB
-}
-
-type HookSlackStatus implements HookAbstract {
-  id: UUID!
-  deliveryType: HookDeliveryType!
-  name: String
-  disabled: Boolean!
-  createTime: DateTime!
-  updateTime: DateTime!
-  connection: Connection
-  statusChange: UserStatusChangeSettings
-}
-
-type UserStatusChangeSettings {
-  default: Boolean
-  activity: Boolean
-  project: Boolean
-  language: Boolean
-  file: Boolean
-  gitBranch: Boolean
-}
-
-type HookWeb implements HookAbstract {
-  id: UUID!
-  deliveryType: HookDeliveryType!
-  name: String
-  disabled: Boolean!
-  createTime: DateTime!
-  updateTime: DateTime!
-  connection: Connection
-  url: String!
-  headers: [HookWebHeader!]!
-  statusChange: UserStatusChangeSettings
-}
-
-type HookWebHeader {
-  name: String!
-  value: String!
-}
-
-type UserDataSummary {
-  status: DataSummaryStatus!
-  activityDurationMs: Int!
-  firstEventTime: DateTime
-  latestEventTime: DateTime
-}
-
-enum DataSummaryStatus {
-  ACTIVE
-  LOW_DATA
-}
-
-type HookList {
-  nextPageToken: String
-  data: [Hook!]!
-}
-
-type UserPresence {
-  active: Boolean!
-  latestActivityTime: DateTime
-  durationMs: Int @deprecated(reason: "Use durationSeconds")
-  projects: UserPresenceProjectList!
-  durationSeconds: Int!
-}
-
-type UserPresenceProjectList {
-  data: [UserPresenceProject!]!
-}
-
-type UserPresenceProject implements ProjectAbstract {
-  id: UUID!
-  name: String!
-  displayName: String!
-  shortName: String!
-  gitUrl: String
-  url: String
-  latestActivityTime: DateTime
-  durationMs: Int @deprecated(reason: "Use durationSeconds")
-  file: UserPresenceProjectFile
-  language: UserPresenceLanguage
-  gitBranch: UserPresenceProjectGitBranch
-  durationSeconds: Int!
-}
-
-type UserPresenceProjectFile implements ProjectFileAbstract {
-  path: String!
-  name: String!
-}
-
-type UserPresenceLanguage implements LanguageAbstract {
+type AccessEnvironment {
   id: String!
-  displayName: String!
+  environmentId: String!
+  environment: Environment
+  accessId: String!
+  access: Access
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
 }
 
-type UserPresenceProjectGitBranch implements ProjectGitBranchAbstract {
-  name: String!
+type AccessNotebookMetadataOutput {
+  id: String!
+  accessId: String!
+  access: Access
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
 }
 
-type UserProjectList {
-  nextPageToken: String
-  data: [UserProject!]!
+type AccessRequest {
+  id: String!
+  status: AccessRequestStatus!
+  referenceId: String!
+  referenceTable: String!
+  requestedById: String
+  requestedBy: User
+  organizationId: String!
+  organization: Organization
+  cellOutput: CellOutput
+  notebookMetadataOutput: NotebookMetadataOutput
+  createTime: DateTime!
+  updateTime: DateTime!
 }
 
-type UserProject implements ProjectAbstract {
-  id: UUID!
-  name: String!
-  displayName: String!
-  shortName: String!
-  gitUrl: String
-  url: String
+enum AccessRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
-type UserRecentSpaceList {
-  nextPageToken: String
-  data: [UserRecentSpace!]!
+input CreateAccessRequestInput {
+  referenceId: String!
+  referenceTable: String!
 }
 
-union UserRecentSpace = UserRecentProject | UserRecentWorkspace
-
-type UserRecentProject implements UserRecentSpaceAbstract & ProjectAbstract {
-  id: UUID!
-  lastOpenTime: DateTime!
-  lastEndTime: DateTime!
-  sessionCount: Int!
-  isActive: Boolean!
-  name: String!
-  displayName: String!
-  shortName: String!
-  gitUrl: String
-  url: String
-  instances(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserRecentInstanceList!
-}
-
-interface UserRecentSpaceAbstract {
-  id: UUID!
-  lastOpenTime: DateTime!
-  lastEndTime: DateTime!
-  sessionCount: Int!
-  isActive: Boolean!
-}
-
-type UserRecentInstanceList {
-  nextPageToken: String
-  data: [UserRecentInstance!]!
-}
-
-type UserRecentInstance implements DeviceAbstract {
-  id: UUID!
-  platform: String
-  platformVersion: String
-  appHost: String
-  remoteName: String
-  folderUri: String
-}
-
-interface DeviceAbstract {
-  id: UUID!
-  platform: String
-  platformVersion: String
-  appHost: String
-  remoteName: String
-}
-
-type UserRecentWorkspace implements UserRecentSpaceAbstract {
-  id: UUID!
-  lastOpenTime: DateTime!
-  lastEndTime: DateTime!
-  sessionCount: Int!
-  isActive: Boolean!
-  name: String!
-  instances(sinceDays: Int! = 30, pageSize: Int! = 10, pageToken: String = null): UserRecentInstanceList!
-}
-
-type UserSettings {
-  sharing: UserSharingSettings!
-  day(dayOfWeek: DayOfWeek = null): UserDaySettings!
-  days: UserDaySettingsList!
-}
-
-type UserSharingSettings {
-  profile: SharingLevel!
-  status: SharingLevel!
-  feed: SharingLevel!
-  dnd: SharingLevel!
-  activity: SharingLevel!
-  language: SharingLevel!
-  project: SharingLevel!
-  file: SharingLevel!
-  gitBranch: SharingLevel!
-  schedule: SharingLevel!
-}
-
-type UserDaySettings {
-  dayOfWeek: DayOfWeek!
-  workStartTime: Time
-  workEndTime: Time
-  standupTime: Time
-  standupTimezone: String
-  ratingPromptTime: Time
-  targetCodingDurationMs: Int @deprecated(reason: "Use targetCodingDurationSeconds")
-  targetRestCount: Int
-  targetRestDurationMs: Int @deprecated(reason: "Use targetRestDurationSeconds")
-  penalizeGitBranchUsage: [String!]
-  targetCodingDuration: Int @deprecated(reason: "Replaced by targetCodingDurationMs")
-  targetRestDuration: Int @deprecated(reason: "Replaced by targetRestDurationMs")
-  targetCodingDurationSeconds: Int
-  targetRestDurationSeconds: Int
-}
-
-enum DayOfWeek {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
-  SUNDAY
-}
-
-type UserDaySettingsList {
-  data: [UserDaySettings!]!
-}
-
-type UserSessionList {
-  nextPageToken: String
-  data: [UserSession!]!
-}
-
-type UserSession {
-  contentId: UUID!
-  startTime: DateTime!
-  endTime: DateTime!
-  sessionIds: [UUID!]!
-  device: UserVSCodeSessionDevice!
-  projects: UserVSCodeSessionProjectList!
-  workspaces: UserVSCodeSessionWorkspaceList!
-}
-
-type UserVSCodeSessionDevice implements DeviceAbstract {
-  id: UUID!
-  platform: String
-  platformVersion: String
-  appHost: String
-  remoteName: String
-}
-
-type UserVSCodeSessionProjectList {
-  data: [UserVSCodeSessionProject!]!
-}
-
-type UserVSCodeSessionProject implements ProjectAbstract {
-  id: UUID!
-  name: String!
-  displayName: String!
-  shortName: String!
-  gitUrl: String
-  url: String
-  baseProjectId: String
-  branches: [String!]
-  codingDuration: CodingDuration
-  folderUri: String
-  workspaceId: UUID
-}
-
-type UserVSCodeSessionWorkspaceList {
-  data: [UserVSCodeSessionWorkspace!]!
-}
-
-type UserVSCodeSessionWorkspace {
-  id: UUID!
-  name: String!
-  folderUri: String
-}
-
-type UserVSCodeSessionList {
-  nextPageToken: String
-  data: [UserVSCodeSession!]!
-}
-
-type UserVSCodeSession {
-  id: UUID!
-  contentId: UUID
-  startTime: DateTime!
-  endTime: DateTime!
-  device: UserVSCodeSessionDevice!
-  projects: UserVSCodeSessionProjectList!
-  workspaces: UserVSCodeSessionWorkspaceList!
+input UpdateAccessRequestInput {
+  referenceId: String
+  referenceTable: String
+  requestedById: String
+  organizationId: String
+  createTime: DateTime
+  updateTime: DateTime
 }
 
 type Mutation {
-  completeUserMilestones(input: CompleteUserMilestonesInput!): CompleteUserMilestonesPayload
-  consumeNotifications(input: ConsumeNotificationsInput!): ConsumeNotificationsPayload
-  createSlackConnection(input: CreateSlackConnectionInput!): CreateSlackConnectionPayload
-  createUserAnnotation(input: CreateUserAnnotationInput!): CreateUserAnnotationPayload
-  createUserCalendar(input: CreateUserCalendarInput!): CreateUserCalendarPayload
-  createUserFeedback(input: CreateUserFeedbackInput!): CreateUserFeedbackPayload
-  createUserInvitation(input: CreateUserInvitationInput!): CreateUserInvitationPayload
-  createWebHook(input: CreateWebHookInput!): CreateWebHookPayload
-  deleteHook(input: DeleteHookInput!): DeleteHookPayload
-  deleteUserAnnotation(input: DeleteUserAnnotationInput!): DeleteUserAnnotationPayload @deprecated(reason: "Use delete_user_annotations")
-  deleteUserAnnotations(input: DeleteUserAnnotationsInput!): DeleteUserAnnotationsPayload
-  deleteUserCalendar(input: DeleteUserCalendarInput!): DeleteUserCalendarPayload
-  followUser(input: FollowUserInput!): FollowUserPayload
-  setFeedItemCategorySettings(input: SetFeedItemCategorySettingsInput!): SetFeedItemCategorySettingsPayload!
-  setFeedItemReaction(input: SetFeedItemReactionInput!): SetFeedItemReactionPayload!
-  setFeedItemTypeSettings(input: SetFeedItemTypeSettingsInput!): SetFeedItemTypeSettingsPayload!
-  setFeedItems(input: SetFeedItemsInput!): SetFeedItemsPayload!
-  setSlackDndHook(input: SetSlackDndHookInput!): SetSlackDndHookPayload
-  setSlackStatusHook(input: SetSlackStatusHookInput!): SetSlackStatusHookPayload
-  setUserDataTestEnrollment(input: SetUserDataTestEnrollmentInput!): SetUserDataTestEnrollmentPayload
-  setUserDayRating(input: SetUserDayRatingInput!): SetUserDayRatingPayload
-  setUserDaySettings(input: SetUserDaySettingsInput!): SetUserDaySettingsPayload
-  setUserSharingSettings(input: SetUserSharingSettingsInput!): SetUserSharingSettingsPayload
-  skipUserMilestones(input: SkipUserMilestonesInput!): SkipUserMilestonesPayload
-  snoozeUserMilestones(input: SnoozeUserMilestonesInput!): SnoozeUserMilestonesPayload
-  track(input: TrackInput!): TrackPayload
-  triggerEvent(input: TriggerEventInput!): TriggerEventPayload
-  undeleteUserAnnotation(input: UndeleteUserAnnotationInput!): UndeleteUserAnnotationPayload
-  unfollowUser(input: UnfollowUserInput!): UnfollowUserPayload
-  unsetFeedItemReaction(input: UnsetFeedItemReactionInput!): UnsetFeedItemReactionPayload!
-  unsnoozeUserMilestones(input: UnsnoozeUserMilestonesInput!): UnsnoozeUserMilestonesPayload
-  updateUser(input: UpdateUserInput!): UpdateUserPayload
-  updateUserAnnotation(input: UpdateUserAnnotationInput!): UpdateUserAnnotationPayload
-  updateUserAnnotations(input: UpdateUserAnnotationsInput!): UpdateUserAnnotationsPayload
-  updateUserCalendar(input: UpdateUserCalendarInput!): UpdateUserCalendarPayload
-  updateUserDayNoteFeedItem(input: UpdateUserDayNoteFeedItemInput!): UpdateUserDayNoteFeedItemPayload!
-  updateWebHook(input: UpdateWebHookInput!): UpdateWebHookPayload
+  createAccessRequest(input: CreateAccessRequestInput!): AccessRequest!
+  acceptAccessRequest(id: String!): AccessRequest!
+  rejectAccessRequest(id: String!): AccessRequest!
+  createConversationBookmark(input: CreateBookmarkInput!): Bookmark!
+  createCellOutputBookmark(input: CreateBookmarkInput!): Bookmark!
+  createNotebookOutputBookmark(input: CreateBookmarkInput!): Bookmark!
+  createMarkdownBookmark(input: CreateBookmarkInput!): Bookmark!
+  deleteBookmark(id: String!): Bookmark!
+  createCellExecution(input: CreateCellExecutionInput!): CellExecution!
+  updateCellExecution(id: String!, input: UpdateCellExecutionInput!, notifySlack: Boolean = true): CellExecution!
+  archiveCellExecution(all: Boolean = false, id: String!): CellExecution
+  unArchiveCellExecution(all: Boolean = false, id: String!): CellExecution
+  createCellOutput(input: CreateCellOutputInput!): CellOutput!
+  createExtensionCellOutput(input: ReporterInput!): CellOutput!
+  deleteCellOutput(id: String!): CellOutput!
+  updateCellOutput(id: String!, input: UpdateCellOutputInput!): CellOutput!
+  archiveCellOutput(all: Boolean = false, id: String!): CellOutput!
+  unArchiveCellOutput(all: Boolean = false, id: String!): CellOutput!
+  shareCellOutputToSlack(input: ShareCellOutputToSlackInput!): CellOutput!
+  updateConversation(id: String!, input: UpdateConversationInput!): Conversation!
+  createEnvironment(input: CreateEnvironmentInput!): Environment!
+  updateEnvironment(id: String!, input: UpdateEnvironmentInput!): Environment!
+  deleteEnvironment(id: String!): Environment!
+  handleGithubInstallation(input: HandleGithubInstallationInput!): GithubInstallation!
+  syncGithubInstallation: GithubInstallation!
+  createGroup(input: CreateGroupInput!): Group!
+  updateGroup(id: String!, input: UpdateGroupInput!): Group!
+  deleteGroup(id: String!): Group!
+  revokeInvitation(input: RevokeInvitationInput!): Invitation!
+  declineInvitation(id: String!): Invitation!
+  acceptInvitation(id: String!): Invitation!
+  createMessage(input: CreateMessageInput!): Message!
+  deleteMessage(id: String!): Message!
+  updateNotebookMetadataOutput(id: String!, input: UpdateNotebookMetadataOutputInput): Notebook
+  shareNotebookMetadataOutputToSlack(input: ShareNotebookMetadataOutputToSlackInput!): Notebook!
+  readNotifications: [Notification]!
+  updateOrganizationUser(input: UpdateOrganizationUserInput!): Organization!
+  deleteOrganizationUser(input: DeleteOrganizationUserInput!): OrganizationUser!
+  updateOrganization(id: String!, input: UpdateOrganizationInput!): Organization!
+  activeOrganization(id: String!): Organization!
+  rateMarkdown(input: RateMarkdownInput!): Rating!
+  updateSlackInstallation(input: UpdateSlackInstallationInput!): SlackInstallation!
+  deleteSlackInstallation(id: String!): SlackInstallation!
+  updateConversationTags(input: UpdateEntityTagsInput!): [Tag]
+  updateCellOutputTags(input: UpdateEntityTagsInput!): [Tag]
+  updateNotebookOutputTags(input: UpdateEntityTagsInput!): [Tag]
+  updateMarkdownTags(input: UpdateEntityTagsInput!): [Tag]
+  inviteUserToOrganization(input: InviteUserToOrganizationInput!): User!
+  updateUserRole(input: UpdateOrgUserRoleInput!): User!
+  updateWorkflow(id: String!, input: UpdateWorkflowInput!): Workflow
 }
 
-type CompleteUserMilestonesPayload {
-  errors: [CompleteUserMilestonesError!]!
+type Assistant {
+  chat(input: ChatInput!): Chat
+  search(input: SearchInput!): Search
 }
 
-type CompleteUserMilestonesError implements UserError {
+type Chat {
+  commands: String
+  hits: [Hit!]!
+  question: String!
+  response: String!
+  session: ChatSession
+}
+
+input ChatInput {
+  executableOnly: Boolean
+  question: String!
+  session: ChatSessionInput
+  internal: Boolean
+}
+
+type ChatMessage {
+  done: Boolean!
   message: String!
-  field: [String!]
+  token: String!
 }
 
-input CompleteUserMilestonesInput {
-  names: [String!]!
+type ChatSession {
+  collectionName: String!
+  expiryMs: Int
+  expirySecs: Int
+  id: ID!
 }
 
-type ConsumeNotificationsPayload {
-  notifications: NotificationList!
-  errors: [ConsumeNotificationsError!]!
+input ChatSessionInput {
+  id: ID!
 }
 
-type NotificationList {
-  data: [Notification!]!
+type Hit {
+  distance: Float
+  document: String!
+  metadata: [DocMetadata!]!
 }
 
-type Notification {
-  createTime: DateTime!
-  ttlSeconds: Int!
-  type: NotificationType!
-  data: NotificationData
-}
-
-enum NotificationType {
-  FIRST_SCORE_READY
-  RATE_MY_DAY
-  STANDUP_TIME
-  DEFAULT_BRANCH_USAGE
-}
-
-type NotificationData {
-  level: NotificationLevel
-  message: String
-  actions: [NotificationAction!]
-}
-
-enum NotificationLevel {
-  INFO
-  WARN
-  ERROR
-}
-
-union NotificationAction = VSCodeNotificationAction
-
-type VSCodeNotificationAction implements NotificationActionAbstract {
-  title: String!
-  payload: String
-}
-
-interface NotificationActionAbstract {
-  title: String!
-}
-
-type ConsumeNotificationsError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input ConsumeNotificationsInput {
-  retain: Boolean! = false
-}
-
-type CreateSlackConnectionPayload {
-  redirectUrl: String
-  errors: [CreateSlackConnectionError!]!
-}
-
-type CreateSlackConnectionError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input CreateSlackConnectionInput {
-  redirectUri: String = null
-}
-
-type CreateUserAnnotationPayload {
-  errors: [CreateUserAnnotationError!]!
-  userAnnotation: UserAnnotation
-}
-
-type CreateUserAnnotationError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input CreateUserAnnotationInput {
-  content: String!
-  date: Date = null
-  type: AnnotationType = null
-  gitUrl: String = null
-  projectId: UUID = null
-  complete: Boolean = null
-  hide: Boolean = null
-  gitBranchName: String = null
-  gitCommit: String = null
-  fileLine: Int = null
-  filePath: String = null
-}
-
-type CreateUserCalendarPayload {
-  errors: [CreateUserCalendarError!]!
-  userCalendar: UserCalendar
-}
-
-type CreateUserCalendarError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input CreateUserCalendarInput {
-  name: String!
-  description: String
-  public: Boolean
-  sinceWeeks: Int
-}
-
-type CreateUserFeedbackPayload {
-  errors: [CreateUserFeedbackError!]!
-}
-
-type CreateUserFeedbackError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input CreateUserFeedbackInput {
-  comment: String!
-}
-
-type CreateUserInvitationPayload {
-  errors: [CreateUserInvitationError!]!
-}
-
-type CreateUserInvitationError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input CreateUserInvitationInput {
-  recipientEmail: String!
-  recipientDisplayName: String = null
-  senderDisplayName: String = null
-  message: String = null
-}
-
-type CreateWebHookPayload {
-  errors: [CreateWebHookError!]!
-  hook: HookWeb
-}
-
-type CreateWebHookError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input CreateWebHookInput {
-  url: String!
-  name: String = null
-  headers: [WebHookHeaderInput!] = null
-  statusChange: UserStatusChangeSettingsInput = null
-  disabled: Boolean! = false
-}
-
-input WebHookHeaderInput {
-  name: String!
+type DocMetadata {
+  key: String!
   value: String!
 }
 
-input UserStatusChangeSettingsInput {
-  default: Boolean!
-  activity: Boolean = null
-  project: Boolean = null
-  language: Boolean = null
-  file: Boolean = null
-  gitBranch: Boolean = null
+type Search {
+  hits: [Hit!]!
+  query: String!
+  stdev: Float
 }
 
-type DeleteHookPayload {
-  errors: [DeleteHookError!]!
+input SearchInput {
+  exclusion: Boolean
+  executableOnly: Boolean
+  expect: Int
+  metadataKeys: [String]
+  query: String!
+  internal: Boolean
 }
 
-type DeleteHookError implements UserError {
-  message: String!
-  field: [String!]
+input DataRageFilter {
+  from: Date!
+  to: Date!
 }
 
-input DeleteHookInput {
-  id: UUID!
+input SearchKnowledgeBaseInput {
+  entityTypes: [String]
+  tags: [String]
+  query: String!
+  dateRanges: DataRageFilter
 }
 
-type DeleteUserAnnotationPayload {
-  errors: [DeleteUserAnnotationError!]!
+type KnowledgeBaseResult {
+  conversation: Conversation
+  cellOutput: CellOutput
+  notebook: NotebookMetadataOutput
+  workflow: Workflow
+  entityType: String!
 }
 
-type DeleteUserAnnotationError implements UserError {
-  message: String!
-  field: [String!]
+enum PermissionEnum {
+  user_read_cell_output
+  create_cell_output
+  update_cell_output
+  delete_cell_output
+  user_read_assistant
+  org_read_analytics
+  user_read_analytics
+  user_read_conversation
+  create_conversation
+  delete_conversation
+  update_conversation
+  user_read_message
+  create_message
+  delete_message
+  user_read_cell
+  user_read_github_installation
+  create_github_installation
+  update_github_installation
+  user_read_invitation
+  org_read_invitation
+  update_invitation
+  delete_invitation
+  create_user_invitation
+  org_read_log
+  user_read_notification
+  update_notification
+  user_read_organization
+  update_organization
+  active_organization
+  user_read_slack_installation
+  create_slack_installation
+  update_slack_installation
+  delete_slack_installation
+  org_read_group
+  user_read_group
+  create_group
+  update_group
+  delete_group
+  user_read_workflow
+  update_workflow
+  user_read_access_request
+  update_access_request
+  create_cell_output_access_request
+  user_read_chat
+  user_read_user
+  user_read_notebook
+  user_read_group_user
+  org_read_organization_user
+  user_read_organization_user
+  user_read_user_role
+  set_user_role
+  org_read_role
+  user_read_role
+  user_read_cell_notebook_metadata
+  user_read_notebook_metadata
+  user_read_cell_input
+  user_read_notebook_input
+  user_read_notebook_identity
+  user_read_notebook_session
+  org_read_tags
+  user_read_tags
+  update_markdown_tags
+  update_tags
+  user_read_access
+  user_read_notebook_metadata_output
+  update_notebook_metadata_output
+  user_read_bookmark
+  create_bookmark
+  delete_bookmark
+  user_read_rating
+  update_rating
+  create_rating
+  user_read_device
+  user_read_environment
+  org_read_environment
+  create_environment
+  update_environment
+  delete_environment
 }
 
-input DeleteUserAnnotationInput {
-  id: UUID!
+enum RoleEnum {
+  admin
+  user
+  guest
 }
 
-type DeleteUserAnnotationsPayload {
-  errors: [DeleteUserAnnotationsError!]!
-}
-
-type DeleteUserAnnotationsError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input DeleteUserAnnotationsInput {
-  ids: [UUID!]!
-}
-
-type DeleteUserCalendarPayload {
-  errors: [DeleteUserCalendarError!]!
-}
-
-type DeleteUserCalendarError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input DeleteUserCalendarInput {
-  id: UUID!
-}
-
-type FollowUserPayload {
-  errors: [FollowUserError!]!
-}
-
-type FollowUserError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input FollowUserInput {
+type Bookmark {
+  id: String!
   userId: String!
+  user: User!
+  organizationId: String
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+  conversation: Conversation
+  cellOutput: CellOutput
+  notebook: NotebookMetadataOutput
+  workflow: Workflow
 }
 
-type SetFeedItemCategorySettingsPayload {
-  errors: [SetFeedItemCategorySettingsError!]!
-  itemCategories: FeedItemCategoryList!
+input CreateBookmarkInput {
+  resourceId: String!
 }
 
-type SetFeedItemCategorySettingsError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input SetFeedItemCategorySettingsInput {
-  feedItemCategoryIds: [UUID!]!
-  sharing: SharingLevel
-  disabled: Boolean = null
-}
-
-type SetFeedItemReactionPayload {
-  errors: [SetFeedItemReactionError!]!
-}
-
-type SetFeedItemReactionError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input SetFeedItemReactionInput {
-  feedItemId: UUID!
-  name: FeedItemReactionName!
-}
-
-type SetFeedItemTypeSettingsPayload {
-  errors: [SetFeedItemTypeSettingsError!]!
-  itemTypes: FeedItemTypeList!
-}
-
-type SetFeedItemTypeSettingsError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input SetFeedItemTypeSettingsInput {
-  feedItemTypeIds: [UUID!]!
-  sharing: SharingLevel
-  disabled: Boolean = null
-}
-
-type SetFeedItemsPayload {
-  errors: [SetFeedItemsError!]!
-}
-
-type SetFeedItemsError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input SetFeedItemsInput {
-  feedItemIds: [UUID!]!
-  deleted: Boolean = null
-  dismissed: Boolean = null
-  snoozeMins: Int = null
-  snoozeDays: Int = null
-}
-
-type SetSlackDndHookPayload {
-  errors: [SetSlackDndHookError!]!
-  hook: HookSlackDnd
-}
-
-type SetSlackDndHookError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input SetSlackDndHookInput {
-  connectionId: UUID!
-  disabled: Boolean! = false
-}
-
-type SetSlackStatusHookPayload {
-  errors: [SetSlackStatusHookError!]!
-  hook: HookSlackStatus
-}
-
-type SetSlackStatusHookError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input SetSlackStatusHookInput {
-  connectionId: UUID!
-  statusChange: UserStatusChangeSettingsInput!
-  disabled: Boolean = false
-}
-
-type SetUserDataTestEnrollmentPayload {
-  errors: [SetUserDataTestEnrollmentError!]!
-}
-
-type SetUserDataTestEnrollmentError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input SetUserDataTestEnrollmentInput {
+type CellAttachment {
+  id: String!
+  cellId: String!
+  cell: Cell
   name: String!
-  disabled: Boolean! = false
+  type: String!
+  size: Int!
+  createTime: DateTime!
+  updateTime: DateTime!
+  organizationId: String
+  organization: Organization
 }
 
-type SetUserDayRatingPayload {
-  errors: [SetUserDayRatingError!]!
+input CreateCellAttachmentInput {
+  cellId: String!
+  name: String!
+  type: String!
+  size: Int!
+  organizationId: String
 }
 
-type SetUserDayRatingError implements UserError {
-  message: String!
-  field: [String!]
+input UpdateCellAttachmentInput {
+  cellId: String
+  name: String
+  type: String
+  size: Int
+  organizationId: String
 }
 
-input SetUserDayRatingInput {
-  date: Date!
-  rating: Int!
-  note: String = null
+enum ShareType {
+  RESTRICTED
+  ORGANIZATION
+  PUBLIC
 }
 
-type SetUserDaySettingsPayload {
-  errors: [SetUserDaySettingsError!]!
+type Owner {
+  bio: String
+  company: String
+  displayName: String
+  githubUsername: String
+  linkedin: String
+  photoUrl: String
+  siteUrl: String
+  twitter: String
+}
+
+type CellExecution {
+  id: String!
+  notebookId: String
+  lifecycleIdentityId: String
+  input: String
+  maskedInput: String
+  stdout: Bytes
+  maskedStdout: Bytes
+  stderr: Bytes
+  maskedStderr: Bytes
+  metadata: Metadata
+  exitCode: Int!
+  htmlUrl: String
+  pid: Int
+  userId: String!
   user: User
+  languageId: String
+  autoSave: Boolean!
+  createTime: DateTime!
+  updateTime: DateTime
+  archivedTime: DateTime
+  isOwner: Boolean
+  owner: Owner
+  inputData: Bytes
+  stdoutData: Bytes
+  stderrData: Bytes
+  history(archived: Boolean = false, autoSave: Boolean): [CellExecution]
+  notebook: Notebook
+  shareType: ShareType
+  unmaskable: Boolean!
+  organizationId: String
+  isSlackReady: Boolean!
 }
 
-type SetUserDaySettingsError implements UserError {
-  message: String!
-  field: [String!]
+type Metadata {
+  category: String
+  endTime: Float
+  exitType: String
+  mimeType: String
+  name: String
+  startTime: Float
 }
 
-input SetUserDaySettingsInput {
-  dayOfWeeks: [DayOfWeek!]!
-  workStartTime: Time
-  workEndTime: Time
-  standupTime: Time
-  standupTimezone: String
-  ratingPromptTime: Time
-  targetCodingDurationSeconds: Int
-  targetRestCount: Int
-  targetRestDurationSeconds: Int
-  penalizeGitBranchUsage: [String!]
+input MetadataInput {
+  category: String
+  endTime: Float
+  exitType: String
+  mimeType: String
+  name: String
+  startTime: Float
 }
 
-type SetUserSharingSettingsPayload {
-  errors: [SetUserSharingSettingsError!]!
+input CreateNotebookInput {
+  id: String
+  runmeVersion: String
+  fileName: String
+}
+
+input _DeviceInput {
+  macAddress: String
+  hostname: String
+  platform: String
+  release: String
+  arch: String
+  vendor: String
+  shell: String
+  vsAppHost: String
+  vsAppName: String
+  vsAppSessionId: String
+  vsMachineId: String
+  metadata: JSON
+}
+
+input CreateCellExecutionInput {
+  id: String
+  input: Bytes!
+  stdout: Bytes!
+  stderr: Bytes!
+  metadata: MetadataInput!
+  notebook: CreateNotebookInput
+  exitCode: Int
+  pid: Int!
+  languageId: String
+  shareType: ShareType
+  autoSave: Boolean
+  createTime: DateTime
+  updateTime: DateTime
+  archivedTime: DateTime
+  repository: String
+  branch: String
+  commit: String
+  fileContent: Bytes
+  filePath: String
+  sessionId: String
+  plainSessionOutput: Bytes
+  maskedSessionOutput: Bytes
+  device: _DeviceInput
+}
+
+input UpdateCellExecutionInput {
+  isPrivate: Boolean
+}
+
+type CellInput {
+  id: String!
+  data: Bytes!
+  hash: String!
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+  cellNotebookMetadataList: [CellNotebookMetadata]
+  input: String
+  maskedInput: String
+}
+
+type CellNotebookMetadata {
+  id: String!
+  cellId: String!
+  cell: Cell
+  notebookMetadataId: String!
+  notebookMetadata: NotebookMetadata
+  cellInputId: String!
+  cellInput: CellInput
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+  name: String
+  category: String
+}
+
+type CellOutput {
+  id: String!
+  description: String
+  inputData: Bytes!
+  stdoutData: Bytes!
+  stderrData: Bytes!
+  exitCode: Int!
+  pid: Int!
+  languageId: String
+  shareType: ShareType!
+  accessCellOutputs: [AccessCellOutput]
+  createTime: DateTime!
+  updateTime: DateTime!
+  archivedTime: DateTime
+  organizationId: String
+  organization: Organization
+  cellId: String!
+  cell(filters: CellOutputFilter): Cell
+  userId: String!
+  autoSave: Boolean
+  lifecycleIdentityId: String
+  unmaskable: Boolean!
   user: User
+  htmlUrl: String
+  isOwner: Boolean
+  owner: User
+  input: String
+  maskedInput: String
+  stdout: Bytes
+  stderr: Bytes
+  maskedStderr: Bytes
+  maskedStdout: Bytes
+  hasMaskedData: Boolean
+  cellNotebookMetadataId: String
+  cellNotebookMetadata: CellNotebookMetadata
+  conversation: Conversation
+  mimeType: String
+  endTime: DateTime
+  startTime: DateTime
+  exitType: String
+  tags: [Tag]
+  bookmark: Bookmark
+  isSlackReady: Boolean
 }
 
-type SetUserSharingSettingsError implements UserError {
-  message: String!
-  field: [String!]
+input CreateCellOutputInput {
+  lifecycleIdentityId: String!
+  notebookLifecycleIdentityId: String!
+  inputData: Bytes!
+  stdoutData: Bytes!
+  stderrData: Bytes!
+  fileContent: Bytes!
+  exitCode: Int!
+  pid: Int!
+  languageId: String
+  metadata: MetadataInput!
+  autoSave: Boolean
+  fileName: String
+  extensionVersion: String
+  shareType: ShareType
+  branch: String
+  repository: String
+  commit: String
+  filePath: String
+  sessionId: String
+  plainSessionOutput: Bytes
+  maskedSessionOutput: Bytes
+  device: _DeviceInput
 }
 
-input SetUserSharingSettingsInput {
-  profile: SharingLevel = null
-  status: SharingLevel = null
-  feed: SharingLevel = null
-  dnd: SharingLevel = null
-  activity: SharingLevel = null
-  project: SharingLevel = null
-  language: SharingLevel = null
-  file: SharingLevel = null
-  gitBranch: SharingLevel = null
-  schedule: SharingLevel = null
+input UpdateCellOutputInput {
+  userIds: [String]
+  groupIds: [String]
+  shareType: ShareType
+  unmaskable: Boolean
+  notify: Boolean
+  description: String
 }
 
-type SkipUserMilestonesPayload {
-  errors: [SkipUserMilestonesError!]!
+input ShareCellOutputToSlackInput {
+  cellOutputId: String!
+  message: String
+  channelId: String!
 }
 
-type SkipUserMilestonesError implements UserError {
-  message: String!
-  field: [String!]
+type Cell {
+  id: String!
+  notebookId: String!
+  notebook: Notebook
+  userId: String!
+  user: User
+  organizationId: String
+  organization: Organization
+  cellOutputs: [CellOutput]
+  mainCellOutput: CellOutput
+  totalOutputs: Int
 }
 
-input SkipUserMilestonesInput {
-  names: [String!]!
+input CellOutputFilter {
+  ownedActive: Boolean
+  ownedArchived: Boolean = false
+  sharedWithMe: Boolean
+  sharedWithOrg: Boolean
 }
 
-type SnoozeUserMilestonesPayload {
-  errors: [SnoozeUserMilestonesError!]!
+type Conversation {
+  id: String!
+  name: String
+  description: String
+  organizationId: String
+  referenceId: String!
+  referenceTable: String!
+  createTime: DateTime!
+  updateTime: DateTime!
+  messages: [Message]
+  organization: Organization
+  cellOutput: CellOutput
+  notebookMetadataOutput: NotebookMetadataOutput
+  users: [User]
+  totalUsers: Int
+  totalMessages: Int
+  tags: [Tag]
+  resourceAccess: ResourceAccess
+  isResourceOwner: Boolean
+  bookmark: Bookmark
 }
 
-type SnoozeUserMilestonesError implements UserError {
-  message: String!
-  field: [String!]
+input UpdateConversationInput {
+  name: String
+  description: String
 }
 
-input SnoozeUserMilestonesInput {
-  names: [String!]!
-  days: Int! = 1
+type Device {
+  id: String!
+  macAddress: String
+  hostname: String
+  platform: String
+  distro: String
+  release: String
+  arch: String
+  vendor: String
+  brand: String
+  shell: String
+  vsAppHost: String
+  vsAppName: String
+  vsSessionId: String
+  vsMachineId: String
+  metadata: JSON
+  organizationId: String
+  organization: Organization
+  notebookMetadataList: [NotebookMetadata]
 }
 
-type TriggerEventPayload {
-  errors: [TriggerEventError!]!
+type Environment {
+  id: String!
+  name: String!
+  description: String
+  createTime: DateTime!
+  updateTime: DateTime!
+  organizationId: String!
+  organization: Organization
+  accessEnvironments: [AccessEnvironment]
 }
 
-type TriggerEventError implements UserError {
-  message: String!
-  field: [String!]
+input CreateEnvironmentInput {
+  name: String!
+  description: String
 }
 
-input TriggerEventInput {
-  type: EventType!
-  hookId: UUID = null
+input UpdateEnvironmentInput {
+  name: String
+  description: String
+  userIds: [String]
+  groupIds: [String]
 }
 
-enum EventType {
-  STATUS_CHANGE
-}
-
-type UndeleteUserAnnotationPayload {
-  errors: [UndeleteUserAnnotationError!]!
-  userAnnotation: UserAnnotation
-}
-
-type UndeleteUserAnnotationError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input UndeleteUserAnnotationInput {
-  id: UUID!
-}
-
-type UnfollowUserPayload {
-  errors: [UnfollowUserError!]!
-}
-
-type UnfollowUserError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input UnfollowUserInput {
+type GithubInstallation {
+  id: String!
+  appId: Int!
+  appSlug: String!
+  installationId: Int!
+  targetId: Int!
+  targetType: GithubTargetType!
+  repositorySelection: String!
+  permissions: GithubInstallationPermissions!
+  accountId: Int!
+  accountName: String!
+  accountAvatarUrl: String!
+  suspendedBy: String
+  suspendedAt: DateTime
+  createTime: DateTime!
+  updateTime: DateTime!
+  organization: Organization
+  organizationId: String!
+  syncingState: SyncingStateEnum
+  workflows: [Workflow]
+  user: User
   userId: String!
 }
 
-type UnsetFeedItemReactionPayload {
-  errors: [UnsetFeedItemReactionError!]!
+enum SyncingStateEnum {
+  SYNCING
+  SYNCED
+  ERROR
 }
 
-type UnsetFeedItemReactionError implements UserError {
-  message: String!
-  field: [String!]
+type GithubInstallationPermissions {
+  contents: String
+  metadata: String
 }
 
-input UnsetFeedItemReactionInput {
-  feedItemId: UUID!
-  name: FeedItemReactionName!
+type GithubMarkdown {
+  git_url: String!
+  html_url: String!
+  name: String!
+  path: String!
+  repository: GithubRepository!
+  sha: String!
+  url: String!
 }
 
-type UnsnoozeUserMilestonesPayload {
-  errors: [UnsnoozeUserMilestonesError!]!
+type GithubRepository {
+  description: String
+  full_name: String
+  html_url: String
+  id: String
+  name: String
+  owner: GithubRepositoryOwner
+  url: String
 }
 
-type UnsnoozeUserMilestonesError implements UserError {
-  message: String!
-  field: [String!]
+type GithubRepositoryOwner {
+  avatar_url: String
+  gravatar_id: String
+  html_url: String
+  id: String
+  login: String
+  type: String
+  url: String
 }
 
-input UnsnoozeUserMilestonesInput {
-  names: [String!]!
+enum GithubTargetType {
+  GITHUB_ORGANIZATION
+  GITHUB_USER
 }
 
-type UpdateUserPayload {
-  errors: [UpdateUserError!]!
+input CreateGithubInstallationInput {
+  appId: Int!
+  appSlug: String!
+  installationId: Int!
+  targetId: Int!
+  targetType: GithubTargetType!
+  repositorySelection: String!
+  permissions: JSON!
+  accountId: Int!
+  accountName: String!
+  accountAvatarUrl: String!
+  suspendedBy: String
+  suspendedAt: DateTime
+  userId: String!
+}
+
+input HandleGithubInstallationInput {
+  installationId: Int!
+  setupAction: String!
+}
+
+input UpdateGithubInstallationInput {
+  appId: Int
+  appSlug: String
+  installationId: Int
+  targetId: Int
+  targetType: GithubTargetType
+  repositorySelection: String
+  permissions: JSON
+  accountId: Int
+  accountName: String
+  accountAvatarUrl: String
+  suspendedBy: String
+  suspendedAt: DateTime
+  userId: String
+}
+
+type GroupUser {
+  id: String!
+  groupId: String!
+  group: Group
+  userId: String!
   user: User
+  organizationId: String!
+  organization: Organization
 }
 
-type UpdateUserError implements UserError {
+input UpdateGroupUserInput {
+  groupId: String
+  userId: String
+  organizationId: String
+}
+
+type Group {
+  id: String!
+  name: String!
+  createTime: DateTime!
+  updateTime: DateTime!
+  groupUsers: [GroupUser]
+  organizationId: String!
+  organization: Organization
+}
+
+input CreateGroupInput {
+  name: String!
+  userIds: [String]!
+}
+
+input UpdateGroupInput {
+  name: String
+  userIds: [String]
+}
+
+type Invitation {
+  id: String!
+  status: InvitationStatus!
+  userId: String!
+  user: User
+  createdById: String!
+  createdBy: User
+  referenceId: String!
+  referenceTable: String!
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+  metadata: InvitationMetadata
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+}
+
+type InvitationMetadata {
+  roleId: String
+}
+
+input InvitationMetadataInput {
+  roleId: String
+}
+
+input CreateInvitationInput {
+  userId: String!
+  referenceId: String!
+  referenceTable: String!
+  metadata: InvitationMetadataInput
+}
+
+input RevokeInvitationInput {
+  userId: String!
+  referenceTable: String!
+}
+
+input UpdateInvitationInput {
+  status: InvitationStatus
+  userId: String
+  referenceId: String
+  referenceTable: String
+  organizationId: String
+  createTime: DateTime
+  updateTime: DateTime
+}
+
+type LogType {
+  id: String!
+  name: String!
+  description: String!
+  logs: [Log]
+}
+
+input CreateLogTypeInput {
+  name: String!
+  description: String!
+}
+
+input UpdateLogTypeInput {
+  name: String
+  description: String
+}
+
+type PaginationMeta {
+  totalPages: Int!
+  totalUnread: Int
+}
+
+type PaginatedLogs {
+  data: [Log!]!
+  meta: PaginationMeta!
+}
+
+type Log {
+  id: String!
+  logType: LogType!
+  userId: String!
+  user: User
+  data: JSON!
+  resourceAccess: ResourceAccess
+  createTime: DateTime!
+}
+
+enum LogTypeEnum {
+  crs
+  crf
+  cre
+  crse
+  crae
+}
+
+input CreateLogInput {
+  type: LogTypeEnum!
+  data: JSON!
+}
+
+input UpdateLogInput {
+  type: LogTypeEnum
+  data: JSON
+}
+
+type Message {
+  id: String!
   message: String!
-  field: [String!]
+  isRead: Boolean!
+  userId: String!
+  user: User
+  parentMessageId: String
+  parentMessage: Message
+  createTime: DateTime!
+  updateTime: DateTime!
+  messages: [Message]
+  conversationId: String!
+  conversation: Conversation
+}
+
+input CreateMessageInput {
+  referenceId: String!
+  referenceTable: String!
+  message: String!
+  parentMessageId: String
+}
+
+type NotebookIdentity {
+  id: String!
+  notebookId: String!
+  notebook: Notebook
+  value: String!
+  type: NotebookIdentityType!
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+}
+
+enum NotebookIdentityType {
+  GIT
+  LIFECYCLE
+}
+
+type NotebookInput {
+  id: String!
+  data: Bytes!
+  hash: String!
+  notebookId: String!
+  notebook: Notebook
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+  notebookMetadataList: [NotebookMetadata]
+}
+
+type NotebookMetadata {
+  id: String!
+  branch: String
+  repository: String
+  commit: String
+  filePath: String
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+  notebookId: String!
+  notebook: Notebook
+  cellNotebookMetadataList: [CellNotebookMetadata]
+  notebookInput: NotebookInput
+  notebookInputId: String
+  extensionVersion: String
+  notebookIdentity: NotebookIdentity
+  notebookIdentityId: String
+  notebookSession: NotebookSession
+  notebookSessionId: String
+  totalCellOutputs: Int
+  deviceId: String
+  device: Device
+}
+
+type NotebookMetadataHistory {
+  id: String!
+  notebookMetadataId: String!
+  notebookMetadata: NotebookMetadata
+  notebookId: String!
+  notebook: Notebook
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+}
+
+type NotebookMetadataOutput {
+  id: String!
+  notebookMetadata: NotebookMetadata
+  notebookMetadataId: String!
+  organization: Organization
+  data: Bytes
+  maskedData: Bytes
+  createTime: DateTime!
+  updateTime: DateTime!
+  organizationId: String!
+  shareType: ShareType!
+  description: String
+  unmaskable: Boolean!
+  user: User
+  userId: String!
+  accessNotebookMetadataOutputs: [AccessNotebookMetadataOutput]
+  hasMaskedData: Boolean
+  isOwner: Boolean
+  conversation: Conversation
+  tags: [Tag]
+  bookmark: Bookmark
+}
+
+input ShareNotebookMetadataOutputToSlackInput {
+  notebookMetadataOutputId: String!
+  message: String
+  channelId: String!
+}
+
+input UpdateNotebookMetadataOutputInput {
+  userIds: [String]
+  groupIds: [String]
+  shareType: ShareType
+  unmaskable: Boolean
+  description: String
+}
+
+type NotebookSession {
+  id: String!
+  organizationId: String!
+  organization: Organization
+  createTime: DateTime!
+  updateTime: DateTime!
+  sessionId: String!
+  cellOutputs: [CellOutput]
+}
+
+input CreateNotebookSessionInput {
+  organizationId: String!
+  environmentId: String
+  notebookId: String!
+}
+
+input UpdateNotebookSessionInput {
+  organizationId: String
+  environmentId: String
+  notebookId: String
+}
+
+type Notebook {
+  id: String!
+  userId: String!
+  user: User
+  createTime: DateTime
+  updateTime: DateTime
+  cells: [Cell]
+  notebookIdentity: NotebookIdentity
+  currentNotebookMetadata: NotebookMetadata
+  organizationId: String!
+  Organization: Organization
+  shareType: ShareType
+  unmaskable: Boolean
+  notebookMetadataOutputs: [NotebookMetadataOutput]
+  conversation: Conversation
+}
+
+input NotebookFilter {
+  owned: Boolean
+  sharedWithMe: Boolean
+  sharedWithOrg: Boolean
+}
+
+input _CreateNotebookInput {
+  lifecycleIdentityId: String!
+}
+
+input UpdateNotebookInput {
+  description: String
+}
+
+type Notification {
+  id: String!
+  type: NotificationType!
+  userId: String!
+  user: User
+  organizationId: String!
+  organization: Organization
+  referenceId: String!
+  referenceTable: String!
+  isRead: Boolean!
+  createTime: DateTime!
+  updateTime: DateTime!
+  accessRequest: AccessRequest
+  invitation: Invitation
+  entityMessage: Message
+}
+
+type ResourceAccess {
+  id: String
+  hasAccess: Boolean
+  accessRequested: Boolean
+}
+
+enum NotificationType {
+  CELL_OUTPUT_ACCESS_REQUEST
+  CELL_OUTPUT_ACCESS_REQUEST_ACCEPTED
+  CELL_OUTPUT_ACCESS_REQUEST_REJECTED
+  NOTEBOOK_METADATA_OUTPUT_ACCESS_REQUEST
+  NOTEBOOK_METADATA_OUTPUT_ACCESS_REQUEST_ACCEPTED
+  NOTEBOOK_METADATA_OUTPUT_ACCESS_REQUEST_REJECTED
+  CELL_OUTPUT_MESSAGE_REPLY
+  NOTEBOOK_METADATA_OUTPUT_MESSAGE_REPLY
+  ORGANIZATION_USER_INVITATION
+  ORGANIZATION_USER_INVITATION_ACCEPTED
+  ORGANIZATION_USER_INVITATION_DECLINED
+}
+
+type PaginatedNotifications {
+  data: [Notification!]!
+  meta: PaginationMeta!
+}
+
+input CreateNotificationInput {
+  type: NotificationType!
+  userId: String!
+  referenceId: String!
+  referenceTable: String!
+  organizationId: String
+}
+
+input UpdateNotificationInput {
+  type: NotificationType
+  userId: String
+  organizationId: String
+  referenceId: String
+  referenceTable: String
+  createTime: DateTime
+  updateTime: DateTime
+}
+
+type OrganizationUser {
+  id: String!
+  organizationId: String!
+  organization: Organization
+  userId: String!
+  user: User
+  isActive: Boolean
+  defaultShareType: ShareType
+}
+
+input DeleteOrganizationUserInput {
+  userId: String!
+}
+
+input CreateOrganizationUserInput {
+  organizationId: String!
+  userId: String!
+  roleId: String!
+  isActive: Boolean
+}
+
+input UpdateOrganizationUserInput {
+  defaultShareType: ShareType
+}
+
+type OrgMetadata {
+  isIndexingEnabled: Boolean
+  isRenamed: Boolean
+  hasSavedCells: Boolean
+}
+
+type Organization {
+  id: String!
+  name: String
+  isDefault: Boolean!
+  defaultShareType: ShareType
+  createTime: DateTime!
+  updateTime: DateTime!
+  metadata: OrgMetadata!
+  organizationUsers: [OrganizationUser]
+  groups: [Group]
+  invitations: [Invitation]
+  domain: String
+}
+
+input CreateOrganizationInput {
+  name: String!
+}
+
+input OrgMetadataInput {
+  isIndexingEnabled: Boolean
+  isRenamed: Boolean
+  hasSavedCells: Boolean
+}
+
+input UpdateOrganizationInput {
+  name: String
+  defaultShareType: ShareType
+  metadata: OrgMetadataInput
+}
+
+input AddUserToOrganizationInput {
+  id: String!
+  userId: String!
+}
+
+input RemoveUserFromOrganization {
+  id: String!
+  userId: String!
+}
+
+type Rating {
+  id: String!
+  rating: Int!
+  createTime: DateTime!
+  updateTime: DateTime!
+  user: User
+  userId: String
+  organizationId: String
+  organization: Organization
+}
+
+input RateMarkdownInput {
+  rating: Int
+  markdownId: String
+}
+
+input ReporterInput {
+  notebook: ReporterNotebookInput!
+  extension: ReporterExtensionInput!
+}
+
+input ReporterExtensionInput {
+  autoSave: Boolean
+  git: ReporterGitInput
+  file: ReporterFileInput
+  session: ReporterSessionInput!
+  device: ReporterDeviceInput
+}
+
+input ReporterGitInput {
+  repository: String
+  branch: String
+  commit: String
+}
+
+input ReporterSessionInput {
+  plainOutput: Bytes!
+  maskedOutput: Bytes!
+}
+
+input ReporterFileInput {
+  path: String
+  content: Bytes
+}
+
+input ReporterDeviceInput {
+  macAddress: String
+  hostname: String
+  platform: String
+  release: String
+  arch: String
+  vendor: String
+  shell: String
+  vsAppHost: String
+  vsAppName: String
+  vsAppSessionId: String
+  vsMachineId: String
+  vsMetadata: JSON
+}
+
+input ReporterNotebookInput {
+  cells: [ReporterCellInput!]!
+  metadata: JSON
+  frontmatter: ReporterFrontmatterInput!
+}
+
+input ReporterExecutionSummaryTimingInput {
+  startTime: Int64Input
+  endTime: Int64Input
+}
+
+input ReporterCellOutputItemInput {
+  data: Bytes!
+  type: String
+  mime: String
+}
+
+input ReporterProcessInfoExitReasonInput {
+  type: String
+  code: UInt32
+}
+
+input ReporterCellOutputProcessInfoInput {
+  exitReason: ReporterProcessInfoExitReasonInput
+  pid: Int64Input
+}
+
+input ReporterCellOutputInput {
+  items: [ReporterCellOutputItemInput!]!
+  metadata: JSON
+  processInfo: ReporterCellOutputProcessInfoInput
+}
+
+input ReporterCellMetadataInput {
+  id: String
+  name: String
+  category: String
+  mimeType: String
+}
+
+input ReporterCellExecutionSummaryInput {
+  executionOrder: UInt32
+  success: BooleanInput
+  timing: ReporterExecutionSummaryTimingInput
+}
+
+input ReporterTextRangeInput {
+  start: Int
+  end: Int
+}
+
+input ReporterCellInput {
+  kind: Int
+  value: String!
+  languageId: String
+  metadata: ReporterCellMetadataInput
+  textRange: ReporterTextRangeInput
+  outputs: [ReporterCellOutputInput!]!
+  executionSummary: ReporterCellExecutionSummaryInput
+}
+
+enum ReporterRunmeIdentity {
+  RUNME_IDENTITY_UNSPECIFIED
+  RUNME_IDENTITY_ALL
+  RUNME_IDENTITY_DOCUMENT
+  RUNME_IDENTITY_CELL
+}
+
+input ReporterRunmeSessionDocumentInput {
+  relativePath: String
+}
+
+input ReporterRunmeSessionInput {
+  id: String!
+  document: ReporterRunmeSessionDocumentInput
+}
+
+input ReporterFrontmatterRunmeInput {
+  id: String!
+  version: String
+  session: ReporterRunmeSessionInput!
+}
+
+input ReporterFrontmatterInput {
+  shell: String
+  cwd: String
+  skipPrompts: Boolean
+  runme: ReporterFrontmatterRunmeInput!
+  category: String
+  terminalRows: String
+}
+
+input BooleanInput {
+  value: Boolean
+}
+
+input Int64Input {
+  value: String
+}
+
+input UInt32 {
+  value: Int
+}
+
+type Role {
+  id: String!
+  name: String!
+  createTime: DateTime!
+  updateTime: DateTime!
+}
+
+input CreateRoleInput {
+  name: String!
+}
+
+input UpdateRoleInput {
+  name: String
+  createTime: DateTime
+  updateTime: DateTime
+}
+
+scalar Bytes
+
+scalar IntOrString
+
+type SlackInstallation {
+  id: String!
+  appId: String!
+  teamId: String!
+  teamName: String!
+  token: Bytes!
+  tokenType: SlackTokenType
+  scopes: String!
+  data: JSON!
+  defaultChannelId: String
+  defaultChannelName: String
+  createTime: DateTime!
+  updateTime: DateTime!
+  organization: Organization
+}
+
+enum SlackTokenType {
+  SLACK_BOT
+  SLACK_USER
+}
+
+type SlackChannel {
+  id: String!
+  name: String!
+}
+
+input CreateSlackInstallationInput {
+  appId: String!
+  teamId: String!
+  teamName: String!
+  token: Bytes!
+  tokenType: SlackTokenType
+  scopes: String!
+  data: JSON!
+  defaultChannelId: String
+  defaultChannelName: String
+}
+
+input UpdateSlackInstallationInput {
+  defaultChannelId: String
+  defaultChannelName: String
+}
+
+enum AnalyticRanges {
+  Weekly
+  Monthly
+  Bimonthly
+  Quarterly
+}
+
+type AxisData {
+  xAxis: IntOrString
+  yAxis: Int
+  date: DateTime
+}
+
+type AxisStat {
+  legends: [JSON]
+  data: [AxisData]!
+}
+
+input AnalyticFilterInput {
+  range: AnalyticRanges!
+  xAxis: [IntOrString]
+  teamId: String
+}
+
+type Tag {
+  id: String!
+  name: String!
+  organizationId: String!
+  organization: Organization
+}
+
+input CreateTagInput {
+  name: String!
+}
+
+input UpdateTagInput {
+  name: String
+  organizationId: String
+}
+
+input UpdateEntityTagsInput {
+  tagNames: [String!]
+  id: String!
+}
+
+type UserRole {
+  id: String!
+  userId: String!
+  user: User
+  roleId: String!
+  role: Role
+  createTime: DateTime!
+  updateTime: DateTime!
+  organizationId: String!
+  organization: Organization
+}
+
+input CreateUserRoleInput {
+  userId: String!
+  roleId: String!
+  organizationId: String!
+}
+
+input UpdateUserRoleInput {
+  userId: String
+  roleId: String
+  createTime: DateTime
+  updateTime: DateTime
+  organizationId: String
+}
+
+type User {
+  id: String!
+  username: String
+  displayName: String
+  email: String!
+  photoUrl: String
+  auth0Id: String
+  signupOrigin: SignupOrigin
+  createTime: DateTime
+  updateTime: DateTime
+  cells: [Cell]
+  SlackInstallations: [SlackInstallation]
+  Notebook: [Notebook]
+  groupUsers: [GroupUser]
+  organizationUsers: [OrganizationUser]
+  userRoles: [UserRole]
+}
+
+enum SignupOrigin {
+  UNKNOWN
+  RUNME_CLI
+  RUNME_VSCODE
+  RUNME_APP
+  RUNME_FIREBASE
+}
+
+input CreateUserInput {
+  displayName: String
+  email: String!
 }
 
 input UpdateUserInput {
   displayName: String
-  email: String
-  timezone: String
-  bio: String
-  company: String
-  linkedin: String
-  twitter: String
-  siteUrl: String
-  dndEnabled: Boolean
-  dndUnpauseTime: DateTime
 }
 
-type UpdateUserAnnotationPayload {
-  errors: [UpdateUserAnnotationError!]!
-  userAnnotation: UserAnnotation
+input InviteUserToOrganizationInput {
+  displayName: String
+  email: String!
+  roleId: String!
 }
 
-type UpdateUserAnnotationError implements UserError {
-  message: String!
-  field: [String!]
+input UpdateOrgUserRoleInput {
+  id: String!
+  roleId: String
 }
 
-input UpdateUserAnnotationInput {
-  id: UUID!
-  date: Date
-  addDates: [Date!]
-  removeDates: [Date!]
-  content: String
-  type: AnnotationType
-  gitUrl: String
-  projectId: UUID
-  complete: Boolean
-  hide: Boolean
-  gitBranchName: String
-  gitCommit: String
-  fileLine: Int
-  filePath: String
-}
-
-type UpdateUserAnnotationsPayload {
-  errors: [UpdateUserAnnotationsError!]!
-  userAnnotations: [UserAnnotation!]!
-}
-
-type UpdateUserAnnotationsError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input UpdateUserAnnotationsInput {
-  ids: [UUID!]!
-  complete: Boolean
-  hide: Boolean
-}
-
-type UpdateUserCalendarPayload {
-  errors: [UpdateUserCalendarError!]!
-  userCalendar: UserCalendar
-}
-
-type UpdateUserCalendarError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input UpdateUserCalendarInput {
-  id: UUID!
-  name: String
+type Workflow {
+  id: String!
   description: String
-  public: Boolean
-  sinceWeeks: Int
+  fileName: String!
+  path: String!
+  repository: String!
+  githubInstallation: GithubInstallation
+  githubInstallationId: String
+  data: Bytes
+  createTime: DateTime
+  updateTime: DateTime
+  rating: Rating
+  totalRatings: Int
+  bookmark: Bookmark
+  organizationId: String
+  organization: Organization
+  tags: [Tag]
 }
 
-type UpdateUserDayNoteFeedItemPayload {
-  feedItem: DayNoteFeedItem!
-  errors: [UpdateUserDayNoteFeedItemError!]!
+type PaginatedWorkflowsMeta {
+  totalPages: Int!
+  total: Int!
 }
 
-type UpdateUserDayNoteFeedItemError implements UserError {
-  message: String!
-  field: [String!]
+type PaginatedWorkflows {
+  data: [Workflow!]!
+  meta: PaginatedWorkflowsMeta!
 }
 
-input UpdateUserDayNoteFeedItemInput {
-  feedItemId: UUID!
-  content: String!
+input CreateWorkflowInput {
+  fileName: String!
+  path: String!
+  repository: String!
+  githubInstallationId: String
 }
 
-type UpdateWebHookPayload {
-  errors: [UpdateWebHookError!]!
-  hook: HookWeb
-}
-
-type UpdateWebHookError implements UserError {
-  message: String!
-  field: [String!]
-}
-
-input UpdateWebHookInput {
-  id: UUID!
-  url: String
-  name: String
-  headers: [WebHookHeaderInput!]
-  statusChange: UserStatusChangeSettingsInput
-  disabled: Boolean
-}
-
-type Subscription {
-  count(target: Int! = 100): Int!
+input UpdateWorkflowInput {
+  description: String
 }
