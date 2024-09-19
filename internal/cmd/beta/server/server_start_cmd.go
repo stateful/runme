@@ -11,6 +11,7 @@ import (
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	"github.com/stateful/runme/v3/internal/server"
+	"github.com/stateful/runme/v3/internal/telemetry"
 )
 
 func serverStartCmd() *cobra.Command {
@@ -32,6 +33,8 @@ func serverStartCmd() *cobra.Command {
 						KeyFile:    cfg.ServerTLSKeyFile,
 						TLSEnabled: cfg.ServerTLSEnabled,
 					}
+
+					_ = telemetry.ReportUnlessNoTracking(logger)
 
 					logger.Debug("server config", zap.Any("config", serverCfg))
 

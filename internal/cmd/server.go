@@ -17,6 +17,7 @@ import (
 	"github.com/stateful/runme/v3/internal/project/projectservice"
 	"github.com/stateful/runme/v3/internal/runner"
 	runnerv2service "github.com/stateful/runme/v3/internal/runnerv2service"
+	"github.com/stateful/runme/v3/internal/telemetry"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
@@ -94,6 +95,8 @@ The kernel is used to run long running processes like shells and interacting wit
 			if err != nil {
 				return err
 			}
+
+			_ = telemetry.ReportUnlessNoTracking(logger)
 
 			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
 
