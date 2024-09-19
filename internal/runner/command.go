@@ -668,7 +668,7 @@ func parseFileProgram(programPath string) (program string, args []string) {
 	}
 
 	if len(parts) > 1 {
-		args = []string{parts[1]}
+		args = strings.Split(parts[1], " ")
 	}
 
 	return
