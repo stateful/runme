@@ -98,16 +98,16 @@ $ runme print hello-js
 Find help and information to parameters and configurations.
 If you need assistance or information regarding various parameters and configurations available with Runme, the `help` command provides quick access to helpful information:
 
-```sh { name=runme-help interactive=false }
+```sh {"id":"01J86DCNWW7W7R73NKB51QAS2V","interactive":"false","name":"runme-help"}
 $ runme help
 
 ```
 
 Feel free to explore further and experiment with the commands to get a deeper understanding of Runme’s functionalities!
 
-## Examples
+## Documentation
 
-You can find an exhaustive list of examples in the [official Runme documentation](https://runme.dev/examples) with examples demonstrating various use cases of Runme.
+Check out the full documentation available at [Runme](https://docs.runme.dev).
 
 ## Feedback
 
