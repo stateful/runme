@@ -9,6 +9,11 @@ import (
 )
 
 func TestReportUnlessNoTracking(t *testing.T) {
+	// don't send telemetry in tests
+	reporter = func() error {
+		return nil
+	}
+
 	t.Run("Track", func(t *testing.T) {
 		logger := zap.NewNop()
 		require.True(t, ReportUnlessNoTracking(logger))

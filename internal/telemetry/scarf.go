@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,24 +19,31 @@ const (
 	client = "Kernel"
 )
 
-type LookupEnv func(key string) (string, bool)
+type reporterFunc func() error
+type lookupEnvFunc func(key string) (string, bool)
+
+var reporter reporterFunc
+
+func init() {
+	reporter = liveReporter
+}
 
 // Returns true if telemetry reporting is enabled, false otherwise.
 func ReportUnlessNoTracking(logger *zap.Logger) bool {
-	if v := os.Getenv("DO_NOT_TRACK"); v != "" && v != "0" && v != "false" {
-		logger.Info("Telemetry reporting is disabled with DO_NOT_TRACK")
-		return false
-	}
+	disablers := []string{"DO_NOT_TRACK", "SCARF_NO_ANALYTICS"}
 
-	if v := os.Getenv("SCARF_NO_ANALYTICS"); v != "" && v != "0" && v != "false" {
-		logger.Info("Telemetry reporting is disabled with SCARF_NO_ANALYTICS")
-		return false
+	for _, key := range disablers {
+		disabled, err := trackingDisabledForEnv(key)
+		if err == nil && disabled {
+			logger.Info(fmt.Sprintf("Telemetry reporting is disabled with %s", key))
+			return false
+		}
 	}
 
 	logger.Info("Telemetry reporting is enabled")
 
 	go func() {
-		err := report()
+		err := reporter()
 		if err != nil {
 			logger.Warn("Error reporting telemetry", zap.Error(err))
 		}
@@ -44,7 +52,16 @@ func ReportUnlessNoTracking(logger *zap.Logger) bool {
 	return true
 }
 
-func report() error {
+func trackingDisabledForEnv(key string) (bool, error) {
+	val, err := strconv.ParseBool(os.Getenv(key))
+	if err != nil {
+		return false, err
+	}
+
+	return val, nil
+}
+
+func liveReporter() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -71,7 +88,7 @@ func report() error {
 	return nil
 }
 
-func buildURL(lookup LookupEnv, client string) (*url.URL, error) {
+func buildURL(lookup lookupEnvFunc, client string) (*url.URL, error) {
 	baseAndClient := base + client
 
 	props := []string{
@@ -103,7 +120,7 @@ func buildURL(lookup LookupEnv, client string) (*url.URL, error) {
 	return dst, nil
 }
 
-func addValue(lookup LookupEnv, params *url.Values, prop string) {
+func addValue(lookup lookupEnvFunc, params *url.Values, prop string) {
 	if v, ok := lookup(fmt.Sprintf("TELEMETRY_%s", strings.ToUpper(prop))); ok {
 		params.Add(strings.ToLower(prop), v)
 	}
