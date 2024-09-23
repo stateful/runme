@@ -95,29 +95,14 @@ Run all blocks from the "setup" and "teardown" tags:
 							return errors.WithMessage(err, "failed to create session")
 						}
 
-						opts := runnerv2client.ExecuteProgramOptions{
-							SessionID:        sessionResp.GetSession().GetId(),
-							Stdin:            io.NopCloser(cmd.InOrStdin()),
-							Stdout:           cmd.OutOrStdout(),
-							Stderr:           cmd.ErrOrStderr(),
-							StoreStdoutInEnv: true,
-						}
-						if stdin, ok := cmd.InOrStdin().(*os.File); ok {
-							size, err := pty.GetsizeFull(stdin)
-							if err != nil {
-								logger.Info("failed to get terminal size", zap.Error(err))
-							} else {
-								opts.Winsize = &runnerv2.Winsize{
-									Rows: uint32(size.Rows),
-									Cols: uint32(size.Cols),
-									X:    uint32(size.X),
-									Y:    uint32(size.Y),
-								}
-							}
-						}
-
 						for _, t := range tasks {
-							err := runCodeBlockWithClient(ctx, client, t.CodeBlock, opts)
+							err := runCodeBlockWithClient(
+								ctx,
+								cmd,
+								client,
+								t.CodeBlock,
+								sessionResp.GetSession().GetId(),
+							)
 							if err != nil {
 								return err
 							}
@@ -164,7 +149,7 @@ func createCommandOptions(
 	}
 }
 
-func createProgramConfigFromCodeBlock(block *document.CodeBlock) (*command.ProgramConfig, error) {
+func createProgramConfigFromCodeBlock(block *document.CodeBlock, opts ...command.ConfigBuilderOption) (*command.ProgramConfig, error) {
 	// TODO(adamb): [command.Config] is generated exclusively from the [document.CodeBlock].
 	// As we introduce some document- and block-related configs in runme.yaml (root but also nested),
 	// this [Command.Config] should be further extended.
@@ -175,7 +160,7 @@ func createProgramConfigFromCodeBlock(block *document.CodeBlock) (*command.Progr
 	// the last element of the returned config chain. Finally, [command.Config] should be updated.
 	// This algorithm should be likely encapsulated in the [internal/config] and [internal/command]
 	// packages.
-	return command.NewProgramConfigFromCodeBlock(block)
+	return command.NewProgramConfigFromCodeBlock(block, opts...)
 }
 
 func runCodeBlock(
@@ -209,13 +194,37 @@ func runCodeBlock(
 
 func runCodeBlockWithClient(
 	ctx context.Context,
+	cobraCommand *cobra.Command,
 	client *runnerv2client.Client,
 	block *document.CodeBlock,
-	opts runnerv2client.ExecuteProgramOptions,
+	sessionID string,
 ) error {
 	cfg, err := createProgramConfigFromCodeBlock(block, command.WithInteractiveLegacy())
 	if err != nil {
 		return err
 	}
+
+	opts := runnerv2client.ExecuteProgramOptions{
+		SessionID:        sessionID,
+		Stdin:            io.NopCloser(cobraCommand.InOrStdin()),
+		Stdout:           cobraCommand.OutOrStdout(),
+		Stderr:           cobraCommand.ErrOrStderr(),
+		StoreStdoutInEnv: true,
+	}
+
+	if stdin, ok := cobraCommand.InOrStdin().(*os.File); ok {
+		size, err := pty.GetsizeFull(stdin)
+		if err != nil {
+			return errors.WithMessage(err, "failed to get terminal size")
+		}
+
+		opts.Winsize = &runnerv2.Winsize{
+			Rows: uint32(size.Rows),
+			Cols: uint32(size.Cols),
+			X:    uint32(size.X),
+			Y:    uint32(size.Y),
+		}
+	}
+
 	return client.ExecuteProgram(ctx, cfg, opts)
 }
