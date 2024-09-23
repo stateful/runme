@@ -74,6 +74,10 @@ func (c *Client) executeProgram(
 	}
 
 	if stdin := opts.Stdin; !isNil(stdin) {
+		// TODO(adamb): reimplement it. There should be a singleton
+		// handling and forwarding the stdin. The current implementation
+		// does not temrinate multiple stdin readers in the case of
+		// running multiple commands using "beta run command1 command2 ... commandN".
 		go func() {
 			defer func() {
 				c.logger.Info("finishing reading stdin")
