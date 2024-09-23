@@ -62,6 +62,39 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	assert.Equal(t, []string{"TEST_ENV=1"}, session.GetAllEnv())
 }
 
+func TestTerminalCommand_Intro(t *testing.T) {
+	t.Parallel()
+
+	session := NewSession()
+	stdinR, stdinW := io.Pipe()
+	stdout := bytes.NewBuffer(nil)
+
+	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
+
+	cmd, err := factory.Build(
+		&ProgramConfig{
+			ProgramName: "bash",
+			Interactive: true,
+			Mode:        runnerv2.CommandMode_COMMAND_MODE_TERMINAL,
+		},
+		CommandOptions{
+			Session:     session,
+			StdinWriter: stdinW,
+			Stdin:       stdinR,
+			Stdout:      stdout,
+		},
+	)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	require.NoError(t, cmd.Start(ctx))
+
+	expectContainLine(t, stdout, "eval $(runme beta env source --silent --insecure --export)")
+	expectContainLine(t, stdout, strings.Trim(string(introMsg), " \r\n"))
+}
+
 func expectContainLine(t *testing.T, r io.Reader, expected string) {
 	t.Helper()
 
