@@ -134,7 +134,7 @@ func storeSnapshotCmd() *cobra.Command {
 
 		return "manual"
 	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
-	cmd.Flags().IntVar(&limit, "limit", 15, "Limit the number of lines")
+	cmd.Flags().IntVar(&limit, "limit", 50, "Limit the number of lines")
 	cmd.Flags().BoolVarP(&all, "all", "A", false, "Show all lines")
 
 	return &cmd
