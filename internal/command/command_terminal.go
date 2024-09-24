@@ -9,7 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var introMsg = []byte(" # Runme terminal: Upon exit, exported environment variables will roll up into your session. Type 'save' to add this session to the notebook.\n\n")
+var introMsg = []byte(
+	" # Runme terminal: Upon exit, exported environment variables will roll up into your session." +
+		" Type 'save' to add this session to the notebook.\n\n",
+)
 
 type terminalCommand struct {
 	internalCommand
