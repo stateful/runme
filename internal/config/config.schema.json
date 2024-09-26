@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runme.dev/config.schema.json",
+  "title": "Config",
+  "description": "Runme configuration schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "type": "string",
+          "default": ""
+        },
+        "find_repo_upward": {
+          "type": "boolean",
+          "default": false
+        },
+        "ignore": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "disable_gitignore": {
+          "type": "boolean",
+          "default": false
+        },
+        "filename": {
+          "type": "string",
+          "default": ""
+        },
+        "env": {
+          "type": "object",
+          "properties": {
+            "use_system_env": {
+              "type": "boolean",
+              "default": false
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "filters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "FILTER_TYPE_BLOCK",
+                  "FILTER_TYPE_DOCUMENT"
+                ]
+              },
+              "condition": {
+                "type": "string"
+              },
+              "extra": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "type",
+              "condition"
+            ]
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "docker": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "string"
+            },
+            "build": {
+              "type": "object",
+              "properties": {
+                "context": {
+                  "type": "string"
+                },
+                "dockerfile": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "context",
+                "dockerfile"
+              ]
+            }
+          },
+          "required": [
+            "enabled",
+            "image"
+          ]
+        }
+      }
+    },
+    "server": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "cert_file": {
+              "type": "string"
+            },
+            "key_file": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        }
+      },
+      "required": [
+        "address"
+      ]
+    },
+    "client": {
+      "type": "object",
+      "properties": {
+        "server_address": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "server_address"
+      ]
+    },
+    "log": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "path": {
+          "type": "string",
+          "default": ""
+        },
+        "verbose": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "enabled",
+        "path"
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "project"
+  ]
+}

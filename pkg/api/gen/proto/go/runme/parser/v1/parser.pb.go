@@ -859,13 +859,14 @@ type Frontmatter struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Shell        string            `protobuf:"bytes,1,opt,name=shell,proto3" json:"shell,omitempty"`
-	Cwd          string            `protobuf:"bytes,2,opt,name=cwd,proto3" json:"cwd,omitempty"`
-	SkipPrompts  bool              `protobuf:"varint,3,opt,name=skip_prompts,json=skipPrompts,proto3" json:"skip_prompts,omitempty"`
-	Runme        *FrontmatterRunme `protobuf:"bytes,4,opt,name=runme,proto3" json:"runme,omitempty"`
-	Category     string            `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
-	TerminalRows string            `protobuf:"bytes,6,opt,name=terminal_rows,json=terminalRows,proto3" json:"terminal_rows,omitempty"`
-	Tag          string            `protobuf:"bytes,7,opt,name=tag,proto3" json:"tag,omitempty"`
+	Shell       string            `protobuf:"bytes,1,opt,name=shell,proto3" json:"shell,omitempty"`
+	Cwd         string            `protobuf:"bytes,2,opt,name=cwd,proto3" json:"cwd,omitempty"`
+	SkipPrompts bool              `protobuf:"varint,3,opt,name=skip_prompts,json=skipPrompts,proto3" json:"skip_prompts,omitempty"`
+	Runme       *FrontmatterRunme `protobuf:"bytes,4,opt,name=runme,proto3" json:"runme,omitempty"`
+	// Deprecated category in favor of Tag
+	Category     string `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
+	TerminalRows string `protobuf:"bytes,6,opt,name=terminal_rows,json=terminalRows,proto3" json:"terminal_rows,omitempty"`
+	Tag          string `protobuf:"bytes,7,opt,name=tag,proto3" json:"tag,omitempty"`
 }
 
 func (x *Frontmatter) Reset() {

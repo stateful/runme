@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/cmd/beta/server"
 	"github.com/stateful/runme/v3/internal/config"
@@ -36,25 +37,31 @@ All commands use the runme.yaml configuration file.`,
 				cmd.SetErr(io.Discard)
 			}
 
-			err := autoconfig.InvokeForCommand(func(cfg *config.Config) error {
+			err := autoconfig.InvokeForCommand(func(cfg *config.Config, log *zap.Logger) error {
 				// Override the filename if provided.
 				if cFlags.filename != "" {
-					cfg.ProjectFilename = cFlags.filename
+					cfg.Project.Filename = cFlags.filename
 				}
 
 				// Add a filter to run only tasks from the specified tags.
 				if len(cFlags.tags) > 0 {
-					cfg.ProjectFilters = append(cfg.ProjectFilters, &config.Filter{
-						Type:      config.FilterTypeBlock,
-						Condition: `len(intersection(tags, extra.tags)) > 0`,
-						Extra:     map[string]interface{}{"tags": cFlags.tags},
-					})
+					cfg.Project.Filters = append(
+						cfg.Project.Filters,
+						config.ConfigProjectFiltersElem{
+							Type:      config.FilterTypeBlock,
+							Condition: `len(intersection(tags, extra.tags)) > 0`,
+							Extra:     map[string]interface{}{"tags": cFlags.tags},
+						},
+					)
 				}
+
+				log.Info("final configuration", zap.Any("config", cfg))
 
 				return nil
 			})
-			// print the error to stderr but don't return it because error modes
-			// are neither fully baked yet nor ready for users to consume
+
+			// Print the error to stderr but don't return it because error modes
+			// are neither fully baked yet nor ready for users to consume.
 			if err != nil {
 				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", err)
 			}

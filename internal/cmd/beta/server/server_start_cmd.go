@@ -28,10 +28,10 @@ func serverStartCmd() *cobra.Command {
 					defer logger.Sync()
 
 					serverCfg := &server.Config{
-						Address:    cfg.ServerAddress,
-						CertFile:   cfg.ServerTLSCertFile,
-						KeyFile:    cfg.ServerTLSKeyFile,
-						TLSEnabled: cfg.ServerTLSEnabled,
+						Address:    cfg.Server.Address,
+						CertFile:   *cfg.Server.Tls.CertFile, // guaranteed by autoconfig
+						KeyFile:    *cfg.Server.Tls.KeyFile,  // guaranteed by autoconfig
+						TLSEnabled: cfg.Server.Tls.Enabled,
 					}
 
 					_ = telemetry.ReportUnlessNoTracking(logger)
@@ -44,12 +44,12 @@ func serverStartCmd() *cobra.Command {
 					}
 
 					// When using a unix socket, we want to create a file with server's PID.
-					if path := pidFileNameFromAddr(cfg.ServerAddress); path != "" {
+					if path := pidFileNameFromAddr(cfg.Server.Address); path != "" {
 						logger.Debug("creating PID file", zap.String("path", path))
 						if err := createFileWithPID(path); err != nil {
 							return errors.WithStack(err)
 						}
-						defer os.Remove(cfg.ServerAddress)
+						defer os.Remove(cfg.Server.Address)
 					}
 
 					logger.Debug("starting the server")

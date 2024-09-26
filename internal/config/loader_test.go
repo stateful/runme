@@ -12,9 +12,9 @@ import (
 func TestNewLoader(t *testing.T) {
 	t.Parallel()
 
-	require.Panics(t, func() {
-		NewLoader("", "yaml", fstest.MapFS{})
-	}, "config name is not set")
+	require.NotPanics(t, func() {
+		NewLoader(nil, fstest.MapFS{})
+	})
 }
 
 func TestLoader_RootConfig(t *testing.T) {
@@ -24,10 +24,10 @@ func TestLoader_RootConfig(t *testing.T) {
 		t.Parallel()
 
 		fsys := fstest.MapFS{}
-		loader := NewLoader("runme", "yaml", fsys, WithLogger(zaptest.NewLogger(t)))
-		result, err := loader.RootConfig()
+		loader := NewLoader(nil, fsys, WithLogger(zaptest.NewLogger(t)))
+		items, err := loader.RootConfigs()
 		require.ErrorIs(t, err, ErrRootConfigNotFound)
-		require.Nil(t, result)
+		require.Nil(t, items)
 	})
 
 	t.Run("with root config", func(t *testing.T) {
@@ -39,10 +39,10 @@ func TestLoader_RootConfig(t *testing.T) {
 				Data: data,
 			},
 		}
-		loader := NewLoader("runme", "yaml", fsys, WithLogger(zaptest.NewLogger(t)))
-		result, err := loader.RootConfig()
+		loader := NewLoader(nil, fsys, WithLogger(zaptest.NewLogger(t)))
+		items, err := loader.RootConfigs()
 		require.NoError(t, err)
-		require.Equal(t, data, result)
+		require.Equal(t, [][]byte{data}, items)
 	})
 }
 
@@ -53,7 +53,7 @@ func TestLoader_ChainConfigs(t *testing.T) {
 		t.Parallel()
 
 		fsys := fstest.MapFS{}
-		loader := NewLoader("runme", "yaml", fsys, WithLogger(zaptest.NewLogger(t)))
+		loader := NewLoader(nil, fsys, WithLogger(zaptest.NewLogger(t)))
 		result, err := loader.FindConfigChain("")
 		require.NoError(t, err)
 		require.Nil(t, result)
@@ -77,7 +77,7 @@ func TestLoader_ChainConfigs(t *testing.T) {
 			Mode: fs.ModeDir,
 		},
 	}
-	loader := NewLoader("runme", "yaml", fsys, WithLogger(zaptest.NewLogger(t)))
+	loader := NewLoader(nil, fsys, WithLogger(zaptest.NewLogger(t)))
 
 	t.Run("root config", func(t *testing.T) {
 		result, err := loader.FindConfigChain("")

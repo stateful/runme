@@ -1,87 +1,65 @@
 package config
 
 import (
+	_ "embed"
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
-	"github.com/bufbuild/protovalidate-go"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"gopkg.in/yaml.v3"
-
-	configv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/config/v1alpha1"
 )
 
-// Config is a flatten configuration of runme.yaml. The purpose of it is to
-// unify all the different configuration versions into a single struct.
-type Config struct {
-	ProjectRoot             string
-	ProjectFilename         string
-	ProjectFindRepoUpward   bool
-	ProjectIgnorePaths      []string
-	ProjectDisableGitignore bool
-	ProjectEnvUseSystemEnv  bool
-	ProjectEnvSources       []string
-	ProjectFilters          []*Filter
+//go:embed runme.default.yaml
+var defaultRunmeYAML []byte
 
-	RuntimeDockerEnabled         bool
-	RuntimeDockerImage           string
-	RuntimeDockerBuildContext    string
-	RuntimeDockerBuildDockerfile string
-
-	ServerAddress     string
-	ServerTLSEnabled  bool
-	ServerTLSCertFile string
-	ServerTLSKeyFile  string
-
-	LogEnabled bool
-	LogPath    string
-	LogVerbose bool
-}
-
-func (c *Config) Clone() *Config {
-	clone := *c
-	clone.ProjectIgnorePaths = make([]string, len(c.ProjectIgnorePaths))
-	copy(clone.ProjectIgnorePaths, c.ProjectIgnorePaths)
-	clone.ProjectEnvSources = make([]string, len(c.ProjectEnvSources))
-	copy(clone.ProjectEnvSources, c.ProjectEnvSources)
-	clone.ProjectFilters = make([]*Filter, len(c.ProjectFilters))
-	for i, f := range c.ProjectFilters {
-		clone.ProjectFilters[i] = &Filter{
-			Type:      f.Type,
-			Condition: f.Condition,
-		}
+func init() {
+	// Ensure the default configuration is valid.
+	_, err := newDefault()
+	if err != nil {
+		panic(err)
 	}
-	return &clone
 }
 
-func Defaults() *Config {
-	return defaults.Clone()
+func newDefault() (*Config, error) {
+	return ParseYAML(defaultRunmeYAML)
 }
 
-func ParseYAML(data []byte) (*Config, error) {
-	version, err := parseVersionFromYAML(data)
+func Default() *Config {
+	cfg, _ := newDefault()
+	return cfg
+}
+
+// ParseYAML parses the given YAML items and returns a configuration object.
+// Multiple items are merged into a single configuration. It uses a default
+// configuration as a base.
+func ParseYAML(items ...[]byte) (*Config, error) {
+	items = append([][]byte{defaultRunmeYAML}, items...)
+	return parseYAML(items...)
+}
+
+func parseYAML(items ...[]byte) (*Config, error) {
+	version, err := parseVersionFromYAML(items[0])
 	if err != nil {
 		return nil, err
 	}
-	switch version {
-	case "v1alpha1":
-		cfg, err := parseYAMLv1alpha1(data)
+
+	for i := 1; i < len(items); i++ {
+		v, err := parseVersionFromYAML(items[i])
 		if err != nil {
 			return nil, err
 		}
-
-		if err := validateProto(cfg); err != nil {
-			return nil, errors.Wrap(err, "failed to validate v1alpha1 config")
+		if v != version {
+			return nil, errors.Errorf("inconsistent versions: %s and %s", version, v)
 		}
+	}
 
-		config, err := configV1alpha1ToConfig(cfg)
+	switch version {
+	case "v1alpha1":
+		config, err := parseAndMergeV1alpha1(items...)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to convert v1alpha1 config")
+			return nil, err
 		}
 
 		if err := validateConfig(config); err != nil {
@@ -108,75 +86,37 @@ func parseVersionFromYAML(data []byte) (string, error) {
 	return result.Version, nil
 }
 
-func parseYAMLv1alpha1(data []byte) (*configv1alpha1.Config, error) {
-	mmap := make(map[string]any)
+// parseAndMergeV1alpha1 parses items, which are raw YAML blobs,
+// one-by-one into a single map. Then, marshals the map into raw JSON.
+// Finally, unmarshals the JSON into a [Config] object.
+// Double unmarshaling is required to take advantage of the
+// auto-generated [Config.UnmarshalJSON] method which does
+// validation.
+func parseAndMergeV1alpha1(items ...[]byte) (*Config, error) {
+	m := make(map[string]interface{})
 
-	if err := yaml.Unmarshal(data, &mmap); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal yaml")
+	for _, data := range items {
+		if err := yaml.Unmarshal(data, &m); err != nil {
+			return nil, errors.Wrap(err, "failed to parse v1alpha1 config")
+		}
 	}
 
-	delete(mmap, "version")
-
-	// In order to properly handle JSON-related field options like `json_name`,
-	// the YAML data is first marshaled to JSON and then unmarshaled to a proto message
-	// using the protojson package.
-	configJSONRaw, err := json.Marshal(mmap)
+	flatten, err := json.Marshal(m)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal yaml to json")
+		return nil, errors.Wrap(err, "failed to parse v1alpha1 config")
 	}
 
-	var cfg configv1alpha1.Config
-	if err := protojson.Unmarshal(configJSONRaw, &cfg); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal json to proto")
-	}
-	return &cfg, nil
-}
+	var config Config
 
-func configV1alpha1ToConfig(c *configv1alpha1.Config) (*Config, error) {
-	project := c.GetProject()
-	runtime := c.GetRuntime()
-	server := c.GetServer()
-	log := c.GetLog()
-
-	var filters []*Filter
-	for _, f := range c.GetProject().GetFilters() {
-		filters = append(filters, &Filter{
-			Type:      f.GetType().String(),
-			Condition: f.GetCondition(),
-		})
+	if err := json.Unmarshal(flatten, &config); err != nil {
+		return nil, errors.Wrap(err, "failed to parse v1alpha1 config")
 	}
 
-	cfg := Defaults()
-	cfg.ProjectRoot = project.GetRoot()
-	cfg.ProjectFilename = project.GetFilename()
-	setIfHasValue(&cfg.ProjectFindRepoUpward, project.GetFindRepoUpward())
-	cfg.ProjectIgnorePaths = project.GetIgnorePaths()
-	setIfHasValue(&cfg.ProjectDisableGitignore, project.GetDisableGitignore())
-	setIfHasValue(&cfg.ProjectEnvUseSystemEnv, project.GetEnv().GetUseSystemEnv())
-	cfg.ProjectEnvSources = project.GetEnv().GetSources()
-	cfg.ProjectFilters = filters
-
-	setIfHasValue(&cfg.RuntimeDockerEnabled, runtime.GetDocker().GetEnabled())
-	cfg.RuntimeDockerImage = runtime.GetDocker().GetImage()
-	cfg.RuntimeDockerBuildContext = runtime.GetDocker().GetBuild().GetContext()
-	cfg.RuntimeDockerBuildDockerfile = runtime.GetDocker().GetBuild().GetDockerfile()
-
-	cfg.ServerAddress = server.GetAddress()
-	setIfHasValue(&cfg.ServerTLSEnabled, server.GetTls().GetEnabled())
-	cfg.ServerTLSCertFile = server.GetTls().GetCertFile()
-	cfg.ServerTLSKeyFile = server.GetTls().GetKeyFile()
-
-	setIfHasValue(&cfg.LogEnabled, log.GetEnabled())
-	cfg.LogPath = log.GetPath()
-	setIfHasValue(&cfg.LogVerbose, log.GetVerbose())
-
-	return cfg, nil
-}
-
-func setIfHasValue[T any](prop *T, val interface{ GetValue() T }) {
-	if val != nil && !reflect.ValueOf(val).IsNil() {
-		*prop = val.GetValue()
+	if err := validateConfig(&config); err != nil {
+		return nil, errors.Wrap(err, "failed to validate v1alpha1 config")
 	}
+
+	return &config, nil
 }
 
 func validateConfig(cfg *Config) error {
@@ -185,12 +125,12 @@ func validateConfig(cfg *Config) error {
 		cwd = "."
 	}
 
-	if err := validateInsideCwd(cfg.ProjectRoot, cwd); err != nil {
-		return errors.Wrap(err, "failed to validate project dir")
+	if err := validateInsideCwd(cfg.Project.Root, cwd); err != nil {
+		return errors.Wrap(err, "project.root")
 	}
 
-	if err := validateInsideCwd(cfg.ProjectFilename, cwd); err != nil {
-		return errors.Wrap(err, "failed to validate filename")
+	if err := validateInsideCwd(cfg.Project.Filename, cwd); err != nil {
+		return errors.Wrap(err, "project.filename")
 	}
 
 	return nil
@@ -205,12 +145,4 @@ func validateInsideCwd(path, cwd string) error {
 		return errors.New("outside of the current working directory")
 	}
 	return nil
-}
-
-func validateProto(m protoreflect.ProtoMessage) error {
-	v, err := protovalidate.New()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	return errors.WithStack(v.Validate(m))
 }

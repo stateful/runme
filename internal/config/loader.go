@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultNestedConfigFileName = "runme.yaml"
+
 var ErrRootConfigNotFound = errors.New("root configuration file not found")
 
 // Loader allows to load configuration files from a file system.
@@ -19,12 +21,8 @@ type Loader struct {
 	// the current working directory.
 	configRootPath fs.FS
 
-	// configName is a name of the configuration file.
-	configName string
-
-	// configType is a type of the configuration file.
-	// Together with configName it forms a configFile.
-	configType string
+	// configNames is a list of configuration files.
+	configNames []string
 
 	// projectRootPath is a path to the project root directory.
 	// If not empty, it is used to find nested configuration files,
@@ -48,15 +46,14 @@ func WithProjectRootPath(projectRootPath fs.FS) LoaderOption {
 	}
 }
 
-func NewLoader(configName, configType string, configRootPath fs.FS, opts ...LoaderOption) *Loader {
-	if configName == "" {
-		panic("config name is not set")
+func NewLoader(configNames []string, configRootPath fs.FS, opts ...LoaderOption) *Loader {
+	if len(configNames) == 0 {
+		configNames = []string{"runme.yaml"}
 	}
 
 	l := &Loader{
 		configRootPath: configRootPath,
-		configName:     configName,
-		configType:     configType,
+		configNames:    configNames,
 	}
 
 	for _, opt := range opts {
@@ -68,13 +65,6 @@ func NewLoader(configName, configType string, configRootPath fs.FS, opts ...Load
 	}
 
 	return l
-}
-
-func (l *Loader) configFullName() string {
-	if l.configType == "" {
-		return l.configName
-	}
-	return l.configName + "." + l.configType
 }
 
 func (l *Loader) SetConfigRootPath(configRootPath fs.FS) {
@@ -89,12 +79,23 @@ func (l *Loader) FindConfigChain(path string) ([][]byte, error) {
 	return l.readFiles(paths...)
 }
 
-func (l *Loader) RootConfig() ([]byte, error) {
-	data, err := fs.ReadFile(l.configRootPath, l.configFullName())
-	if err != nil {
+func (l *Loader) RootConfigs() ([][]byte, error) {
+	result := make([][]byte, 0, len(l.configNames))
+
+	for _, name := range l.configNames {
+		data, err := fs.ReadFile(l.configRootPath, name)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return nil, errors.WithStack(err)
+		}
+		if err == nil {
+			result = append(result, data)
+		}
+	}
+
+	if len(result) == 0 {
 		return nil, ErrRootConfigNotFound
 	}
-	return data, nil
+	return result, nil
 }
 
 func (l *Loader) findConfigFilesOnPath(name string) (result []string, _ error) {
@@ -104,16 +105,16 @@ func (l *Loader) findConfigFilesOnPath(name string) (result []string, _ error) {
 	}
 	l.logger.Debug("finding config files on path", zap.String("name", name))
 
-	configFullName := l.configFullName()
-
-	// Find the root configuration file and add it to the result if exists.
+	// Find the root configuration files and add each of them to the result if exists.
 	// It is always searched in the config root directory.
-	_, err = fs.Stat(l.configRootPath, configFullName)
-	if err == nil {
-		result = append(result, configFullName)
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		l.logger.Debug("root configuration file not found", zap.Error(err))
-		return nil, err
+	for _, name := range l.configNames {
+		_, err := fs.Stat(l.configRootPath, name)
+		if err == nil {
+			result = append(result, name)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			l.logger.Debug("root configuration file not found", zap.Error(err))
+			return nil, err
+		}
 	}
 
 	// Detect the file system to use for nested configuration files.
@@ -135,7 +136,7 @@ func (l *Loader) findConfigFilesOnPath(name string) (result []string, _ error) {
 		// It works well with [fs.FS].
 		curDir = path.Join(curDir, fragment)
 
-		configPath := path.Join(curDir, configFullName)
+		configPath := path.Join(curDir, defaultNestedConfigFileName)
 		l.logger.Debug("checking nested configuration file", zap.String("path", configPath))
 		_, err := fs.Stat(fsys, configPath)
 		if err == nil {

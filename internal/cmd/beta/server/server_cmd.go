@@ -19,7 +19,7 @@ func Cmd() *cobra.Command {
 				) error {
 					// For the server commands, we want to always log to stdout.
 					// TODO(adamb): there might be a need to separate client and server logs.
-					cfg.LogPath = ""
+					cfg.Log.Path = ""
 					return nil
 				},
 			)
