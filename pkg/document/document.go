@@ -3,7 +3,6 @@ package document
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -171,26 +170,16 @@ func (d *Document) parse() {
 
 func (d *Document) buildBlocksTree(parent ast.Node, node *Node) error {
 	for astNode := parent.FirstChild(); astNode != nil; astNode = astNode.NextSibling() {
-		codeBlockEncoding := Fenced
 		switch astNode.Kind() {
-		case ast.KindCodeBlock:
-			b := ast.NewFencedCodeBlock(ast.NewText())
-			b.BaseBlock = astNode.(*ast.CodeBlock).BaseBlock
-			astNode = b
-
-			codeBlockEncoding = UnfencedWithSpaces
-			fallthrough
-		case ast.KindFencedCodeBlock:
+		case ast.KindCodeBlock, ast.KindFencedCodeBlock:
 			block, err := newCodeBlock(
 				d,
-				astNode.(*ast.FencedCodeBlock),
+				astNode,
 				d.identityResolver,
 				d.nameResolver,
 				d.content,
-				codeBlockEncoding,
 				d.renderer,
 			)
-			block.attributes["runme.dev/fenced"] = strconv.FormatBool(codeBlockEncoding == Fenced)
 			if err != nil {
 				return errors.WithStack(err)
 			}
