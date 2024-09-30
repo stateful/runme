@@ -42,11 +42,20 @@ func (b CodeBlocks) Names() (result []string) {
 
 type renderer func(ast.Node, []byte) ([]byte, error)
 
+type CodeBlockEncoding int
+
+const (
+	Fenced CodeBlockEncoding = iota + 1
+	UnfencedWithSpaces
+	UnfencedWithTab
+)
+
 type CodeBlock struct {
-	id            string
-	idGenerated   bool
 	attributes    map[string]string
 	document      *Document
+	encoding      CodeBlockEncoding
+	id            string
+	idGenerated   bool
 	inner         *ast.FencedCodeBlock
 	intro         string // paragraph immediately before the code block
 	language      string
@@ -64,6 +73,7 @@ func newCodeBlock(
 	identityResolver identityResolver,
 	nameResolver *nameResolver,
 	source []byte,
+	encoding CodeBlockEncoding,
 	render renderer,
 ) (*CodeBlock, error) {
 	attributes, err := getAttributes(node, source, DefaultAttributeParser)
@@ -81,10 +91,11 @@ func newCodeBlock(
 	}
 
 	return &CodeBlock{
-		id:            id,
-		idGenerated:   !hasID,
 		attributes:    attributes,
 		document:      document,
+		encoding:      encoding,
+		id:            id,
+		idGenerated:   !hasID,
 		inner:         node,
 		intro:         getIntro(node, source),
 		language:      getLanguage(node, source),
