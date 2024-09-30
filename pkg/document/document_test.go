@@ -11,7 +11,7 @@ import (
 	"github.com/stateful/runme/v3/pkg/document/identity"
 )
 
-var testIdentityResolver = identity.NewResolver(identity.DefaultLifecycleIdentity)
+var allIdentityResolver = identity.NewResolver(identity.AllLifecycleIdentity)
 
 func TestDocument_Parse(t *testing.T) {
 	data := []byte(`# Examples
@@ -36,7 +36,7 @@ First paragraph.
 2. Item 2
 3. Item 3
 `)
-	doc := New(data, testIdentityResolver)
+	doc := New(data, allIdentityResolver)
 	node, err := doc.Root()
 	require.NoError(t, err)
 	assert.Len(t, node.children, 4)
@@ -70,17 +70,19 @@ First paragraph.
 }
 
 func TestDocument_Frontmatter(t *testing.T) {
-	t.Run("Parse", func(t *testing.T) {
-		data := bytes.TrimSpace([]byte(`
+	lcidRegex := `---\nkey: value\nrunme:\n  id: .*\n  version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+|\d+)\n---`
+	data := bytes.TrimSpace([]byte(`
 ---
 key: value
 ---
 
 First paragraph
 `,
-		))
+	))
 
-		doc := New(data, testIdentityResolver)
+	t.Run("Parse_DefaultIdentity", func(t *testing.T) {
+		var defaultIdentityResolver = identity.NewResolver(identity.DefaultLifecycleIdentity)
+		doc := New(data, defaultIdentityResolver)
 		err := doc.Parse()
 		require.NoError(t, err)
 		assert.Equal(t, []byte("First paragraph"), doc.Content())
@@ -88,9 +90,23 @@ First paragraph
 
 		frontmatter, err := doc.FrontmatterWithError()
 		require.NoError(t, err)
-		marshaledFrontmatter, err := frontmatter.Marshal(testIdentityResolver.DocumentEnabled())
+		marshaledFrontmatter, err := frontmatter.Marshal(defaultIdentityResolver.DocumentEnabled())
 		require.NoError(t, err)
-		assert.Regexp(t, `---\nkey: value\nrunme:\n  id: .*\n  version: v(?:[3-9]\d*|2\.\d+\.\d+|2\.\d+|\d+)\n---`, string(marshaledFrontmatter))
+		assert.NotRegexp(t, lcidRegex, string(marshaledFrontmatter))
+	})
+
+	t.Run("Parse_AllIdentity", func(t *testing.T) {
+		doc := New(data, allIdentityResolver)
+		err := doc.Parse()
+		require.NoError(t, err)
+		assert.Equal(t, []byte("First paragraph"), doc.Content())
+		assert.Equal(t, 20, doc.ContentOffset())
+
+		frontmatter, err := doc.FrontmatterWithError()
+		require.NoError(t, err)
+		marshaledFrontmatter, err := frontmatter.Marshal(allIdentityResolver.DocumentEnabled())
+		require.NoError(t, err)
+		assert.Regexp(t, lcidRegex, string(marshaledFrontmatter))
 	})
 
 	t.Run("Format", func(t *testing.T) {
@@ -137,7 +153,7 @@ shell = "fish"
 
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
-				doc := New(tc.Data, testIdentityResolver)
+				doc := New(tc.Data, allIdentityResolver)
 				_, err := doc.Root()
 				require.NoError(t, err)
 
@@ -158,7 +174,7 @@ shell = "fish"
 ---
 `,
 		))
-		doc := New(data, testIdentityResolver)
+		doc := New(data, allIdentityResolver)
 		err := doc.Parse()
 		require.NoError(t, err)
 
@@ -172,7 +188,7 @@ func TestDocument_TrailingLineBreaks(t *testing.T) {
 	data := []byte(`This will test final line breaks`)
 
 	t.Run("No breaks", func(t *testing.T) {
-		doc := New(data, testIdentityResolver)
+		doc := New(data, allIdentityResolver)
 		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
@@ -189,7 +205,7 @@ func TestDocument_TrailingLineBreaks(t *testing.T) {
 
 	t.Run("1 LF", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 1)...)
-		doc := New(withLineBreaks, testIdentityResolver)
+		doc := New(withLineBreaks, allIdentityResolver)
 		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
@@ -206,7 +222,7 @@ func TestDocument_TrailingLineBreaks(t *testing.T) {
 
 	t.Run("1 CRLF", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\r', '\n'}, 1)...)
-		doc := New(withLineBreaks, testIdentityResolver)
+		doc := New(withLineBreaks, allIdentityResolver)
 		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 
@@ -223,7 +239,7 @@ func TestDocument_TrailingLineBreaks(t *testing.T) {
 
 	t.Run("7 LFs", func(t *testing.T) {
 		withLineBreaks := append(data, bytes.Repeat([]byte{'\n'}, 7)...)
-		doc := New(withLineBreaks, testIdentityResolver)
+		doc := New(withLineBreaks, allIdentityResolver)
 		astNode, err := doc.RootAST()
 		require.NoError(t, err)
 

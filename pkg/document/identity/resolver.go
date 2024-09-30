@@ -23,7 +23,7 @@ const (
 	CellLifecycleIdentity
 )
 
-const DefaultLifecycleIdentity = AllLifecycleIdentity
+const DefaultLifecycleIdentity = UnspecifiedLifecycleIdentity
 
 var documentIdentities = &LifecycleIdentities{
 	AllLifecycleIdentity,
