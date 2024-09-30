@@ -198,6 +198,10 @@ func toCellsRec(
 			}
 			metadata[PrefixAttributeName(InternalAttributePrefix, "nameGenerated")] = nameGeneratedStr
 
+			if !block.FencedEncoding() {
+				metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")] = "false"
+			}
+
 			*cells = append(*cells, &Cell{
 				Kind:       CodeKind,
 				Value:      string(block.Content()),
@@ -345,7 +349,15 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell) {
 	var buf bytes.Buffer
 	value := cell.Value
 
-	if b, _ := strconv.ParseBool(cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")]); b {
+	if b, err := strconv.ParseBool(cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")]); err == nil && !b {
+		for _, v := range strings.Split(value, "\n") {
+			_, _ = buf.Write(bytes.Repeat([]byte{' '}, 4))
+			_, _ = buf.WriteString(v)
+			_ = buf.WriteByte('\n')
+		}
+
+		serializeCellOutputsText(&buf, cell)
+	} else {
 		ticksCount := longestBacktickSeq(value)
 		if ticksCount < 3 {
 			ticksCount = 3
@@ -363,14 +375,6 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell) {
 		serializeCellOutputsText(&buf, cell)
 
 		_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
-	} else {
-		for _, v := range strings.Split(value, "\n") {
-			_, _ = buf.Write(bytes.Repeat([]byte{' '}, 4))
-			_, _ = buf.WriteString(v)
-			_ = buf.WriteByte('\n')
-		}
-
-		serializeCellOutputsText(&buf, cell)
 	}
 
 	serializeCellOutputsImage(&buf, cell)
