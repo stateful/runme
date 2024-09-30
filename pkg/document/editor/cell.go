@@ -320,29 +320,9 @@ func serializeCells(cells []*Cell) []byte {
 	var buf bytes.Buffer
 
 	for idx, cell := range cells {
-		value := cell.Value
-
 		switch cell.Kind {
 		case CodeKind:
-			ticksCount := longestBacktickSeq(value)
-			if ticksCount < 3 {
-				ticksCount = 3
-			}
-
-			_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
-			_, _ = buf.WriteString(cell.LanguageID)
-
-			serializeFencedCodeAttributes(&buf, cell)
-
-			_ = buf.WriteByte('\n')
-			_, _ = buf.WriteString(cell.Value)
-			_ = buf.WriteByte('\n')
-
-			serializeCellOutputsText(&buf, cell)
-
-			_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
-
-			serializeCellOutputsImage(&buf, cell)
+			serializeCellCodeBlock(&buf, cell)
 
 		case MarkupKind:
 			_, _ = buf.WriteString(cell.Value)
@@ -359,6 +339,43 @@ func serializeCells(cells []*Cell) []byte {
 	}
 
 	return buf.Bytes()
+}
+
+func serializeCellCodeBlock(w io.Writer, cell *Cell) {
+	var buf bytes.Buffer
+	value := cell.Value
+
+	if b, _ := strconv.ParseBool(cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")]); b {
+		ticksCount := longestBacktickSeq(value)
+		if ticksCount < 3 {
+			ticksCount = 3
+		}
+
+		_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
+		_, _ = buf.WriteString(cell.LanguageID)
+
+		serializeFencedCodeAttributes(&buf, cell)
+
+		_ = buf.WriteByte('\n')
+		_, _ = buf.WriteString(cell.Value)
+		_ = buf.WriteByte('\n')
+
+		serializeCellOutputsText(&buf, cell)
+
+		_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
+	} else {
+		for _, v := range strings.Split(value, "\n") {
+			_, _ = buf.Write(bytes.Repeat([]byte{' '}, 4))
+			_, _ = buf.WriteString(v)
+			_ = buf.WriteByte('\n')
+		}
+
+		serializeCellOutputsText(&buf, cell)
+	}
+
+	serializeCellOutputsImage(&buf, cell)
+
+	_, _ = w.Write(buf.Bytes())
 }
 
 func serializeCellOutputsText(w io.Writer, cell *Cell) {
