@@ -16,6 +16,7 @@ import (
 const (
 	FrontmatterKey = "frontmatter"
 	DocumentID     = "id"
+	CellID         = "id"
 )
 
 type Options struct {
@@ -67,7 +68,37 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = opts.IdentityResolver.EphemeralDocumentID()
 	}
 
+	// Make ephemeral cell IDs permanent if the cell lifecycle ID is enabled.
+	if opts.IdentityResolver.CellEnabled() {
+		err := applyCellLifecycleIdentity(notebook)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return notebook, nil
+}
+
+func applyCellLifecycleIdentity(notebook *Notebook) error {
+	ephCellIDKey := PrefixAttributeName(InternalAttributePrefix, CellID)
+	for _, cell := range notebook.Cells {
+		if cell.Kind != CodeKind {
+			continue
+		}
+
+		// don't overwrite existing cell ID
+		if _, ok := cell.Metadata["id"]; ok {
+			continue
+		}
+
+		// make sure we have an ephemeral cell ID
+		if _, ok := cell.Metadata[ephCellIDKey]; !ok {
+			return errors.Errorf("missing ephemeral cell ID")
+		}
+
+		cell.Metadata[CellID] = cell.Metadata[ephCellIDKey]
+	}
+	return nil
 }
 
 func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata, opts Options) ([]byte, error) {
