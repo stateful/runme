@@ -81,7 +81,7 @@ First paragraph
 	))
 
 	t.Run("Parse_DefaultIdentity", func(t *testing.T) {
-		var defaultIdentityResolver = identity.NewResolver(identity.DefaultLifecycleIdentity)
+		defaultIdentityResolver := identity.NewResolver(identity.DefaultLifecycleIdentity)
 		doc := New(data, defaultIdentityResolver)
 		err := doc.Parse()
 		require.NoError(t, err)

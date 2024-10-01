@@ -682,9 +682,7 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.Resolv
 		return nil, err
 	}
 
-	var (
-		modifiedScriptBuf bytes.Buffer
-	)
+	var modifiedScriptBuf bytes.Buffer
 
 	script := req.GetScript()
 	if commands := req.GetCommands(); script == "" && len(commands.Lines) > 0 {
