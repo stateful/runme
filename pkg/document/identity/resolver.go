@@ -71,8 +71,8 @@ func (ir *IdentityResolver) DocumentEnabled() bool {
 	return ir.documentIdentity
 }
 
-// EphemeralDocumentID returns a new document ID which is not persisted.
-func (ir *IdentityResolver) EphemeralDocumentID() string {
+// CacheID returns a new document ID which is not persisted.
+func (ir *IdentityResolver) CacheID() string {
 	return ulid.GenerateID()
 }
 

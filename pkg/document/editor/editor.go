@@ -15,7 +15,7 @@ import (
 
 const (
 	FrontmatterKey = "frontmatter"
-	DocumentID     = "id"
+	CacheID        = "cacheId"
 	CellID         = "id"
 )
 
@@ -50,6 +50,8 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 		Frontmatter: frontmatter,
 		Metadata: map[string]string{
 			PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): strconv.Itoa(doc.TrailingLineBreaksCount()),
+			// CacheID used for uniquely identifying documents in caches across vscode deserialization (issues) and serialization (retains).
+			PrefixAttributeName(InternalAttributePrefix, CacheID): opts.IdentityResolver.CacheID(),
 		},
 	}
 
@@ -61,11 +63,6 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 	// if parsing frontmatter failed put unparsed frontmatter in notebook's metadata to avoid earsing it with "default frontmatter"
 	if raw := doc.FrontmatterRaw(); fmErr != nil && len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
-	}
-
-	// Store internal ephemeral document ID if the document lifecycle ID is disabled.
-	if !opts.IdentityResolver.DocumentEnabled() {
-		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = opts.IdentityResolver.EphemeralDocumentID()
 	}
 
 	// Make ephemeral cell IDs permanent if the cell lifecycle ID is enabled.
