@@ -45,13 +45,14 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 		opts.Logger().Warn("failed to parse frontmatter", zap.Error(fmErr))
 	}
 
+	cacheID := opts.IdentityResolver.CacheID()
 	notebook := &Notebook{
 		Cells:       toCells(doc, node, doc.Content()),
 		Frontmatter: frontmatter,
 		Metadata: map[string]string{
 			PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): strconv.Itoa(doc.TrailingLineBreaksCount()),
 			// CacheID used for uniquely identifying documents in caches across vscode deserialization (issues) and serialization (retains).
-			PrefixAttributeName(InternalAttributePrefix, CacheID): opts.IdentityResolver.CacheID(),
+			PrefixAttributeName(InternalAttributePrefix, CacheID): cacheID,
 		},
 	}
 
@@ -64,6 +65,9 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 	if raw := doc.FrontmatterRaw(); fmErr != nil && len(raw) > 0 {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
+
+	// todo(sebastian): faux document-level `runme.dev/id` to not break existing clients; revert in near future
+	notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")] = cacheID
 
 	// Make ephemeral cell IDs permanent if the cell lifecycle ID is enabled.
 	if opts.IdentityResolver.CellEnabled() {
