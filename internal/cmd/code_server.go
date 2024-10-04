@@ -239,6 +239,7 @@ func runCodeServerCommand(cmd *cobra.Command, execFile string, routeToBuffer boo
 	return buffer.Bytes(), nil
 }
 
+//lint:ignore U1000 Ignore because it's only used in tests running in docker
 func getLatestExtensionVersion(experimental bool) (string, error) {
 	var tagName string
 
@@ -286,6 +287,7 @@ func getLatestExtensionVersion(experimental bool) (string, error) {
 	return tagName, nil
 }
 
+//lint:ignore U1000 Ignore because it's only used in tests running in docker
 func getExtensionURL(tagName string) (string, error) {
 	var arch string
 
@@ -322,6 +324,7 @@ func getExtensionURL(tagName string) (string, error) {
 	return downloadURL, nil
 }
 
+//lint:ignore U1000 Ignore because it's only used in tests running in docker
 func downloadVscodeExtension(dir string, experimental bool) (string, error) {
 	tagName, err := getLatestExtensionVersion(experimental)
 	if err != nil {

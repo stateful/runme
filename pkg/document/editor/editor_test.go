@@ -20,6 +20,7 @@ import (
 var (
 	identityResolverNone = identity.NewResolver(identity.UnspecifiedLifecycleIdentity)
 	identityResolverAll  = identity.NewResolver(identity.AllLifecycleIdentity)
+	identityResolverCell = identity.NewResolver(identity.CellLifecycleIdentity)
 	testMockID           = ulid.GenerateID()
 )
 
@@ -123,6 +124,35 @@ func TestEditor_CodeBlock(t *testing.T) {
 		result, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 		assert.Equal(t, string(data), string(result))
+	})
+}
+
+func TestEditor_CellLifecycleIdentity(t *testing.T) {
+	t.Run("NoIdentity", func(t *testing.T) {
+		notebook, err := Deserialize(testDataNested, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		for _, cell := range notebook.Cells {
+			if cell.Kind != CellKind(document.CodeBlockKind) {
+				continue
+			}
+			assert.Empty(t, cell.Metadata["id"])
+			assert.NotEmpty(t, cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")])
+		}
+	})
+
+	t.Run("CellIdentity", func(t *testing.T) {
+		notebook, err := Deserialize(testDataNested, Options{IdentityResolver: identityResolverCell})
+		require.NoError(t, err)
+
+		for _, cell := range notebook.Cells {
+			if cell.Kind != CellKind(document.CodeBlockKind) {
+				continue
+			}
+			assert.NotEmpty(t, cell.Metadata["id"])
+			assert.NotEmpty(t, cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")])
+			assert.Equal(t, cell.Metadata["id"], cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")])
+		}
 	})
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/stateful/runme/v3/internal/client/graphql"
 )
 
+// var tokenDir = flag.String("token-dir", cmd.GetUserConfigHome(), "The directory with tokens")
 var apiURL = flag.String("api-url", "http://localhost:4000", "The API base address")
 
 func init() {
