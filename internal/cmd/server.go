@@ -36,7 +36,6 @@ func serverCmd() *cobra.Command {
 		devMode      bool
 		enableRunner bool
 		tlsDir       string
-		enableAILogs bool
 	)
 
 	cmd := cobra.Command{
@@ -142,11 +141,8 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().StringVarP(&addr, "address", "a", defaultAddr, "Address to create unix (unix:///path/to/socket) or IP socket (localhost:7890)")
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
 	cmd.Flags().BoolVar(&enableRunner, "runner", true, "Enable runner service (legacy, defaults to true)")
-	// The AIFlag is no longer used, we can remove it as soon as the option has been removed from the frontend.
-	cmd.Flags().BoolVar(&enableAILogs, "ai-logs", false, "Enable logs to support training an AI")
 	cmd.Flags().StringVar(&tlsDir, "tls", defaultTLSDir, "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
 	cmd.Flags().StringVar(&configDir, configDirF, GetUserConfigHome(), "Sets the configuration directory.")
 	_ = cmd.Flags().MarkHidden("runner")
-	_ = cmd.Flags().MarkDeprecated("ai-logs", "This flag is no longer used.")
 	return &cmd
 }
