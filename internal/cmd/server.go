@@ -36,7 +36,6 @@ func serverCmd() *cobra.Command {
 		devMode      bool
 		enableRunner bool
 		tlsDir       string
-		enableAILogs bool
 	)
 
 	cmd := cobra.Command{
