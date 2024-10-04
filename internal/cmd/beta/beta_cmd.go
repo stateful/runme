@@ -59,7 +59,6 @@ All commands use the runme.yaml configuration file.`,
 
 				return nil
 			})
-
 			// Print the error to stderr but don't return it because error modes
 			// are neither fully baked yet nor ready for users to consume.
 			if err != nil {
