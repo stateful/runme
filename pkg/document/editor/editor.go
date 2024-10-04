@@ -15,7 +15,8 @@ import (
 
 const (
 	FrontmatterKey = "frontmatter"
-	DocumentID     = "id"
+	CacheID        = "cacheId"
+	CellID         = "id"
 )
 
 type Options struct {
@@ -44,11 +45,14 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 		opts.Logger().Warn("failed to parse frontmatter", zap.Error(fmErr))
 	}
 
+	cacheID := opts.IdentityResolver.CacheID()
 	notebook := &Notebook{
 		Cells:       toCells(doc, node, doc.Content()),
 		Frontmatter: frontmatter,
 		Metadata: map[string]string{
 			PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey): strconv.Itoa(doc.TrailingLineBreaksCount()),
+			// CacheID used for uniquely identifying documents in caches across vscode deserialization (issues) and serialization (retains).
+			PrefixAttributeName(InternalAttributePrefix, CacheID): cacheID,
 		},
 	}
 
@@ -62,12 +66,40 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, FrontmatterKey)] = string(raw)
 	}
 
-	// Store internal ephemeral document ID if the document lifecycle ID is disabled.
-	if !opts.IdentityResolver.DocumentEnabled() {
-		notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, DocumentID)] = opts.IdentityResolver.EphemeralDocumentID()
+	// todo(sebastian): faux document-level `runme.dev/id` to not break existing clients; revert in near future
+	notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")] = cacheID
+
+	// Make ephemeral cell IDs permanent if the cell lifecycle ID is enabled.
+	if opts.IdentityResolver.CellEnabled() {
+		err := applyCellLifecycleIdentity(notebook)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return notebook, nil
+}
+
+func applyCellLifecycleIdentity(notebook *Notebook) error {
+	ephCellIDKey := PrefixAttributeName(InternalAttributePrefix, CellID)
+	for _, cell := range notebook.Cells {
+		if cell.Kind != CodeKind {
+			continue
+		}
+
+		// don't overwrite existing cell ID
+		if _, ok := cell.Metadata["id"]; ok {
+			continue
+		}
+
+		// make sure we have an ephemeral cell ID
+		if _, ok := cell.Metadata[ephCellIDKey]; !ok {
+			return errors.Errorf("missing ephemeral cell ID")
+		}
+
+		cell.Metadata[CellID] = cell.Metadata[ephCellIDKey]
+	}
+	return nil
 }
 
 func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata, opts Options) ([]byte, error) {

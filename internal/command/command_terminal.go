@@ -9,9 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var introMsg = []byte(
-	" # Runme terminal: Upon exit, exported environment variables will roll up into your session." +
-		" Type 'save' to add this session to the notebook.\n\n",
+const (
+	introFirstLine  = "Runme terminal: Upon exit, exported environment variables will roll up into your session."
+	introSecondLine = "Type 'save' to add this session to the notebook."
+	envSourceCmd    = "runme beta env source --silent --insecure --export"
 )
 
 type terminalCommand struct {
@@ -53,12 +54,14 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 		}
 	}
 
-	if _, err := c.stdinWriter.Write([]byte(" eval $(runme beta env source --silent --insecure --export)\n alias save=\"exit\"\n clear\n")); err != nil {
+	if _, err := c.stdinWriter.Write([]byte(" eval $(" + envSourceCmd + ")\n alias save=\"exit\"\n clear\n")); err != nil {
 		return err
 	}
 
 	// todo(sebastian): good enough for prototype; it makes more sense to write this message at the TTY-level
-	_, err = c.stdinWriter.Write(introMsg)
+	_, err = c.stdinWriter.Write([]byte(
+		" # " + introFirstLine +
+			" " + introSecondLine + "\n\n"))
 
 	return err
 }

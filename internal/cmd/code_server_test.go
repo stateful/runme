@@ -1,4 +1,4 @@
-//go:test !darwin
+//go:build test_with_docker
 
 package cmd
 

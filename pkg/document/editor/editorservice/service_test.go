@@ -97,16 +97,16 @@ func Test_IdentityUnspecified(t *testing.T) {
 		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 		if tt.hasExtraFrontmatter {
 			assert.True(t, ok)
-			assert.Len(t, dResp.Notebook.Metadata, 3)
+			assert.Len(t, dResp.Notebook.Metadata, 4)
 			assert.Contains(t, rawFrontmatter, "prop: value\n")
 			assert.Contains(t, rawFrontmatter, "id: \"123\"\n")
 			assert.Contains(t, rawFrontmatter, "version: v")
 		} else {
 			assert.False(t, ok)
-			assert.Len(t, dResp.Notebook.Metadata, 2)
+			assert.Len(t, dResp.Notebook.Metadata, 3)
 		}
 
-		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+		sResp, err := serializeWithoutOutputs(client, dResp.Notebook)
 		assert.NoError(t, err)
 		content := string(sResp.Result)
 
@@ -139,7 +139,7 @@ func Test_IdentityAll(t *testing.T) {
 		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 		assert.True(t, ok)
 
-		assert.Len(t, dResp.Notebook.Metadata, 2)
+		assert.Len(t, dResp.Notebook.Metadata, 4)
 
 		if tt.hasExtraFrontmatter {
 			assert.Contains(t, rawFrontmatter, "prop: value")
@@ -148,7 +148,7 @@ func Test_IdentityAll(t *testing.T) {
 		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
 		assert.Contains(t, rawFrontmatter, "version: "+version.BaseVersion())
 
-		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+		sResp, err := serializeWithoutOutputs(client, dResp.Notebook)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -156,7 +156,7 @@ func Test_IdentityAll(t *testing.T) {
 		assert.Contains(t, content, "runme:\n")
 		assert.Contains(t, content, "id: "+testMockID)
 		assert.Contains(t, content, "version: "+version.BaseVersion())
-		assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"foo\"}\n")
+		assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
 		assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
 		assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 	}
@@ -180,7 +180,7 @@ func Test_IdentityDocument(t *testing.T) {
 		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 		assert.True(t, ok)
 
-		assert.Len(t, dResp.Notebook.Metadata, 2)
+		assert.Len(t, dResp.Notebook.Metadata, 4)
 
 		if tt.hasExtraFrontmatter {
 			assert.Contains(t, rawFrontmatter, "prop: value")
@@ -189,7 +189,7 @@ func Test_IdentityDocument(t *testing.T) {
 		assert.Contains(t, rawFrontmatter, "id: "+testMockID)
 		assert.Regexpf(t, versionRegex, rawFrontmatter, "Wrong version")
 
-		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+		sResp, err := serializeWithoutOutputs(client, dResp.Notebook)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -222,16 +222,16 @@ func Test_IdentityCell(t *testing.T) {
 
 		if tt.hasExtraFrontmatter {
 			assert.True(t, ok)
-			assert.Len(t, dResp.Notebook.Metadata, 3)
+			assert.Len(t, dResp.Notebook.Metadata, 4)
 			assert.Contains(t, rawFrontmatter, "prop: value\n")
 			assert.Contains(t, rawFrontmatter, "id: \"123\"\n")
 			assert.Regexp(t, versionRegex, rawFrontmatter, "Wrong version")
 		} else {
 			assert.False(t, ok)
-			assert.Len(t, dResp.Notebook.Metadata, 2)
+			assert.Len(t, dResp.Notebook.Metadata, 3)
 		}
 
-		sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+		sResp, err := serializeWithoutOutputs(client, dResp.Notebook)
 		assert.NoError(t, err)
 
 		content := string(sResp.Result)
@@ -245,7 +245,7 @@ func Test_IdentityCell(t *testing.T) {
 			assert.NotRegexp(t, "^\n\n", content)
 		}
 
-		assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"foo\"}\n")
+		assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
 		assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
 		assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 	}
@@ -268,12 +268,12 @@ func Test_RunmelessFrontmatter(t *testing.T) {
 	rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 
 	assert.True(t, ok)
-	assert.Len(t, dResp.Notebook.Metadata, 3)
+	assert.Len(t, dResp.Notebook.Metadata, 4)
 	assert.Contains(t, rawFrontmatter, "prop: value\n")
 	assert.NotContains(t, rawFrontmatter, "id: \"123\"\n")
 	assert.NotRegexp(t, versionRegex, rawFrontmatter, "Wrong version")
 
-	sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+	sResp, err := serializeWithoutOutputs(client, dResp.Notebook)
 	assert.NoError(t, err)
 
 	content := string(sResp.Result)
@@ -285,7 +285,7 @@ func Test_RunmelessFrontmatter(t *testing.T) {
 	assert.Regexp(t, "^---\n", content)
 	assert.NotRegexp(t, "^\n\n", content)
 
-	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"foo\"}\n")
+	assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
 	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
 	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 }
@@ -307,12 +307,12 @@ func Test_RetainInvalidFrontmatter(t *testing.T) {
 	rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
 
 	assert.True(t, ok)
-	assert.Len(t, dResp.Notebook.Metadata, 2)
+	assert.Len(t, dResp.Notebook.Metadata, 4)
 	assert.Contains(t, rawFrontmatter, "invalid frontmatter")
 	assert.NotContains(t, rawFrontmatter, "id: ")
 	assert.NotRegexp(t, versionRegex, rawFrontmatter, "Wrong version")
 
-	sResp, err := serializeWithIdentityPersistence(client, dResp.Notebook, identity)
+	sResp, err := serializeWithoutOutputs(client, dResp.Notebook)
 	assert.NoError(t, err)
 
 	content := string(sResp.Result)
@@ -324,7 +324,7 @@ func Test_RetainInvalidFrontmatter(t *testing.T) {
 	assert.Regexp(t, "^\\+\\+\\+\n", content)
 	assert.NotRegexp(t, "^\n\n", content)
 
-	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"foo\"}\n")
+	assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
 	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
 	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 }
@@ -447,14 +447,8 @@ func deserialize(client parserv1.ParserServiceClient, content string, idt parser
 	)
 }
 
-func serializeWithIdentityPersistence(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, idt parserv1.RunmeIdentity) (*parserv1.SerializeResponse, error) {
-	persistIdentityLikeExtension(notebook)
-	return client.Serialize(
-		context.Background(),
-		&parserv1.SerializeRequest{
-			Notebook: notebook,
-		},
-	)
+func serializeWithoutOutputs(client parserv1.ParserServiceClient, notebook *parserv1.Notebook) (*parserv1.SerializeResponse, error) {
+	return serializeWithOutputs(client, notebook, &parserv1.SerializeRequestOptions{})
 }
 
 func serializeWithOutputs(client parserv1.ParserServiceClient, notebook *parserv1.Notebook, options *parserv1.SerializeRequestOptions) (*parserv1.SerializeResponse, error) {
@@ -465,17 +459,4 @@ func serializeWithOutputs(client parserv1.ParserServiceClient, notebook *parserv
 			Options:  options,
 		},
 	)
-}
-
-// mimics what would happen on the extension side
-func persistIdentityLikeExtension(notebook *parserv1.Notebook) {
-	for _, cell := range notebook.Cells {
-		// todo(sebastian): preserve original id when they are set?
-		// if _, ok := cell.Metadata["id"]; ok {
-		// 	break
-		// }
-		if v, ok := cell.Metadata["runme.dev/id"]; ok {
-			cell.Metadata["id"] = v
-		}
-	}
 }

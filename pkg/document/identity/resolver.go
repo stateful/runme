@@ -23,7 +23,7 @@ const (
 	CellLifecycleIdentity
 )
 
-const DefaultLifecycleIdentity = AllLifecycleIdentity
+const DefaultLifecycleIdentity = UnspecifiedLifecycleIdentity
 
 var documentIdentities = &LifecycleIdentities{
 	AllLifecycleIdentity,
@@ -71,17 +71,13 @@ func (ir *IdentityResolver) DocumentEnabled() bool {
 	return ir.documentIdentity
 }
 
-// EphemeralDocumentID returns a new document ID which is not persisted.
-func (ir *IdentityResolver) EphemeralDocumentID() string {
+// CacheID returns a new document ID which is not persisted.
+func (ir *IdentityResolver) CacheID() string {
 	return ulid.GenerateID()
 }
 
 // GetCellID returns a cell ID and a boolean indicating if it's new or from attributes.
 func (ir *IdentityResolver) GetCellID(obj any, attributes map[string]string) (string, bool) {
-	if !ir.cellIdentity {
-		return "", false
-	}
-
 	// todo(sebastian): are invalid ulid's valid IDs?
 	// Check for a valid 'id' in attributes;
 	// if present and valid due to explicit cell identity cache and return it.

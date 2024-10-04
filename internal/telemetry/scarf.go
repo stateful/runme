@@ -19,8 +19,10 @@ const (
 	client = "Kernel"
 )
 
-type reporterFunc func() error
-type lookupEnvFunc func(key string) (string, bool)
+type (
+	reporterFunc  func() error
+	lookupEnvFunc func(key string) (string, bool)
+)
 
 var reporter reporterFunc
 
