@@ -226,6 +226,8 @@ export interface Frontmatter {
      */
     runme?: FrontmatterRunme;
     /**
+     * Deprecated category in favor of Tag
+     *
      * @generated from protobuf field: string category = 5;
      */
     category: string;

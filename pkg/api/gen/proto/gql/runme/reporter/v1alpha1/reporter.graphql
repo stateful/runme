@@ -116,6 +116,10 @@ type Frontmatter {
 	cwd: String
 	skipPrompts: Boolean
 	runme: FrontmatterRunme
+	"""
+	 Deprecated category in favor of Tag
+
+	"""
 	category: String
 	terminalRows: String
 	tag: String
@@ -125,6 +129,10 @@ input FrontmatterInput {
 	cwd: String
 	skipPrompts: Boolean
 	runme: FrontmatterRunmeInput
+	"""
+	 Deprecated category in favor of Tag
+
+	"""
 	category: String
 	terminalRows: String
 	tag: String

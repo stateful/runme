@@ -117,6 +117,7 @@ install/dev:
 	go install mvdan.cc/gofumpt@v0.7.0
 	go install github.com/icholy/gomajor@v0.13.1
 	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
+	go install github.com/atombender/go-jsonschema@v0.16.0
 
 .PHONY: install/goreleaser
 install/goreleaser:
@@ -147,6 +148,14 @@ proto/dev/reset:
 .PHONY: proto/publish
 proto/publish:
 	@cd ./pkg/api/proto && buf push
+
+.PHONY: schema/generate
+schema/generate:
+	go-jsonschema -t \
+		-p config \
+		--tags "json,yaml" \
+		-o internal/config/config_schema.go \
+		internal/config/config.schema.json
 
 .PHONY: release
 release: install/goreleaser

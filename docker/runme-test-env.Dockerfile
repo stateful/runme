@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     make \
     python3 \
+    ruby-full \
     unzip
 
 # Install node.js

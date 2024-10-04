@@ -8,7 +8,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseYAML(t *testing.T) {
+func TestDefault(t *testing.T) {
+	// Invariant that all default configurations are equal.
+	expected, err := newDefault()
+	require.NoError(t, err)
+	got := Default()
+	opts := cmpopts.EquateEmpty()
+	require.True(
+		t,
+		cmp.Equal(expected, got, opts),
+		"%s",
+		cmp.Diff(expected, got, opts),
+	)
+}
+
+func Test_parseYAML(t *testing.T) {
 	testCases := []struct {
 		name           string
 		rawConfig      string
@@ -26,7 +40,10 @@ func TestParseYAML(t *testing.T) {
 project:
   filename: REAEDME.md
 `,
-			expectedConfig: &Config{ProjectFilename: "REAEDME.md", ProjectFindRepoUpward: true, ServerTLSEnabled: true},
+			expectedConfig: &Config{
+				Project: ConfigProject{Filename: "REAEDME.md"},
+				Version: "v1alpha1",
+			},
 		},
 		{
 			name: "root and filename",
@@ -35,7 +52,10 @@ project:
   root: "."
   filename: README.md
 `,
-			expectedConfig: &Config{ProjectRoot: ".", ProjectFilename: "README.md", ProjectFindRepoUpward: true, ServerTLSEnabled: true},
+			expectedConfig: &Config{
+				Version: "v1alpha1",
+				Project: ConfigProject{Root: ".", Filename: "README.md"},
+			},
 		},
 		{
 			name: "validate filter type",
@@ -43,10 +63,10 @@ project:
 project:
   filename: README.md
   filters:
-    - type: 3
+    - type: "FILTER_TYPE_SOME_OTHER"
       condition: "name != ''"
 `,
-			errorSubstring: "failed to validate v1alpha1 config: validation error:\n - project.filters[0].type: value must be one of the defined enum values",
+			errorSubstring: "failed to parse v1alpha1 config: invalid value (expected one of []interface {}{\"FILTER_TYPE_BLOCK\", \"FILTER_TYPE_DOCUMENT\"}): \"FILTER_TYPE_SOME_OTHER\"",
 		},
 		{
 			name: "validate project within cwd",
@@ -54,7 +74,7 @@ project:
 project:
   root: '..'
 `,
-			errorSubstring: "failed to validate config: failed to validate project dir: outside of the current working directory",
+			errorSubstring: "failed to validate v1alpha1 config: project.root: outside of the current working directory",
 		},
 		{
 			name: "validate filename within cwd",
@@ -62,13 +82,13 @@ project:
 project:
   filename: '../README.md'
 `,
-			errorSubstring: "failed to validate config: failed to validate filename: outside of the current working directory",
+			errorSubstring: "failed to validate v1alpha1 config: project.filename: outside of the current working directory",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			config, err := ParseYAML([]byte(tc.rawConfig))
+			config, err := parseYAML([]byte(tc.rawConfig))
 
 			if tc.errorSubstring != "" {
 				require.Error(t, err)
@@ -88,6 +108,53 @@ project:
 			)
 		})
 	}
+}
+
+func Test_parseYAML_Multiple(t *testing.T) {
+	cfg1 := []byte(`version: v1alpha1`)
+	cfg2 := []byte(`version: v1alpha1
+project:
+  filename: README.md
+`)
+	expected := &Config{
+		Version: "v1alpha1",
+		Project: ConfigProject{
+			Filename: "README.md",
+		},
+	}
+
+	config, err := parseYAML(cfg1, cfg2)
+	require.NoError(t, err)
+	require.True(
+		t,
+		cmp.Equal(
+			expected,
+			config,
+			cmpopts.IgnoreUnexported(Filter{}),
+		),
+		"%s", cmp.Diff(expected, config, cmpopts.IgnoreUnexported(Filter{})),
+	)
+}
+
+func TestParseYAML(t *testing.T) {
+	got, err := ParseYAML([]byte(testConfigV1alpha1Raw))
+	require.NoError(t, err)
+	expected := *testConfigV1alpha1
+	expected.Server = &ConfigServer{
+		Address: "localhost:7998",
+		Tls: &ConfigServerTls{
+			Enabled: true,
+		},
+	}
+	require.True(
+		t,
+		cmp.Equal(
+			&expected,
+			got,
+			cmpopts.IgnoreUnexported(Filter{}),
+		),
+		"%s", cmp.Diff(&expected, got, cmpopts.IgnoreUnexported(Filter{})),
+	)
 }
 
 var (
@@ -124,44 +191,39 @@ log:
 `
 
 	testConfigV1alpha1 = &Config{
-		ProjectRoot:             ".",
-		ProjectFindRepoUpward:   true,
-		ProjectIgnorePaths:      []string{"node_modules", ".venv"},
-		ProjectDisableGitignore: false,
-		ProjectEnvSources:       []string{".env"},
-		ProjectFilters: []*Filter{
-			{
-				Type:      "FILTER_TYPE_BLOCK",
-				Condition: "name != ''",
+		Version: "v1alpha1",
+
+		Project: ConfigProject{
+			Root:             ".",
+			FindRepoUpward:   true,
+			Ignore:           []string{"node_modules", ".venv"},
+			DisableGitignore: false,
+			Env: &ConfigProjectEnv{
+				Sources: []string{".env"},
+			},
+			Filters: []ConfigProjectFiltersElem{
+				{
+					Type:      ConfigProjectFiltersElemTypeFILTERTYPEBLOCK,
+					Condition: "name != ''",
+				},
 			},
 		},
 
-		RuntimeDockerEnabled:         false,
-		RuntimeDockerImage:           "runme-runner:latest",
-		RuntimeDockerBuildContext:    "./experimental/docker",
-		RuntimeDockerBuildDockerfile: "Dockerfile",
+		Runtime: &ConfigRuntime{
+			Docker: &ConfigRuntimeDocker{
+				Enabled: false,
+				Image:   "runme-runner:latest",
+				Build: &ConfigRuntimeDockerBuild{
+					Context:    "./experimental/docker",
+					Dockerfile: "Dockerfile",
+				},
+			},
+		},
 
-		LogEnabled: true,
-		LogPath:    "/var/tmp/runme.log",
-		LogVerbose: true,
-
-		ServerTLSEnabled: true,
+		Log: &ConfigLog{
+			Enabled: true,
+			Path:    "/var/tmp/runme.log",
+			Verbose: true,
+		},
 	}
 )
-
-func TestCloneConfig(t *testing.T) {
-	original := defaults
-	clone := original.Clone()
-
-	opts := cmpopts.EquateEmpty()
-	require.True(
-		t,
-		cmp.Equal(&original, clone, opts),
-		"%s",
-		cmp.Diff(&original, clone, opts),
-	)
-	require.False(t, &original == clone)
-	require.False(t, &original.ProjectIgnorePaths == &clone.ProjectIgnorePaths)
-	require.False(t, &original.ProjectEnvSources == &clone.ProjectEnvSources)
-	require.False(t, &original.ProjectFilters == &clone.ProjectFilters)
-}
