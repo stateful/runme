@@ -15,7 +15,7 @@ type inlineShellCommand struct {
 	internalCommand
 
 	debug        bool
-	envCollector envCollector
+	envCollector EnvCollector
 	logger       *zap.Logger
 	session      *session.Session
 }
@@ -33,11 +33,13 @@ func (c *inlineShellCommand) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
 	c.logger.Debug("inline shell script", zap.String("script", script))
 
 	cfg := c.ProgramConfig()
-	cfg.Arguments = append(cfg.Arguments, "-c", script)
+
+	if script != "" {
+		cfg.Arguments = append(cfg.Arguments, "-c", script)
+	}
 
 	if c.envCollector != nil {
 		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
@@ -50,9 +52,19 @@ func (c *inlineShellCommand) Wait(ctx context.Context) error {
 	err := c.internalCommand.Wait(ctx)
 
 	if c.envCollector != nil {
-		c.logger.Info("collecting the environment after the script execution")
+		c.logger.Info(
+			"collecting the environment after the script execution",
+			zap.Int("count", len(c.session.GetAllEnv())), // TODO(adamb): change to session.Size()
+		)
+
 		cErr := c.collectEnv(ctx)
-		c.logger.Info("collected the environment after the script execution", zap.Error(cErr))
+
+		c.logger.Info(
+			"collected the environment after the script execution",
+			zap.Int("count", len(c.session.GetAllEnv())), // TODO(adamb): change to session.Size()
+			zap.Error(cErr),
+		)
+
 		if cErr != nil && err == nil {
 			err = cErr
 		}

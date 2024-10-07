@@ -37,7 +37,7 @@ func SetEnvDumpCommand(cmd string) {
 	envCollectorEnableEncryption = false
 }
 
-type envCollector interface {
+type EnvCollector interface {
 	// Diff compares the environment variables before and after the command execution.
 	// It returns the list of env that were changed and deleted.
 	Diff() (changed []string, deleted []string, _ error)
