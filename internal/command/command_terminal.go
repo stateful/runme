@@ -18,7 +18,7 @@ const (
 type terminalCommand struct {
 	internalCommand
 
-	envCollector envCollector
+	envCollector EnvCollector
 	logger       *zap.Logger
 	session      *Session
 	stdinWriter  io.Writer

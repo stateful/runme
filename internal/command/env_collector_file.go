@@ -12,7 +12,7 @@ type envCollectorFile struct {
 	temp     *tempDirectory
 }
 
-var _ envCollector = (*envCollectorFile)(nil)
+var _ EnvCollector = (*envCollectorFile)(nil)
 
 func newEnvCollectorFile(
 	scanner envScanner,
