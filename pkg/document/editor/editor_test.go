@@ -21,6 +21,7 @@ var (
 	identityResolverNone = identity.NewResolver(identity.UnspecifiedLifecycleIdentity)
 	identityResolverAll  = identity.NewResolver(identity.AllLifecycleIdentity)
 	identityResolverCell = identity.NewResolver(identity.CellLifecycleIdentity)
+	identityResolverDoc  = identity.NewResolver(identity.DocumentLifecycleIdentity)
 	testMockID           = ulid.GenerateID()
 )
 
@@ -381,5 +382,70 @@ This will test final line breaks`)
 			string(withLineBreaks),
 			string(actual),
 		)
+	})
+}
+
+func TestEditor_Reset(t *testing.T) {
+	codeCell := "```sh {\"id\":\"abcdefg\"}\necho 1\n```"
+	data := []byte(fmt.Sprintf(`---
+prop1: val1
+prop2: val2
+runme:
+  id: %s
+  version: %s
+---
+
+# Example
+
+A paragraph
+
+%s
+`, testMockID, version.BaseVersion(), codeCell))
+
+	t.Run("WithoutResetNoIdentity", func(t *testing.T) {
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: false})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(result),
+		)
+	})
+
+	t.Run("WithResetNoIdentity", func(t *testing.T) {
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: true})
+
+		// notebook-level
+		require.NoError(t, err)
+		require.NotNil(t, notebook.Metadata["runme.dev/cache-id"])
+		require.Empty(t, notebook.Metadata["id"])
+		require.EqualValues(t, "---\nprop1: val1\nprop2: val2\n---", notebook.Metadata["runme.dev/frontmatter"])
+
+		// cell-level
+		cell := notebook.Cells[2]
+		require.EqualValues(t, 2, cell.Kind)
+		require.EqualValues(t, "echo 1", cell.Value)
+		require.EqualValues(t, "sh", cell.LanguageID)
+		require.Empty(t, cell.Metadata["id"])
+	})
+
+	t.Run("WithResetWithIdentity", func(t *testing.T) {
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverDoc, Reset: true})
+
+		// notebook-level
+		require.NoError(t, err)
+		require.NotNil(t, notebook.Metadata["runme.dev/cache-id"])
+		require.Empty(t, notebook.Metadata["id"])
+		expected := fmt.Sprintf("---\nprop1: val1\nprop2: val2\nrunme:\n  id: %s\n  version: %s\n---", testMockID, version.BaseVersion())
+		require.EqualValues(t, expected, notebook.Metadata["runme.dev/frontmatter"])
+
+		// cell-level
+		cell := notebook.Cells[2]
+		require.EqualValues(t, 2, cell.Kind)
+		require.EqualValues(t, "echo 1", cell.Value)
+		require.EqualValues(t, "sh", cell.LanguageID)
+		require.Empty(t, cell.Metadata["id"])
 	})
 }

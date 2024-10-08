@@ -21,6 +21,76 @@ const (
 	frontmatterFormatTOML = "toml"
 )
 
+type formatter func(f *Frontmatter, reset bool) ([]byte, error)
+
+var formatters = map[string]formatter{
+	frontmatterFormatYAML: func(f *Frontmatter, reset bool) ([]byte, error) {
+		m := make(map[string]interface{})
+		if err := yaml.Unmarshal([]byte(f.raw), &m); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		switch {
+		case reset:
+			f.Runme = nil
+			delete(m, "runme")
+		case !f.Runme.IsEmpty():
+			m["runme"] = f.Runme
+		}
+
+		var buf bytes.Buffer
+		encoder := yaml.NewEncoder(&buf)
+		encoder.SetIndent(2)
+		if err := encoder.Encode(m); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if err := encoder.Close(); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return append(append([]byte("---\n"), buf.Bytes()...), []byte("---")...), nil
+	},
+	frontmatterFormatJSON: func(f *Frontmatter, reset bool) ([]byte, error) {
+		m := make(map[string]interface{})
+		if err := json.Unmarshal([]byte(f.raw), &m); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		switch {
+		case reset:
+			f.Runme = nil
+			delete(m, "runme")
+		case !f.Runme.IsEmpty():
+			m["runme"] = f.Runme
+		}
+
+		data, err := json.Marshal(m)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return append(append([]byte("---\n"), data...), []byte("\n---")...), nil
+	},
+	frontmatterFormatTOML: func(f *Frontmatter, reset bool) ([]byte, error) {
+		m := make(map[string]interface{})
+		if err := toml.Unmarshal([]byte(f.raw), &m); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		switch {
+		case reset:
+			f.Runme = nil
+			delete(m, "runme")
+		case !f.Runme.IsEmpty():
+			m["runme"] = f.Runme
+		}
+
+		data, err := toml.Marshal(m)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return append(append([]byte("+++\n"), data...), []byte("+++")...), nil
+	},
+}
+
 type RunmeMetadataDocument struct {
 	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty" toml:"relativePath,omitempty"`
 }
@@ -90,6 +160,22 @@ func newFrontmatter() *Frontmatter {
 	}
 }
 
+func (f *Frontmatter) ResetRunme(requireIdentity bool) error {
+	if _, err := f.Marshal(requireIdentity); err != nil {
+		return err
+	}
+
+	// remove runme frontmatter
+	defaultFormatter := formatters[frontmatterFormatYAML]
+	resetRaw, err := defaultFormatter(f, !requireIdentity)
+	if err != nil {
+		return err
+	}
+	f.raw = string(resetRaw)
+
+	return nil
+}
+
 // Marshal returns a marshaled frontmatter including triple-dashed lines.
 // If the identity is required, but Frontmatter is nil, a new one is created.
 func (f *Frontmatter) Marshal(requireIdentity bool) ([]byte, error) {
@@ -107,67 +193,12 @@ func (f *Frontmatter) marshal(requireIdentity bool) ([]byte, error) {
 		f.ensureID()
 	}
 
-	switch f.format {
-	case frontmatterFormatYAML:
-		m := make(map[string]interface{})
-
-		if err := yaml.Unmarshal([]byte(f.raw), &m); err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		if !f.Runme.IsEmpty() {
-			m["runme"] = f.Runme
-		}
-
-		var buf bytes.Buffer
-		encoder := yaml.NewEncoder(&buf)
-		encoder.SetIndent(2)
-		if err := encoder.Encode(m); err != nil {
-			return nil, errors.WithStack(err)
-		}
-		if err := encoder.Close(); err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		return append(append([]byte("---\n"), buf.Bytes()...), []byte("---")...), nil
-
-	case frontmatterFormatJSON:
-		m := make(map[string]interface{})
-
-		if err := json.Unmarshal([]byte(f.raw), &m); err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		if !f.Runme.IsEmpty() {
-			m["runme"] = f.Runme
-		}
-
-		data, err := json.Marshal(m)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		return append(append([]byte("---\n"), data...), []byte("\n---")...), nil
-
-	case frontmatterFormatTOML:
-		m := make(map[string]interface{})
-
-		if err := toml.Unmarshal([]byte(f.raw), &m); err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		if !f.Runme.IsEmpty() {
-			m["runme"] = f.Runme
-		}
-
-		data, err := toml.Marshal(m)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		return append(append([]byte("+++\n"), data...), []byte("+++")...), nil
-
-	default:
+	formatter, ok := formatters[f.format]
+	if !ok {
 		panic("invariant: Frontmatter created with invalid format")
 	}
+
+	return formatter(f, false)
 }
 
 func (f *Frontmatter) ensureID() {
