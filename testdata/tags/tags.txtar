@@ -1,27 +1,67 @@
 env SHELL=/bin/bash
-exec runme run --all --category=foo --filename=CATEGORIES.md
+exec runme run --all --tag=foo --filename=TAGS.md
 cmp stdout foo-bar-list.txt
-stderr 'Flag --category has been deprecated, use --tag instead'
+! stderr .
 
 env SHELL=/bin/bash
-exec runme run --all --category=bar --filename=CATEGORIES.md
+exec runme run --all --tag=bar --filename=TAGS.md
 cmp stdout bar-list.txt
-stderr 'Flag --category has been deprecated, use --tag instead'
+! stderr .
 
 env SHELL=/bin/bash
-exec runme run -c buzz -c bar --filename=CATEGORIES.md
+exec runme run -t buzz -t bar --filename=TAGS.md
 cmp stdout buzz-bar-list.txt
-stderr 'Flag --category has been deprecated, use --tag instead'
+! stderr .
 
 env SHELL=/bin/bash
-exec runme run --all --allow-unnamed -y --category solution-2
+exec runme run --all --tag=foo --filename=CATEGORIES.md
+cmp stdout foo-bar-list.txt
+! stderr .
+
+env SHELL=/bin/bash
+exec runme run --all --tag=bar --filename=CATEGORIES.md
+cmp stdout bar-list.txt
+! stderr .
+
+env SHELL=/bin/bash
+exec runme run -t buzz -t bar --filename=CATEGORIES.md
+cmp stdout buzz-bar-list.txt
+! stderr .
+
+env SHELL=/bin/bash
+exec runme run --all --allow-unnamed -y --tag solution-2
 cmp stdout doc-category-with-unnamed.txt
-stderr 'Flag --category has been deprecated, use --tag instead'
+! stderr .
 
 env SHELL=/bin/bash
-exec runme run --all --skip-prompts --category solution-2
+exec runme run --all --skip-prompts --tag solution-2
 cmp stdout doc-category.txt
-stderr 'Flag --category has been deprecated, use --tag instead'
+! stderr .
+
+-- TAGS.md --
+```bash {"tag":"foo","name":"set-env"}
+$ export ENV="foo!"
+```
+
+```bash {"tag":"foo","name":"print-foo"}
+$ stty -opost
+$ echo "$ENV"
+```
+
+```bash {"tag":"foo,bar","name":"print-bar"}
+$ stty -opost
+$ echo "bar!"
+```
+
+```bash {"tag":"foo,bar","excludeFromRunAll":true,"name":"excluded"}
+$ stty -opost
+$ echo "excluded!"
+```
+
+```bash {"tag":"buzz","name":"print-buzz"}
+$ stty -opost
+$ echo "buzz!"
+```
 
 -- CATEGORIES.md --
 ## Categories are now tags

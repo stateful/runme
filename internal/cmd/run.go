@@ -317,7 +317,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
-	cmd.Flags().BoolVar(&skipPrompts, "skip-prompts", false, "Skip prompting for variables.")
+	cmd.Flags().BoolVarP(&skipPrompts, "skip-prompts", "y", false, "Skip prompting for variables.")
 	cmd.Flags().StringArrayVarP(&cmdCategories, "category", "c", nil, "Run from a specific category.")
 	cmd.Flags().StringArrayVarP(&cmdTags, "tag", "t", nil, "Run from a specific tag.")
 	cmd.Flags().IntVarP(&runIndex, "index", "i", -1, "Index of command to run, 0-based. (Ignored in project mode)")
