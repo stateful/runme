@@ -47,9 +47,11 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 		opts.Logger().Warn("failed to parse frontmatter", zap.Error(fmErr))
 	case opts.Reset:
 		// reset Runme part of frontmatter if required
-		if err := frontmatter.ResetRunme(opts.IdentityResolver.DocumentEnabled()); err != nil {
+		f, err := frontmatter.ResetRunme(opts.IdentityResolver.DocumentEnabled())
+		if err != nil {
 			return nil, err
 		}
+		frontmatter = f
 	}
 
 	cacheID := opts.IdentityResolver.CacheID()

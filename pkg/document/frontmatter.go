@@ -160,20 +160,30 @@ func newFrontmatter() *Frontmatter {
 	}
 }
 
-func (f *Frontmatter) ResetRunme(requireIdentity bool) error {
+func (f *Frontmatter) ResetRunme(requireIdentity bool) (*Frontmatter, error) {
+	if f == nil {
+		return nil, nil
+	}
+
 	if _, err := f.Marshal(requireIdentity); err != nil {
-		return err
+		return f, err
 	}
 
 	// remove runme frontmatter
 	defaultFormatter := formatters[frontmatterFormatYAML]
 	resetRaw, err := defaultFormatter(f, !requireIdentity)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.raw = string(resetRaw)
 
-	return nil
+	// retur nil if frontmatter is actually empty
+	raw := string(resetRaw)
+	if raw == "---\n{}\n---" {
+		return nil, nil
+	}
+	f.raw = raw
+
+	return f, nil
 }
 
 // Marshal returns a marshaled frontmatter including triple-dashed lines.
