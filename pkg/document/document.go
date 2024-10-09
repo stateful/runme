@@ -171,10 +171,10 @@ func (d *Document) parse() {
 func (d *Document) buildBlocksTree(parent ast.Node, node *Node) error {
 	for astNode := parent.FirstChild(); astNode != nil; astNode = astNode.NextSibling() {
 		switch astNode.Kind() {
-		case ast.KindFencedCodeBlock:
+		case ast.KindCodeBlock, ast.KindFencedCodeBlock:
 			block, err := newCodeBlock(
 				d,
-				astNode.(*ast.FencedCodeBlock),
+				astNode,
 				d.identityResolver,
 				d.nameResolver,
 				d.content,
