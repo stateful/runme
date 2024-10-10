@@ -62,7 +62,7 @@ func buildFmtCmd(cmd *cobra.Command, reset bool) *cobra.Command {
 	cmd.Flags().BoolVar(&flatten, "flatten", true, "Flatten nested blocks in the output. WARNING: This can currently break frontmatter if turned off.")
 	cmd.Flags().BoolVar(&formatJSON, "json", false, "Print out data as JSON. Only possible with --flatten and not allowed with --write.")
 	cmd.Flags().BoolVarP(&write, "write", "w", false, "Write result to the source file instead of stdout.")
-	cmd.Flags().StringVar(&identityStr, "identity", "", "Set the lifecycle identity. Overrides the default.")
+	cmd.Flags().StringVar(&identityStr, "identity", "", "Set the lifecycle identity, \"doc\", \"cell\", \"all\", or \"\" (default).")
 	_ = cmd.Flags().MarkDeprecated("flatten", "This flag is now default and no longer has any other effect.")
 
 	return cmd
