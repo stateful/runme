@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	stderrors "errors"
+	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/pkg/errors"
@@ -26,7 +27,8 @@ type formatter func(f *Frontmatter, reset bool) ([]byte, error)
 var formatters = map[string]formatter{
 	frontmatterFormatYAML: func(f *Frontmatter, reset bool) ([]byte, error) {
 		m := make(map[string]interface{})
-		if err := yaml.Unmarshal([]byte(f.raw), &m); err != nil {
+		unmarshalYaml := consumeFrontmatterSeparators(yaml.Unmarshal, false)
+		if err := unmarshalYaml([]byte(f.raw), &m); err != nil {
 			return nil, errors.WithStack(err)
 		}
 
@@ -47,11 +49,15 @@ var formatters = map[string]formatter{
 		if err := encoder.Close(); err != nil {
 			return nil, errors.WithStack(err)
 		}
+		if buf.Len() < 5 && strings.Trim(buf.String(), "\r\n") == "{}" {
+			return nil, nil
+		}
 		return append(append([]byte("---\n"), buf.Bytes()...), []byte("---")...), nil
 	},
 	frontmatterFormatJSON: func(f *Frontmatter, reset bool) ([]byte, error) {
 		m := make(map[string]interface{})
-		if err := json.Unmarshal([]byte(f.raw), &m); err != nil {
+		unmarshalJSON := consumeFrontmatterSeparators(json.Unmarshal, false)
+		if err := unmarshalJSON([]byte(f.raw), &m); err != nil {
 			return nil, errors.WithStack(err)
 		}
 
@@ -67,11 +73,15 @@ var formatters = map[string]formatter{
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		return append(append([]byte("---\n"), data...), []byte("\n---")...), nil
+		if len(data) < 5 && bytes.Equal(bytes.Trim(data, "\r\n"), []byte("{}")) {
+			return nil, nil
+		}
+		return data, nil
 	},
 	frontmatterFormatTOML: func(f *Frontmatter, reset bool) ([]byte, error) {
 		m := make(map[string]interface{})
-		if err := toml.Unmarshal([]byte(f.raw), &m); err != nil {
+		unmarshalTOML := consumeFrontmatterSeparators(toml.Unmarshal, false)
+		if err := unmarshalTOML([]byte(f.raw), &m); err != nil {
 			return nil, errors.WithStack(err)
 		}
 
@@ -86,6 +96,9 @@ var formatters = map[string]formatter{
 		data, err := toml.Marshal(m)
 		if err != nil {
 			return nil, errors.WithStack(err)
+		}
+		if len(data) == 0 {
+			return nil, nil
 		}
 		return append(append([]byte("+++\n"), data...), []byte("+++")...), nil
 	},
@@ -170,18 +183,19 @@ func (f *Frontmatter) ResetRunme(requireIdentity bool) (*Frontmatter, error) {
 	}
 
 	// remove runme frontmatter
-	defaultFormatter := formatters[frontmatterFormatYAML]
-	resetRaw, err := defaultFormatter(f, !requireIdentity)
+	remove := !requireIdentity
+
+	formatter := formatters[f.format]
+	resetRaw, err := formatter(f, remove)
 	if err != nil {
 		return nil, err
 	}
 
-	// retur nil if frontmatter is actually empty
-	raw := string(resetRaw)
-	if raw == "---\n{}\n---" {
+	// return nil if frontmatter is actually empty
+	if resetRaw == nil {
 		return nil, nil
 	}
-	f.raw = raw
+	f.raw = string(resetRaw)
 
 	return f, nil
 }
@@ -258,6 +272,8 @@ func ParseFrontmatter(raw []byte) (*Frontmatter, error) {
 	return parseFrontmatter(raw)
 }
 
+type parserFunc func([]byte, any) error
+
 func parseFrontmatter(raw []byte) (*Frontmatter, error) {
 	if len(raw) == 0 {
 		return nil, nil
@@ -269,24 +285,23 @@ func parseFrontmatter(raw []byte) (*Frontmatter, error) {
 	// this detail will be in d.parseFrontmatterErr.
 	var f Frontmatter
 
-	lines := bytes.Split(raw, []byte{'\n'})
-
-	if len(lines) < 2 || !bytes.Equal(bytes.TrimSpace(lines[0]), bytes.TrimSpace(lines[len(lines)-1])) {
-		return nil, errors.WithStack(ErrFrontmatterInvalid)
-	}
-
-	raw = bytes.Join(lines[1:len(lines)-1], []byte{'\n'})
+	// raw, err := consumeFrontmatterSeparators(raw)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// TODO(adamb): discuss how to approach this in the most sensible way.
 	// It can always return to the initial idea of returning all errors,
 	// but the client will be left with the same problem.
-	parsers := []func([]byte, any) error{
-		yaml.Unmarshal,
+	parsers := []parserFunc{
+		consumeFrontmatterSeparators(yaml.Unmarshal, true),
 		json.Unmarshal,
-		toml.Unmarshal,
+		consumeFrontmatterSeparators(json.Unmarshal, true),
+		consumeFrontmatterSeparators(toml.Unmarshal, true),
 	}
 	parsersNames := []string{
 		frontmatterFormatYAML,
+		frontmatterFormatJSON,
 		frontmatterFormatJSON,
 		frontmatterFormatTOML,
 	}
@@ -314,4 +329,18 @@ func parseFrontmatter(raw []byte) (*Frontmatter, error) {
 	}
 
 	return &f, nil
+}
+
+func consumeFrontmatterSeparators(parser parserFunc, strict bool) parserFunc {
+	return func(raw []byte, f any) error {
+		lines := bytes.Split(raw, []byte{'\n'})
+
+		if len(lines) >= 2 && bytes.Equal(bytes.TrimSpace(lines[0]), bytes.TrimSpace(lines[len(lines)-1])) {
+			raw = bytes.Join(lines[1:len(lines)-1], []byte{'\n'})
+		} else if strict {
+			return errors.WithStack(ErrFrontmatterInvalid)
+		}
+
+		return parser(raw, f)
+	}
 }
