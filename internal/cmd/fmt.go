@@ -39,7 +39,7 @@ func buildFmtCmd(cmd *cobra.Command, reset bool) *cobra.Command {
 		}
 
 		identityResolver := idt.NewResolver(idt.UnspecifiedLifecycleIdentity)
-		if !reset {
+		if reset {
 			identityResolver = strToIdentityResolver(identityStr)
 		}
 
