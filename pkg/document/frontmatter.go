@@ -69,7 +69,7 @@ var formatters = map[string]formatter{
 			m["runme"] = f.Runme
 		}
 
-		data, err := json.Marshal(m)
+		data, err := json.MarshalIndent(m, "", "  ")
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

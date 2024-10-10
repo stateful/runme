@@ -518,7 +518,7 @@ A paragraph
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			"{\"unrelated\":\"frontmatter\"}\r\n\r\n# Example\n\nA paragraph\n",
+			"{\n  \"unrelated\": \"frontmatter\"\n}\n\n# Example\n\nA paragraph\n",
 			string(result),
 		)
 	})
