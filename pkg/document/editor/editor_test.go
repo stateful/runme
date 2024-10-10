@@ -21,6 +21,7 @@ var (
 	identityResolverNone = identity.NewResolver(identity.UnspecifiedLifecycleIdentity)
 	identityResolverAll  = identity.NewResolver(identity.AllLifecycleIdentity)
 	identityResolverCell = identity.NewResolver(identity.CellLifecycleIdentity)
+	identityResolverDoc  = identity.NewResolver(identity.DocumentLifecycleIdentity)
 	testMockID           = ulid.GenerateID()
 )
 
@@ -380,6 +381,215 @@ This will test final line breaks`)
 			t,
 			string(withLineBreaks),
 			string(actual),
+		)
+	})
+}
+
+func TestEditor_ResetIdentity(t *testing.T) {
+	codeCell := "```sh {\"id\":\"abcdefg\"}\necho 1\n```"
+	runmeYamlFm := fmt.Sprintf(`runme:
+  id: %s
+  version: %s`, testMockID, version.BaseVersion())
+	data := []byte(fmt.Sprintf(`---
+prop1: val1
+prop2: val2
+%s
+---
+
+# Example
+
+A paragraph
+
+%s
+`, runmeYamlFm, codeCell))
+
+	t.Run("WithoutResetNoIdentity", func(t *testing.T) {
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: false})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(result),
+		)
+	})
+
+	t.Run("WithResetNoIdentity", func(t *testing.T) {
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: true})
+		require.NoError(t, err)
+
+		// notebook-level
+		require.NotNil(t, notebook.Metadata["runme.dev/cache-id"])
+		require.Empty(t, notebook.Metadata["id"])
+		require.EqualValues(t, "---\nprop1: val1\nprop2: val2\n---", notebook.Metadata["runme.dev/frontmatter"])
+
+		// cell-level
+		cell := notebook.Cells[2]
+		require.EqualValues(t, 2, cell.Kind)
+		require.EqualValues(t, "echo 1", cell.Value)
+		require.EqualValues(t, "sh", cell.LanguageID)
+		require.Empty(t, cell.Metadata["id"])
+	})
+
+	t.Run("WithResetWithIdentity", func(t *testing.T) {
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverDoc, Reset: true})
+		require.NoError(t, err)
+
+		// notebook-level
+		require.NotNil(t, notebook.Metadata["runme.dev/cache-id"])
+		require.Empty(t, notebook.Metadata["id"])
+		expected := fmt.Sprintf("---\nprop1: val1\nprop2: val2\nrunme:\n  id: %s\n  version: %s\n---", testMockID, version.BaseVersion())
+		require.EqualValues(t, expected, notebook.Metadata["runme.dev/frontmatter"])
+
+		// cell-level
+		cell := notebook.Cells[2]
+		require.EqualValues(t, 2, cell.Kind)
+		require.EqualValues(t, "echo 1", cell.Value)
+		require.EqualValues(t, "sh", cell.LanguageID)
+		require.Empty(t, cell.Metadata["id"])
+	})
+}
+
+func TestEditor_ResetRunmeFrontmatterYAML(t *testing.T) {
+	t.Run("RetainUnrelated", func(t *testing.T) {
+		data := []byte(`---
+runme:
+  id: 01HFVTDYA775K2HREH9ZGQJ75B
+  version: v3
+unrelated: frontmatter
+---
+
+# Example
+
+A paragraph
+`)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: true})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			"---\nunrelated: frontmatter\n---\n\n# Example\n\nA paragraph\n",
+			string(result),
+		)
+	})
+
+	t.Run("RemoveEmpty", func(t *testing.T) {
+		data := []byte(`---
+runme:
+  id: 01HFVTDYA775K2HREH9ZGQJ75B
+  version: v3
+---
+
+# Example
+
+A paragraph
+`)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: true})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			"# Example\n\nA paragraph\n",
+			string(result),
+		)
+	})
+}
+
+func TestEditor_ResetRunmeFrontmatterJSON(t *testing.T) {
+	t.Run("RetainUnrelated", func(t *testing.T) {
+		data := []byte(`{
+  "runme": {
+    "id": "01HF7YYYYYYYYYYYYMQ2KEEYGM",
+    "version": "v3"
+  },
+  "unrelated": "frontmatter"
+}
+
+# Example
+
+A paragraph
+`)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: true})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			"{\n  \"unrelated\": \"frontmatter\"\n}\n\n# Example\n\nA paragraph\n",
+			string(result),
+		)
+	})
+
+	t.Run("RemoveEmpty", func(t *testing.T) {
+		data := []byte(`{
+  "runme": {
+    "id": "01HF7YYYYYYYYYYYYMQ2KEEYGM",
+    "version": "v3"
+  }
+}
+
+# Example
+
+A paragraph
+`)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: true})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			"# Example\n\nA paragraph\n",
+			string(result),
+		)
+	})
+}
+
+func TestEditor_ResetRunmeFrontmatterTOML(t *testing.T) {
+	t.Run("RetainUnrelated", func(t *testing.T) {
+		data := []byte(`+++
+unrelated = 'frontmatter'
+[runme]
+id = '01HRA297WC2XXXXXX8FM3DR1V0'
+version = 'v3'
++++
+
+# Example
+
+A paragraph
+`)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: true})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			"+++\nunrelated = 'frontmatter'\n+++\n\n# Example\n\nA paragraph\n",
+			string(result),
+		)
+	})
+
+	t.Run("RemoveEmpty", func(t *testing.T) {
+		data := []byte(`+++
+[runme]
+id = '01HRA297WC2XXXXXX8FM3DR1V0'
+version = 'v3'
++++
+
+# Example
+
+A paragraph
+`)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone, Reset: true})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			"# Example\n\nA paragraph\n",
+			string(result),
 		)
 	})
 }

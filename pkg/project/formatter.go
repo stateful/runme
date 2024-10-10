@@ -11,21 +11,29 @@ import (
 
 type FuncOutput func(string, []byte) error
 
-func FormatFiles(files []string, identityResolver *identity.IdentityResolver, formatJSON bool, write bool, outputter FuncOutput) error {
+type FormatOptions struct {
+	IdentityResolver *identity.IdentityResolver
+	FormatJSON       bool
+	Write            bool
+	Outputter        FuncOutput
+	Reset            bool
+}
+
+func FormatFiles(files []string, options *FormatOptions) error {
 	for _, file := range files {
 		data, err := readMarkdown(file)
 		if err != nil {
 			return err
 		}
 
-		formatted, err := formatFile(data, identityResolver, formatJSON)
+		formatted, err := formatFile(data, options)
 		if err != nil {
 			return err
 		}
 
-		if write {
+		if options.Write {
 			err = writeMarkdown(file, formatted)
-		} else {
+		} else if outputter := options.Outputter; outputter != nil {
 			err = outputter(file, formatted)
 		}
 		if err != nil {
@@ -36,15 +44,15 @@ func FormatFiles(files []string, identityResolver *identity.IdentityResolver, fo
 	return nil
 }
 
-func formatFile(data []byte, identityResolver *identity.IdentityResolver, formatJSON bool) ([]byte, error) {
+func formatFile(data []byte, options *FormatOptions) ([]byte, error) {
 	var formatted []byte
 
-	notebook, err := editor.Deserialize(data, editor.Options{IdentityResolver: identityResolver})
+	notebook, err := editor.Deserialize(data, editor.Options{IdentityResolver: options.IdentityResolver, Reset: options.Reset})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deserialize")
 	}
 
-	if formatJSON {
+	if options.FormatJSON {
 		var buf bytes.Buffer
 		enc := json.NewEncoder(&buf)
 		enc.SetIndent("", "  ")
@@ -53,7 +61,7 @@ func formatFile(data []byte, identityResolver *identity.IdentityResolver, format
 		}
 		formatted = buf.Bytes()
 	} else {
-		formatted, err = editor.Serialize(notebook, nil, editor.Options{IdentityResolver: identityResolver})
+		formatted, err = editor.Serialize(notebook, nil, editor.Options{IdentityResolver: options.IdentityResolver})
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to serialize")
 		}
@@ -61,7 +69,7 @@ func formatFile(data []byte, identityResolver *identity.IdentityResolver, format
 
 	// todo(sebastian): remove moving to beta? it's neither used nor maintained
 	// {
-	// 	doc := document.New(data, identityResolver)
+	// 	doc := document.New(data, options.IdentityResolver)
 	// 	astNode, err := doc.RootAST()
 	// 	if err != nil {
 	// 		return nil, errors.Wrap(err, "failed to parse source")

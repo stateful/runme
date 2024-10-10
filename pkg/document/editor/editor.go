@@ -22,6 +22,7 @@ const (
 type Options struct {
 	IdentityResolver *identity.IdentityResolver
 	LoggerInstance   *zap.Logger
+	Reset            bool
 }
 
 func (o Options) Logger() *zap.Logger {
@@ -41,8 +42,16 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 
 	frontmatter, fmErr := doc.FrontmatterWithError()
 	// non-fatal error
-	if fmErr != nil {
+	switch {
+	case fmErr != nil:
 		opts.Logger().Warn("failed to parse frontmatter", zap.Error(fmErr))
+	case opts.Reset:
+		// reset Runme part of frontmatter if required
+		f, err := frontmatter.ResetRunme(opts.IdentityResolver.DocumentEnabled())
+		if err != nil {
+			return nil, err
+		}
+		frontmatter = f
 	}
 
 	cacheID := opts.IdentityResolver.CacheID()
@@ -69,36 +78,45 @@ func Deserialize(data []byte, opts Options) (*Notebook, error) {
 	// todo(sebastian): faux document-level `runme.dev/id` to not break existing clients; revert in near future
 	notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, "id")] = cacheID
 
-	// Make ephemeral cell IDs permanent if the cell lifecycle ID is enabled.
-	if opts.IdentityResolver.CellEnabled() {
-		err := applyCellLifecycleIdentity(notebook)
-		if err != nil {
-			return nil, err
-		}
+	// apply lifecycle identity to cells; reset first if required
+	if err := applyCellLifecycleIdentity(notebook, &opts); err != nil {
+		return nil, err
 	}
 
 	return notebook, nil
 }
 
-func applyCellLifecycleIdentity(notebook *Notebook) error {
+func applyCellLifecycleIdentity(notebook *Notebook, opts *Options) error {
+	if opts == nil {
+		return nil
+	}
+
 	ephCellIDKey := PrefixAttributeName(InternalAttributePrefix, CellID)
+
 	for _, cell := range notebook.Cells {
 		if cell.Kind != CodeKind {
 			continue
 		}
 
-		// don't overwrite existing cell ID
-		if _, ok := cell.Metadata["id"]; ok {
-			continue
+		if opts.Reset {
+			delete(cell.Metadata, CellID)
 		}
 
-		// make sure we have an ephemeral cell ID
-		if _, ok := cell.Metadata[ephCellIDKey]; !ok {
-			return errors.Errorf("missing ephemeral cell ID")
-		}
+		if opts.IdentityResolver.CellEnabled() {
+			// don't overwrite existing cell ID
+			if _, ok := cell.Metadata["id"]; ok {
+				continue
+			}
 
-		cell.Metadata[CellID] = cell.Metadata[ephCellIDKey]
+			// make sure we have an ephemeral cell ID
+			if _, ok := cell.Metadata[ephCellIDKey]; !ok {
+				return errors.Errorf("missing ephemeral cell ID")
+			}
+
+			cell.Metadata[CellID] = cell.Metadata[ephCellIDKey]
+		}
 	}
+
 	return nil
 }
 

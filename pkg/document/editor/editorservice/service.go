@@ -27,7 +27,7 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 	s.logger.Info("Deserialize", zap.ByteString("source", req.Source[:min(len(req.Source), 64)]))
 
 	identityResolver := identity.NewResolver(fromProtoDeserializeReqOptionsToLifecycleIdentity(req.Options))
-	notebook, err := editor.Deserialize(req.Source, editor.Options{LoggerInstance: s.logger, IdentityResolver: identityResolver})
+	notebook, err := editor.Deserialize(req.Source, editor.Options{LoggerInstance: s.logger, IdentityResolver: identityResolver, Reset: false})
 	if err != nil {
 		s.logger.Info("failed to call Deserialize", zap.Error(err))
 		return nil, err

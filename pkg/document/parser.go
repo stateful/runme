@@ -9,7 +9,7 @@ import (
 )
 
 type ParsedSections struct {
-	FrontMatter   []byte
+	Frontmatter   []byte
 	Content       []byte
 	ContentOffset int
 }
@@ -19,8 +19,8 @@ func ParseSections(source []byte) (result ParsedSections, _ error) {
 	runItemParser(l, parseInit)
 	for _, item := range l.items {
 		switch item.Type() {
-		case parsedItemFrontMatter:
-			result.FrontMatter = item.Value(source)
+		case parsedItemFrontmatter:
+			result.Frontmatter = item.Value(source)
 		case parsedItemContent:
 			result.ContentOffset = item.start
 			result.Content = item.Value(source)
@@ -48,7 +48,7 @@ func isEOL(r rune) bool {
 type parsedItemType int
 
 const (
-	parsedItemFrontMatter parsedItemType = iota + 1
+	parsedItemFrontmatter parsedItemType = iota + 1
 	parsedItemContent
 	parsedItemError
 )

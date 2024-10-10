@@ -3,6 +3,11 @@ exec runme fmt --write
 cmp README-FORMATTED.md README.md
 ! stderr .
 
+env SHELL=/bin/bash
+exec runme fmt reset --write
+cmp LCID-all.md LCID-none.md
+! stderr .
+
 -- README.md --
 ---
 runme:
@@ -38,4 +43,63 @@ echo 1
 
 ```{"name":"bash-echo-2"}
 echo 2
+```
+-- LCID-all.md --
+{
+  "runme": {
+    "id": "01HF7AX2R37KPNPH1MQ2KEEYGM",
+    "version": "v3"
+  }
+}
+
+```sh {"id":"01HF7BT3HBDTRGQAQMGP4A5DAJ"}
+cat > heredoc << EOF
+TEST=123
+HELLO=WORLD
+NAME=$NAME
+EOF
+```
+
+```sh {"id":"01HF7BT3HBDTRGQAQMGQCHXPXH"}
+$ cat > somefile << EOF
+line1
+line2
+line3
+EOF
+$ cat somefile
+```
+
+```sh {"id":"01HF7BT3HBDTRGQAQMGSKMPTNS"}
+$ rm -f somefile
+$ cat << EOF
+line1
+line2
+line3
+EOF > somefile
+```
+-- LCID-none.md --
+```sh
+cat > heredoc << EOF
+TEST=123
+HELLO=WORLD
+NAME=$NAME
+EOF
+```
+
+```sh
+$ cat > somefile << EOF
+line1
+line2
+line3
+EOF
+$ cat somefile
+```
+
+```sh
+$ rm -f somefile
+$ cat << EOF
+line1
+line2
+line3
+EOF > somefile
 ```
