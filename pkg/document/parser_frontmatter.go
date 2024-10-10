@@ -31,7 +31,7 @@ func parseRawFrontmatter(l *itemParser, delimiter byte) parserStateFunc {
 		if wasEndOfLine || isEOL(r) {
 			if l.hasPrefix(bytes.Repeat([]byte{delimiter}, 3)) {
 				l.pos += 3
-				l.emit(parsedItemFrontMatter)
+				l.emit(parsedItemFrontmatter)
 				l.consume(crlf)
 				l.ignore()
 				break
@@ -79,7 +79,7 @@ func parseRawFrontmatterJSON(l *itemParser) parserStateFunc {
 		}
 	}
 
-	l.emit(parsedItemFrontMatter)
+	l.emit(parsedItemFrontmatter)
 	l.consume(crlf)
 	l.ignore()
 

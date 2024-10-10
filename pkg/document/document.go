@@ -120,7 +120,7 @@ func (d *Document) FrontmatterRaw() []byte {
 	return d.frontmatterRaw
 }
 
-// splitSource splits source into FrontMatter and content.
+// splitSource splits source into Frontmatter and content.
 // TODO(adamb): replace it with an extension to goldmark.
 // Example: https://github.com/abhinav/goldmark-frontmatter
 func (d *Document) splitSource() {
@@ -131,7 +131,7 @@ func (d *Document) splitSource() {
 
 		for _, item := range l.items {
 			switch item.Type() {
-			case parsedItemFrontMatter:
+			case parsedItemFrontmatter:
 				d.frontmatterRaw = item.Value(d.source)
 			case parsedItemContent:
 				d.content = item.Value(d.source)
