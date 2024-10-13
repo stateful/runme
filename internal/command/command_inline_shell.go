@@ -14,7 +14,7 @@ type inlineShellCommand struct {
 	internalCommand
 
 	debug        bool
-	envCollector EnvCollector
+	envCollector envCollector
 	logger       *zap.Logger
 	session      *Session
 }
