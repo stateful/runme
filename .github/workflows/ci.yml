@@ -28,9 +28,8 @@ jobs:
       # to make sure that `make lint` also works.
       - name: Run lint from Makefile
         run: make lint
+      - uses: actions/setup-python@v3
       - uses: pre-commit/action@v3.0.1
-      - name: pre-commit
-        run: pre-commit run --files $(git diff-tree --no-commit-id --name-only -r HEAD)
 
   build-and-test:
     # Don't use make here as this job needs to be cross-platform.
