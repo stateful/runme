@@ -48,17 +48,17 @@ All exported variables during the session will be available to the subsequent co
 						Stderr:  cmd.ErrOrStderr(),
 					}
 
-					runmeCmd, err := cmdFactory.Build(cfg, options)
+					program, err := cmdFactory.Build(cfg, options)
 					if err != nil {
 						return err
 					}
 
-					err = runmeCmd.Start(cmd.Context())
+					err = program.Start(cmd.Context())
 					if err != nil {
 						return err
 					}
 
-					err = runmeCmd.Wait()
+					err = program.Wait()
 					if err != nil {
 						return err
 					}
@@ -68,10 +68,15 @@ All exported variables during the session will be available to the subsequent co
 						return errors.WithStack(err)
 					}
 
+					// TODO(adamb): currently, the collected env are printed out,
+					// but they could be put in a session.
+					if _, err := cmd.ErrOrStderr().Write([]byte("Collected env during the session:\n")); err != nil {
+						return errors.WithStack(err)
+					}
 					for _, env := range changed {
 						_, err := cmd.OutOrStdout().Write([]byte(env + "\n"))
 						if err != nil {
-							return err
+							return errors.WithStack(err)
 						}
 					}
 
@@ -87,6 +92,8 @@ All exported variables during the session will be available to the subsequent co
 }
 
 func sessionSetupCmd() *cobra.Command {
+	var debug bool
+
 	cmd := cobra.Command{
 		Use:    "setup",
 		Hidden: true,
@@ -106,13 +113,17 @@ func sessionSetupCmd() *cobra.Command {
 					envSetter := command.NewFileBasedEnvSetter(
 						os.Getenv(command.EnvCollectorSessionPrePathEnvName),
 						os.Getenv(command.EnvCollectorSessionPostPathEnvName),
+						debug,
 					)
-					buf := new(bytes.Buffer)
 
-					_, _ = buf.WriteString("#!/bin/sh\n")
-					_, _ = buf.WriteString("set -euxo pipefail\n")
+					buf := bytes.NewBufferString("#!/bin/sh\n")
+					if debug {
+						_, _ = buf.WriteString("set -euxo pipefail\n")
+					}
 					_ = envSetter.SetOnShell(buf)
-					_, _ = buf.WriteString("set +euxo pipefail\n")
+					if debug {
+						_, _ = buf.WriteString("set +euxo pipefail\n")
+					}
 
 					_, err := cmd.OutOrStdout().Write(buf.Bytes())
 					return errors.WithStack(err)
@@ -120,6 +131,8 @@ func sessionSetupCmd() *cobra.Command {
 			)
 		},
 	}
+
+	cmd.Flags().BoolVar(&debug, "debug", false, "Enable debug mode.")
 
 	return &cmd
 }

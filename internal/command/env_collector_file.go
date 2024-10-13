@@ -73,7 +73,7 @@ func (c *envCollectorFile) ExtraEnv() []string {
 }
 
 func (c *envCollectorFile) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, envDumpCommand, true, c.prePath(), c.postPath())
+	return setOnShell(shell, envDumpCommand, true, false, false, c.prePath(), c.postPath())
 }
 
 func (c *envCollectorFile) prePath() string {

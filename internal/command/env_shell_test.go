@@ -15,7 +15,7 @@ func TestSetOnShell(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 
-	err := setOnShell(buf, envDumpCommand, false, "prePath", "postPath")
+	err := setOnShell(buf, envDumpCommand, false, false, false, "prePath", "postPath")
 	require.NoError(t, err)
 
 	expected := (envDumpCommand + " > prePath\n" +
@@ -33,7 +33,7 @@ func TestSetOnShell_SkipShellHistory(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 
-	err := setOnShell(buf, envDumpCommand, true, "prePath", "postPath")
+	err := setOnShell(buf, envDumpCommand, true, false, false, "prePath", "postPath")
 	require.NoError(t, err)
 
 	expected := (" " + envDumpCommand + " > prePath\n" +

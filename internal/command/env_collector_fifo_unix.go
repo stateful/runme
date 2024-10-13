@@ -125,7 +125,7 @@ func (c *envCollectorFifo) ExtraEnv() []string {
 }
 
 func (c *envCollectorFifo) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, envDumpCommand, true, c.prePath(), c.postPath())
+	return setOnShell(shell, envDumpCommand, true, false, false, c.prePath(), c.postPath())
 }
 
 func (c *envCollectorFifo) prePath() string {
