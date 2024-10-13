@@ -14,44 +14,61 @@ func createEnv(key, value string) string {
 	return key + "=" + value
 }
 
-type FileBasedEnvSetter struct {
+// ScriptEnvSetter returns a shell script that installs itself and
+// collects environment variables to provided pre- and post-paths.
+type ScriptEnvSetter struct {
+	debug       bool
 	dumpCommand string
 	prePath     string
 	postPath    string
 }
 
-func NewFileBasedEnvSetter(prePath, postPath string) *FileBasedEnvSetter {
-	return &FileBasedEnvSetter{
+func NewFileBasedEnvSetter(prePath, postPath string, debug bool) *ScriptEnvSetter {
+	return &ScriptEnvSetter{
+		debug:       debug,
 		dumpCommand: envDumpCommand,
 		prePath:     prePath,
 		postPath:    postPath,
 	}
 }
 
-func (s *FileBasedEnvSetter) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, s.dumpCommand, true, s.prePath, s.postPath)
+func (s *ScriptEnvSetter) SetOnShell(shell io.Writer) error {
+	return setOnShell(shell, s.dumpCommand, false, true, s.debug, s.prePath, s.postPath)
 }
 
 func setOnShell(
 	shell io.Writer,
 	dumpCommand string,
 	skipShellHistory bool,
+	asFile bool,
+	debug bool,
 	prePath string,
 	postPath string,
 ) error {
 	prefix := ""
 	if skipShellHistory {
-		// Prefix commands with a space to avoid polluting the shell history.
-		prefix = " "
+		prefix = " " // space avoids polluting the shell history
 	}
 
 	w := bulkWriter{Writer: shell}
 
-	// First, dump all env at the beginning, so that a diff can be calculated.
-	w.Write([]byte(prefix + dumpCommand + " > " + prePath + "\n"))
+	if asFile {
+		w.WriteString("#!/bin/sh\n")
+	}
+
+	if debug {
+		w.WriteString("set -euxo pipefail\n")
+	}
+
+	// Dump all env at the beginning, so that a diff can be calculated.
+	w.WriteString(prefix + dumpCommand + " > " + prePath + "\n")
 	// Then, set a trap on EXIT to dump all env at the end.
-	w.Write([]byte(prefix + "__cleanup() {\nrv=$?\n" + (envDumpCommand + " > " + postPath) + "\nexit $rv\n}\n"))
-	w.Write([]byte(prefix + "trap -- \"__cleanup\" EXIT\n"))
+	w.WriteString(prefix + "__cleanup() {\nrv=$?\n" + (envDumpCommand + " > " + postPath) + "\nexit $rv\n}\n")
+	w.WriteString(prefix + "trap -- \"__cleanup\" EXIT\n")
+
+	if debug {
+		w.WriteString("set +euxo pipefail\n")
+	}
 
 	_, err := w.Done()
 	return err
