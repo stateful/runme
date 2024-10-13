@@ -19,13 +19,13 @@ func NewEnvCollectorFactory() *EnvCollectorFactory {
 	}
 }
 
-func (f *EnvCollectorFactory) UseFifo(value bool) *EnvCollectorFactory {
-	f.useFifo = value
+func (f *EnvCollectorFactory) WithEnryption(value bool) *EnvCollectorFactory {
+	f.encryptionEnabled = value
 	return f
 }
 
-func (f *EnvCollectorFactory) WithEnryption(value bool) *EnvCollectorFactory {
-	f.encryptionEnabled = value
+func (f *EnvCollectorFactory) UseFifo(value bool) *EnvCollectorFactory {
+	f.useFifo = value
 	return f
 }
 
