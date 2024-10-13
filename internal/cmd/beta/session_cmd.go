@@ -31,14 +31,22 @@ All exported variables during the session will be available to the subsequent co
 				) error {
 					defer logger.Sync()
 
+					envCollector, err := command.NewEnvCollectorFactory().UseFifo(false).Build()
+					if err != nil {
+						return errors.WithStack(err)
+					}
+
 					cfg := &command.ProgramConfig{
 						ProgramName: defaultShell(),
 						Mode:        runnerv2.CommandMode_COMMAND_MODE_CLI,
-						Env:         []string{"RUNME_SESSION=1"},
+						Env:         append([]string{"RUNME_SESSION=1"}, envCollector.ExtraEnv()...),
 					}
-					session := command.NewSession()
-					options := getCommandOptions(cmd, session)
-					options.NoShell = true
+					options := command.CommandOptions{
+						NoShell: true,
+						Stdin:   cmd.InOrStdin(),
+						Stdout:  cmd.OutOrStdout(),
+						Stderr:  cmd.ErrOrStderr(),
+					}
 
 					runmeCmd, err := cmdFactory.Build(cfg, options)
 					if err != nil {
@@ -55,7 +63,12 @@ All exported variables during the session will be available to the subsequent co
 						return err
 					}
 
-					for _, env := range session.GetAllEnv() {
+					changed, _, err := envCollector.Diff()
+					if err != nil {
+						return errors.WithStack(err)
+					}
+
+					for _, env := range changed {
 						_, err := cmd.OutOrStdout().Write([]byte(env + "\n"))
 						if err != nil {
 							return err
@@ -85,44 +98,24 @@ func sessionSetupCmd() *cobra.Command {
 				) error {
 					defer logger.Sync()
 
-					if val, err := strconv.ParseBool(os.Getenv("RUNME_SESSION")); err != nil || !val {
+					if val, err := strconv.ParseBool(os.Getenv(command.EnvCollectorSessionEnvName)); err != nil || !val {
 						logger.Debug("session setup is skipped", zap.Error(err), zap.Bool("value", val))
 						return nil
 					}
 
-					envCollector, err := command.NewEnvCollectorFactory().UseFifo(false).Build()
-					if err != nil {
-						return errors.WithStack(err)
-					}
+					envSetter := command.NewFileBasedEnvSetter(
+						os.Getenv(command.EnvCollectorSessionPrePathEnvName),
+						os.Getenv(command.EnvCollectorSessionPostPathEnvName),
+					)
+					buf := new(bytes.Buffer)
 
-					var buf bytes.Buffer
-
-					_, _ = buf.WriteString("#!/bin/sh\nset -euxo pipefail\n")
-
-					err = envCollector.SetOnShell(&buf)
-					if err != nil {
-						return errors.WithStack(err)
-					}
-
+					_, _ = buf.WriteString("#!/bin/sh\n")
+					_, _ = buf.WriteString("set -euxo pipefail\n")
+					_ = envSetter.SetOnShell(buf)
 					_, _ = buf.WriteString("set +euxo pipefail\n")
 
-					_, err = cmd.OutOrStdout().Write(buf.Bytes())
+					_, err := cmd.OutOrStdout().Write(buf.Bytes())
 					return errors.WithStack(err)
-
-					// _, err = cmd.OutOrStdout().Write([]byte("#!/bin/sh\nset -euxo pipefail\n"))
-					// if err != nil {
-					// 	return err
-					// }
-					// _, err = cmd.OutOrStdout().Write([]byte("trap -- \"echo exited\" EXIT\n"))
-					// if err != nil {
-					// 	return err
-					// }
-					// _, err = cmd.OutOrStdout().Write([]byte("echo 'setup done'\n"))
-					// if err != nil {
-					// 	return err
-					// }
-					// _, err = cmd.OutOrStdout().Write([]byte("set +euxo pipefail\n"))
-					// return err
 				},
 			)
 		},
