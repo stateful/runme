@@ -28,6 +28,8 @@ type envCollectorFifo struct {
 	temp         *tempDirectory
 }
 
+var _ EnvCollector = (*envCollectorFifo)(nil)
+
 func newEnvCollectorFifo(
 	scanner envScanner,
 	encKey,
@@ -87,7 +89,7 @@ func (c *envCollectorFifo) init() error {
 }
 
 func (c *envCollectorFifo) Diff() (changed []string, deleted []string, _ error) {
-	defer c.temp.Cleanup()
+	defer func() { _ = c.temp.Cleanup() }()
 
 	g := new(errgroup.Group)
 
@@ -115,13 +117,15 @@ func (c *envCollectorFifo) ExtraEnv() []string {
 		return nil
 	}
 	return []string{
-		"RUNME_ENCRYPTION_KEY=" + hex.EncodeToString(c.encKey),
-		"RUNME_ENCRYPTION_NONCE=" + hex.EncodeToString(c.encNonce),
+		createEnv(envCollectorEncKeyEnvName, hex.EncodeToString(c.encKey)),
+		createEnv(envCollectorEncNonceEnvName, hex.EncodeToString(c.encNonce)),
+		createEnv(EnvCollectorSessionPrePathEnvName, c.prePath()),
+		createEnv(EnvCollectorSessionPostPathEnvName, c.postPath()),
 	}
 }
 
 func (c *envCollectorFifo) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, c.prePath(), c.postPath())
+	return setOnShell(shell, envDumpCommand, true, c.prePath(), c.postPath())
 }
 
 func (c *envCollectorFifo) prePath() string {

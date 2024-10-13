@@ -15,14 +15,33 @@ func TestSetOnShell(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 
-	err := setOnShell(buf, "prePath", "postPath")
+	err := setOnShell(buf, envDumpCommand, false, "prePath", "postPath")
 	require.NoError(t, err)
 
-	expected := " " +
-		envDumpCommand +
-		" > prePath\n __cleanup() {\nrv=$?\n" +
-		envDumpCommand +
-		" > postPath\nexit $rv\n}\n trap -- \"__cleanup\" EXIT\n"
+	expected := (envDumpCommand + " > prePath\n" +
+		"__cleanup() {\n" +
+		"rv=$?\n" +
+		envDumpCommand + " > postPath\n" +
+		"exit $rv\n}\n" +
+		"trap -- \"__cleanup\" EXIT\n")
+
+	require.EqualValues(t, expected, buf.String())
+}
+
+func TestSetOnShell_SkipShellHistory(t *testing.T) {
+	t.Parallel()
+
+	buf := new(bytes.Buffer)
+
+	err := setOnShell(buf, envDumpCommand, true, "prePath", "postPath")
+	require.NoError(t, err)
+
+	expected := (" " + envDumpCommand + " > prePath\n" +
+		" __cleanup() {\n" +
+		"rv=$?\n" +
+		envDumpCommand + " > postPath\n" +
+		"exit $rv\n}\n" +
+		" trap -- \"__cleanup\" EXIT\n")
 
 	require.EqualValues(t, expected, buf.String())
 }
