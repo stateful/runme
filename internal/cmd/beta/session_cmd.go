@@ -109,7 +109,7 @@ func sessionSetupCmd() *cobra.Command {
 						return nil
 					}
 
-					envSetter := command.NewFileBasedEnvSetter(
+					envSetter := command.NewScriptEnvSetter(
 						os.Getenv(command.EnvCollectorSessionPrePathEnvName),
 						os.Getenv(command.EnvCollectorSessionPostPathEnvName),
 						debug,

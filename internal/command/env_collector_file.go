@@ -61,15 +61,18 @@ func (c *envCollectorFile) Diff() (changed []string, deleted []string, _ error) 
 }
 
 func (c *envCollectorFile) ExtraEnv() []string {
-	if c.encKey == nil || c.encNonce == nil {
-		return nil
-	}
-	return []string{
-		createEnv(envCollectorEncKeyEnvName, hex.EncodeToString(c.encKey)),
-		createEnv(envCollectorEncNonceEnvName, hex.EncodeToString(c.encNonce)),
+	result := []string{
 		createEnv(EnvCollectorSessionPrePathEnvName, c.prePath()),
 		createEnv(EnvCollectorSessionPostPathEnvName, c.postPath()),
 	}
+	if c.encKey != nil && c.encNonce != nil {
+		result = append(
+			result,
+			createEnv(envCollectorEncKeyEnvName, hex.EncodeToString(c.encKey)),
+			createEnv(envCollectorEncNonceEnvName, hex.EncodeToString(c.encNonce)),
+		)
+	}
+	return result
 }
 
 func (c *envCollectorFile) SetOnShell(shell io.Writer) error {
