@@ -29,7 +29,7 @@ func (f *EnvCollectorFactory) UseFifo(value bool) *EnvCollectorFactory {
 	return f
 }
 
-func (f *EnvCollectorFactory) Build() (EnvCollector, error) {
+func (f *EnvCollectorFactory) Build() (envCollector, error) {
 	scanner := scanEnv
 
 	var (

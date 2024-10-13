@@ -28,7 +28,7 @@ type envCollectorFifo struct {
 	temp         *tempDirectory
 }
 
-var _ EnvCollector = (*envCollectorFifo)(nil)
+var _ envCollector = (*envCollectorFifo)(nil)
 
 func newEnvCollectorFifo(
 	scanner envScanner,
