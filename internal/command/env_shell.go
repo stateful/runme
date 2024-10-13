@@ -23,7 +23,7 @@ type ScriptEnvSetter struct {
 	postPath    string
 }
 
-func NewFileBasedEnvSetter(prePath, postPath string, debug bool) *ScriptEnvSetter {
+func NewScriptEnvSetter(prePath, postPath string, debug bool) *ScriptEnvSetter {
 	return &ScriptEnvSetter{
 		debug:       debug,
 		dumpCommand: envDumpCommand,
