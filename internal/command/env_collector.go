@@ -43,9 +43,7 @@ func SetEnvDumpCommand(cmd string) {
 	envCollectorEnableEncryption = false
 }
 
-type EnvCollector interface {
-	EnvSetter
-
+type envCollector interface {
 	// Diff compares the environment variables before and after the command execution.
 	// It returns the list of env that were changed and deleted.
 	Diff() (changed []string, deleted []string, _ error)
@@ -53,9 +51,7 @@ type EnvCollector interface {
 	// ExtraEnv provides a list of extra environment variables that should be set
 	// before the command execution.
 	ExtraEnv() []string
-}
 
-type EnvSetter interface {
 	// SetOnShell writes additional commands to the shell session
 	// in order to collect the environment variables after
 	// the command execution.

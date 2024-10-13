@@ -291,7 +291,7 @@ func (f *commandFactory) getSession(base *base, sess *session.Session) (*session
 
 // TODO(adamb): env collector (fifo) might need a context which will unblock it when the command finishes.
 // Otherwise, it won't know when to finish waiting for the output from env producer.
-func (f *commandFactory) getEnvCollector() (EnvCollector, error) {
+func (f *commandFactory) getEnvCollector() (envCollector, error) {
 	if f.docker != nil {
 		return nil, nil
 	}

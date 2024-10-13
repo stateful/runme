@@ -1,7 +1,6 @@
 package beta
 
 import (
-	"bytes"
 	"os"
 	"os/exec"
 	"strconv"
@@ -31,7 +30,7 @@ All exported variables during the session will be available to the subsequent co
 				) error {
 					defer logger.Sync()
 
-					envCollector, err := command.NewEnvCollectorFactory().UseFifo(false).Build()
+					envCollector, err := command.NewEnvCollectorFactory().Build()
 					if err != nil {
 						return errors.WithStack(err)
 					}
@@ -116,16 +115,7 @@ func sessionSetupCmd() *cobra.Command {
 						debug,
 					)
 
-					buf := bytes.NewBufferString("#!/bin/sh\n")
-					if debug {
-						_, _ = buf.WriteString("set -euxo pipefail\n")
-					}
-					_ = envSetter.SetOnShell(buf)
-					if debug {
-						_, _ = buf.WriteString("set +euxo pipefail\n")
-					}
-
-					_, err := cmd.OutOrStdout().Write(buf.Bytes())
+					err := envSetter.SetOnShell(cmd.OutOrStdout())
 					return errors.WithStack(err)
 				},
 			)
