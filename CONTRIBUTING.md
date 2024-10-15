@@ -143,6 +143,7 @@ pre-commit run --files */**
 Tests are run with Go's default test runner wrapped in Makefile targets. So, for example, you can run all tests with:
 
 ```sh {"id":"01HF7BT3HEQBTBM9SSTS88ZSCF","name":"test","terminalRows":"15"}
+unset RUNME_SESSION_STRATEGY RUNME_TLS_DIR RUNME_SERVER_ADDR
 go clean -testcache
 TAGS="test_with_docker" make test
 ```
