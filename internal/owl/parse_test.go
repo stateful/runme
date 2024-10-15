@@ -109,7 +109,7 @@ func TestValues(t *testing.T) {
 
 	require.Equal(t, map[string]string{
 		"ALLOWED_URL_PATTERNS":                         "Allowed URL patterns for the frontend",
-		"API_URL":                                      "Url for the backend API",
+		"API_URL":                                      "URL for the backend API",
 		"AUTH_DEV_SKIP_EXP":                            "Skip expiration validation for Auth0. Only dev purposes",
 		"AUTH0_AUDIENCE":                               "Audience for Auth0",
 		"AUTH0_CLIENT_ID":                              "Client ID for Auth0",
