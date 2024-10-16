@@ -2,19 +2,25 @@ package beta
 
 import (
 	"context"
+	"io"
+	"os"
 
+	"github.com/creack/pty"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	"github.com/stateful/runme/v3/internal/runnerv2client"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
 func runCmd(*commonFlags) *cobra.Command {
+	var remote bool
+
 	cmd := cobra.Command{
 		Use:     "run [command1 command2 ...]",
 		Aliases: []string{"exec"},
@@ -34,6 +40,7 @@ Run all blocks from the "setup" and "teardown" tags:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return autoconfig.InvokeForCommand(
 				func(
+					clientFactory autoconfig.ClientFactory,
 					cmdFactory command.Factory,
 					filters []project.Filter,
 					logger *zap.Logger,
@@ -65,13 +72,48 @@ Run all blocks from the "setup" and "teardown" tags:
 						return errors.WithStack(err)
 					}
 
-					session := command.NewSession()
-					options := getCommandOptions(cmd, session)
+					ctx := cmd.Context()
 
-					for _, t := range tasks {
-						err := runCodeBlock(cmd.Context(), t.CodeBlock, cmdFactory, options)
+					if remote {
+						client, err := clientFactory()
 						if err != nil {
 							return err
+						}
+
+						sessionResp, err := client.CreateSession(
+							ctx,
+							&runnerv2.CreateSessionRequest{
+								Project: &runnerv2.Project{
+									Root:         proj.Root(),
+									EnvLoadOrder: proj.EnvFilesReadOrder(),
+								},
+							},
+						)
+						if err != nil {
+							return errors.WithMessage(err, "failed to create session")
+						}
+
+						for _, t := range tasks {
+							err := runCodeBlockWithClient(
+								ctx,
+								cmd,
+								client,
+								t.CodeBlock,
+								sessionResp.GetSession().GetId(),
+							)
+							if err != nil {
+								return err
+							}
+						}
+					} else {
+						session := command.NewSession()
+						options := createCommandOptions(cmd, session)
+
+						for _, t := range tasks {
+							err := runCodeBlock(ctx, t.CodeBlock, cmdFactory, options)
+							if err != nil {
+								return err
+							}
 						}
 					}
 
@@ -81,10 +123,12 @@ Run all blocks from the "setup" and "teardown" tags:
 		},
 	}
 
+	cmd.Flags().BoolVarP(&remote, "remote", "r", false, "Run commands on a remote server.")
+
 	return &cmd
 }
 
-func getCommandOptions(
+func createCommandOptions(
 	cmd *cobra.Command,
 	sess *command.Session,
 ) command.CommandOptions {
@@ -96,12 +140,7 @@ func getCommandOptions(
 	}
 }
 
-func runCodeBlock(
-	ctx context.Context,
-	block *document.CodeBlock,
-	factory command.Factory,
-	options command.CommandOptions,
-) error {
+func createProgramConfigFromCodeBlock(block *document.CodeBlock, opts ...command.ConfigBuilderOption) (*command.ProgramConfig, error) {
 	// TODO(adamb): [command.Config] is generated exclusively from the [document.CodeBlock].
 	// As we introduce some document- and block-related configs in runme.yaml (root but also nested),
 	// this [Command.Config] should be further extended.
@@ -112,7 +151,16 @@ func runCodeBlock(
 	// the last element of the returned config chain. Finally, [command.Config] should be updated.
 	// This algorithm should be likely encapsulated in the [internal/config] and [internal/command]
 	// packages.
-	cfg, err := command.NewProgramConfigFromCodeBlock(block)
+	return command.NewProgramConfigFromCodeBlock(block, opts...)
+}
+
+func runCodeBlock(
+	ctx context.Context,
+	block *document.CodeBlock,
+	factory command.Factory,
+	options command.CommandOptions,
+) error {
+	cfg, err := createProgramConfigFromCodeBlock(block)
 	if err != nil {
 		return err
 	}
@@ -123,9 +171,45 @@ func runCodeBlock(
 	if err != nil {
 		return err
 	}
-	err = cmd.Start(ctx)
-	if err != nil {
+	if err := cmd.Start(ctx); err != nil {
 		return err
 	}
 	return cmd.Wait()
+}
+
+func runCodeBlockWithClient(
+	ctx context.Context,
+	cobraCommand *cobra.Command,
+	client *runnerv2client.Client,
+	block *document.CodeBlock,
+	sessionID string,
+) error {
+	cfg, err := createProgramConfigFromCodeBlock(block, command.WithInteractiveLegacy())
+	if err != nil {
+		return err
+	}
+
+	opts := runnerv2client.ExecuteProgramOptions{
+		SessionID:        sessionID,
+		Stdin:            io.NopCloser(cobraCommand.InOrStdin()),
+		Stdout:           cobraCommand.OutOrStdout(),
+		Stderr:           cobraCommand.ErrOrStderr(),
+		StoreStdoutInEnv: true,
+	}
+
+	if stdin, ok := cobraCommand.InOrStdin().(*os.File); ok {
+		size, err := pty.GetsizeFull(stdin)
+		if err != nil {
+			return errors.WithMessage(err, "failed to get terminal size")
+		}
+
+		opts.Winsize = &runnerv2.Winsize{
+			Rows: uint32(size.Rows),
+			Cols: uint32(size.Cols),
+			X:    uint32(size.X),
+			Y:    uint32(size.Y),
+		}
+	}
+
+	return client.ExecuteProgram(ctx, cfg, opts)
 }

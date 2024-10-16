@@ -2,6 +2,7 @@ package command
 
 import (
 	"io"
+	"reflect"
 
 	"go.uber.org/zap"
 
@@ -271,4 +272,19 @@ func (f *commandFactory) getEnvCollector() (envCollector, error) {
 func (f *commandFactory) getLogger(name string) *zap.Logger {
 	id := ulid.GenerateID()
 	return f.logger.Named(name).With(zap.String("instanceID", id))
+}
+
+func isNil(val any) bool {
+	if val == nil {
+		return true
+	}
+
+	v := reflect.ValueOf(val)
+
+	switch v.Type().Kind() {
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Pointer, reflect.UnsafePointer:
+		return v.IsNil()
+	default:
+		return false
+	}
 }
