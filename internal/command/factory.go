@@ -22,6 +22,10 @@ type CommandOptions struct {
 	// with [virtualCommand].
 	EnableEcho bool
 
+	// NoShell, if true, disables detecting whether the program
+	// is a shell script.
+	NoShell bool
+
 	// Session is used to share the state between commands.
 	// If none is provided, an empty one will be used.
 	Session *Session
@@ -116,7 +120,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 
 	switch mode {
 	case runnerv2.CommandMode_COMMAND_MODE_INLINE:
-		if isShell(cfg) {
+		if !opts.NoShell && isShell(cfg) {
 			collector, err := f.getEnvCollector()
 			if err != nil {
 				return nil, err
@@ -144,7 +148,7 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 		internal := f.buildNative(base)
 		internal.disableNewProcessID = true
 
-		if isShell(cfg) {
+		if !opts.NoShell && isShell(cfg) {
 			collector, err := f.getEnvCollector()
 			if err != nil {
 				return nil, err
@@ -259,13 +263,7 @@ func (f *commandFactory) getEnvCollector() (envCollector, error) {
 	if f.docker != nil {
 		return nil, nil
 	}
-	collectorFactory := newEnvCollectorFactory(
-		envCollectorFactoryOptions{
-			encryptionEnabled: envCollectorEnableEncryption,
-			useFifo:           envCollectorUseFifo,
-		},
-	)
-	return collectorFactory.Build()
+	return NewEnvCollectorFactory().Build()
 }
 
 func (f *commandFactory) getLogger(name string) *zap.Logger {
