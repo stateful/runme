@@ -491,7 +491,8 @@ class MonitorEnvStoreResponseSnapshot_SnapshotEnv$Type extends MessageType {
             { no: 7, name: "create_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "update_time", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "errors", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => MonitorEnvStoreResponseSnapshot_Error },
-            { no: 10, name: "is_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 10, name: "is_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 11, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }

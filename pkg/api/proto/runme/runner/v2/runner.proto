@@ -291,21 +291,23 @@ message MonitorEnvStoreResponseSnapshot {
 
     string name = 2;
 
-    string spec = 3;
+    string description = 3;
 
-    bool is_required = 4;
+    string spec = 4;
 
-    string origin = 5;
+    bool is_required = 5;
 
-    string original_value = 6;
+    string origin = 6;
 
-    string resolved_value = 7;
+    string original_value = 7;
 
-    string create_time = 8;
+    string resolved_value = 8;
 
-    string update_time = 9;
+    string create_time = 9;
 
-    repeated Error errors = 10;
+    string update_time = 10;
+
+    repeated Error errors = 11;
   }
 
   message Error {

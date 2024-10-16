@@ -142,7 +142,7 @@ func TestValues(t *testing.T) {
 		"REDIS_HOST":                                   "Redis host",
 		"REDIS_PORT":                                   "Redis port",
 		"REDWOOD_ENV_DEBUG_IDE":                        "Flag to enable debug mode for the IDE",
-		"REDWOOD_ENV_GITHUB_APP":                       "Id of the GitHub App",
+		"REDWOOD_ENV_GITHUB_APP":                       "ID of the GitHub App",
 		"REDWOOD_ENV_INSIGHT_ENABLED":                  "Flag to enable insights",
 		"REDWOOD_ENV_INSTRUMENTATION_KEY":              "Instrumentation Key for Application Insights",
 		"RESEND_API_KEY":                               "API Key for Resend",

@@ -156,6 +156,7 @@ type MonitorEnvStoreResponseSnapshot_Error {
 type MonitorEnvStoreResponseSnapshot_SnapshotEnv {
 	status: MonitorEnvStoreResponseSnapshot_Status
 	name: String
+	description: String
 	spec: String
 	isRequired: Boolean
 	origin: String
