@@ -617,6 +617,10 @@ export interface MonitorEnvStoreResponseSnapshot_SnapshotEnv {
      * @generated from protobuf field: bool is_required = 10;
      */
     isRequired: boolean;
+    /**
+     * @generated from protobuf field: string description = 11;
+     */
+    description: string;
 }
 /**
  * @generated from protobuf message runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
