@@ -11,7 +11,7 @@ import (
 // it only keeps track of environment variables.
 type Session struct {
 	ID       string
-	envStore *envStore
+	envStore EnvStore[*envStoreMap]
 }
 
 func NewSession() *Session {
