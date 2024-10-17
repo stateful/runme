@@ -14,13 +14,13 @@ func newEnvStore() *envStoreMap {
 	return &envStoreMap{items: make(map[string]string)}
 }
 
-func (s *envStoreMap) Merge(envs ...string) (*envStoreMap, error) {
+func (s *envStoreMap) Merge(envs ...string) error {
 	for _, env := range envs {
-		if _, err := s.Set(splitEnv(env)); err != nil {
-			return s, err
+		if err := s.Set(splitEnv(env)); err != nil {
+			return err
 		}
 	}
-	return s, nil
+	return nil
 }
 
 func (s *envStoreMap) Get(k string) (string, bool) {
@@ -30,21 +30,20 @@ func (s *envStoreMap) Get(k string) (string, bool) {
 	return v, ok
 }
 
-func (s *envStoreMap) Set(k, v string) (*envStoreMap, error) {
+func (s *envStoreMap) Set(k, v string) error {
 	if len(k)+len(v) > MaxEnvSizeInBytes {
-		return s, ErrEnvTooLarge
+		return ErrEnvTooLarge
 	}
 	s.mu.Lock()
 	s.items[k] = v
 	s.mu.Unlock()
-	return s, nil
+	return nil
 }
 
-func (s *envStoreMap) Delete(k string) *envStoreMap {
+func (s *envStoreMap) Delete(k string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.items, k)
-	return s
 }
 
 func (s *envStoreMap) Items() []string {

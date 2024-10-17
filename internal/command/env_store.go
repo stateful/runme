@@ -13,11 +13,11 @@ const (
 
 var ErrEnvTooLarge = errors.New("env too large")
 
-type EnvStore[T any] interface {
-	Merge(envs ...string) (T, error)
+type EnvStore interface {
+	Merge(envs ...string) error
 	Get(k string) (string, bool)
-	Set(k, v string) (T, error)
-	Delete(k string) T
+	Set(k, v string) error
+	Delete(k string)
 	Items() []string
 }
 

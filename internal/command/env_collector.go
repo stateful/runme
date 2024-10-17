@@ -54,13 +54,13 @@ type envScanner func(io.Reader) ([]string, error)
 
 func diffEnvs(initial, final []string) (changed, deleted []string, err error) {
 	envStoreWithInitial := newEnvStore()
-	_, err = envStoreWithInitial.Merge(initial...)
+	err = envStoreWithInitial.Merge(initial...)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the store with initial env")
 	}
 
 	envStoreWithFinal := newEnvStore()
-	_, err = envStoreWithFinal.Merge(final...)
+	err = envStoreWithFinal.Merge(final...)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the store with final env")
 	}
