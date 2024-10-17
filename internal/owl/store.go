@@ -14,7 +14,8 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/stateful/godotenv"
-	commandpkg "github.com/stateful/runme/v3/internal/command"
+	runner "github.com/stateful/runme/v3/internal/runner/context"
+
 	"go.uber.org/zap"
 )
 
@@ -527,7 +528,7 @@ func (s *Store) Update(context context.Context, newOrUpdated, deleted []string) 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	execInfo, ok := context.Value(commandpkg.ExecutionInfoKey).(*commandpkg.ExecutionInfo)
+	execInfo, ok := context.Value(runner.ExecutionInfoKey).(*runner.ExecutionInfo)
 	if !ok {
 		return errors.New("execution info not found in context")
 	}

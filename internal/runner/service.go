@@ -29,6 +29,7 @@ import (
 	commandpkg "github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/rbuffer"
+	rcontext "github.com/stateful/runme/v3/internal/runner/context"
 	"github.com/stateful/runme/v3/internal/ulid"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -222,12 +223,12 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return errors.WithStack(err)
 	}
 
-	execInfo := &commandpkg.ExecutionInfo{
+	execInfo := &rcontext.ExecutionInfo{
 		RunID:     _id,
 		KnownName: req.GetKnownName(),
 		KnownID:   req.GetKnownId(),
 	}
-	ctx := commandpkg.ContextWithExecutionInfo(srv.Context(), execInfo)
+	ctx := rcontext.ContextWithExecutionInfo(srv.Context(), execInfo)
 
 	if req.KnownId != "" {
 		logger = logger.With(zap.String("knownID", req.KnownId))
@@ -352,7 +353,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	cmdCtx := ctx
 
 	if req.Background {
-		cmdCtx = commandpkg.ContextWithExecutionInfo(context.Background(), execInfo)
+		cmdCtx = rcontext.ContextWithExecutionInfo(context.Background(), execInfo)
 	}
 
 	if err := cmd.StartWithOpts(cmdCtx, &startOpts{}); err != nil {
