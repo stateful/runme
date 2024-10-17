@@ -11,7 +11,7 @@ import (
 // it only keeps track of environment variables.
 type Session struct {
 	ID       string
-	envStore EnvStore[*envStoreMap]
+	envStore EnvStore
 }
 
 func NewSession() *Session {
@@ -22,7 +22,7 @@ func NewSession() *Session {
 }
 
 func (s *Session) SetEnv(env ...string) error {
-	_, err := s.envStore.Merge(env...)
+	err := s.envStore.Merge(env...)
 	return err
 }
 
