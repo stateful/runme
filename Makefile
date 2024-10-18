@@ -58,6 +58,7 @@ test-docker: test-docker/setup test-docker/run
 .PHONY: test-docker/setup
 test-docker/setup:
 	docker build \
+		--progress=plain \
 		-t runme-test-env:latest \
 		-f ./docker/runme-test-env.Dockerfile .
 	docker volume create dev.runme.test-env-gocache
