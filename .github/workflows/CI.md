@@ -23,6 +23,7 @@ make test/coverage/func
 
 Run parser/serializer against a large quantity of markdown files.
 
-```sh {"id":"01J5XXFEGPJ5ZJZERQ5YGBBRN8","name":"ci-test-robustness"}
-make test/robustness
+```sh {"id":"01J5XXFEGPJ5ZJZERQ5YGBBRN8","name":"ci-test-parser","promptEnv":"no"}
+export GOPATH="$(go env GOPATH)"
+make test/parser
 ```

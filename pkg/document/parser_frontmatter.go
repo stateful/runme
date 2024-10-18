@@ -24,7 +24,7 @@ func parseRawFrontmatter(l *itemParser, delimiter byte) parserStateFunc {
 		if !wasEndOfLine {
 			r = l.next()
 			if r == eof {
-				l.errorf("got EOF while looking for the end of the front matter delimiter")
+				l.errorf("got EOF while looking for the end of the frontmatter delimiter")
 				return nil
 			}
 		}
@@ -56,7 +56,7 @@ func parseRawFrontmatterJSON(l *itemParser) parserStateFunc {
 
 		switch {
 		case r == eof:
-			l.errorf("got EOF while looking for the end of the JSON front matter")
+			l.errorf("got EOF while looking for the end of the JSON frontmatter")
 			return nil
 		case r == '{':
 			if !inQuote {

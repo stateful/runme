@@ -99,8 +99,8 @@ jobs:
         with:
           workflows: test-docker
 
-  build-and-robustness-test:
-    name: Test parser against vast amount of READMEs
+  build-and-parser-test:
+    name: Test parser against vast amount of Markdowns
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -126,7 +126,7 @@ jobs:
         with:
           workflows: |
             build
-            ci-test-robustness
+            ci-test-parser
         timeout-minutes: 5
       - name: Debug Build
         uses: stateful/vscode-server-action@v1.1.0

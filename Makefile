@@ -78,10 +78,10 @@ test-docker/run:
 test/update-snapshots:
 	@TZ=UTC UPDATE_SNAPSHOTS=true go test ./...
 
-.PHONY: test/robustness
-test/robustness:
+.PHONY: test/parser
+test/parser:
 	./runme --version
-	find "$$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --project {} > /dev/null
+	find "$$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | grep -v glamour | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --project {} > /dev/null
 
 .PHONY: coverage/html
 test/coverage/html:

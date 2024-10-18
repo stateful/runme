@@ -28,7 +28,7 @@ func FormatFiles(files []string, options *FormatOptions) error {
 
 		formatted, err := formatFile(data, options)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to format %s", file)
 		}
 
 		if options.Write {
