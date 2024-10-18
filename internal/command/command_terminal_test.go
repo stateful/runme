@@ -16,13 +16,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/stateful/runme/v3/internal/session"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	t.Parallel()
 
-	session, err := NewSession()
+	session, err := session.New()
 	require.NoError(t, err)
 	stdinR, stdinW := io.Pipe()
 	stdout := bytes.NewBuffer(nil)
@@ -67,7 +68,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 func TestTerminalCommand_Intro(t *testing.T) {
 	t.Parallel()
 
-	session, err := NewSession(WithOwl(false), WithSeedEnv(os.Environ()))
+	session, err := session.New(session.WithSeedEnv(os.Environ()))
 	require.NoError(t, err)
 
 	stdinR, stdinW := io.Pipe()

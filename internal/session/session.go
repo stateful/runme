@@ -1,4 +1,4 @@
-package command
+package session
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func WithOwl(owl bool) SessionOption {
 	}
 }
 
-func WithSessionProject(proj *project.Project) SessionOption {
+func WithProject(proj *project.Project) SessionOption {
 	return func(f *sessionFactory) *sessionFactory {
 		f.project = proj
 		return f
@@ -47,8 +47,8 @@ func WithSeedEnv(seedEnv []string) SessionOption {
 	}
 }
 
-// func NewSession(owl bool, proj *project.Project, seedEnv []string) (*Session, error) {
-func NewSession(opts ...SessionOption) (*Session, error) {
+// func New(owl bool, proj *project.Project, seedEnv []string) (*Session, error) {
+func New(opts ...SessionOption) (*Session, error) {
 	f := &sessionFactory{
 		owl: false,
 	}
@@ -58,7 +58,7 @@ func NewSession(opts ...SessionOption) (*Session, error) {
 	}
 
 	if !f.owl {
-		return newSessionWithStore(newEnvStore(), f.project, f.seedEnv)
+		return newSessionWithStore(NewEnvStore(), f.project, f.seedEnv)
 	}
 
 	envStore, err := newOwlStore()

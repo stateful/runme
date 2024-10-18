@@ -17,6 +17,7 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/rbuffer"
+	"github.com/stateful/runme/v3/internal/session"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
 )
@@ -98,7 +99,7 @@ type execution struct {
 	Cmd              command.Command
 	knownName        string
 	logger           *zap.Logger
-	session          *command.Session
+	session          *session.Session
 	stdin            io.Reader
 	stdinWriter      io.WriteCloser
 	stdout           *buffer
@@ -109,7 +110,7 @@ type execution struct {
 func newExecution(
 	cfg *command.ProgramConfig,
 	proj *project.Project,
-	session *command.Session,
+	session *session.Session,
 	logger *zap.Logger,
 	storeStdoutInEnv bool,
 ) (*execution, error) {
@@ -154,7 +155,7 @@ func newExecution(
 func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 	lastStdout := io.Discard
 	if e.storeStdoutInEnv {
-		b := rbuffer.NewRingBuffer(command.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
+		b := rbuffer.NewRingBuffer(session.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
 		defer func() {
 			_ = b.Close()
 			e.storeOutputInEnv(ctx, b)

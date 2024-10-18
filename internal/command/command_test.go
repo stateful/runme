@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/stateful/runme/v3/internal/session"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -36,7 +37,7 @@ func testExecuteCommand(
 func testExecuteCommandWithSession(
 	t *testing.T,
 	cfg *ProgramConfig,
-	session *Session,
+	session *session.Session,
 	input io.Reader,
 	expectedStdout string,
 	expectedStderr string,

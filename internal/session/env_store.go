@@ -1,4 +1,4 @@
-package command
+package session
 
 import (
 	"context"
@@ -23,7 +23,7 @@ type EnvStore interface {
 	Items() ([]string, error)
 }
 
-func splitEnv(str string) (string, string) {
+func SplitEnv(str string) (string, string) {
 	parts := strings.SplitN(str, "=", 2)
 	switch len(parts) {
 	case 0:

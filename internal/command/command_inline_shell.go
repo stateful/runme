@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/stateful/runme/v3/internal/session"
 	"go.uber.org/zap"
 )
 
@@ -16,7 +17,7 @@ type inlineShellCommand struct {
 	debug        bool
 	envCollector envCollector
 	logger       *zap.Logger
-	session      *Session
+	session      *session.Session
 }
 
 func (c *inlineShellCommand) getPty() *os.File {

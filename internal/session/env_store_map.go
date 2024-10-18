@@ -1,4 +1,4 @@
-package command
+package session
 
 import (
 	"context"
@@ -6,24 +6,24 @@ import (
 	"sync"
 )
 
-type envStoreMap struct {
+type EnvStoreMap struct {
 	mu    sync.RWMutex
 	items map[string]string
 }
 
-func newEnvStore() *envStoreMap {
-	return &envStoreMap{items: make(map[string]string)}
+func NewEnvStore() *EnvStoreMap {
+	return &EnvStoreMap{items: make(map[string]string)}
 }
 
-var _ EnvStore = new(envStoreMap)
+var _ EnvStore = new(EnvStoreMap)
 
-func (s *envStoreMap) Load(source string, envs ...string) error {
+func (s *EnvStoreMap) Load(source string, envs ...string) error {
 	return s.Merge(context.Background(), envs...)
 }
 
-func (s *envStoreMap) Merge(ctx context.Context, envs ...string) error {
+func (s *EnvStoreMap) Merge(ctx context.Context, envs ...string) error {
 	for _, env := range envs {
-		k, v := splitEnv(env)
+		k, v := SplitEnv(env)
 		if err := s.Set(ctx, k, v); err != nil {
 			return err
 		}
@@ -31,14 +31,14 @@ func (s *envStoreMap) Merge(ctx context.Context, envs ...string) error {
 	return nil
 }
 
-func (s *envStoreMap) Get(k string) (string, bool) {
+func (s *EnvStoreMap) Get(k string) (string, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	v, ok := s.items[k]
 	return v, ok
 }
 
-func (s *envStoreMap) Set(ctx context.Context, k, v string) error {
+func (s *EnvStoreMap) Set(ctx context.Context, k, v string) error {
 	if len(k)+len(v) > MaxEnvSizeInBytes {
 		return ErrEnvTooLarge
 	}
@@ -48,14 +48,14 @@ func (s *envStoreMap) Set(ctx context.Context, k, v string) error {
 	return nil
 }
 
-func (s *envStoreMap) Delete(ctx context.Context, k string) error {
+func (s *EnvStoreMap) Delete(ctx context.Context, k string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.items, k)
 	return nil
 }
 
-func (s *envStoreMap) Items() ([]string, error) {
+func (s *EnvStoreMap) Items() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -67,7 +67,7 @@ func (s *envStoreMap) Items() ([]string, error) {
 	return result, nil
 }
 
-func diffEnvStores(initial, updated *envStoreMap) (newOrUpdated, unchanged, deleted []string) {
+func DiffEnvStores(initial, updated *EnvStoreMap) (newOrUpdated, unchanged, deleted []string) {
 	initial.mu.RLock()
 	defer initial.mu.RUnlock()
 	updated.mu.RLock()

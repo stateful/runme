@@ -1,4 +1,4 @@
-package command
+package session
 
 import (
 	"os"
@@ -16,7 +16,7 @@ func TestSessionList(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		g.Go(func() error {
-			s, err := NewSession(WithSeedEnv(os.Environ()))
+			s, err := New(WithSeedEnv(os.Environ()))
 			require.NoError(t, err)
 			l.Add(s)
 			return nil
@@ -26,7 +26,7 @@ func TestSessionList(t *testing.T) {
 	require.NoError(t, g.Wait())
 	require.Len(t, l.items.Keys(), 10)
 
-	s, err := NewSession(WithSeedEnv(os.Environ()))
+	s, err := New(WithSeedEnv(os.Environ()))
 	require.NoError(t, err)
 	l.Add(s)
 
