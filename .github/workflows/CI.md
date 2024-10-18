@@ -1,5 +1,8 @@
 ---
 cwd: ../..
+runme:
+  id: 01JAGWRDZSF2NHJA774WHDDD1V
+  version: v3
 shell: bash
 skipPrompts: true
 ---
@@ -8,10 +11,13 @@ skipPrompts: true
 
 Run all tests with coverage reports.
 
-```sh {"id":"01J5XTG2WKVR4WG7B2FNPF6VZT","name":"ci-test"}
+```sh {"id":"01J5XTG2WKVR4WG7B2FNPF6VZT","name":"ci-test","promptEnv":"no"}
+unset RUNME_SESSION_STRATEGY RUNME_TLS_DIR RUNME_SERVER_ADDR
 export SHELL="/bin/bash"
 export TZ="UTC"
-TAGS="test_with_docker" make test/coverage
+export GOCOVERDIR="."
+export TAGS="test_with_docker"
+make test/coverage
 make test/coverage/func
 ```
 
