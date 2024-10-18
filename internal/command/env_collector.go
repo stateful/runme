@@ -33,10 +33,12 @@ var envDumpCommand = func() string {
 	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
 }()
 
-// SetEnvDumpCommand overrides the default command that dumps the environment variables.
+// SetEnvDumpCommandForTesting overrides the default command that dumps the environment variables.
 // It is and should be used only for testing purposes.
-func SetEnvDumpCommand(cmd string) {
-	envDumpCommand = cmd
+// TODO(adamb): this can be made obsolete. runme must be built
+// in the test environment and put into the PATH.
+func SetEnvDumpCommandForTesting() {
+	envDumpCommand = "env -0"
 	// When overriding [envDumpCommand], we disable the encryption.
 	// There is no reliable way at the moment to have encryption and
 	// not control the dump command.

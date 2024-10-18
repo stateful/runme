@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 	"time"
 	"unicode"
 
@@ -20,9 +21,31 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/command/testdata"
+	"github.com/stateful/runme/v3/internal/config"
+	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	"github.com/stateful/runme/v3/internal/testutils"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
+
+func init() {
+	command.SetEnvDumpCommandForTesting()
+
+	// Server uses autoconfig to get necessary dependencies.
+	// One of them, implicit, is [config.Config]. With the default
+	// [config.Loader] it won't be found during testing, so
+	// we need to provide an override.
+	if err := autoconfig.DecorateRoot(func(loader *config.Loader) *config.Loader {
+		fsys := fstest.MapFS{
+			"runme.yaml": {
+				Data: []byte("version: v1alpha1\n"),
+			},
+		}
+		loader.SetConfigRootPath(fsys)
+		return loader
+	}); err != nil {
+		panic(err)
+	}
+}
 
 func Test_matchesOpinionatedEnvVarNaming(t *testing.T) {
 	t.Parallel()

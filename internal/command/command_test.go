@@ -13,13 +13,7 @@ import (
 )
 
 func init() {
-	// Switch from "runme env" to "env -0" for the tests.
-	// This is because the "runme" program is not available
-	// in the test environment.
-	//
-	// TODO(adamb): this can be changed. runme must be built
-	// in the test environment and put into the PATH.
-	SetEnvDumpCommand("env -0")
+	SetEnvDumpCommandForTesting()
 }
 
 func testExecuteCommand(
