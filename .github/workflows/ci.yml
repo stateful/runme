@@ -111,17 +111,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ">=1.22"
-      - name: Install dependencies
-        run: make install/dev
-      - name: Build
+      - name: Setup & build
         uses: stateful/runme-action@v2
         with:
-          workflows: build
+          workflows: |
+            setup
+            build
       - name: Test parser
         uses: stateful/runme-action@v2
         with:
           workflows: |
-            build
             ci-test-parser
         timeout-minutes: 5
       - name: Debug Build
