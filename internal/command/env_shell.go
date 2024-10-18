@@ -2,6 +2,9 @@ package command
 
 import (
 	"io"
+
+	"github.com/pkg/errors"
+	"go.uber.org/multierr"
 )
 
 const StoreStdoutEnvName = "__"
@@ -23,8 +26,8 @@ type ScriptEnvSetter struct {
 	postPath    string
 }
 
-func NewScriptEnvSetter(prePath, postPath string, debug bool) *ScriptEnvSetter {
-	return &ScriptEnvSetter{
+func NewScriptEnvSetter(prePath, postPath string, debug bool) ScriptEnvSetter {
+	return ScriptEnvSetter{
 		debug:       debug,
 		dumpCommand: envDumpCommand,
 		prePath:     prePath,
@@ -32,8 +35,21 @@ func NewScriptEnvSetter(prePath, postPath string, debug bool) *ScriptEnvSetter {
 	}
 }
 
-func (s *ScriptEnvSetter) SetOnShell(shell io.Writer) error {
+func (s ScriptEnvSetter) SetOnShell(shell io.Writer) error {
+	if err := s.validate(); err != nil {
+		return err
+	}
 	return setOnShell(shell, s.dumpCommand, false, true, s.debug, s.prePath, s.postPath)
+}
+
+func (s ScriptEnvSetter) validate() (err error) {
+	if s.prePath == "" {
+		err = multierr.Append(err, errors.New("pre-path is required"))
+	}
+	if s.postPath == "" {
+		err = multierr.Append(err, errors.New("post-path is required"))
+	}
+	return
 }
 
 func setOnShell(

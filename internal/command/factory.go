@@ -82,6 +82,9 @@ func NewFactory(opts ...FactoryOption) Factory {
 	for _, opt := range opts {
 		opt(f)
 	}
+	if f.logger == nil {
+		f.logger = zap.NewNop()
+	}
 	return f
 }
 

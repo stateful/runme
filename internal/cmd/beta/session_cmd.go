@@ -1,12 +1,15 @@
 package beta
 
 import (
+	"context"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
@@ -30,41 +33,16 @@ All exported variables during the session will be available to the subsequent co
 				) error {
 					defer logger.Sync()
 
-					envCollector, err := command.NewEnvCollectorFactory().Build()
-					if err != nil {
-						return errors.WithStack(err)
-					}
-
-					cfg := &command.ProgramConfig{
-						ProgramName: defaultShell(),
-						Mode:        runnerv2.CommandMode_COMMAND_MODE_CLI,
-						Env:         append([]string{"RUNME_SESSION=1"}, envCollector.ExtraEnv()...),
-					}
-					options := command.CommandOptions{
-						NoShell: true,
-						Stdin:   cmd.InOrStdin(),
-						Stdout:  cmd.OutOrStdout(),
-						Stderr:  cmd.ErrOrStderr(),
-					}
-
-					program, err := cmdFactory.Build(cfg, options)
+					envs, err := executeDefaultShellProgram(
+						cmd.Context(),
+						cmdFactory,
+						cmd.InOrStdin(),
+						cmd.OutOrStdout(),
+						cmd.ErrOrStderr(),
+						nil,
+					)
 					if err != nil {
 						return err
-					}
-
-					err = program.Start(cmd.Context())
-					if err != nil {
-						return err
-					}
-
-					err = program.Wait()
-					if err != nil {
-						return err
-					}
-
-					changed, _, err := envCollector.Diff()
-					if err != nil {
-						return errors.WithStack(err)
 					}
 
 					// TODO(adamb): currently, the collected env are printed out,
@@ -72,7 +50,8 @@ All exported variables during the session will be available to the subsequent co
 					if _, err := cmd.ErrOrStderr().Write([]byte("Collected env during the session:\n")); err != nil {
 						return errors.WithStack(err)
 					}
-					for _, env := range changed {
+
+					for _, env := range envs {
 						_, err := cmd.OutOrStdout().Write([]byte(env + "\n"))
 						if err != nil {
 							return errors.WithStack(err)
@@ -90,6 +69,63 @@ All exported variables during the session will be available to the subsequent co
 	return &cmd
 }
 
+func executeDefaultShellProgram(
+	ctx context.Context,
+	commandFactory command.Factory,
+	stdin io.Reader,
+	stdout io.Writer,
+	stderr io.Writer,
+	additionalEnv []string,
+) ([]string, error) {
+	envCollector, err := command.NewEnvCollectorFactory().Build()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	cfg := &command.ProgramConfig{
+		ProgramName: defaultShell(),
+		Mode:        runnerv2.CommandMode_COMMAND_MODE_CLI,
+		Env: append(
+			[]string{command.CreateEnv(command.EnvCollectorSessionEnvName, "1")},
+			append(envCollector.ExtraEnv(), additionalEnv...)...,
+		),
+	}
+	options := command.CommandOptions{
+		NoShell: true,
+		Stdin:   stdin,
+		Stdout:  stdout,
+		Stderr:  stderr,
+	}
+	program, err := commandFactory.Build(cfg, options)
+	if err != nil {
+		return nil, err
+	}
+
+	err = program.Start(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = program.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	changed, _, err := envCollector.Diff()
+	return changed, err
+}
+
+func defaultShell() string {
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell, _ = exec.LookPath("bash")
+	}
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+	return shell
+}
+
 func sessionSetupCmd() *cobra.Command {
 	var debug bool
 
@@ -104,9 +140,21 @@ func sessionSetupCmd() *cobra.Command {
 				) error {
 					defer logger.Sync()
 
-					if val, err := strconv.ParseBool(os.Getenv(command.EnvCollectorSessionEnvName)); err != nil || !val {
+					out := cmd.OutOrStdout()
+
+					if err := requireEnvs(
+						command.EnvCollectorSessionEnvName,
+						command.EnvCollectorSessionPrePathEnvName,
+						command.EnvCollectorSessionPostPathEnvName,
+					); err != nil {
+						logger.Info("session setup is skipped because the environment variable is not set", zap.Error(err))
+						return writeNoopShellCommand(out)
+					}
+
+					sessionSetupEnabled := os.Getenv(command.EnvCollectorSessionEnvName)
+					if val, err := strconv.ParseBool(sessionSetupEnabled); err != nil || !val {
 						logger.Debug("session setup is skipped", zap.Error(err), zap.Bool("value", val))
-						return nil
+						return writeNoopShellCommand(out)
 					}
 
 					envSetter := command.NewScriptEnvSetter(
@@ -114,9 +162,15 @@ func sessionSetupCmd() *cobra.Command {
 						os.Getenv(command.EnvCollectorSessionPostPathEnvName),
 						debug,
 					)
+					if err := envSetter.SetOnShell(out); err != nil {
+						return err
+					}
 
-					err := envSetter.SetOnShell(cmd.OutOrStdout())
-					return errors.WithStack(err)
+					if _, err := cmd.ErrOrStderr().Write([]byte("Runme session active. When you're done, execute \"exit\".\n")); err != nil {
+						return errors.WithStack(err)
+					}
+
+					return nil
 				},
 			)
 		},
@@ -127,13 +181,17 @@ func sessionSetupCmd() *cobra.Command {
 	return &cmd
 }
 
-func defaultShell() string {
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell, _ = exec.LookPath("bash")
+func requireEnvs(names ...string) error {
+	var err error
+	for _, name := range names {
+		if os.Getenv(name) == "" {
+			err = multierr.Append(err, errors.Errorf("environment variable %q is required", name))
+		}
 	}
-	if shell == "" {
-		shell = "/bin/sh"
-	}
-	return shell
+	return err
+}
+
+func writeNoopShellCommand(w io.Writer) error {
+	_, err := w.Write([]byte(":"))
+	return errors.WithStack(err)
 }
