@@ -25,5 +25,6 @@ Run parser/serializer against a large quantity of markdown files.
 
 ```sh {"id":"01J5XXFEGPJ5ZJZERQ5YGBBRN8","name":"ci-test-parser","promptEnv":"no"}
 export GOPATH="$(go env GOPATH)"
+echo "GOPATH=$GOPATH"
 make test/parser
 ```
