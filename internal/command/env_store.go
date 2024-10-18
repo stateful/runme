@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -14,11 +15,12 @@ const (
 var ErrEnvTooLarge = errors.New("env too large")
 
 type EnvStore interface {
-	Merge(envs ...string) error
+	Load(source string, envs ...string) error
+	Merge(ctx context.Context, envs ...string) error
 	Get(k string) (string, bool)
-	Set(k, v string) error
-	Delete(k string)
-	Items() []string
+	Set(ctx context.Context, k, v string) error
+	Delete(ctx context.Context, k string) error
+	Items() ([]string, error)
 }
 
 func splitEnv(str string) (string, string) {

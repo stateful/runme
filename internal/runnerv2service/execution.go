@@ -157,7 +157,7 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 		b := rbuffer.NewRingBuffer(command.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
 		defer func() {
 			_ = b.Close()
-			e.storeOutputInEnv(b)
+			e.storeOutputInEnv(ctx, b)
 		}()
 		lastStdout = b
 	}
@@ -212,7 +212,7 @@ func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
 		)
 	}()
 
-	waitErr := e.Cmd.Wait()
+	waitErr := e.Cmd.Wait(ctx)
 	exitCode := exitCodeFromErr(waitErr)
 
 	e.logger.Info("command finished", zap.Int("exitCode", exitCode), zap.Error(waitErr))
@@ -315,7 +315,7 @@ func (e *execution) closeIO() {
 	e.logger.Info("closed stderr writer", zap.Error(err))
 }
 
-func (e *execution) storeOutputInEnv(r io.Reader) {
+func (e *execution) storeOutputInEnv(ctx context.Context, r io.Reader) {
 	b, err := io.ReadAll(r)
 	if err != nil {
 		e.logger.Warn("failed to read last output", zap.Error(err))
@@ -324,12 +324,12 @@ func (e *execution) storeOutputInEnv(r io.Reader) {
 
 	sanitized := bytes.ReplaceAll(b, []byte{'\000'}, nil)
 	env := command.CreateEnv(command.StoreStdoutEnvName, string(sanitized))
-	if err := e.session.SetEnv(env); err != nil {
+	if err := e.session.SetEnv(ctx, env); err != nil {
 		e.logger.Warn("failed to store last output", zap.Error(err))
 	}
 
 	if e.knownName != "" && matchesOpinionatedEnvVarNaming(e.knownName) {
-		if err := e.session.SetEnv(e.knownName + "=" + string(sanitized)); err != nil {
+		if err := e.session.SetEnv(ctx, e.knownName+"="+string(sanitized)); err != nil {
 			e.logger.Warn("failed to store output under known name", zap.String("known_name", e.knownName), zap.Error(err))
 		}
 	}

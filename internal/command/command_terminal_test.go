@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -21,7 +22,8 @@ import (
 func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	t.Parallel()
 
-	session := NewSession()
+	session, err := NewSession()
+	require.NoError(t, err)
 	stdinR, stdinW := io.Pipe()
 	stdout := bytes.NewBuffer(nil)
 
@@ -58,14 +60,16 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	_, err = stdinW.Write([]byte("exit\n"))
 	require.NoError(t, err)
 
-	require.NoError(t, cmd.Wait())
+	require.NoError(t, cmd.Wait(context.Background()))
 	assert.Equal(t, []string{"TEST_ENV=1"}, session.GetAllEnv())
 }
 
 func TestTerminalCommand_Intro(t *testing.T) {
 	t.Parallel()
 
-	session := NewSession()
+	session, err := NewSession(WithOwl(false), WithSeedEnv(os.Environ()))
+	require.NoError(t, err)
+
 	stdinR, stdinW := io.Pipe()
 	stdout := bytes.NewBuffer(nil)
 
@@ -155,7 +159,7 @@ func TestTerminalCommand_NonInteractive(t *testing.T) {
 	time.Sleep(time.Second)
 	_, err = stdinW.Write([]byte{0x04}) // EOT
 	require.NoError(t, err)
-	require.NoError(t, cmd.Wait())
+	require.NoError(t, cmd.Wait(context.Background()))
 }
 
 func TestTerminalCommand_OptionsStdinWriterNil(t *testing.T) {

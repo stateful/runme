@@ -99,7 +99,7 @@ func (c *nativeCommand) Signal(sig os.Signal) error {
 	return nil
 }
 
-func (c *nativeCommand) Wait() (err error) {
+func (c *nativeCommand) Wait(ctx context.Context) (err error) {
 	c.logger.Info("waiting for finish")
 
 	var stderr []byte

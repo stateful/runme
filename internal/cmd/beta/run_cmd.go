@@ -9,6 +9,7 @@ import (
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	rcontext "github.com/stateful/runme/v3/internal/runner/context"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -65,7 +66,14 @@ Run all blocks from the "setup" and "teardown" tags:
 						return errors.WithStack(err)
 					}
 
-					session := command.NewSession()
+					session, err := command.NewSession(
+						command.WithOwl(false),
+						command.WithSessionProject(proj),
+						command.WithSeedEnv(nil),
+					)
+					if err != nil {
+						return err
+					}
 					options := getCommandOptions(cmd, session)
 
 					for _, t := range tasks {
@@ -119,6 +127,12 @@ func runCodeBlock(
 
 	cfg.Mode = runnerv2.CommandMode_COMMAND_MODE_CLI
 
+	execInfo := &rcontext.ExecutionInfo{
+		KnownName: block.Name(),
+		KnownID:   block.ID(),
+	}
+	ctx = rcontext.ContextWithExecutionInfo(ctx, execInfo)
+
 	cmd, err := factory.Build(cfg, options)
 	if err != nil {
 		return err
@@ -127,5 +141,5 @@ func runCodeBlock(
 	if err != nil {
 		return err
 	}
-	return cmd.Wait()
+	return cmd.Wait(ctx)
 }

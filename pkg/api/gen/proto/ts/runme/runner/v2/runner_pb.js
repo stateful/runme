@@ -13,6 +13,24 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 import { ProgramConfig } from "./config_pb";
 /**
+ * @generated from protobuf enum runme.runner.v2.CreateSessionRequest.Config.SessionEnvStoreSeeding
+ */
+export var CreateSessionRequest_Config_SessionEnvStoreSeeding;
+(function (CreateSessionRequest_Config_SessionEnvStoreSeeding) {
+    /**
+     * default seeding; ingore system
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_SEEDING_UNSPECIFIED = 0;
+     */
+    CreateSessionRequest_Config_SessionEnvStoreSeeding[CreateSessionRequest_Config_SessionEnvStoreSeeding["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * enable seeding from system
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_SEEDING_SYSTEM = 1;
+     */
+    CreateSessionRequest_Config_SessionEnvStoreSeeding[CreateSessionRequest_Config_SessionEnvStoreSeeding["SYSTEM"] = 1] = "SYSTEM";
+})(CreateSessionRequest_Config_SessionEnvStoreSeeding || (CreateSessionRequest_Config_SessionEnvStoreSeeding = {}));
+/**
  * @generated from protobuf enum runme.runner.v2.ResolveProgramRequest.Mode
  */
 export var ResolveProgramRequest_Mode;
@@ -212,7 +230,8 @@ class CreateSessionRequest$Type extends MessageType {
             { no: 1, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 2, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "project", kind: "message", T: () => Project },
-            { no: 4, name: "env_store_type", kind: "enum", T: () => ["runme.runner.v2.SessionEnvStoreType", SessionEnvStoreType, "SESSION_ENV_STORE_TYPE_"] }
+            { no: 4, name: "env_store_type", kind: "enum", opt: true, T: () => ["runme.runner.v2.SessionEnvStoreType", SessionEnvStoreType, "SESSION_ENV_STORE_TYPE_"] },
+            { no: 5, name: "config", kind: "message", T: () => CreateSessionRequest_Config }
         ]);
     }
 }
@@ -220,6 +239,19 @@ class CreateSessionRequest$Type extends MessageType {
  * @generated MessageType for protobuf message runme.runner.v2.CreateSessionRequest
  */
 export const CreateSessionRequest = new CreateSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CreateSessionRequest_Config$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2.CreateSessionRequest.Config", [
+            { no: 1, name: "env_store_type", kind: "enum", opt: true, T: () => ["runme.runner.v2.SessionEnvStoreType", SessionEnvStoreType, "SESSION_ENV_STORE_TYPE_"] },
+            { no: 2, name: "env_store_seeding", kind: "enum", opt: true, T: () => ["runme.runner.v2.CreateSessionRequest.Config.SessionEnvStoreSeeding", CreateSessionRequest_Config_SessionEnvStoreSeeding, "SESSION_ENV_STORE_SEEDING_"] }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.CreateSessionRequest.Config
+ */
+export const CreateSessionRequest_Config = new CreateSessionRequest_Config$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class CreateSessionResponse$Type extends MessageType {
     constructor() {

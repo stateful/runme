@@ -66,9 +66,9 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 	return err
 }
 
-func (c *terminalCommand) Wait() (err error) {
-	err = c.internalCommand.Wait()
-	if cErr := c.collectEnv(); cErr != nil {
+func (c *terminalCommand) Wait(ctx context.Context) (err error) {
+	err = c.internalCommand.Wait(ctx)
+	if cErr := c.collectEnv(ctx); cErr != nil {
 		c.logger.Info("failed to collect the environment", zap.Error(cErr))
 		if err == nil {
 			err = cErr
@@ -77,7 +77,7 @@ func (c *terminalCommand) Wait() (err error) {
 	return err
 }
 
-func (c *terminalCommand) collectEnv() error {
+func (c *terminalCommand) collectEnv(ctx context.Context) error {
 	if c.envCollector == nil {
 		return nil
 	}
@@ -87,12 +87,10 @@ func (c *terminalCommand) collectEnv() error {
 		return err
 	}
 
-	err = c.session.SetEnv(changed...)
+	err = c.session.SetEnv(ctx, changed...)
 	if err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
 
-	c.session.DeleteEnv(deleted...)
-
-	return nil
+	return c.session.DeleteEnv(ctx, deleted...)
 }
