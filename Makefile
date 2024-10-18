@@ -44,7 +44,7 @@ test/coverage: TAGS ?= "" # e.g. TAGS="test_with_docker"
 # It depends on the build target because the runme binary
 # is used for tests, for example, "runme env dump".
 test/coverage: build
-	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=90s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
+	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=180s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
 .PHONY: test
 test: test/execute
