@@ -2,12 +2,14 @@ package runnerv2service
 
 import (
 	"context"
+	"os"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/stateful/runme/v3/internal/command"
+	rcontext "github.com/stateful/runme/v3/internal/runner/context"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
 )
@@ -38,15 +40,36 @@ func convertProtoProjectToProject(runnerProj *runnerv2.Project) (*project.Projec
 func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2.CreateSessionRequest) (*runnerv2.CreateSessionResponse, error) {
 	r.logger.Info("running CreateSession in runnerService")
 
-	sess := command.NewSession()
+	proj, err := convertProtoProjectToProject(req.GetProject())
+	if err != nil {
+		return nil, err
+	}
 
-	if err := r.updateSession(sess, req); err != nil {
+	owl := false
+	var seedEnv []string
+
+	cfg := req.GetConfig()
+	if cfg != nil {
+		if cfg.GetEnvStoreSeeding() == runnerv2.CreateSessionRequest_Config_SESSION_ENV_STORE_SEEDING_SYSTEM {
+			seedEnv = os.Environ()
+		}
+		if cfg.GetEnvStoreType() == runnerv2.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL {
+			owl = true
+		}
+	}
+
+	sess, err := command.NewSession(command.WithOwl(owl), command.WithSessionProject(proj), command.WithSeedEnv(seedEnv))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.updateSession(ctx, sess, req); err != nil {
 		return nil, err
 	}
 
 	r.sessions.Add(sess)
 
-	r.logger.Debug("created session", zap.String("id", sess.ID))
+	r.logger.Debug("created session", zap.String("id", sess.ID), zap.Bool("owl", owl), zap.Int("seed_env_len", len(seedEnv)))
 
 	return &runnerv2.CreateSessionResponse{
 		Session: convertSessionToRunnerv2alpha1Session(sess),
@@ -79,7 +102,7 @@ func (r *runnerService) ListSessions(_ context.Context, req *runnerv2.ListSessio
 	return &runnerv2.ListSessionsResponse{Sessions: runnerSessions}, nil
 }
 
-func (r *runnerService) UpdateSession(_ context.Context, req *runnerv2.UpdateSessionRequest) (*runnerv2.UpdateSessionResponse, error) {
+func (r *runnerService) UpdateSession(ctx context.Context, req *runnerv2.UpdateSessionRequest) (*runnerv2.UpdateSessionResponse, error) {
 	r.logger.Info("running UpdateSession in runnerService")
 
 	sess, ok := r.sessions.Get(req.Id)
@@ -87,7 +110,7 @@ func (r *runnerService) UpdateSession(_ context.Context, req *runnerv2.UpdateSes
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
 
-	if err := r.updateSession(sess, req); err != nil {
+	if err := r.updateSession(ctx, sess, req); err != nil {
 		return nil, err
 	}
 
@@ -111,28 +134,10 @@ type updateRequest interface {
 	GetProject() *runnerv2.Project
 }
 
-func (r *runnerService) updateSession(sess *command.Session, req updateRequest) error {
-	// Explicitly passed env has higher priority and should be set first.
-	if err := sess.SetEnv(req.GetEnv()...); err != nil {
-		return err
-	}
+func (r *runnerService) updateSession(ctx context.Context, sess *command.Session, req updateRequest) error {
+	ctx = rcontext.ContextWithExecutionInfo(ctx, &rcontext.ExecutionInfo{
+		ExecContext: "request",
+	})
 
-	proj, err := convertProtoProjectToProject(req.GetProject())
-	if err != nil {
-		return err
-	}
-
-	if proj != nil {
-		projEnvs, err := proj.LoadEnv()
-		if err != nil {
-			return err
-		}
-
-		// Project envs have lower priority and should be set last.
-		if err := sess.SetEnv(projEnvs...); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return sess.SetEnv(ctx, req.GetEnv()...)
 }

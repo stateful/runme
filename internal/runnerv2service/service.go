@@ -1,12 +1,15 @@
 package runnerv2service
 
 import (
+	"os"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/stateful/runme/v3/internal/command"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
+	"github.com/stateful/runme/v3/pkg/project"
 )
 
 type runnerService struct {
@@ -58,11 +61,13 @@ func (r *runnerService) getSessionFromRequest(req requestWithSession) (*command.
 	return session, found, nil
 }
 
-func (r *runnerService) getOrCreateSessionFromRequest(req requestWithSession) (_ *command.Session, exists bool, _ error) {
+func (r *runnerService) getOrCreateSessionFromRequest(req requestWithSession, proj *project.Project) (_ *command.Session, exists bool, _ error) {
 	var (
 		session *command.Session
 		found   bool
 	)
+
+	seedEnv := os.Environ()
 
 	switch req.GetSessionStrategy() {
 	case runnerv2.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
@@ -72,12 +77,28 @@ func (r *runnerService) getOrCreateSessionFromRequest(req requestWithSession) (_
 				return nil, false, status.Errorf(codes.NotFound, "session %q not found", req.GetSessionId())
 			}
 		} else {
-			session = command.NewSession()
+			sess, err := command.NewSession(
+				command.WithOwl(false),
+				command.WithSessionProject(proj),
+				command.WithSeedEnv(seedEnv),
+			)
+			if err != nil {
+				return nil, false, status.Errorf(codes.Internal, "failed to create new session: %v", err)
+			}
+			session = sess
 		}
 	case runnerv2.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
 		session, found = r.sessions.Newest()
 		if !found {
-			session = command.NewSession()
+			sess, err := command.NewSession(
+				command.WithOwl(false),
+				command.WithSessionProject(proj),
+				command.WithSeedEnv(seedEnv),
+			)
+			if err != nil {
+				return nil, false, status.Errorf(codes.Internal, "failed to create new session: %v", err)
+			}
+			session = sess
 		}
 	}
 

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"slices"
 	"sync"
 )
@@ -14,9 +15,16 @@ func newEnvStore() *envStoreMap {
 	return &envStoreMap{items: make(map[string]string)}
 }
 
-func (s *envStoreMap) Merge(envs ...string) error {
+var _ EnvStore = new(envStoreMap)
+
+func (s *envStoreMap) Load(source string, envs ...string) error {
+	return s.Merge(context.Background(), envs...)
+}
+
+func (s *envStoreMap) Merge(ctx context.Context, envs ...string) error {
 	for _, env := range envs {
-		if err := s.Set(splitEnv(env)); err != nil {
+		k, v := splitEnv(env)
+		if err := s.Set(ctx, k, v); err != nil {
 			return err
 		}
 	}
@@ -30,7 +38,7 @@ func (s *envStoreMap) Get(k string) (string, bool) {
 	return v, ok
 }
 
-func (s *envStoreMap) Set(k, v string) error {
+func (s *envStoreMap) Set(ctx context.Context, k, v string) error {
 	if len(k)+len(v) > MaxEnvSizeInBytes {
 		return ErrEnvTooLarge
 	}
@@ -40,13 +48,14 @@ func (s *envStoreMap) Set(k, v string) error {
 	return nil
 }
 
-func (s *envStoreMap) Delete(k string) {
+func (s *envStoreMap) Delete(ctx context.Context, k string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.items, k)
+	return nil
 }
 
-func (s *envStoreMap) Items() []string {
+func (s *envStoreMap) Items() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -55,7 +64,7 @@ func (s *envStoreMap) Items() []string {
 		result = append(result, k+"="+v)
 	}
 	slices.Sort(result)
-	return result
+	return result, nil
 }
 
 func diffEnvStores(initial, updated *envStoreMap) (newOrUpdated, unchanged, deleted []string) {

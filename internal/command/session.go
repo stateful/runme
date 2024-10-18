@@ -1,9 +1,13 @@
 package command
 
 import (
+	"context"
+	"fmt"
+
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	"github.com/stateful/runme/v3/internal/ulid"
+	"github.com/stateful/runme/v3/pkg/project"
 )
 
 // Session is an object which lifespan contains multiple executions.
@@ -14,22 +18,86 @@ type Session struct {
 	envStore EnvStore
 }
 
-func NewSession() *Session {
-	return &Session{
+type sessionFactory struct {
+	owl     bool
+	project *project.Project
+	seedEnv []string
+}
+
+type SessionOption func(*sessionFactory) *sessionFactory
+
+func WithOwl(owl bool) SessionOption {
+	return func(f *sessionFactory) *sessionFactory {
+		f.owl = owl
+		return f
+	}
+}
+
+func WithSessionProject(proj *project.Project) SessionOption {
+	return func(f *sessionFactory) *sessionFactory {
+		f.project = proj
+		return f
+	}
+}
+
+func WithSeedEnv(seedEnv []string) SessionOption {
+	return func(f *sessionFactory) *sessionFactory {
+		f.seedEnv = seedEnv
+		return f
+	}
+}
+
+// func NewSession(owl bool, proj *project.Project, seedEnv []string) (*Session, error) {
+func NewSession(opts ...SessionOption) (*Session, error) {
+	f := &sessionFactory{
+		owl: false,
+	}
+
+	for _, opt := range opts {
+		f = opt(f)
+	}
+
+	if !f.owl {
+		return newSessionWithStore(newEnvStore(), f.project, f.seedEnv)
+	}
+
+	envStore, err := newOwlStore()
+	if err != nil {
+		return nil, err
+	}
+
+	return newSessionWithStore(envStore, f.project, f.seedEnv)
+}
+
+func newSessionWithStore(envStore EnvStore, proj *project.Project, seedEnv []string) (*Session, error) {
+	sess := &Session{
 		ID:       ulid.GenerateID(),
-		envStore: newEnvStore(),
+		envStore: envStore,
 	}
+
+	// seed session with system ENV vars
+	if err := sess.envStore.Load("[system]", seedEnv...); err != nil {
+		return nil, err
+	}
+
+	if err := sess.loadProject(proj); err != nil {
+		return nil, err
+	}
+
+	return sess, nil
 }
 
-func (s *Session) SetEnv(env ...string) error {
-	err := s.envStore.Merge(env...)
-	return err
+func (s *Session) SetEnv(ctx context.Context, env ...string) error {
+	return s.envStore.Merge(ctx, env...)
 }
 
-func (s *Session) DeleteEnv(keys ...string) {
+func (s *Session) DeleteEnv(ctx context.Context, keys ...string) error {
 	for _, k := range keys {
-		s.envStore.Delete(k)
+		if err := s.envStore.Delete(ctx, k); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (s *Session) GetEnv(key string) (string, bool) {
@@ -40,7 +108,33 @@ func (s *Session) GetAllEnv() []string {
 	if s == nil {
 		return nil
 	}
-	return s.envStore.Items()
+	items, _ := s.envStore.Items()
+	return items
+}
+
+// loadProject loads from the project, it's not thread-safe.
+func (s *Session) loadProject(proj *project.Project) error {
+	if proj == nil {
+		return nil
+	}
+
+	envWithSource, err := proj.LoadEnvWithSource()
+	if err != nil {
+		return err
+	}
+
+	for envSource, envMap := range envWithSource {
+		envs := []string{}
+		for k, v := range envMap {
+			env := fmt.Sprintf("%s=%s", k, v)
+			envs = append(envs, env)
+		}
+		if err := s.envStore.Load(envSource, envs...); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // SessionListCapacity is a maximum number of sessions

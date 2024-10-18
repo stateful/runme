@@ -53,14 +53,14 @@ func (c *fileCommand) Start(ctx context.Context) error {
 	return c.internalCommand.Start(ctx)
 }
 
-func (c *fileCommand) Wait() (err error) {
+func (c *fileCommand) Wait(ctx context.Context) (err error) {
 	defer func() {
 		rErr := c.removeTempDir()
 		if err == nil {
 			err = rErr
 		}
 	}()
-	err = c.internalCommand.Wait()
+	err = c.internalCommand.Wait(ctx)
 	return
 }
 

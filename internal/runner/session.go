@@ -315,7 +315,8 @@ func (es *owlEnvStorer) addEnvs(context context.Context, envs []string) error {
 }
 
 func (es *owlEnvStorer) getEnv(name string) (string, error) {
-	return es.owlStore.InsecureGet(name)
+	v, _, err := es.owlStore.InsecureGet(name)
+	return v, err
 }
 
 func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {

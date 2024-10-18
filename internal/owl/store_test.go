@@ -601,7 +601,8 @@ func TestStore_Get(t *testing.T) {
 	require.NotNil(t, store)
 
 	// PGPASS is masked without insecure
-	val, err := store.InsecureGet("PGPASS")
+	val, ok, err := store.InsecureGet("PGPASS")
 	require.NoError(t, err)
+	require.True(t, ok)
 	assert.EqualValues(t, "secret-fake-password", val)
 }

@@ -19,7 +19,7 @@ type Command interface {
 	Running() bool
 	Start(context.Context) error
 	Signal(os.Signal) error
-	Wait() error
+	Wait(context.Context) error
 }
 
 type internalCommandGetters interface {
@@ -69,22 +69,12 @@ func (c *base) Signal(os.Signal) error {
 	return errors.New("not implemented")
 }
 
-func (c *base) Wait() error {
+func (c *base) Wait(context.Context) error {
 	return errors.New("not implemented")
 }
 
 func (c *base) Env() []string {
-	env := c.runtime.Environ()
-
-	if c.project != nil {
-		projEnv, err := c.project.LoadEnv()
-		if err != nil {
-			c.logger.Warn("failed to load project env", zap.Error(err))
-		}
-		env = append(env, projEnv...)
-	}
-
-	env = append(env, c.session.GetAllEnv()...)
+	env := c.session.GetAllEnv()
 	env = append(env, c.cfg.Env...)
 
 	if err := c.limitEnviron(env); err != nil {

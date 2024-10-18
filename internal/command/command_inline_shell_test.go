@@ -45,7 +45,8 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 			},
 			Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 		}
-		sess := NewSession()
+		sess, err := NewSession()
+		require.NoError(t, err)
 		factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 		command, err := factory.Build(cfg, CommandOptions{Session: sess})
@@ -61,7 +62,7 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 		err = <-errC
 		require.NoError(t, err)
 
-		err = command.Wait()
+		err = command.Wait(context.Background())
 		require.EqualError(t, err, "signal: killed")
 
 		got, ok := sess.GetEnv("TEST_ENV")
@@ -78,11 +79,12 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 func TestInlineShellCommand_MaxEnvSize(t *testing.T) {
 	t.Parallel()
 
-	sess := NewSession()
+	sess, err := NewSession()
+	require.NoError(t, err)
 
 	envName := "TEST"
 	envValue := strings.Repeat("a", MaxEnvSizeInBytes-len(envName)-1) // -1 for the "=" sign
-	err := sess.SetEnv(createEnv(envName, envValue))
+	err = sess.SetEnv(context.Background(), createEnv(envName, envValue))
 	require.NoError(t, err)
 
 	factory := NewFactory(
@@ -106,7 +108,7 @@ func TestInlineShellCommand_MaxEnvSize(t *testing.T) {
 
 	err = command.Start(context.Background())
 	require.NoError(t, err)
-	err = command.Wait()
+	err = command.Wait(context.Background())
 	require.NoError(t, err)
 
 	assert.Equal(t, envValue, stdout.String())
@@ -115,7 +117,8 @@ func TestInlineShellCommand_MaxEnvSize(t *testing.T) {
 func TestInlineShellCommand_MaxEnvironSizeInBytes(t *testing.T) {
 	t.Parallel()
 
-	sess := NewSession()
+	sess, err := NewSession()
+	require.NoError(t, err)
 
 	// Set multiple environment variables of [MaxEnvSizeInBytes] length.
 	// [StoreStdoutEnvName] is also set but it exceeds [MaxEnvironSizeInBytes],
@@ -125,10 +128,10 @@ func TestInlineShellCommand_MaxEnvironSizeInBytes(t *testing.T) {
 	for i := 0; i < int(envCount); i++ {
 		name := "TEST" + strconv.Itoa(i)
 		value := envValue[:len(envValue)-len(name)]
-		err := sess.SetEnv(createEnv(name, value))
+		err := sess.SetEnv(context.Background(), createEnv(name, value))
 		require.NoError(t, err)
 	}
-	err := sess.SetEnv(createEnv(StoreStdoutEnvName, envValue[:len(envValue)-len(StoreStdoutEnvName)]))
+	err = sess.SetEnv(context.Background(), createEnv(StoreStdoutEnvName, envValue[:len(envValue)-len(StoreStdoutEnvName)]))
 	require.NoError(t, err)
 
 	factory := NewFactory(
@@ -151,7 +154,7 @@ func TestInlineShellCommand_MaxEnvironSizeInBytes(t *testing.T) {
 
 	err = command.Start(context.Background())
 	require.NoError(t, err)
-	err = command.Wait()
+	err = command.Wait(context.Background())
 	require.NoError(t, err)
 }
 
@@ -175,14 +178,16 @@ func TestInlineShellCommand_LargeOutput(t *testing.T) {
 		},
 		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
-	sess := NewSession()
+	sess, err := NewSession(WithOwl(false), WithSeedEnv(os.Environ()))
+	require.NoError(t, err)
+
 	stdout := bytes.NewBuffer(nil)
 	command, err := factory.Build(cfg, CommandOptions{Session: sess, Stdout: stdout})
 	require.NoError(t, err)
 
 	err = command.Start(context.Background())
 	require.NoError(t, err)
-	err = command.Wait()
+	err = command.Wait(context.Background())
 	require.NoError(t, err)
 
 	expected, err := os.ReadFile(fileName)
@@ -201,7 +206,8 @@ func testInlineShellCommandCollectEnv(t *testing.T) {
 		},
 		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
-	sess := NewSession()
+	sess, err := NewSession(WithOwl(false), WithSeedEnv(os.Environ()))
+	require.NoError(t, err)
 
 	testExecuteCommandWithSession(t, cfg, sess, nil, "", "")
 

@@ -57,7 +57,7 @@ func testExecuteCommandWithSession(
 	require.NoError(t, err)
 	err = command.Start(context.Background())
 	require.NoError(t, err)
-	err = command.Wait()
+	err = command.Wait(context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, expectedStdout, stdout.String())
 	assert.Equal(t, expectedStderr, stderr.String())

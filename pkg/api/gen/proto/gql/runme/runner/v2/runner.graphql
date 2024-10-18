@@ -34,10 +34,36 @@ input CreateSessionRequestInput {
 	"""
 	project: ProjectInput
 	"""
-	 optional selection of which env store implementation to sue
+	 Deprecated use config instead. optional selection
+	 of which env store implementation to use.
 
 	"""
 	envStoreType: SessionEnvStoreType
+	config: CreateSessionRequest_ConfigInput
+}
+input CreateSessionRequest_ConfigInput {
+	"""
+	 optional selection of which env store implementation to use.
+
+	"""
+	envStoreType: SessionEnvStoreType
+	"""
+	 how to seed initial ENV
+
+	"""
+	envStoreSeeding: CreateSessionRequest_Config_SessionEnvStoreSeeding
+}
+enum CreateSessionRequest_Config_SessionEnvStoreSeeding {
+	"""
+	 default seeding; ingore system
+
+	"""
+	SESSION_ENV_STORE_SEEDING_UNSPECIFIED
+	"""
+	 enable seeding from system
+
+	"""
+	SESSION_ENV_STORE_SEEDING_SYSTEM
 }
 input CreateSessionRequest_MetadataEntryInput {
 	key: String
