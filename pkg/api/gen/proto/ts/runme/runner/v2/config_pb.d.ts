@@ -147,7 +147,11 @@ export declare enum CommandMode {
     /**
      * @generated from protobuf enum value: COMMAND_MODE_CLI = 4;
      */
-    CLI = 4
+    CLI = 4,
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_CLI_SESSION = 5;
+     */
+    CLI_SESSION = 5
 }
 declare class ProgramConfig$Type extends MessageType<ProgramConfig> {
     constructor();
