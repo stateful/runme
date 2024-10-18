@@ -25,7 +25,7 @@ Run parser/serializer against a large quantity of markdown files.
 
 ```sh {"id":"01J5XXFEGPJ5ZJZERQ5YGBBRN8","name":"ci-test-parser","promptEnv":"no"}
 export GOPATH="$(go env GOPATH)"
-echo "GOPATH=$GOPATH"
-find "$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | grep -v glamour | xargs dirname | uniq | wc -l
-#make test/parser
+export NUM_OF_FILES=$(find "$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | grep -v glamour | xargs dirname | uniq | wc -l | tr -d "    ")
+echo "Checking $NUM_OF_FILES files inside GOPATH=$GOPATH"
+make test/parser
 ```
