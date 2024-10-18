@@ -10,6 +10,7 @@ import (
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	rcontext "github.com/stateful/runme/v3/internal/runner/context"
+	"github.com/stateful/runme/v3/internal/session"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -66,10 +67,10 @@ Run all blocks from the "setup" and "teardown" tags:
 						return errors.WithStack(err)
 					}
 
-					session, err := command.NewSession(
-						command.WithOwl(false),
-						command.WithSessionProject(proj),
-						command.WithSeedEnv(nil),
+					session, err := session.New(
+						session.WithOwl(false),
+						session.WithProject(proj),
+						session.WithSeedEnv(nil),
 					)
 					if err != nil {
 						return err
@@ -94,7 +95,7 @@ Run all blocks from the "setup" and "teardown" tags:
 
 func getCommandOptions(
 	cmd *cobra.Command,
-	sess *command.Session,
+	sess *session.Session,
 ) command.CommandOptions {
 	return command.CommandOptions{
 		Session: sess,

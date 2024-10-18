@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/stateful/runme/v3/internal/session"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/document/identity"
@@ -416,7 +417,7 @@ func TestCommand_Session(t *testing.T) {
 		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 
-	sess, err := NewSession()
+	sess, err := session.New()
 	require.NoError(t, err)
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))

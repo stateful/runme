@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/dockerexec"
+	"github.com/stateful/runme/v3/internal/session"
 	"github.com/stateful/runme/v3/internal/ulid"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -24,7 +25,7 @@ type CommandOptions struct {
 
 	// Session is used to share the state between commands.
 	// If none is provided, an empty one will be used.
-	Session *Session
+	Session *session.Session
 
 	// StdinWriter is used by [terminalCommand].
 	StdinWriter io.Writer
@@ -265,13 +266,17 @@ func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) *virtualC
 }
 
 // Makes sure session is always available and properly seeded.
-func (f *commandFactory) getSession(base *base, sess *Session) (*Session, error) {
+func (f *commandFactory) getSession(base *base, sess *session.Session) (*session.Session, error) {
 	if sess != nil {
 		return sess, nil
 	}
 
 	seedEnv := base.runtime.Environ()
-	sess, err := NewSession(WithOwl(false), WithSessionProject(f.project), WithSeedEnv(seedEnv))
+	sess, err := session.New(
+		session.WithOwl(false),
+		session.WithProject(f.project),
+		session.WithSeedEnv(seedEnv),
+	)
 	if err != nil {
 		return nil, err
 	}

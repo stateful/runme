@@ -8,13 +8,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/stateful/runme/v3/internal/command"
 	rcontext "github.com/stateful/runme/v3/internal/runner/context"
+	"github.com/stateful/runme/v3/internal/session"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
-func convertSessionToRunnerv2alpha1Session(sess *command.Session) *runnerv2.Session {
+func convertSessionToRunnerv2alpha1Session(sess *session.Session) *runnerv2.Session {
 	return &runnerv2.Session{
 		Id:  sess.ID,
 		Env: sess.GetAllEnv(),
@@ -58,7 +58,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2.CreateS
 		}
 	}
 
-	sess, err := command.NewSession(command.WithOwl(owl), command.WithSessionProject(proj), command.WithSeedEnv(seedEnv))
+	sess, err := session.New(session.WithOwl(owl), session.WithProject(proj), session.WithSeedEnv(seedEnv))
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ type updateRequest interface {
 	GetProject() *runnerv2.Project
 }
 
-func (r *runnerService) updateSession(ctx context.Context, sess *command.Session, req updateRequest) error {
+func (r *runnerService) updateSession(ctx context.Context, sess *session.Session, req updateRequest) error {
 	ctx = rcontext.ContextWithExecutionInfo(ctx, &rcontext.ExecutionInfo{
 		ExecContext: "request",
 	})

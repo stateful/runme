@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/stateful/runme/v3/internal/session"
 )
 
 const maxScannerBufferSizeInBytes = 1024 * 1024 * 1024 // 1GB
@@ -54,19 +55,19 @@ type envCollector interface {
 type envScanner func(io.Reader) ([]string, error)
 
 func diffEnvs(initial, final []string) (changed, deleted []string, err error) {
-	envStoreWithInitial := newEnvStore()
+	envStoreWithInitial := session.NewEnvStore()
 	err = envStoreWithInitial.Merge(context.Background(), initial...)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the store with initial env")
 	}
 
-	envStoreWithFinal := newEnvStore()
+	envStoreWithFinal := session.NewEnvStore()
 	err = envStoreWithFinal.Merge(context.Background(), final...)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the store with final env")
 	}
 
-	changed, _, deleted = diffEnvStores(envStoreWithInitial, envStoreWithFinal)
+	changed, _, deleted = session.DiffEnvStores(envStoreWithInitial, envStoreWithFinal)
 	return
 }
 

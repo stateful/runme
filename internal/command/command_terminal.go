@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/stateful/runme/v3/internal/session"
 	"go.uber.org/zap"
 )
 
@@ -20,7 +21,7 @@ type terminalCommand struct {
 
 	envCollector envCollector
 	logger       *zap.Logger
-	session      *Session
+	session      *session.Session
 	stdinWriter  io.Writer
 }
 
