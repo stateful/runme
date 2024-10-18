@@ -15,12 +15,12 @@ import (
 var owlStoreDefault = false
 
 type envStorer interface {
-	getEnv(string) (string, error)
-	envs() ([]string, error)
-	sensitiveEnvKeys() ([]string, error)
+	getEnv(string) (string, error) // Get
+	envs() ([]string, error)       // Items
 	addEnvs(context context.Context, envs []string) error
 	updateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error
-	setEnv(context context.Context, k string, v string) error
+	setEnv(context context.Context, k string, v string) error // Set
+	sensitiveEnvKeys() ([]string, error)
 	subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItems) error
 	complete()
 }
@@ -315,7 +315,8 @@ func (es *owlEnvStorer) addEnvs(context context.Context, envs []string) error {
 }
 
 func (es *owlEnvStorer) getEnv(name string) (string, error) {
-	return es.owlStore.InsecureGet(name)
+	v, _, err := es.owlStore.InsecureGet(name)
+	return v, err
 }
 
 func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {

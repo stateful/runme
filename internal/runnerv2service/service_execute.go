@@ -10,13 +10,14 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	rcontext "github.com/stateful/runme/v3/internal/runner/context"
 	"github.com/stateful/runme/v3/internal/ulid"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error {
-	ctx := srv.Context()
-	logger := r.logger.With(zap.String("id", ulid.GenerateID()))
+	_id := ulid.GenerateID()
+	logger := r.logger.With(zap.String("id", _id))
 
 	logger.Info("running Execute in runnerService")
 
@@ -32,8 +33,18 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	}
 	logger.Info("received initial request", zap.Any("req", req))
 
+	execInfo := getExecutionInfoFromExecutionRequest(_id, req)
+	ctx := rcontext.ContextWithExecutionInfo(srv.Context(), execInfo)
+
+	// Load the project.
+	// TODO(adamb): this should come from the runme.yaml in the future.
+	proj, err := convertProtoProjectToProject(req.GetProject())
+	if err != nil {
+		return err
+	}
+
 	// Manage the session.
-	session, existed, err := r.getOrCreateSessionFromRequest(req)
+	session, existed, err := r.getOrCreateSessionFromRequest(req, proj)
 	if err != nil {
 		return err
 	}
@@ -41,14 +52,7 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		r.sessions.Add(session)
 	}
 
-	if err := session.SetEnv(req.Config.Env...); err != nil {
-		return err
-	}
-
-	// Load the project.
-	// TODO(adamb): this should come from the runme.yaml in the future.
-	proj, err := convertProtoProjectToProject(req.GetProject())
-	if err != nil {
+	if err := session.SetEnv(ctx, req.Config.Env...); err != nil {
 		return err
 	}
 
@@ -135,4 +139,21 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	}
 
 	return waitErr
+}
+
+func getExecutionInfoFromExecutionRequest(runID string, req *runnerv2.ExecuteRequest) *rcontext.ExecutionInfo {
+	knownName, knownID := "", ""
+
+	reqConfig := req.GetConfig()
+	if reqConfig != nil {
+		knownName = reqConfig.GetKnownName()
+		knownID = reqConfig.GetKnownId()
+	}
+
+	return &rcontext.ExecutionInfo{
+		ExecContext: "Execute",
+		KnownID:     knownID,
+		KnownName:   knownName,
+		RunID:       runID,
+	}
 }

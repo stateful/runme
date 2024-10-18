@@ -79,11 +79,50 @@ export interface CreateSessionRequest {
      */
     project?: Project;
     /**
-     * optional selection of which env store implementation to sue
+     * Deprecated use config instead. optional selection
+     * of which env store implementation to use.
      *
-     * @generated from protobuf field: runme.runner.v2.SessionEnvStoreType env_store_type = 4;
+     * @generated from protobuf field: optional runme.runner.v2.SessionEnvStoreType env_store_type = 4;
      */
-    envStoreType: SessionEnvStoreType;
+    envStoreType?: SessionEnvStoreType;
+    /**
+     * @generated from protobuf field: runme.runner.v2.CreateSessionRequest.Config config = 5;
+     */
+    config?: CreateSessionRequest_Config;
+}
+/**
+ * @generated from protobuf message runme.runner.v2.CreateSessionRequest.Config
+ */
+export interface CreateSessionRequest_Config {
+    /**
+     * optional selection of which env store implementation to use.
+     *
+     * @generated from protobuf field: optional runme.runner.v2.SessionEnvStoreType env_store_type = 1;
+     */
+    envStoreType?: SessionEnvStoreType;
+    /**
+     * how to seed initial ENV
+     *
+     * @generated from protobuf field: optional runme.runner.v2.CreateSessionRequest.Config.SessionEnvStoreSeeding env_store_seeding = 2;
+     */
+    envStoreSeeding?: CreateSessionRequest_Config_SessionEnvStoreSeeding;
+}
+/**
+ * @generated from protobuf enum runme.runner.v2.CreateSessionRequest.Config.SessionEnvStoreSeeding
+ */
+export declare enum CreateSessionRequest_Config_SessionEnvStoreSeeding {
+    /**
+     * default seeding; ingore system
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_SEEDING_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * enable seeding from system
+     *
+     * @generated from protobuf enum value: SESSION_ENV_STORE_SEEDING_SYSTEM = 1;
+     */
+    SYSTEM = 1
 }
 /**
  * @generated from protobuf message runme.runner.v2.CreateSessionResponse
@@ -527,35 +566,39 @@ export interface MonitorEnvStoreResponseSnapshot_SnapshotEnv {
      */
     name: string;
     /**
-     * @generated from protobuf field: string spec = 3;
+     * @generated from protobuf field: string description = 3;
+     */
+    description: string;
+    /**
+     * @generated from protobuf field: string spec = 4;
      */
     spec: string;
     /**
-     * @generated from protobuf field: bool is_required = 4;
+     * @generated from protobuf field: bool is_required = 5;
      */
     isRequired: boolean;
     /**
-     * @generated from protobuf field: string origin = 5;
+     * @generated from protobuf field: string origin = 6;
      */
     origin: string;
     /**
-     * @generated from protobuf field: string original_value = 6;
+     * @generated from protobuf field: string original_value = 7;
      */
     originalValue: string;
     /**
-     * @generated from protobuf field: string resolved_value = 7;
+     * @generated from protobuf field: string resolved_value = 8;
      */
     resolvedValue: string;
     /**
-     * @generated from protobuf field: string create_time = 8;
+     * @generated from protobuf field: string create_time = 9;
      */
     createTime: string;
     /**
-     * @generated from protobuf field: string update_time = 9;
+     * @generated from protobuf field: string update_time = 10;
      */
     updateTime: string;
     /**
-     * @generated from protobuf field: repeated runme.runner.v2.MonitorEnvStoreResponseSnapshot.Error errors = 10;
+     * @generated from protobuf field: repeated runme.runner.v2.MonitorEnvStoreResponseSnapshot.Error errors = 11;
      */
     errors: MonitorEnvStoreResponseSnapshot_Error[];
 }
@@ -709,6 +752,13 @@ declare class CreateSessionRequest$Type extends MessageType<CreateSessionRequest
  * @generated MessageType for protobuf message runme.runner.v2.CreateSessionRequest
  */
 export declare const CreateSessionRequest: CreateSessionRequest$Type;
+declare class CreateSessionRequest_Config$Type extends MessageType<CreateSessionRequest_Config> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.CreateSessionRequest.Config
+ */
+export declare const CreateSessionRequest_Config: CreateSessionRequest_Config$Type;
 declare class CreateSessionResponse$Type extends MessageType<CreateSessionResponse> {
     constructor();
 }

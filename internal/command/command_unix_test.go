@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/stateful/runme/v3/internal/session"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/document/identity"
@@ -257,7 +258,7 @@ func TestCommand_Getters(t *testing.T) {
 	require.NoError(t, cmd.Start(context.Background()))
 	require.True(t, cmd.Running())
 	require.Greater(t, cmd.Pid(), 1)
-	require.NoError(t, cmd.Wait())
+	require.NoError(t, cmd.Wait(context.Background()))
 }
 
 func TestCommand_InvalidProgram(t *testing.T) {
@@ -308,7 +309,7 @@ func TestCommand_InvalidScript(t *testing.T) {
 
 	err = cmd.Start(context.Background())
 	require.NoError(t, err)
-	err = cmd.Wait()
+	err = cmd.Wait(context.Background())
 	require.Error(t, err)
 	require.Equal(t, "", stdout.String())
 	require.Contains(t, stderr.String(), "failhereplease: command not found")
@@ -346,7 +347,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 		require.NoError(t, err)
 		err = SetWinsize(cmd, &Winsize{Rows: 45, Cols: 56, X: 0, Y: 0})
 		require.NoError(t, err)
-		err = cmd.Wait()
+		err = cmd.Wait(context.Background())
 		require.NoError(t, err)
 		require.Equal(t, "56\r\n45\r\n", stdout.String())
 	})
@@ -390,7 +391,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 		require.NoError(t, err)
 		_, err = stdinW.Write([]byte{0x04}) // EOT
 		require.NoError(t, err)
-		err = cmd.Wait()
+		err = cmd.Wait(context.Background())
 		require.NoError(t, err, "command failed due to: %s", stdout.String())
 		require.Contains(t, stdout.String(), "56\r\n45\r\n")
 	})
@@ -416,21 +417,22 @@ func TestCommand_Session(t *testing.T) {
 		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 
-	sess := NewSession()
+	sess, err := session.New()
+	require.NoError(t, err)
 
 	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
 	setterCmd, err := factory.Build(setterCfg, CommandOptions{Session: sess})
 	require.NoError(t, err)
 	require.NoError(t, setterCmd.Start(context.Background()))
-	require.NoError(t, setterCmd.Wait())
+	require.NoError(t, setterCmd.Wait(context.Background()))
 	require.Equal(t, []string{"TEST_ENV=test1"}, sess.GetAllEnv())
 
 	stdout := bytes.NewBuffer(nil)
 	getterCmd, err := factory.Build(getterCfg, CommandOptions{Session: sess, Stdout: stdout})
 	require.NoError(t, err)
 	require.NoError(t, getterCmd.Start(context.Background()))
-	require.NoError(t, getterCmd.Wait())
+	require.NoError(t, getterCmd.Wait(context.Background()))
 	require.Equal(t, "TEST_ENV equals test1", stdout.String())
 }
 
@@ -482,7 +484,7 @@ func TestCommand_SimulateCtrlC(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	require.EqualError(t, cmd.Wait(), "exit status 130")
+	require.EqualError(t, cmd.Wait(context.Background()), "exit status 130")
 }
 
 func TestCommand_StopWithSignal(t *testing.T) {
@@ -506,7 +508,7 @@ func TestCommand_StopWithSignal(t *testing.T) {
 			errc <- cmd.Signal(os.Interrupt)
 		}()
 
-		require.EqualError(t, cmd.Wait(), "signal: interrupt")
+		require.EqualError(t, cmd.Wait(context.Background()), "signal: interrupt")
 		require.NoError(t, <-errc)
 	})
 
@@ -520,7 +522,7 @@ func TestCommand_StopWithSignal(t *testing.T) {
 			errc <- cmd.Signal(os.Kill)
 		}()
 
-		require.EqualError(t, cmd.Wait(), "signal: killed")
+		require.EqualError(t, cmd.Wait(context.Background()), "signal: killed")
 		require.NoError(t, <-errc)
 	})
 }

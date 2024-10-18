@@ -37,8 +37,9 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
-		val, err := store.InsecureGet("REDIS_HOST")
+		val, ok, err := store.InsecureGet("REDIS_HOST")
 		require.NoError(t, err)
+		require.True(t, ok)
 		assert.EqualValues(t, "localhost", val)
 	})
 
@@ -47,8 +48,9 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
-		val, err := store.InsecureGet("REDIS_HOST")
+		val, ok, err := store.InsecureGet("REDIS_HOST")
 		require.NoError(t, err)
+		require.True(t, ok)
 		assert.EqualValues(t, "localhost", val)
 	})
 

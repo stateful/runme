@@ -36,7 +36,7 @@ func TestDockerCommand(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.Wait())
+		require.NoError(t, cmd.Wait(context.Background()))
 	})
 
 	t.Run("Output", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestDockerCommand(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
-		require.NoError(t, cmd.Wait())
+		require.NoError(t, cmd.Wait(context.Background()))
 		assert.Equal(t, "test", stdout.String())
 	})
 
@@ -71,7 +71,7 @@ func TestDockerCommand(t *testing.T) {
 		require.NoError(t, cmd.Start(context.Background()))
 		require.True(t, cmd.Running())
 		require.Greater(t, cmd.Pid(), 0)
-		require.NoError(t, cmd.Wait())
+		require.NoError(t, cmd.Wait(context.Background()))
 	})
 
 	t.Run("NonZeroExit", func(t *testing.T) {
@@ -87,6 +87,6 @@ func TestDockerCommand(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
-		require.Error(t, cmd.Wait(), "exit code 11 due to error \"\"")
+		require.Error(t, cmd.Wait(context.Background()), "exit code 11 due to error \"\"")
 	})
 }

@@ -14,7 +14,8 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/stateful/godotenv"
-	commandpkg "github.com/stateful/runme/v3/internal/command"
+	rcontext "github.com/stateful/runme/v3/internal/runner/context"
+
 	"go.uber.org/zap"
 )
 
@@ -384,14 +385,14 @@ func (s *Store) Snapshot() (SetVarItems, error) {
 	return items, nil
 }
 
-func (s *Store) InsecureGet(k string) (string, error) {
+func (s *Store) InsecureGet(k string) (string, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	var query, vars bytes.Buffer
 	err := s.getterQuery(&query, &vars)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	// s.logger.Debug("getter query", zap.String("query", query.String()))
@@ -400,7 +401,7 @@ func (s *Store) InsecureGet(k string) (string, error) {
 	var varValues map[string]interface{}
 	err = json.Unmarshal(vars.Bytes(), &varValues)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	varValues["key"] = k
 	varValues["insecure"] = true
@@ -419,30 +420,30 @@ func (s *Store) InsecureGet(k string) (string, error) {
 	})
 
 	if result.HasErrors() {
-		return "", fmt.Errorf("graphql errors %s", result.Errors)
+		return "", false, fmt.Errorf("graphql errors %s", result.Errors)
 	}
 
 	val, err := extractDataKey(result.Data, "get")
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	j, err := json.Marshal(val)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	var res *SetVarItem
 	err = json.Unmarshal(j, &res)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	if res.Value == nil {
-		return "", nil
+		return "", false, nil
 	}
 
-	return res.Value.Resolved, nil
+	return res.Value.Resolved, true, nil
 }
 
 func (s *Store) InsecureValues() ([]string, error) {
@@ -523,18 +524,37 @@ func (s *Store) SensitiveKeys() ([]string, error) {
 	return keys, nil
 }
 
+func (s *Store) LoadEnvs(source string, envs ...string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	opSet, err := NewOperationSet(WithOperation(LoadSetOperation), WithSpecs(false))
+	if err != nil {
+		return err
+	}
+
+	err = opSet.addEnvs(source, envs...)
+	if err != nil {
+		return err
+	}
+
+	s.opSets = append(s.opSets, opSet)
+	return nil
+}
+
 func (s *Store) Update(context context.Context, newOrUpdated, deleted []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	execInfo, ok := context.Value(commandpkg.ExecutionInfoKey).(*commandpkg.ExecutionInfo)
-	if !ok {
-		return errors.New("execution info not found in context")
-	}
-
-	execRef := fmt.Sprintf("#%s", execInfo.KnownID)
-	if execInfo.KnownName != "" {
-		execRef = fmt.Sprintf("#%s", execInfo.KnownName)
+	execRef := "[execution]"
+	if execInfo, ok := context.Value(rcontext.ExecutionInfoKey).(*rcontext.ExecutionInfo); ok {
+		execRef = fmt.Sprintf("#%s", execInfo.KnownID)
+		if execInfo.KnownName != "" {
+			execRef = fmt.Sprintf("#%s", execInfo.KnownName)
+		}
+		if execInfo.ExecContext != "" {
+			execRef = fmt.Sprintf("[%s]", execInfo.ExecContext)
+		}
 	}
 
 	if len(newOrUpdated) > 0 {

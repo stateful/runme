@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/session"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
@@ -19,7 +20,7 @@ type Command interface {
 	Running() bool
 	Start(context.Context) error
 	Signal(os.Signal) error
-	Wait() error
+	Wait(context.Context) error
 }
 
 type internalCommandGetters interface {
@@ -41,7 +42,7 @@ type base struct {
 	logger  *zap.Logger
 	project *project.Project
 	runtime Runtime
-	session *Session
+	session *session.Session
 	stdin   io.Reader
 	stdout  io.Writer
 	stderr  io.Writer
@@ -69,22 +70,12 @@ func (c *base) Signal(os.Signal) error {
 	return errors.New("not implemented")
 }
 
-func (c *base) Wait() error {
+func (c *base) Wait(context.Context) error {
 	return errors.New("not implemented")
 }
 
 func (c *base) Env() []string {
-	env := c.runtime.Environ()
-
-	if c.project != nil {
-		projEnv, err := c.project.LoadEnv()
-		if err != nil {
-			c.logger.Warn("failed to load project env", zap.Error(err))
-		}
-		env = append(env, projEnv...)
-	}
-
-	env = append(env, c.session.GetAllEnv()...)
+	env := c.session.GetAllEnv()
 	env = append(env, c.cfg.Env...)
 
 	if err := c.limitEnviron(env); err != nil {
@@ -127,22 +118,22 @@ func (c *base) limitEnviron(environ []string) error {
 		}
 	}
 
-	if size <= MaxEnvironSizeInBytes {
+	if size <= session.MaxEnvironSizeInBytes {
 		return nil
 	}
 
-	c.logger.Warn("environment size exceeds the limit", zap.Int("size", size), zap.Int("limit", MaxEnvironSizeInBytes))
+	c.logger.Warn("environment size exceeds the limit", zap.Int("size", size), zap.Int("limit", session.MaxEnvironSizeInBytes))
 
 	if stdoutEnvIdx == -1 {
 		return errors.New("env is too large; no stdout env to trim")
 	}
 
-	stdoutCap := MaxEnvironSizeInBytes - size + len(environ[stdoutEnvIdx])
+	stdoutCap := session.MaxEnvironSizeInBytes - size + len(environ[stdoutEnvIdx])
 	if stdoutCap < 0 {
 		return errors.New("env is too large even if trimming stdout env")
 	}
 
-	key, value := splitEnv(environ[stdoutEnvIdx])
+	key, value := session.SplitEnv(environ[stdoutEnvIdx])
 	environ[stdoutEnvIdx] = CreateEnv(key, value[len(value)-stdoutCap:])
 
 	return nil

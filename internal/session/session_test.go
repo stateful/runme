@@ -1,6 +1,7 @@
-package command
+package session
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -15,7 +16,8 @@ func TestSessionList(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		g.Go(func() error {
-			s := NewSession()
+			s, err := New(WithSeedEnv(os.Environ()))
+			require.NoError(t, err)
 			l.Add(s)
 			return nil
 		})
@@ -24,7 +26,8 @@ func TestSessionList(t *testing.T) {
 	require.NoError(t, g.Wait())
 	require.Len(t, l.items.Keys(), 10)
 
-	s := NewSession()
+	s, err := New(WithSeedEnv(os.Environ()))
+	require.NoError(t, err)
 	l.Add(s)
 
 	newest, ok := l.Newest()

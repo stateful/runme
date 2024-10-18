@@ -66,7 +66,7 @@ func (c *dockerCommand) Signal(os.Signal) error {
 	return c.cmd.Signal()
 }
 
-func (c *dockerCommand) Wait() (err error) {
+func (c *dockerCommand) Wait(ctx context.Context) (err error) {
 	c.logger.Info("waiting for the docker command to finish")
 	err = c.cmd.Wait()
 	c.logger.Info("the docker command finished", zap.Error(err))

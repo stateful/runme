@@ -146,7 +146,7 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 	// })
 }
 
-func Test_Store_Specless(t *testing.T) {
+func TestStore_Specless(t *testing.T) {
 	t.Parallel()
 
 	rawEnvLocal, err := os.ReadFile("testdata/project/.env.local")
@@ -212,7 +212,7 @@ func Test_Store_Specless(t *testing.T) {
 	})
 }
 
-func Test_Store_FixtureWithSpecs(t *testing.T) {
+func TestStore_FixtureWithSpecs(t *testing.T) {
 	t.Parallel()
 
 	store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
@@ -292,7 +292,73 @@ func Test_Store_FixtureWithSpecs(t *testing.T) {
 	})
 }
 
-func Test_Store_FixtureWithoutSpecs(t *testing.T) {
+func TestStore_Description(t *testing.T) {
+	content, err := os.ReadFile("testdata/values/.env.example")
+	require.NoError(t, err)
+
+	store, err := NewStore(WithSpecFile(".env.example", content))
+	require.NoError(t, err)
+
+	snapshot, err := store.snapshot(false)
+	require.NoError(t, err)
+
+	actuals := make(map[string]string, len(snapshot))
+	snapshot.sort()
+	for _, v := range snapshot {
+		actuals[v.Var.Key] = v.Spec.Description
+	}
+
+	require.Equal(t, map[string]string{
+		"ALLOWED_URL_PATTERNS":                         "Allowed URL patterns for the frontend",
+		"API_URL":                                      "URL for the backend API",
+		"AUTH_DEV_SKIP_EXP":                            "Skip expiration validation for Auth0. Only dev purposes",
+		"AUTH0_AUDIENCE":                               "Audience for Auth0",
+		"AUTH0_CLIENT_ID":                              "Client ID for Auth0",
+		"AUTH0_COOKIE_DOMAIN":                          "Cookie domain for Auth0",
+		"AUTH0_DEV_ID":                                 "Auth0 Dev ID used for the seed",
+		"AUTH0_DOMAIN":                                 "Domain for Auth0",
+		"AUTH0_MANAGEMENT_AUDIENCE":                    "Audience for Auth0 Management API",
+		"AUTH0_MANAGEMENT_CLIENT_ID":                   "Client ID for Auth0 Management API",
+		"AUTH0_MANAGEMENT_CLIENT_SECRET":               "Client Secret for Auth0 Management API",
+		"AUTH0_WEBHOOK_TOKEN":                          "Token for Auth0 webhook used when creating users",
+		"CORS_ORIGINS":                                 "CORS origins for the frontend",
+		"CRYPTOGRAPHY_KEY":                             "Key to encrypt/decrypt cell outputs",
+		"CUSTOMER_IO_API_KEY":                          "API Key for Customer.io",
+		"CUSTOMER_IO_SITE_ID":                          "Site ID for Customer.io",
+		"DATABASE_URL":                                 "Database URL for the backend",
+		"EXTERNAL_VECTOR_DB_COLLECTION":                "Collection for the external vector DB",
+		"FRONTEND_URL":                                 "URL of the frontend",
+		"GITHUB_APP_API_THROTTLING_CLUSTERING_ENABLED": "Enable API throttling and clustering for GitHub API",
+		"GITHUB_APP_ID":                                "GitHub App ID. Will work even if this is not a real ID",
+		"GITHUB_APP_PRIVATE_KEY":                       "Private key for GitHub App. Will work even if this is not a real key",
+		"GITHUB_WEBHOOK_SECRET":                        "Secret for GitHub Webhook",
+		"IDP_REDIRECT_URL":                             "Redirect URL for the IDE Login",
+		"MIXPANEL_TOKEN":                               "Token for Mixpanel",
+		"NODE_ENV":                                     "NodeJS Environment",
+		"OPENAI_API_KEY":                               "API Key for OpenAI",
+		"OPENAI_ORG_ID":                                "Organization ID for OpenAI",
+		"PORT":                                         "Port for the backend",
+		"RATE_LIMIT_MAX":                               "Max requests per time window",
+		"RATE_LIMIT_TIME_WINDOW":                       "Time window for rate limiting",
+		"REDIS_HOST":                                   "Redis host",
+		"REDIS_PORT":                                   "Redis port",
+		"REDWOOD_ENV_DEBUG_IDE":                        "Flag to enable debug mode for the IDE",
+		"REDWOOD_ENV_GITHUB_APP":                       "ID of the GitHub App",
+		"REDWOOD_ENV_INSIGHT_ENABLED":                  "Flag to enable insights",
+		"REDWOOD_ENV_INSTRUMENTATION_KEY":              "Instrumentation Key for Application Insights",
+		"RESEND_API_KEY":                               "API Key for Resend",
+		"SENTRY_DSN":                                   "DSN for Sentry",
+		"SLACK_CLIENT_ID":                              "Client ID for Slack",
+		"SLACK_CLIENT_SECRET":                          "Client Secret for Slack",
+		"SLACK_REDIRECT_URL":                           "Redirect URL for Slack. Use a tunnel with ngrok",
+		"TEST_DATABASE_URL":                            "Database URL for the tests",
+		"VECTOR_DB_COLLECTION":                         "Collection for the vector DB",
+		"VECTOR_DB_URL":                                "URL for the vector DB",
+		"WEB_PORT":                                     "Port for the web app",
+	}, actuals)
+}
+
+func TestStore_FixtureWithoutSpecs(t *testing.T) {
 	t.Parallel()
 
 	store, err := NewStore(WithEnvFile(".env", fake))
@@ -372,7 +438,7 @@ func Test_Store_FixtureWithoutSpecs(t *testing.T) {
 	})
 }
 
-func Test_Store_Validation(t *testing.T) {
+func TestStore_Validation(t *testing.T) {
 	t.Parallel()
 
 	fakeErrs := []byte(`GOPATH=
@@ -431,7 +497,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 	})
 }
 
-func Test_Store_Reconcile(t *testing.T) {
+func TestStore_Reconcile(t *testing.T) {
 	t.Parallel()
 	fake := []byte(`UNRESOLVED_SECRET_WITHOUT_VALUE= # Secret`)
 
@@ -467,7 +533,7 @@ func Test_Store_Reconcile(t *testing.T) {
 	})
 }
 
-func Test_Store_SensitiveKeys(t *testing.T) {
+func TestStore_SensitiveKeys(t *testing.T) {
 	t.Parallel()
 
 	store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
@@ -479,7 +545,7 @@ func Test_Store_SensitiveKeys(t *testing.T) {
 	require.EqualValues(t, keys, []string{"INSTRUMENTATION_KEY", "PGPASS"})
 }
 
-func Test_Store_SecretMasking(t *testing.T) {
+func TestStore_SecretMasking(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Short secret is masked as empty", func(t *testing.T) {
@@ -529,13 +595,14 @@ func Test_Store_SecretMasking(t *testing.T) {
 	})
 }
 
-func Test_Store_Get(t *testing.T) {
+func TestStore_Get(t *testing.T) {
 	store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
 	require.NoError(t, err)
 	require.NotNil(t, store)
 
 	// PGPASS is masked without insecure
-	val, err := store.InsecureGet("PGPASS")
+	val, ok, err := store.InsecureGet("PGPASS")
 	require.NoError(t, err)
+	require.True(t, ok)
 	assert.EqualValues(t, "secret-fake-password", val)
 }
