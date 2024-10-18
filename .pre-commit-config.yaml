@@ -3,20 +3,20 @@ repos:
     rev: v4.5.0
     hooks:
       - id: check-yaml
-        stages: [commit]
+        stages: [pre-commit]
       - id: check-json
         exclude: "^.vscode/"
-        stages: [commit]
+        stages: [pre-commit]
       - id: check-merge-conflict
-        stages: [commit]
+        stages: [pre-commit]
       - id: check-case-conflict
-        stages: [commit]
+        stages: [pre-commit]
       - id: detect-private-key
-        stages: [commit]
+        stages: [pre-commit]
       - id: end-of-file-fixer
-        stages: [commit]
+        stages: [pre-commit]
       - id: trailing-whitespace
-        stages: [commit]
+        stages: [pre-commit]
   - repo: https://github.com/crate-ci/committed
     rev: v1.0.20
     hooks:
@@ -37,7 +37,7 @@ repos:
         language: system
         types: [go]
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
       - id: lint
         name: lint
         entry: make
@@ -45,11 +45,11 @@ repos:
         language: system
         types: [go]
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
       - id: build
         name: build
         entry: make
         language: system
         types: [go]
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
