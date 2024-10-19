@@ -27,7 +27,8 @@ func TestProjectServiceServer_Load(t *testing.T) {
 
 	lis, stop := testStartProjectServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateProjectServiceClient(t, lis)
+
+	_, client := testutils.NewTestGRPCClient(t, lis, projectv1.NewProjectServiceClient)
 
 	t.Run("GitProject", func(t *testing.T) {
 		t.Parallel()
@@ -85,7 +86,8 @@ func TestProjectServiceServer_Load_ClientConnClosed(t *testing.T) {
 
 	lis, stop := testStartProjectServiceServer(t)
 	t.Cleanup(stop)
-	clientConn, client := testCreateProjectServiceClient(t, lis)
+
+	clientConn, client := testutils.NewTestGRPCClient(t, lis, projectv1.NewProjectServiceClient)
 
 	req := &projectv1.LoadRequest{
 		Kind: &projectv1.LoadRequest_File{
@@ -140,14 +142,4 @@ func testStartProjectServiceServer(t *testing.T) (
 	lis := bufconn.Listen(1024 << 10)
 	go server.Serve(lis)
 	return lis, server.Stop
-}
-
-func testCreateProjectServiceClient(
-	t *testing.T,
-	lis interface{ Dial() (net.Conn, error) },
-) (*grpc.ClientConn, projectv1.ProjectServiceClient) {
-	t.Helper()
-	conn, err := testutils.NewTestGRPCClient(t, lis)
-	require.NoError(t, err)
-	return conn, projectv1.NewProjectServiceClient(conn)
 }
