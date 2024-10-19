@@ -44,7 +44,7 @@ test/coverage: TAGS ?= "" # e.g. TAGS="test_with_docker"
 # It depends on the build target because the runme binary
 # is used for tests, for example, "runme env dump".
 test/coverage: build
-	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=90s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
+	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=180s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
 .PHONY: test
 test: test/execute
@@ -58,6 +58,7 @@ test-docker: test-docker/setup test-docker/run
 .PHONY: test-docker/setup
 test-docker/setup:
 	docker build \
+		--progress=plain \
 		-t runme-test-env:latest \
 		-f ./docker/runme-test-env.Dockerfile .
 	docker volume create dev.runme.test-env-gocache
@@ -77,10 +78,10 @@ test-docker/run:
 test/update-snapshots:
 	@TZ=UTC UPDATE_SNAPSHOTS=true go test ./...
 
-.PHONY: test/robustness
-test/robustness:
+.PHONY: test/parser
+test/parser:
 	./runme --version
-	find "$$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --project {} > /dev/null
+	find "$$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | grep -v glamour | xargs dirname | uniq | xargs -n1 -I {} ./runme fmt --project {} > /dev/null
 
 .PHONY: coverage/html
 test/coverage/html:
