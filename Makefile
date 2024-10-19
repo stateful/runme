@@ -40,6 +40,7 @@ test/execute: build
 .PHONY: test/coverage
 test/coverage: PKGS ?= "./..."
 test/coverage: RUN ?= .*
+test/coverage: GOCOVERDIR ?= "."
 test/coverage: TAGS ?= "" # e.g. TAGS="test_with_docker"
 # It depends on the build target because the runme binary
 # is used for tests, for example, "runme env dump".

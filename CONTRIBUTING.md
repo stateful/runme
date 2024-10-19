@@ -142,10 +142,11 @@ pre-commit run --files */**
 
 Tests are run with Go's default test runner wrapped in Makefile targets. So, for example, you can run all tests with:
 
-```sh {"id":"01HF7BT3HEQBTBM9SSTS88ZSCF","name":"test","terminalRows":"15"}
+```sh {"id":"01HF7BT3HEQBTBM9SSTS88ZSCF","name":"test","promptEnv":"no","terminalRows":"15"}
 unset RUNME_SESSION_STRATEGY RUNME_TLS_DIR RUNME_SERVER_ADDR
 go clean -testcache
-TAGS="test_with_docker" make test
+export TAGS="test_with_txtar"
+make test
 ```
 
 Please notice that our tests include integration tests which depend on additional software like Python or node.js. If you don't want to install them or tests fail because of different versions, you can run all tests in a Docker container:
