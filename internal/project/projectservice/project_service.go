@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -36,34 +38,45 @@ func (s *projectServiceServer) Load(req *projectv1.LoadRequest, srv projectv1.Pr
 	go func() {
 		defer wg.Done()
 		defer close(errc)
-		for event := range eventc {
-			msg := &projectv1.LoadResponse{
-				Type: projectv1.LoadEventType(event.Type),
-			}
 
-			if err := setDataForLoadResponseFromLoadEvent(msg, event); err != nil {
-				errc <- err
-				goto errhandler
-			}
+		for {
+			select {
+			case <-ctx.Done():
+				errc <- status.Error(codes.Canceled, ctx.Err().Error())
+				return
+			case event, ok := <-eventc:
+				if !ok {
+					return
+				}
 
-			if err := srv.Send(msg); err != nil {
-				errc <- err
-				goto errhandler
-			}
+				msg := &projectv1.LoadResponse{
+					Type: projectv1.LoadEventType(event.Type),
+				}
 
-			continue
+				if err := setDataForLoadResponseFromLoadEvent(msg, event); err != nil {
+					errc <- err
+					goto errhandler
+				}
 
-		errhandler:
-			cancel()
-			// Project.Load() should be notified that it should exit early
-			// via cancel(). eventc will be closed, but it should be drained too
-			// in order to clean up any in-flight events.
-			// In theory, this is not necessary provided that all sends to eventc
-			// are wrapped in selects which observe ctx.Done().
-			//revive:disable:empty-block
-			for range eventc {
+				if err := srv.Send(msg); err != nil {
+					errc <- err
+					goto errhandler
+				}
+
+				continue
+
+			errhandler:
+				cancel()
+				// Project.Load() should be notified that it should exit early
+				// via cancel(). eventc will be closed, but it should be drained too
+				// in order to clean up any in-flight events.
+				// In theory, this is not necessary provided that all sends to eventc
+				// are wrapped in selects which observe ctx.Done().
+				//revive:disable:empty-block
+				for range eventc {
+				}
+				//revive:enable:empty-block
 			}
-			//revive:enable:empty-block
 		}
 	}()
 
