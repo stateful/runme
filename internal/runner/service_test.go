@@ -20,12 +20,16 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+<<<<<<< HEAD
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/resolver"
+=======
+>>>>>>> 112e2743 (Refactor creating test gRPC clients)
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/stateful/runme/v3/internal/testutils"
 	"github.com/stateful/runme/v3/internal/ulid"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
@@ -75,21 +79,6 @@ func testStartRunnerServiceServer(t *testing.T) (
 	return lis, server.Stop
 }
 
-func testCreateRunnerServiceClient(
-	t *testing.T,
-	lis interface{ Dial() (net.Conn, error) },
-) (*grpc.ClientConn, runnerv1.RunnerServiceClient) {
-	conn, err := grpc.NewClient(
-		"passthrough",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
-			return lis.Dial()
-		}),
-	)
-	require.NoError(t, err)
-	return conn, runnerv1.NewRunnerServiceClient(conn)
-}
-
 type executeResult struct {
 	Stdout   []byte
 	Stderr   []byte
@@ -129,7 +118,8 @@ func getExecuteResult(
 func Test_runnerService(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv1.NewRunnerServiceClient)
 
 	t.Run("Sessions", func(t *testing.T) {
 		t.Parallel()

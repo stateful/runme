@@ -18,14 +18,18 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+<<<<<<< HEAD
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/resolver"
+=======
+>>>>>>> 112e2743 (Refactor creating test gRPC clients)
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/command/testdata"
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	"github.com/stateful/runme/v3/internal/testutils"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
@@ -89,7 +93,7 @@ func Test_conformsOpinionatedEnvVarNaming(t *testing.T) {
 func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
@@ -160,7 +164,7 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
@@ -199,7 +203,7 @@ func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
 func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -276,7 +280,7 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -353,7 +357,7 @@ func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
 
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
@@ -387,7 +391,7 @@ func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
 func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -460,7 +464,7 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	testCases := []struct {
 		name           string
@@ -617,7 +621,7 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -696,7 +700,7 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -759,7 +763,7 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	t.Run("ContinuousInput", func(t *testing.T) {
 		stream, err := client.Execute(context.Background())
@@ -876,7 +880,7 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	t.Run("WithEnvAndMostRecentSessionStrategy", func(t *testing.T) {
 		{
@@ -942,7 +946,7 @@ func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
@@ -1009,7 +1013,8 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	t.Run("DefaultWinsize", func(t *testing.T) {
 		t.Parallel()
@@ -1104,6 +1109,7 @@ func testStartRunnerServiceServer(t *testing.T) (
 	return lis, server.Stop
 }
 
+<<<<<<< HEAD
 func testCreateRunnerServiceClient(
 	t *testing.T,
 	lis interface{ Dial() (net.Conn, error) },
@@ -1122,6 +1128,8 @@ func testCreateRunnerServiceClient(
 	return conn, runnerv2.NewRunnerServiceClient(conn)
 }
 
+=======
+>>>>>>> 112e2743 (Refactor creating test gRPC clients)
 type executeResult struct {
 	Stdout   []byte
 	Stderr   []byte
