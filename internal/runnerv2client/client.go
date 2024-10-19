@@ -36,6 +36,7 @@ func (c *Client) Close() error {
 }
 
 type ExecuteProgramOptions struct {
+	InputData        []byte
 	SessionID        string
 	Stdin            io.ReadCloser
 	Stdout           io.Writer
@@ -65,6 +66,7 @@ func (c *Client) executeProgram(
 	// Send the initial request.
 	req := &runnerv2.ExecuteRequest{
 		Config:           cfg,
+		InputData:        opts.InputData,
 		SessionId:        opts.SessionID,
 		StoreStdoutInEnv: opts.StoreStdoutInEnv,
 		Winsize:          opts.Winsize,
