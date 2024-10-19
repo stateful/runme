@@ -68,12 +68,14 @@ func (c *terminalCommand) Start(ctx context.Context) (err error) {
 
 func (c *terminalCommand) Wait() (err error) {
 	err = c.internalCommand.Wait()
+
 	if cErr := c.collectEnv(); cErr != nil {
 		c.logger.Info("failed to collect the environment", zap.Error(cErr))
 		if err == nil {
 			err = cErr
 		}
 	}
+
 	return err
 }
 

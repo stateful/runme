@@ -14,6 +14,10 @@ import (
 const maxScannerBufferSizeInBytes = 1024 * 1024 * 1024 // 1GB
 
 const (
+	EnvCollectorSessionEnvName         = "RUNME_SESSION"
+	EnvCollectorSessionPrePathEnvName  = "RUNME_SESSION_PREPATH"
+	EnvCollectorSessionPostPathEnvName = "RUNME_SESSION_POSTPATH"
+
 	envCollectorEncKeyEnvName   = "RUNME_ENCRYPTION_KEY"
 	envCollectorEncNonceEnvName = "RUNME_ENCRYPTION_NONCE"
 )
@@ -27,11 +31,15 @@ var envDumpCommand = func() string {
 	return strings.Join([]string{path, "env", "dump", "--insecure"}, " ")
 }()
 
-func SetEnvDumpCommand(cmd string) {
-	envDumpCommand = cmd
+// SetEnvDumpCommandForTesting overrides the default command that dumps the environment variables.
+// It is and should be used only for testing purposes.
+// TODO(adamb): this can be made obsolete. runme must be built
+// in the test environment and put into the PATH.
+func SetEnvDumpCommandForTesting() {
+	envDumpCommand = "env -0"
 	// When overriding [envDumpCommand], we disable the encryption.
-	// There is no way to test the encryption if the dump command
-	// is not controlled.
+	// There is no reliable way at the moment to have encryption and
+	// not control the dump command.
 	envCollectorEnableEncryption = false
 }
 
