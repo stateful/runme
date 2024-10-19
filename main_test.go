@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build !windows && test_with_txtar
 
 package main
 

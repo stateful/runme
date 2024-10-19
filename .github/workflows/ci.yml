@@ -60,10 +60,18 @@ jobs:
         run: |
           go build -o runme main.go
           ./runme --version
-      - name: Test
+      - name: Test with coverage
         uses: stateful/runme-action@v2
         with:
-          workflows: ci-test
+          workflows: ci-coverage
+        env:
+          NO_COLOR: true
+          FROM_CI: true
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Test without coverage (txtar)
+        uses: stateful/runme-action@v2
+        with:
+          workflows: ci-txtar
         env:
           NO_COLOR: true
           FROM_CI: true
