@@ -1107,8 +1107,8 @@ func testCreateRunnerServiceClient(
 ) (*grpc.ClientConn, runnerv2.RunnerServiceClient) {
 	t.Helper()
 
-	conn, err := grpc.Dial(
-		"",
+	conn, err := grpc.NewClient(
+		"passthrough://bufconn",
 		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
 			return lis.Dial()
 		}),
