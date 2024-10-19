@@ -28,5 +28,4 @@ export GOPATH="$(go env GOPATH)"
 export NUM_OF_FILES=$(find "$GOPATH/pkg/mod/github.com" -name "*.md" | grep -v "\/\." | grep -v glamour | xargs dirname | uniq | wc -l | tr -d "    ")
 echo "Checking $NUM_OF_FILES files inside GOPATH=$GOPATH"
 make test/parser
-exit 1
 ```
