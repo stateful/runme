@@ -28,6 +28,8 @@ unset RUNME_SESSION_STRATEGY RUNME_TLS_DIR RUNME_SERVER_ADDR
 export SHELL="/bin/bash"
 export TZ="UTC"
 export TAGS="test_with_txtar"
+export RUN="^TestRunme\w*"
+export PKGS="github.com/stateful/runme/v3"
 make test
 ```
 
