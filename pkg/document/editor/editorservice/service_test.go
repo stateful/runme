@@ -66,10 +66,9 @@ func TestMain(m *testing.M) {
 	parserv1.RegisterParserServiceServer(server, NewParserServiceServer(zap.NewNop()))
 	go server.Serve(lis)
 
-	_, client = testutils.NewTestGRPCClient(nil, lis, parserv1.NewParserServiceClient)
+	_, client = testutils.NewGRPCClient(lis, parserv1.NewParserServiceClient)
 
 	code := m.Run()
-
 	ulid.ResetGenerator()
 	os.Exit(code)
 }

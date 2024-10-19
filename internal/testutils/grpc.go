@@ -10,13 +10,32 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func NewTestGRPCClientConn(
+func NewTestGRPCClient[T any](
 	t *testing.T,
 	lis interface{ Dial() (net.Conn, error) },
-) *grpc.ClientConn {
-	if t != nil {
-		t.Helper()
+	fn func(grpc.ClientConnInterface) T,
+) (*grpc.ClientConn, T) {
+	t.Helper()
+	conn, client, err := newGRPCClient(lis, fn)
+	require.NoError(t, err)
+	return conn, client
+}
+
+func NewGRPCClient[T any](
+	lis interface{ Dial() (net.Conn, error) },
+	fn func(grpc.ClientConnInterface) T,
+) (*grpc.ClientConn, T) {
+	conn, client, err := newGRPCClient(lis, fn)
+	if err != nil {
+		panic(err)
 	}
+	return conn, client
+}
+
+func newGRPCClient[T any](
+	lis interface{ Dial() (net.Conn, error) },
+	fn func(grpc.ClientConnInterface) T,
+) (*grpc.ClientConn, T, error) {
 	conn, err := grpc.NewClient(
 		"passthrough://bufconn",
 		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
@@ -24,18 +43,9 @@ func NewTestGRPCClientConn(
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-	require.NoError(t, err)
-	return conn
-}
-
-func NewTestGRPCClient[T any](
-	t *testing.T,
-	lis interface{ Dial() (net.Conn, error) },
-	fn func(grpc.ClientConnInterface) T,
-) (*grpc.ClientConn, T) {
-	if t != nil {
-		t.Helper()
+	if err != nil {
+		var result T
+		return nil, result, err
 	}
-	conn := NewTestGRPCClientConn(t, lis)
-	return conn, fn(conn)
+	return conn, fn(conn), nil
 }
