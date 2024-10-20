@@ -28,4 +28,4 @@ func disableEcho(uintptr) error {
 		"and join our Discord server at https://discord.gg/runme if you have further questions!")
 }
 
-func signalPgid(int, os.Signal) error { return errors.New("unsupported") }
+func signalPgid(int, os.Signal) error { return errors.New("signalPgid: unsupported") }

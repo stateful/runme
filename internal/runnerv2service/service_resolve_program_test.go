@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/stateful/runme/v3/internal/testutils"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
@@ -16,7 +17,7 @@ import (
 func TestRunnerServiceResolveProgram(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	testCases := []struct {
 		name    string
@@ -93,7 +94,7 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	request := &runnerv2.ResolveProgramRequest{
 		Env:        []string{"FILE_NAME=my-file.txt"},
@@ -145,7 +146,7 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 func TestRunnerResolveProgram_OnlyShellLanguages(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
 
 	t.Run("Javascript passed as script", func(t *testing.T) {
 		script := "console.log('test');"

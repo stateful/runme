@@ -176,7 +176,8 @@ func (b *CodeBlock) Interactive() bool {
 }
 
 // InteractiveLegacy returns true as a default value.
-// Deprecated: use Interactive instead.
+// Deprecated: use Interactive instead, however, keep using
+// if you want to align with the VS Code extension.
 func (b *CodeBlock) InteractiveLegacy() bool {
 	val, err := strconv.ParseBool(b.Attributes()["interactive"])
 	if err != nil {

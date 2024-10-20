@@ -3,18 +3,17 @@ package editorservice
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/stateful/runme/v3/internal/testutils"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/internal/version"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -61,20 +60,9 @@ func TestMain(m *testing.M) {
 	parserv1.RegisterParserServiceServer(server, NewParserServiceServer(zap.NewNop()))
 	go server.Serve(lis)
 
-	conn, err := grpc.Dial(
-		"",
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
-			return lis.Dial()
-		}),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		panic(err)
-	}
+	_, client = testutils.NewGRPCClient(lis, parserv1.NewParserServiceClient)
 
-	client = parserv1.NewParserServiceClient(conn)
 	code := m.Run()
-
 	ulid.ResetGenerator()
 	os.Exit(code)
 }
