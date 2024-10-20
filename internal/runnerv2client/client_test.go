@@ -39,7 +39,7 @@ func TestClient_ExecuteProgram(t *testing.T) {
 		sessionResp, err := client.CreateSession(
 			ctx,
 			&runnerv2.CreateSessionRequest{
-				Env: []string{"TEST=test1"},
+				Env: []string{"TEST=test-output-with-session-env"},
 			},
 		)
 		require.NoError(t, err)
@@ -50,7 +50,7 @@ func TestClient_ExecuteProgram(t *testing.T) {
 				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						"echo -n $TEST",
-						">&2 echo -n test2",
+						">&2 echo -n test-output-with-session-stderr",
 					},
 				},
 			},
@@ -68,8 +68,8 @@ func TestClient_ExecuteProgram(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		require.Equal(t, "test1", stdout.String())
-		require.Equal(t, "test2", stderr.String())
+		require.Equal(t, "test-output-with-session-env", stdout.String())
+		require.Equal(t, "test-output-with-session-stderr", stderr.String())
 	})
 
 	t.Run("InputNonInteractive", func(t *testing.T) {
@@ -96,12 +96,12 @@ func TestClient_ExecuteProgram(t *testing.T) {
 			ctx,
 			cfg,
 			ExecuteProgramOptions{
-				InputData: []byte("test1\n"),
+				InputData: []byte("test-input-non-interactive\n"),
 				Stdout:    stdout,
 			},
 		)
 		require.NoError(t, err)
-		require.Equal(t, "test1\n", stdout.String())
+		require.Equal(t, "test-input-non-interactive\n", stdout.String())
 	})
 
 	t.Run("InputInteractive", func(t *testing.T) {
@@ -129,12 +129,12 @@ func TestClient_ExecuteProgram(t *testing.T) {
 			ctx,
 			cfg,
 			ExecuteProgramOptions{
-				Stdin:  io.NopCloser(bytes.NewBufferString("test1\n")),
+				Stdin:  io.NopCloser(bytes.NewBufferString("test-input-interactive\n")),
 				Stdout: stdout,
 			},
 		)
 		require.NoError(t, err)
-		require.Equal(t, "test1\r\n", stdout.String())
+		require.Equal(t, "test-input-interactive\r\n", stdout.String())
 	})
 }
 
