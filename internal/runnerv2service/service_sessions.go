@@ -56,6 +56,9 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2.CreateS
 		if cfg.GetEnvStoreType() == runnerv2.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_OWL {
 			owl = true
 		}
+	} else {
+		// todo(sebastian): Support legacy behavior for pre-proto change clients. Remove this after a while.
+		seedEnv = os.Environ()
 	}
 
 	sess, err := session.New(session.WithOwl(owl), session.WithProject(proj), session.WithSeedEnv(seedEnv))

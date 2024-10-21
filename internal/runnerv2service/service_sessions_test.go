@@ -22,12 +22,19 @@ func TestRunnerServiceSessions(t *testing.T) {
 	t.Cleanup(stop)
 	_, client := testCreateRunnerServiceClient(t, lis)
 
+	EnvStoreSeedingNone := runnerv2.CreateSessionRequest_Config_SESSION_ENV_STORE_SEEDING_UNSPECIFIED.Enum()
+
 	t.Run("WithEnv", func(t *testing.T) {
 		createResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, createResp.Session)
 
-		createResp, err = client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{Env: []string{"TEST1=value1"}})
+		createResp, err = client.CreateSession(context.Background(),
+			&runnerv2.CreateSessionRequest{
+				Env:    []string{"TEST1=value1"},
+				Config: &runnerv2.CreateSessionRequest_Config{EnvStoreSeeding: EnvStoreSeedingNone},
+			},
+		)
 		require.NoError(t, err)
 		require.EqualValues(t, []string{"TEST1=value1"}, createResp.Session.Env)
 
@@ -55,11 +62,42 @@ func TestRunnerServiceSessions(t *testing.T) {
 		projectPath := testData.GitProjectPath()
 		createResp, err := client.CreateSession(
 			context.Background(),
-			&runnerv2.CreateSessionRequest{Project: &runnerv2.Project{Root: projectPath, EnvLoadOrder: []string{".env"}}},
+			&runnerv2.CreateSessionRequest{
+				Config:  &runnerv2.CreateSessionRequest_Config{EnvStoreSeeding: EnvStoreSeedingNone},
+				Project: &runnerv2.Project{Root: projectPath, EnvLoadOrder: []string{".env"}},
+			},
 		)
 		require.NoError(t, err)
 		require.NotNil(t, createResp.Session)
 		require.EqualValues(t, []string{"PROJECT_ENV_FROM_DOTFILE=1"}, createResp.Session.Env)
+	})
+
+	t.Run("WithEnvStoreSeedingSystem", func(t *testing.T) {
+		EnvStoreSeedingSystem := runnerv2.CreateSessionRequest_Config_SESSION_ENV_STORE_SEEDING_SYSTEM.Enum()
+		createResp, err := client.CreateSession(
+			context.Background(),
+			&runnerv2.CreateSessionRequest{
+				Env:    []string{"TEST1=value1"},
+				Config: &runnerv2.CreateSessionRequest_Config{EnvStoreSeeding: EnvStoreSeedingSystem},
+			},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, createResp.Session)
+		require.Greater(t, len(createResp.Session.Env), 1)
+		require.Contains(t, createResp.Session.Env, "TEST1=value1")
+	})
+
+	t.Run("WithEnvStoreSeedingLegacy", func(t *testing.T) {
+		createResp, err := client.CreateSession(
+			context.Background(),
+			&runnerv2.CreateSessionRequest{
+				Env: []string{"TEST1=value1"},
+			},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, createResp.Session)
+		require.Greater(t, len(createResp.Session.Env), 1)
+		require.Contains(t, createResp.Session.Env, "TEST1=value1")
 	})
 
 	t.Run("WithProjectInvalid", func(t *testing.T) {
