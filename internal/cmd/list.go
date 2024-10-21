@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/stateful/runme/v3/internal/shell"
+	"github.com/stateful/runme/v3/internal/term"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
@@ -71,7 +72,7 @@ func listCmd() *cobra.Command {
 				rows = append(rows, r)
 			}
 			if !formatJSON {
-				err := displayTable(io, rows)
+				err := displayTable(cmd, rows)
 
 				if !io.IsStderrTTY() {
 					return err
@@ -91,8 +92,15 @@ func listCmd() *cobra.Command {
 	return &cmd
 }
 
-func displayTable(io *iostreams.IOStreams, rows []row) error {
-	table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
+func displayTable(cmd *cobra.Command, rows []row) error {
+	term := term.FromIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
+
+	// Detect width. For non-TTY, use a default width of 80.
+	width, _, err := term.Size()
+	if err != nil {
+		width = 80
+	}
+	table := tableprinter.New(term.Out(), term.IsTTY(), width)
 
 	// table header
 	table.AddField(strings.ToUpper("Name"))

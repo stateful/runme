@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/go-gh/pkg/tableprinter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -18,6 +17,7 @@ import (
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/runner/client"
+	"github.com/stateful/runme/v3/internal/term"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
@@ -117,7 +117,7 @@ func storeSnapshotCmd() *cobra.Command {
 			}
 
 			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
-				return errors.Wrap(printStore(msgData, limit, all), "failed to render")
+				return errors.Wrap(printStore(cmd, msgData, limit, all), "failed to render")
 			}
 
 			return nil
@@ -223,14 +223,18 @@ func environmentDumpCmd() *cobra.Command {
 	return &cmd
 }
 
-func printStore(msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, all bool) error {
-	io := iostreams.System()
+func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, all bool) error {
+	term := term.FromIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 
-	// TODO: Clear terminal screen
+	width, _, err := term.Size()
+	if err != nil {
+		width = 80
+	}
 
-	table := tableprinter.New(io.Out, io.IsStdoutTTY(), io.TerminalWidth())
+	table := tableprinter.New(term.Out(), term.IsTTY(), width)
 	table.AddField(strings.ToUpper("Name"))
 	table.AddField(strings.ToUpper("Value"))
+	table.AddField(strings.ToUpper("Description"))
 	table.AddField(strings.ToUpper("Spec"))
 	table.AddField(strings.ToUpper("Origin"))
 	table.AddField(strings.ToUpper("Updated"))
@@ -246,9 +250,9 @@ func printStore(msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, a
 			break
 		}
 
-		value := env.ResolvedValue
+		value := env.GetResolvedValue()
 
-		switch env.Status {
+		switch env.GetStatus() {
 		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED:
 			value = "[unset]"
 		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED:
@@ -257,13 +261,14 @@ func printStore(msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, a
 			value = "******"
 		}
 
-		table.AddField(env.Name)
-		stripped := strings.ReplaceAll(strings.ReplaceAll(value, "\n", " "), "\r", "")
-		table.AddField(stripped)
-		table.AddField(env.Spec)
-		table.AddField(env.Origin)
+		table.AddField(env.GetName())
+		table.AddField(env.GetDescription())
+		strippedVal := strings.ReplaceAll(strings.ReplaceAll(value, "\n", " "), "\r", "")
+		table.AddField(strippedVal)
+		table.AddField(env.GetSpec())
+		table.AddField(env.GetOrigin())
 
-		t, err := time.Parse(time.RFC3339, env.UpdateTime)
+		t, err := time.Parse(time.RFC3339, env.GetUpdateTime())
 		if err == nil {
 			table.AddField(t.Format(time.DateTime))
 		} else {
