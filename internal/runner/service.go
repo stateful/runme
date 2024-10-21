@@ -862,9 +862,10 @@ func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, sr
 		}
 	}()
 
+	err := <-errc
 	wg.Wait()
 
-	return <-errc
+	return err
 }
 
 func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, snapshot owl.SetVarItems) error {
