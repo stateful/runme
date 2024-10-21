@@ -685,6 +685,11 @@ func reduceSnapshot() QueryNodeReducer {
 							}),
 							ast.NewField(&ast.Field{
 								Name: ast.NewName(&ast.Name{
+									Value: "description",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
 									Value: "required",
 								}),
 							}),

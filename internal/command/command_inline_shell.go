@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/stateful/runme/v3/internal/session"
 	"go.uber.org/zap"
 )
 
@@ -16,7 +17,7 @@ type inlineShellCommand struct {
 	debug        bool
 	envCollector envCollector
 	logger       *zap.Logger
-	session      *Session
+	session      *session.Session
 }
 
 func (c *inlineShellCommand) getPty() *os.File {
@@ -45,12 +46,12 @@ func (c *inlineShellCommand) Start(ctx context.Context) error {
 	return c.internalCommand.Start(ctx)
 }
 
-func (c *inlineShellCommand) Wait() error {
-	err := c.internalCommand.Wait()
+func (c *inlineShellCommand) Wait(ctx context.Context) error {
+	err := c.internalCommand.Wait(ctx)
 
 	if c.envCollector != nil {
 		c.logger.Info("collecting the environment after the script execution")
-		cErr := c.collectEnv()
+		cErr := c.collectEnv(ctx)
 		c.logger.Info("collected the environment after the script execution", zap.Error(cErr))
 		if cErr != nil && err == nil {
 			err = cErr
@@ -97,7 +98,7 @@ func (c *inlineShellCommand) build() (string, error) {
 	return buf.String(), nil
 }
 
-func (c *inlineShellCommand) collectEnv() error {
+func (c *inlineShellCommand) collectEnv(ctx context.Context) error {
 	if c.envCollector == nil {
 		return nil
 	}
@@ -107,14 +108,12 @@ func (c *inlineShellCommand) collectEnv() error {
 		return err
 	}
 
-	err = c.session.SetEnv(changed...)
+	err = c.session.SetEnv(ctx, changed...)
 	if err != nil {
 		return errors.WithMessage(err, "failed to set the new or updated env")
 	}
 
-	c.session.DeleteEnv(deleted...)
-
-	return nil
+	return c.session.DeleteEnv(ctx, deleted...)
 }
 
 func (c *inlineShellCommand) shellOptions() (string, error) {

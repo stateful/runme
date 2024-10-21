@@ -159,7 +159,7 @@ func (c *virtualCommand) Signal(sig os.Signal) error {
 	return nil
 }
 
-func (c *virtualCommand) Wait() (err error) {
+func (c *virtualCommand) Wait(ctx context.Context) (err error) {
 	c.logger.Info("waiting for finish")
 	err = errors.WithStack(c.cmd.Wait())
 	c.logger.Info("finished", zap.Error(err))

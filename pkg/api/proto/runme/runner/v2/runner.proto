@@ -37,6 +37,7 @@ enum SessionEnvStoreType {
   // uses owl store
   SESSION_ENV_STORE_TYPE_OWL = 1;
 }
+
 message CreateSessionRequest {
   // metadata is a map of client specific metadata.
   map<string, string> metadata = 1;
@@ -50,8 +51,26 @@ message CreateSessionRequest {
   // The env field has a higher priority.
   optional Project project = 3;
 
-  // optional selection of which env store implementation to sue
-  SessionEnvStoreType env_store_type = 4;
+  // Deprecated use config instead. optional selection
+  // of which env store implementation to use.
+  optional SessionEnvStoreType env_store_type = 4;
+
+  Config config = 5;
+
+  message Config {
+    // optional selection of which env store implementation to use.
+    optional SessionEnvStoreType env_store_type = 1;
+
+    // how to seed initial ENV
+    optional SessionEnvStoreSeeding env_store_seeding = 2;
+
+    enum SessionEnvStoreSeeding {
+      // default seeding; ingore system
+      SESSION_ENV_STORE_SEEDING_UNSPECIFIED = 0;
+      // enable seeding from system
+      SESSION_ENV_STORE_SEEDING_SYSTEM = 1;
+    }
+  }
 }
 
 message CreateSessionResponse {
@@ -291,21 +310,23 @@ message MonitorEnvStoreResponseSnapshot {
 
     string name = 2;
 
-    string spec = 3;
+    string description = 3;
 
-    bool is_required = 4;
+    string spec = 4;
 
-    string origin = 5;
+    bool is_required = 5;
 
-    string original_value = 6;
+    string origin = 6;
 
-    string resolved_value = 7;
+    string original_value = 7;
 
-    string create_time = 8;
+    string resolved_value = 8;
 
-    string update_time = 9;
+    string create_time = 9;
 
-    repeated Error errors = 10;
+    string update_time = 10;
+
+    repeated Error errors = 11;
   }
 
   message Error {

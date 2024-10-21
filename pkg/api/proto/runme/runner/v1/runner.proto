@@ -348,6 +348,8 @@ message MonitorEnvStoreResponseSnapshot {
     repeated Error errors = 9;
 
     bool is_required = 10;
+
+    string description = 11;
   }
 
   message Error {

@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/dockerexec"
+	"github.com/stateful/runme/v3/internal/session"
 	"github.com/stateful/runme/v3/internal/ulid"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -24,7 +25,7 @@ type CommandOptions struct {
 
 	// Session is used to share the state between commands.
 	// If none is provided, an empty one will be used.
-	Session *Session
+	Session *session.Session
 
 	// StdinWriter is used by [terminalCommand].
 	StdinWriter io.Writer
@@ -109,15 +110,16 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 		mode = runnerv2.CommandMode_COMMAND_MODE_INLINE
 	}
 
-	// Session should be always available.
-	if opts.Session == nil {
-		opts.Session = NewSession()
-	}
-
 	switch mode {
 	case runnerv2.CommandMode_COMMAND_MODE_INLINE:
+		base := f.buildBase(cfg, opts)
 		if isShell(cfg) {
 			collector, err := f.getEnvCollector()
+			if err != nil {
+				return nil, err
+			}
+
+			sess, err := f.getSession(base, opts.Session)
 			if err != nil {
 				return nil, err
 			}
@@ -125,13 +127,13 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 			return &inlineShellCommand{
 				debug:           f.debug,
 				envCollector:    collector,
-				internalCommand: f.buildInternal(cfg, opts),
+				internalCommand: f.buildInternal(base, opts),
 				logger:          f.getLogger("InlineShellCommand"),
-				session:         opts.Session,
+				session:         sess,
 			}, nil
 		}
 		return &inlineCommand{
-			internalCommand: f.buildInternal(cfg, opts),
+			internalCommand: f.buildInternal(base, opts),
 			logger:          f.getLogger("InlineCommand"),
 		}, nil
 
@@ -150,12 +152,17 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 				return nil, err
 			}
 
+			sess, err := f.getSession(base, opts.Session)
+			if err != nil {
+				return nil, err
+			}
+
 			return &inlineShellCommand{
 				debug:           f.debug,
 				envCollector:    collector,
 				internalCommand: internal,
 				logger:          f.getLogger("InlineShellCommand"),
-				session:         opts.Session,
+				session:         sess,
 			}, nil
 		}
 		return &inlineCommand{
@@ -169,23 +176,30 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 			return nil, err
 		}
 
+		base := f.buildBase(cfg, opts)
+		sess, err := f.getSession(base, opts.Session)
+		if err != nil {
+			return nil, err
+		}
+
 		// For terminal commands, we always want them to be interactive.
 		cfg.Interactive = true
 		// And echo typed characters.
 		opts.EnableEcho = true
 
 		return &terminalCommand{
-			internalCommand: f.buildVirtual(f.buildBase(cfg, opts), opts),
+			internalCommand: f.buildVirtual(base, opts),
 			envCollector:    collector,
 			logger:          f.getLogger("TerminalCommand"),
-			session:         opts.Session,
+			session:         sess,
 			stdinWriter:     opts.StdinWriter,
 		}, nil
 	case runnerv2.CommandMode_COMMAND_MODE_FILE:
 		fallthrough
 	default:
+		base := f.buildBase(cfg, opts)
 		return &fileCommand{
-			internalCommand: f.buildInternal(cfg, opts),
+			internalCommand: f.buildInternal(base, opts),
 			logger:          f.getLogger("FileCommand"),
 		}, nil
 	}
@@ -212,9 +226,7 @@ func (f *commandFactory) buildBase(cfg *ProgramConfig, opts CommandOptions) *bas
 	}
 }
 
-func (f *commandFactory) buildInternal(cfg *ProgramConfig, opts CommandOptions) internalCommand {
-	base := f.buildBase(cfg, opts)
-
+func (f *commandFactory) buildInternal(base *base, opts CommandOptions) internalCommand {
 	switch {
 	case f.docker != nil:
 		return f.buildDocker(base)
@@ -251,6 +263,25 @@ func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) *virtualC
 		logger:        f.getLogger("VirtualCommand"),
 		stdin:         stdin,
 	}
+}
+
+// Makes sure session is always available and properly seeded.
+func (f *commandFactory) getSession(base *base, sess *session.Session) (*session.Session, error) {
+	if sess != nil {
+		return sess, nil
+	}
+
+	seedEnv := base.runtime.Environ()
+	sess, err := session.New(
+		session.WithOwl(false),
+		session.WithProject(f.project),
+		session.WithSeedEnv(seedEnv),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
 }
 
 // TODO(adamb): env collector (fifo) might need a context which will unblock it when the command finishes.
