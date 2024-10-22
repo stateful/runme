@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Store_Fixture(t *testing.T) {
+func TestStore_Fixture(t *testing.T) {
 	specs, err := os.ReadFile("testdata/validate/.env.example")
 	require.NoError(t, err)
 	values, err := os.ReadFile("testdata/validate/.env")
@@ -27,7 +27,47 @@ func Test_Store_Fixture(t *testing.T) {
 	}
 }
 
-func Test_Store_Specs(t *testing.T) {
+func TestStore_JWTValidator(t *testing.T) {
+	t.Run("Unexpired", func(t *testing.T) {
+		expired := []byte(`AUTH_TOKEN=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly91cy1jZW50cmFsMS5zdGF0ZWZ1bC5jb20vIiwiaHR0cHM6Ly9zdGF0ZWZ1bC1pbmMudXMuYXV0aDAuY29tL3VzZXJpbmZvIl0sImF6cCI6ImdvLXRlc3QiLCJleHAiOjI3MjI1NDg3MDEsImh0dHBzOi8vdXMtY2VudHJhbDEuc3RhdGVmdWwuY29tL2FwcF9tZXRhZGF0YSI6eyJ1c2VySWQiOiI0M2ZlNjc5Yy0zYTdmLTQ0NjUtYTU2Ni03NzEyMGQzOTA2MDcifSwiaWF0IjoxNzIyNTQ4NzAxLCJpc3MiOiJodHRwczovL2lkZW50aXR5LnN0YXRlZnVsLmNvbS8iLCJqdGkiOiJiZDI3ZmJhZTkwMjlmMWQwYTllMGM4M2Y0ZTkzMTZjYTAxZTM5Zjc5YTI5OWFkYTIzMDE2MTg2ZmIzMDg0NzhhIiwibmJmIjoxNzI5NjExNTYwLCJwZXJtaXNzaW9ucyI6W10sInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJzdWIiOiJnb29nbGUtZmF1eC1vYXV0aDJ8OTkxOTQ0NzYxOTQ3OTAxMiJ9.GZXG1VHv87Qf5qk2di3gq7zJqqzY0wscdrQ0o9j86ZGf1w3_Tckb57XrrrkwGmgNSBAvPqf0SJNtGiXA41lZ8w # UnexpiredJWT!`)
+
+		store, err := NewStore(withSpecsFile(".env.example", expired, true), WithEnvFile(".env", expired))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+
+		assert.EqualValues(t, []*SetVarError{}, snapshot[0].Errors)
+	})
+	t.Run("Expired", func(t *testing.T) {
+		expired := []byte(`AUTH_TOKEN=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly91cy1jZW50cmFsMS5zdGF0ZWZ1bC5jb20vIiwiaHR0cHM6Ly9zdGF0ZWZ1bC1pbmMudXMuYXV0aDAuY29tL3VzZXJpbmZvIl0sImF6cCI6ImdvLXRlc3QiLCJleHAiOjE3MDI1NDg3MDEsImh0dHBzOi8vdXMtY2VudHJhbDEuc3RhdGVmdWwuY29tL2FwcF9tZXRhZGF0YSI6eyJ1c2VySWQiOiI0M2ZlNjc5Yy0zYTdmLTQ0NjUtYTU2Ni03NzEyMGQzOTA2MDcifSwiaWF0IjoxNzIyNTQ4NzAxLCJpc3MiOiJodHRwczovL2lkZW50aXR5LnN0YXRlZnVsLmNvbS8iLCJqdGkiOiI2ZTAxYzM1NGJlOTY2ZjZlYjI5ZTAyOWQ3ZjczMzIzYWE2N2VmNzViNThhOGQwOTY0YzBhYTM5NDRlYTY2YWZlIiwibmJmIjoxNzI5NjExNjUzLCJwZXJtaXNzaW9ucyI6W10sInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJzdWIiOiJnb29nbGUtZmF1eC1vYXV0aDJ8OTkxOTQ0NzYxOTQ3OTAxMiJ9.14g3Aeni-pZJZOihP5JeSuyVHLKHG4lA2bI1wMl-XgexFZdSE7VTbCGiUPSJu4dvU0z603u4fxioZ3TdEMvIzQ # UnexpiredJWT!`)
+
+		store, err := NewStore(withSpecsFile(".env.example", expired, true), WithEnvFile(".env", expired))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+
+		assert.EqualValues(t, []*SetVarError{{Code: int(ValidateErrorJwtFailed), Message: `Error 3: The value of variable "AUTH_TOKEN" failed JWT validation (exp claim expired) required by "UnexpiredJWT->TOKEN" declared in ".env.example"`}}, snapshot[0].Errors)
+	})
+
+	t.Run("Malformed", func(t *testing.T) {
+		expired := []byte(`AUTH_TOKEN=this.is-not.a-jwt # UnexpiredJWT!`)
+
+		store, err := NewStore(withSpecsFile(".env.example", expired, true), WithEnvFile(".env", expired))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+
+		assert.EqualValues(t, []*SetVarError{{Code: int(ValidateErrorJwtFailed), Message: `Error 3: The value of variable "AUTH_TOKEN" failed JWT validation (illegal base64 data at input byte 4) required by "UnexpiredJWT->TOKEN" declared in ".env.example"`}}, snapshot[0].Errors)
+	})
+}
+
+func TestStore_Specs(t *testing.T) {
 	t.Run("Auth0", func(t *testing.T) {
 		fake := []byte(`AUTH0_DOMAIN=stateful-staging.us.auth0.com # Auth0
 			AUTH0_CLIENT_ID=WVKBKL2b8asAb8e3gRGDK0tGlTGQjkEV # Auth0
@@ -90,7 +130,7 @@ func Test_Store_Specs(t *testing.T) {
 	})
 }
 
-func Test_Store_ComplexSpecs(t *testing.T) {
+func TestStore_ComplexSpecs(t *testing.T) {
 	fakeNS := []byte(`GOPATH=/Users/sourishkrout/go
 	INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Secret!
 	PGPASS=secret-fake-password # Password!
@@ -148,7 +188,7 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 	})
 }
 
-func Test_Store_ComplexWithTagValidation(t *testing.T) {
+func TestStore_ComplexWithTagValidation(t *testing.T) {
 	t.Run("Invalid env values", func(t *testing.T) {
 		fake := []byte(`GOPATH=/Users/sourishkrout/go
 	INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Secret!
@@ -179,7 +219,7 @@ func Test_Store_ComplexWithTagValidation(t *testing.T) {
 	})
 }
 
-func Test_Store_ComplexWithDbUrlValidation(t *testing.T) {
+func TestStore_ComplexWithDbUrlValidation(t *testing.T) {
 	t.Run("Valid", func(t *testing.T) {
 		fake := []byte(`GOPATH=/Users/sourishkrout/go
 	DATABASE_URL=postgres://platform:platform@localhost:5432/platform # DatabaseUrl`)

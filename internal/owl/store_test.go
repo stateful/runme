@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_OperationSet(t *testing.T) {
+func TestOperationSet(t *testing.T) {
 	t.Parallel()
 
 	t.Run("withOperation", func(t *testing.T) {
@@ -31,7 +31,7 @@ func Test_OperationSet(t *testing.T) {
 }
 
 // this suite is guarding against dotenv impl idiosyncrasies
-func Test_OperationSet_Valueless(t *testing.T) {
+func TestOperationSet_Valueless(t *testing.T) {
 	// interestingly dotenv impl return a value keyless
 	t.Run("Naked spec parse valueless", func(t *testing.T) {
 		naked := []string{"FOO"}
