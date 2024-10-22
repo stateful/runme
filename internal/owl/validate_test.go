@@ -3,11 +3,29 @@
 package owl
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_Store_Fixture(t *testing.T) {
+	specs, err := os.ReadFile("testdata/validate/.env.example")
+	require.NoError(t, err)
+	values, err := os.ReadFile("testdata/validate/.env")
+	require.NoError(t, err)
+
+	store, err := NewStore(withSpecsFile(".env.example", specs, true), WithEnvFile(".env", values))
+	require.NoError(t, err)
+
+	snapshot, err := store.Snapshot()
+	require.NoError(t, err)
+
+	for _, item := range snapshot {
+		assert.EqualValues(t, []*SetVarError{}, item.Errors)
+	}
+}
 
 func Test_Store_Specs(t *testing.T) {
 	t.Run("Auth0", func(t *testing.T) {
