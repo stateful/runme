@@ -254,6 +254,79 @@ func DatabaseValidator(item *varSpec, itemKey string, varItem *SetVarItem) (Vali
 }
 
 var ComplexDefTypes = map[string]*ComplexDef{
+	"Auth0": {
+		Name:    "Auth0",
+		Breaker: "AUTH0",
+		Items: map[string]*varSpec{
+			"AUDIENCE": {
+				Name:     SpecNamePlain,
+				Rules:    "url",
+				Required: true,
+			},
+			"CLIENT_ID": {
+				Name:     SpecNamePlain,
+				Rules:    "alphanum,min=32,max=32",
+				Required: true,
+			},
+			"DOMAIN": {
+				Name:     SpecNamePlain,
+				Rules:    "fqdn",
+				Required: true,
+			},
+		},
+		Validator: TagValidator,
+	},
+	"Auth0Mgmt": {
+		Name:    "Auth0Mgmt",
+		Breaker: "AUTH0_MANAGEMENT",
+		Items: map[string]*varSpec{
+			"CLIENT_ID": {
+				Name:     SpecNamePlain,
+				Rules:    "alphanum,min=32,max=32",
+				Required: true,
+			},
+			"CLIENT_SECRET": {
+				Name:     SpecNameSecret,
+				Rules:    "ascii,min=64,max=64",
+				Required: true,
+			},
+			"AUDIENCE": {
+				Name:     SpecNamePlain,
+				Rules:    "url",
+				Required: true,
+			},
+		},
+		Validator: TagValidator,
+	},
+	"DatabaseUrl": {
+		Name:    "DatabaseUrl",
+		Breaker: "DATABASE",
+		Items: map[string]*varSpec{
+			"URL": {
+				Name:     SpecNameSecret,
+				Rules:    "url",
+				Required: true,
+			},
+		},
+		Validator: DatabaseValidator,
+	},
+	"OpenAI": {
+		Name:    "OpenAI",
+		Breaker: "OPENAI",
+		Items: map[string]*varSpec{
+			"ORG_ID": {
+				Name:     SpecNamePlain,
+				Rules:    "ascii,min=28,max=28,startswith=org-",
+				Required: true,
+			},
+			"API_KEY": {
+				Name:     SpecNameSecret,
+				Rules:    "ascii,min=34,startswith=sk-",
+				Required: true,
+			},
+		},
+		Validator: TagValidator,
+	},
 	"Redis": {
 		Name:    "Redis",
 		Breaker: "REDIS",
@@ -275,30 +348,6 @@ var ComplexDefTypes = map[string]*ComplexDef{
 			},
 		},
 		Validator: TagValidator,
-	},
-	"Postgres": {
-		Name:    "Postgres",
-		Breaker: "POSTGRES",
-		Items: map[string]*varSpec{
-			"HOST": {
-				Name:     SpecNamePlain,
-				Rules:    "required,ip|hostname",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"DatabaseUrl": {
-		Name:    "DatabaseUrl",
-		Breaker: "DATABASE",
-		Items: map[string]*varSpec{
-			"URL": {
-				Name:     SpecNameSecret,
-				Rules:    "url",
-				Required: true,
-			},
-		},
-		Validator: DatabaseValidator,
 	},
 }
 

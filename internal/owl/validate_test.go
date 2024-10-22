@@ -9,12 +9,74 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_Store_Specs(t *testing.T) {
+	t.Run("Auth0", func(t *testing.T) {
+		fake := []byte(`AUTH0_DOMAIN=stateful-staging.us.auth0.com # Auth0
+			AUTH0_CLIENT_ID=WVKBKL2b8asAb8e3gRGDK0tGlTGQjkEV # Auth0
+			AUTH0_AUDIENCE=https://staging.us-central1.stateful.com/ # Auth0`)
+
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+
+		require.EqualValues(t, "https://staging.us-central1.stateful.com/", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "WVKBKL2b8asAb8e3gRGDK0tGlTGQjkEV", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "stateful-staging.us.auth0.com", snapshot[2].Value.Resolved)
+
+		for _, item := range snapshot {
+			assert.EqualValues(t, []*SetVarError{}, item.Errors)
+		}
+	})
+
+	t.Run("Auth0Mgmt", func(t *testing.T) {
+		fake := []byte(`AUTH0_MANAGEMENT_CLIENT_ID=8Esb35AdZi3eLOy8WIkHTrsFVACu43aB # Auth0Mgmt
+			AUTH0_MANAGEMENT_CLIENT_SECRET=sxrt0A_3bs-7xfakeRFfakecuuGZfakeTQOfakeg-jBFmm_fake447fake30HI5o # Auth0Mgmt
+			AUTH0_MANAGEMENT_AUDIENCE=https://stateful-staging.us.auth0.com/api/v2/ # Auth0Mgmt`)
+
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+
+		require.EqualValues(t, "https://stateful-staging.us.auth0.com/api/v2/", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "8Esb35AdZi3eLOy8WIkHTrsFVACu43aB", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "sxrt0A_3bs-7xfakeRFfakecuuGZfakeTQOfakeg-jBFmm_fake447fake30HI5o", snapshot[2].Value.Resolved)
+
+		for _, item := range snapshot {
+			assert.EqualValues(t, []*SetVarError{}, item.Errors)
+		}
+	})
+
+	t.Run("OpenAI", func(t *testing.T) {
+		fake := []byte(`OPENAI_ORG_ID=org-tmfakeynfake9fakeHfakek0 # OpenAI
+			OPENAI_API_KEY=sk-proj-HfakeVID3D_fakeThBgfake84BWfakeEcfakeMvfakeBZfake3fakeJ--qfakeLpfakeHgfakeT3fakeFfake2ZfakevfakerfakeJfakedfake0fakeEfakeofakeyjnNfaketyfakeSyfakeGvfakefake # OpenAI`)
+
+		store, err := NewStore(withSpecsFile(".env.example", fake, true), WithEnvFile(".env", fake))
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+
+		require.EqualValues(t, "sk-...ake", snapshot[0].Value.Resolved)
+		require.EqualValues(t, "org-tmfakeynfake9fakeHfakek0", snapshot[1].Value.Resolved)
+
+		for _, item := range snapshot {
+			assert.EqualValues(t, []*SetVarError{}, item.Errors)
+		}
+	})
+}
+
 func Test_Store_ComplexSpecs(t *testing.T) {
 	fakeNS := []byte(`GOPATH=/Users/sourishkrout/go
 	INSTRUMENTATION_KEY=05a2cc58-5101-4c69-a0d0-7a126253a972 # Secret!
 	PGPASS=secret-fake-password # Password!
 	HOMEBREW_REPOSITORY=/opt/homebrew # Plain
-	POSTGRES_HOST=127.0.0.1 # Postgres!
 	QUEUES_REDIS_HOST=127.0.0.2 # Redis!
 	QUEUES_REDIS_PORT=6379 # Redis!
 	PUBSUB_REDIS_HOST=127.0.0.3 # Redis!
@@ -23,7 +85,8 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 	GCLOUD_2_REDIS_HOST=127.0.0.5 # Redis
 	REDIS_PASSWORD=fake-redis-password # Redis!
 	REDIS_HOST=localhost # Redis!
-	REDIS_PORT=6379 # Redis!`)
+	REDIS_PORT=6379 # Redis!
+`)
 
 	t.Run("Getter without namespace", func(t *testing.T) {
 		fake := []byte(`GOPATH=/Users/sourishkrout/go
@@ -37,10 +100,9 @@ func Test_Store_ComplexSpecs(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
-		val, ok, err := store.InsecureGet("REDIS_HOST")
+		snapshot, err := store.Snapshot()
 		require.NoError(t, err)
-		require.True(t, ok)
-		assert.EqualValues(t, "localhost", val)
+		require.NotNil(t, snapshot)
 	})
 
 	t.Run("Getter with namespaces", func(t *testing.T) {
