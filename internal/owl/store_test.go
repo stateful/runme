@@ -606,3 +606,21 @@ func TestStore_Get(t *testing.T) {
 	require.True(t, ok)
 	assert.EqualValues(t, "secret-fake-password", val)
 }
+
+func TestStore_Resolve(t *testing.T) {
+	content, err := os.ReadFile("testdata/resolve/.env.example")
+	require.NoError(t, err)
+
+	store, err := NewStore(WithSpecFile(".env.example", content))
+	require.NoError(t, err)
+
+	snapshot, err := store.Snapshot()
+	require.NoError(t, err)
+
+	errors := 0
+	for _, item := range snapshot {
+		errors += len(item.Errors)
+	}
+
+	require.Equal(t, 9, errors)
+}

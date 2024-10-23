@@ -3,11 +3,12 @@ package owl
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
+	exprlang "github.com/expr-lang/expr"
 	"github.com/graphql-go/graphql"
+	"github.com/pkg/errors"
 )
 
 // Constants representing different spec names.
@@ -34,6 +35,7 @@ var (
 
 var EnvironmentType,
 	ValidateType,
+	ResolveType,
 	RenderType,
 	SpecTypeErrorsType *graphql.Object
 
@@ -248,6 +250,7 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 
 			spec.Spec.Complex = complexName
 			spec.Spec.Namespace = complexNs
+			spec.Spec.Checked = true
 
 			// skip if last known status was DELETED
 			if valOk && val.Value.Status == "DELETED" {
@@ -272,9 +275,6 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 			}
 
 			mutator(val, spec, insecure)
-			if specOk {
-				spec.Spec.Checked = true
-			}
 		}
 
 		return p.Source, nil
@@ -706,6 +706,84 @@ func init() {
 		}),
 	})
 
+	ResolveType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "ResolveType",
+		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
+			fields := graphql.Fields{
+				"transform": &graphql.Field{
+					Type: ResolveType,
+					Args: graphql.FieldConfigArgument{
+						"expr": &graphql.ArgumentConfig{
+							Type: graphql.NewNonNull(graphql.String),
+						},
+					},
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						var opSet *OperationSet
+
+						switch p.Source.(type) {
+						case *OperationSet:
+							opSet = p.Source.(*OperationSet)
+						case *ComplexOperationSet:
+							opSet = p.Source.(*ComplexOperationSet).OperationSet
+						default:
+							return nil, errors.New("source does not contain an OperationSet")
+						}
+
+						expr, ok := p.Args["expr"].(string)
+						if !ok {
+							return nil, errors.New("transform without expr")
+						}
+
+						for _, v := range opSet.values {
+							if v.Value.Status != "UNRESOLVED" {
+								continue
+							}
+
+							env := map[string]string{"key": v.Var.Key}
+
+							program, err := exprlang.Compile(expr, exprlang.Env(env))
+							if err != nil {
+								return nil, errors.Wrap(err, "failed to compile transform program")
+							}
+
+							output, err := exprlang.Run(program, env)
+							if err != nil {
+								return nil, errors.Wrap(err, "failed to run transform program")
+							}
+
+							r, ok := output.(string)
+							if !ok {
+								return nil, errors.New("transform output is not a string")
+							}
+
+							spec, ok := opSet.specs[v.Var.Key]
+							if !ok {
+								return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
+							}
+
+							specDef, ok := ComplexDefTypes[spec.Spec.Name]
+							if !ok {
+								_, _ = fmt.Println("transformed", spec.Spec.Name, v.Var.Key, "to", r)
+							} else {
+								_, _ = fmt.Println("transformed", specDef.Items[v.Var.Key], v.Var.Key, "to", r)
+							}
+
+						}
+
+						return p.Source, nil
+					},
+				},
+				"done": &graphql.Field{
+					Type: EnvironmentType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
+					},
+				},
+			}
+			return fields
+		}),
+	})
+
 	OperationType := &graphql.Field{
 		Type: graphql.NewObject(graphql.ObjectConfig{
 			Name: "VariableOperationType",
@@ -1020,6 +1098,12 @@ func init() {
 				},
 				"render": &graphql.Field{
 					Type: RenderType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
+					},
+				},
+				"resolve": &graphql.Field{
+					Type: ResolveType,
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						return p.Source, nil
 					},

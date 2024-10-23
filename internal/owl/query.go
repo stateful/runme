@@ -60,6 +60,12 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 			reduceSpecsAtomic("", nil),
 			reduceSepcsComplex(),
 			reduceWrapDone(),
+			reduceWrapResolve(),
+			reduceWrapDone(),
+			// reduceWrapValidate(),
+			// reduceSpecsAtomic("", nil),
+			// reduceSepcsComplex(),
+			// reduceWrapDone(),
 			reduceSnapshot(),
 		},
 	)
@@ -204,6 +210,38 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 	}
 
 	return nil
+}
+
+func reduceWrapResolve() QueryNodeReducer {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		resolveSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
+		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
+			Name: ast.NewName(&ast.Name{
+				Value: "resolve",
+			}),
+			SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+				Selections: []ast.Selection{
+					ast.NewField(&ast.Field{
+						Name: ast.NewName(&ast.Name{
+							Value: "transform",
+						}),
+						Arguments: []*ast.Argument{
+							ast.NewArgument(&ast.Argument{
+								Name: ast.NewName(&ast.Name{
+									Value: "expr",
+								}),
+								Value: ast.NewStringValue(&ast.StringValue{
+									Value: `key | trimPrefix("REDWOOD_ENV_") | lower()`,
+								}),
+							}),
+						},
+						SelectionSet: resolveSelSet,
+					}),
+				},
+			}),
+		}))
+		return resolveSelSet, nil
+	}
 }
 
 func reduceWrapValidate() QueryNodeReducer {
@@ -395,7 +433,17 @@ func reduceSensitive() QueryNodeReducer {
 							}),
 							ast.NewField(&ast.Field{
 								Name: ast.NewName(&ast.Name{
+									Value: "description",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
 									Value: "required",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "checked",
 								}),
 							}),
 						},
@@ -534,7 +582,17 @@ func reduceGetter() QueryNodeReducer {
 							}),
 							ast.NewField(&ast.Field{
 								Name: ast.NewName(&ast.Name{
+									Value: "description",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
 									Value: "required",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "checked",
 								}),
 							}),
 						},
@@ -691,6 +749,11 @@ func reduceSnapshot() QueryNodeReducer {
 							ast.NewField(&ast.Field{
 								Name: ast.NewName(&ast.Name{
 									Value: "required",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "checked",
 								}),
 							}),
 						},
@@ -1105,7 +1168,7 @@ func (s *Store) NewQuery(name string, varDefs []*ast.VariableDefinition, reducer
 	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
 		Operation: "query",
 		Name: ast.NewName(&ast.Name{
-			Value: fmt.Sprintf("ResolveOwl%s", name),
+			Value: fmt.Sprintf("Owl%s", name),
 		}),
 		Directives: []*ast.Directive{},
 		SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
