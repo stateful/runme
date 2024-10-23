@@ -79,7 +79,7 @@ func (e DatabaseUrlError) Key() string {
 }
 
 func (e DatabaseUrlError) SpecName() string {
-	return e.varItem.Spec.Name
+	return e.varItem.Spec.Complex
 }
 
 func (e DatabaseUrlError) Item() string {
@@ -153,7 +153,7 @@ func (e TagFailedError) Tag() string {
 }
 
 func (e TagFailedError) SpecName() string {
-	return e.varItem.Spec.Name
+	return e.varItem.Spec.Complex
 }
 
 func (e TagFailedError) Item() string {
@@ -174,6 +174,80 @@ func (e TagFailedError) Source() string {
 var (
 	_ ValidationError = new(TagFailedError)
 	_ error           = new(TagFailedError)
+)
+
+type JwtFailedError struct {
+	varItem *SetVarItem
+	code    ValidateErrorType
+	item    string
+	reason  string
+}
+
+func NewJwtFailedError(varItem *SetVarItem, item string, reason string) *JwtFailedError {
+	return &JwtFailedError{
+		varItem: varItem,
+		code:    ValidateErrorJwtFailed,
+		item:    item,
+		reason:  reason,
+	}
+}
+
+func (e JwtFailedError) VarItem() *SetVarItem {
+	return e.varItem
+}
+
+func (e JwtFailedError) Error() string {
+	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed JWT validation (%s) required by \"%s->%s\" declared in \"%s\"",
+		e.Code(),
+		e.Key(),
+		e.Reason(),
+		e.SpecName(),
+		e.Item(),
+		e.Source())
+}
+
+func (e JwtFailedError) Message() string {
+	return e.Error()
+}
+
+func (e JwtFailedError) String() string {
+	return e.Error()
+}
+
+func (e JwtFailedError) Code() ValidateErrorType {
+	return e.code
+}
+
+func (e JwtFailedError) Key() string {
+	return e.varItem.Var.Key
+}
+
+func (e JwtFailedError) Reason() string {
+	return e.reason
+}
+
+func (e JwtFailedError) SpecName() string {
+	return e.varItem.Spec.Complex
+}
+
+func (e JwtFailedError) Item() string {
+	return e.item
+}
+
+func (e JwtFailedError) Source() string {
+	if e.varItem.Spec.Operation == nil {
+		return "-"
+	}
+	if e.varItem.Spec.Operation.Source == "" {
+		return "-"
+	}
+	return e.varItem.Spec.Operation.Source
+}
+
+// make sure interfaces are satisfied
+var (
+	_ ValidationError = new(JwtFailedError)
+	_ error           = new(JwtFailedError)
 )
 
 const ComplexSpecType string = "Complex"
@@ -369,24 +443,14 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
 		}
 
-		val, ok := s.values[spec.Var.Key]
-		if !ok {
-			return nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
+		aspec, err := s.GetAtomicSpec(spec)
+		if err != nil {
+			return nil, err
 		}
 
-		varKeyParts := strings.Split(val.Var.Key, complexType.Breaker+"_")
-		if len(varKeyParts) < 2 {
-			return nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
-		}
-
-		complexItemKey := (varKeyParts[len(varKeyParts)-1])
 		verrs, err := complexType.Validate(
-			complexItemKey,
-			&SetVarItem{
-				Var:   val.Var,
-				Value: val.Value,
-				Spec:  spec.Spec,
-			})
+			aspec.Spec.Name,
+			aspec)
 		if err != nil {
 			return nil, err
 		}
@@ -394,4 +458,35 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 	}
 
 	return validationErrs, nil
+}
+
+func (s *ComplexOperationSet) GetAtomicSpec(spec *SetVarSpec) (*SetVarItem, error) {
+	complexType, ok := ComplexDefTypes[spec.Spec.Name]
+	if !ok {
+		return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
+	}
+
+	val, ok := s.values[spec.Var.Key]
+	if !ok {
+		return nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
+	}
+
+	varKeyParts := strings.Split(val.Var.Key, complexType.Breaker+"_")
+	if len(varKeyParts) < 2 {
+		return nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
+	}
+
+	itemKey := (varKeyParts[len(varKeyParts)-1])
+	itemNS := (varKeyParts[0])
+
+	aspec := *spec.Spec
+	aspec.Complex = aspec.Name
+	aspec.Name = itemKey
+	aspec.Namespace = itemNS
+
+	return &SetVarItem{
+		Var:   val.Var,
+		Value: val.Value,
+		Spec:  &aspec,
+	}, nil
 }
