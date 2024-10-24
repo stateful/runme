@@ -81,7 +81,10 @@ func testConnectivity(t *testing.T, addr string, creds credentials.TransportCred
 		)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		conn, err = grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
+		conn, err := grpc.NewClient(
+			addr,
+			grpc.WithTransportCredentials(creds),
+		)
 		if err != nil {
 			goto wait
 		}
