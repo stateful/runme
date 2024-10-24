@@ -216,6 +216,25 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 		opts = append(opts, owl.WithEnvs(envSource, envs...))
 	}
 
+	// resolverOwlStore, err := owl.NewStore(opts...)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// logger.Debug("Resolving env using remote backends")
+	// if snapshot, err := resolverOwlStore.InsecureResolve(); err == nil {
+	// 	resolved := []string{}
+	// 	for _, item := range snapshot {
+	// 		if item.Value.Status != "LITERAL" {
+	// 			continue
+	// 		}
+	// 		resolved = append(resolved, fmt.Sprintf("%s=%s", item.Var.Key, item.Value.Resolved))
+	// 	}
+	// 	opts = append(opts, owl.WithEnvs("[gcp secret mgr]", resolved...))
+	// } else {
+	// 	logger.Error("failed to resolve owl store", zap.Error(err))
+	// }
+
 	owlStore, err := owl.NewStore(opts...)
 	if err != nil {
 		return nil, err

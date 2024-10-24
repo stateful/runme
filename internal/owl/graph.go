@@ -8,8 +8,8 @@ import (
 	"log"
 	"strings"
 
-	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	sm "cloud.google.com/go/secretmanager/apiv1"
+	smpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	exprlang "github.com/expr-lang/expr"
 	"github.com/graphql-go/graphql"
 	"github.com/pkg/errors"
@@ -741,7 +741,7 @@ func init() {
 						}
 
 						ctx := context.Background()
-						smClient, err := secretmanager.NewClient(ctx)
+						smClient, err := sm.NewClient(ctx)
 						if err != nil {
 							log.Fatalf("failed to setup client: %v", err)
 						}
@@ -779,31 +779,39 @@ func init() {
 								return nil, err
 							}
 
-							status := strings.ToLower(aitem.Value.Status)
-							uri := fmt.Sprintf("projects/platform-staging-413816/secrets/%s", res)
-							if aitem.Spec.Name == SpecNameSecret || aitem.Spec.Name == SpecNamePassword {
-								_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key, "via", uri)
-							} else {
-								_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key)
+							if aitem.Spec.Name != SpecNameSecret && aitem.Spec.Name != SpecNamePassword {
+								v.Value.Status = "DELETED"
 								continue
 							}
 
-							// Build the request.
-							accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
+							uri := fmt.Sprintf("projects/platform-staging-413816/secrets/%s", res)
+							// status := strings.ToLower(aitem.Value.Status)
+							// if aitem.Spec.Name == SpecNameSecret || aitem.Spec.Name == SpecNamePassword {
+							// 	_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key, "via", uri)
+							// } else {
+							// 	_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key)
+							// 	continue
+							// }
+
+							accessRequest := &smpb.AccessSecretVersionRequest{
 								Name: fmt.Sprintf("%s/versions/latest", uri),
 							}
 
-							// Call the API.
 							result, err := smClient.AccessSecretVersion(ctx, accessRequest)
 							if err != nil {
 								return nil, errors.Errorf("failed to access secret version: %v", err)
 							}
 
-							v.Value.Original = string(result.Payload.Data)
-							spec.Spec.Checked = false
+							if err := opSet.resolveValue(v.Var.Key, string(result.Payload.Data)); err != nil {
+								return nil, err
+							}
 						}
 
-						return p.Source, nil
+						if complexOpSet != nil {
+							return complexOpSet, nil
+						}
+
+						return opSet, nil
 					},
 				},
 				"done": &graphql.Field{

@@ -423,6 +423,28 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		},
 		Validator: TagValidator,
 	},
+	"Slack": {
+		Name:    "Slack",
+		Breaker: "SLACK",
+		Items: map[string]*varSpec{
+			"CLIENT_ID": {
+				Name:     SpecNamePlain,
+				Rules:    "min=24,max=24",
+				Required: true,
+			},
+			"CLIENT_SECRET": {
+				Name:     SpecNameSecret,
+				Rules:    "min=32,max=32",
+				Required: true,
+			},
+			"REDIRECT_URL": {
+				Name:     SpecNameSecret,
+				Rules:    "url",
+				Required: true,
+			},
+		},
+		Validator: TagValidator,
+	},
 }
 
 func (s *ComplexOperationSet) validate() (ValidationErrors, error) {

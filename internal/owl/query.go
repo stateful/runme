@@ -16,7 +16,7 @@ import (
 
 type QueryNodeReducer func([]*OperationSet, *ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
-func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
+func (s *Store) snapshotQuery(query, vars io.StringWriter, resolve bool) error {
 	varDefs := []*ast.VariableDefinition{
 		ast.NewVariableDefinition(&ast.VariableDefinition{
 			Variable: ast.NewVariable(&ast.Variable{
@@ -52,22 +52,34 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	}
 	s.logger.Debug("snapshot opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted), zap.Int("total", len(s.opSets)))
 
-	q, err := s.NewQuery("Snapshot", varDefs,
-		[]QueryNodeReducer{
-			reconcileAsymmetry(s),
-			reduceSetOperations(vars),
+	reducers := []QueryNodeReducer{
+		reconcileAsymmetry(s),
+		reduceSetOperations(vars),
+		reduceWrapValidate(),
+		reduceSpecsAtomic("", nil),
+		reduceSepcsComplex(),
+		reduceWrapDone(),
+	}
+
+	if resolve {
+		reducers = append(reducers, []QueryNodeReducer{
+			reduceWrapResolve(),
+			reduceWrapDone(),
 			reduceWrapValidate(),
 			reduceSpecsAtomic("", nil),
 			reduceSepcsComplex(),
 			reduceWrapDone(),
-			// reduceWrapResolve(),
-			// reduceWrapDone(),
-			// reduceWrapValidate(),
-			// reduceSpecsAtomic("", nil),
-			// reduceSepcsComplex(),
-			// reduceWrapDone(),
-			reduceSnapshot(),
-		},
+		}...)
+	}
+
+	reducers = append(reducers, reduceSnapshot())
+
+	queryName := "Snapshot"
+	if resolve {
+		queryName = "Resolve"
+	}
+	q, err := s.NewQuery(queryName, varDefs,
+		reducers,
 	)
 	if err != nil {
 		return err
@@ -231,7 +243,7 @@ func reduceWrapResolve() QueryNodeReducer {
 									Value: "expr",
 								}),
 								Value: ast.NewStringValue(&ast.StringValue{
-									Value: `key | trimPrefix("REDWOOD_ENV_") | lower()`,
+									Value: `key | trimPrefix("REDWOOD_ENV_") | replace("SLACK_REDIRECT_URL", "SLACK_REDIRECT") | lower()`,
 								}),
 							}),
 						},
