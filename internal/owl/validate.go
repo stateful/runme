@@ -443,14 +443,14 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
 		}
 
-		aspec, err := s.GetAtomicSpec(spec)
+		akey, aitem, err := s.GetAtomicItem(spec)
 		if err != nil {
 			return nil, err
 		}
 
 		verrs, err := complexType.Validate(
-			aspec.Spec.Name,
-			aspec)
+			akey,
+			aitem)
 		if err != nil {
 			return nil, err
 		}
@@ -460,31 +460,37 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 	return validationErrs, nil
 }
 
-func (s *ComplexOperationSet) GetAtomicSpec(spec *SetVarSpec) (*SetVarItem, error) {
-	complexType, ok := ComplexDefTypes[spec.Spec.Name]
-	if !ok {
-		return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
-	}
-
+func (s *ComplexOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarItem, error) {
 	val, ok := s.values[spec.Var.Key]
 	if !ok {
-		return nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
+		return "", nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
+	}
+
+	complexType, ok := ComplexDefTypes[spec.Spec.Name]
+	if !ok {
+		return spec.Var.Key, &SetVarItem{
+			Var:   spec.Var,
+			Value: val.Value,
+			Spec:  spec.Spec,
+		}, nil
 	}
 
 	varKeyParts := strings.Split(val.Var.Key, complexType.Breaker+"_")
 	if len(varKeyParts) < 2 {
-		return nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
+		return "", nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
 	}
 
-	itemKey := (varKeyParts[len(varKeyParts)-1])
-	itemNS := (varKeyParts[0])
+	varKey := (varKeyParts[len(varKeyParts)-1])
+	varNS := (varKeyParts[0])
+
+	item := complexType.Items[varKey]
 
 	aspec := *spec.Spec
 	aspec.Complex = aspec.Name
-	aspec.Name = itemKey
-	aspec.Namespace = itemNS
+	aspec.Name = item.Name
+	aspec.Namespace = varNS
 
-	return &SetVarItem{
+	return varKey, &SetVarItem{
 		Var:   val.Var,
 		Value: val.Value,
 		Spec:  &aspec,

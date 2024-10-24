@@ -2,10 +2,14 @@ package owl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	exprlang "github.com/expr-lang/expr"
 	"github.com/graphql-go/graphql"
 	"github.com/pkg/errors"
@@ -719,12 +723,14 @@ func init() {
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						var opSet *OperationSet
+						var complexOpSet *ComplexOperationSet
 
 						switch p.Source.(type) {
 						case *OperationSet:
 							opSet = p.Source.(*OperationSet)
 						case *ComplexOperationSet:
-							opSet = p.Source.(*ComplexOperationSet).OperationSet
+							complexOpSet = p.Source.(*ComplexOperationSet)
+							opSet = complexOpSet.OperationSet
 						default:
 							return nil, errors.New("source does not contain an OperationSet")
 						}
@@ -733,6 +739,13 @@ func init() {
 						if !ok {
 							return nil, errors.New("transform without expr")
 						}
+
+						ctx := context.Background()
+						smClient, err := secretmanager.NewClient(ctx)
+						if err != nil {
+							log.Fatalf("failed to setup client: %v", err)
+						}
+						defer smClient.Close()
 
 						for _, v := range opSet.values {
 							if v.Value.Status != "UNRESOLVED" {
@@ -751,7 +764,7 @@ func init() {
 								return nil, errors.Wrap(err, "failed to run transform program")
 							}
 
-							r, ok := output.(string)
+							res, ok := output.(string)
 							if !ok {
 								return nil, errors.New("transform output is not a string")
 							}
@@ -761,13 +774,33 @@ func init() {
 								return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
 							}
 
-							specDef, ok := ComplexDefTypes[spec.Spec.Name]
-							if !ok {
-								_, _ = fmt.Println("transformed", spec.Spec.Name, v.Var.Key, "to", r)
-							} else {
-								_, _ = fmt.Println("transformed", specDef.Items[v.Var.Key], v.Var.Key, "to", r)
+							_, aitem, err := complexOpSet.GetAtomicItem(spec)
+							if err != nil {
+								return nil, err
 							}
 
+							status := strings.ToLower(aitem.Value.Status)
+							uri := fmt.Sprintf("projects/platform-staging-413816/secrets/%s", res)
+							if aitem.Spec.Name == SpecNameSecret || aitem.Spec.Name == SpecNamePassword {
+								_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key, "via", uri)
+							} else {
+								_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key)
+								continue
+							}
+
+							// Build the request.
+							accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
+								Name: fmt.Sprintf("%s/versions/latest", uri),
+							}
+
+							// Call the API.
+							result, err := smClient.AccessSecretVersion(ctx, accessRequest)
+							if err != nil {
+								return nil, errors.Errorf("failed to access secret version: %v", err)
+							}
+
+							v.Value.Original = string(result.Payload.Data)
+							spec.Spec.Checked = false
 						}
 
 						return p.Source, nil
