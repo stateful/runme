@@ -1,4 +1,4 @@
-FROM golang:1.22-bookworm
+FROM golang:1.23-bookworm
 
 LABEL org.opencontainers.image.authors="StatefulHQ <mail@stateful.com>"
 LABEL org.opencontainers.image.source="https://github.com/stateful/runme"
