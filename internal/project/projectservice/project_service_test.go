@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
@@ -21,6 +22,10 @@ import (
 	"github.com/stateful/runme/v3/pkg/project/teststub"
 	"github.com/stateful/runme/v3/pkg/project/testutils"
 )
+
+func init() {
+	resolver.SetDefaultScheme("passthrough")
+}
 
 func TestProjectServiceServer_Load(t *testing.T) {
 	t.Parallel()
@@ -153,12 +158,12 @@ func testCreateProjectServiceClient(
 	t *testing.T,
 	lis interface{ Dial() (net.Conn, error) },
 ) (*grpc.ClientConn, projectv1.ProjectServiceClient) {
-	conn, err := grpc.Dial(
-		"",
+	conn, err := grpc.NewClient(
+		"passthrough",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
 			return lis.Dial()
 		}),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
 	return conn, projectv1.NewProjectServiceClient(conn)

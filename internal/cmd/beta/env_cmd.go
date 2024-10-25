@@ -53,7 +53,10 @@ func envSourceCmd(cflags *commonFlags) *cobra.Command {
 			}
 
 			credentials := credentials.NewTLS(tlsConfig)
-			conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(credentials))
+			conn, err := grpc.NewClient(
+				serverAddr,
+				grpc.WithTransportCredentials(credentials),
+			)
 			if err != nil {
 				return errors.Wrap(err, "failed to connect")
 			}

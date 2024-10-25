@@ -19,6 +19,7 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/command"
@@ -30,6 +31,8 @@ import (
 
 func init() {
 	command.SetEnvDumpCommand("env -0")
+
+	resolver.SetDefaultScheme("passthrough")
 
 	// Server uses autoconfig to get necessary dependencies.
 	// One of them, implicit, is [config.Config]. With the default
@@ -1107,12 +1110,12 @@ func testCreateRunnerServiceClient(
 ) (*grpc.ClientConn, runnerv2.RunnerServiceClient) {
 	t.Helper()
 
-	conn, err := grpc.Dial(
-		"",
+	conn, err := grpc.NewClient(
+		"passthrough",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
 			return lis.Dial()
 		}),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
 

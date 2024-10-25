@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -79,7 +78,10 @@ func storeSnapshotCmd() *cobra.Command {
 			}
 
 			credentials := credentials.NewTLS(tlsConfig)
-			conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(credentials))
+			conn, err := grpc.NewClient(
+				serverAddr,
+				grpc.WithTransportCredentials(credentials),
+			)
 			if err != nil {
 				return errors.Wrap(err, "failed to connect")
 			}
@@ -90,7 +92,7 @@ func storeSnapshotCmd() *cobra.Command {
 			// todo(sebastian): this should move into API as part of v2
 			if strings.ToLower(sessionStrategy) == "recent" {
 				req := &runnerv1.ListSessionsRequest{}
-				resp, err := client.ListSessions(context.Background(), req)
+				resp, err := client.ListSessions(cmd.Context(), req)
 				if err != nil {
 					return err
 				}
@@ -105,7 +107,7 @@ func storeSnapshotCmd() *cobra.Command {
 			req := &runnerv1.MonitorEnvStoreRequest{
 				Session: &runnerv1.Session{Id: sessionID},
 			}
-			meClient, err := client.MonitorEnvStore(context.Background(), req)
+			meClient, err := client.MonitorEnvStore(cmd.Context(), req)
 			if err != nil {
 				return err
 			}

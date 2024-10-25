@@ -46,8 +46,10 @@ func run() error {
 	}
 
 	credentials := credentials.NewTLS(tlsConfig)
-
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(credentials))
+	conn, err := grpc.NewClient(
+		*addr,
+		grpc.WithTransportCredentials(credentials),
+	)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect")
 	}
