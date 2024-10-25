@@ -608,7 +608,7 @@ func TestStore_Get(t *testing.T) {
 }
 
 func TestStore_Resolve(t *testing.T) {
-	// t.Skip("since it requires GCP's secret manager")
+	t.Skip("since it requires GCP's secret manager")
 
 	content, err := os.ReadFile("testdata/resolve/.env.example")
 	require.NoError(t, err)

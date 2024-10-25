@@ -28,6 +28,7 @@ const (
 	ValidateErrorVarRequired ValidateErrorType = iota
 	ValidateErrorTagFailed
 	ValidateErrorDatabaseUrl
+	// ValidateErrorJwtFailed
 )
 
 type DatabaseUrlError struct {
@@ -176,79 +177,79 @@ var (
 	_ error           = new(TagFailedError)
 )
 
-type JwtFailedError struct {
-	varItem *SetVarItem
-	code    ValidateErrorType
-	item    string
-	reason  string
-}
+// type JwtFailedError struct {
+// 	varItem *SetVarItem
+// 	code    ValidateErrorType
+// 	item    string
+// 	reason  string
+// }
 
-func NewJwtFailedError(varItem *SetVarItem, item string, reason string) *JwtFailedError {
-	return &JwtFailedError{
-		varItem: varItem,
-		code:    ValidateErrorJwtFailed,
-		item:    item,
-		reason:  reason,
-	}
-}
+// func NewJwtFailedError(varItem *SetVarItem, item string, reason string) *JwtFailedError {
+// 	return &JwtFailedError{
+// 		varItem: varItem,
+// 		code:    ValidateErrorJwtFailed,
+// 		item:    item,
+// 		reason:  reason,
+// 	}
+// }
 
-func (e JwtFailedError) VarItem() *SetVarItem {
-	return e.varItem
-}
+// func (e JwtFailedError) VarItem() *SetVarItem {
+// 	return e.varItem
+// }
 
-func (e JwtFailedError) Error() string {
-	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed JWT validation (%s) required by \"%s->%s\" declared in \"%s\"",
-		e.Code(),
-		e.Key(),
-		e.Reason(),
-		e.SpecName(),
-		e.Item(),
-		e.Source())
-}
+// func (e JwtFailedError) Error() string {
+// 	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed JWT validation (%s) required by \"%s->%s\" declared in \"%s\"",
+// 		e.Code(),
+// 		e.Key(),
+// 		e.Reason(),
+// 		e.SpecName(),
+// 		e.Item(),
+// 		e.Source())
+// }
 
-func (e JwtFailedError) Message() string {
-	return e.Error()
-}
+// func (e JwtFailedError) Message() string {
+// 	return e.Error()
+// }
 
-func (e JwtFailedError) String() string {
-	return e.Error()
-}
+// func (e JwtFailedError) String() string {
+// 	return e.Error()
+// }
 
-func (e JwtFailedError) Code() ValidateErrorType {
-	return e.code
-}
+// func (e JwtFailedError) Code() ValidateErrorType {
+// 	return e.code
+// }
 
-func (e JwtFailedError) Key() string {
-	return e.varItem.Var.Key
-}
+// func (e JwtFailedError) Key() string {
+// 	return e.varItem.Var.Key
+// }
 
-func (e JwtFailedError) Reason() string {
-	return e.reason
-}
+// func (e JwtFailedError) Reason() string {
+// 	return e.reason
+// }
 
-func (e JwtFailedError) SpecName() string {
-	return e.varItem.Spec.Complex
-}
+// func (e JwtFailedError) SpecName() string {
+// 	return e.varItem.Spec.Complex
+// }
 
-func (e JwtFailedError) Item() string {
-	return e.item
-}
+// func (e JwtFailedError) Item() string {
+// 	return e.item
+// }
 
-func (e JwtFailedError) Source() string {
-	if e.varItem.Spec.Operation == nil {
-		return "-"
-	}
-	if e.varItem.Spec.Operation.Source == "" {
-		return "-"
-	}
-	return e.varItem.Spec.Operation.Source
-}
+// func (e JwtFailedError) Source() string {
+// 	if e.varItem.Spec.Operation == nil {
+// 		return "-"
+// 	}
+// 	if e.varItem.Spec.Operation.Source == "" {
+// 		return "-"
+// 	}
+// 	return e.varItem.Spec.Operation.Source
+// }
 
-// make sure interfaces are satisfied
-var (
-	_ ValidationError = new(JwtFailedError)
-	_ error           = new(JwtFailedError)
-)
+// // make sure interfaces are satisfied
+// var (
+// 	_ ValidationError = new(JwtFailedError)
+// 	_ error           = new(JwtFailedError)
+// )
 
 const ComplexSpecType string = "Complex"
 
