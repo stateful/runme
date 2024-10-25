@@ -53,7 +53,7 @@ func isServerHealthy(context context.Context, addr string, runnerOpts []RunnerOp
 		return false, err
 	}
 
-	conn, err := getGrpcConnection(context, addr, r)
+	conn, err := getGrpcConnection(addr, r)
 	if err != nil {
 		return false, nil
 	}
@@ -75,7 +75,7 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 		return nil, err
 	}
 
-	conn, err := getGrpcConnection(ctx, addr, r)
+	conn, err := getGrpcConnection(addr, r)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 	return r, nil
 }
 
-func getGrpcConnection(ctx context.Context, addr string, r *RemoteRunner) (*grpc.ClientConn, error) {
+func getGrpcConnection(addr string, r *RemoteRunner) (*grpc.ClientConn, error) {
 	var creds credentials.TransportCredentials
 
 	if r.insecure {
@@ -103,7 +103,10 @@ func getGrpcConnection(ctx context.Context, addr string, r *RemoteRunner) (*grpc
 		creds = credentials.NewTLS(tlsConfig)
 	}
 
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
+	conn, err := grpc.NewClient(
+		addr,
+		grpc.WithTransportCredentials(creds),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to gRPC server")
 	}

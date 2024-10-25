@@ -8,10 +8,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/resolver"
 
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project/teststub"
 )
+
+func init() {
+	resolver.SetDefaultScheme("passthrough")
+}
 
 // TODO(adamb): add a test case with project.
 func TestRunnerServiceSessions(t *testing.T) {

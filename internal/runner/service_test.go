@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
@@ -33,6 +34,10 @@ var (
 	logger  *zap.Logger
 	logFile string
 )
+
+func init() {
+	resolver.SetDefaultScheme("passthrough")
+}
 
 func testCreateLogger(t *testing.T) *zap.Logger {
 	logger, err := zap.NewDevelopment()
@@ -74,12 +79,12 @@ func testCreateRunnerServiceClient(
 	t *testing.T,
 	lis interface{ Dial() (net.Conn, error) },
 ) (*grpc.ClientConn, runnerv1.RunnerServiceClient) {
-	conn, err := grpc.Dial(
-		"",
+	conn, err := grpc.NewClient(
+		"passthrough",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
 			return lis.Dial()
 		}),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
 	return conn, runnerv1.NewRunnerServiceClient(conn)
