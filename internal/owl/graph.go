@@ -749,6 +749,7 @@ func init() {
 
 						for _, v := range opSet.values {
 							if v.Value.Status != "UNRESOLVED" {
+								v.Value.Status = "DELETED"
 								continue
 							}
 

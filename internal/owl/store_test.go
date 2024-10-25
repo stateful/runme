@@ -608,12 +608,15 @@ func TestStore_Get(t *testing.T) {
 }
 
 func TestStore_Resolve(t *testing.T) {
-	t.Skip("since it requires GCP's secret manager")
+	t.Skip("Skip since it requires GCP's secret manager")
 
-	content, err := os.ReadFile("testdata/resolve/.env.example")
+	rawSpecs, err := os.ReadFile("testdata/resolve/.env.example")
 	require.NoError(t, err)
 
-	store, err := NewStore(WithSpecFile(".env.example", content))
+	rawValues, err := os.ReadFile("testdata/resolve/.env.local")
+	require.NoError(t, err)
+
+	store, err := NewStore(WithSpecFile(".env.example", rawSpecs), WithEnvFile(".env.local", rawValues))
 	require.NoError(t, err)
 
 	snapshot, err := store.InsecureResolve()
