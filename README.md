@@ -2,7 +2,7 @@
 
 # Runme runs Markdown [![ci](https://github.com/stateful/runme/actions/workflows/ci.yml/badge.svg)](https://github.com/stateful/runme/actions/workflows/ci.yml) [![Join us on Discord](https://img.shields.io/discord/1102639988832735374?color=5b39df&label=Join%20us%20on%20Discord)](https://discord.gg/runme)
 
-> Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs (defaults to local `README.md`).
+> Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs. Read the [docs](https://docs.runme.dev).
 
 [Runme](https://runme.dev) is a tool that makes runbooks actually runnable, making it easier to follow step-by-step instructions. Shell/bash, Python, Ruby, Javascript/Typescript, Lua, PHP, Perl, and many other runtimes are supported via Runme's shebang feature. Runme allows users to execute instructions, check intermediate results, and ensure the desired outputs are achieved. This makes it an excellent solution for runbooks, playbooks, and documentation that requires users to complete runnable steps incrementally—making operational docs reliable and much less susceptible to bitrot.
 
