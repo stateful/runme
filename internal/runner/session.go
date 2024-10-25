@@ -230,7 +230,7 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	// 		}
 	// 		resolved = append(resolved, fmt.Sprintf("%s=%s", item.Var.Key, item.Value.Resolved))
 	// 	}
-	// 	opts = append(opts, owl.WithEnvs("[gcp-sm]", resolved...))
+	// 	opts = append(opts, owl.WithEnvs("[gcp:secrets]", resolved...))
 	// } else {
 	// 	logger.Error("failed to resolve owl store", zap.Error(err))
 	// }
