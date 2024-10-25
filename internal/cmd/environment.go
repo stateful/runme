@@ -263,10 +263,11 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 			value = "******"
 		}
 
-		table.AddField(env.GetName())
-		table.AddField(env.GetDescription())
 		strippedVal := strings.ReplaceAll(strings.ReplaceAll(value, "\n", " "), "\r", "")
+
+		table.AddField(env.GetName())
 		table.AddField(strippedVal)
+		table.AddField(env.GetDescription())
 		table.AddField(env.GetSpec())
 		table.AddField(env.GetOrigin())
 
