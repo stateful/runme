@@ -14,11 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-<<<<<<< HEAD
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/resolver"
-=======
->>>>>>> 112e2743 (Refactor creating test gRPC clients)
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -59,7 +54,6 @@ var (
 
 func TestMain(m *testing.M) {
 	ulid.MockGenerator(testMockID)
-	resolver.SetDefaultScheme("passthrough")
 
 	lis := bufconn.Listen(2048)
 	server := grpc.NewServer()

@@ -20,11 +20,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-<<<<<<< HEAD
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/resolver"
-=======
->>>>>>> 112e2743 (Refactor creating test gRPC clients)
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
@@ -34,16 +29,15 @@ import (
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
+// TODO(adamb): remove global state. It prevents from running tests in parallel.
 var (
 	logger  *zap.Logger
 	logFile string
 )
 
-func init() {
-	resolver.SetDefaultScheme("passthrough")
-}
-
+// TODO(adamb): remove and use [zaptest.NewLogger] instead.
 func testCreateLogger(t *testing.T) *zap.Logger {
+	t.Helper()
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = logger.Sync() })

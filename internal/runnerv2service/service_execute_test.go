@@ -18,11 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
-<<<<<<< HEAD
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/resolver"
-=======
->>>>>>> 112e2743 (Refactor creating test gRPC clients)
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/command"
@@ -35,8 +30,6 @@ import (
 
 func init() {
 	command.SetEnvDumpCommand("env -0")
-
-	resolver.SetDefaultScheme("passthrough")
 
 	// Server uses autoconfig to get necessary dependencies.
 	// One of them, implicit, is [config.Config]. With the default
@@ -1109,27 +1102,6 @@ func testStartRunnerServiceServer(t *testing.T) (
 	return lis, server.Stop
 }
 
-<<<<<<< HEAD
-func testCreateRunnerServiceClient(
-	t *testing.T,
-	lis interface{ Dial() (net.Conn, error) },
-) (*grpc.ClientConn, runnerv2.RunnerServiceClient) {
-	t.Helper()
-
-	conn, err := grpc.NewClient(
-		"passthrough",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
-			return lis.Dial()
-		}),
-	)
-	require.NoError(t, err)
-
-	return conn, runnerv2.NewRunnerServiceClient(conn)
-}
-
-=======
->>>>>>> 112e2743 (Refactor creating test gRPC clients)
 type executeResult struct {
 	Stdout   []byte
 	Stderr   []byte
