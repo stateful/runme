@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -341,6 +342,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 				},
 				Interactive: true,
 				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
+				Env:         []string{"TERM=xterm"},
 			},
 			CommandOptions{Stdout: stdout},
 		)
@@ -351,8 +353,8 @@ func TestCommand_SetWinsize(t *testing.T) {
 		err = SetWinsize(cmd, &Winsize{Rows: 45, Cols: 56, X: 0, Y: 0})
 		require.NoError(t, err)
 		err = cmd.Wait(context.Background())
-		require.NoError(t, err)
-		require.Equal(t, "56\r\n45\r\n", stdout.String())
+		assert.NoError(t, err)
+		assert.Equal(t, "56\r\n45\r\n", stdout.String())
 	})
 
 	t.Run("Terminal", func(t *testing.T) {

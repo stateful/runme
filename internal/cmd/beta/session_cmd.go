@@ -106,7 +106,7 @@ func executeDefaultShellProgram(
 		return nil, err
 	}
 
-	err = program.Wait()
+	err = program.Wait(ctx)
 	if err != nil {
 		return nil, err
 	}
