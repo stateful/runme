@@ -183,6 +183,7 @@ func getLogger(c *config.Config) (*zap.Logger, error) {
 
 func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) {
 	opts := []project.ProjectOption{
+		project.WithEnvFilesReadOrder(c.Project.Env.Sources),
 		project.WithLogger(logger),
 	}
 
@@ -200,7 +201,6 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 		opts,
 		project.WithIgnoreFilePatterns(c.Project.Ignore...),
 		project.WithRespectGitignore(!c.Project.DisableGitignore),
-		project.WithEnvFilesReadOrder(c.Project.Env.Sources),
 	)
 
 	if c.Project.FindRepoUpward {

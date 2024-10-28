@@ -110,6 +110,7 @@ Run all blocks from the "setup" and "teardown" tags:
 					} else {
 						session, err := session.New(
 							session.WithOwl(false),
+							session.WithProject(proj),
 							session.WithSeedEnv(nil),
 						)
 						if err != nil {
