@@ -136,7 +136,7 @@ func TestClient_ExecuteProgram(t *testing.T) {
 		require.NoError(t, err)
 		// Using [require.Contains] because on Linux the input is repeated.
 		// Unclear why it passes fine on macOS.
-		require.Contains(t, "test-input-interactive\r\n", stdout.String())
+		require.Contains(t, stdout.String(), "test-input-interactive\r\n")
 	})
 }
 
