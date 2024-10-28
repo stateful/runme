@@ -183,8 +183,11 @@ func getLogger(c *config.Config) (*zap.Logger, error) {
 
 func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) {
 	opts := []project.ProjectOption{
-		project.WithEnvFilesReadOrder(c.Project.Env.Sources),
 		project.WithLogger(logger),
+	}
+
+	if env := c.Project.Env; env != nil {
+		opts = append(opts, project.WithEnvFilesReadOrder(env.Sources))
 	}
 
 	if c.Project.Filename != "" {
