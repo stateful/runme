@@ -1223,7 +1223,7 @@ func (s *Store) NewQuery(name string, varDefs []*ast.VariableDefinition, reducer
 			Selections: []ast.Selection{
 				ast.NewField(&ast.Field{
 					Name: ast.NewName(&ast.Name{
-						Value: "environment",
+						Value: "Environment",
 					}),
 					Arguments:    []*ast.Argument{},
 					Directives:   []*ast.Directive{},

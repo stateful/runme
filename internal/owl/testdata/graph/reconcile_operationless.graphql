@@ -1,5 +1,5 @@
 query ResolveOwlSnapshot($insecure: Boolean = false, $load_0: [VariableInput]!, $load_1: [VariableInput]!, $load_2: [VariableInput]!, $reconcile_3: [VariableInput]!, $update_4: [VariableInput]!, $reconcile_6: [VariableInput]!) {
-  environment {
+  Environment {
     load(vars: $load_0, hasSpecs: false) {
       load(vars: $load_1, hasSpecs: true) {
         load(vars: $load_2, hasSpecs: false) {

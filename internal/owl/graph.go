@@ -1273,13 +1273,13 @@ func init() {
 			graphql.ObjectConfig{
 				Name: "Query",
 				Fields: graphql.Fields{
-					"environment": &graphql.Field{
+					"Environment": &graphql.Field{
 						Type: EnvironmentType,
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 							return p.Info.FieldName, nil
 						},
 					},
-					"atomics": &graphql.Field{
+					"Atomics": &graphql.Field{
 						Type: AtomicsListType,
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 							return p.Info.FieldName, nil

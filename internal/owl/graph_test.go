@@ -37,7 +37,7 @@ func TestQuerySpecs(t *testing.T) {
 	t.Run("query list of atomics", func(t *testing.T) {
 		result := graphql.Do(graphql.Params{
 			Schema:        Schema,
-			RequestString: `query { atomics { list { name } } }`,
+			RequestString: `query { Atomics { list { name } } }`,
 		})
 		require.False(t, result.HasErrors())
 
