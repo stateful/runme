@@ -859,7 +859,7 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 						Created: &created,
 					},
 					Spec: &varSpec{
-						Name:     SpecNameDefault,
+						Name:     AtomicNameDefault,
 						Required: false,
 						Checked:  false,
 					},
@@ -915,7 +915,7 @@ func reduceSpecsAtomic(ns string, parent *ComplexDef) QueryNodeReducer {
 					}
 				}
 
-				if _, ok := SpecTypes[s.Spec.Name]; !ok {
+				if _, ok := AtomicTypes[s.Spec.Name]; !ok {
 					// return nil, fmt.Errorf("unknown spec type: %s on %s", s.Spec.Name, s.Var.Key)
 					continue
 				}
@@ -1027,7 +1027,7 @@ func reduceSepcsComplex() QueryNodeReducer {
 				continue
 			}
 			for _, s := range opSet.specs {
-				if _, ok := SpecTypes[s.Spec.Name]; ok {
+				if _, ok := AtomicTypes[s.Spec.Name]; ok {
 					continue
 				}
 				varSpecs[s.Var.Key] = &SetVarItem{

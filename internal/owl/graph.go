@@ -18,14 +18,14 @@ import (
 // Constants representing different spec names.
 // These constants are of type SpecName and are assigned string values.
 const (
-	SpecNameOpaque   string = "Opaque"   // SpecNameOpaque specifies an opaque specification.
-	SpecNamePlain    string = "Plain"    // SpecNamePlain specifies a plain specification.
-	SpecNameSecret   string = "Secret"   // SpecNameSecret specifies a secret specification.
-	SpecNamePassword string = "Password" // SpecNamePassword specifies a password specification.
-	SpecNameDefault         = SpecNameOpaque
+	AtomicNameOpaque   string = "Opaque"   // SpecNameOpaque specifies an opaque specification.
+	AtomicNamePlain    string = "Plain"    // SpecNamePlain specifies a plain specification.
+	AtomicNameSecret   string = "Secret"   // SpecNameSecret specifies a secret specification.
+	AtomicNamePassword string = "Password" // SpecNamePassword specifies a password specification.
+	AtomicNameDefault         = AtomicNameOpaque
 )
 
-type specType struct {
+type atomicType struct {
 	typeName   string
 	typeObject *graphql.Object
 	resolveFn  graphql.FieldResolveFn
@@ -33,8 +33,8 @@ type specType struct {
 
 var (
 	Schema      graphql.Schema
-	SpecTypes   map[string]*specType
-	ComplexType *specType
+	AtomicTypes map[string]*atomicType
+	ComplexType *atomicType
 )
 
 var EnvironmentType,
@@ -44,8 +44,8 @@ var EnvironmentType,
 	SpecTypeErrorsType *graphql.Object
 
 // todo(sebastian): use gql interface?
-func registerSpecFields(fields graphql.Fields) {
-	for _, t := range SpecTypes {
+func registerAtomicFields(fields graphql.Fields) {
+	for _, t := range AtomicTypes {
 		fields[t.typeName] = &graphql.Field{
 			Type:    t.typeObject,
 			Resolve: t.resolveFn,
@@ -78,7 +78,7 @@ func registerSpecFields(fields graphql.Fields) {
 	}
 }
 
-func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResolveFn) *specType {
+func registerAtomic(name string, sensitive, mask bool, resolver graphql.FieldResolveFn) *atomicType {
 	typ := graphql.NewObject(graphql.ObjectConfig{
 		Name: fmt.Sprintf("SpecType%s", name),
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
@@ -141,20 +141,20 @@ func registerSpec(name string, sensitive, mask bool, resolver graphql.FieldResol
 				},
 			}
 
-			registerSpecFields(fields)
+			registerAtomicFields(fields)
 
 			return fields
 		}),
 	})
 
-	return &specType{
+	return &atomicType{
 		typeName:   name,
 		typeObject: typ,
 		resolveFn:  resolver,
 	}
 }
 
-func registerComplexType(resolver graphql.FieldResolveFn) *specType {
+func registerComplexType(resolver graphql.FieldResolveFn) *atomicType {
 	name := ComplexSpecType
 	typ := graphql.NewObject(graphql.ObjectConfig{
 		Name: fmt.Sprintf("SpecType%s", name),
@@ -206,22 +206,22 @@ func registerComplexType(resolver graphql.FieldResolveFn) *specType {
 				},
 			}
 
-			registerSpecFields(fields)
+			registerAtomicFields(fields)
 
 			return fields
 		}),
 	})
 
-	return &specType{
+	return &atomicType{
 		typeName:   name,
 		typeObject: typ,
 		resolveFn:  resolver,
 	}
 }
 
-type SpecResolverMutator func(val *SetVarValue, spec *SetVarSpec, insecure bool)
+type AtomicResolverMutator func(val *SetVarValue, spec *SetVarSpec, insecure bool)
 
-func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
+func atomicResolver(mutator AtomicResolverMutator) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		insecure := p.Args["insecure"].(bool)
 		keysArg := p.Args["keys"].([]interface{})
@@ -575,10 +575,10 @@ func mutateDelete(vars SetVarItems, resolverOpSet *OperationSet, _ bool) error {
 }
 
 func init() {
-	SpecTypes = make(map[string]*specType)
+	AtomicTypes = make(map[string]*atomicType)
 
-	SpecTypes[SpecNameSecret] = registerSpec(SpecNameSecret, true, true,
-		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
+	AtomicTypes[AtomicNameSecret] = registerAtomic(AtomicNameSecret, true, true,
+		atomicResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
 				original := val.Value.Original
 				val.Value.Resolved = original
@@ -596,8 +596,8 @@ func init() {
 		}),
 	)
 
-	SpecTypes[SpecNamePassword] = registerSpec(SpecNamePassword, true, true,
-		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
+	AtomicTypes[AtomicNamePassword] = registerAtomic(AtomicNamePassword, true, true,
+		atomicResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
 				original := val.Value.Original
 				val.Value.Resolved = original
@@ -611,8 +611,8 @@ func init() {
 			val.Value.Resolved = strings.Repeat("*", max(8, len(original)))
 		}),
 	)
-	SpecTypes[SpecNameOpaque] = registerSpec(SpecNameOpaque, true, false,
-		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
+	AtomicTypes[AtomicNameOpaque] = registerAtomic(AtomicNameOpaque, true, false,
+		atomicResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
 				original := val.Value.Original
 				val.Value.Resolved = original
@@ -624,8 +624,8 @@ func init() {
 			val.Value.Resolved = ""
 		}),
 	)
-	SpecTypes[SpecNamePlain] = registerSpec(SpecNamePlain, false, false,
-		specResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
+	AtomicTypes[AtomicNamePlain] = registerAtomic(AtomicNamePlain, false, false,
+		atomicResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
 				original := val.Value.Original
 				val.Value.Resolved = original
@@ -705,7 +705,7 @@ func init() {
 					Type: EnvironmentType,
 				},
 			}
-			registerSpecFields(fields)
+			registerAtomicFields(fields)
 			return fields
 		}),
 	})
@@ -780,7 +780,7 @@ func init() {
 								return nil, err
 							}
 
-							if aitem.Spec.Name != SpecNameSecret && aitem.Spec.Name != SpecNamePassword {
+							if aitem.Spec.Name != AtomicNameSecret && aitem.Spec.Name != AtomicNamePassword {
 								v.Value.Status = "DELETED"
 								continue
 							}
@@ -1176,7 +1176,7 @@ func init() {
 					})),
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						var keys []map[string]string
-						for k := range SpecTypes {
+						for k := range AtomicTypes {
 							keys = append(keys, map[string]string{"name": k})
 						}
 

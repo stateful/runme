@@ -334,17 +334,17 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		Breaker: "AUTH0",
 		Items: map[string]*varSpec{
 			"AUDIENCE": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "url",
 				Required: true,
 			},
 			"CLIENT_ID": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "alphanum,min=32,max=32",
 				Required: true,
 			},
 			"DOMAIN": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "fqdn",
 				Required: true,
 			},
@@ -356,17 +356,17 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		Breaker: "AUTH0_MANAGEMENT",
 		Items: map[string]*varSpec{
 			"CLIENT_ID": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "alphanum,min=32,max=32",
 				Required: true,
 			},
 			"CLIENT_SECRET": {
-				Name:     SpecNameSecret,
+				Name:     AtomicNameSecret,
 				Rules:    "ascii,min=64,max=64",
 				Required: true,
 			},
 			"AUDIENCE": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "url",
 				Required: true,
 			},
@@ -378,7 +378,7 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		Breaker: "DATABASE",
 		Items: map[string]*varSpec{
 			"URL": {
-				Name:     SpecNameSecret,
+				Name:     AtomicNameSecret,
 				Rules:    "url",
 				Required: true,
 			},
@@ -390,12 +390,12 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		Breaker: "OPENAI",
 		Items: map[string]*varSpec{
 			"ORG_ID": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "ascii,min=28,max=28,startswith=org-",
 				Required: true,
 			},
 			"API_KEY": {
-				Name:     SpecNameSecret,
+				Name:     AtomicNameSecret,
 				Rules:    "ascii,min=34,startswith=sk-",
 				Required: true,
 			},
@@ -407,17 +407,17 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		Breaker: "REDIS",
 		Items: map[string]*varSpec{
 			"HOST": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "ip|hostname",
 				Required: true,
 			},
 			"PORT": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "number",
 				Required: true,
 			},
 			"PASSWORD": {
-				Name:     SpecNamePassword,
+				Name:     AtomicNamePassword,
 				Rules:    "min=18,max=32",
 				Required: false,
 			},
@@ -429,17 +429,17 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		Breaker: "SLACK",
 		Items: map[string]*varSpec{
 			"CLIENT_ID": {
-				Name:     SpecNamePlain,
+				Name:     AtomicNamePlain,
 				Rules:    "min=24,max=24",
 				Required: true,
 			},
 			"CLIENT_SECRET": {
-				Name:     SpecNameSecret,
+				Name:     AtomicNameSecret,
 				Rules:    "min=32,max=32",
 				Required: true,
 			},
 			"REDIRECT_URL": {
-				Name:     SpecNameSecret,
+				Name:     AtomicNameSecret,
 				Rules:    "url",
 				Required: true,
 			},

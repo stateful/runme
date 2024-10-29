@@ -247,8 +247,8 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 			break
 		}
 
-		specless := msgData.Snapshot.Envs[0].Spec != owl.SpecNameOpaque
-		if !all && specless && env.Spec == owl.SpecNameOpaque {
+		specless := msgData.Snapshot.Envs[0].Spec != owl.AtomicNameOpaque
+		if !all && specless && env.Spec == owl.AtomicNameOpaque {
 			break
 		}
 
