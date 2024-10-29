@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func Test_Graph(t *testing.T) {
+func TestGraph(t *testing.T) {
 	t.Run("introspect schema", func(t *testing.T) {
 		result := graphql.Do(graphql.Params{
 			Schema:        Schema,
@@ -33,7 +33,7 @@ func Test_Graph(t *testing.T) {
 	})
 }
 
-func Test_QuerySpecs(t *testing.T) {
+func TestQuerySpecs(t *testing.T) {
 	t.Run("query list of specs", func(t *testing.T) {
 		result := graphql.Do(graphql.Params{
 			Schema:        Schema,
@@ -102,7 +102,7 @@ func (testCases fileTestCases) runAll(t *testing.T) {
 	}
 }
 
-func Test_ResolveEnv(t *testing.T) {
+func TestResolveEnv(t *testing.T) {
 	t.Parallel()
 
 	testCases := fileTestCases{
@@ -163,7 +163,7 @@ func Test_ResolveEnv(t *testing.T) {
 	testCases.runAll(t)
 }
 
-func Test_Graph_Update(t *testing.T) {
+func TestGraph_Update(t *testing.T) {
 	testCases := fileTestCases{
 		{
 			name: "Store update",
@@ -178,7 +178,7 @@ func Test_Graph_Update(t *testing.T) {
 	testCases.runAll(t)
 }
 
-func Test_Graph_Required(t *testing.T) {
+func TestGraph_Required(t *testing.T) {
 	testCases := fileTestCases{
 		{
 			name: "Validate simple env",
@@ -199,7 +199,7 @@ func Test_Graph_Required(t *testing.T) {
 	testCases.runAll(t)
 }
 
-func Test_Graph_Reconcile(t *testing.T) {
+func TestGraph_Reconcile(t *testing.T) {
 	testCases := fileTestCases{
 		{
 			name: "Reconcile operationless",
@@ -220,7 +220,7 @@ func Test_Graph_Reconcile(t *testing.T) {
 	testCases.runAll(t)
 }
 
-func Test_Graph_SensitiveKeys(t *testing.T) {
+func TestGraph_SensitiveKeys(t *testing.T) {
 	testCases := fileTestCases{
 		{
 			name: "Sensitive keys",
@@ -241,7 +241,7 @@ func Test_Graph_SensitiveKeys(t *testing.T) {
 	testCases.runAll(t)
 }
 
-func Test_Graph_Get(t *testing.T) {
+func TestGraph_Get(t *testing.T) {
 	testCases := fileTestCases{
 		{
 			name: "InsecureGet",
@@ -263,7 +263,7 @@ func Test_Graph_Get(t *testing.T) {
 	testCases.runAll(t)
 }
 
-func Test_Graph_DotEnv(t *testing.T) {
+func TestGraph_DotEnv(t *testing.T) {
 	testCases := fileTestCases{
 		{
 			name: "Without prefix",

@@ -2,12 +2,17 @@ package owl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"log"
 	"strings"
 
+	sm "cloud.google.com/go/secretmanager/apiv1"
+	smpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	exprlang "github.com/expr-lang/expr"
 	"github.com/graphql-go/graphql"
+	"github.com/pkg/errors"
 )
 
 // Constants representing different spec names.
@@ -34,6 +39,7 @@ var (
 
 var EnvironmentType,
 	ValidateType,
+	ResolveType,
 	RenderType,
 	SpecTypeErrorsType *graphql.Object
 
@@ -248,6 +254,7 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 
 			spec.Spec.Complex = complexName
 			spec.Spec.Namespace = complexNs
+			spec.Spec.Checked = true
 
 			// skip if last known status was DELETED
 			if valOk && val.Value.Status == "DELETED" {
@@ -272,9 +279,6 @@ func specResolver(mutator SpecResolverMutator) graphql.FieldResolveFn {
 			}
 
 			mutator(val, spec, insecure)
-			if specOk {
-				spec.Spec.Checked = true
-			}
 		}
 
 		return p.Source, nil
@@ -706,6 +710,122 @@ func init() {
 		}),
 	})
 
+	ResolveType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "ResolveType",
+		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
+			fields := graphql.Fields{
+				"transform": &graphql.Field{
+					Type: ResolveType,
+					Args: graphql.FieldConfigArgument{
+						"expr": &graphql.ArgumentConfig{
+							Type: graphql.NewNonNull(graphql.String),
+						},
+					},
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						var opSet *OperationSet
+						var complexOpSet *ComplexOperationSet
+
+						switch p.Source.(type) {
+						case *OperationSet:
+							opSet = p.Source.(*OperationSet)
+						case *ComplexOperationSet:
+							complexOpSet = p.Source.(*ComplexOperationSet)
+							opSet = complexOpSet.OperationSet
+						default:
+							return nil, errors.New("source does not contain an OperationSet")
+						}
+
+						expr, ok := p.Args["expr"].(string)
+						if !ok {
+							return nil, errors.New("transform without expr")
+						}
+
+						ctx := context.Background()
+						smClient, err := sm.NewClient(ctx)
+						if err != nil {
+							log.Fatalf("failed to setup client: %v", err)
+						}
+						defer smClient.Close()
+
+						for _, v := range opSet.values {
+							if v.Value.Status != "UNRESOLVED" {
+								v.Value.Status = "DELETED"
+								continue
+							}
+
+							env := map[string]string{"key": v.Var.Key}
+
+							program, err := exprlang.Compile(expr, exprlang.Env(env))
+							if err != nil {
+								return nil, errors.Wrap(err, "failed to compile transform program")
+							}
+
+							output, err := exprlang.Run(program, env)
+							if err != nil {
+								return nil, errors.Wrap(err, "failed to run transform program")
+							}
+
+							res, ok := output.(string)
+							if !ok {
+								return nil, errors.New("transform output is not a string")
+							}
+
+							spec, ok := opSet.specs[v.Var.Key]
+							if !ok {
+								return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
+							}
+
+							_, aitem, err := complexOpSet.GetAtomicItem(spec)
+							if err != nil {
+								return nil, err
+							}
+
+							if aitem.Spec.Name != SpecNameSecret && aitem.Spec.Name != SpecNamePassword {
+								v.Value.Status = "DELETED"
+								continue
+							}
+
+							uri := fmt.Sprintf("projects/platform-staging-413816/secrets/%s", res)
+							// status := strings.ToLower(aitem.Value.Status)
+							// if aitem.Spec.Name == SpecNameSecret || aitem.Spec.Name == SpecNamePassword {
+							// 	_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key, "via", uri)
+							// } else {
+							// 	_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key)
+							// 	continue
+							// }
+
+							accessRequest := &smpb.AccessSecretVersionRequest{
+								Name: fmt.Sprintf("%s/versions/latest", uri),
+							}
+
+							result, err := smClient.AccessSecretVersion(ctx, accessRequest)
+							if err != nil {
+								return nil, errors.Errorf("failed to access secret version: %v", err)
+							}
+
+							if err := opSet.resolveValue(v.Var.Key, string(result.Payload.Data)); err != nil {
+								return nil, err
+							}
+						}
+
+						if complexOpSet != nil {
+							return complexOpSet, nil
+						}
+
+						return opSet, nil
+					},
+				},
+				"done": &graphql.Field{
+					Type: EnvironmentType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
+					},
+				},
+			}
+			return fields
+		}),
+	})
+
 	OperationType := &graphql.Field{
 		Type: graphql.NewObject(graphql.ObjectConfig{
 			Name: "VariableOperationType",
@@ -1020,6 +1140,12 @@ func init() {
 				},
 				"render": &graphql.Field{
 					Type: RenderType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source, nil
+					},
+				},
+				"resolve": &graphql.Field{
+					Type: ResolveType,
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						return p.Source, nil
 					},

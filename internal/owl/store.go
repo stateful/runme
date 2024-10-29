@@ -22,11 +22,12 @@ import (
 type setOperationKind int
 
 const (
-	LoadSetOperation setOperationKind = iota
-	UpdateSetOperation
-	DeleteSetOperation
+	DeleteSetOperation setOperationKind = iota
+	LoadSetOperation
 	ReconcileSetOperation
+	ResolveSetOperation
 	TransientSetOperation
+	UpdateSetOperation
 )
 
 type Operation struct {
@@ -304,6 +305,27 @@ func (s *OperationSet) addRaw(raw []byte, source string, hasSpecs bool) error {
 	return nil
 }
 
+func (s *OperationSet) resolveValue(key, plainText string) error {
+	val, vok := s.values[key]
+	spec, sok := s.specs[key]
+	if !vok || !sok {
+		return fmt.Errorf("key %s not in opSet", key)
+	}
+
+	updated := time.Now()
+
+	// todo: pull this logic out of graph instead of duplicating it
+	val.Value.Original = plainText
+	val.Value.Resolved = plainText
+	val.Value.Status = "LITERAL"
+	spec.Spec.Checked = false
+	spec.Spec.Error = nil
+	spec.Spec.Operation = &setVarOperation{Kind: ResolveSetOperation}
+	val.Var.Updated = &updated
+
+	return nil
+}
+
 type Store struct {
 	mu     sync.RWMutex
 	opSets []*OperationSet
@@ -377,11 +399,24 @@ func (s *Store) Snapshot() (SetVarItems, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	items, err := s.snapshot(false)
+	items, err := s.snapshot(false, false)
 	if err != nil {
 		return nil, err
 	}
 
+	return items, nil
+}
+
+func (s *Store) InsecureResolve() (SetVarItems, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	items, err := s.snapshot(true, true)
+	if err != nil {
+		return nil, err
+	}
+
+	items.sortbyKey()
 	return items, nil
 }
 
@@ -450,7 +485,7 @@ func (s *Store) InsecureValues() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	items, err := s.snapshot(true)
+	items, err := s.snapshot(true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -590,9 +625,9 @@ func (s *Store) Update(context context.Context, newOrUpdated, deleted []string) 
 	return nil
 }
 
-func (s *Store) snapshot(insecure bool) (SetVarItems, error) {
+func (s *Store) snapshot(insecure, resolve bool) (SetVarItems, error) {
 	var query, vars bytes.Buffer
-	err := s.snapshotQuery(&query, &vars)
+	err := s.snapshotQuery(&query, &vars, resolve)
 	if err != nil {
 		return nil, err
 	}

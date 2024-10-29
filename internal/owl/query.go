@@ -16,7 +16,7 @@ import (
 
 type QueryNodeReducer func([]*OperationSet, *ast.OperationDefinition, *ast.SelectionSet) (*ast.SelectionSet, error)
 
-func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
+func (s *Store) snapshotQuery(query, vars io.StringWriter, resolve bool) error {
 	varDefs := []*ast.VariableDefinition{
 		ast.NewVariableDefinition(&ast.VariableDefinition{
 			Variable: ast.NewVariable(&ast.Variable{
@@ -52,16 +52,34 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter) error {
 	}
 	s.logger.Debug("snapshot opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted), zap.Int("total", len(s.opSets)))
 
-	q, err := s.NewQuery("Snapshot", varDefs,
-		[]QueryNodeReducer{
-			reconcileAsymmetry(s),
-			reduceSetOperations(vars),
+	reducers := []QueryNodeReducer{
+		reconcileAsymmetry(s),
+		reduceSetOperations(vars),
+		reduceWrapValidate(),
+		reduceSpecsAtomic("", nil),
+		reduceSepcsComplex(),
+		reduceWrapDone(),
+	}
+
+	if resolve {
+		reducers = append(reducers, []QueryNodeReducer{
+			reduceWrapResolve(),
+			reduceWrapDone(),
 			reduceWrapValidate(),
 			reduceSpecsAtomic("", nil),
 			reduceSepcsComplex(),
 			reduceWrapDone(),
-			reduceSnapshot(),
-		},
+		}...)
+	}
+
+	reducers = append(reducers, reduceSnapshot())
+
+	queryName := "Snapshot"
+	if resolve {
+		queryName = "Resolve"
+	}
+	q, err := s.NewQuery(queryName, varDefs,
+		reducers,
 	)
 	if err != nil {
 		return err
@@ -204,6 +222,38 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 	}
 
 	return nil
+}
+
+func reduceWrapResolve() QueryNodeReducer {
+	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+		resolveSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
+		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
+			Name: ast.NewName(&ast.Name{
+				Value: "resolve",
+			}),
+			SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+				Selections: []ast.Selection{
+					ast.NewField(&ast.Field{
+						Name: ast.NewName(&ast.Name{
+							Value: "transform",
+						}),
+						Arguments: []*ast.Argument{
+							ast.NewArgument(&ast.Argument{
+								Name: ast.NewName(&ast.Name{
+									Value: "expr",
+								}),
+								Value: ast.NewStringValue(&ast.StringValue{
+									Value: `key | trimPrefix("REDWOOD_ENV_") | replace("SLACK_REDIRECT_URL", "SLACK_REDIRECT") | lower()`,
+								}),
+							}),
+						},
+						SelectionSet: resolveSelSet,
+					}),
+				},
+			}),
+		}))
+		return resolveSelSet, nil
+	}
 }
 
 func reduceWrapValidate() QueryNodeReducer {
@@ -395,7 +445,17 @@ func reduceSensitive() QueryNodeReducer {
 							}),
 							ast.NewField(&ast.Field{
 								Name: ast.NewName(&ast.Name{
+									Value: "description",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
 									Value: "required",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "checked",
 								}),
 							}),
 						},
@@ -534,7 +594,17 @@ func reduceGetter() QueryNodeReducer {
 							}),
 							ast.NewField(&ast.Field{
 								Name: ast.NewName(&ast.Name{
+									Value: "description",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
 									Value: "required",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "checked",
 								}),
 							}),
 						},
@@ -691,6 +761,11 @@ func reduceSnapshot() QueryNodeReducer {
 							ast.NewField(&ast.Field{
 								Name: ast.NewName(&ast.Name{
 									Value: "required",
+								}),
+							}),
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "checked",
 								}),
 							}),
 						},
@@ -1105,7 +1180,7 @@ func (s *Store) NewQuery(name string, varDefs []*ast.VariableDefinition, reducer
 	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
 		Operation: "query",
 		Name: ast.NewName(&ast.Name{
-			Value: fmt.Sprintf("ResolveOwl%s", name),
+			Value: fmt.Sprintf("Owl%s", name),
 		}),
 		Directives: []*ast.Directive{},
 		SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{

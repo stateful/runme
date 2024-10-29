@@ -28,6 +28,7 @@ const (
 	ValidateErrorVarRequired ValidateErrorType = iota
 	ValidateErrorTagFailed
 	ValidateErrorDatabaseUrl
+	// ValidateErrorJwtFailed
 )
 
 type DatabaseUrlError struct {
@@ -79,7 +80,7 @@ func (e DatabaseUrlError) Key() string {
 }
 
 func (e DatabaseUrlError) SpecName() string {
-	return e.varItem.Spec.Name
+	return e.varItem.Spec.Complex
 }
 
 func (e DatabaseUrlError) Item() string {
@@ -153,7 +154,7 @@ func (e TagFailedError) Tag() string {
 }
 
 func (e TagFailedError) SpecName() string {
-	return e.varItem.Spec.Name
+	return e.varItem.Spec.Complex
 }
 
 func (e TagFailedError) Item() string {
@@ -175,6 +176,80 @@ var (
 	_ ValidationError = new(TagFailedError)
 	_ error           = new(TagFailedError)
 )
+
+// type JwtFailedError struct {
+// 	varItem *SetVarItem
+// 	code    ValidateErrorType
+// 	item    string
+// 	reason  string
+// }
+
+// func NewJwtFailedError(varItem *SetVarItem, item string, reason string) *JwtFailedError {
+// 	return &JwtFailedError{
+// 		varItem: varItem,
+// 		code:    ValidateErrorJwtFailed,
+// 		item:    item,
+// 		reason:  reason,
+// 	}
+// }
+
+// func (e JwtFailedError) VarItem() *SetVarItem {
+// 	return e.varItem
+// }
+
+// func (e JwtFailedError) Error() string {
+// 	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed JWT validation (%s) required by \"%s->%s\" declared in \"%s\"",
+// 		e.Code(),
+// 		e.Key(),
+// 		e.Reason(),
+// 		e.SpecName(),
+// 		e.Item(),
+// 		e.Source())
+// }
+
+// func (e JwtFailedError) Message() string {
+// 	return e.Error()
+// }
+
+// func (e JwtFailedError) String() string {
+// 	return e.Error()
+// }
+
+// func (e JwtFailedError) Code() ValidateErrorType {
+// 	return e.code
+// }
+
+// func (e JwtFailedError) Key() string {
+// 	return e.varItem.Var.Key
+// }
+
+// func (e JwtFailedError) Reason() string {
+// 	return e.reason
+// }
+
+// func (e JwtFailedError) SpecName() string {
+// 	return e.varItem.Spec.Complex
+// }
+
+// func (e JwtFailedError) Item() string {
+// 	return e.item
+// }
+
+// func (e JwtFailedError) Source() string {
+// 	if e.varItem.Spec.Operation == nil {
+// 		return "-"
+// 	}
+// 	if e.varItem.Spec.Operation.Source == "" {
+// 		return "-"
+// 	}
+// 	return e.varItem.Spec.Operation.Source
+// }
+
+// // make sure interfaces are satisfied
+// var (
+// 	_ ValidationError = new(JwtFailedError)
+// 	_ error           = new(JwtFailedError)
+// )
 
 const ComplexSpecType string = "Complex"
 
@@ -254,6 +329,79 @@ func DatabaseValidator(item *varSpec, itemKey string, varItem *SetVarItem) (Vali
 }
 
 var ComplexDefTypes = map[string]*ComplexDef{
+	"Auth0": {
+		Name:    "Auth0",
+		Breaker: "AUTH0",
+		Items: map[string]*varSpec{
+			"AUDIENCE": {
+				Name:     SpecNamePlain,
+				Rules:    "url",
+				Required: true,
+			},
+			"CLIENT_ID": {
+				Name:     SpecNamePlain,
+				Rules:    "alphanum,min=32,max=32",
+				Required: true,
+			},
+			"DOMAIN": {
+				Name:     SpecNamePlain,
+				Rules:    "fqdn",
+				Required: true,
+			},
+		},
+		Validator: TagValidator,
+	},
+	"Auth0Mgmt": {
+		Name:    "Auth0Mgmt",
+		Breaker: "AUTH0_MANAGEMENT",
+		Items: map[string]*varSpec{
+			"CLIENT_ID": {
+				Name:     SpecNamePlain,
+				Rules:    "alphanum,min=32,max=32",
+				Required: true,
+			},
+			"CLIENT_SECRET": {
+				Name:     SpecNameSecret,
+				Rules:    "ascii,min=64,max=64",
+				Required: true,
+			},
+			"AUDIENCE": {
+				Name:     SpecNamePlain,
+				Rules:    "url",
+				Required: true,
+			},
+		},
+		Validator: TagValidator,
+	},
+	"DatabaseUrl": {
+		Name:    "DatabaseUrl",
+		Breaker: "DATABASE",
+		Items: map[string]*varSpec{
+			"URL": {
+				Name:     SpecNameSecret,
+				Rules:    "url",
+				Required: true,
+			},
+		},
+		Validator: DatabaseValidator,
+	},
+	"OpenAI": {
+		Name:    "OpenAI",
+		Breaker: "OPENAI",
+		Items: map[string]*varSpec{
+			"ORG_ID": {
+				Name:     SpecNamePlain,
+				Rules:    "ascii,min=28,max=28,startswith=org-",
+				Required: true,
+			},
+			"API_KEY": {
+				Name:     SpecNameSecret,
+				Rules:    "ascii,min=34,startswith=sk-",
+				Required: true,
+			},
+		},
+		Validator: TagValidator,
+	},
 	"Redis": {
 		Name:    "Redis",
 		Breaker: "REDIS",
@@ -276,29 +424,27 @@ var ComplexDefTypes = map[string]*ComplexDef{
 		},
 		Validator: TagValidator,
 	},
-	"Postgres": {
-		Name:    "Postgres",
-		Breaker: "POSTGRES",
+	"Slack": {
+		Name:    "Slack",
+		Breaker: "SLACK",
 		Items: map[string]*varSpec{
-			"HOST": {
+			"CLIENT_ID": {
 				Name:     SpecNamePlain,
-				Rules:    "required,ip|hostname",
+				Rules:    "min=24,max=24",
 				Required: true,
 			},
-		},
-		Validator: TagValidator,
-	},
-	"DatabaseUrl": {
-		Name:    "DatabaseUrl",
-		Breaker: "DATABASE",
-		Items: map[string]*varSpec{
-			"URL": {
+			"CLIENT_SECRET": {
+				Name:     SpecNameSecret,
+				Rules:    "min=32,max=32",
+				Required: true,
+			},
+			"REDIRECT_URL": {
 				Name:     SpecNameSecret,
 				Rules:    "url",
 				Required: true,
 			},
 		},
-		Validator: DatabaseValidator,
+		Validator: TagValidator,
 	},
 }
 
@@ -320,24 +466,14 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
 		}
 
-		val, ok := s.values[spec.Var.Key]
-		if !ok {
-			return nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
+		akey, aitem, err := s.GetAtomicItem(spec)
+		if err != nil {
+			return nil, err
 		}
 
-		varKeyParts := strings.Split(val.Var.Key, complexType.Breaker+"_")
-		if len(varKeyParts) < 2 {
-			return nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
-		}
-
-		complexItemKey := (varKeyParts[len(varKeyParts)-1])
 		verrs, err := complexType.Validate(
-			complexItemKey,
-			&SetVarItem{
-				Var:   val.Var,
-				Value: val.Value,
-				Spec:  spec.Spec,
-			})
+			akey,
+			aitem)
 		if err != nil {
 			return nil, err
 		}
@@ -345,4 +481,41 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 	}
 
 	return validationErrs, nil
+}
+
+func (s *ComplexOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarItem, error) {
+	val, ok := s.values[spec.Var.Key]
+	if !ok {
+		return "", nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
+	}
+
+	complexType, ok := ComplexDefTypes[spec.Spec.Name]
+	if !ok {
+		return spec.Var.Key, &SetVarItem{
+			Var:   spec.Var,
+			Value: val.Value,
+			Spec:  spec.Spec,
+		}, nil
+	}
+
+	varKeyParts := strings.Split(val.Var.Key, complexType.Breaker+"_")
+	if len(varKeyParts) < 2 {
+		return "", nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
+	}
+
+	varKey := (varKeyParts[len(varKeyParts)-1])
+	varNS := (varKeyParts[0])
+
+	item := complexType.Items[varKey]
+
+	aspec := *spec.Spec
+	aspec.Complex = aspec.Name
+	aspec.Name = item.Name
+	aspec.Namespace = varNS
+
+	return varKey, &SetVarItem{
+		Var:   val.Var,
+		Value: val.Value,
+		Spec:  &aspec,
+	}, nil
 }
