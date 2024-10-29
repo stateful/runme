@@ -216,12 +216,13 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 		opts = append(opts, owl.WithEnvs(envSource, envs...))
 	}
 
+	// todo(sebastian): code's not stale, disabled since it's unclear how this will work
 	// resolverOwlStore, err := owl.NewStore(opts...)
 	// if err != nil {
 	// 	return nil, err
 	// }
 
-	// logger.Debug("Resolving env using remote backends")
+	// logger.Debug("Resolving env external to the graph")
 	// if snapshot, err := resolverOwlStore.InsecureResolve(); err == nil {
 	// 	resolved := []string{}
 	// 	for _, item := range snapshot {
