@@ -49,6 +49,14 @@ type SpecOperationSet struct {
 	Keys      []string
 }
 
+type ResolveOperationSet struct {
+	*OperationSet
+	*SpecOperationSet
+
+	Project string
+	Mapping map[string]string
+}
+
 // todo(sebastian): once final, move to embedded structs for non-serializable fields
 type setVarOperation struct {
 	Order  uint             `json:"-"`
@@ -666,6 +674,11 @@ func (s *Store) snapshot(insecure, resolve bool) (SetVarItems, error) {
 	val, err := extractDataKey(result.Data, "snapshot")
 	if err != nil {
 		return nil, err
+	}
+
+	if resolve {
+		resolving, _ := extractDataKey(result.Data, "mapping")
+		s.logger.Debug("resolving", zap.Any("resolving", resolving))
 	}
 
 	j, err := json.Marshal(val)

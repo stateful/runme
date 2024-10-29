@@ -714,11 +714,97 @@ func init() {
 		Name: "ResolveType",
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			fields := graphql.Fields{
-				"transform": &graphql.Field{
-					Type: ResolveType,
+				"GcpProvider": &graphql.Field{
+					Type: graphql.NewObject(graphql.ObjectConfig{
+						Name: "GCPResolveType",
+						Fields: graphql.Fields{
+							"transform": &graphql.Field{
+								Type: ResolveType,
+								Args: graphql.FieldConfigArgument{
+									"expr": &graphql.ArgumentConfig{
+										Type: graphql.NewNonNull(graphql.String),
+									},
+								},
+								Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+									var opSet *OperationSet
+									var specOpSet *SpecOperationSet
+									var resolveOpSet *ResolveOperationSet
+
+									switch p.Source.(type) {
+									case *OperationSet:
+										opSet = p.Source.(*OperationSet)
+									case *SpecOperationSet:
+										specOpSet = p.Source.(*SpecOperationSet)
+										opSet = specOpSet.OperationSet
+									case *ResolveOperationSet:
+										resolveOpSet = p.Source.(*ResolveOperationSet)
+										specOpSet = resolveOpSet.SpecOperationSet
+										opSet = specOpSet.OperationSet
+									default:
+										return nil, errors.New("source does not contain an OperationSet")
+									}
+
+									expr, ok := p.Args["expr"].(string)
+									if !ok {
+										return nil, errors.New("transform without expr")
+									}
+
+									resolveOpSet.Mapping = make(map[string]string)
+
+									for _, v := range opSet.values {
+										if v.Value.Status != "UNRESOLVED" {
+											v.Value.Status = "DELETED"
+											continue
+										}
+
+										env := map[string]string{"key": v.Var.Key}
+
+										program, err := exprlang.Compile(expr, exprlang.Env(env))
+										if err != nil {
+											return nil, errors.Wrap(err, "failed to compile transform program")
+										}
+
+										output, err := exprlang.Run(program, env)
+										if err != nil {
+											return nil, errors.Wrap(err, "failed to run transform program")
+										}
+
+										transformed, ok := output.(string)
+										if !ok {
+											return nil, errors.New("transform output is not a string")
+										}
+
+										spec, ok := opSet.specs[v.Var.Key]
+										if !ok {
+											return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
+										}
+
+										_, aitem, err := specOpSet.GetAtomicItem(spec)
+										if err != nil {
+											return nil, err
+										}
+
+										if aitem.Spec.Name != AtomicNameSecret && aitem.Spec.Name != AtomicNamePassword {
+											v.Value.Status = "DELETED"
+											continue
+										}
+
+										resolveOpSet.Mapping[v.Var.Key] = transformed
+									}
+
+									return resolveOpSet, nil
+								},
+							},
+						},
+					}),
 					Args: graphql.FieldConfigArgument{
-						"expr": &graphql.ArgumentConfig{
-							Type: graphql.NewNonNull(graphql.String),
+						"provider": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "secretmanager",
+						},
+						"project": &graphql.ArgumentConfig{
+							Type:         graphql.String,
+							DefaultValue: "",
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
@@ -735,70 +821,74 @@ func init() {
 							return nil, errors.New("source does not contain an OperationSet")
 						}
 
-						expr, ok := p.Args["expr"].(string)
+						project, ok := p.Args["project"].(string)
 						if !ok {
-							return nil, errors.New("transform without expr")
+							return nil, errors.New("project is not a string")
 						}
 
+						return &ResolveOperationSet{
+							OperationSet:     opSet,
+							SpecOperationSet: specOpSet,
+							Project:          project,
+						}, nil
+					},
+				},
+				"mapping": &graphql.Field{
+					Type: graphql.NewList(graphql.String),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						if resolveOpSet, ok := p.Source.(*ResolveOperationSet); ok {
+							mapping := resolveOpSet.Mapping
+							items := make([]string, 0, len(mapping))
+							for k, v := range mapping {
+								if k == "" || v == "" {
+									continue
+								}
+								items = append(items, fmt.Sprintf("%s=>%s", k, v))
+							}
+							return items, nil
+						}
+						return nil, nil
+					},
+				},
+				"done": &graphql.Field{
+					Type: EnvironmentType,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						var opSet *OperationSet
+						var specOpSet *SpecOperationSet
+						var resolveOpSet *ResolveOperationSet
+
+						switch p.Source.(type) {
+						case *OperationSet:
+							opSet = p.Source.(*OperationSet)
+						case *SpecOperationSet:
+							specOpSet = p.Source.(*SpecOperationSet)
+							opSet = specOpSet.OperationSet
+						case *ResolveOperationSet:
+							resolveOpSet = p.Source.(*ResolveOperationSet)
+							specOpSet = resolveOpSet.SpecOperationSet
+							opSet = specOpSet.OperationSet
+						default:
+							return nil, errors.New("source does not contain an OperationSet")
+						}
 						ctx := context.Background()
-						smClient, err := sm.NewClient(ctx)
+						gcpsm, err := sm.NewClient(ctx)
 						if err != nil {
 							log.Fatalf("failed to setup client: %v", err)
 						}
-						defer smClient.Close()
+						defer gcpsm.Close()
 
 						for _, v := range opSet.values {
-							if v.Value.Status != "UNRESOLVED" {
-								v.Value.Status = "DELETED"
+							k, ok := resolveOpSet.Mapping[v.Var.Key]
+							if !ok {
 								continue
 							}
 
-							env := map[string]string{"key": v.Var.Key}
-
-							program, err := exprlang.Compile(expr, exprlang.Env(env))
-							if err != nil {
-								return nil, errors.Wrap(err, "failed to compile transform program")
-							}
-
-							output, err := exprlang.Run(program, env)
-							if err != nil {
-								return nil, errors.Wrap(err, "failed to run transform program")
-							}
-
-							res, ok := output.(string)
-							if !ok {
-								return nil, errors.New("transform output is not a string")
-							}
-
-							spec, ok := opSet.specs[v.Var.Key]
-							if !ok {
-								return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
-							}
-
-							_, aitem, err := specOpSet.GetAtomicItem(spec)
-							if err != nil {
-								return nil, err
-							}
-
-							if aitem.Spec.Name != AtomicNameSecret && aitem.Spec.Name != AtomicNamePassword {
-								v.Value.Status = "DELETED"
-								continue
-							}
-
-							uri := fmt.Sprintf("projects/platform-staging-413816/secrets/%s", res)
-							// status := strings.ToLower(aitem.Value.Status)
-							// if aitem.Spec.Name == SpecNameSecret || aitem.Spec.Name == SpecNamePassword {
-							// 	_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key, "via", uri)
-							// } else {
-							// 	_, _ = fmt.Println(status, aitem.Spec.Name, aitem.Var.Key)
-							// 	continue
-							// }
-
+							uri := fmt.Sprintf("projects/%s/secrets/%s", resolveOpSet.Project, k)
 							accessRequest := &smpb.AccessSecretVersionRequest{
 								Name: fmt.Sprintf("%s/versions/latest", uri),
 							}
 
-							result, err := smClient.AccessSecretVersion(ctx, accessRequest)
+							result, err := gcpsm.AccessSecretVersion(ctx, accessRequest)
 							if err != nil {
 								return nil, errors.Errorf("failed to access secret version: %v", err)
 							}
@@ -808,17 +898,7 @@ func init() {
 							}
 						}
 
-						if specOpSet != nil {
-							return specOpSet, nil
-						}
-
 						return opSet, nil
-					},
-				},
-				"done": &graphql.Field{
-					Type: EnvironmentType,
-					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						return p.Source, nil
 					},
 				},
 			}

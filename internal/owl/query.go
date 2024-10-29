@@ -226,32 +226,68 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 
 func reduceWrapResolve() QueryNodeReducer {
 	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
-		resolveSelSet := ast.NewSelectionSet(&ast.SelectionSet{})
-		selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
-			Name: ast.NewName(&ast.Name{
-				Value: "resolve",
-			}),
-			SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
-				Selections: []ast.Selection{
-					ast.NewField(&ast.Field{
-						Name: ast.NewName(&ast.Name{
-							Value: "transform",
-						}),
-						Arguments: []*ast.Argument{
-							ast.NewArgument(&ast.Argument{
-								Name: ast.NewName(&ast.Name{
-									Value: "expr",
-								}),
-								Value: ast.NewStringValue(&ast.StringValue{
-									Value: `key | trimPrefix("REDWOOD_ENV_") | replace("SLACK_REDIRECT_URL", "SLACK_REDIRECT") | lower()`,
-								}),
-							}),
-						},
-						SelectionSet: resolveSelSet,
+		resolveSelSet := ast.NewSelectionSet(&ast.SelectionSet{
+			Selections: []ast.Selection{
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "mapping",
 					}),
-				},
-			}),
-		}))
+				}),
+			},
+		})
+		selSet.Selections = append(selSet.Selections,
+			ast.NewField(&ast.Field{
+				Name: ast.NewName(&ast.Name{
+					Value: "resolve",
+				}),
+				SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+					Selections: []ast.Selection{
+						ast.NewField(&ast.Field{
+							Name: ast.NewName(&ast.Name{
+								Value: "GcpProvider",
+							}),
+							Arguments: []*ast.Argument{
+								ast.NewArgument(&ast.Argument{
+									Name: ast.NewName(&ast.Name{
+										Value: "provider",
+									}),
+									Value: ast.NewStringValue(&ast.StringValue{
+										Value: "secretmanager.apiv1",
+									}),
+								}),
+								ast.NewArgument(&ast.Argument{
+									Name: ast.NewName(&ast.Name{
+										Value: "project",
+									}),
+									Value: ast.NewStringValue(&ast.StringValue{
+										Value: "platform-staging-413816",
+									}),
+								}),
+							},
+							SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+								Selections: []ast.Selection{
+									ast.NewField(&ast.Field{
+										Name: ast.NewName(&ast.Name{
+											Value: "transform",
+										}),
+										Arguments: []*ast.Argument{
+											ast.NewArgument(&ast.Argument{
+												Name: ast.NewName(&ast.Name{
+													Value: "expr",
+												}),
+												Value: ast.NewStringValue(&ast.StringValue{
+													Value: `key | trimPrefix("REDWOOD_ENV_") | replace("SLACK_REDIRECT_URL", "SLACK_REDIRECT") | lower()`,
+												}),
+											}),
+										},
+										SelectionSet: resolveSelSet,
+									}),
+								},
+							}),
+						}),
+					},
+				}),
+			}))
 		return resolveSelSet, nil
 	}
 }
