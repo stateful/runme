@@ -798,7 +798,7 @@ func init() {
 						},
 					}),
 					Args: graphql.FieldConfigArgument{
-						"provider": &graphql.ArgumentConfig{
+						"api": &graphql.ArgumentConfig{
 							Type:         graphql.String,
 							DefaultValue: "secretmanager",
 						},

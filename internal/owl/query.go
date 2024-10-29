@@ -249,7 +249,7 @@ func reduceWrapResolve() QueryNodeReducer {
 							Arguments: []*ast.Argument{
 								ast.NewArgument(&ast.Argument{
 									Name: ast.NewName(&ast.Name{
-										Value: "provider",
+										Value: "api",
 									}),
 									Value: ast.NewStringValue(&ast.StringValue{
 										Value: "secretmanager.apiv1",
