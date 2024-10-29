@@ -177,80 +177,6 @@ var (
 	_ error           = new(TagFailedError)
 )
 
-// type JwtFailedError struct {
-// 	varItem *SetVarItem
-// 	code    ValidateErrorType
-// 	item    string
-// 	reason  string
-// }
-
-// func NewJwtFailedError(varItem *SetVarItem, item string, reason string) *JwtFailedError {
-// 	return &JwtFailedError{
-// 		varItem: varItem,
-// 		code:    ValidateErrorJwtFailed,
-// 		item:    item,
-// 		reason:  reason,
-// 	}
-// }
-
-// func (e JwtFailedError) VarItem() *SetVarItem {
-// 	return e.varItem
-// }
-
-// func (e JwtFailedError) Error() string {
-// 	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed JWT validation (%s) required by \"%s->%s\" declared in \"%s\"",
-// 		e.Code(),
-// 		e.Key(),
-// 		e.Reason(),
-// 		e.SpecName(),
-// 		e.Item(),
-// 		e.Source())
-// }
-
-// func (e JwtFailedError) Message() string {
-// 	return e.Error()
-// }
-
-// func (e JwtFailedError) String() string {
-// 	return e.Error()
-// }
-
-// func (e JwtFailedError) Code() ValidateErrorType {
-// 	return e.code
-// }
-
-// func (e JwtFailedError) Key() string {
-// 	return e.varItem.Var.Key
-// }
-
-// func (e JwtFailedError) Reason() string {
-// 	return e.reason
-// }
-
-// func (e JwtFailedError) SpecName() string {
-// 	return e.varItem.Spec.Spec
-// }
-
-// func (e JwtFailedError) Item() string {
-// 	return e.item
-// }
-
-// func (e JwtFailedError) Source() string {
-// 	if e.varItem.Spec.Operation == nil {
-// 		return "-"
-// 	}
-// 	if e.varItem.Spec.Operation.Source == "" {
-// 		return "-"
-// 	}
-// 	return e.varItem.Spec.Operation.Source
-// }
-
-// // make sure interfaces are satisfied
-// var (
-// 	_ ValidationError = new(JwtFailedError)
-// 	_ error           = new(JwtFailedError)
-// )
-
 const SpecTypeKey string = "Spec"
 
 var validator = valid.New()
@@ -258,12 +184,12 @@ var validator = valid.New()
 type SpecDef struct {
 	Name      string
 	Breaker   string
-	Items     map[string]*varSpec
+	Atomics   map[string]*varSpec
 	Validator func(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error)
 }
 
 func (cd *SpecDef) Validate(itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
-	specItem, ok := cd.Items[itemKey]
+	specItem, ok := cd.Atomics[itemKey]
 	if !ok {
 		return nil, fmt.Errorf("spec item not found: %s", itemKey)
 	}
@@ -332,7 +258,7 @@ var SpecDefTypes = map[string]*SpecDef{
 	"Auth0": {
 		Name:    "Auth0",
 		Breaker: "AUTH0",
-		Items: map[string]*varSpec{
+		Atomics: map[string]*varSpec{
 			"AUDIENCE": {
 				Name:     AtomicNamePlain,
 				Rules:    "url",
@@ -354,7 +280,7 @@ var SpecDefTypes = map[string]*SpecDef{
 	"Auth0Mgmt": {
 		Name:    "Auth0Mgmt",
 		Breaker: "AUTH0_MANAGEMENT",
-		Items: map[string]*varSpec{
+		Atomics: map[string]*varSpec{
 			"CLIENT_ID": {
 				Name:     AtomicNamePlain,
 				Rules:    "alphanum,min=32,max=32",
@@ -376,7 +302,7 @@ var SpecDefTypes = map[string]*SpecDef{
 	"DatabaseUrl": {
 		Name:    "DatabaseUrl",
 		Breaker: "DATABASE",
-		Items: map[string]*varSpec{
+		Atomics: map[string]*varSpec{
 			"URL": {
 				Name:     AtomicNameSecret,
 				Rules:    "url",
@@ -388,7 +314,7 @@ var SpecDefTypes = map[string]*SpecDef{
 	"OpenAI": {
 		Name:    "OpenAI",
 		Breaker: "OPENAI",
-		Items: map[string]*varSpec{
+		Atomics: map[string]*varSpec{
 			"ORG_ID": {
 				Name:     AtomicNamePlain,
 				Rules:    "ascii,min=28,max=28,startswith=org-",
@@ -405,7 +331,7 @@ var SpecDefTypes = map[string]*SpecDef{
 	"Redis": {
 		Name:    "Redis",
 		Breaker: "REDIS",
-		Items: map[string]*varSpec{
+		Atomics: map[string]*varSpec{
 			"HOST": {
 				Name:     AtomicNamePlain,
 				Rules:    "ip|hostname",
@@ -427,7 +353,7 @@ var SpecDefTypes = map[string]*SpecDef{
 	"Slack": {
 		Name:    "Slack",
 		Breaker: "SLACK",
-		Items: map[string]*varSpec{
+		Atomics: map[string]*varSpec{
 			"CLIENT_ID": {
 				Name:     AtomicNamePlain,
 				Rules:    "min=24,max=24",
@@ -466,7 +392,7 @@ func (s *SpecOperationSet) validate() (ValidationErrors, error) {
 			return nil, fmt.Errorf("spec type not found: %s", spec.Spec.Name)
 		}
 
-		akey, aitem, err := s.GetAtomicItem(spec)
+		akey, aitem, err := s.GetAtomic(spec)
 		if err != nil {
 			return nil, err
 		}
@@ -483,7 +409,7 @@ func (s *SpecOperationSet) validate() (ValidationErrors, error) {
 	return validationErrs, nil
 }
 
-func (s *SpecOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarItem, error) {
+func (s *SpecOperationSet) GetAtomic(spec *SetVarSpec) (string, *SetVarItem, error) {
 	val, ok := s.values[spec.Var.Key]
 	if !ok {
 		return "", nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
@@ -506,7 +432,7 @@ func (s *SpecOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarItem,
 	varKey := (varKeyParts[len(varKeyParts)-1])
 	varNS := (varKeyParts[0])
 
-	item := specType.Items[varKey]
+	item := specType.Atomics[varKey]
 
 	aspec := *spec.Spec
 	aspec.Spec = aspec.Name

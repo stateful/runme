@@ -943,7 +943,7 @@ func reduceAtomic(ns string, parent *SpecDef) QueryNodeReducer {
 			for _, s := range opSet.specs {
 				isTransient := opSet.operation.kind == TransientSetOperation
 				if isTransient && parent != nil {
-					for k, v := range parent.Items {
+					for k, v := range parent.Atomics {
 						if fmt.Sprintf("%s_%s", ns, k) != s.Var.Key {
 							continue
 						}

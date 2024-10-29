@@ -779,7 +779,7 @@ func init() {
 											return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
 										}
 
-										_, aitem, err := specOpSet.GetAtomicItem(spec)
+										_, aitem, err := specOpSet.GetAtomic(spec)
 										if err != nil {
 											return nil, err
 										}
