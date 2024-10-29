@@ -42,7 +42,7 @@ type OperationSet struct {
 	values    map[string]*SetVarValue
 }
 
-type ComplexOperationSet struct {
+type SpecOperationSet struct {
 	*OperationSet
 	Name      string
 	Namespace string
@@ -66,7 +66,7 @@ type varSpec struct {
 	Name        string           `json:"name"`
 	Required    bool             `json:"required"`
 	Description string           `json:"description"`
-	Complex     string           `json:"-"`
+	Spec        string           `json:"-"`
 	Namespace   string           `json:"-"`
 	Rules       string           `json:"validator,omitempty"`
 	Operation   *setVarOperation `json:"operation"`

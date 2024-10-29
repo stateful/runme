@@ -34,10 +34,10 @@ func TestGraph(t *testing.T) {
 }
 
 func TestQuerySpecs(t *testing.T) {
-	t.Run("query list of specs", func(t *testing.T) {
+	t.Run("query list of atomics", func(t *testing.T) {
 		result := graphql.Do(graphql.Params{
 			Schema:        Schema,
-			RequestString: `query { specs { list { name } } }`,
+			RequestString: `query { atomics { list { name } } }`,
 		})
 		require.False(t, result.HasErrors())
 

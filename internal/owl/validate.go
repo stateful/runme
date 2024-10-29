@@ -80,7 +80,7 @@ func (e DatabaseUrlError) Key() string {
 }
 
 func (e DatabaseUrlError) SpecName() string {
-	return e.varItem.Spec.Complex
+	return e.varItem.Spec.Spec
 }
 
 func (e DatabaseUrlError) Item() string {
@@ -154,7 +154,7 @@ func (e TagFailedError) Tag() string {
 }
 
 func (e TagFailedError) SpecName() string {
-	return e.varItem.Spec.Complex
+	return e.varItem.Spec.Spec
 }
 
 func (e TagFailedError) Item() string {
@@ -228,7 +228,7 @@ var (
 // }
 
 // func (e JwtFailedError) SpecName() string {
-// 	return e.varItem.Spec.Complex
+// 	return e.varItem.Spec.Spec
 // }
 
 // func (e JwtFailedError) Item() string {
@@ -251,28 +251,28 @@ var (
 // 	_ error           = new(JwtFailedError)
 // )
 
-const ComplexSpecType string = "Complex"
+const SpecTypeKey string = "Spec"
 
 var validator = valid.New()
 
-type ComplexDef struct {
+type SpecDef struct {
 	Name      string
 	Breaker   string
 	Items     map[string]*varSpec
 	Validator func(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error)
 }
 
-func (cd *ComplexDef) Validate(itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
-	complexItem, ok := cd.Items[itemKey]
+func (cd *SpecDef) Validate(itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
+	specItem, ok := cd.Items[itemKey]
 	if !ok {
-		return nil, fmt.Errorf("complex item not found: %s", itemKey)
+		return nil, fmt.Errorf("spec item not found: %s", itemKey)
 	}
 
-	if varItem.Value.Resolved == "" && !complexItem.Required {
+	if varItem.Value.Resolved == "" && !specItem.Required {
 		return nil, nil
 	}
 
-	return cd.Validator(complexItem, itemKey, varItem)
+	return cd.Validator(specItem, itemKey, varItem)
 }
 
 func TagValidator(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
@@ -328,7 +328,7 @@ func DatabaseValidator(item *varSpec, itemKey string, varItem *SetVarItem) (Vali
 	return validationErrs, nil
 }
 
-var ComplexDefTypes = map[string]*ComplexDef{
+var SpecDefTypes = map[string]*SpecDef{
 	"Auth0": {
 		Name:    "Auth0",
 		Breaker: "AUTH0",
@@ -448,7 +448,7 @@ var ComplexDefTypes = map[string]*ComplexDef{
 	},
 }
 
-func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
+func (s *SpecOperationSet) validate() (ValidationErrors, error) {
 	var validationErrs ValidationErrors
 
 	for _, k := range s.Keys {
@@ -461,9 +461,9 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			continue
 		}
 
-		complexType, ok := ComplexDefTypes[spec.Spec.Name]
+		specType, ok := SpecDefTypes[spec.Spec.Name]
 		if !ok {
-			return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
+			return nil, fmt.Errorf("spec type not found: %s", spec.Spec.Name)
 		}
 
 		akey, aitem, err := s.GetAtomicItem(spec)
@@ -471,7 +471,7 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			return nil, err
 		}
 
-		verrs, err := complexType.Validate(
+		verrs, err := specType.Validate(
 			akey,
 			aitem)
 		if err != nil {
@@ -483,13 +483,13 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 	return validationErrs, nil
 }
 
-func (s *ComplexOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarItem, error) {
+func (s *SpecOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarItem, error) {
 	val, ok := s.values[spec.Var.Key]
 	if !ok {
 		return "", nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
 	}
 
-	complexType, ok := ComplexDefTypes[spec.Spec.Name]
+	specType, ok := SpecDefTypes[spec.Spec.Name]
 	if !ok {
 		return spec.Var.Key, &SetVarItem{
 			Var:   spec.Var,
@@ -498,18 +498,18 @@ func (s *ComplexOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarIt
 		}, nil
 	}
 
-	varKeyParts := strings.Split(val.Var.Key, complexType.Breaker+"_")
+	varKeyParts := strings.Split(val.Var.Key, specType.Breaker+"_")
 	if len(varKeyParts) < 2 {
-		return "", nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
+		return "", nil, fmt.Errorf("invalid key not matching spec item: %s", val.Var.Key)
 	}
 
 	varKey := (varKeyParts[len(varKeyParts)-1])
 	varNS := (varKeyParts[0])
 
-	item := complexType.Items[varKey]
+	item := specType.Items[varKey]
 
 	aspec := *spec.Spec
-	aspec.Complex = aspec.Name
+	aspec.Spec = aspec.Name
 	aspec.Name = item.Name
 	aspec.Namespace = varNS
 

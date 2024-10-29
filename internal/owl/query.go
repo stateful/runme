@@ -56,8 +56,8 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter, resolve bool) error {
 		reconcileAsymmetry(s),
 		reduceSetOperations(vars),
 		reduceWrapValidate(),
-		reduceSpecsAtomic("", nil),
-		reduceSepcsComplex(),
+		reduceAtomic("", nil),
+		reduceSepcs(),
 		reduceWrapDone(),
 	}
 
@@ -66,8 +66,8 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter, resolve bool) error {
 			reduceWrapResolve(),
 			reduceWrapDone(),
 			reduceWrapValidate(),
-			reduceSpecsAtomic("", nil),
-			reduceSepcsComplex(),
+			reduceAtomic("", nil),
+			reduceSepcs(),
 			reduceWrapDone(),
 		}...)
 	}
@@ -122,8 +122,8 @@ func (s *Store) sensitiveKeysQuery(query, vars io.StringWriter) error {
 			reconcileAsymmetry(s),
 			reduceSetOperations(vars),
 			reduceWrapValidate(),
-			reduceSpecsAtomic("", nil),
-			reduceSepcsComplex(),
+			reduceAtomic("", nil),
+			reduceSepcs(),
 			reduceWrapDone(),
 			reduceSensitive(),
 		},
@@ -201,8 +201,8 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 			reconcileAsymmetry(s),
 			reduceSetOperations(vars),
 			reduceWrapValidate(),
-			reduceSpecsAtomic("", nil),
-			reduceSepcsComplex(),
+			reduceAtomic("", nil),
+			reduceSepcs(),
 			reduceWrapDone(),
 			reduceGetter(),
 		},
@@ -896,7 +896,7 @@ func reconcileAsymmetry(store *Store) QueryNodeReducer {
 	}
 }
 
-func reduceSpecsAtomic(ns string, parent *ComplexDef) QueryNodeReducer {
+func reduceAtomic(ns string, parent *SpecDef) QueryNodeReducer {
 	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var specKeys []string
 		varSpecs := make(map[string]*SetVarItem)
@@ -1018,7 +1018,7 @@ func reduceSpecsAtomic(ns string, parent *ComplexDef) QueryNodeReducer {
 	}
 }
 
-func reduceSepcsComplex() QueryNodeReducer {
+func reduceSepcs() QueryNodeReducer {
 	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var varKeys []string
 		varSpecs := make(map[string]*SetVarItem)
@@ -1086,7 +1086,7 @@ func reduceSepcsComplex() QueryNodeReducer {
 			prevSelSet.Selections = append(prevSelSet.Selections,
 				ast.NewField(&ast.Field{
 					Name: ast.NewName(&ast.Name{
-						Value: ComplexSpecType,
+						Value: SpecTypeKey,
 					}),
 					Arguments: []*ast.Argument{
 						ast.NewArgument(&ast.Argument{
@@ -1115,10 +1115,10 @@ func reduceSepcsComplex() QueryNodeReducer {
 					SelectionSet: nextSelSet,
 				}))
 
-			specDef := ComplexDefTypes[spec]
+			specDef := SpecDefTypes[spec]
 
 			transientOpSet, _ := NewOperationSet(WithOperation(TransientSetOperation), WithItems(items))
-			atomicSelSet, err := reduceSpecsAtomic(ns, specDef)([]*OperationSet{transientOpSet}, opDef, nextSelSet)
+			atomicSelSet, err := reduceAtomic(ns, specDef)([]*OperationSet{transientOpSet}, opDef, nextSelSet)
 			// todo: handle error
 			if err == nil {
 				return atomicSelSet
@@ -1137,9 +1137,9 @@ func reduceSepcsComplex() QueryNodeReducer {
 			ns := ""
 
 			item := varSpecs[specKey]
-			specDef, ok := ComplexDefTypes[item.Spec.Name]
+			specDef, ok := SpecDefTypes[item.Spec.Name]
 			if !ok {
-				return nil, fmt.Errorf("unknown complex spec type: %s on %s", item.Spec.Name, item.Var.Key)
+				return nil, fmt.Errorf("unknown spec type: %s on %s", item.Spec.Name, item.Var.Key)
 			}
 
 			breaker = specDef.Breaker
@@ -1156,7 +1156,7 @@ func reduceSepcsComplex() QueryNodeReducer {
 			}
 
 			// if item.Spec.Name != prevNs && prevNs != "" {
-			// 	return nil, fmt.Errorf("complex spec type mismatch in namespace %q: %s != %s", ns, item.Spec.Name, prevNs)
+			// 	return nil, fmt.Errorf("spec type mismatch in namespace %q: %s != %s", ns, item.Spec.Name, prevNs)
 			// }
 			// prevNs = ns
 

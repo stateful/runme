@@ -16,7 +16,7 @@ import (
 )
 
 // Constants representing different spec names.
-// These constants are of type SpecName and are assigned string values.
+// These constants are of type AtomicName and are assigned string values.
 const (
 	AtomicNameOpaque   string = "Opaque"   // SpecNameOpaque specifies an opaque specification.
 	AtomicNamePlain    string = "Plain"    // SpecNamePlain specifies a plain specification.
@@ -34,7 +34,7 @@ type atomicType struct {
 var (
 	Schema      graphql.Schema
 	AtomicTypes map[string]*atomicType
-	ComplexType *atomicType
+	SpecType    *atomicType
 )
 
 var EnvironmentType,
@@ -61,9 +61,9 @@ func registerAtomicFields(fields graphql.Fields) {
 		}
 	}
 
-	fields[ComplexType.typeName] = &graphql.Field{
-		Type:    ComplexType.typeObject,
-		Resolve: ComplexType.resolveFn,
+	fields[SpecType.typeName] = &graphql.Field{
+		Type:    SpecType.typeObject,
+		Resolve: SpecType.resolveFn,
 		Args: graphql.FieldConfigArgument{
 			"name": &graphql.ArgumentConfig{
 				Type: graphql.NewNonNull(graphql.String),
@@ -78,9 +78,9 @@ func registerAtomicFields(fields graphql.Fields) {
 	}
 }
 
-func registerAtomic(name string, sensitive, mask bool, resolver graphql.FieldResolveFn) *atomicType {
+func registerAtomicType(name string, sensitive, mask bool, resolver graphql.FieldResolveFn) *atomicType {
 	typ := graphql.NewObject(graphql.ObjectConfig{
-		Name: fmt.Sprintf("SpecType%s", name),
+		Name: fmt.Sprintf("AtomicType%s", name),
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			fields := graphql.Fields{
 				"name": &graphql.Field{
@@ -109,8 +109,8 @@ func registerAtomic(name string, sensitive, mask bool, resolver graphql.FieldRes
 						switch p.Source.(type) {
 						case *OperationSet:
 							opSet = p.Source.(*OperationSet)
-						case *ComplexOperationSet:
-							opSet = p.Source.(*ComplexOperationSet).OperationSet
+						case *SpecOperationSet:
+							opSet = p.Source.(*SpecOperationSet).OperationSet
 						default:
 							return nil, errors.New("source does not contain an OperationSet")
 						}
@@ -154,8 +154,8 @@ func registerAtomic(name string, sensitive, mask bool, resolver graphql.FieldRes
 	}
 }
 
-func registerComplexType(resolver graphql.FieldResolveFn) *atomicType {
-	name := ComplexSpecType
+func registerSpecType(resolver graphql.FieldResolveFn) *atomicType {
+	name := SpecTypeKey
 	typ := graphql.NewObject(graphql.ObjectConfig{
 		Name: fmt.Sprintf("SpecType%s", name),
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
@@ -174,8 +174,8 @@ func registerComplexType(resolver graphql.FieldResolveFn) *atomicType {
 						switch p.Source.(type) {
 						case *OperationSet:
 							opSet = p.Source.(*OperationSet)
-						case *ComplexOperationSet:
-							opSet = p.Source.(*ComplexOperationSet).OperationSet
+						case *SpecOperationSet:
+							opSet = p.Source.(*SpecOperationSet).OperationSet
 						default:
 							return nil, errors.New("source does not contain an OperationSet")
 						}
@@ -227,18 +227,18 @@ func atomicResolver(mutator AtomicResolverMutator) graphql.FieldResolveFn {
 		keysArg := p.Args["keys"].([]interface{})
 
 		var opSet *OperationSet
-		complexName := ""
-		complexNs := ""
+		specName := ""
+		specNs := ""
 
 		switch p.Source.(type) {
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
-			complexName = ""
-			complexNs = ""
-		case *ComplexOperationSet:
-			opSet = p.Source.(*ComplexOperationSet).OperationSet
-			complexName = p.Source.(*ComplexOperationSet).Name
-			complexNs = p.Source.(*ComplexOperationSet).Namespace
+			specName = ""
+			specNs = ""
+		case *SpecOperationSet:
+			opSet = p.Source.(*SpecOperationSet).OperationSet
+			specName = p.Source.(*SpecOperationSet).Name
+			specNs = p.Source.(*SpecOperationSet).Namespace
 		default:
 			return nil, errors.New("source does not contain an OperationSet")
 		}
@@ -252,8 +252,8 @@ func atomicResolver(mutator AtomicResolverMutator) graphql.FieldResolveFn {
 				continue
 			}
 
-			spec.Spec.Complex = complexName
-			spec.Spec.Namespace = complexNs
+			spec.Spec.Spec = specName
+			spec.Spec.Namespace = specNs
 			spec.Spec.Checked = true
 
 			// skip if last known status was DELETED
@@ -296,8 +296,8 @@ func resolveSensitiveKeys() graphql.FieldResolveFn {
 			return sensitive, nil
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
-		case *ComplexOperationSet:
-			opSet = p.Source.(*ComplexOperationSet).OperationSet
+		case *SpecOperationSet:
+			opSet = p.Source.(*SpecOperationSet).OperationSet
 		default:
 			return nil, errors.New("source does not contain an OperationSet")
 		}
@@ -334,8 +334,8 @@ func resolveDotEnv() graphql.FieldResolveFn {
 			return dotenv, nil
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
-		case *ComplexOperationSet:
-			opSet = p.Source.(*ComplexOperationSet).OperationSet
+		case *SpecOperationSet:
+			opSet = p.Source.(*SpecOperationSet).OperationSet
 		default:
 			return nil, errors.New("source does not contain an OperationSet")
 		}
@@ -376,8 +376,8 @@ func resolveGetter() graphql.FieldResolveFn {
 			return kv, nil
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
-		case *ComplexOperationSet:
-			opSet = p.Source.(*ComplexOperationSet).OperationSet
+		case *SpecOperationSet:
+			opSet = p.Source.(*SpecOperationSet).OperationSet
 		default:
 			return nil, errors.New("source is does not contain an OperationSet")
 		}
@@ -412,8 +412,8 @@ func resolveSnapshot() graphql.FieldResolveFn {
 			return snapshot, nil
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
-		case *ComplexOperationSet:
-			opSet = p.Source.(*ComplexOperationSet).OperationSet
+		case *SpecOperationSet:
+			opSet = p.Source.(*SpecOperationSet).OperationSet
 		default:
 			return nil, errors.New("source does not contain an OperationSet")
 		}
@@ -577,7 +577,7 @@ func mutateDelete(vars SetVarItems, resolverOpSet *OperationSet, _ bool) error {
 func init() {
 	AtomicTypes = make(map[string]*atomicType)
 
-	AtomicTypes[AtomicNameSecret] = registerAtomic(AtomicNameSecret, true, true,
+	AtomicTypes[AtomicNameSecret] = registerAtomicType(AtomicNameSecret, true, true,
 		atomicResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
 				original := val.Value.Original
@@ -596,7 +596,7 @@ func init() {
 		}),
 	)
 
-	AtomicTypes[AtomicNamePassword] = registerAtomic(AtomicNamePassword, true, true,
+	AtomicTypes[AtomicNamePassword] = registerAtomicType(AtomicNamePassword, true, true,
 		atomicResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
 				original := val.Value.Original
@@ -611,7 +611,7 @@ func init() {
 			val.Value.Resolved = strings.Repeat("*", max(8, len(original)))
 		}),
 	)
-	AtomicTypes[AtomicNameOpaque] = registerAtomic(AtomicNameOpaque, true, false,
+	AtomicTypes[AtomicNameOpaque] = registerAtomicType(AtomicNameOpaque, true, false,
 		atomicResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
 				original := val.Value.Original
@@ -624,7 +624,7 @@ func init() {
 			val.Value.Resolved = ""
 		}),
 	)
-	AtomicTypes[AtomicNamePlain] = registerAtomic(AtomicNamePlain, false, false,
+	AtomicTypes[AtomicNamePlain] = registerAtomicType(AtomicNamePlain, false, false,
 		atomicResolver(func(val *SetVarValue, spec *SetVarSpec, insecure bool) {
 			if insecure {
 				original := val.Value.Original
@@ -638,23 +638,23 @@ func init() {
 		}),
 	)
 
-	ComplexType = registerComplexType(
+	SpecType = registerSpecType(
 		func(p graphql.ResolveParams) (interface{}, error) {
 			name := p.Args["name"].(string)
 			ns := p.Args["namespace"].(string)
 			keys := p.Args["keys"].([]interface{})
 
-			var complexOpSet *ComplexOperationSet
+			var specOpSet *SpecOperationSet
 
 			switch p.Source.(type) {
 			case *OperationSet:
-				complexOpSet = &ComplexOperationSet{
+				specOpSet = &SpecOperationSet{
 					OperationSet: p.Source.(*OperationSet),
 					Name:         name,
 					Namespace:    ns,
 				}
-			case *ComplexOperationSet:
-				complexOpSet = p.Source.(*ComplexOperationSet)
+			case *SpecOperationSet:
+				specOpSet = p.Source.(*SpecOperationSet)
 			default:
 				return nil, errors.New("source does not contain an OperationSet")
 			}
@@ -668,21 +668,21 @@ func init() {
 				valuekeys = append(valuekeys, v)
 			}
 
-			complexOpSet.Name = name
-			complexOpSet.Namespace = ns
-			complexOpSet.Keys = valuekeys
+			specOpSet.Name = name
+			specOpSet.Namespace = ns
+			specOpSet.Keys = valuekeys
 
-			validationErrs, err := complexOpSet.validate()
+			validationErrs, err := specOpSet.validate()
 			if err != nil {
 				return nil, err
 			}
 
 			for _, verr := range validationErrs {
 				key := verr.VarItem().Var.Key
-				complexOpSet.specs[key].Spec.Error = verr
+				specOpSet.specs[key].Spec.Error = verr
 			}
 
-			return complexOpSet, nil
+			return specOpSet, nil
 		})
 
 	SpecTypeErrorsType = graphql.NewObject(graphql.ObjectConfig{
@@ -723,14 +723,14 @@ func init() {
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						var opSet *OperationSet
-						var complexOpSet *ComplexOperationSet
+						var specOpSet *SpecOperationSet
 
 						switch p.Source.(type) {
 						case *OperationSet:
 							opSet = p.Source.(*OperationSet)
-						case *ComplexOperationSet:
-							complexOpSet = p.Source.(*ComplexOperationSet)
-							opSet = complexOpSet.OperationSet
+						case *SpecOperationSet:
+							specOpSet = p.Source.(*SpecOperationSet)
+							opSet = specOpSet.OperationSet
 						default:
 							return nil, errors.New("source does not contain an OperationSet")
 						}
@@ -775,7 +775,7 @@ func init() {
 								return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
 							}
 
-							_, aitem, err := complexOpSet.GetAtomicItem(spec)
+							_, aitem, err := specOpSet.GetAtomicItem(spec)
 							if err != nil {
 								return nil, err
 							}
@@ -808,8 +808,8 @@ func init() {
 							}
 						}
 
-						if complexOpSet != nil {
-							return complexOpSet, nil
+						if specOpSet != nil {
+							return specOpSet, nil
 						}
 
 						return opSet, nil
@@ -1154,13 +1154,13 @@ func init() {
 		}),
 	})
 
-	SpecsListType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "SpecsListType",
+	AtomicsListType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "AtomisListType",
 		Fields: (graphql.FieldsThunk)(func() graphql.Fields {
 			return graphql.Fields{
 				"list": &graphql.Field{
 					Type: graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
-						Name: "SpecListType",
+						Name: "AtomicListType",
 						Fields: graphql.Fields{
 							"name": &graphql.Field{
 								Type: graphql.String,
@@ -1199,8 +1199,8 @@ func init() {
 							return p.Info.FieldName, nil
 						},
 					},
-					"specs": &graphql.Field{
-						Type: SpecsListType,
+					"atomics": &graphql.Field{
+						Type: AtomicsListType,
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 							return p.Info.FieldName, nil
 						},
