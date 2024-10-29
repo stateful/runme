@@ -49,6 +49,7 @@ type SpecOperationSet struct {
 	Keys      []string
 }
 
+// todo(sebastian): once final, move to embedded structs for non-serializable fields
 type setVarOperation struct {
 	Order  uint             `json:"-"`
 	Kind   setOperationKind `json:"kind"`
