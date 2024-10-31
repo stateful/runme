@@ -43,7 +43,7 @@ spec:
       atomics:
         - key: URL
           atomic: Secret
-          rules: url
+          rules: database_url
           required: true
     - name: OpenAI
       breaker: OPENAI

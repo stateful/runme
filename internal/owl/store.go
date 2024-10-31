@@ -25,7 +25,7 @@ type envSpecDefsKey struct{}
 
 var EnvSpecDefsKey = &envSpecDefsKey{}
 
-//go:embed envSpecs.defaults.yaml
+//go:embed envSpecDefs.defaults.yaml
 var envSpecsCrdYaml []byte
 
 type setOperationKind int

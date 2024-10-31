@@ -247,7 +247,7 @@ func TestStore_ComplexWithDbUrlValidation(t *testing.T) {
 		assert.EqualValues(t, "DATABASE_URL", snapshot[0].Var.Key)
 		assert.EqualValues(t, "abc...orm", snapshot[0].Value.Resolved)
 		assert.EqualValues(t,
-			`Error 2: The value of variable "DATABASE_URL" failed DatabaseUrl validation "unknown database scheme" required by "DatabaseUrl->URL" declared in ".env.example"`,
+			"Error 1: The value of variable \"DATABASE_URL\" failed tag validation \"database_url\" required by \"DatabaseUrl->URL\" declared in \".env.example\"",
 			snapshot[0].Errors[0].Message,
 		)
 	})
@@ -266,7 +266,7 @@ func TestStore_ComplexWithDbUrlValidation(t *testing.T) {
 		assert.EqualValues(t, "DATABASE_URL", snapshot[0].Var.Key)
 		assert.EqualValues(t, "thi...url", snapshot[0].Value.Resolved)
 		assert.EqualValues(t,
-			`Error 2: The value of variable "DATABASE_URL" failed DatabaseUrl validation "invalid database scheme" required by "DatabaseUrl->URL" declared in ".env.example"`,
+			"Error 1: The value of variable \"DATABASE_URL\" failed tag validation \"database_url\" required by \"DatabaseUrl->URL\" declared in \".env.example\"",
 			snapshot[0].Errors[0].Message,
 		)
 	})
