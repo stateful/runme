@@ -182,23 +182,23 @@ const SpecTypeKey string = "Spec"
 var validator = valid.New()
 
 type SpecDef struct {
-	Name      string
-	Breaker   string
-	Atomics   map[string]*varSpec
+	Name      string              `json:"name"`
+	Breaker   string              `json:"breaker"`
+	Atomics   map[string]*varSpec `json:"atomics" yaml:"-"`
 	Validator func(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error)
 }
 
 func (cd *SpecDef) Validate(itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
-	specItem, ok := cd.Atomics[itemKey]
+	itemAtomic, ok := cd.Atomics[itemKey]
 	if !ok {
 		return nil, fmt.Errorf("spec item not found: %s", itemKey)
 	}
 
-	if varItem.Value.Resolved == "" && !specItem.Required {
+	if varItem.Value.Resolved == "" && !itemAtomic.Required {
 		return nil, nil
 	}
 
-	return cd.Validator(specItem, itemKey, varItem)
+	return cd.Validator(itemAtomic, itemKey, varItem)
 }
 
 func TagValidator(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
@@ -254,127 +254,7 @@ func DatabaseValidator(item *varSpec, itemKey string, varItem *SetVarItem) (Vali
 	return validationErrs, nil
 }
 
-var SpecDefTypes = map[string]*SpecDef{
-	"Auth0": {
-		Name:    "Auth0",
-		Breaker: "AUTH0",
-		Atomics: map[string]*varSpec{
-			"AUDIENCE": {
-				Name:     AtomicNamePlain,
-				Rules:    "url",
-				Required: true,
-			},
-			"CLIENT_ID": {
-				Name:     AtomicNamePlain,
-				Rules:    "alphanum,min=32,max=32",
-				Required: true,
-			},
-			"DOMAIN": {
-				Name:     AtomicNamePlain,
-				Rules:    "fqdn",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"Auth0Mgmt": {
-		Name:    "Auth0Mgmt",
-		Breaker: "AUTH0_MANAGEMENT",
-		Atomics: map[string]*varSpec{
-			"CLIENT_ID": {
-				Name:     AtomicNamePlain,
-				Rules:    "alphanum,min=32,max=32",
-				Required: true,
-			},
-			"CLIENT_SECRET": {
-				Name:     AtomicNameSecret,
-				Rules:    "ascii,min=64,max=64",
-				Required: true,
-			},
-			"AUDIENCE": {
-				Name:     AtomicNamePlain,
-				Rules:    "url",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"DatabaseUrl": {
-		Name:    "DatabaseUrl",
-		Breaker: "DATABASE",
-		Atomics: map[string]*varSpec{
-			"URL": {
-				Name:     AtomicNameSecret,
-				Rules:    "url",
-				Required: true,
-			},
-		},
-		Validator: DatabaseValidator,
-	},
-	"OpenAI": {
-		Name:    "OpenAI",
-		Breaker: "OPENAI",
-		Atomics: map[string]*varSpec{
-			"ORG_ID": {
-				Name:     AtomicNamePlain,
-				Rules:    "ascii,min=28,max=28,startswith=org-",
-				Required: true,
-			},
-			"API_KEY": {
-				Name:     AtomicNameSecret,
-				Rules:    "ascii,min=34,startswith=sk-",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"Redis": {
-		Name:    "Redis",
-		Breaker: "REDIS",
-		Atomics: map[string]*varSpec{
-			"HOST": {
-				Name:     AtomicNamePlain,
-				Rules:    "ip|hostname",
-				Required: true,
-			},
-			"PORT": {
-				Name:     AtomicNamePlain,
-				Rules:    "number",
-				Required: true,
-			},
-			"PASSWORD": {
-				Name:     AtomicNamePassword,
-				Rules:    "min=18,max=32",
-				Required: false,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"Slack": {
-		Name:    "Slack",
-		Breaker: "SLACK",
-		Atomics: map[string]*varSpec{
-			"CLIENT_ID": {
-				Name:     AtomicNamePlain,
-				Rules:    "min=24,max=24",
-				Required: true,
-			},
-			"CLIENT_SECRET": {
-				Name:     AtomicNameSecret,
-				Rules:    "min=32,max=32",
-				Required: true,
-			},
-			"REDIRECT_URL": {
-				Name:     AtomicNameSecret,
-				Rules:    "url",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-}
-
-func (s *SpecOperationSet) validate() (ValidationErrors, error) {
+func (s *SpecOperationSet) validate(specDefs SpecDefs) (ValidationErrors, error) {
 	var validationErrs ValidationErrors
 
 	for _, k := range s.Keys {
@@ -387,12 +267,12 @@ func (s *SpecOperationSet) validate() (ValidationErrors, error) {
 			continue
 		}
 
-		specType, ok := SpecDefTypes[spec.Spec.Name]
+		specType, ok := specDefs[spec.Spec.Name]
 		if !ok {
 			return nil, fmt.Errorf("spec type not found: %s", spec.Spec.Name)
 		}
 
-		akey, aitem, err := s.GetAtomic(spec)
+		akey, aitem, err := s.GetAtomic(spec, specDefs)
 		if err != nil {
 			return nil, err
 		}
@@ -409,13 +289,13 @@ func (s *SpecOperationSet) validate() (ValidationErrors, error) {
 	return validationErrs, nil
 }
 
-func (s *SpecOperationSet) GetAtomic(spec *SetVarSpec) (string, *SetVarItem, error) {
+func (s *SpecOperationSet) GetAtomic(spec *SetVarSpec, specDefs SpecDefs) (string, *SetVarItem, error) {
 	val, ok := s.values[spec.Var.Key]
 	if !ok {
 		return "", nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
 	}
 
-	specType, ok := SpecDefTypes[spec.Spec.Name]
+	specType, ok := specDefs[spec.Spec.Name]
 	if !ok {
 		return spec.Var.Key, &SetVarItem{
 			Var:   spec.Var,

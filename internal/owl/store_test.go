@@ -4,7 +4,7 @@ package owl
 
 import (
 	"bytes"
-	"fmt"
+	_ "embed"
 	"os"
 	"testing"
 
@@ -86,7 +86,7 @@ func Test_Store(t *testing.T) {
 		err = store.sensitiveKeysQuery(&query, &vars)
 		require.NoError(t, err)
 
-		fmt.Println(query.String())
+		// fmt.Println(query.String())
 	})
 
 	t.Run("Validate with process envs", func(t *testing.T) {
@@ -607,16 +607,19 @@ func TestStore_Get(t *testing.T) {
 	assert.EqualValues(t, "secret-fake-password", val)
 }
 
+//go:embed testdata/resolve/.env.example
+var resolveSpecsRaw []byte
+
+//go:embed testdata/resolve/.env.local
+var resolveValuesRaw []byte
+
 func TestStore_Resolve(t *testing.T) {
 	t.Skip("Skip since it requires GCP's secret manager")
 
-	rawSpecs, err := os.ReadFile("testdata/resolve/.env.example")
-	require.NoError(t, err)
-
-	rawValues, err := os.ReadFile("testdata/resolve/.env.local")
-	require.NoError(t, err)
-
-	store, err := NewStore(WithSpecFile(".env.example", rawSpecs), WithEnvFile(".env.local", rawValues))
+	store, err := NewStore(
+		WithSpecFile(".env.example", resolveSpecsRaw),
+		WithEnvFile(".env.local", resolveValuesRaw),
+	)
 	require.NoError(t, err)
 
 	snapshot, err := store.InsecureResolve()
@@ -633,4 +636,12 @@ func TestStore_Resolve(t *testing.T) {
 	}
 
 	require.Equal(t, 0, errors)
+}
+
+func TestStore_LoadEnvSpecDefs(t *testing.T) {
+	store, err := NewStore()
+	require.NoError(t, err)
+	require.NotNil(t, store)
+
+	require.Len(t, store.specDefs, 6)
 }

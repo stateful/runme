@@ -57,7 +57,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter, resolve bool) error {
 		reduceSetOperations(vars),
 		reduceWrapValidate(),
 		reduceAtomic("", nil),
-		reduceSepcs(),
+		reduceSepcs(s),
 		reduceWrapDone(),
 	}
 
@@ -67,7 +67,7 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter, resolve bool) error {
 			reduceWrapDone(),
 			reduceWrapValidate(),
 			reduceAtomic("", nil),
-			reduceSepcs(),
+			reduceSepcs(s),
 			reduceWrapDone(),
 		}...)
 	}
@@ -78,8 +78,98 @@ func (s *Store) snapshotQuery(query, vars io.StringWriter, resolve bool) error {
 	if resolve {
 		queryName = "Resolve"
 	}
-	q, err := s.NewQuery(queryName, varDefs,
+	q, err := s.NewEnvironmentQuery(queryName, varDefs,
 		reducers,
+	)
+	if err != nil {
+		return err
+	}
+
+	text, err := q.Print()
+	if err != nil {
+		return err
+	}
+
+	_, err = query.WriteString(text)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) defineEnvSpecDefsQuery(query io.StringWriter) error {
+	varDefs := []*ast.VariableDefinition{
+		ast.NewVariableDefinition(&ast.VariableDefinition{
+			Variable: ast.NewVariable(&ast.Variable{
+				Name: ast.NewName(&ast.Name{
+					Value: "definitions",
+				}),
+			}),
+			Type: ast.NewNamed(&ast.Named{
+				Name: ast.NewName(&ast.Name{
+					Value: "[EnvSpecInputType]!",
+				}),
+			}),
+		}),
+	}
+	q, err := s.NewEnvSpecsQuery(
+		"EnvSpecsDef",
+		varDefs,
+		[]QueryNodeReducer{
+			func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
+				nextSelSet := ast.NewSelectionSet(&ast.SelectionSet{
+					Selections: []ast.Selection{
+						ast.NewField(&ast.Field{
+							Name: ast.NewName(&ast.Name{
+								Value: "name",
+							}),
+						}),
+						ast.NewField(&ast.Field{
+							Name: ast.NewName(&ast.Name{
+								Value: "breaker",
+							}),
+						}),
+						ast.NewField(&ast.Field{
+							Name: ast.NewName(&ast.Name{
+								Value: "atomics",
+							}),
+							SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+								Selections: []ast.Selection{
+									ast.NewField(&ast.Field{
+										Name: ast.NewName(&ast.Name{
+											Value: "key",
+										}),
+									}),
+									ast.NewField(&ast.Field{
+										Name: ast.NewName(&ast.Name{
+											Value: "atomic",
+										}),
+									}),
+									ast.NewField(&ast.Field{
+										Name: ast.NewName(&ast.Name{
+											Value: "rules",
+										}),
+									}),
+									ast.NewField(&ast.Field{
+										Name: ast.NewName(&ast.Name{
+											Value: "required",
+										}),
+									}),
+								},
+							}),
+						}),
+					},
+				})
+				selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "definitions",
+					}),
+					SelectionSet: nextSelSet,
+				}))
+				return nil, nil
+			},
+		},
 	)
 	if err != nil {
 		return err
@@ -117,13 +207,13 @@ func (s *Store) sensitiveKeysQuery(query, vars io.StringWriter) error {
 		}),
 	}
 
-	q, err := s.NewQuery("Sensitive", varDefs,
+	q, err := s.NewEnvironmentQuery("Sensitive", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
 			reduceSetOperations(vars),
 			reduceWrapValidate(),
 			reduceAtomic("", nil),
-			reduceSepcs(),
+			reduceSepcs(s),
 			reduceWrapDone(),
 			reduceSensitive(),
 		},
@@ -196,13 +286,13 @@ func (s *Store) getterQuery(query, vars io.StringWriter) error {
 	}
 	s.logger.Debug("getter opSets breakdown", zap.Int("loaded", loaded), zap.Int("updated", updated), zap.Int("deleted", deleted), zap.Int("total", len(s.opSets)))
 
-	q, err := s.NewQuery("Get", varDefs,
+	q, err := s.NewEnvironmentQuery("Get", varDefs,
 		[]QueryNodeReducer{
 			reconcileAsymmetry(s),
 			reduceSetOperations(vars),
 			reduceWrapValidate(),
 			reduceAtomic("", nil),
-			reduceSepcs(),
+			reduceSepcs(s),
 			reduceWrapDone(),
 			reduceGetter(),
 		},
@@ -1054,7 +1144,7 @@ func reduceAtomic(ns string, parent *SpecDef) QueryNodeReducer {
 	}
 }
 
-func reduceSepcs() QueryNodeReducer {
+func reduceSepcs(store *Store) QueryNodeReducer {
 	return func(opSets []*OperationSet, opDef *ast.OperationDefinition, selSet *ast.SelectionSet) (*ast.SelectionSet, error) {
 		var varKeys []string
 		varSpecs := make(map[string]*SetVarItem)
@@ -1151,7 +1241,7 @@ func reduceSepcs() QueryNodeReducer {
 					SelectionSet: nextSelSet,
 				}))
 
-			specDef := SpecDefTypes[spec]
+			specDef := store.specDefs[spec]
 
 			transientOpSet, _ := NewOperationSet(WithOperation(TransientSetOperation), WithItems(items))
 			atomicSelSet, err := reduceAtomic(ns, specDef)([]*OperationSet{transientOpSet}, opDef, nextSelSet)
@@ -1173,7 +1263,7 @@ func reduceSepcs() QueryNodeReducer {
 			ns := ""
 
 			item := varSpecs[specKey]
-			specDef, ok := SpecDefTypes[item.Spec.Name]
+			specDef, ok := store.specDefs[item.Spec.Name]
 			if !ok {
 				return nil, fmt.Errorf("unknown spec type: %s on %s", item.Spec.Name, item.Var.Key)
 			}
@@ -1211,7 +1301,53 @@ type Query struct {
 	doc *ast.Document
 }
 
-func (s *Store) NewQuery(name string, varDefs []*ast.VariableDefinition, reducers []QueryNodeReducer) (*Query, error) {
+func (s *Store) NewEnvSpecsQuery(name string, varDefs []*ast.VariableDefinition, reducers []QueryNodeReducer) (*Query, error) {
+	selSet := ast.NewSelectionSet(&ast.SelectionSet{})
+	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
+		Operation: "query",
+		Name: ast.NewName(&ast.Name{
+			Value: fmt.Sprintf("Owl%s", name),
+		}),
+		Directives: []*ast.Directive{},
+		SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+			Selections: []ast.Selection{
+				ast.NewField(&ast.Field{
+					Name: ast.NewName(&ast.Name{
+						Value: "EnvSpecs",
+					}),
+					Arguments: []*ast.Argument{
+						ast.NewArgument(&ast.Argument{
+							Name: ast.NewName(&ast.Name{
+								Value: "definitions",
+							}),
+							Value: ast.NewVariable(&ast.Variable{
+								Name: ast.NewName(&ast.Name{
+									Value: "definitions",
+								}),
+							}),
+						}),
+					},
+					Directives:   []*ast.Directive{},
+					SelectionSet: selSet,
+				}),
+			},
+		}),
+		VariableDefinitions: varDefs,
+	})
+
+	var err error
+	for _, reducer := range reducers {
+		if selSet, err = reducer(s.opSets, opDef, selSet); err != nil {
+			return nil, err
+		}
+	}
+
+	doc := ast.NewDocument(&ast.Document{Definitions: []ast.Node{opDef}})
+
+	return &Query{doc: doc}, nil
+}
+
+func (s *Store) NewEnvironmentQuery(name string, varDefs []*ast.VariableDefinition, reducers []QueryNodeReducer) (*Query, error) {
 	selSet := ast.NewSelectionSet(&ast.SelectionSet{})
 	opDef := ast.NewOperationDefinition(&ast.OperationDefinition{
 		Operation: "query",

@@ -1,0 +1,88 @@
+apiVersion: runme.stateful.com/v1alpha1
+kind: EnvSpecDefinitions
+metadata:
+  name: runme
+  namespace: stateful
+  annotations:
+    github.com/repo-url: https://github.com/stateful/runme
+spec:
+  type: owl
+  envSpecs:
+    - name: Auth0
+      breaker: AUTH0
+      atomics:
+        - key: AUDIENCE
+          atomic: Plain
+          rules: url
+          required: true
+        - key: CLIENT_ID
+          atomic: Plain
+          rules: alphanum,min=32,max=32
+          required: true
+        - key: DOMAIN
+          atomic: Plain
+          rules: fqdn
+          required: true
+    - name: Auth0Mgmt
+      breaker: AUTH0_MANAGEMENT
+      atomics:
+        - key: CLIENT_ID
+          atomic: Plain
+          rules: alphanum,min=32,max=32
+          required: true
+        - key: CLIENT_SECRET
+          atomic: Secret
+          rules: ascii,min=64,max=64
+          required: true
+        - key: AUDIENCE
+          atomic: Plain
+          rules: url
+          required: true
+    - name: DatabaseUrl
+      breaker: DATABASE
+      atomics:
+        - key: URL
+          atomic: Secret
+          rules: url
+          required: true
+    - name: OpenAI
+      breaker: OPENAI
+      atomics:
+        - key: ORG_ID
+          atomic: Plain
+          rules: ascii,min=28,max=28,startswith=org-
+          required: true
+        - key: API_KEY
+          atomic: Secret
+          rules: ascii,min=34,startswith=sk-
+          required: true
+    - name: Redis
+      breaker: REDIS
+      atomics:
+        - key: HOST
+          atomic: Plain
+          rules: ip|hostname
+          required: true
+        - key: PORT
+          atomic: Plain
+          rules: number
+          required: true
+        - key: PASSWORD
+          atomic: Password
+          rules: min=18,max=32
+          required: false
+    - name: Slack
+      breaker: SLACK
+      atomics:
+        - key: CLIENT_ID
+          atomic: Plain
+          rules: min=24,max=24
+          required: true
+        - key: CLIENT_SECRET
+          atomic: Secret
+          rules: min=32,max=32
+          required: true
+        - key: REDIRECT_URL
+          atomic: Secret
+          rules: url
+          required: true

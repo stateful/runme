@@ -672,7 +672,12 @@ func init() {
 			specOpSet.Namespace = ns
 			specOpSet.Keys = valuekeys
 
-			validationErrs, err := specOpSet.validate()
+			specDefs, ok := p.Context.Value(EnvSpecDefsKey).(SpecDefs)
+			if !ok {
+				return nil, errors.New("missing specDefs in context")
+			}
+
+			validationErrs, err := specOpSet.validate(specDefs)
 			if err != nil {
 				return nil, err
 			}
@@ -779,7 +784,12 @@ func init() {
 											return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
 										}
 
-										_, aitem, err := specOpSet.GetAtomic(spec)
+										specDefs, ok := p.Context.Value(EnvSpecDefsKey).(SpecDefs)
+										if !ok {
+											return nil, errors.New("missing specDefs in context")
+										}
+
+										_, aitem, err := specOpSet.GetAtomic(spec, specDefs)
 										if err != nil {
 											return nil, err
 										}
@@ -1267,6 +1277,37 @@ func init() {
 		}),
 	})
 
+	EnvSpecInputType := graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "EnvSpecInputType",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"name": &graphql.InputObjectFieldConfig{
+				Type: graphql.String,
+			},
+			"breaker": &graphql.InputObjectFieldConfig{
+				Type: graphql.String,
+			},
+			"atomics": &graphql.InputObjectFieldConfig{
+				Type: graphql.NewList(graphql.NewInputObject(graphql.InputObjectConfig{
+					Name: "AtomicEnvSpecInputType",
+					Fields: graphql.InputObjectConfigFieldMap{
+						"key": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"atomic": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"rules": &graphql.InputObjectFieldConfig{
+							Type: graphql.String,
+						},
+						"required": &graphql.InputObjectFieldConfig{
+							Type: graphql.Boolean,
+						},
+					},
+				})),
+			},
+		},
+	})
+
 	var err error
 	Schema, err = graphql.NewSchema(graphql.SchemaConfig{
 		Query: graphql.NewObject(
@@ -1277,6 +1318,62 @@ func init() {
 						Type: EnvironmentType,
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 							return p.Info.FieldName, nil
+						},
+					},
+					"EnvSpecs": &graphql.Field{
+						Type: graphql.NewObject(graphql.ObjectConfig{
+							Name: "EnvSpecsType",
+							Fields: graphql.Fields{
+								"definitions": &graphql.Field{
+									Type: graphql.NewList(
+										graphql.NewObject(graphql.ObjectConfig{
+											Name: "EnvSpecsDefType",
+											Fields: graphql.Fields{
+												"name": &graphql.Field{
+													Type: graphql.String,
+												},
+												"breaker": &graphql.Field{
+													Type: graphql.String,
+												},
+												"atomics": &graphql.Field{
+													Type: graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
+														Name: "AtomicEnvSpecsDefType",
+														Fields: graphql.Fields{
+															"key": &graphql.Field{
+																Type: graphql.String,
+															},
+															"atomic": &graphql.Field{
+																Type: graphql.String,
+															},
+															"rules": &graphql.Field{
+																Type: graphql.String,
+															},
+															"required": &graphql.Field{
+																Type: graphql.Boolean,
+															},
+														},
+													})),
+												},
+											},
+										}),
+									),
+									Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+										return p.Source, nil
+									},
+								},
+							},
+						}),
+						Args: graphql.FieldConfigArgument{
+							"definitions": &graphql.ArgumentConfig{
+								Type: graphql.NewList(EnvSpecInputType),
+							},
+						},
+						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+							defs, ok := p.Args["definitions"].([]interface{})
+							if !ok {
+								return nil, errors.New("definitions not found")
+							}
+							return defs, nil
 						},
 					},
 					"Atomics": &graphql.Field{

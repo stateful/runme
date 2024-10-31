@@ -3,6 +3,7 @@ package owl
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 
 	"github.com/graphql-go/graphql"
 	"github.com/stateful/godotenv"
@@ -18,6 +20,13 @@ import (
 
 	"go.uber.org/zap"
 )
+
+type envSpecDefsKey struct{}
+
+var EnvSpecDefsKey = &envSpecDefsKey{}
+
+//go:embed envSpecs.defaults.yaml
+var envSpecsCrdYaml []byte
 
 type setOperationKind int
 
@@ -36,6 +45,7 @@ type Operation struct {
 }
 
 type OperationSet struct {
+	SpecDef
 	operation Operation
 	hasSpecs  bool
 	specs     map[string]*SetVarSpec
@@ -72,7 +82,9 @@ type varValue struct {
 }
 
 type varSpec struct {
+	Key         string           `json:"-" yaml:"key"`
 	Name        string           `json:"name"`
+	Atomic      string           `json:"-" yaml:"atomic"`
 	Required    bool             `json:"required"`
 	Description string           `json:"description"`
 	Spec        string           `json:"-"`
@@ -335,9 +347,12 @@ func (s *OperationSet) resolveValue(key, plainText string) error {
 	return nil
 }
 
+type SpecDefs map[string]*SpecDef
+
 type Store struct {
-	mu     sync.RWMutex
-	opSets []*OperationSet
+	mu       sync.RWMutex
+	opSets   []*OperationSet
+	specDefs SpecDefs
 
 	logger *zap.Logger
 }
@@ -345,7 +360,13 @@ type Store struct {
 type StoreOption func(*Store) error
 
 func NewStore(opts ...StoreOption) (*Store, error) {
-	s := &Store{logger: zap.NewNop()}
+	s := &Store{
+		logger:   zap.NewNop(),
+		specDefs: make(map[string]*SpecDef),
+	}
+
+	// load ENV spec definitions from CRD
+	opts = append([]StoreOption{withSpecDefsCRD(envSpecsCrdYaml)}, opts...)
 
 	for _, opt := range opts {
 		if err := opt(s); err != nil {
@@ -397,6 +418,23 @@ func WithEnvs(source string, envs ...string) StoreOption {
 	}
 }
 
+func withSpecDefsCRD(raw []byte) StoreOption {
+	return func(s *Store) error {
+		var crd map[string]interface{}
+		err := yaml.Unmarshal(raw, &crd)
+		if err != nil {
+			return err
+		}
+
+		envSpecs, err := extractDataKey(crd, "envSpecs")
+		if err != nil {
+			return err
+		}
+
+		return s.defineEnvSpecs(envSpecs)
+	}
+}
+
 func WithLogger(logger *zap.Logger) StoreOption {
 	return func(s *Store) error {
 		s.logger = logger
@@ -429,6 +467,16 @@ func (s *Store) InsecureResolve() (SetVarItems, error) {
 	return items, nil
 }
 
+func (s *Store) DoQuery(query string, vars map[string]interface{}) *graphql.Result {
+	ctx := context.WithValue(context.Background(), EnvSpecDefsKey, s.specDefs)
+	return graphql.Do(graphql.Params{
+		Schema:         Schema,
+		RequestString:  query,
+		VariableValues: vars,
+		Context:        ctx,
+	})
+}
+
 func (s *Store) InsecureGet(k string) (string, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -457,12 +505,7 @@ func (s *Store) InsecureGet(k string) (string, bool, error) {
 	// fmt.Println(string(j))
 	// s.logger.Debug("insecure getter", zap.String("vars", string(j)))
 
-	result := graphql.Do(graphql.Params{
-		Schema:         Schema,
-		RequestString:  query.String(),
-		VariableValues: varValues,
-	})
-
+	result := s.DoQuery(query.String(), varValues)
 	if result.HasErrors() {
 		return "", false, fmt.Errorf("graphql errors %s", result.Errors)
 	}
@@ -533,12 +576,7 @@ func (s *Store) SensitiveKeys() ([]string, error) {
 	// fmt.Println(string(j))
 	// s.logger.Debug("sensitiveKeys vars", zap.String("vars", string(j)))
 
-	result := graphql.Do(graphql.Params{
-		Schema:         Schema,
-		RequestString:  query.String(),
-		VariableValues: varValues,
-	})
-
+	result := s.DoQuery(query.String(), varValues)
 	if result.HasErrors() {
 		return nil, fmt.Errorf("graphql errors %s", result.Errors)
 	}
@@ -634,6 +672,64 @@ func (s *Store) Update(context context.Context, newOrUpdated, deleted []string) 
 	return nil
 }
 
+func (s *Store) defineEnvSpecs(envSpecs interface{}) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var query bytes.Buffer
+
+	varValues := make(map[string]interface{})
+	varValues["definitions"] = envSpecs
+
+	err := s.defineEnvSpecDefsQuery(&query)
+	if err != nil {
+		return err
+	}
+
+	result := s.DoQuery(query.String(), varValues)
+	definitions, err := extractDataKey(result.Data, "definitions")
+	if err != nil {
+		return err
+	}
+
+	for _, def := range definitions.([]interface{}) {
+		ydef, err := yaml.Marshal(def)
+		if err != nil {
+			return err
+		}
+
+		var specDef *SpecDef
+		if err = yaml.Unmarshal(ydef, &specDef); err != nil {
+			return err
+		}
+
+		atomicsMap := make(map[string]*varSpec)
+		if raw, err := extractDataKey(def, "atomics"); err == nil {
+			yatomics, err := yaml.Marshal(raw)
+			if err != nil {
+				return err
+			}
+
+			var atomics []*varSpec
+			if err := yaml.Unmarshal(yatomics, &atomics); err == nil {
+				for _, a := range atomics {
+					a.Name = a.Atomic
+					atomicsMap[a.Key] = a
+				}
+			}
+		}
+		specDef.Atomics = atomicsMap
+		specDef.Validator = TagValidator
+		s.specDefs[specDef.Name] = specDef
+	}
+
+	if result.HasErrors() {
+		return fmt.Errorf("graphql errors %s", result.Errors)
+	}
+
+	return err
+}
+
 func (s *Store) snapshot(insecure, resolve bool) (SetVarItems, error) {
 	var query, vars bytes.Buffer
 	err := s.snapshotQuery(&query, &vars, resolve)
@@ -658,12 +754,7 @@ func (s *Store) snapshot(insecure, resolve bool) (SetVarItems, error) {
 	// fmt.Println(string(j))
 	// s.logger.Debug("snapshot vars", zap.String("vars", string(j)))
 
-	result := graphql.Do(graphql.Params{
-		Schema:         Schema,
-		RequestString:  query.String(),
-		VariableValues: varValues,
-	})
-
+	result := s.DoQuery(query.String(), varValues)
 	if result.HasErrors() {
 		return nil, fmt.Errorf("graphql errors %s", result.Errors)
 	}
