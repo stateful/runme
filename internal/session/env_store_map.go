@@ -7,7 +7,8 @@ import (
 )
 
 type EnvStoreMap struct {
-	mu    sync.RWMutex
+	mu sync.RWMutex
+	// +checklocks:mu
 	items map[string]string
 }
 
