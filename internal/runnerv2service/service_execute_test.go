@@ -16,6 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -1094,7 +1095,8 @@ func testStartRunnerServiceServer(t *testing.T) (
 
 	server := grpc.NewServer()
 
-	runnerService, err := NewRunnerService(factory, logger)
+	// Using nop logger to avoid data race.
+	runnerService, err := NewRunnerService(factory, zap.NewNop())
 	require.NoError(t, err)
 	runnerv2.RegisterRunnerServiceServer(server, runnerService)
 

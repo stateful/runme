@@ -30,7 +30,8 @@ type virtualCommand struct {
 
 	wg sync.WaitGroup // watch goroutines copying I/O
 
-	mu  sync.Mutex // protect err
+	mu sync.Mutex // protect err
+	// +checklocks:mu
 	err error
 }
 

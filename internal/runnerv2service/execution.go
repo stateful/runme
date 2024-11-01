@@ -35,7 +35,8 @@ const (
 var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 
 type buffer struct {
-	mu     *sync.Mutex
+	mu *sync.Mutex
+	// +checklocks:mu
 	b      *bytes.Buffer
 	closed *atomic.Bool
 	close  chan struct{}
