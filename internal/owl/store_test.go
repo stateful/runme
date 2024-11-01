@@ -614,7 +614,7 @@ var resolveSpecsRaw []byte
 var resolveValuesRaw []byte
 
 func TestStore_Resolve(t *testing.T) {
-	// t.Skip("Skip since it requires GCP's secret manager")
+	t.Skip("Skip since it requires GCP's secret manager")
 
 	t.Run("Valid", func(t *testing.T) {
 		store, err := NewStore(
