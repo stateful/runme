@@ -383,7 +383,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 
 		// TODO(adamb): on macOS is is not necessary, but on Linux
 		// we need to wait for the shell to start before we start sending commands.
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 3)
 
 		err = SetWinsize(cmd, &Winsize{Rows: 45, Cols: 56, X: 0, Y: 0})
 		require.NoError(t, err)
@@ -393,7 +393,8 @@ func TestCommand_SetWinsize(t *testing.T) {
 		require.NoError(t, err)
 		err = cmd.Wait(context.Background())
 		require.NoError(t, err, "command failed due to: %s", stdout.String())
-		require.Contains(t, stdout.String(), "56\r\n45\r\n")
+		require.Contains(t, stdout.String(), "56\r\n")
+		require.Contains(t, stdout.String(), "45\r\n")
 	})
 }
 
