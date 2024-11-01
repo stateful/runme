@@ -614,28 +614,43 @@ var resolveSpecsRaw []byte
 var resolveValuesRaw []byte
 
 func TestStore_Resolve(t *testing.T) {
-	t.Skip("Skip since it requires GCP's secret manager")
+	// t.Skip("Skip since it requires GCP's secret manager")
 
-	store, err := NewStore(
-		WithSpecFile(".env.example", resolveSpecsRaw),
-		WithEnvFile(".env.local", resolveValuesRaw),
-	)
-	require.NoError(t, err)
+	t.Run("Valid", func(t *testing.T) {
+		store, err := NewStore(
+			WithSpecFile(".env.example", resolveSpecsRaw),
+			WithEnvFile(".env.local", resolveValuesRaw),
+		)
+		require.NoError(t, err)
 
-	snapshot, err := store.InsecureResolve()
-	require.NoError(t, err)
-	require.Len(t, snapshot, 4)
-	snapshot.sortbyKey()
+		snapshot, err := store.InsecureResolve()
+		require.NoError(t, err)
+		require.Len(t, snapshot, 6)
+		snapshot.sortbyKey()
 
-	errors := 0
-	for _, item := range snapshot {
-		require.EqualValues(t, "LITERAL", item.Value.Status)
-		require.NotEmpty(t, item.Value.Original)
-		require.NotEmpty(t, item.Value.Resolved)
-		errors += len(item.Errors)
-	}
+		errors := 0
+		for _, item := range snapshot {
+			require.EqualValues(t, "LITERAL", item.Value.Status)
+			require.NotEmpty(t, item.Value.Original)
+			require.NotEmpty(t, item.Value.Resolved)
+			errors += len(item.Errors)
+		}
 
-	require.Equal(t, 0, errors)
+		require.Equal(t, 0, errors)
+	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		invalidEnvSpec := `VECTOR_DB_COLLECTION="Collection for the vector DB" # VectorDB
+VECTOR_DB_URL="URL for the vector DB" # VectorDB`
+
+		store, err := NewStore(
+			WithSpecFile(".env.example", []byte(invalidEnvSpec)),
+		)
+		require.NoError(t, err)
+
+		_, err = store.InsecureResolve()
+		require.Error(t, err, "")
+	})
 }
 
 func TestStore_LoadEnvSpecDefs(t *testing.T) {

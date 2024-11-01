@@ -16,13 +16,17 @@ spec:
           rules: url
           required: true
         - key: CLIENT_ID
-          atomic: Plain
+          atomic: Secret
           rules: alphanum,min=32,max=32
           required: true
         - key: DOMAIN
-          atomic: Plain
+          atomic: Secret
           rules: fqdn
           required: true
+        - key: COOKIE_DOMAIN
+          atomic: Secret
+          rules: fqdn
+          required: false
     - name: Auth0Mgmt
       breaker: AUTH0_MANAGEMENT
       atomics:

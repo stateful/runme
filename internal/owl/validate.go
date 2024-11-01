@@ -233,7 +233,10 @@ func (s *SpecOperationSet) GetAtomic(spec *SetVarSpec, specDefs SpecDefs) (strin
 	varKey := (varKeyParts[len(varKeyParts)-1])
 	varNS := (varKeyParts[0])
 
-	item := specType.Atomics[varKey]
+	item, ok := specType.Atomics[varKey]
+	if !ok {
+		return "", nil, fmt.Errorf("spec missing atomic for %s", varKey)
+	}
 
 	aspec := *spec.Spec
 	aspec.Spec = aspec.Name
