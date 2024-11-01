@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"golang.org/x/oauth2/google"
 	"gopkg.in/yaml.v3"
 
 	"github.com/graphql-go/graphql"
@@ -21,9 +22,12 @@ import (
 	"go.uber.org/zap"
 )
 
-type envSpecDefsKey struct{}
+type owlContextKey int
 
-var EnvSpecDefsKey = &envSpecDefsKey{}
+const (
+	OwlEnvSpecDefsKey owlContextKey = iota
+	OwlGcpCredentialsKey
+)
 
 //go:embed envSpecDefs.defaults.yaml
 var envSpecsCrdYaml []byte
@@ -467,14 +471,24 @@ func (s *Store) InsecureResolve() (SetVarItems, error) {
 	return items, nil
 }
 
-func (s *Store) DoQuery(query string, vars map[string]interface{}) *graphql.Result {
-	ctx := context.WithValue(context.Background(), EnvSpecDefsKey, s.specDefs)
+func (s *Store) DoQuery(query string, vars map[string]interface{}, resolve bool) (*graphql.Result, error) {
+	ctx := context.WithValue(context.Background(), OwlEnvSpecDefsKey, s.specDefs)
+
+	if resolve {
+		// todo(sebastian): short-circuiting what should really happen at query construction
+		credentials, err := google.FindDefaultCredentials(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find GCP default credentials: %w", err)
+		}
+		ctx = context.WithValue(ctx, OwlGcpCredentialsKey, credentials)
+	}
+
 	return graphql.Do(graphql.Params{
 		Schema:         Schema,
 		RequestString:  query,
 		VariableValues: vars,
 		Context:        ctx,
-	})
+	}), nil
 }
 
 func (s *Store) InsecureGet(k string) (string, bool, error) {
@@ -505,7 +519,11 @@ func (s *Store) InsecureGet(k string) (string, bool, error) {
 	// fmt.Println(string(j))
 	// s.logger.Debug("insecure getter", zap.String("vars", string(j)))
 
-	result := s.DoQuery(query.String(), varValues)
+	result, err := s.DoQuery(query.String(), varValues, false)
+	if err != nil {
+		return "", false, err
+	}
+
 	if result.HasErrors() {
 		return "", false, fmt.Errorf("graphql errors %s", result.Errors)
 	}
@@ -576,7 +594,11 @@ func (s *Store) SensitiveKeys() ([]string, error) {
 	// fmt.Println(string(j))
 	// s.logger.Debug("sensitiveKeys vars", zap.String("vars", string(j)))
 
-	result := s.DoQuery(query.String(), varValues)
+	result, err := s.DoQuery(query.String(), varValues, false)
+	if err != nil {
+		return nil, err
+	}
+
 	if result.HasErrors() {
 		return nil, fmt.Errorf("graphql errors %s", result.Errors)
 	}
@@ -686,7 +708,11 @@ func (s *Store) defineEnvSpecs(envSpecs interface{}) error {
 		return err
 	}
 
-	result := s.DoQuery(query.String(), varValues)
+	result, err := s.DoQuery(query.String(), varValues, false)
+	if err != nil {
+		return err
+	}
+
 	definitions, err := extractDataKey(result.Data, "definitions")
 	if err != nil {
 		return err
@@ -754,7 +780,11 @@ func (s *Store) snapshot(insecure, resolve bool) (SetVarItems, error) {
 	// fmt.Println(string(j))
 	// s.logger.Debug("snapshot vars", zap.String("vars", string(j)))
 
-	result := s.DoQuery(query.String(), varValues)
+	result, err := s.DoQuery(query.String(), varValues, resolve)
+	if err != nil {
+		return nil, err
+	}
+
 	if result.HasErrors() {
 		return nil, fmt.Errorf("graphql errors %s", result.Errors)
 	}

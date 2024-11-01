@@ -2,7 +2,6 @@ package owl
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +12,8 @@ import (
 	exprlang "github.com/expr-lang/expr"
 	"github.com/graphql-go/graphql"
 	"github.com/pkg/errors"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
 )
 
 // Constants representing different spec names.
@@ -672,7 +673,7 @@ func init() {
 			specOpSet.Namespace = ns
 			specOpSet.Keys = valuekeys
 
-			specDefs, ok := p.Context.Value(EnvSpecDefsKey).(SpecDefs)
+			specDefs, ok := p.Context.Value(OwlEnvSpecDefsKey).(SpecDefs)
 			if !ok {
 				return nil, errors.New("missing specDefs in context")
 			}
@@ -784,7 +785,7 @@ func init() {
 											return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
 										}
 
-										specDefs, ok := p.Context.Value(EnvSpecDefsKey).(SpecDefs)
+										specDefs, ok := p.Context.Value(OwlEnvSpecDefsKey).(SpecDefs)
 										if !ok {
 											return nil, errors.New("missing specDefs in context")
 										}
@@ -880,10 +881,15 @@ func init() {
 						default:
 							return nil, errors.New("source does not contain an OperationSet")
 						}
-						ctx := context.Background()
-						gcpsm, err := sm.NewClient(ctx)
+
+						credentials, ok := p.Context.Value(OwlGcpCredentialsKey).(*google.Credentials)
+						if !ok {
+							return nil, fmt.Errorf("missing GCP credentials in context")
+						}
+
+						gcpsm, err := sm.NewClient(p.Context, idtoken.WithCredentialsJSON(credentials.JSON))
 						if err != nil {
-							log.Fatalf("failed to setup client: %v", err)
+							log.Fatalf("failed to setup GCP client: %v", err)
 						}
 						defer gcpsm.Close()
 
@@ -898,7 +904,7 @@ func init() {
 								Name: fmt.Sprintf("%s/versions/latest", uri),
 							}
 
-							result, err := gcpsm.AccessSecretVersion(ctx, accessRequest)
+							result, err := gcpsm.AccessSecretVersion(p.Context, accessRequest)
 							if err != nil {
 								return nil, errors.Errorf("failed to access secret version: %v", err)
 							}
