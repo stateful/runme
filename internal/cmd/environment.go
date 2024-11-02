@@ -347,7 +347,7 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED:
 			value = "[masked]"
 		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN:
-			value = "******"
+			value = "[hidden]"
 		}
 
 		strippedVal := strings.ReplaceAll(strings.ReplaceAll(value, "\n", " "), "\r", "")
