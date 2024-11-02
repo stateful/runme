@@ -28,6 +28,7 @@ type ValidateErrorType uint8
 const (
 	ValidateErrorVarRequired ValidateErrorType = iota
 	ValidateErrorTagFailed
+	ValidateErrorResolutionFailed
 	// ValidateErrorDatabaseUrl
 	// ValidateErrorJwtFailed
 )
@@ -99,6 +100,76 @@ func (e TagFailedError) Source() string {
 	}
 	return e.varItem.Spec.Operation.Source
 }
+
+type ResolutionFailedError struct {
+	varItem *SetVarItem
+	err     error
+	code    ValidateErrorType
+	item    string
+}
+
+func NewResolutionFailedError(varItem *SetVarItem, item string, err error) *ResolutionFailedError {
+	return &ResolutionFailedError{
+		code:    ValidateErrorResolutionFailed,
+		err:     err,
+		item:    item,
+		varItem: varItem,
+	}
+}
+
+func (e ResolutionFailedError) VarItem() *SetVarItem {
+	return e.varItem
+}
+
+func (e ResolutionFailedError) Error() string {
+	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed resolution \"%s\" required by \"%s->%s\" declared in \"%s\"",
+		e.Code(),
+		e.Key(),
+		e.err.Error(),
+		e.SpecName(),
+		e.Item(),
+		e.Source())
+}
+
+func (e ResolutionFailedError) Message() string {
+	return e.Error()
+}
+
+func (e ResolutionFailedError) String() string {
+	return e.Error()
+}
+
+func (e ResolutionFailedError) Code() ValidateErrorType {
+	return e.code
+}
+
+func (e ResolutionFailedError) Key() string {
+	return e.varItem.Var.Key
+}
+
+func (e ResolutionFailedError) SpecName() string {
+	return e.varItem.Spec.Spec
+}
+
+func (e ResolutionFailedError) Item() string {
+	return e.item
+}
+
+func (e ResolutionFailedError) Source() string {
+	if e.varItem.Spec.Operation == nil {
+		return "-"
+	}
+	if e.varItem.Spec.Operation.Source == "" {
+		return "-"
+	}
+	return e.varItem.Spec.Operation.Source
+}
+
+// make sure interfaces are satisfied
+var (
+	_ ValidationError = new(ResolutionFailedError)
+	_ error           = new(ResolutionFailedError)
+)
 
 // make sure interfaces are satisfied
 var (
@@ -238,9 +309,9 @@ func (s *SpecOperationSet) GetAtomic(spec *SetVarSpec, specDefs SpecDefs) (strin
 		return "", nil, fmt.Errorf("spec missing atomic for %s", varKey)
 	}
 
-	aspec := *spec.Spec
-	aspec.Spec = aspec.Name
-	aspec.Name = item.Name
+	aspec := *item
+	// aspec := *spec.Spec
+	aspec.Spec = spec.Spec.Name
 	aspec.Namespace = varNS
 
 	return varKey, &SetVarItem{

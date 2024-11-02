@@ -269,7 +269,7 @@ func atomicResolver(mutator AtomicResolverMutator) graphql.FieldResolveFn {
 					continue
 				}
 
-				if spec.Spec.Required {
+				if spec.Spec.Required && spec.Spec.Error == nil {
 					spec.Spec.Error = NewRequiredError(&SetVarItem{Var: val.Var, Value: val.Value, Spec: spec.Spec})
 					continue
 				}
@@ -795,7 +795,7 @@ func init() {
 											return nil, err
 										}
 
-										if aitem.Spec.Name != AtomicNameSecret && aitem.Spec.Name != AtomicNamePassword {
+										if aitem.Spec.Name != AtomicNameSecret && aitem.Spec.Name != AtomicNamePassword && !aitem.Spec.Required {
 											v.Value.Status = "DELETED"
 											continue
 										}
@@ -893,20 +893,31 @@ func init() {
 						}
 						defer gcpsm.Close()
 
+						gcpProject := resolveOpSet.Project
+						if gcpProject == "" {
+							gcpProject = credentials.ProjectID
+						}
+
 						for _, v := range opSet.values {
 							k, ok := resolveOpSet.Mapping[v.Var.Key]
 							if !ok {
 								continue
 							}
 
-							uri := fmt.Sprintf("projects/%s/secrets/%s", resolveOpSet.Project, k)
+							smuri := fmt.Sprintf("projects/%s/secrets/%s", gcpProject, k)
 							accessRequest := &smpb.AccessSecretVersionRequest{
-								Name: fmt.Sprintf("%s/versions/latest", uri),
+								Name: fmt.Sprintf("%s/versions/latest", smuri),
 							}
 
 							result, err := gcpsm.AccessSecretVersion(p.Context, accessRequest)
 							if err != nil {
-								return nil, errors.Errorf("failed to access secret version: %v", err)
+								verr := NewResolutionFailedError(
+									&SetVarItem{Var: v.Var, Value: v.Value, Spec: specOpSet.specs[v.Var.Key].Spec},
+									v.Var.Key,
+									err,
+								)
+								opSet.specs[v.Var.Key].Spec.Error = verr
+								continue
 							}
 
 							if err := opSet.resolveValue(v.Var.Key, string(result.Payload.Data)); err != nil {

@@ -625,7 +625,7 @@ func TestStore_Resolve(t *testing.T) {
 
 		snapshot, err := store.InsecureResolve()
 		require.NoError(t, err)
-		require.Len(t, snapshot, 6)
+		require.Len(t, snapshot, 10)
 		snapshot.sortbyKey()
 
 		errors := 0

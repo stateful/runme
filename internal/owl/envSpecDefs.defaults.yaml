@@ -25,8 +25,8 @@ spec:
           required: true
         - key: COOKIE_DOMAIN
           atomic: Secret
-          rules: fqdn
-          required: false
+          rules: min=8
+          required: true
     - name: Auth0Mgmt
       breaker: AUTH0_MANAGEMENT
       atomics:
@@ -89,4 +89,23 @@ spec:
         - key: REDIRECT_URL
           atomic: Secret
           rules: url
+          required: true
+    - name: UserHub
+      breaker: USERHUB
+      atomics:
+        - key: WEBHOOK_SECRET
+          atomic: Secret
+          rules: min=8,max=64
+          required: true
+        - key: CONN_PROVIDER_ID
+          atomic: Plain
+          rules:
+          required: true
+        - key: SKIP_CONNECTION
+          atomic: Plain
+          rules:
+          required: false
+        - key: API_KEY
+          atomic: Secret
+          rules: min=16,max=64
           required: true
