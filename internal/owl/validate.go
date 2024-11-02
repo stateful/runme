@@ -9,6 +9,7 @@ import (
 	valid "github.com/go-playground/validator/v10"
 )
 
+// todo(sebastian): perhaps this should be ValueError instead?
 type ValidationError interface {
 	fmt.Stringer
 	VarItem() *SetVarItem
