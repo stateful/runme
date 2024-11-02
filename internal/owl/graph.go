@@ -755,7 +755,9 @@ func init() {
 										return nil, errors.New("transform without expr")
 									}
 
-									resolveOpSet.Mapping = make(map[string]string)
+									if resolveOpSet.Mapping == nil {
+										resolveOpSet.Mapping = make(map[string]string)
+									}
 
 									for _, v := range opSet.values {
 										if v.Value.Status != "UNRESOLVED" {
