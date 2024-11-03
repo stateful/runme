@@ -697,5 +697,5 @@ func TestStore_LoadEnvSpecDefs(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, store)
 
-	require.Len(t, store.specDefs, 6)
+	require.Len(t, store.specDefs, 7)
 }
