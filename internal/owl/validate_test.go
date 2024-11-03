@@ -81,8 +81,8 @@ func TestStore_Specs(t *testing.T) {
 		require.NoError(t, err)
 
 		require.EqualValues(t, "https://staging.us-central1.stateful.com/", snapshot[0].Value.Resolved)
-		require.EqualValues(t, "WVKBKL2b8asAb8e3gRGDK0tGlTGQjkEV", snapshot[1].Value.Resolved)
-		require.EqualValues(t, "stateful-staging.us.auth0.com", snapshot[2].Value.Resolved)
+		require.EqualValues(t, "WVK...kEV", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "sta...com", snapshot[2].Value.Resolved)
 
 		for _, item := range snapshot {
 			assert.EqualValues(t, []*SetVarError{}, item.Errors)
@@ -122,7 +122,7 @@ func TestStore_Specs(t *testing.T) {
 		require.NoError(t, err)
 
 		require.EqualValues(t, "sk-...ake", snapshot[0].Value.Resolved)
-		require.EqualValues(t, "org-tmfakeynfake9fakeHfakek0", snapshot[1].Value.Resolved)
+		require.EqualValues(t, "", snapshot[1].Value.Resolved)
 
 		for _, item := range snapshot {
 			assert.EqualValues(t, []*SetVarError{}, item.Errors)

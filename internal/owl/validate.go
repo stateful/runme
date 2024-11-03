@@ -313,6 +313,8 @@ func (s *SpecOperationSet) GetAtomic(spec *SetVarSpec, specDefs SpecDefs) (strin
 	aspec := *item
 	// aspec := *spec.Spec
 	aspec.Spec = spec.Spec.Name
+	aspec.Description = spec.Spec.Description
+	aspec.Operation = spec.Spec.Operation
 	aspec.Namespace = varNS
 
 	return varKey, &SetVarItem{
