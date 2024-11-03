@@ -53,7 +53,7 @@ spec:
       breaker: OPENAI
       atomics:
         - key: ORG_ID
-          atomic: Plain
+          atomic: Opaque
           rules: ascii,min=28,max=28,startswith=org-
           required: true
         - key: API_KEY
