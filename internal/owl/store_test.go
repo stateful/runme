@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_OperationSet(t *testing.T) {
+func TestOperationSet(t *testing.T) {
 	t.Parallel()
 
 	t.Run("withOperation", func(t *testing.T) {
@@ -31,7 +31,7 @@ func Test_OperationSet(t *testing.T) {
 }
 
 // this suite is guarding against dotenv impl idiosyncrasies
-func Test_OperationSet_Valueless(t *testing.T) {
+func TestOperationSet_Valueless(t *testing.T) {
 	// interestingly dotenv impl return a value keyless
 	t.Run("Naked spec parse valueless", func(t *testing.T) {
 		naked := []string{"FOO"}
@@ -102,7 +102,7 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.Len(t, store.opSets, 2)
 		require.Len(t, store.opSets[0].values, len(envs))
 
-		snapshot, err := store.snapshot(true)
+		snapshot, err := store.snapshot(true, false)
 		require.NoError(t, err)
 
 		require.Greater(t, len(snapshot), 4)
@@ -121,7 +121,7 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 		require.Len(t, store.opSets, 1)
 		require.Len(t, store.opSets[0].values, 0)
 
-		snapshot, err := store.snapshot(false)
+		snapshot, err := store.snapshot(false, false)
 		require.NoError(t, err)
 		require.Len(t, snapshot, 0)
 	})
@@ -138,7 +138,7 @@ HOMEBREW_REPOSITORY=where homebrew lives # Plain`)
 	// 	require.Len(t, store.opSets[0].values, len(envs))
 	// 	require.Len(t, store.opSets[1].values, 1)
 
-	// 	snapshot, err := store.snapshot(false)
+	// 	snapshot, err := store.snapshot(false, false)
 	// 	require.NoError(t, err)
 	// 	require.EqualValues(t, "/Users/sourishkrout/Projects/stateful/2022Q4/wasi-sdk/dist/wasi-sdk-16.5ga0a342ac182c", snapshot[0].Value.Resolved)
 	// 	require.EqualValues(t, "", snapshot[0].Value.Original)
@@ -166,7 +166,7 @@ func TestStore_Specless(t *testing.T) {
 	require.Len(t, store.opSets[1].values, 2)
 
 	t.Run("with insecure true", func(t *testing.T) {
-		snapshot, err := store.snapshot(true)
+		snapshot, err := store.snapshot(true, false)
 		require.NoError(t, err)
 		require.Len(t, snapshot, 3)
 
@@ -189,7 +189,7 @@ func TestStore_Specless(t *testing.T) {
 	})
 
 	t.Run("with insecure false", func(t *testing.T) {
-		snapshot, err := store.snapshot(false)
+		snapshot, err := store.snapshot(false, false)
 		require.NoError(t, err)
 		require.Len(t, snapshot, 3)
 
@@ -220,7 +220,7 @@ func TestStore_FixtureWithSpecs(t *testing.T) {
 	require.NotNil(t, store)
 
 	t.Run("Insecure is false", func(t *testing.T) {
-		snapshot, err := store.snapshot(false)
+		snapshot, err := store.snapshot(false, false)
 		require.NoError(t, err)
 		require.NotNil(t, snapshot)
 
@@ -256,7 +256,7 @@ func TestStore_FixtureWithSpecs(t *testing.T) {
 	})
 
 	t.Run("Insecure is true", func(t *testing.T) {
-		snapshot, err := store.snapshot(true)
+		snapshot, err := store.snapshot(true, false)
 		require.NoError(t, err)
 		require.NotNil(t, snapshot)
 
@@ -299,7 +299,7 @@ func TestStore_Description(t *testing.T) {
 	store, err := NewStore(WithSpecFile(".env.example", content))
 	require.NoError(t, err)
 
-	snapshot, err := store.snapshot(false)
+	snapshot, err := store.snapshot(false, false)
 	require.NoError(t, err)
 
 	actuals := make(map[string]string, len(snapshot))
@@ -366,7 +366,7 @@ func TestStore_FixtureWithoutSpecs(t *testing.T) {
 	require.NotNil(t, store)
 
 	t.Run("Insecure is false", func(t *testing.T) {
-		snapshot, err := store.snapshot(false)
+		snapshot, err := store.snapshot(false, false)
 		require.NoError(t, err)
 		require.NotNil(t, snapshot)
 
@@ -402,7 +402,7 @@ func TestStore_FixtureWithoutSpecs(t *testing.T) {
 	})
 
 	t.Run("Insecure is true", func(t *testing.T) {
-		snapshot, err := store.snapshot(true)
+		snapshot, err := store.snapshot(true, false)
 		require.NoError(t, err)
 		require.NotNil(t, snapshot)
 
@@ -450,7 +450,7 @@ HOMEBREW_REPOSITORY= # Plain`)
 	require.NotNil(t, store)
 
 	t.Run("Insecure is false", func(t *testing.T) {
-		snapshot, err := store.snapshot(false)
+		snapshot, err := store.snapshot(false, false)
 		require.NoError(t, err)
 		require.NotNil(t, snapshot)
 
@@ -506,7 +506,7 @@ func TestStore_Reconcile(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
-		snapshot, err := store.snapshot(true)
+		snapshot, err := store.snapshot(true, false)
 		require.NoError(t, err)
 
 		require.Equal(t, 0, len(snapshot))
@@ -517,7 +517,7 @@ func TestStore_Reconcile(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
-		snapshot, err := store.snapshot(false)
+		snapshot, err := store.snapshot(false, false)
 		require.NoError(t, err)
 		require.Equal(t, 1, len(snapshot))
 
@@ -555,7 +555,7 @@ func TestStore_SecretMasking(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
-		snapshot, err := store.snapshot(false)
+		snapshot, err := store.snapshot(false, false)
 		require.NoError(t, err)
 		require.NotNil(t, snapshot)
 
@@ -578,7 +578,7 @@ func TestStore_SecretMasking(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 
-		snapshot, err := store.snapshot(false)
+		snapshot, err := store.snapshot(false, false)
 		require.NoError(t, err)
 		require.NotNil(t, snapshot)
 
@@ -605,4 +605,32 @@ func TestStore_Get(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 	assert.EqualValues(t, "secret-fake-password", val)
+}
+
+func TestStore_Resolve(t *testing.T) {
+	t.Skip("Skip since it requires GCP's secret manager")
+
+	rawSpecs, err := os.ReadFile("testdata/resolve/.env.example")
+	require.NoError(t, err)
+
+	rawValues, err := os.ReadFile("testdata/resolve/.env.local")
+	require.NoError(t, err)
+
+	store, err := NewStore(WithSpecFile(".env.example", rawSpecs), WithEnvFile(".env.local", rawValues))
+	require.NoError(t, err)
+
+	snapshot, err := store.InsecureResolve()
+	require.NoError(t, err)
+	require.Len(t, snapshot, 4)
+	snapshot.sortbyKey()
+
+	errors := 0
+	for _, item := range snapshot {
+		require.EqualValues(t, "LITERAL", item.Value.Status)
+		require.NotEmpty(t, item.Value.Original)
+		require.NotEmpty(t, item.Value.Resolved)
+		errors += len(item.Errors)
+	}
+
+	require.Equal(t, 0, errors)
 }
