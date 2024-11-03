@@ -159,8 +159,9 @@ func storeSourceCmd(storeFlags envStoreFlags) *cobra.Command {
 
 func storeSnapshotCmd(storeFlags envStoreFlags) *cobra.Command {
 	var (
-		limit int
-		all   bool
+		limit  int
+		reveal bool
+		all    bool
 	)
 
 	cmd := cobra.Command{
@@ -172,6 +173,10 @@ func storeSnapshotCmd(storeFlags envStoreFlags) *cobra.Command {
 			tlsConfig, err := runmetls.LoadClientConfigFromDir(storeFlags.tlsDir)
 			if err != nil {
 				return err
+			}
+
+			if reveal && !fInsecure {
+				return errors.New("must be run in insecure mode to prevent misuse; enable by adding --insecure flag")
 			}
 
 			credentials := credentials.NewTLS(tlsConfig)
@@ -216,7 +221,8 @@ func storeSnapshotCmd(storeFlags envStoreFlags) *cobra.Command {
 			}
 
 			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
-				return errors.Wrap(printStore(cmd, msgData, limit, all), "failed to render")
+				insecureReveal := reveal && fInsecure
+				return errors.Wrap(printStore(cmd, msgData, limit, insecureReveal, all), "failed to render")
 			}
 
 			return nil
@@ -225,6 +231,7 @@ func storeSnapshotCmd(storeFlags envStoreFlags) *cobra.Command {
 
 	cmd.Flags().IntVar(&limit, "limit", 50, "Limit the number of lines")
 	cmd.Flags().BoolVarP(&all, "all", "A", false, "Show all lines")
+	cmd.Flags().BoolVarP(&reveal, "reveal", "r", false, "Reveal hidden values")
 
 	return &cmd
 }
@@ -312,7 +319,7 @@ func environmentDumpCmd() *cobra.Command {
 	return &cmd
 }
 
-func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, all bool) error {
+func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, reveal, all bool) error {
 	term := term.FromIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 
 	width, _, err := term.Size()
@@ -348,6 +355,9 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 			value = "[masked]"
 		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN:
 			value = "[hidden]"
+			if reveal {
+				value = env.GetOriginalValue()
+			}
 		}
 
 		strippedVal := strings.ReplaceAll(strings.ReplaceAll(value, "\n", " "), "\r", "")
