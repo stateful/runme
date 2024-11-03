@@ -91,7 +91,8 @@ func LoadOrGenerateConfig(certFile, keyFile string, logger *zap.Logger) (*tls.Co
 	}
 
 	if config != nil {
-		if ttl, err := validateTLSConfig(config); err == nil {
+		ttl, err := validateTLSConfig(config)
+		if err == nil {
 			logger.Info("certificate is valid", zap.Duration("ttl", ttl), zap.String("certFile", certFile), zap.String("keyFile", keyFile))
 			return config, nil
 		}

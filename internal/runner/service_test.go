@@ -20,26 +20,24 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/stateful/runme/v3/internal/testutils"
 	"github.com/stateful/runme/v3/internal/ulid"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
+// TODO(adamb): remove global state. It prevents from running tests in parallel.
 var (
 	logger  *zap.Logger
 	logFile string
 )
 
-func init() {
-	resolver.SetDefaultScheme("passthrough")
-}
-
+// TODO(adamb): remove and use [zaptest.NewLogger] instead.
 func testCreateLogger(t *testing.T) *zap.Logger {
+	t.Helper()
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = logger.Sync() })
@@ -73,21 +71,6 @@ func testStartRunnerServiceServer(t *testing.T) (
 	runnerv1.RegisterRunnerServiceServer(server, runnerService)
 	go server.Serve(lis)
 	return lis, server.Stop
-}
-
-func testCreateRunnerServiceClient(
-	t *testing.T,
-	lis interface{ Dial() (net.Conn, error) },
-) (*grpc.ClientConn, runnerv1.RunnerServiceClient) {
-	conn, err := grpc.NewClient(
-		"passthrough",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
-			return lis.Dial()
-		}),
-	)
-	require.NoError(t, err)
-	return conn, runnerv1.NewRunnerServiceClient(conn)
 }
 
 type executeResult struct {
@@ -129,7 +112,8 @@ func getExecuteResult(
 func Test_runnerService(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateRunnerServiceClient(t, lis)
+
+	_, client := testutils.NewTestGRPCClient(t, lis, runnerv1.NewRunnerServiceClient)
 
 	t.Run("Sessions", func(t *testing.T) {
 		t.Parallel()
