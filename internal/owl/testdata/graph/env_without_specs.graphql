@@ -2,7 +2,7 @@ query ResolveOwlSnapshot(
   $insecure: Boolean = false
   $load_0: [VariableInput]!
 ) {
-  environment {
+  Environment {
     load(vars: $load_0, hasSpecs: false) {
       validate {
         Opaque(keys: ["GOPATH"]) {

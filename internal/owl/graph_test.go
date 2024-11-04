@@ -34,10 +34,10 @@ func TestGraph(t *testing.T) {
 }
 
 func TestQuerySpecs(t *testing.T) {
-	t.Run("query list of specs", func(t *testing.T) {
+	t.Run("query list of atomics", func(t *testing.T) {
 		result := graphql.Do(graphql.Params{
 			Schema:        Schema,
-			RequestString: `query { specs { list { name } } }`,
+			RequestString: `query { Atomics { list { name } } }`,
 		})
 		require.False(t, result.HasErrors())
 
@@ -133,7 +133,7 @@ func TestResolveEnv(t *testing.T) {
 					if v.Var.Key != "NAME" {
 						continue
 					}
-					require.EqualValues(t, ".env", v.Var.Origin)
+					require.EqualValues(t, "[execution]", v.Var.Origin)
 					require.EqualValues(t, "Loon", v.Value.Resolved)
 					require.EqualValues(t, "LITERAL", v.Value.Status)
 					require.EqualValues(t, "Plain", v.Spec.Name)

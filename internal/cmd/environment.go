@@ -42,7 +42,16 @@ func environmentCmd() *cobra.Command {
 	return &cmd
 }
 
+type envStoreFlags struct {
+	serverAddr      string
+	sessionID       string
+	sessionStrategy string
+	tlsDir          string
+}
+
 func storeCmd() *cobra.Command {
+	var storeFlags envStoreFlags
+
 	cmd := cobra.Command{
 		Hidden: true,
 		Use:    "store",
@@ -50,36 +59,48 @@ func storeCmd() *cobra.Command {
 		Long:   "Owl Store",
 	}
 
-	cmd.AddCommand(storeSnapshotCmd())
+	cmd.Flags().StringVar(&storeFlags.serverAddr, "server-address", os.Getenv("RUNME_SERVER_ADDR"), "The Server ServerAddress to connect to, i.e. 127.0.0.1:7865")
+	cmd.Flags().StringVar(&storeFlags.tlsDir, "tls-dir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
+	cmd.Flags().StringVar(&storeFlags.sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
+	cmd.Flags().StringVar(&storeFlags.sessionStrategy, "session-strategy", func() string {
+		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
+			return val
+		}
+		return "manual"
+	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
+
+	cmd.AddCommand(storeSnapshotCmd(storeFlags))
+	cmd.AddCommand(storeSourceCmd(storeFlags))
 	cmd.AddCommand(storeCheckCmd())
 
 	return &cmd
 }
 
-func storeSnapshotCmd() *cobra.Command {
+func storeSourceCmd(storeFlags envStoreFlags) *cobra.Command {
 	var (
-		serverAddr      string
-		sessionID       string
-		sessionStrategy string
-		tlsDir          string
-		limit           int
-		all             bool
+		insecure  bool
+		export    bool
+		sessionID = ""
 	)
 
 	cmd := cobra.Command{
-		Hidden: true,
-		Use:    "snapshot",
-		Short:  "Takes a snapshot of the smart env store",
-		Long:   "Connects with a running server to inspect the environment variables of a session and returns a snapshot of the smart env store.",
+		Use:   "source",
+		Short: "Source environment variables from session",
+		Long:  "Source environment variables from session",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			tlsConfig, err := runmetls.LoadClientConfigFromDir(tlsDir)
+			// discard any stderr in silent mode
+			if !insecure {
+				return errors.New("must be run in insecure mode to prevent misuse; enable by adding --insecure flag")
+			}
+
+			tlsConfig, err := runmetls.LoadClientConfigFromDir(storeFlags.tlsDir)
 			if err != nil {
 				return err
 			}
 
 			credentials := credentials.NewTLS(tlsConfig)
 			conn, err := grpc.NewClient(
-				serverAddr,
+				storeFlags.serverAddr,
 				grpc.WithTransportCredentials(credentials),
 			)
 			if err != nil {
@@ -89,8 +110,8 @@ func storeSnapshotCmd() *cobra.Command {
 
 			client := runnerv1.NewRunnerServiceClient(conn)
 
-			// todo(sebastian): this should move into API as part of v2
-			if strings.ToLower(sessionStrategy) == "recent" {
+			// todo(sebastian): would it be better to require a specific session?
+			if strings.ToLower(storeFlags.sessionStrategy) == "recent" {
 				req := &runnerv1.ListSessionsRequest{}
 				resp, err := client.ListSessions(cmd.Context(), req)
 				if err != nil {
@@ -104,8 +125,89 @@ func storeSnapshotCmd() *cobra.Command {
 				sessionID = resp.Sessions[l-1].Id
 			}
 
+			req := &runnerv1.GetSessionRequest{Id: sessionID}
+			resp, err := client.GetSession(cmd.Context(), req)
+			if err != nil {
+				return err
+			}
+
+			for _, kv := range resp.Session.Envs {
+				parts := strings.Split(kv, "=")
+				if len(parts) < 2 {
+					return errors.Errorf("invalid key-value pair: %s", kv)
+				}
+
+				envVar := fmt.Sprintf("%s=%q", parts[0], strings.Join(parts[1:], "="))
+				if export {
+					envVar = fmt.Sprintf("export %s", envVar)
+				}
+
+				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s\n", envVar); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().BoolVarP(&export, "export", "", false, "export variables")
+	cmd.Flags().BoolVar(&insecure, "insecure", false, "Explicitly allow delicate operations to prevent misuse")
+
+	return &cmd
+}
+
+func storeSnapshotCmd(storeFlags envStoreFlags) *cobra.Command {
+	var (
+		limit  int
+		reveal bool
+		all    bool
+	)
+
+	cmd := cobra.Command{
+		Hidden: true,
+		Use:    "snapshot",
+		Short:  "Takes a snapshot of the smart env store",
+		Long:   "Connects with a running server to inspect the environment variables of a session and returns a snapshot of the smart env store.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			tlsConfig, err := runmetls.LoadClientConfigFromDir(storeFlags.tlsDir)
+			if err != nil {
+				return err
+			}
+
+			if reveal && !fInsecure {
+				return errors.New("must be run in insecure mode to prevent misuse; enable by adding --insecure flag")
+			}
+
+			credentials := credentials.NewTLS(tlsConfig)
+			conn, err := grpc.NewClient(
+				storeFlags.serverAddr,
+				grpc.WithTransportCredentials(credentials),
+			)
+			if err != nil {
+				return errors.Wrap(err, "failed to connect")
+			}
+			defer conn.Close()
+
+			client := runnerv1.NewRunnerServiceClient(conn)
+
+			// todo(sebastian): this should move into API as part of v2
+			if strings.ToLower(storeFlags.sessionStrategy) == "recent" {
+				req := &runnerv1.ListSessionsRequest{}
+				resp, err := client.ListSessions(cmd.Context(), req)
+				if err != nil {
+					return err
+				}
+				l := len(resp.Sessions)
+				if l == 0 {
+					return errors.New("no sessions found")
+				}
+				// potentially unreliable
+				storeFlags.sessionID = resp.Sessions[l-1].Id
+			}
+
 			req := &runnerv1.MonitorEnvStoreRequest{
-				Session: &runnerv1.Session{Id: sessionID},
+				Session: &runnerv1.Session{Id: storeFlags.sessionID},
 			}
 			meClient, err := client.MonitorEnvStore(cmd.Context(), req)
 			if err != nil {
@@ -119,25 +221,17 @@ func storeSnapshotCmd() *cobra.Command {
 			}
 
 			if msgData, ok := msg.Data.(*runnerv1.MonitorEnvStoreResponse_Snapshot); ok {
-				return errors.Wrap(printStore(cmd, msgData, limit, all), "failed to render")
+				insecureReveal := reveal && fInsecure
+				return errors.Wrap(printStore(cmd, msgData, limit, insecureReveal, all), "failed to render")
 			}
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&serverAddr, "server-address", os.Getenv("RUNME_SERVER_ADDR"), "The Server ServerAddress to connect to, i.e. 127.0.0.1:7865")
-	cmd.Flags().StringVar(&tlsDir, "tls-dir", os.Getenv("RUNME_TLS_DIR"), "Path to tls files")
-	cmd.Flags().StringVar(&sessionID, "session", os.Getenv("RUNME_SESSION"), "Session Id")
-	cmd.Flags().StringVar(&sessionStrategy, "session-strategy", func() string {
-		if val, ok := os.LookupEnv("RUNME_SESSION_STRATEGY"); ok {
-			return val
-		}
-
-		return "manual"
-	}(), "Strategy for session selection. Options are manual, recent. Defaults to manual")
 	cmd.Flags().IntVar(&limit, "limit", 50, "Limit the number of lines")
 	cmd.Flags().BoolVarP(&all, "all", "A", false, "Show all lines")
+	cmd.Flags().BoolVarP(&reveal, "reveal", "r", false, "Reveal hidden values")
 
 	return &cmd
 }
@@ -225,7 +319,7 @@ func environmentDumpCmd() *cobra.Command {
 	return &cmd
 }
 
-func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, all bool) error {
+func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Snapshot, lines int, reveal, all bool) error {
 	term := term.FromIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 
 	width, _, err := term.Size()
@@ -238,7 +332,7 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 	table.AddField(strings.ToUpper("Value"))
 	table.AddField(strings.ToUpper("Description"))
 	table.AddField(strings.ToUpper("Spec"))
-	table.AddField(strings.ToUpper("Origin"))
+	table.AddField(strings.ToUpper("Source"))
 	table.AddField(strings.ToUpper("Updated"))
 	table.EndRow()
 
@@ -247,8 +341,8 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 			break
 		}
 
-		specless := msgData.Snapshot.Envs[0].Spec != owl.SpecNameOpaque
-		if !all && specless && env.Spec == owl.SpecNameOpaque {
+		specless := msgData.Snapshot.Envs[0].Spec != owl.AtomicNameOpaque
+		if !all && specless && env.Spec == owl.AtomicNameOpaque {
 			break
 		}
 
@@ -260,7 +354,10 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED:
 			value = "[masked]"
 		case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN:
-			value = "******"
+			value = "[hidden]"
+			if reveal {
+				value = env.GetOriginalValue()
+			}
 		}
 
 		strippedVal := strings.ReplaceAll(strings.ReplaceAll(value, "\n", " "), "\r", "")

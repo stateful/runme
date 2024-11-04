@@ -4,6 +4,7 @@ package owl
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"os"
 	"testing"
@@ -86,7 +87,7 @@ func Test_Store(t *testing.T) {
 		err = store.sensitiveKeysQuery(&query, &vars)
 		require.NoError(t, err)
 
-		fmt.Println(query.String())
+		// fmt.Println(query.String())
 	})
 
 	t.Run("Validate with process envs", func(t *testing.T) {
@@ -607,30 +608,94 @@ func TestStore_Get(t *testing.T) {
 	assert.EqualValues(t, "secret-fake-password", val)
 }
 
+//go:embed testdata/resolve/.env.example
+var resolveSpecsRaw []byte
+
+//go:embed testdata/resolve/.env.local
+var resolveValuesRaw []byte
+
 func TestStore_Resolve(t *testing.T) {
 	t.Skip("Skip since it requires GCP's secret manager")
 
-	rawSpecs, err := os.ReadFile("testdata/resolve/.env.example")
+	t.Run("Valid", func(t *testing.T) {
+		store, err := NewStore(
+			WithSpecFile(".env.example", resolveSpecsRaw),
+			WithEnvFile(".env.local", resolveValuesRaw),
+		)
+		require.NoError(t, err)
+
+		snapshot, err := store.InsecureResolve()
+		require.NoError(t, err)
+		require.Len(t, snapshot, 10)
+		snapshot.sortbyKey()
+
+		errors := 0
+		for _, item := range snapshot {
+			require.EqualValues(t, "LITERAL", item.Value.Status)
+			require.NotEmpty(t, item.Value.Original)
+			require.NotEmpty(t, item.Value.Resolved)
+			errors += len(item.Errors)
+		}
+
+		require.Equal(t, 0, errors)
+	})
+
+	t.Run("Snapshot", func(t *testing.T) {
+		store, err := NewStore(
+			WithSpecFile(".env.example", resolveSpecsRaw),
+			WithEnvFile(".env.local", resolveValuesRaw),
+		)
+		require.NoError(t, err)
+
+		snapshot, err := store.Snapshot()
+		require.NoError(t, err)
+		require.Len(t, snapshot, 17)
+		snapshot.sortbyKey()
+
+		var ksa []string
+		for _, item := range snapshot {
+			ksa = append(ksa, fmt.Sprintf("Key: %q, Spec: %q, Atomic: %q", item.Var.Key, item.Spec.Spec, item.Spec.Name))
+		}
+
+		require.EqualValues(t, []string{
+			`Key: "API_URL", Spec: "", Atomic: "Plain"`,
+			`Key: "AUTH0_AUDIENCE", Spec: "", Atomic: "Auth0"`,
+			`Key: "AUTH0_CLIENT_ID", Spec: "", Atomic: "Auth0"`,
+			`Key: "AUTH0_DEV_ID", Spec: "", Atomic: "Opaque"`,
+			`Key: "AUTH0_DOMAIN", Spec: "", Atomic: "Auth0"`,
+			`Key: "FRONTEND_URL", Spec: "", Atomic: "Plain"`,
+			`Key: "MIXPANEL_TOKEN", Spec: "", Atomic: "Secret"`,
+			`Key: "REDWOOD_ENV_DEBUG_IDE", Spec: "", Atomic: "Plain"`,
+			`Key: "REDWOOD_ENV_GITHUB_APP", Spec: "", Atomic: "Plain"`,
+			`Key: "REDWOOD_ENV_INSIGHT_ENABLED", Spec: "", Atomic: "Plain"`,
+			`Key: "REDWOOD_ENV_INSTRUMENTATION_KEY", Spec: "", Atomic: "Secret"`,
+			`Key: "REDWOOD_ENV_POLL_INTERVAL_MS", Spec: "", Atomic: "Opaque"`,
+			`Key: "REDWOOD_ENV_SHOW_EXTRA_LINKS", Spec: "", Atomic: "Opaque"`,
+			`Key: "REDWOOD_ENV_THEME", Spec: "", Atomic: "Opaque"`,
+			`Key: "SLACK_CLIENT_ID", Spec: "", Atomic: "Slack"`,
+			`Key: "SLACK_CLIENT_SECRET", Spec: "", Atomic: "Slack"`,
+			`Key: "SLACK_REDIRECT_URL", Spec: "", Atomic: "Slack"`,
+		}, ksa)
+	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		invalidEnvSpec := `VECTOR_DB_COLLECTION="Collection for the vector DB" # VectorDB
+VECTOR_DB_URL="URL for the vector DB" # VectorDB`
+
+		store, err := NewStore(
+			WithSpecFile(".env.example", []byte(invalidEnvSpec)),
+		)
+		require.NoError(t, err)
+
+		_, err = store.InsecureResolve()
+		require.Error(t, err, "")
+	})
+}
+
+func TestStore_LoadEnvSpecDefs(t *testing.T) {
+	store, err := NewStore()
 	require.NoError(t, err)
+	require.NotNil(t, store)
 
-	rawValues, err := os.ReadFile("testdata/resolve/.env.local")
-	require.NoError(t, err)
-
-	store, err := NewStore(WithSpecFile(".env.example", rawSpecs), WithEnvFile(".env.local", rawValues))
-	require.NoError(t, err)
-
-	snapshot, err := store.InsecureResolve()
-	require.NoError(t, err)
-	require.Len(t, snapshot, 4)
-	snapshot.sortbyKey()
-
-	errors := 0
-	for _, item := range snapshot {
-		require.EqualValues(t, "LITERAL", item.Value.Status)
-		require.NotEmpty(t, item.Value.Original)
-		require.NotEmpty(t, item.Value.Resolved)
-		errors += len(item.Errors)
-	}
-
-	require.Equal(t, 0, errors)
+	require.Len(t, store.specDefs, 7)
 }
