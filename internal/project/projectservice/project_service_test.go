@@ -9,30 +9,26 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/project/projectservice"
+	"github.com/stateful/runme/v3/internal/testutils"
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 	"github.com/stateful/runme/v3/pkg/project/teststub"
-	"github.com/stateful/runme/v3/pkg/project/testutils"
+	projtestutils "github.com/stateful/runme/v3/pkg/project/testutils"
 )
-
-func init() {
-	resolver.SetDefaultScheme("passthrough")
-}
 
 func TestProjectServiceServer_Load(t *testing.T) {
 	t.Parallel()
 
 	lis, stop := testStartProjectServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testCreateProjectServiceClient(t, lis)
+
+	_, client := testutils.NewTestGRPCClient(t, lis, projectv1.NewProjectServiceClient)
 
 	t.Run("GitProject", func(t *testing.T) {
 		t.Parallel()
@@ -45,7 +41,7 @@ func TestProjectServiceServer_Load(t *testing.T) {
 				Directory: &projectv1.DirectoryProjectOptions{
 					Path:                 testData.GitProjectPath(),
 					SkipGitignore:        false,
-					IgnoreFilePatterns:   testutils.IgnoreFilePatternsWithDefaults("ignored.md"),
+					IgnoreFilePatterns:   projtestutils.IgnoreFilePatternsWithDefaults("ignored.md"),
 					SkipRepoLookupUpward: false,
 				},
 			},
@@ -56,7 +52,7 @@ func TestProjectServiceServer_Load(t *testing.T) {
 
 		eventTypes, err := collectLoadEventTypes(loadClient)
 		require.NoError(t, err)
-		assert.Len(t, eventTypes, len(testutils.GitProjectLoadOnlyNotIgnoredFilesEvents))
+		assert.Len(t, eventTypes, len(projtestutils.GitProjectLoadOnlyNotIgnoredFilesEvents))
 	})
 
 	t.Run("FileProject", func(t *testing.T) {
@@ -78,7 +74,7 @@ func TestProjectServiceServer_Load(t *testing.T) {
 
 		eventTypes, err := collectLoadEventTypes(loadClient)
 		require.NoError(t, err)
-		assert.Len(t, eventTypes, len(testutils.FileProjectEvents))
+		assert.Len(t, eventTypes, len(projtestutils.FileProjectEvents))
 	})
 }
 
@@ -90,7 +86,8 @@ func TestProjectServiceServer_Load_ClientConnClosed(t *testing.T) {
 
 	lis, stop := testStartProjectServiceServer(t)
 	t.Cleanup(stop)
-	clientConn, client := testCreateProjectServiceClient(t, lis)
+
+	clientConn, client := testutils.NewTestGRPCClient(t, lis, projectv1.NewProjectServiceClient)
 
 	req := &projectv1.LoadRequest{
 		Kind: &projectv1.LoadRequest_File{
@@ -99,14 +96,11 @@ func TestProjectServiceServer_Load_ClientConnClosed(t *testing.T) {
 			},
 		},
 	}
-
 	loadClient, err := client.Load(context.Background(), req)
 	require.NoError(t, err)
 
-	errc := make(chan error, 1)
-	go func() {
-		errc <- clientConn.Close()
-	}()
+	err = clientConn.Close()
+	require.NoError(t, err)
 
 	for {
 		_, err := loadClient.Recv()
@@ -115,8 +109,6 @@ func TestProjectServiceServer_Load_ClientConnClosed(t *testing.T) {
 			break
 		}
 	}
-
-	require.NoError(t, <-errc)
 }
 
 func collectLoadEventTypes(client projectv1.ProjectService_LoadClient) ([]projectv1.LoadEventType, error) {
@@ -140,31 +132,14 @@ func testStartProjectServiceServer(t *testing.T) (
 	interface{ Dial() (net.Conn, error) },
 	func(),
 ) {
-	logger, err := zap.NewDevelopment()
-	require.NoError(t, err)
+	t.Helper()
 
 	server := grpc.NewServer()
-	service := projectservice.NewProjectServiceServer(logger)
+
+	service := projectservice.NewProjectServiceServer(zaptest.NewLogger(t))
 	projectv1.RegisterProjectServiceServer(server, service)
 
 	lis := bufconn.Listen(1024 << 10)
-
 	go server.Serve(lis)
-
 	return lis, server.Stop
-}
-
-func testCreateProjectServiceClient(
-	t *testing.T,
-	lis interface{ Dial() (net.Conn, error) },
-) (*grpc.ClientConn, projectv1.ProjectServiceClient) {
-	conn, err := grpc.NewClient(
-		"passthrough",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
-			return lis.Dial()
-		}),
-	)
-	require.NoError(t, err)
-	return conn, projectv1.NewProjectServiceClient(conn)
 }

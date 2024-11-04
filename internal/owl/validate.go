@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	valid "github.com/go-playground/validator/v10"
 	"github.com/xo/dburl"
+
+	valid "github.com/go-playground/validator/v10"
 )
 
+// todo(sebastian): perhaps this should be ValueError instead?
 type ValidationError interface {
 	fmt.Stringer
 	VarItem() *SetVarItem
@@ -27,80 +29,9 @@ type ValidateErrorType uint8
 const (
 	ValidateErrorVarRequired ValidateErrorType = iota
 	ValidateErrorTagFailed
-	ValidateErrorDatabaseUrl
+	ValidateErrorResolutionFailed
+	// ValidateErrorDatabaseUrl
 	// ValidateErrorJwtFailed
-)
-
-type DatabaseUrlError struct {
-	varItem *SetVarItem
-	code    ValidateErrorType
-	item    string
-	error   error
-}
-
-func NewDatabaseUrlError(varItem *SetVarItem, err error, item string) *DatabaseUrlError {
-	return &DatabaseUrlError{
-		varItem: varItem,
-		code:    ValidateErrorDatabaseUrl,
-		item:    item,
-		error:   err,
-	}
-}
-
-//revive:enable:var-naming
-
-func (e DatabaseUrlError) VarItem() *SetVarItem {
-	return e.varItem
-}
-
-func (e DatabaseUrlError) Error() string {
-	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed DatabaseUrl validation \"%s\" required by \"%s->%s\" declared in \"%s\"",
-		e.Code(),
-		e.Key(),
-		e.error.Error(),
-		e.SpecName(),
-		e.Item(),
-		e.Source())
-}
-
-func (e DatabaseUrlError) Message() string {
-	return e.Error()
-}
-
-func (e DatabaseUrlError) String() string {
-	return e.Error()
-}
-
-func (e DatabaseUrlError) Code() ValidateErrorType {
-	return e.code
-}
-
-func (e DatabaseUrlError) Key() string {
-	return e.varItem.Var.Key
-}
-
-func (e DatabaseUrlError) SpecName() string {
-	return e.varItem.Spec.Complex
-}
-
-func (e DatabaseUrlError) Item() string {
-	return e.item
-}
-
-func (e DatabaseUrlError) Source() string {
-	if e.varItem.Spec.Operation == nil {
-		return "-"
-	}
-	if e.varItem.Spec.Operation.Source == "" {
-		return "-"
-	}
-	return e.varItem.Spec.Operation.Source
-}
-
-// make sure interfaces are satisfied
-var (
-	_ ValidationError = new(DatabaseUrlError)
-	_ error           = new(DatabaseUrlError)
 )
 
 type TagFailedError struct {
@@ -154,7 +85,7 @@ func (e TagFailedError) Tag() string {
 }
 
 func (e TagFailedError) SpecName() string {
-	return e.varItem.Spec.Complex
+	return e.varItem.Spec.Spec
 }
 
 func (e TagFailedError) Item() string {
@@ -171,108 +102,116 @@ func (e TagFailedError) Source() string {
 	return e.varItem.Spec.Operation.Source
 }
 
+type ResolutionFailedError struct {
+	varItem *SetVarItem
+	err     error
+	code    ValidateErrorType
+	item    string
+}
+
+func NewResolutionFailedError(varItem *SetVarItem, item string, err error) *ResolutionFailedError {
+	return &ResolutionFailedError{
+		code:    ValidateErrorResolutionFailed,
+		err:     err,
+		item:    item,
+		varItem: varItem,
+	}
+}
+
+func (e ResolutionFailedError) VarItem() *SetVarItem {
+	return e.varItem
+}
+
+func (e ResolutionFailedError) Error() string {
+	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed resolution \"%s\" required by \"%s->%s\" declared in \"%s\"",
+		e.Code(),
+		e.Key(),
+		e.err.Error(),
+		e.SpecName(),
+		e.Item(),
+		e.Source())
+}
+
+func (e ResolutionFailedError) Message() string {
+	return e.Error()
+}
+
+func (e ResolutionFailedError) String() string {
+	return e.Error()
+}
+
+func (e ResolutionFailedError) Code() ValidateErrorType {
+	return e.code
+}
+
+func (e ResolutionFailedError) Key() string {
+	return e.varItem.Var.Key
+}
+
+func (e ResolutionFailedError) SpecName() string {
+	return e.varItem.Spec.Spec
+}
+
+func (e ResolutionFailedError) Item() string {
+	return e.item
+}
+
+func (e ResolutionFailedError) Source() string {
+	if e.varItem.Spec.Operation == nil {
+		return "-"
+	}
+	if e.varItem.Spec.Operation.Source == "" {
+		return "-"
+	}
+	return e.varItem.Spec.Operation.Source
+}
+
+// make sure interfaces are satisfied
+var (
+	_ ValidationError = new(ResolutionFailedError)
+	_ error           = new(ResolutionFailedError)
+)
+
 // make sure interfaces are satisfied
 var (
 	_ ValidationError = new(TagFailedError)
 	_ error           = new(TagFailedError)
 )
 
-// type JwtFailedError struct {
-// 	varItem *SetVarItem
-// 	code    ValidateErrorType
-// 	item    string
-// 	reason  string
-// }
+const SpecTypeKey string = "Spec"
 
-// func NewJwtFailedError(varItem *SetVarItem, item string, reason string) *JwtFailedError {
-// 	return &JwtFailedError{
-// 		varItem: varItem,
-// 		code:    ValidateErrorJwtFailed,
-// 		item:    item,
-// 		reason:  reason,
-// 	}
-// }
+var validator *valid.Validate
 
-// func (e JwtFailedError) VarItem() *SetVarItem {
-// 	return e.varItem
-// }
+func init() {
+	validator = valid.New()
+	if err := validator.RegisterValidation("database_url", func(fl valid.FieldLevel) bool {
+		if _, err := dburl.Parse(fl.Field().String()); err != nil {
+			return false
+		}
+		return true
+	}); err != nil {
+		panic(err)
+	}
+}
 
-// func (e JwtFailedError) Error() string {
-// 	return fmt.Sprintf("Error %v: The value of variable \"%s\" failed JWT validation (%s) required by \"%s->%s\" declared in \"%s\"",
-// 		e.Code(),
-// 		e.Key(),
-// 		e.Reason(),
-// 		e.SpecName(),
-// 		e.Item(),
-// 		e.Source())
-// }
-
-// func (e JwtFailedError) Message() string {
-// 	return e.Error()
-// }
-
-// func (e JwtFailedError) String() string {
-// 	return e.Error()
-// }
-
-// func (e JwtFailedError) Code() ValidateErrorType {
-// 	return e.code
-// }
-
-// func (e JwtFailedError) Key() string {
-// 	return e.varItem.Var.Key
-// }
-
-// func (e JwtFailedError) Reason() string {
-// 	return e.reason
-// }
-
-// func (e JwtFailedError) SpecName() string {
-// 	return e.varItem.Spec.Complex
-// }
-
-// func (e JwtFailedError) Item() string {
-// 	return e.item
-// }
-
-// func (e JwtFailedError) Source() string {
-// 	if e.varItem.Spec.Operation == nil {
-// 		return "-"
-// 	}
-// 	if e.varItem.Spec.Operation.Source == "" {
-// 		return "-"
-// 	}
-// 	return e.varItem.Spec.Operation.Source
-// }
-
-// // make sure interfaces are satisfied
-// var (
-// 	_ ValidationError = new(JwtFailedError)
-// 	_ error           = new(JwtFailedError)
-// )
-
-const ComplexSpecType string = "Complex"
-
-var validator = valid.New()
-
-type ComplexDef struct {
-	Name      string
-	Breaker   string
-	Items     map[string]*varSpec
+type SpecDef struct {
+	Name      string              `json:"name"`
+	Breaker   string              `json:"breaker"`
+	Atomics   map[string]*varSpec `json:"atomics" yaml:"-"`
 	Validator func(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error)
 }
 
-func (cd *ComplexDef) Validate(itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
-	complexItem, ok := cd.Items[itemKey]
+func (cd *SpecDef) Validate(itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
+	itemAtomic, ok := cd.Atomics[itemKey]
 	if !ok {
-		return nil, fmt.Errorf("complex item not found: %s", itemKey)
+		return nil, fmt.Errorf("spec item not found: %s", itemKey)
 	}
 
-	if varItem.Value.Resolved == "" && !complexItem.Required {
+	if varItem.Value.Resolved == "" && !itemAtomic.Required {
 		return nil, nil
 	}
 
-	return cd.Validator(complexItem, itemKey, varItem)
+	return cd.Validator(itemAtomic, itemKey, varItem)
 }
 
 func TagValidator(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
@@ -308,147 +247,7 @@ func TagValidator(item *varSpec, itemKey string, varItem *SetVarItem) (Validatio
 	return validationErrs, nil
 }
 
-func DatabaseValidator(item *varSpec, itemKey string, varItem *SetVarItem) (ValidationErrors, error) {
-	var validationErrs ValidationErrors
-
-	_, err := dburl.Parse(varItem.Value.Resolved)
-	if err != nil {
-		validationErrs = append(validationErrs,
-			NewDatabaseUrlError(
-				&SetVarItem{
-					Var:   varItem.Var,
-					Value: varItem.Value,
-					Spec:  varItem.Spec,
-				},
-				err,
-				itemKey,
-			))
-	}
-
-	return validationErrs, nil
-}
-
-var ComplexDefTypes = map[string]*ComplexDef{
-	"Auth0": {
-		Name:    "Auth0",
-		Breaker: "AUTH0",
-		Items: map[string]*varSpec{
-			"AUDIENCE": {
-				Name:     SpecNamePlain,
-				Rules:    "url",
-				Required: true,
-			},
-			"CLIENT_ID": {
-				Name:     SpecNamePlain,
-				Rules:    "alphanum,min=32,max=32",
-				Required: true,
-			},
-			"DOMAIN": {
-				Name:     SpecNamePlain,
-				Rules:    "fqdn",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"Auth0Mgmt": {
-		Name:    "Auth0Mgmt",
-		Breaker: "AUTH0_MANAGEMENT",
-		Items: map[string]*varSpec{
-			"CLIENT_ID": {
-				Name:     SpecNamePlain,
-				Rules:    "alphanum,min=32,max=32",
-				Required: true,
-			},
-			"CLIENT_SECRET": {
-				Name:     SpecNameSecret,
-				Rules:    "ascii,min=64,max=64",
-				Required: true,
-			},
-			"AUDIENCE": {
-				Name:     SpecNamePlain,
-				Rules:    "url",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"DatabaseUrl": {
-		Name:    "DatabaseUrl",
-		Breaker: "DATABASE",
-		Items: map[string]*varSpec{
-			"URL": {
-				Name:     SpecNameSecret,
-				Rules:    "url",
-				Required: true,
-			},
-		},
-		Validator: DatabaseValidator,
-	},
-	"OpenAI": {
-		Name:    "OpenAI",
-		Breaker: "OPENAI",
-		Items: map[string]*varSpec{
-			"ORG_ID": {
-				Name:     SpecNamePlain,
-				Rules:    "ascii,min=28,max=28,startswith=org-",
-				Required: true,
-			},
-			"API_KEY": {
-				Name:     SpecNameSecret,
-				Rules:    "ascii,min=34,startswith=sk-",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"Redis": {
-		Name:    "Redis",
-		Breaker: "REDIS",
-		Items: map[string]*varSpec{
-			"HOST": {
-				Name:     SpecNamePlain,
-				Rules:    "ip|hostname",
-				Required: true,
-			},
-			"PORT": {
-				Name:     SpecNamePlain,
-				Rules:    "number",
-				Required: true,
-			},
-			"PASSWORD": {
-				Name:     SpecNamePassword,
-				Rules:    "min=18,max=32",
-				Required: false,
-			},
-		},
-		Validator: TagValidator,
-	},
-	"Slack": {
-		Name:    "Slack",
-		Breaker: "SLACK",
-		Items: map[string]*varSpec{
-			"CLIENT_ID": {
-				Name:     SpecNamePlain,
-				Rules:    "min=24,max=24",
-				Required: true,
-			},
-			"CLIENT_SECRET": {
-				Name:     SpecNameSecret,
-				Rules:    "min=32,max=32",
-				Required: true,
-			},
-			"REDIRECT_URL": {
-				Name:     SpecNameSecret,
-				Rules:    "url",
-				Required: true,
-			},
-		},
-		Validator: TagValidator,
-	},
-}
-
-func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
+func (s *SpecOperationSet) validate(specDefs SpecDefs) (ValidationErrors, error) {
 	var validationErrs ValidationErrors
 
 	for _, k := range s.Keys {
@@ -461,17 +260,17 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 			continue
 		}
 
-		complexType, ok := ComplexDefTypes[spec.Spec.Name]
+		specType, ok := specDefs[spec.Spec.Name]
 		if !ok {
-			return nil, fmt.Errorf("complex type not found: %s", spec.Spec.Name)
+			return nil, fmt.Errorf("spec type not found: %s", spec.Spec.Name)
 		}
 
-		akey, aitem, err := s.GetAtomicItem(spec)
+		akey, aitem, err := s.GetAtomic(spec, specDefs)
 		if err != nil {
 			return nil, err
 		}
 
-		verrs, err := complexType.Validate(
+		verrs, err := specType.Validate(
 			akey,
 			aitem)
 		if err != nil {
@@ -483,13 +282,13 @@ func (s *ComplexOperationSet) validate() (ValidationErrors, error) {
 	return validationErrs, nil
 }
 
-func (s *ComplexOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarItem, error) {
+func (s *SpecOperationSet) GetAtomic(spec *SetVarSpec, specDefs SpecDefs) (string, *SetVarItem, error) {
 	val, ok := s.values[spec.Var.Key]
 	if !ok {
 		return "", nil, fmt.Errorf("value not found for key: %s", spec.Var.Key)
 	}
 
-	complexType, ok := ComplexDefTypes[spec.Spec.Name]
+	specType, ok := specDefs[spec.Spec.Name]
 	if !ok {
 		return spec.Var.Key, &SetVarItem{
 			Var:   spec.Var,
@@ -498,19 +297,24 @@ func (s *ComplexOperationSet) GetAtomicItem(spec *SetVarSpec) (string, *SetVarIt
 		}, nil
 	}
 
-	varKeyParts := strings.Split(val.Var.Key, complexType.Breaker+"_")
+	varKeyParts := strings.Split(val.Var.Key, specType.Breaker+"_")
 	if len(varKeyParts) < 2 {
-		return "", nil, fmt.Errorf("invalid key not matching complex item: %s", val.Var.Key)
+		return "", nil, fmt.Errorf("invalid key not matching spec item: %s", val.Var.Key)
 	}
 
 	varKey := (varKeyParts[len(varKeyParts)-1])
 	varNS := (varKeyParts[0])
 
-	item := complexType.Items[varKey]
+	item, ok := specType.Atomics[varKey]
+	if !ok {
+		return "", nil, fmt.Errorf("spec missing atomic for %s", varKey)
+	}
 
-	aspec := *spec.Spec
-	aspec.Complex = aspec.Name
-	aspec.Name = item.Name
+	aspec := *item
+	// aspec := *spec.Spec
+	aspec.Spec = spec.Spec.Name
+	aspec.Description = spec.Spec.Description
+	aspec.Operation = spec.Spec.Operation
 	aspec.Namespace = varNS
 
 	return varKey, &SetVarItem{

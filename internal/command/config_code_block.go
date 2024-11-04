@@ -9,12 +9,30 @@ import (
 	"github.com/stateful/runme/v3/pkg/document"
 )
 
-func NewProgramConfigFromCodeBlock(block *document.CodeBlock) (*ProgramConfig, error) {
-	return (&configBuilder{block: block}).Build()
+type ConfigBuilderOption func(*configBuilder) error
+
+func WithInteractiveLegacy() ConfigBuilderOption {
+	return func(b *configBuilder) error {
+		b.useInteractiveLegacy = true
+		return nil
+	}
+}
+
+func NewProgramConfigFromCodeBlock(block *document.CodeBlock, opts ...ConfigBuilderOption) (*ProgramConfig, error) {
+	b := &configBuilder{block: block}
+
+	for _, opt := range opts {
+		if err := opt(b); err != nil {
+			return nil, err
+		}
+	}
+
+	return b.Build()
 }
 
 type configBuilder struct {
-	block *document.CodeBlock
+	block                *document.CodeBlock
+	useInteractiveLegacy bool
 }
 
 func (b *configBuilder) Build() (*ProgramConfig, error) {
@@ -22,7 +40,12 @@ func (b *configBuilder) Build() (*ProgramConfig, error) {
 		ProgramName: b.programPath(),
 		LanguageId:  b.block.Language(),
 		Directory:   b.dir(),
-		Interactive: b.block.Interactive(),
+	}
+
+	if b.useInteractiveLegacy {
+		cfg.Interactive = b.block.InteractiveLegacy()
+	} else {
+		cfg.Interactive = b.block.Interactive()
 	}
 
 	if isShell(cfg) {

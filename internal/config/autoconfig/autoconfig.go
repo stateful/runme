@@ -98,6 +98,7 @@ func getClient(cfg *config.Config, logger *zap.Logger) (*runnerv2client.Client, 
 
 	return runnerv2client.New(
 		cfg.Server.Address,
+		logger,
 		opts...,
 	)
 }
@@ -185,6 +186,10 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 		project.WithLogger(logger),
 	}
 
+	if env := c.Project.Env; env != nil {
+		opts = append(opts, project.WithEnvFilesReadOrder(env.Sources))
+	}
+
 	if c.Project.Filename != "" {
 		return project.NewFileProject(c.Project.Filename, opts...)
 	}
@@ -199,7 +204,6 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 		opts,
 		project.WithIgnoreFilePatterns(c.Project.Ignore...),
 		project.WithRespectGitignore(!c.Project.DisableGitignore),
-		project.WithEnvFilesReadOrder(c.Project.Env.Sources),
 	)
 
 	if c.Project.FindRepoUpward {

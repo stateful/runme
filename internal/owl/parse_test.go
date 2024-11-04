@@ -35,11 +35,11 @@ func TestMapSpec(t *testing.T) {
 				"KEY5": "Plain",
 			},
 			Expected: Specs{
-				"KEY1": {Name: SpecNameOpaque, Valid: false},
-				"KEY2": {Name: SpecNamePlain, Valid: true},
-				"KEY3": {Name: SpecNamePassword, Valid: true},
-				"KEY4": {Name: SpecNameSecret, Valid: true},
-				"KEY5": {Name: SpecNamePlain},
+				"KEY1": {Name: AtomicNameOpaque, Valid: false},
+				"KEY2": {Name: AtomicNamePlain, Valid: true},
+				"KEY3": {Name: AtomicNamePassword, Valid: true},
+				"KEY4": {Name: AtomicNameSecret, Valid: true},
+				"KEY5": {Name: AtomicNamePlain},
 			},
 		},
 		"WithRequiredSpecs": {
@@ -56,10 +56,10 @@ func TestMapSpec(t *testing.T) {
 				"KEY4": "Secret!",
 			},
 			Expected: Specs{
-				"KEY1": {Name: SpecNameOpaque, Valid: true, Required: true},
-				"KEY2": {Name: SpecNamePlain, Valid: true, Required: true},
-				"KEY3": {Name: SpecNamePassword, Valid: true, Required: true},
-				"KEY4": {Name: SpecNameSecret, Valid: true, Required: true},
+				"KEY1": {Name: AtomicNameOpaque, Valid: true, Required: true},
+				"KEY2": {Name: AtomicNamePlain, Valid: true, Required: true},
+				"KEY3": {Name: AtomicNamePassword, Valid: true, Required: true},
+				"KEY4": {Name: AtomicNameSecret, Valid: true, Required: true},
 			},
 		},
 		"WithParams": {
@@ -72,8 +72,8 @@ func TestMapSpec(t *testing.T) {
 				"KEY2": `Password!:{"length":9}`,
 			},
 			Expected: Specs{
-				"KEY1": {Name: SpecNamePassword, Required: true, Valid: true},
-				"KEY2": {Name: SpecNamePassword, Required: true},
+				"KEY1": {Name: AtomicNamePassword, Required: true, Valid: true},
+				"KEY2": {Name: AtomicNamePassword, Required: true},
 			},
 		},
 	}

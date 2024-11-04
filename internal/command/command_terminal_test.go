@@ -52,12 +52,12 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 
 	// Terminal command sets up a trap on EXIT.
 	// Wait for it before starting to send commands.
-	expectContainLines(t, stdout, []string{"trap -- \"__cleanup\" EXIT"})
+	expectContainLines(ctx, t, stdout, []string{"trap -- \"__cleanup\" EXIT"})
 
 	_, err = stdinW.Write([]byte("export TEST_ENV=1\n"))
 	require.NoError(t, err)
 	// Wait for the prompt before sending the next command.
-	expectContainLines(t, stdout, []string{"$"})
+	expectContainLines(ctx, t, stdout, []string{"$"})
 	_, err = stdinW.Write([]byte("exit\n"))
 	require.NoError(t, err)
 
@@ -94,15 +94,19 @@ func TestTerminalCommand_Intro(t *testing.T) {
 
 	require.NoError(t, cmd.Start(ctx))
 
-	expectContainLines(t, stdout, []string{envSourceCmd, introSecondLine})
+	expectContainLines(ctx, t, stdout, []string{envSourceCmd, introSecondLine})
 }
 
-func expectContainLines(t *testing.T, r io.Reader, expected []string) {
+func expectContainLines(ctx context.Context, t *testing.T, r io.Reader, expected []string) {
 	t.Helper()
-	var output strings.Builder
+
 	hits := make(map[string]bool, len(expected))
+	output := new(strings.Builder)
 
 	for {
+		buf := new(bytes.Buffer)
+		r := io.TeeReader(r, buf)
+
 		scanner := bufio.NewScanner(r)
 		for scanner.Scan() {
 			_, _ = output.WriteString(scanner.Text())
@@ -119,7 +123,11 @@ func expectContainLines(t *testing.T, r io.Reader, expected []string) {
 			return
 		}
 
-		time.Sleep(time.Millisecond * 400)
+		select {
+		case <-time.After(100 * time.Millisecond):
+		case <-ctx.Done():
+			t.Fatalf("error waiting for line %q, instead read %q: %s", expected, buf.Bytes(), ctx.Err())
+		}
 	}
 }
 

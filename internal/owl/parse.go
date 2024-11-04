@@ -18,10 +18,10 @@ type Specs map[string]Spec
 
 // Define the mapping between flags and their corresponding specifications.
 var allowedSpecs = map[string]func(*Spec, string, map[string]interface{}){
-	SpecNameOpaque:   handleParams,
-	SpecNamePlain:    handleParams,
-	SpecNameSecret:   handleParams,
-	SpecNamePassword: handleParams,
+	AtomicNameOpaque:   handleParams,
+	AtomicNamePlain:    handleParams,
+	AtomicNameSecret:   handleParams,
+	AtomicNamePassword: handleParams,
 }
 
 // Handler function to validate various types of input
@@ -44,7 +44,7 @@ func ParseRawSpec(values map[string]string, comments map[string]string) Specs {
 	// Iterate through each key-value pair in the comments map.
 	for key, value := range values {
 		// Initialize a new Spec instance.
-		spec := Spec{Name: SpecNameDefault}
+		spec := Spec{Name: AtomicNameDefault}
 		comment := comments[key]
 
 		// Skip empty comments.
