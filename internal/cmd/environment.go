@@ -332,7 +332,7 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 	table.AddField(strings.ToUpper("Value"))
 	table.AddField(strings.ToUpper("Description"))
 	table.AddField(strings.ToUpper("Spec"))
-	table.AddField(strings.ToUpper("Origin"))
+	table.AddField(strings.ToUpper("Source"))
 	table.AddField(strings.ToUpper("Updated"))
 	table.EndRow()
 
