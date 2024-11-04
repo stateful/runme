@@ -104,7 +104,7 @@ func expectContainLines(ctx context.Context, t *testing.T, r io.Reader, expected
 	output := new(strings.Builder)
 
 	for {
-		buf := new(bytes.Buffer)
+		buf := new(sbuffer.Buffer)
 		r := io.TeeReader(r, buf)
 
 		scanner := bufio.NewScanner(r)
