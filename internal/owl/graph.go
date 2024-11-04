@@ -517,10 +517,13 @@ func mutateLoadOrUpdate(revived SetVarItems, resolverOpSet *OperationSet, hasSpe
 			if old, ok := resolverOpSet.values[r.Var.Key]; ok {
 				oldCreated := old.Var.Created
 				r.Var.Created = oldCreated
-				if old.Var.Origin != "" {
-					source = old.Var.Origin
-				} else if old.Value.Operation != nil && old.Value.Operation.Kind != ReconcileSetOperation {
-					source = old.Value.Operation.Source
+				// todo(sebastian): are source and origin the same?
+				if source == "" {
+					if old.Var.Origin != "" {
+						source = old.Var.Origin
+					} else if old.Value.Operation != nil && old.Value.Operation.Kind != ReconcileSetOperation {
+						source = old.Value.Operation.Source
+					}
 				}
 			}
 			r.Var.Origin = source

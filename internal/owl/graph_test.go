@@ -133,7 +133,7 @@ func TestResolveEnv(t *testing.T) {
 					if v.Var.Key != "NAME" {
 						continue
 					}
-					require.EqualValues(t, ".env", v.Var.Origin)
+					require.EqualValues(t, "[execution]", v.Var.Origin)
 					require.EqualValues(t, "Loon", v.Value.Resolved)
 					require.EqualValues(t, "LITERAL", v.Value.Status)
 					require.EqualValues(t, "Plain", v.Spec.Name)
