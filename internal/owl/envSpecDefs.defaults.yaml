@@ -98,7 +98,7 @@ spec:
           rules: min=8,max=64
           required: true
         - key: CONN_PROVIDER_ID
-          atomic: Plain
+          atomic: Opaque
           rules:
           required: true
         - key: SKIP_CONNECTION
