@@ -455,7 +455,7 @@ func WithSpecDefsCRD(raw []byte) StoreOption {
 	return func(s *Store) error {
 		crd, err := extractCrdKind(raw, "EnvSpecDefinitions")
 		if err != nil {
-			return err
+			return nil
 		}
 
 		envSpecs, err := extractDataKey(crd, "envSpecs")

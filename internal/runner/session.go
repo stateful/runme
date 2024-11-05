@@ -220,7 +220,10 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	if err != nil {
 		return nil, err
 	} else if owlYAML != nil {
-		opts = append([]owl.StoreOption{owl.WithSpecDefsCRD(owlYAML)}, opts...)
+		opts = append([]owl.StoreOption{
+			owl.WithSpecDefsCRD(owlYAML),
+			owl.WithResolutionCRD(owlYAML),
+		}, opts...)
 	}
 
 	if owlYAML != nil {

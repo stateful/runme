@@ -1,4 +1,4 @@
-apiVersion: runme.stateful.com/v1beta1
+apiVersion: runme.stateful.com/v1alpha1
 kind: EnvResolution
 metadata:
   name: docs.runme.dev

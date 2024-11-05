@@ -1374,6 +1374,9 @@ func (s *Store) NewQuery(queryName, rootSelelection string, varDefs []*ast.Varia
 
 	var err error
 	for _, reducer := range reducers {
+		if reducer == nil {
+			continue
+		}
 		if selSet, err = reducer(s.opSets, opDef, selSet); err != nil {
 			return nil, err
 		}

@@ -1,4 +1,4 @@
-apiVersion: runme.stateful.com/v1beta1
+apiVersion: runme.stateful.com/v1alpha1
 kind: EnvSpecDefinitions
 metadata:
   name: runme
