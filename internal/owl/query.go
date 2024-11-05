@@ -163,7 +163,7 @@ func (s *Store) defineEnvSpecDefsQuery(query io.StringWriter) error {
 				})
 				selSet.Selections = append(selSet.Selections, ast.NewField(&ast.Field{
 					Name: ast.NewName(&ast.Name{
-						Value: "definitions",
+						Value: "load",
 					}),
 					Arguments: []*ast.Argument{
 						ast.NewArgument(&ast.Argument{
@@ -177,7 +177,16 @@ func (s *Store) defineEnvSpecDefsQuery(query io.StringWriter) error {
 							}),
 						}),
 					},
-					SelectionSet: nextSelSet,
+					SelectionSet: ast.NewSelectionSet(&ast.SelectionSet{
+						Selections: []ast.Selection{
+							ast.NewField(&ast.Field{
+								Name: ast.NewName(&ast.Name{
+									Value: "definitions",
+								}),
+								SelectionSet: nextSelSet,
+							}),
+						},
+					}),
 				}))
 				return nil, nil
 			},
