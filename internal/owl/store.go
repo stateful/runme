@@ -193,6 +193,12 @@ func (res SetVarItems) sort() {
 		if j.Spec == nil {
 			return 1
 		}
+		if i.Spec.Required {
+			return -1
+		}
+		if j.Spec.Required {
+			return 1
+		}
 		if i.Spec.Name != "Opaque" && j.Spec.Name != "Opaque" {
 			jUpdated := j.Var.Updated.Unix()
 			iUpdated := i.Var.Updated.Unix()
