@@ -747,8 +747,15 @@ func init() {
 										opSet = specOpSet.OperationSet
 									case *ResolveOperationSet:
 										resolveOpSet = p.Source.(*ResolveOperationSet)
-										specOpSet = resolveOpSet.SpecOperationSet
-										opSet = specOpSet.OperationSet
+										if resolveOpSet.OperationSet != nil {
+											opSet = resolveOpSet.OperationSet
+										}
+										if resolveOpSet.SpecOperationSet != nil {
+											specOpSet = resolveOpSet.SpecOperationSet
+										}
+										if specOpSet != nil && specOpSet.OperationSet != nil {
+											opSet = specOpSet.OperationSet
+										}
 									default:
 										return nil, errors.New("source does not contain an OperationSet")
 									}
@@ -795,12 +802,19 @@ func init() {
 											return nil, errors.New("missing specDefs in context")
 										}
 
-										_, aitem, err := specOpSet.GetAtomic(spec, specDefs)
-										if err != nil {
-											return nil, err
+										specName := spec.Spec.Name
+										specRequired := spec.Spec.Required
+
+										if specOpSet != nil {
+											_, aitem, err := specOpSet.GetAtomic(spec, specDefs)
+											if err != nil {
+												return nil, err
+											}
+											specName = aitem.Spec.Name
+											specRequired = aitem.Spec.Required
 										}
 
-										if aitem.Spec.Name != AtomicNameSecret && aitem.Spec.Name != AtomicNamePassword && !aitem.Spec.Required {
+										if specName != AtomicNameSecret && specName != AtomicNamePassword && !specRequired {
 											v.Value.Status = "DELETED"
 											continue
 										}
@@ -881,8 +895,14 @@ func init() {
 							opSet = specOpSet.OperationSet
 						case *ResolveOperationSet:
 							resolveOpSet = p.Source.(*ResolveOperationSet)
-							specOpSet = resolveOpSet.SpecOperationSet
-							opSet = specOpSet.OperationSet
+							if resolveOpSet.OperationSet != nil {
+								specOpSet = resolveOpSet.SpecOperationSet
+							}
+							if specOpSet != nil && specOpSet.OperationSet != nil {
+								opSet = specOpSet.OperationSet
+							} else {
+								opSet = resolveOpSet.OperationSet
+							}
 						default:
 							return nil, errors.New("source does not contain an OperationSet")
 						}
