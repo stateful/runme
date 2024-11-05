@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 	"sync"
@@ -367,6 +368,8 @@ type Store struct {
 	opSets   []*OperationSet
 	specDefs SpecDefs
 
+	resolvePath interface{}
+
 	logger *zap.Logger
 }
 
@@ -379,7 +382,7 @@ func NewStore(opts ...StoreOption) (*Store, error) {
 	}
 
 	// load ENV spec definitions from CRD
-	opts = append([]StoreOption{withSpecDefsCRD(envSpecsDefaultsCRD)}, opts...)
+	opts = append([]StoreOption{WithSpecDefsCRD(envSpecsDefaultsCRD)}, opts...)
 
 	for _, opt := range opts {
 		if err := opt(s); err != nil {
@@ -431,10 +434,26 @@ func WithEnvs(source string, envs ...string) StoreOption {
 	}
 }
 
-func withSpecDefsCRD(raw []byte) StoreOption {
+func WithResolutionCRD(raw []byte) StoreOption {
 	return func(s *Store) error {
-		var crd map[string]interface{}
-		err := yaml.Unmarshal(raw, &crd)
+		crd, err := extractCrdKind(raw, "EnvResolution")
+		if err != nil {
+			return nil
+		}
+
+		envResPath, err := extractDataKey(crd, "path")
+		if err != nil {
+			return err
+		}
+		s.resolvePath = envResPath
+
+		return nil
+	}
+}
+
+func WithSpecDefsCRD(raw []byte) StoreOption {
+	return func(s *Store) error {
+		crd, err := extractCrdKind(raw, "EnvSpecDefinitions")
 		if err != nil {
 			return err
 		}
@@ -446,6 +465,29 @@ func withSpecDefsCRD(raw []byte) StoreOption {
 
 		return s.defineEnvSpecs(envSpecs)
 	}
+}
+
+func extractCrdKind(raw []byte, targetKind string) (map[string]interface{}, error) {
+	decoder := yaml.NewDecoder(bytes.NewReader(raw))
+
+	var crd map[string]interface{}
+	for {
+		err := decoder.Decode(&crd)
+
+		if err != nil {
+			return nil, err
+		}
+
+		kind, ok := crd["kind"].(string)
+		if ok && kind == targetKind {
+			break
+		}
+
+		if err == io.EOF {
+			return nil, fmt.Errorf("failed to find kind %q in CRD", targetKind)
+		}
+	}
+	return crd, nil
 }
 
 func WithLogger(logger *zap.Logger) StoreOption {
@@ -722,6 +764,10 @@ func (s *Store) defineEnvSpecs(envSpecs interface{}) error {
 		return err
 	}
 
+	if result.HasErrors() {
+		return fmt.Errorf("graphql errors %s", result.Errors)
+	}
+
 	definitions, err := extractDataKey(result.Data, "definitions")
 	if err != nil {
 		return err
@@ -756,10 +802,6 @@ func (s *Store) defineEnvSpecs(envSpecs interface{}) error {
 		specDef.Atomics = atomicsMap
 		specDef.Validator = TagValidator
 		s.specDefs[specDef.Name] = specDef
-	}
-
-	if result.HasErrors() {
-		return fmt.Errorf("graphql errors %s", result.Errors)
 	}
 
 	return err

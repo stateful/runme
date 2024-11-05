@@ -1329,6 +1329,9 @@ func init() {
 			"breaker": &graphql.InputObjectFieldConfig{
 				Type: graphql.String,
 			},
+			"origin": &graphql.InputObjectFieldConfig{
+				Type: graphql.String,
+			},
 			"atomics": &graphql.InputObjectFieldConfig{
 				Type: graphql.NewList(graphql.NewInputObject(graphql.InputObjectConfig{
 					Name: "AtomicEnvSpecInputType",
@@ -1364,6 +1367,9 @@ func init() {
 									Type: graphql.String,
 								},
 								"breaker": &graphql.Field{
+									Type: graphql.String,
+								},
+								"origin": &graphql.Field{
 									Type: graphql.String,
 								},
 								"atomics": &graphql.Field{
