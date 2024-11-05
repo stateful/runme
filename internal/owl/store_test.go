@@ -702,7 +702,7 @@ var customSpecsRaw []byte
 //go:embed testdata/custom/.env.local
 var customValuesRaw []byte
 
-//go:embed testdata/custom/envSpecDefs.custom.yaml
+//go:embed testdata/custom/envSpecDefs.yaml
 var envSpecsCustomCRD []byte
 
 func TestStore_LoadEnvSpecDefs(t *testing.T) {

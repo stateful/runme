@@ -473,7 +473,6 @@ func extractCrdKind(raw []byte, targetKind string) (map[string]interface{}, erro
 	var crd map[string]interface{}
 	for {
 		err := decoder.Decode(&crd)
-
 		if err != nil {
 			return nil, err
 		}
