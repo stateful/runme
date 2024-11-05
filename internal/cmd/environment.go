@@ -336,12 +336,21 @@ func printStore(cmd *cobra.Command, msgData *runnerv1.MonitorEnvStoreResponse_Sn
 	table.AddField(strings.ToUpper("Updated"))
 	table.EndRow()
 
+	specless := true
+	for i, _ := range msgData.Snapshot.Envs {
+		backwards := msgData.Snapshot.Envs[len(msgData.Snapshot.Envs)-i-1]
+		if backwards.Spec != owl.AtomicNameOpaque {
+			specless = false
+			lines = len(msgData.Snapshot.Envs) - i
+			break
+		}
+	}
+
 	for i, env := range msgData.Snapshot.Envs {
 		if i >= lines && !all {
 			break
 		}
 
-		specless := msgData.Snapshot.Envs[0].Spec != owl.AtomicNameOpaque
 		if !all && specless && env.Spec == owl.AtomicNameOpaque {
 			break
 		}
