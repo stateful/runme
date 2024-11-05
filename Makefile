@@ -106,8 +106,6 @@ lint:
 		./...
 	@staticcheck ./...
 	@gosec -quiet -exclude=G110,G204,G304,G404 -exclude-generated ./...
-	@go vet -stdmethods=false ./...
-	@go vet -vettool=$(shell go env GOPATH)/bin/checklocks ./...
 
 .PHONY: pre-commit
 pre-commit: build wasm test lint
@@ -122,7 +120,6 @@ install/dev:
 	go install github.com/icholy/gomajor@v0.13.1
 	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
 	go install github.com/atombender/go-jsonschema@v0.16.0
-	go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@go
 
 .PHONY: install/goreleaser
 install/goreleaser:

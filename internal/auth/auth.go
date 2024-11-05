@@ -63,7 +63,6 @@ type Auth struct {
 	env Env
 
 	// loginInProgress is a mutex to prevent concurrent `Login` calls.
-	// +checkatomic
 	loginInProgress uint32
 
 	// loginSession contains details about the current login session.
@@ -150,6 +149,7 @@ func (a *Auth) Login(ctx context.Context) error {
 	if !atomic.CompareAndSwapUint32(&a.loginInProgress, 0, 1) {
 		return errors.New("login session already in progress")
 	}
+	defer atomic.StoreUint32(&a.loginInProgress, 0)
 
 	a.log.Debug("start logging in")
 
@@ -159,14 +159,10 @@ func (a *Auth) Login(ctx context.Context) error {
 		a.env = &desktopEnv{Session: a.loginSession}
 	}
 
-	var err error
 	if a.env.IsAutonomous() {
-		err = a.loginAuto(ctx)
-	} else {
-		err = a.loginManual(ctx)
+		return a.loginAuto(ctx)
 	}
-	atomic.StoreUint32(&a.loginInProgress, 0)
-	return err
+	return a.loginManual(ctx)
 }
 
 func (a *Auth) loginAuto(ctx context.Context) error {

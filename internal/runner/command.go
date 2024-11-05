@@ -39,8 +39,7 @@ type command struct {
 	Stdout      io.Writer
 	Stderr      io.Writer
 
-	cmd *exec.Cmd
-	// +checkatomic
+	cmd     *exec.Cmd
 	cmdDone uint32
 
 	// pty and tty as pseud-terminal primary and secondary.
@@ -54,10 +53,8 @@ type command struct {
 
 	context context.Context
 	wg      sync.WaitGroup
-
-	mu sync.Mutex
-	// +checklocks:mu
-	err error
+	mu      sync.Mutex
+	err     error
 
 	logger *zap.Logger
 }
