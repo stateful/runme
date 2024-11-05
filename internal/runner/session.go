@@ -188,7 +188,7 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	}
 
 	for _, specFile := range envSpecFiles {
-		raw, _ := proj.LoadRawEnv(specFile)
+		raw, _ := proj.LoadRawFile(specFile)
 		if raw == nil {
 			continue
 		}
@@ -216,25 +216,36 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 		opts = append(opts, owl.WithEnvs(envSource, envs...))
 	}
 
-	// todo(sebastian): code's not stale, disabled since it's unclear how this will work
-	// resolverOwlStore, err := owl.NewStore(opts...)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	owlYAML, err := proj.LoadRawFile(".runme/owl.yaml")
+	if err != nil {
+		return nil, err
+	} else if owlYAML != nil {
+		opts = append([]owl.StoreOption{
+			owl.WithSpecDefsCRD(owlYAML),
+			owl.WithResolutionCRD(owlYAML),
+		}, opts...)
+	}
 
-	// logger.Debug("Resolving env external to the graph")
-	// if snapshot, err := resolverOwlStore.InsecureResolve(); err == nil {
-	// 	resolved := []string{}
-	// 	for _, item := range snapshot {
-	// 		if item.Value.Status != "LITERAL" {
-	// 			continue
-	// 		}
-	// 		resolved = append(resolved, fmt.Sprintf("%s=%s", item.Var.Key, item.Value.Resolved))
-	// 	}
-	// 	opts = append(opts, owl.WithEnvs("[gcp:secrets]", resolved...))
-	// } else {
-	// 	logger.Error("failed to resolve owl store", zap.Error(err))
-	// }
+	if owlYAML != nil {
+		resolverOwlStore, err := owl.NewStore(opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		logger.Debug("Resolving env external to the graph")
+		if snapshot, err := resolverOwlStore.InsecureResolve(); err == nil {
+			resolved := []string{}
+			for _, item := range snapshot {
+				if item.Value.Status != "LITERAL" {
+					continue
+				}
+				resolved = append(resolved, fmt.Sprintf("%s=%s", item.Var.Key, item.Value.Resolved))
+			}
+			opts = append(opts, owl.WithEnvs("[gcp:secrets]", resolved...))
+		} else {
+			logger.Error("failed to resolve owl store", zap.Error(err))
+		}
+	}
 
 	owlStore, err := owl.NewStore(opts...)
 	if err != nil {

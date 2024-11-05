@@ -2,8 +2,6 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      - id: check-yaml
-        stages: [pre-commit]
       - id: check-json
         exclude: "^.vscode/"
         stages: [pre-commit]

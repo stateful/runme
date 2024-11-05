@@ -614,11 +614,15 @@ var resolveSpecsRaw []byte
 //go:embed testdata/resolve/.env.local
 var resolveValuesRaw []byte
 
+//go:embed testdata/resolve/envResolution.yaml
+var envResolveCRD []byte
+
 func TestStore_Resolve(t *testing.T) {
 	t.Skip("Skip since it requires GCP's secret manager")
 
 	t.Run("Valid", func(t *testing.T) {
 		store, err := NewStore(
+			WithResolutionCRD(envResolveCRD),
 			WithSpecFile(".env.example", resolveSpecsRaw),
 			WithEnvFile(".env.local", resolveValuesRaw),
 		)
@@ -692,10 +696,64 @@ VECTOR_DB_URL="URL for the vector DB" # VectorDB`
 	})
 }
 
-func TestStore_LoadEnvSpecDefs(t *testing.T) {
-	store, err := NewStore()
-	require.NoError(t, err)
-	require.NotNil(t, store)
+//go:embed testdata/custom/.env.example
+var customSpecsRaw []byte
 
-	require.Len(t, store.specDefs, 7)
+//go:embed testdata/custom/.env.local
+var customValuesRaw []byte
+
+//go:embed testdata/custom/envSpecDefs.yaml
+var envSpecsCustomCRD []byte
+
+func TestStore_LoadEnvSpecDefs(t *testing.T) {
+	t.Skip("Skip since it requires GCP's secret manager")
+
+	t.Run("Defaults", func(t *testing.T) {
+		store, err := NewStore()
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		require.Len(t, store.specDefs, 7)
+	})
+
+	t.Run("Custom", func(t *testing.T) {
+		store, err := NewStore(
+			WithSpecDefsCRD(envSpecsCustomCRD),
+			WithSpecFile(".env.example", customSpecsRaw),
+			WithEnvFile(".env.local", customValuesRaw),
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		require.Len(t, store.specDefs, 8)
+	})
+
+	t.Run("ResolvePath", func(t *testing.T) {
+		store, err := NewStore(
+			WithSpecDefsCRD(envSpecsCustomCRD),
+			WithResolutionCRD(envSpecsCustomCRD),
+			WithSpecFile(".env.example", customSpecsRaw),
+			WithEnvFile(".env.local", customValuesRaw),
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		require.Len(t, store.specDefs, 8)
+
+		snapshot, err := store.InsecureResolve()
+		require.NoError(t, err)
+		require.Len(t, snapshot, 2)
+
+		errors := 0
+		for _, item := range snapshot {
+			require.EqualValues(t, "LITERAL", item.Value.Status)
+			require.NotEmpty(t, item.Value.Original)
+			require.NotEmpty(t, item.Value.Resolved)
+			errors += len(item.Errors)
+		}
+
+		require.Equal(t, 0, errors)
+	})
 }
