@@ -165,6 +165,18 @@ func (s *Store) defineEnvSpecDefsQuery(query io.StringWriter) error {
 					Name: ast.NewName(&ast.Name{
 						Value: "definitions",
 					}),
+					Arguments: []*ast.Argument{
+						ast.NewArgument(&ast.Argument{
+							Name: ast.NewName(&ast.Name{
+								Value: "definitions",
+							}),
+							Value: ast.NewVariable(&ast.Variable{
+								Name: ast.NewName(&ast.Name{
+									Value: "definitions",
+								}),
+							}),
+						}),
+					},
 					SelectionSet: nextSelSet,
 				}))
 				return nil, nil
@@ -1315,18 +1327,6 @@ func (s *Store) NewEnvSpecsQuery(name string, varDefs []*ast.VariableDefinition,
 					Name: ast.NewName(&ast.Name{
 						Value: "EnvSpecs",
 					}),
-					Arguments: []*ast.Argument{
-						ast.NewArgument(&ast.Argument{
-							Name: ast.NewName(&ast.Name{
-								Value: "definitions",
-							}),
-							Value: ast.NewVariable(&ast.Variable{
-								Name: ast.NewName(&ast.Name{
-									Value: "definitions",
-								}),
-							}),
-						}),
-					},
 					Directives:   []*ast.Directive{},
 					SelectionSet: selSet,
 				}),

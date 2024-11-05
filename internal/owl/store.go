@@ -30,7 +30,7 @@ const (
 )
 
 //go:embed envSpecDefs.defaults.yaml
-var envSpecsCrdYaml []byte
+var envSpecsDefaultsCRD []byte
 
 type setOperationKind int
 
@@ -379,7 +379,7 @@ func NewStore(opts ...StoreOption) (*Store, error) {
 	}
 
 	// load ENV spec definitions from CRD
-	opts = append([]StoreOption{withSpecDefsCRD(envSpecsCrdYaml)}, opts...)
+	opts = append([]StoreOption{withSpecDefsCRD(envSpecsDefaultsCRD)}, opts...)
 
 	for _, opt := range opts {
 		if err := opt(s); err != nil {

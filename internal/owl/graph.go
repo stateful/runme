@@ -1399,23 +1399,23 @@ func init() {
 											},
 										}),
 									),
+									Args: graphql.FieldConfigArgument{
+										"definitions": &graphql.ArgumentConfig{
+											Type: graphql.NewList(EnvSpecInputType),
+										},
+									},
 									Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-										return p.Source, nil
+										defs, ok := p.Args["definitions"].([]interface{})
+										if !ok {
+											return nil, errors.New("definitions not found")
+										}
+										return defs, nil
 									},
 								},
 							},
 						}),
-						Args: graphql.FieldConfigArgument{
-							"definitions": &graphql.ArgumentConfig{
-								Type: graphql.NewList(EnvSpecInputType),
-							},
-						},
 						Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-							defs, ok := p.Args["definitions"].([]interface{})
-							if !ok {
-								return nil, errors.New("definitions not found")
-							}
-							return defs, nil
+							return p.Info.FieldName, nil
 						},
 					},
 					"Atomics": &graphql.Field{
