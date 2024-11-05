@@ -1,0 +1,45 @@
+apiVersion: runme.stateful.com/v1alpha1
+kind: EnvSpecDefinitions
+metadata:
+  name: docs.runme.dev
+  namespace: stateful
+  annotations:
+    github.com/repo-url: https://github.com/stateful/docs.runme.dev
+spec:
+  type: owl
+  envSpecs:
+    - name: Docs
+      breaker: DOCS
+      atomics:
+        - key: GCP_ARTIFACTS_REPO
+          atomic: Opaque
+          rules: printascii
+          required: true
+        - key: GCP_CREDENTIALS
+          atomic: Secret
+          rules: json
+          required: true
+        - key: GCP_PROJECT_ID
+          atomic: Plain
+          rules: printascii
+          required: true
+        - key: GCP_REGION
+          atomic: Plain
+          rules: printascii
+          required: true
+---
+apiVersion: runme.stateful.com/v1alpha1
+kind: EnvResolution
+metadata:
+  name: docs.runme.dev
+  namespace: stateful
+  annotations:
+    github.com/repo-url: https://github.com/stateful/docs.runme.dev
+spec:
+  type: owl
+  path:
+    transform:
+      expr: key | trimPrefix("DOCS_GCP_") | lower()
+      gcp:
+        auth: ADC
+        project: runme-ci
