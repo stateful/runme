@@ -19,6 +19,7 @@ import (
 
 	"github.com/stateful/runme/v3/internal/sbuffer"
 	"github.com/stateful/runme/v3/internal/session"
+	"github.com/stateful/runme/v3/internal/testutils"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
@@ -63,7 +64,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 
 	// Wait for the prompt before sending the next command.
 	prompt := "$"
-	if os.Getenv("RUNME_TEST_ENV") == "docker" {
+	if testutils.IsDockerTestEnv() {
 		prompt = "#"
 	}
 	expectContainLines(ctx, t, stdout, []string{prompt})
