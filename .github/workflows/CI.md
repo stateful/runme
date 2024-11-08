@@ -16,7 +16,7 @@ Run all tests with coverage reports.
 unset RUNME_SESSION_STRATEGY RUNME_TLS_DIR RUNME_SERVER_ADDR
 export SHELL="/bin/bash"
 export TZ="UTC"
-export TAGS="test_with_docker"
+export TAGS="docker_enabled"
 make test/coverage
 make test/coverage/func
 ```

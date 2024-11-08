@@ -31,7 +31,7 @@ wasm:
 test/execute: PKGS ?= "./..."
 test/execute: RUN ?= .*
 test/execute: RACE ?= false
-test/execute: TAGS ?= "" # e.g. TAGS="test_with_docker"
+test/execute: TAGS ?= "" # e.g. TAGS="docker_enabled"
 # It depends on the build target because the runme binary
 # is used for tests, for example, "runme env dump".
 test/execute: build
@@ -41,7 +41,7 @@ test/execute: build
 test/coverage: PKGS ?= "./..."
 test/coverage: RUN ?= .*
 test/coverage: GOCOVERDIR ?= "."
-test/coverage: TAGS ?= "" # e.g. TAGS="test_with_docker"
+test/coverage: TAGS ?= "" # e.g. TAGS="docker_enabled"
 # It depends on the build target because the runme binary
 # is used for tests, for example, "runme env dump".
 test/coverage: build
@@ -71,6 +71,7 @@ test-docker/cleanup:
 .PHONY: test-docker/run
 test-docker/run:
 	docker run --rm \
+		-e RUNME_TEST_ENV=docker \
 		-v $(shell pwd):/workspace \
 		-v dev.runme.test-env-gocache:/root/.cache/go-build \
 		runme-test-env:latest

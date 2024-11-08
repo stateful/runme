@@ -42,12 +42,17 @@ dist/
 # Editor
 .idea
 
+# macOS
 .DS_Store
 
 # VSCode debugger
 __debug_bin*
 
+# Cover coverage
 cover.out
+
+# Ignore .env
+.env
 
 # Prevent git from interpreting internal/project/testdata/git-project as a submodule.
 internal/project/testdata/git-project/**/.git

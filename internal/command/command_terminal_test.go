@@ -4,6 +4,7 @@ package command
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
 	"github.com/stateful/runme/v3/internal/sbuffer"
@@ -28,7 +30,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 	stdinR, stdinW := io.Pipe()
 	stdout := sbuffer.New(nil)
 
-	factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
+	factory := NewFactory(WithLogger(zap.NewNop()))
 
 	cmd, err := factory.Build(
 		&ProgramConfig{
@@ -56,8 +58,16 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 
 	_, err = stdinW.Write([]byte("export TEST_ENV=1\n"))
 	require.NoError(t, err)
+	// Give the shell some time to process the command.
+	time.Sleep(time.Second)
+
 	// Wait for the prompt before sending the next command.
-	expectContainLines(ctx, t, stdout, []string{"$"})
+	prompt := "$"
+	if os.Getenv("RUNME_TEST_ENV") == "docker" {
+		prompt = "#"
+	}
+	expectContainLines(ctx, t, stdout, []string{prompt})
+
 	_, err = stdinW.Write([]byte("exit\n"))
 	require.NoError(t, err)
 
@@ -101,32 +111,37 @@ func expectContainLines(ctx context.Context, t *testing.T, r io.Reader, expected
 	t.Helper()
 
 	hits := make(map[string]bool, len(expected))
+	buf := new(bytes.Buffer)
 	output := new(strings.Builder)
 
-	for {
-		buf := new(bytes.Buffer)
-		r := io.TeeReader(r, buf)
+	r = io.TeeReader(r, buf)
 
+	for {
 		scanner := bufio.NewScanner(r)
 		for scanner.Scan() {
-			_, _ = output.WriteString(scanner.Text())
-		}
-		require.NoError(t, scanner.Err())
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
 
-		for _, e := range expected {
-			if strings.Contains(output.String(), e) {
-				hits[e] = true
+			_, _ = output.WriteString(line)
+
+			for _, e := range expected {
+				if strings.Contains(line, e) {
+					hits[e] = true
+				}
+			}
+
+			if len(hits) == len(expected) {
+				return
 			}
 		}
-
-		if len(hits) == len(expected) {
-			return
-		}
+		require.NoError(t, scanner.Err())
 
 		select {
 		case <-time.After(100 * time.Millisecond):
 		case <-ctx.Done():
-			t.Fatalf("error waiting for line %q, instead read %q: %s", expected, buf.Bytes(), ctx.Err())
+			t.Fatalf("error waiting for line %q, instead read %q: %s", expected, buf.String(), ctx.Err())
 		}
 	}
 }

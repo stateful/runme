@@ -7,12 +7,15 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
+	"unicode"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/stateful/runme/v3/internal/sbuffer"
 	"github.com/stateful/runme/v3/internal/session"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document"
@@ -326,7 +329,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 	t.Run("InlineInteractive", func(t *testing.T) {
 		t.Parallel()
 
-		stdout := bytes.NewBuffer(nil)
+		stdout := sbuffer.New(nil)
 
 		cmd, err := factory.Build(
 			&ProgramConfig{
@@ -355,7 +358,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 	t.Run("Terminal", func(t *testing.T) {
 		t.Parallel()
 
-		stdout := bytes.NewBuffer(nil)
+		stdout := sbuffer.New(nil)
 		stdinR, stdinW := io.Pipe()
 
 		// Even if the [ProgramConfig] specifies that the command is non-interactive,
@@ -392,9 +395,19 @@ func TestCommand_SetWinsize(t *testing.T) {
 		_, err = stdinW.Write([]byte{0x04}) // EOT
 		require.NoError(t, err)
 		err = cmd.Wait(context.Background())
-		require.NoError(t, err, "command failed due to: %s", stdout.String())
-		require.Contains(t, stdout.String(), "56\r\n")
-		require.Contains(t, stdout.String(), "45\r\n")
+		stdoutStr := stdout.String()
+		require.NoError(
+			t,
+			err,
+			"command failed due to: %s", strings.Map(func(r rune) rune {
+				if unicode.IsGraphic(r) {
+					return r
+				}
+				return -1
+			}, stdoutStr),
+		)
+		require.Contains(t, stdoutStr, "56")
+		require.Contains(t, stdoutStr, "45")
 	})
 }
 
