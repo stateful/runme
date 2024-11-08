@@ -24,8 +24,6 @@ import (
 )
 
 func TestInlineShellCommand_CollectEnv(t *testing.T) {
-	t.Parallel()
-
 	t.Run("Fifo", func(t *testing.T) {
 		envCollectorUseFifo = true
 		testInlineShellCommandCollectEnv(t)

@@ -1,4 +1,4 @@
-//go:build test_with_docker
+//go:build docker_enabled
 
 package command
 
