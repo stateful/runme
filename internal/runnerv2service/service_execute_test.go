@@ -1103,6 +1103,7 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 	})
 }
 
+// Duplicated in testutils/runnerservice/runner_service.go for other packages.
 func startRunnerServiceServer(t *testing.T) (_ *bufconn.Listener, stop func()) {
 	t.Helper()
 
