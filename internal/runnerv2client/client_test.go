@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/command"
-	"github.com/stateful/runme/v3/internal/runnerv2service"
+	"github.com/stateful/runme/v3/internal/testutils/runnerservice"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
@@ -25,13 +25,14 @@ func init() {
 func TestClient_ExecuteProgram(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := testStartRunnerServiceServer(t)
+	lis, stop := runnerservice.New(t)
 	t.Cleanup(stop)
 
 	t.Run("OutputWithSession", func(t *testing.T) {
 		t.Parallel()
 
-		client := testCreateClient(t, lis)
+		client := createClient(t, lis)
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 
@@ -74,7 +75,8 @@ func TestClient_ExecuteProgram(t *testing.T) {
 	t.Run("InputNonInteractive", func(t *testing.T) {
 		t.Parallel()
 
-		client := testCreateClient(t, lis)
+		client := createClient(t, lis)
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 
@@ -104,29 +106,12 @@ func TestClient_ExecuteProgram(t *testing.T) {
 	})
 }
 
-// TODO(adamb): it's copied from internal/runnerv2service.
-func testStartRunnerServiceServer(t *testing.T) (*bufconn.Listener, func()) {
+func createClient(t *testing.T, lis *bufconn.Listener) *Client {
 	t.Helper()
-
 	logger := zaptest.NewLogger(t)
-	factory := command.NewFactory(command.WithLogger(logger))
-
-	server := grpc.NewServer()
-
-	runnerService, err := runnerv2service.NewRunnerService(factory, logger)
-	require.NoError(t, err)
-	runnerv2.RegisterRunnerServiceServer(server, runnerService)
-
-	lis := bufconn.Listen(1024 << 10)
-	go server.Serve(lis)
-
-	return lis, server.Stop
-}
-
-func testCreateClient(t *testing.T, lis *bufconn.Listener) *Client {
 	client, err := New(
 		"passthrough://bufconn",
-		zaptest.NewLogger(t),
+		logger,
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return lis.Dial()
 		}),

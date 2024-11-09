@@ -14,10 +14,13 @@ import (
 )
 
 // todo(sebastian): port test cases from v1
-func TestRunnerServiceResolveProgram(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+func TestRunnerService_ResolveProgram(t *testing.T) {
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	testCases := []struct {
 		name    string
@@ -61,6 +64,8 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			resp, err := client.ResolveProgram(context.Background(), tc.request)
 			require.NoError(t, err)
 			require.Len(t, resp.Vars, 2)
@@ -88,13 +93,13 @@ func TestRunnerServiceResolveProgram(t *testing.T) {
 	}
 }
 
-func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
+func TestRunnerService_ResolveProgram_CommandsWithNewLines(t *testing.T) {
 	// TODO(adamb): enable it when we find a solution for merging commands and splitting them back.
 	t.Skip("the problem is unknown and needs to be fixed")
 
-	lis, stop := testStartRunnerServiceServer(t)
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	request := &runnerv2.ResolveProgramRequest{
 		Env:        []string{"FILE_NAME=my-file.txt"},
@@ -143,12 +148,16 @@ func TestRunnerResolveProgram_CommandsWithNewLines(t *testing.T) {
 	)
 }
 
-func TestRunnerResolveProgram_OnlyShellLanguages(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+func TestRunnerService_ResolveProgram_OnlyShellLanguages(t *testing.T) {
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	t.Run("Javascript passed as script", func(t *testing.T) {
+		t.Parallel()
 		script := "console.log('test');"
 		request := &runnerv2.ResolveProgramRequest{
 			Env:        []string{"TEST_RESOLVED=value"},
@@ -165,6 +174,7 @@ func TestRunnerResolveProgram_OnlyShellLanguages(t *testing.T) {
 	})
 
 	t.Run("Python passed as commands", func(t *testing.T) {
+		t.Parallel()
 		script := "print('test')"
 		request := &runnerv2.ResolveProgramRequest{
 			LanguageId: "py",

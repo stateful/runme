@@ -113,7 +113,7 @@ func Test_runnerService(t *testing.T) {
 	lis, stop := testStartRunnerServiceServer(t)
 	t.Cleanup(stop)
 
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv1.NewRunnerServiceClient)
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv1.NewRunnerServiceClient)
 
 	t.Run("Sessions", func(t *testing.T) {
 		t.Parallel()
