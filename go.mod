@@ -13,10 +13,10 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbletea v1.1.2
 	github.com/charmbracelet/lipgloss v0.13.1
-	github.com/cli/cli/v2 v2.60.0
+	github.com/cli/cli/v2 v2.62.0
 	github.com/cli/go-gh/v2 v2.11.0
 	github.com/containerd/console v1.0.4
-	github.com/creack/pty v1.1.23
+	github.com/creack/pty v1.1.24
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/expr-lang/expr v1.16.9
 	github.com/fatih/color v1.18.0
