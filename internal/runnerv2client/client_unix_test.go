@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/testutils/runnerservice"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stretchr/testify/require"
 )
@@ -18,10 +19,11 @@ import (
 func TestClient_ExecuteProgram_InputInteractive(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := testStartRunnerServiceServer(t)
+	lis, stop := runnerservice.New(t)
 	t.Cleanup(stop)
 
-	client := testCreateClient(t, lis)
+	client := createClient(t, lis)
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 

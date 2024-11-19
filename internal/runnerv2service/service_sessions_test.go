@@ -8,30 +8,28 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/resolver"
 
 	"github.com/stateful/runme/v3/internal/testutils"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project/teststub"
 )
 
-func init() {
-	resolver.SetDefaultScheme("passthrough")
-}
+func TestRunnerService_Sessions(t *testing.T) {
+	t.Parallel()
 
-// TODO(adamb): add a test case with project.
-func TestRunnerServiceSessions(t *testing.T) {
 	temp := t.TempDir()
 	testData := teststub.Setup(t, temp)
 
-	lis, stop := testStartRunnerServiceServer(t)
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
-	EnvStoreSeedingNone := runnerv2.CreateSessionRequest_Config_SESSION_ENV_STORE_SEEDING_UNSPECIFIED.Enum()
+	envStoreSeedingNone := runnerv2.CreateSessionRequest_Config_SESSION_ENV_STORE_SEEDING_UNSPECIFIED.Enum()
 
 	t.Run("WithEnv", func(t *testing.T) {
+		t.Parallel()
+
 		createResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, createResp.Session)
@@ -39,7 +37,7 @@ func TestRunnerServiceSessions(t *testing.T) {
 		createResp, err = client.CreateSession(context.Background(),
 			&runnerv2.CreateSessionRequest{
 				Env:    []string{"TEST1=value1"},
-				Config: &runnerv2.CreateSessionRequest_Config{EnvStoreSeeding: EnvStoreSeedingNone},
+				Config: &runnerv2.CreateSessionRequest_Config{EnvStoreSeeding: envStoreSeedingNone},
 			},
 		)
 		require.NoError(t, err)
@@ -66,11 +64,12 @@ func TestRunnerServiceSessions(t *testing.T) {
 	})
 
 	t.Run("WithProject", func(t *testing.T) {
+		t.Parallel()
 		projectPath := testData.GitProjectPath()
 		createResp, err := client.CreateSession(
 			context.Background(),
 			&runnerv2.CreateSessionRequest{
-				Config:  &runnerv2.CreateSessionRequest_Config{EnvStoreSeeding: EnvStoreSeedingNone},
+				Config:  &runnerv2.CreateSessionRequest_Config{EnvStoreSeeding: envStoreSeedingNone},
 				Project: &runnerv2.Project{Root: projectPath, EnvLoadOrder: []string{".env"}},
 			},
 		)
@@ -80,6 +79,7 @@ func TestRunnerServiceSessions(t *testing.T) {
 	})
 
 	t.Run("WithEnvStoreSeedingSystem", func(t *testing.T) {
+		t.Parallel()
 		EnvStoreSeedingSystem := runnerv2.CreateSessionRequest_Config_SESSION_ENV_STORE_SEEDING_SYSTEM.Enum()
 		createResp, err := client.CreateSession(
 			context.Background(),
@@ -95,6 +95,7 @@ func TestRunnerServiceSessions(t *testing.T) {
 	})
 
 	t.Run("WithEnvStoreSeedingLegacy", func(t *testing.T) {
+		t.Parallel()
 		createResp, err := client.CreateSession(
 			context.Background(),
 			&runnerv2.CreateSessionRequest{
@@ -108,6 +109,7 @@ func TestRunnerServiceSessions(t *testing.T) {
 	})
 
 	t.Run("WithProjectInvalid", func(t *testing.T) {
+		t.Parallel()
 		_, err := client.CreateSession(
 			context.Background(),
 			&runnerv2.CreateSessionRequest{Project: &runnerv2.Project{Root: "/non/existing/path"}},
@@ -116,11 +118,13 @@ func TestRunnerServiceSessions(t *testing.T) {
 	})
 }
 
-func TestRunnerServiceSessions_StrategyMostRecent(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+func TestRunnerService_Sessions_ExecuteWithStrategyMostRecent(t *testing.T) {
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	// Create a session with env.
 	sessResp, err := client.CreateSession(

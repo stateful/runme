@@ -6,50 +6,25 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"testing"
-	"testing/fstest"
 	"time"
 	"unicode"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/command/testdata"
-	"github.com/stateful/runme/v3/internal/config"
-	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	"github.com/stateful/runme/v3/internal/testutils"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
-func init() {
-	command.SetEnvDumpCommand("env -0")
-
-	// Server uses autoconfig to get necessary dependencies.
-	// One of them, implicit, is [config.Config]. With the default
-	// [config.Loader] it won't be found during testing, so
-	// we need to provide an override.
-	if err := autoconfig.DecorateRoot(func(loader *config.Loader) *config.Loader {
-		fsys := fstest.MapFS{
-			"runme.yaml": {
-				Data: []byte("version: v1alpha1\n"),
-			},
-		}
-		loader.SetConfigRootPath(fsys)
-		return loader
-	}); err != nil {
-		panic(err)
-	}
-}
-
-func Test_conformsOpinionatedEnvVarNaming(t *testing.T) {
+func Test_matchesOpinionatedEnvVarNaming(t *testing.T) {
 	t.Parallel()
 
 	t.Run("valid", func(t *testing.T) {
@@ -85,9 +60,12 @@ func Test_conformsOpinionatedEnvVarNaming(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_Response(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
@@ -156,9 +134,12 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
@@ -195,9 +176,12 @@ func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -267,14 +251,17 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
+	t.Parallel()
+
 	temp := t.TempDir()
 	fileName := filepath.Join(temp, "large_output.json")
 	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
 	require.NoError(t, err)
 
-	lis, stop := testStartRunnerServiceServer(t)
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -344,14 +331,17 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
+	t.Parallel()
+
 	temp := t.TempDir()
 	fileName := filepath.Join(temp, "large_output.json")
 	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
 	require.NoError(t, err)
 
-	lis, stop := testStartRunnerServiceServer(t)
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
@@ -383,9 +373,12 @@ func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -456,9 +449,12 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_Configs(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	testCases := []struct {
 		name           string
@@ -613,9 +609,12 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -692,9 +691,12 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	sessionResp, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
 	require.NoError(t, err)
@@ -755,11 +757,16 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	t.Run("ContinuousInput", func(t *testing.T) {
+		t.Parallel()
+
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
@@ -803,6 +810,8 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	})
 
 	t.Run("SimulateCtrlC", func(t *testing.T) {
+		t.Parallel()
+
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
@@ -845,6 +854,8 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	})
 
 	t.Run("CloseSendDirection", func(t *testing.T) {
+		t.Parallel()
+
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
@@ -872,11 +883,16 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	t.Run("WithEnvAndMostRecentSessionStrategy", func(t *testing.T) {
+		t.Parallel()
+
 		{
 			stream, err := client.Execute(context.Background())
 			require.NoError(t, err)
@@ -938,9 +954,12 @@ func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
@@ -1005,10 +1024,12 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 }
 
 func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
-	lis, stop := testStartRunnerServiceServer(t)
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
-	_, client := testutils.NewTestGRPCClient(t, lis, runnerv2.NewRunnerServiceClient)
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
 	t.Run("DefaultWinsize", func(t *testing.T) {
 		t.Parallel()
@@ -1082,23 +1103,20 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 	})
 }
 
-func testStartRunnerServiceServer(t *testing.T) (
-	interface{ Dial() (net.Conn, error) },
-	func(),
-) {
+// Duplicated in testutils/runnerservice/runner_service.go for other packages.
+func startRunnerServiceServer(t *testing.T) (_ *bufconn.Listener, stop func()) {
 	t.Helper()
 
 	logger := zaptest.NewLogger(t)
 	factory := command.NewFactory(command.WithLogger(logger))
 
-	server := grpc.NewServer()
-
-	// Using nop logger to avoid data race.
-	runnerService, err := NewRunnerService(factory, zap.NewNop())
+	runnerService, err := NewRunnerService(factory, logger)
 	require.NoError(t, err)
+
+	server := grpc.NewServer()
 	runnerv2.RegisterRunnerServiceServer(server, runnerService)
 
-	lis := bufconn.Listen(1024 << 10)
+	lis := bufconn.Listen(1 << 20) // 1 MB
 	go server.Serve(lis)
 
 	return lis, server.Stop

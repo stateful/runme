@@ -28,7 +28,7 @@ func TestProjectServiceServer_Load(t *testing.T) {
 	lis, stop := testStartProjectServiceServer(t)
 	t.Cleanup(stop)
 
-	_, client := testutils.NewTestGRPCClient(t, lis, projectv1.NewProjectServiceClient)
+	_, client := testutils.NewGRPCClientWithT(t, lis, projectv1.NewProjectServiceClient)
 
 	t.Run("GitProject", func(t *testing.T) {
 		t.Parallel()
@@ -87,7 +87,7 @@ func TestProjectServiceServer_Load_ClientConnClosed(t *testing.T) {
 	lis, stop := testStartProjectServiceServer(t)
 	t.Cleanup(stop)
 
-	clientConn, client := testutils.NewTestGRPCClient(t, lis, projectv1.NewProjectServiceClient)
+	clientConn, client := testutils.NewGRPCClientWithT(t, lis, projectv1.NewProjectServiceClient)
 
 	req := &projectv1.LoadRequest{
 		Kind: &projectv1.LoadRequest_File{

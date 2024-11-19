@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func NewTestGRPCClient[T any](
+func NewGRPCClientWithT[T any](
 	t *testing.T,
 	lis interface{ Dial() (net.Conn, error) },
 	fn func(grpc.ClientConnInterface) T,
