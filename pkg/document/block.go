@@ -3,6 +3,7 @@ package document
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"math"
 	"regexp"
 	"strconv"
@@ -42,11 +43,21 @@ func (b CodeBlocks) Names() (result []string) {
 
 type renderer func(ast.Node, []byte) ([]byte, error)
 
+type CodeBlockEncoding int
+
+const (
+	Fenced CodeBlockEncoding = iota + 1
+	UnfencedWithSpaces
+	// todo(sebastian): goldmark converts all tabs to spaces
+	// UnfencedWithTab
+)
+
 type CodeBlock struct {
-	id            string
-	idGenerated   bool
 	attributes    map[string]string
 	document      *Document
+	encoding      CodeBlockEncoding
+	id            string
+	idGenerated   bool
 	inner         *ast.FencedCodeBlock
 	intro         string // paragraph immediately before the code block
 	language      string
@@ -60,40 +71,58 @@ var _ Block = (*CodeBlock)(nil)
 
 func newCodeBlock(
 	document *Document,
-	node *ast.FencedCodeBlock,
+	node ast.Node,
 	identityResolver identityResolver,
 	nameResolver *nameResolver,
 	source []byte,
 	render renderer,
 ) (*CodeBlock, error) {
-	attributes, err := getAttributes(node, source, DefaultAttributeParser)
+	var fenced *ast.FencedCodeBlock
+	encoding := Fenced
+
+	switch node.Kind() {
+	case ast.KindCodeBlock:
+		// todo(sebastian): should we attempt to preserve tab vs spaces?
+		encoding = UnfencedWithSpaces
+		fenced = ast.NewFencedCodeBlock(ast.NewText())
+		fenced.BaseBlock = node.(*ast.CodeBlock).BaseBlock
+	case ast.KindFencedCodeBlock:
+		fenced = node.(*ast.FencedCodeBlock)
+	default:
+		return nil, errors.New("invalid node kind neither CodeBlock nor FencedCodeBlock")
+	}
+
+	attributes, err := getAttributes(fenced, source, DefaultAttributeParser)
 	if err != nil {
 		return nil, err
 	}
 
-	id, hasID := identityResolver.GetCellID(node, attributes)
+	id, hasID := identityResolver.GetCellID(fenced, attributes)
 
-	name, hasName := getName(node, source, nameResolver, attributes)
+	name, hasName := getName(fenced, source, nameResolver, attributes)
 
-	value, err := render(node, source)
+	value, err := render(fenced, source)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CodeBlock{
-		id:            id,
-		idGenerated:   !hasID,
 		attributes:    attributes,
 		document:      document,
-		inner:         node,
-		intro:         getIntro(node, source),
-		language:      getLanguage(node, source),
-		lines:         getLines(node, source),
+		encoding:      encoding,
+		id:            id,
+		idGenerated:   !hasID,
+		inner:         fenced,
+		intro:         getIntro(fenced, source),
+		language:      getLanguage(fenced, source),
+		lines:         getLines(fenced, source),
 		name:          name,
 		nameGenerated: !hasName,
 		value:         value,
 	}, nil
 }
+
+func (b *CodeBlock) FencedEncoding() bool { return b.encoding == Fenced }
 
 func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
 

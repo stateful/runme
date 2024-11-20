@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -589,6 +590,64 @@ A paragraph
 		assert.Equal(
 			t,
 			"# Example\n\nA paragraph\n",
+			string(result),
+		)
+	})
+}
+
+func TestEditor_CodeBlockEndcoding(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Fenced", func(t *testing.T) {
+		data := []byte(`## Tests
+
+Run all tests:
+
+` + strings.Repeat("`", 3) + `sh
+export TESTING="1"
+dagger call test all
+` + strings.Repeat("`", 3) + `
+
+Run a specific test:
+
+` + strings.Repeat("`", 3) + `sh
+dagger call test specific --pkg="./core/integration" --run="^TestModule/TestNamespacing$"
+` + strings.Repeat("`", 3) + `
+
+A paragraph
+`)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(result),
+		)
+	})
+
+	t.Run("UnfencedWithSpaces", func(t *testing.T) {
+		data := []byte(`## Tests
+
+Run all tests:
+
+    export TESTING="1"
+    dagger call test all
+
+Run a specific test:
+
+    dagger call test specific --pkg="./core/integration" --run="^TestModule/TestNamespacing$"
+
+A paragraph
+`)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
 			string(result),
 		)
 	})
