@@ -159,10 +159,34 @@ func toCellsRec(
 			}
 
 		case *document.CodeBlock:
+			metadata := block.Attributes()
+			transform := true
+
+			t, tOk := metadata["transform"]
+			s, err := strconv.ParseBool(t)
+
+			if !tOk {
+				transform = true
+			} else if err == nil {
+				transform = s
+			}
+
+			// mermaid's an exception if attr wasn't explicitly set
+			if block.Language() == "mermaid" && !tOk {
+				transform = false
+			}
+
+			if !transform {
+				*cells = append(*cells, &Cell{
+					Kind:  MarkupKind,
+					Value: fmtValue(block.Value()),
+				})
+				break
+			}
+
 			textRange := block.TextRange()
 
 			// In the future, we will include language detection (#77).
-			metadata := block.Attributes()
 			if cellID := block.ID(); cellID != "" {
 				metadata[PrefixAttributeName(InternalAttributePrefix, "id")] = cellID
 			}

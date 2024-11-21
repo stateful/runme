@@ -593,3 +593,85 @@ A paragraph
 		)
 	})
 }
+
+func TestEditor_CodeBlockTransformation(t *testing.T) {
+	t.Run("MermaidException", func(t *testing.T) {
+		data := []byte("```mermaid\ngraph TD;\nA-->B;\nB-->C;\n```")
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		assert.EqualValues(t, MarkupKind, notebook.Cells[0].Kind)
+
+		newData, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(newData),
+		)
+	})
+
+	t.Run("MermaidForceTransformation", func(t *testing.T) {
+		data := []byte("```mermaid {\"transform\":\"true\"}\ngraph TD;\nA-->B;\nB-->C;\n```")
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		assert.EqualValues(t, CodeKind, notebook.Cells[0].Kind)
+
+		newData, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(newData),
+		)
+	})
+
+	t.Run("UnsetDefault", func(t *testing.T) {
+		data := []byte("```javascript\nconsole.log('test');\n```")
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		assert.EqualValues(t, CodeKind, notebook.Cells[0].Kind)
+
+		newData, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(newData),
+		)
+	})
+
+	t.Run("InvalidUsesDefault", func(t *testing.T) {
+		data := []byte("```javascript {\"transform\":\"abcdefg\"}\nconsole.log('test');\n```")
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		assert.EqualValues(t, CodeKind, notebook.Cells[0].Kind)
+
+		newData, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(newData),
+		)
+	})
+
+	t.Run("False", func(t *testing.T) {
+		data := []byte("```javascript {\"transform\":\"false\"}\nconsole.log('test');\n```")
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		assert.EqualValues(t, MarkupKind, notebook.Cells[0].Kind)
+
+		newData, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(newData),
+		)
+	})
+}
