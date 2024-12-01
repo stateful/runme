@@ -16,10 +16,6 @@ import (
 const maxScannerBufferSizeInBytes = 1024 * 1024 * 1024 // 1GB
 
 const (
-	EnvCollectorSessionEnvName         = "RUNME_SESSION"
-	EnvCollectorSessionPrePathEnvName  = "RUNME_SESSION_PREPATH"
-	EnvCollectorSessionPostPathEnvName = "RUNME_SESSION_POSTPATH"
-
 	envCollectorEncKeyEnvName   = "RUNME_ENCRYPTION_KEY"
 	envCollectorEncNonceEnvName = "RUNME_ENCRYPTION_NONCE"
 )

@@ -86,7 +86,7 @@ func executeDefaultShellProgram(
 		ProgramName: defaultShell(),
 		Mode:        runnerv2.CommandMode_COMMAND_MODE_CLI,
 		Env: append(
-			[]string{command.CreateEnv(command.EnvCollectorSessionEnvName, "1")},
+			[]string{command.CreateEnv(command.EnvNameTerminalSessionEnabled, "true")},
 			append(envCollector.ExtraEnv(), additionalEnv...)...,
 		),
 	}
@@ -143,23 +143,23 @@ func sessionSetupCmd() *cobra.Command {
 					out := cmd.OutOrStdout()
 
 					if err := requireEnvs(
-						command.EnvCollectorSessionEnvName,
-						command.EnvCollectorSessionPrePathEnvName,
-						command.EnvCollectorSessionPostPathEnvName,
+						command.EnvNameTerminalSessionEnabled,
+						command.EnvNameTerminalSessionPrePath,
+						command.EnvNameTerminalSessionPostPath,
 					); err != nil {
 						logger.Info("session setup is skipped because the environment variable is not set", zap.Error(err))
 						return writeNoopShellCommand(out)
 					}
 
-					sessionSetupEnabled := os.Getenv(command.EnvCollectorSessionEnvName)
+					sessionSetupEnabled := os.Getenv(command.EnvNameTerminalSessionEnabled)
 					if val, err := strconv.ParseBool(sessionSetupEnabled); err != nil || !val {
 						logger.Debug("session setup is skipped", zap.Error(err), zap.Bool("value", val))
 						return writeNoopShellCommand(out)
 					}
 
 					envSetter := command.NewScriptEnvSetter(
-						os.Getenv(command.EnvCollectorSessionPrePathEnvName),
-						os.Getenv(command.EnvCollectorSessionPostPathEnvName),
+						os.Getenv(command.EnvNameTerminalSessionPrePath),
+						os.Getenv(command.EnvNameTerminalSessionPostPath),
 						debug,
 					)
 					if err := envSetter.SetOnShell(out); err != nil {

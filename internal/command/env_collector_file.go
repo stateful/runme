@@ -62,8 +62,8 @@ func (c *envCollectorFile) Diff() (changed []string, deleted []string, _ error) 
 
 func (c *envCollectorFile) ExtraEnv() []string {
 	result := []string{
-		createEnv(EnvCollectorSessionPrePathEnvName, c.prePath()),
-		createEnv(EnvCollectorSessionPostPathEnvName, c.postPath()),
+		createEnv(EnvNameTerminalSessionPrePath, c.prePath()),
+		createEnv(EnvNameTerminalSessionPostPath, c.postPath()),
 	}
 	if c.encKey != nil && c.encNonce != nil {
 		result = append(
