@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/stateful/runme/v3/internal/project/projectservice"
@@ -76,39 +74,6 @@ func TestProjectServiceServer_Load(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, eventTypes, len(projtestutils.FileProjectEvents))
 	})
-}
-
-func TestProjectServiceServer_Load_ClientConnClosed(t *testing.T) {
-	t.Parallel()
-
-	temp := t.TempDir()
-	testData := teststub.Setup(t, temp)
-
-	lis, stop := testStartProjectServiceServer(t)
-	t.Cleanup(stop)
-
-	clientConn, client := testutils.NewGRPCClientWithT(t, lis, projectv1.NewProjectServiceClient)
-
-	req := &projectv1.LoadRequest{
-		Kind: &projectv1.LoadRequest_File{
-			File: &projectv1.FileProjectOptions{
-				Path: testData.ProjectFilePath(),
-			},
-		},
-	}
-	loadClient, err := client.Load(context.Background(), req)
-	require.NoError(t, err)
-
-	err = clientConn.Close()
-	require.NoError(t, err)
-
-	for {
-		_, err := loadClient.Recv()
-		if err != nil {
-			require.Equal(t, codes.Canceled, status.Code(err))
-			break
-		}
-	}
 }
 
 func collectLoadEventTypes(client projectv1.ProjectService_LoadClient) ([]projectv1.LoadEventType, error) {

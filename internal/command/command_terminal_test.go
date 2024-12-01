@@ -64,7 +64,7 @@ func TestTerminalCommand_EnvPropagation(t *testing.T) {
 
 	// Wait for the prompt before sending the next command.
 	prompt := "$"
-	if testutils.IsDockerTestEnv() {
+	if testutils.IsRunningInDocker() {
 		prompt = "#"
 	}
 	expectContainLines(ctx, t, stdout, []string{prompt})
