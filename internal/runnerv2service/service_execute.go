@@ -19,13 +19,11 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	_id := ulid.GenerateID()
 	logger := r.logger.With(zap.String("id", _id))
 
-	logger.Info("running Execute in runnerService")
-
 	// Get the initial request.
 	req, err := srv.Recv()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			logger.Info("client closed the connection while getting initial request")
+			logger.Info("client closed the connection while getting initial request; exiting")
 			return nil
 		}
 		logger.Info("failed to receive a request", zap.Error(err))
@@ -142,18 +140,10 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 }
 
 func getExecutionInfoFromExecutionRequest(runID string, req *runnerv2.ExecuteRequest) *rcontext.ExecutionInfo {
-	knownName, knownID := "", ""
-
-	reqConfig := req.GetConfig()
-	if reqConfig != nil {
-		knownName = reqConfig.GetKnownName()
-		knownID = reqConfig.GetKnownId()
-	}
-
 	return &rcontext.ExecutionInfo{
 		ExecContext: "Execute",
-		KnownID:     knownID,
-		KnownName:   knownName,
+		KnownID:     req.GetConfig().GetKnownId(),
+		KnownName:   req.GetConfig().GetKnownName(),
 		RunID:       runID,
 	}
 }

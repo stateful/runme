@@ -34,66 +34,8 @@ const (
 
 var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 
-type buffer struct {
-	mu *sync.Mutex
-	// +checklocks:mu
-	b      *bytes.Buffer
-	closed *atomic.Bool
-	close  chan struct{}
-	more   chan struct{}
-}
-
-var _ io.WriteCloser = (*buffer)(nil)
-
-func newBuffer() *buffer {
-	return &buffer{
-		mu:     &sync.Mutex{},
-		b:      bytes.NewBuffer(make([]byte, 0, msgBufferSize)),
-		closed: &atomic.Bool{},
-		close:  make(chan struct{}),
-		more:   make(chan struct{}),
-	}
-}
-
-func (b *buffer) Write(p []byte) (int, error) {
-	if b.closed.Load() {
-		return 0, errors.New("closed")
-	}
-
-	b.mu.Lock()
-	n, err := b.b.Write(p)
-	b.mu.Unlock()
-
-	select {
-	case b.more <- struct{}{}:
-	default:
-	}
-
-	return n, err
-}
-
-func (b *buffer) Close() error {
-	if b.closed.CompareAndSwap(false, true) {
-		close(b.close)
-	}
-	return nil
-}
-
-func (b *buffer) Read(p []byte) (int, error) {
-	b.mu.Lock()
-	n, err := b.b.Read(p)
-	b.mu.Unlock()
-
-	if err != nil && errors.Is(err, io.EOF) && !b.closed.Load() {
-		select {
-		case <-b.more:
-		case <-b.close:
-			return n, io.EOF
-		}
-		return n, nil
-	}
-
-	return n, err
+func matchesOpinionatedEnvVarNaming(knownName string) bool {
+	return opininatedEnvVarNamingRegexp.MatchString(knownName)
 }
 
 type execution struct {
@@ -153,7 +95,7 @@ func newExecution(
 	return exec, nil
 }
 
-func (e *execution) Wait(ctx context.Context, sender sender) (int, error) {
+func (e *execution) Wait(ctx context.Context, sender runnerv2.RunnerService_ExecuteServer) (int, error) {
 	lastStdout := io.Discard
 	if e.storeStdoutInEnv {
 		b := rbuffer.NewRingBuffer(session.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
@@ -337,10 +279,6 @@ func (e *execution) storeOutputInEnv(ctx context.Context, r io.Reader) {
 	}
 }
 
-func matchesOpinionatedEnvVarNaming(knownName string) bool {
-	return opininatedEnvVarNamingRegexp.MatchString(knownName)
-}
-
 type sender interface {
 	Send(*runnerv2.ExecuteResponse) error
 }
@@ -399,4 +337,66 @@ func exitCodeFromErr(err error) int {
 		return exiterr.ExitCode()
 	}
 	return -1
+}
+
+type buffer struct {
+	mu *sync.Mutex
+	// +checklocks:mu
+	b      *bytes.Buffer
+	closed *atomic.Bool
+	close  chan struct{}
+	more   chan struct{}
+}
+
+var _ io.WriteCloser = (*buffer)(nil)
+
+func newBuffer() *buffer {
+	return &buffer{
+		mu:     &sync.Mutex{},
+		b:      bytes.NewBuffer(make([]byte, 0, msgBufferSize)),
+		closed: &atomic.Bool{},
+		close:  make(chan struct{}),
+		more:   make(chan struct{}),
+	}
+}
+
+func (b *buffer) Write(p []byte) (int, error) {
+	if b.closed.Load() {
+		return 0, errors.New("closed")
+	}
+
+	b.mu.Lock()
+	n, err := b.b.Write(p)
+	b.mu.Unlock()
+
+	select {
+	case b.more <- struct{}{}:
+	default:
+	}
+
+	return n, err
+}
+
+func (b *buffer) Close() error {
+	if b.closed.CompareAndSwap(false, true) {
+		close(b.close)
+	}
+	return nil
+}
+
+func (b *buffer) Read(p []byte) (int, error) {
+	b.mu.Lock()
+	n, err := b.b.Read(p)
+	b.mu.Unlock()
+
+	if err != nil && errors.Is(err, io.EOF) && !b.closed.Load() {
+		select {
+		case <-b.more:
+		case <-b.close:
+			return n, io.EOF
+		}
+		return n, nil
+	}
+
+	return n, err
 }
