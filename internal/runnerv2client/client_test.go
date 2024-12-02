@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	command.SetEnvDumpCommand("env -0")
+	command.SetEnvDumpCommandForTesting()
 }
 
 func TestClient_ExecuteProgram(t *testing.T) {

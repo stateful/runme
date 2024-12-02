@@ -75,6 +75,7 @@ func (c *terminalCommand) Wait(ctx context.Context) (err error) {
 			err = cErr
 		}
 	}
+
 	return err
 }
 
