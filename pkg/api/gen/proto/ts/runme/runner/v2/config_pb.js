@@ -34,6 +34,10 @@ export var CommandMode;
      * @generated from protobuf enum value: COMMAND_MODE_CLI = 4;
      */
     CommandMode[CommandMode["CLI"] = 4] = "CLI";
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_CLI_SESSION = 5;
+     */
+    CommandMode[CommandMode["CLI_SESSION"] = 5] = "CLI_SESSION";
 })(CommandMode || (CommandMode = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class ProgramConfig$Type extends MessageType {

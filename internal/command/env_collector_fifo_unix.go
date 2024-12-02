@@ -28,6 +28,8 @@ type envCollectorFifo struct {
 	temp         *tempDirectory
 }
 
+var _ envCollector = (*envCollectorFifo)(nil)
+
 func newEnvCollectorFifo(
 	scanner envScanner,
 	encKey,
@@ -87,7 +89,7 @@ func (c *envCollectorFifo) init() error {
 }
 
 func (c *envCollectorFifo) Diff() (changed []string, deleted []string, _ error) {
-	defer c.temp.Cleanup()
+	defer func() { _ = c.temp.Cleanup() }()
 
 	g := new(errgroup.Group)
 
@@ -111,17 +113,22 @@ func (c *envCollectorFifo) Diff() (changed []string, deleted []string, _ error) 
 }
 
 func (c *envCollectorFifo) ExtraEnv() []string {
-	if c.encKey == nil || c.encNonce == nil {
-		return nil
+	result := []string{
+		createEnv(EnvNameTerminalSessionPrePath, c.prePath()),
+		createEnv(EnvNameTerminalSessionPostPath, c.postPath()),
 	}
-	return []string{
-		"RUNME_ENCRYPTION_KEY=" + hex.EncodeToString(c.encKey),
-		"RUNME_ENCRYPTION_NONCE=" + hex.EncodeToString(c.encNonce),
+	if c.encKey != nil && c.encNonce != nil {
+		result = append(
+			result,
+			createEnv(envCollectorEncKeyEnvName, hex.EncodeToString(c.encKey)),
+			createEnv(envCollectorEncNonceEnvName, hex.EncodeToString(c.encNonce)),
+		)
 	}
+	return result
 }
 
 func (c *envCollectorFifo) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, c.prePath(), c.postPath())
+	return setOnShell(shell, envDumpCommand, true, false, false, c.prePath(), c.postPath())
 }
 
 func (c *envCollectorFifo) prePath() string {

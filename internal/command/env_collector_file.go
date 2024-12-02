@@ -16,7 +16,7 @@ var _ envCollector = (*envCollectorFile)(nil)
 
 func newEnvCollectorFile(
 	scanner envScanner,
-	encKey,
+	encKey []byte,
 	encNonce []byte,
 ) (*envCollectorFile, error) {
 	temp, err := newTempDirectory()
@@ -33,7 +33,7 @@ func newEnvCollectorFile(
 }
 
 func (c *envCollectorFile) Diff() (changed []string, deleted []string, _ error) {
-	defer c.temp.Cleanup()
+	defer func() { _ = c.temp.Cleanup() }()
 
 	initialReader, err := c.temp.Open(c.prePath())
 	if err != nil {
@@ -61,17 +61,22 @@ func (c *envCollectorFile) Diff() (changed []string, deleted []string, _ error) 
 }
 
 func (c *envCollectorFile) ExtraEnv() []string {
-	if c.encKey == nil || c.encNonce == nil {
-		return nil
+	result := []string{
+		createEnv(EnvNameTerminalSessionPrePath, c.prePath()),
+		createEnv(EnvNameTerminalSessionPostPath, c.postPath()),
 	}
-	return []string{
-		envCollectorEncKeyEnvName + "=" + hex.EncodeToString(c.encKey),
-		envCollectorEncNonceEnvName + "=" + hex.EncodeToString(c.encNonce),
+	if c.encKey != nil && c.encNonce != nil {
+		result = append(
+			result,
+			createEnv(envCollectorEncKeyEnvName, hex.EncodeToString(c.encKey)),
+			createEnv(envCollectorEncNonceEnvName, hex.EncodeToString(c.encNonce)),
+		)
 	}
+	return result
 }
 
 func (c *envCollectorFile) SetOnShell(shell io.Writer) error {
-	return setOnShell(shell, c.prePath(), c.postPath())
+	return setOnShell(shell, envDumpCommand, true, false, false, c.prePath(), c.postPath())
 }
 
 func (c *envCollectorFile) prePath() string {

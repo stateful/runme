@@ -96,6 +96,7 @@ All commands use the runme.yaml configuration file.`,
 
 	cmd.AddCommand(listCmd(cFlags))
 	cmd.AddCommand(printCmd(cFlags))
+	cmd.AddCommand(sessionCmd(cFlags))
 	cmd.AddCommand(server.Cmd())
 	cmd.AddCommand(runCmd(cFlags))
 	cmd.AddCommand(envCmd(cFlags))

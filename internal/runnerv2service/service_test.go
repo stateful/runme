@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	command.SetEnvDumpCommand("env -0")
+	command.SetEnvDumpCommandForTesting()
 
 	// Server uses autoconfig to get necessary dependencies.
 	// One of them, implicit, is [config.Config]. With the default

@@ -13,6 +13,7 @@ enum CommandMode {
 	COMMAND_MODE_FILE
 	COMMAND_MODE_TERMINAL
 	COMMAND_MODE_CLI
+	COMMAND_MODE_CLI_SESSION
 }
 input CreateSessionRequestInput {
 	"""

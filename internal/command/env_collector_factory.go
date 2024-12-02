@@ -7,22 +7,29 @@ import (
 	"github.com/pkg/errors"
 )
 
-type envCollectorFactoryOptions struct {
+type EnvCollectorFactory struct {
 	encryptionEnabled bool
 	useFifo           bool
 }
 
-type envCollectorFactory struct {
-	opts envCollectorFactoryOptions
-}
-
-func newEnvCollectorFactory(opts envCollectorFactoryOptions) *envCollectorFactory {
-	return &envCollectorFactory{
-		opts: opts,
+func NewEnvCollectorFactory() *EnvCollectorFactory {
+	return &EnvCollectorFactory{
+		encryptionEnabled: envCollectorEnableEncryption,
+		useFifo:           envCollectorUseFifo,
 	}
 }
 
-func (f *envCollectorFactory) Build() (envCollector, error) {
+func (f *EnvCollectorFactory) WithEnryption(value bool) *EnvCollectorFactory {
+	f.encryptionEnabled = value
+	return f
+}
+
+func (f *EnvCollectorFactory) UseFifo(value bool) *EnvCollectorFactory {
+	f.useFifo = value
+	return f
+}
+
+func (f *EnvCollectorFactory) Build() (envCollector, error) {
 	scanner := scanEnv
 
 	var (
@@ -30,7 +37,7 @@ func (f *envCollectorFactory) Build() (envCollector, error) {
 		encNonce []byte
 	)
 
-	if f.opts.encryptionEnabled {
+	if f.encryptionEnabled {
 		var err error
 
 		encKey, encNonce, err = f.generateEncryptionKeyAndNonce()
@@ -48,14 +55,14 @@ func (f *envCollectorFactory) Build() (envCollector, error) {
 		}
 	}
 
-	if f.opts.useFifo && runtimestd.GOOS != "windows" {
+	if f.useFifo && runtimestd.GOOS != "windows" {
 		return newEnvCollectorFifo(scanner, encKey, encNonce)
 	}
 
 	return newEnvCollectorFile(scanner, encKey, encNonce)
 }
 
-func (f *envCollectorFactory) generateEncryptionKeyAndNonce() ([]byte, []byte, error) {
+func (f *EnvCollectorFactory) generateEncryptionKeyAndNonce() ([]byte, []byte, error) {
 	key, err := createEnvEncryptionKey()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "failed to create the encryption key")
