@@ -396,9 +396,9 @@ func resolveRequestMode(cellMode string) *runnerv1.ResolveProgramRequest_Mode {
 	switch strings.ToLower(cellMode) {
 	case "auto":
 		mode = runnerv1.ResolveProgramRequest_MODE_UNSPECIFIED
-	case "1", "true", "yes":
+	case "1", "true", "yes", "always":
 		mode = runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL
-	case "0", "false", "no":
+	case "0", "false", "no", "never":
 		mode = runnerv1.ResolveProgramRequest_MODE_SKIP_ALL
 	default:
 		mode = runnerv1.ResolveProgramRequest_MODE_UNSPECIFIED
