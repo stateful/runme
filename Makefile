@@ -102,7 +102,7 @@ lint:
 	@gofumpt -d .
 	@revive \
 		-config revive.toml \
-		-formatter stylish \
+		-formatter friendly \
 		-exclude integration/subject/... \
 		./...
 	@staticcheck ./...
