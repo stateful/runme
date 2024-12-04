@@ -13,15 +13,15 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbletea v1.2.2
 	github.com/charmbracelet/lipgloss v1.0.0
-	github.com/cli/cli/v2 v2.62.0
-	github.com/cli/go-gh/v2 v2.11.0
+	github.com/cli/cli/v2 v2.63.1
+	github.com/cli/go-gh/v2 v2.11.1
 	github.com/containerd/console v1.0.4
 	github.com/creack/pty v1.1.24
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/expr-lang/expr v1.16.9
 	github.com/fatih/color v1.18.0
 	github.com/fullstorydev/grpcurl v1.9.1
-	github.com/gabriel-vasile/mimetype v1.4.6
+	github.com/gabriel-vasile/mimetype v1.4.7
 	github.com/go-git/go-billy/v5 v5.6.0
 	github.com/gobwas/glob v0.2.3
 	github.com/golang/mock v1.6.0
