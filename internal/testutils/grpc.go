@@ -42,6 +42,7 @@ func newGRPCClient[T any](
 			return lis.Dial()
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(8*1024*1024)),
 	)
 	if err != nil {
 		var result T

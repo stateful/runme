@@ -23,9 +23,7 @@ import (
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 )
 
-const (
-	maxMsgSize = 4 * 1024 * 1024 // 4 MiB
-)
+const maxMsgSize = 32 * 1024 * 1024 // 32 MiB
 
 type Config struct {
 	Address    string

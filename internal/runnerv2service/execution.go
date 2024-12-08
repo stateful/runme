@@ -22,16 +22,6 @@ import (
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
-const (
-	// msgBufferSize limits the size of data chunks
-	// sent by the handler to clients. It's smaller
-	// intentionally as typically the messages are
-	// small.
-	// In the future, it might be worth to implement
-	// variable-sized buffers.
-	msgBufferSize = 2 * 1024 * 1024 // 2 MiB
-)
-
 var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 
 func matchesOpinionatedEnvVarNaming(knownName string) bool {
@@ -63,8 +53,8 @@ func newExecution(
 	)
 
 	stdin, stdinWriter := io.Pipe()
-	stdout := newBuffer()
-	stderr := newBuffer()
+	stdout := newBuffer(msgBufferSize)
+	stderr := newBuffer(msgBufferSize)
 
 	cmdOptions := command.CommandOptions{
 		EnableEcho:  true,
@@ -301,7 +291,7 @@ func readSendLoop(
 			eof = true
 		}
 
-		logger.Info("readSendLoop", zap.Int("n", n))
+		logger.Debug("readSendLoop", zap.Int("n", n))
 
 		if n == 0 && eof {
 			return nil
@@ -350,10 +340,10 @@ type buffer struct {
 
 var _ io.WriteCloser = (*buffer)(nil)
 
-func newBuffer() *buffer {
+func newBuffer(size int) *buffer {
 	return &buffer{
 		mu:     &sync.Mutex{},
-		b:      bytes.NewBuffer(make([]byte, 0, msgBufferSize)),
+		b:      bytes.NewBuffer(make([]byte, 0, size)),
 		closed: &atomic.Bool{},
 		close:  make(chan struct{}),
 		more:   make(chan struct{}),
@@ -390,12 +380,16 @@ func (b *buffer) Read(p []byte) (int, error) {
 	b.mu.Unlock()
 
 	if err != nil && errors.Is(err, io.EOF) && !b.closed.Load() {
+		if n > 0 {
+			return n, nil
+		}
+
 		select {
 		case <-b.more:
+			return b.Read(p)
 		case <-b.close:
-			return n, io.EOF
+			return 0, io.EOF
 		}
-		return n, nil
 	}
 
 	return n, err

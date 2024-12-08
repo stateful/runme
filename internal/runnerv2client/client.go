@@ -12,6 +12,8 @@ import (
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
+const maxMsgSize = 32 * 1024 * 1024 // 32 MiB
+
 type Client struct {
 	runnerv2.RunnerServiceClient
 	conn   *grpc.ClientConn
@@ -19,6 +21,14 @@ type Client struct {
 }
 
 func New(target string, logger *zap.Logger, opts ...grpc.DialOption) (*Client, error) {
+	opts = append(
+		// default options
+		[]grpc.DialOption{
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize)),
+		},
+		opts...,
+	)
+
 	client, err := grpc.NewClient(target, opts...)
 	if err != nil {
 		return nil, errors.WithStack(err)

@@ -181,7 +181,7 @@ func runCodeBlock(
 		KnownName: block.Name(),
 		KnownID:   block.ID(),
 	}
-	ctx = rcontext.ContextWithExecutionInfo(ctx, execInfo)
+	ctx = rcontext.WithExecutionInfo(ctx, execInfo)
 
 	cmd, err := factory.Build(cfg, options)
 	if err != nil {

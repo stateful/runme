@@ -114,7 +114,7 @@ type updateRequest interface {
 }
 
 func (r *runnerService) updateSession(ctx context.Context, sess *session.Session, req updateRequest) error {
-	ctx = rcontext.ContextWithExecutionInfo(ctx, &rcontext.ExecutionInfo{
+	ctx = rcontext.WithExecutionInfo(ctx, &rcontext.ExecutionInfo{
 		ExecContext: "request",
 	})
 

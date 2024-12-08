@@ -16,8 +16,8 @@ import (
 )
 
 func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error {
-	_id := ulid.GenerateID()
-	logger := r.logger.With(zap.String("id", _id))
+	runID := ulid.GenerateID()
+	logger := r.logger.With(zap.String("id", runID))
 
 	// Get the initial request.
 	req, err := srv.Recv()
@@ -31,8 +31,10 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	}
 	logger.Info("received initial request", zap.Any("req", req))
 
-	execInfo := getExecutionInfoFromExecutionRequest(_id, req)
-	ctx := rcontext.ContextWithExecutionInfo(srv.Context(), execInfo)
+	execInfo := getExecutionInfoFromExecutionRequest(req)
+	execInfo.RunID = runID
+
+	ctx := rcontext.WithExecutionInfo(srv.Context(), execInfo)
 
 	// Load the project.
 	// TODO(adamb): this should come from the runme.yaml in the future.
@@ -49,7 +51,6 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	if !existed {
 		r.sessions.Add(session)
 	}
-
 	if err := session.SetEnv(ctx, req.Config.Env...); err != nil {
 		return err
 	}
@@ -64,6 +65,17 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	if err != nil {
 		return err
 	}
+
+	// exec, err := newExecution2(
+	// 	req.Config,
+	// 	proj,
+	// 	session,
+	// 	logger,
+	// 	req.StoreStdoutInEnv,
+	// )
+	// if err != nil {
+	// 	return err
+	// }
 
 	// Start the command and send the initial response with PID.
 	if err := exec.Cmd.Start(ctx); err != nil {
@@ -82,14 +94,11 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		req := initialReq
 
 		for {
-			var err error
-
 			if err := exec.SetWinsize(req.Winsize); err != nil {
 				logger.Info("failed to set winsize; ignoring", zap.Error(err))
 			}
 
-			_, err = exec.Write(req.InputData)
-			if err != nil {
+			if _, err := exec.Write(req.InputData); err != nil {
 				logger.Info("failed to write to stdin; ignoring", zap.Error(err))
 			}
 
@@ -97,7 +106,7 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 				logger.Info("failed to stop program; ignoring", zap.Error(err))
 			}
 
-			req, err = srv.Recv()
+			req, err := srv.Recv()
 			logger.Info("received request", zap.Any("req", req), zap.Error(err))
 			switch {
 			case err == nil:
@@ -139,11 +148,10 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	return waitErr
 }
 
-func getExecutionInfoFromExecutionRequest(runID string, req *runnerv2.ExecuteRequest) *rcontext.ExecutionInfo {
+func getExecutionInfoFromExecutionRequest(req *runnerv2.ExecuteRequest) *rcontext.ExecutionInfo {
 	return &rcontext.ExecutionInfo{
 		ExecContext: "Execute",
 		KnownID:     req.GetConfig().GetKnownId(),
 		KnownName:   req.GetConfig().GetKnownName(),
-		RunID:       runID,
 	}
 }

@@ -166,7 +166,7 @@ func getLogger(c *config.Config) (*zap.Logger, error) {
 	}
 
 	if c.Log.Verbose {
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 		zapConfig.Development = true
 		zapConfig.Encoding = "console"
 		zapConfig.EncoderConfig = zap.NewDevelopmentEncoderConfig()

@@ -129,8 +129,8 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	// Assert fourth response.
 	resp, err = stream.Recv()
 	assert.NoError(t, err)
-	assert.Equal(t, uint32(0), resp.ExitCode.Value)
-	assert.Nil(t, resp.Pid)
+	assert.Equal(t, uint32(0), resp.GetExitCode().GetValue())
+	assert.Nil(t, resp.GetPid())
 }
 
 func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
@@ -1086,7 +1086,10 @@ func startRunnerServiceServer(t *testing.T) (_ *bufconn.Listener, stop func()) {
 	runnerService, err := NewRunnerService(factory, logger)
 	require.NoError(t, err)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.MaxRecvMsgSize(msgBufferSize*2),
+		grpc.MaxSendMsgSize(msgBufferSize*2),
+	)
 	runnerv2.RegisterRunnerServiceServer(server, runnerService)
 
 	lis := bufconn.Listen(1 << 20) // 1 MB
