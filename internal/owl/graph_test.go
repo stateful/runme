@@ -1,6 +1,7 @@
 package owl
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -81,10 +82,12 @@ func (testCases fileTestCases) runAll(t *testing.T) {
 				tc.pre(t, vars, &query)
 			}
 
+			noSpecDefs := SpecDefs{}
 			result := graphql.Do(graphql.Params{
 				Schema:         Schema,
 				RequestString:  string(query),
 				VariableValues: vars,
+				Context:        context.WithValue(context.Background(), OwlEnvSpecDefsKey, noSpecDefs),
 			})
 			require.False(t, result.HasErrors())
 
@@ -225,15 +228,31 @@ func TestGraph_SensitiveKeys(t *testing.T) {
 		{
 			name: "Sensitive keys",
 			post: func(t *testing.T, result *graphql.Result) {
-				render, err := extractDataKey(result.Data, "render")
+				sensitiveKeys, err := extractDataKey(result.Data, "sensitiveKeys")
 				require.NoError(t, err)
-				require.NotNil(t, render)
+				require.NotNil(t, sensitiveKeys)
 
-				b, err := yaml.Marshal(render)
-				// b, err := json.MarshalIndent(result, "", " ")
-				require.NoError(t, err)
-				_, _ = fmt.Println(string(b))
-				require.NotNil(t, b)
+				expected := []interface{}{
+					map[string]interface{}{
+						"spec": map[string]interface{}{
+							"name":     "Password",
+							"required": true,
+						},
+						"var": map[string]interface{}{
+							"key": "KRAFTCLOUD_TOKEN",
+						},
+					},
+					map[string]interface{}{
+						"spec": map[string]interface{}{
+							"name":     "Secret",
+							"required": true,
+						},
+						"var": map[string]interface{}{
+							"key": "OPENAI_API_KEY",
+						},
+					},
+				}
+				require.EqualValues(t, expected, sensitiveKeys)
 			},
 		},
 	}
