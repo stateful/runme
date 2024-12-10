@@ -757,3 +757,22 @@ func TestStore_LoadEnvSpecDefs(t *testing.T) {
 		require.Equal(t, 0, errors)
 	})
 }
+
+func TestStore_InsecureValues(t *testing.T) {
+	t.Run("Custom", func(t *testing.T) {
+		store, err := NewStore(
+			WithSpecFile(".env.example", []byte(`SLACK_CLIENT_ID="Client ID for Slack" # Slack!
+SLACK_CLIENT_SECRET="Client Secret for Slack" # Slack!
+SLACK_REDIRECT_URL="Redirect URL for Slack. Use a tunnel with ngrok" # Slack!`)),
+			WithEnvFile(".env.local", []byte(`SLACK_CLIENT_ID=abc-123-xyz
+SLACK_CLIENT_SECRET=this-is-my-secret`)),
+			WithEnvFile(".env", []byte(`SLACK_REDIRECT_URL='https://my-redirect-url.com/slack/redirect'`)),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, store)
+
+		keys, err := store.SensitiveKeys()
+		require.NoError(t, err)
+		require.EqualValues(t, []string{"SLACK_CLIENT_SECRET", "SLACK_REDIRECT_URL"}, keys)
+	})
+}

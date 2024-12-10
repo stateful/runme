@@ -178,9 +178,11 @@ func (res SetVarItems) getSensitiveKeys(data interface{}) ([]string, error) {
 
 	var filtered []string
 	for _, item := range res {
-		if specsSensitivity[item.Spec.Name] {
-			filtered = append(filtered, item.Var.Key)
-		}
+		// todo(sebastian): check sensitivity inside graph for now
+		// if specsSensitivity[item.Spec.Name] {
+		// 	filtered = append(filtered, item.Var.Key)
+		// }
+		filtered = append(filtered, item.Var.Key)
 	}
 
 	return filtered, nil

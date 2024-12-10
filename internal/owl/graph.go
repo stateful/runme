@@ -27,9 +27,10 @@ const (
 )
 
 type atomicType struct {
-	typeName   string
-	typeObject *graphql.Object
-	resolveFn  graphql.FieldResolveFn
+	typeName      string
+	typeSensitive bool
+	typeObject    *graphql.Object
+	resolveFn     graphql.FieldResolveFn
 }
 
 var (
@@ -150,9 +151,10 @@ func registerAtomicType(name string, sensitive, mask bool, resolver graphql.Fiel
 	})
 
 	return &atomicType{
-		typeName:   name,
-		typeObject: typ,
-		resolveFn:  resolver,
+		typeName:      name,
+		typeSensitive: sensitive && mask,
+		typeObject:    typ,
+		resolveFn:     resolver,
 	}
 }
 
@@ -291,6 +293,7 @@ func resolveSensitiveKeys() graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		sensitive := SetVarItems{}
 		var opSet *OperationSet
+		var specOpSet *SpecOperationSet
 
 		switch p.Source.(type) {
 		case nil, string:
@@ -299,15 +302,39 @@ func resolveSensitiveKeys() graphql.FieldResolveFn {
 		case *OperationSet:
 			opSet = p.Source.(*OperationSet)
 		case *SpecOperationSet:
-			opSet = p.Source.(*SpecOperationSet).OperationSet
+			specOpSet = p.Source.(*SpecOperationSet)
+			opSet = specOpSet.OperationSet
 		default:
 			return nil, errors.New("source does not contain an OperationSet")
+		}
+
+		specDefs, ok := p.Context.Value(OwlEnvSpecDefsKey).(SpecDefs)
+		if !ok {
+			return nil, errors.New("missing specDefs in context")
+		}
+
+		sensitiveAtomics := make(map[string]bool)
+		for _, a := range AtomicTypes {
+			sensitiveAtomics[a.typeName] = a.typeSensitive
 		}
 
 		for _, v := range opSet.values {
 			s, ok := opSet.specs[v.Var.Key]
 			if !ok {
 				return nil, fmt.Errorf("missing spec for %s", v.Var.Key)
+			}
+
+			specName := s.Spec.Name
+
+			if specOpSet != nil {
+				_, aitem, err := specOpSet.GetAtomic(s, specDefs)
+				if err == nil {
+					specName = aitem.Spec.Name
+				}
+			}
+
+			if !sensitiveAtomics[specName] {
+				continue
 			}
 
 			item := &SetVarItem{
