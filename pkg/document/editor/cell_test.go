@@ -49,12 +49,12 @@ It can have an annotation with a name:
 $ echo "Hello, runme!"
 ` + "```" + `
 
-> bq 1
-> bq 2
->
->     echo 1
->
-> b1 3
+bq 1
+bq 2
+
+    echo 1
+
+b1 3
 
 1. Item 1
 
