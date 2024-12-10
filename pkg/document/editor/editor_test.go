@@ -681,7 +681,7 @@ func TestEditor_CodeBlockEndcoding(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Fenced", func(t *testing.T) {
-		data := []byte(`## Tests
+		original := []byte(`## Tests
 
 Run all tests:
 
@@ -698,19 +698,19 @@ dagger call test specific --pkg="./core/integration" --run="^TestModule/TestName
 
 A paragraph
 `)
-		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		notebook, err := Deserialize(original, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)
 		result, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			string(data),
+			string(original),
 			string(result),
 		)
 	})
 
 	t.Run("UnfencedWithSpaces", func(t *testing.T) {
-		data := []byte(`## Tests
+		original := []byte(`## Tests
 
 Run all tests:
 
@@ -723,13 +723,13 @@ Run a specific test:
 
 A paragraph
 `)
-		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		notebook, err := Deserialize(original, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)
 		result, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 		assert.Equal(
 			t,
-			string(data),
+			string(original),
 			string(result),
 		)
 	})
