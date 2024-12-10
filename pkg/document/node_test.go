@@ -46,9 +46,9 @@ func TestCollectCodeBlocks(t *testing.T) {
 	node, err := doc.Root()
 	require.NoError(t, err)
 	codeBlocks := CollectCodeBlocks(node)
-	assert.Len(t, codeBlocks, 2)
-	assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```\n", string(codeBlocks[0].Value()))
-	assert.Equal(t, "```sh\necho 1\n```\n", string(codeBlocks[1].Value()))
+	assert.Len(t, codeBlocks, 3)
+	assert.Equal(t, "```sh {name=echo first= second=2}\n$ echo \"Hello, runme!\"\n```\n", string(codeBlocks[1].Value()))
+	assert.Equal(t, "```sh\necho 1\n```\n", string(codeBlocks[2].Value()))
 }
 
 func TestCodeBlock_Intro(t *testing.T) {

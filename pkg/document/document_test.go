@@ -47,7 +47,7 @@ First paragraph.
 	assert.Len(t, node.children[2].children[0].children, 0)
 	assert.Equal(t, "bq1\n", string(node.children[2].children[0].Item().Value()))
 	assert.Len(t, node.children[2].children[1].children, 0)
-	assert.Equal(t, "    echo \"inside bq\"\n", string(node.children[2].children[1].Item().Value()))
+	assert.Equal(t, "```\necho \"inside bq\"\n```\n", string(node.children[2].children[1].Item().Value()))
 	assert.Len(t, node.children[2].children[2].children, 0)
 	assert.Equal(t, "bq2\nbq3\n", string(node.children[2].children[2].Item().Value()))
 	assert.Len(t, node.children[3].children, 3)

@@ -49,12 +49,12 @@ It can have an annotation with a name:
 $ echo "Hello, runme!"
 ` + "```" + `
 
-> bq 1
-> bq 2
->
->     echo 1
->
-> b1 3
+bq 1
+bq 2
+
+    echo 1
+
+b1 3
 
 1. Item 1
 
@@ -77,17 +77,19 @@ func Test_toCells_DataNested(t *testing.T) {
 	node, err := doc.Root()
 	require.NoError(t, err)
 	cells := toCells(doc, node, testDataNested)
-	assert.Len(t, cells, 10)
+	assert.Len(t, cells, 12)
 	assert.Equal(t, "# Examples", cells[0].Value)
 	assert.Equal(t, "It can have an annotation with a name:", cells[1].Value)
 	assert.Equal(t, "$ echo \"Hello, runme!\"", cells[2].Value)
-	assert.Equal(t, "> bq 1\n> bq 2\n>\n>     echo 1\n>\n> b1 3", cells[3].Value)
-	assert.Equal(t, "1. Item 1", cells[4].Value)
-	assert.Equal(t, "$ echo \"Hello, runme!\"", cells[5].Value)
-	assert.Equal(t, "First inner paragraph", cells[6].Value)
-	assert.Equal(t, "Second inner paragraph", cells[7].Value)
-	assert.Equal(t, "2. Item 2", cells[8].Value)
-	assert.Equal(t, "3. Item 3", cells[9].Value)
+	assert.Equal(t, "bq 1\nbq 2", cells[3].Value)
+	assert.Equal(t, "echo 1", cells[4].Value)
+	assert.Equal(t, "b1 3", cells[5].Value)
+	assert.Equal(t, "1. Item 1", cells[6].Value)
+	assert.Equal(t, "$ echo \"Hello, runme!\"", cells[7].Value)
+	assert.Equal(t, "First inner paragraph", cells[8].Value)
+	assert.Equal(t, "Second inner paragraph", cells[9].Value)
+	assert.Equal(t, "2. Item 2", cells[10].Value)
+	assert.Equal(t, "3. Item 3", cells[11].Value)
 }
 
 func Test_toCells_Lists(t *testing.T) {
