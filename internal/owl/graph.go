@@ -965,7 +965,7 @@ func init() {
 							result, err := gcpsm.AccessSecretVersion(p.Context, accessRequest)
 							if err != nil {
 								verr := NewResolutionFailedError(
-									&SetVarItem{Var: v.Var, Value: v.Value, Spec: specOpSet.specs[v.Var.Key].Spec},
+									&SetVarItem{Var: v.Var, Value: v.Value, Spec: resolveOpSet.specs[v.Var.Key].Spec},
 									v.Var.Key,
 									err,
 								)
