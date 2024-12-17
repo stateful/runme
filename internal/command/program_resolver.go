@@ -254,7 +254,12 @@ func (r *ProgramResolver) findOriginalValue(decl *syntax.DeclClause) (string, bo
 		return true
 	})
 
-	return strings.Join(fragments, " "), isPlaceholder
+	v := strings.Join(fragments, " ")
+	if !isPlaceholder {
+		v = unescapeShellLiteral(v)
+	}
+
+	return v, isPlaceholder
 }
 
 func (r *ProgramResolver) findEnvValue(name string) (string, bool) {
@@ -377,4 +382,16 @@ func (r *ProgramResolver) hasExpr(node syntax.Node) (found bool) {
 		}
 	})
 	return
+}
+
+func unescapeShellLiteral(escaped string) string {
+	replacer := strings.NewReplacer(
+		`\(`, `(`,
+		`\)`, `)`,
+		`\{`, `{`,
+		`\}`, `}`,
+		`\[`, `[`,
+		`\]`, `]`,
+	)
+	return replacer.Replace(escaped)
 }
