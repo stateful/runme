@@ -133,6 +133,21 @@ func TestProgramResolverResolve(t *testing.T) {
 			modifiedProgram: "#\n# TEST_STRING_SGL_QUOTED_VALUE set in managed env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE='value'\"\n\n",
 		},
 		{
+			name:    "shell-escaped prompt message",
+			program: `export TYPE=[Guest type \(hyperv,proxmox,openstack\)]`,
+			result: &ProgramResolverResult{
+				ModifiedProgram: true,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status:        ProgramResolverStatusUnresolvedWithMessage,
+						Name:          "TYPE",
+						OriginalValue: "[Guest type (hyperv,proxmox,openstack)]",
+					},
+				},
+			},
+			modifiedProgram: "#\n# TYPE set in managed env store\n# \"export TYPE=[Guest type \\\\(hyperv,proxmox,openstack\\\\)]\"\n\n",
+		},
+		{
 			name:            "parameter expression",
 			program:         `export TEST_PARAM_EXPR=${TEST:7:0}`,
 			result:          &ProgramResolverResult{},
@@ -314,4 +329,13 @@ func TestProgramResolverResolve_SensitiveEnvKeys(t *testing.T) {
 		)
 		require.EqualValues(t, "#\n# MY_PASSWORD set in managed env store\n# \"export MY_PASSWORD=super-secret\"\n#\n# MY_SECRET set in managed env store\n# \"export MY_SECRET=also-secret\"\n#\n# MY_PLAIN set in managed env store\n# \"export MY_PLAIN=text\"\n\n", buf.String())
 	})
+}
+
+func TestUnescapeShellLiteral(t *testing.T) {
+	assert.Equal(t, `echo "Hello World!"`, unescapeShellLiteral(`echo "Hello World!"`))
+	assert.Equal(t, `echo "Hello ${name}!"`, unescapeShellLiteral(`echo "Hello ${name}!"`))
+	assert.Equal(t, `[Guest type (hyperv,proxmox,openstack)]`, unescapeShellLiteral(`[Guest type \(hyperv,proxmox,openstack\)]`))
+	assert.Equal(t, `[IP of waiting server {foo}]`, unescapeShellLiteral(`[IP of waiting server \{foo\}]`))
+	assert.Equal(t, `[Guest\ Type]`, unescapeShellLiteral(`[Guest\ Type]`))
+	assert.Equal(t, `[Guest Type]`, unescapeShellLiteral(`\[Guest Type\]`))
 }
