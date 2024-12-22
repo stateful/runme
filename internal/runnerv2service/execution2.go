@@ -25,7 +25,7 @@ const (
 	// small.
 	// In the future, it might be worth to implement
 	// variable-sized buffers.
-	msgBufferSize = 4 * 1024 * 1024 // 4 MiB
+	msgBufferSize = 32 * 1024 * 1024 // 4 MiB
 )
 
 //lint:ignore U1000 Used in A/B testing
@@ -251,7 +251,9 @@ func (e *execution2) readSendLoop(
 			return errors.WithStack(err)
 		}
 
-		time.Sleep(time.Second/sendsPerSecond - time.Since(readTime))
+		if n < msgBufferSize {
+			time.Sleep(time.Second/sendsPerSecond - time.Since(readTime))
+		}
 	}
 }
 

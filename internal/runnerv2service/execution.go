@@ -28,6 +28,7 @@ func matchesOpinionatedEnvVarNaming(knownName string) bool {
 	return opininatedEnvVarNamingRegexp.MatchString(knownName)
 }
 
+//lint:ignore U1000 Used in A/B testing
 type execution struct {
 	Cmd              command.Command
 	knownName        string
@@ -40,6 +41,7 @@ type execution struct {
 	storeStdoutInEnv bool
 }
 
+//lint:ignore U1000 Used in A/B testing
 func newExecution(
 	cfg *command.ProgramConfig,
 	proj *project.Project,
