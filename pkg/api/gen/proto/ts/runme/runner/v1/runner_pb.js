@@ -10,6 +10,7 @@
 // @ts-nocheck
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Notebook } from "../../parser/v1/parser_pb";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 /**
  * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.Mode
@@ -100,6 +101,45 @@ export var MonitorEnvStoreResponseSnapshot_Status;
     MonitorEnvStoreResponseSnapshot_Status[MonitorEnvStoreResponseSnapshot_Status["MASKED"] = 3] = "MASKED";
 })(MonitorEnvStoreResponseSnapshot_Status || (MonitorEnvStoreResponseSnapshot_Status = {}));
 /**
+ * @generated from protobuf enum runme.runner.v1.ResolveNotebookResponse.Status
+ */
+export var ResolveNotebookResponse_Status;
+(function (ResolveNotebookResponse_Status) {
+    /**
+     * unspecified is the default value and it means unresolved.
+     *
+     * @generated from protobuf enum value: STATUS_UNSPECIFIED = 0;
+     */
+    ResolveNotebookResponse_Status[ResolveNotebookResponse_Status["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * unresolved with message means that the variable is unresolved
+     * but it contains a message. E.g. FOO=this is message
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_MESSAGE = 1;
+     */
+    ResolveNotebookResponse_Status[ResolveNotebookResponse_Status["UNRESOLVED_WITH_MESSAGE"] = 1] = "UNRESOLVED_WITH_MESSAGE";
+    /**
+     * unresolved with placeholder means that the variable is unresolved
+     * but it contains a placeholder. E.g. FOO="this is placeholder"
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
+     */
+    ResolveNotebookResponse_Status[ResolveNotebookResponse_Status["UNRESOLVED_WITH_PLACEHOLDER"] = 2] = "UNRESOLVED_WITH_PLACEHOLDER";
+    /**
+     * resolved means that the variable is resolved.
+     *
+     * @generated from protobuf enum value: STATUS_RESOLVED = 3;
+     */
+    ResolveNotebookResponse_Status[ResolveNotebookResponse_Status["RESOLVED"] = 3] = "RESOLVED";
+    /**
+     * unresolved with secret means that the variable is unresolved
+     * and it requires treatment as a secret.
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_SECRET = 4;
+     */
+    ResolveNotebookResponse_Status[ResolveNotebookResponse_Status["UNRESOLVED_WITH_SECRET"] = 4] = "UNRESOLVED_WITH_SECRET";
+})(ResolveNotebookResponse_Status || (ResolveNotebookResponse_Status = {}));
+/**
  * env store implementation
  *
  * @generated from protobuf enum runme.runner.v1.SessionEnvStoreType
@@ -158,6 +198,10 @@ export var CommandMode;
      * @generated from protobuf enum value: COMMAND_MODE_TERMINAL = 3;
      */
     CommandMode[CommandMode["TERMINAL"] = 3] = "TERMINAL";
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_DAGGER_SHELL = 4;
+     */
+    CommandMode[CommandMode["DAGGER_SHELL"] = 4] = "DAGGER_SHELL";
 })(CommandMode || (CommandMode = {}));
 /**
  * strategy for selecting a session in an initial execute request
@@ -526,6 +570,55 @@ class MonitorEnvStoreResponse$Type extends MessageType {
  * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponse
  */
 export const MonitorEnvStoreResponse = new MonitorEnvStoreResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveNotebookRequest$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveNotebookRequest", [
+            { no: 1, name: "notebook", kind: "message", T: () => Notebook },
+            { no: 2, name: "known_id", kind: "scalar", oneof: "target", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "known_name", kind: "scalar", oneof: "target", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "cell_index", kind: "scalar", oneof: "target", T: 13 /*ScalarType.UINT32*/ },
+            { no: 5, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
+            { no: 8, name: "project", kind: "message", T: () => Project },
+            { no: 9, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveNotebookRequest
+ */
+export const ResolveNotebookRequest = new ResolveNotebookRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveNotebookResponse$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveNotebookResponse", [
+            { no: 1, name: "script", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "commands", kind: "message", T: () => ResolveProgramCommandList },
+            { no: 3, name: "vars", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ResolveNotebookResponse_VarResult }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveNotebookResponse
+ */
+export const ResolveNotebookResponse = new ResolveNotebookResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveNotebookResponse_VarResult$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v1.ResolveNotebookResponse.VarResult", [
+            { no: 1, name: "status", kind: "enum", T: () => ["runme.runner.v1.ResolveNotebookResponse.Status", ResolveNotebookResponse_Status, "STATUS_"] },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "original_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "resolved_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveNotebookResponse.VarResult
+ */
+export const ResolveNotebookResponse_VarResult = new ResolveNotebookResponse_VarResult$Type();
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */
@@ -536,5 +629,6 @@ export const RunnerService = new ServiceType("runme.runner.v1.RunnerService", [
     { name: "DeleteSession", options: {}, I: DeleteSessionRequest, O: DeleteSessionResponse },
     { name: "MonitorEnvStore", serverStreaming: true, options: {}, I: MonitorEnvStoreRequest, O: MonitorEnvStoreResponse },
     { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse },
-    { name: "ResolveProgram", options: {}, I: ResolveProgramRequest, O: ResolveProgramResponse }
+    { name: "ResolveProgram", options: {}, I: ResolveProgramRequest, O: ResolveProgramResponse },
+    { name: "ResolveNotebook", options: {}, I: ResolveNotebookRequest, O: ResolveNotebookResponse }
 ]);

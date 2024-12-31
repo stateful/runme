@@ -133,25 +133,33 @@ export declare enum CommandMode {
      */
     UNSPECIFIED = 0,
     /**
+     * COMMAND_MODE_INLINE indicates that the command should be executed inline.
+     * For example: bash -c "echo 'Hello, World'"
+     *
      * @generated from protobuf enum value: COMMAND_MODE_INLINE = 1;
      */
     INLINE = 1,
     /**
+     * COMMAND_MODE_FILE indicates that the command should be executed as a file.
+     * For example: bash /tmp/script.sh
+     *
      * @generated from protobuf enum value: COMMAND_MODE_FILE = 2;
      */
     FILE = 2,
     /**
+     * COMMAND_MODE_TERMINAL indicates that the command should be executed as a Runme Terminal.
+     * This is used by the VS Code extension.
+     *
      * @generated from protobuf enum value: COMMAND_MODE_TERMINAL = 3;
      */
     TERMINAL = 3,
     /**
+     * COMMAND_MODE_CLI indicates that the command is executed via runme CLI.
+     * It is executed as a native command.
+     *
      * @generated from protobuf enum value: COMMAND_MODE_CLI = 4;
      */
-    CLI = 4,
-    /**
-     * @generated from protobuf enum value: COMMAND_MODE_CLI_SESSION = 5;
-     */
-    CLI_SESSION = 5
+    CLI = 4
 }
 declare class ProgramConfig$Type extends MessageType<ProgramConfig> {
     constructor();

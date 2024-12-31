@@ -77,4 +77,11 @@ export class RunnerServiceClient {
         const method = this.methods[6], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }
+    /**
+     * @generated from protobuf rpc: ResolveNotebook(runme.runner.v1.ResolveNotebookRequest) returns (runme.runner.v1.ResolveNotebookResponse);
+     */
+    resolveNotebook(input, options) {
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        return stackIntercept("unary", this._transport, method, opt, input);
+    }
 }

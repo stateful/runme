@@ -5,6 +5,8 @@
 // @ts-nocheck
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
+import type { ResolveNotebookResponse } from "./runner_pb";
+import type { ResolveNotebookRequest } from "./runner_pb";
 import type { ResolveProgramResponse } from "./runner_pb";
 import type { ResolveProgramRequest } from "./runner_pb";
 import type { ExecuteResponse } from "./runner_pb";
@@ -68,6 +70,10 @@ export interface IRunnerServiceClient {
      * @generated from protobuf rpc: ResolveProgram(runme.runner.v1.ResolveProgramRequest) returns (runme.runner.v1.ResolveProgramResponse);
      */
     resolveProgram(input: ResolveProgramRequest, options?: RpcOptions): UnaryCall<ResolveProgramRequest, ResolveProgramResponse>;
+    /**
+     * @generated from protobuf rpc: ResolveNotebook(runme.runner.v1.ResolveNotebookRequest) returns (runme.runner.v1.ResolveNotebookResponse);
+     */
+    resolveNotebook(input: ResolveNotebookRequest, options?: RpcOptions): UnaryCall<ResolveNotebookRequest, ResolveNotebookResponse>;
 }
 /**
  * @generated from protobuf service runme.runner.v1.RunnerService
@@ -119,4 +125,8 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      * @generated from protobuf rpc: ResolveProgram(runme.runner.v1.ResolveProgramRequest) returns (runme.runner.v1.ResolveProgramResponse);
      */
     resolveProgram(input: ResolveProgramRequest, options?: RpcOptions): UnaryCall<ResolveProgramRequest, ResolveProgramResponse>;
+    /**
+     * @generated from protobuf rpc: ResolveNotebook(runme.runner.v1.ResolveNotebookRequest) returns (runme.runner.v1.ResolveNotebookResponse);
+     */
+    resolveNotebook(input: ResolveNotebookRequest, options?: RpcOptions): UnaryCall<ResolveNotebookRequest, ResolveNotebookResponse>;
 }

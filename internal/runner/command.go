@@ -82,6 +82,8 @@ const (
 	CommandModeInlineShell
 	// Send script as temporary file in cwd
 	CommandModeTempFile
+	// Send script as dagger shell
+	CommandModeDaggerShell
 )
 
 type commandConfig struct {

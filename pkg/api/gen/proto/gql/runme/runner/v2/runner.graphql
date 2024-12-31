@@ -9,11 +9,30 @@ directive @RunnerService on FIELD_DEFINITION
 scalar Bytes
 enum CommandMode {
 	COMMAND_MODE_UNSPECIFIED
+	"""
+	 COMMAND_MODE_INLINE indicates that the command should be executed inline.
+	 For example: bash -c "echo 'Hello, World'"
+
+	"""
 	COMMAND_MODE_INLINE
+	"""
+	 COMMAND_MODE_FILE indicates that the command should be executed as a file.
+	 For example: bash /tmp/script.sh
+
+	"""
 	COMMAND_MODE_FILE
+	"""
+	 COMMAND_MODE_TERMINAL indicates that the command should be executed as a Runme Terminal.
+	 This is used by the VS Code extension.
+
+	"""
 	COMMAND_MODE_TERMINAL
+	"""
+	 COMMAND_MODE_CLI indicates that the command is executed via runme CLI.
+	 It is executed as a native command.
+
+	"""
 	COMMAND_MODE_CLI
-	COMMAND_MODE_CLI_SESSION
 }
 input CreateSessionRequestInput {
 	"""

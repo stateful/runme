@@ -3,6 +3,7 @@ syntax = "proto3";
 package runme.runner.v1;
 
 import "google/protobuf/wrappers.proto";
+import "runme/parser/v1/parser.proto";
 
 option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1;runnerv1";
 
@@ -76,6 +77,7 @@ enum CommandMode {
   COMMAND_MODE_INLINE_SHELL = 1;
   COMMAND_MODE_TEMP_FILE = 2;
   COMMAND_MODE_TERMINAL = 3;
+  COMMAND_MODE_DAGGER_SHELL = 4;
 }
 
 message Project {
@@ -377,6 +379,79 @@ message MonitorEnvStoreResponse {
   }
 }
 
+message ResolveNotebookRequest {
+  runme.parser.v1.Notebook notebook = 1;
+
+  oneof target {
+    string known_id = 2;
+
+    string known_name = 3;
+
+    uint32 cell_index = 4;
+  }
+
+  // env is a list of explicit environment variables that will be used
+  // to resolve the environment variables found in the source.
+  repeated string env = 5;
+
+  // session_id indicates which session is the source of
+  // environment variables. If not provided, the most recent
+  // session can be used using session_strategy.
+  string session_id = 6;
+
+  // session_strategy is a strategy for selecting the session.
+  SessionStrategy session_strategy = 7;
+
+  // project used to load environment variables from .env files.
+  optional Project project = 8;
+
+  // language id associated with script
+  string language_id = 9;
+}
+
+message ResolveNotebookResponse {
+  string script = 1;
+
+  // use script until commands normalization is implemented
+  ResolveProgramCommandList commands = 2;
+
+  repeated VarResult vars = 3;
+
+  message VarResult {
+    // prompt indicates the resolution status of the env variable.
+    Status status = 1;
+
+    // name is the name of the environment variable.
+    string name = 2;
+
+    // original_value is a default value of the environment variable.
+    // It might be a value that is assigned to the variable in the script,
+    // like FOO=bar or FOO=${FOO:-bar}.
+    // If the variable is not assigned, it is an empty string.
+    string original_value = 3;
+
+    // resolved_value is a value of the environment variable resolved from a source.
+    // If it is an empty string, it means that the environment variable is not resolved.
+    string resolved_value = 4;
+  }
+
+  enum Status {
+    // unspecified is the default value and it means unresolved.
+    STATUS_UNSPECIFIED = 0;
+    // unresolved with message means that the variable is unresolved
+    // but it contains a message. E.g. FOO=this is message
+    STATUS_UNRESOLVED_WITH_MESSAGE = 1;
+    // unresolved with placeholder means that the variable is unresolved
+    // but it contains a placeholder. E.g. FOO="this is placeholder"
+    STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
+    // resolved means that the variable is resolved.
+    STATUS_RESOLVED = 3;
+    // unresolved with secret means that the variable is unresolved
+    // and it requires treatment as a secret.
+    STATUS_UNRESOLVED_WITH_SECRET = 4;
+  }
+}
+
 service RunnerService {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {}
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {}
@@ -399,4 +474,6 @@ service RunnerService {
   // a session, or a project.
   // For now, the resolved variables are only the exported ones using `export`.
   rpc ResolveProgram(ResolveProgramRequest) returns (ResolveProgramResponse) {}
+
+  rpc ResolveNotebook(ResolveNotebookRequest) returns (ResolveNotebookResponse) {}
 }

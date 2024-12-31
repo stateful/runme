@@ -26,6 +26,7 @@ const (
 	RunnerService_MonitorEnvStore_FullMethodName = "/runme.runner.v1.RunnerService/MonitorEnvStore"
 	RunnerService_Execute_FullMethodName         = "/runme.runner.v1.RunnerService/Execute"
 	RunnerService_ResolveProgram_FullMethodName  = "/runme.runner.v1.RunnerService/ResolveProgram"
+	RunnerService_ResolveNotebook_FullMethodName = "/runme.runner.v1.RunnerService/ResolveNotebook"
 )
 
 // RunnerServiceClient is the client API for RunnerService service.
@@ -50,6 +51,7 @@ type RunnerServiceClient interface {
 	// a session, or a project.
 	// For now, the resolved variables are only the exported ones using `export`.
 	ResolveProgram(ctx context.Context, in *ResolveProgramRequest, opts ...grpc.CallOption) (*ResolveProgramResponse, error)
+	ResolveNotebook(ctx context.Context, in *ResolveNotebookRequest, opts ...grpc.CallOption) (*ResolveNotebookResponse, error)
 }
 
 type runnerServiceClient struct {
@@ -142,6 +144,16 @@ func (c *runnerServiceClient) ResolveProgram(ctx context.Context, in *ResolvePro
 	return out, nil
 }
 
+func (c *runnerServiceClient) ResolveNotebook(ctx context.Context, in *ResolveNotebookRequest, opts ...grpc.CallOption) (*ResolveNotebookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveNotebookResponse)
+	err := c.cc.Invoke(ctx, RunnerService_ResolveNotebook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RunnerServiceServer is the server API for RunnerService service.
 // All implementations must embed UnimplementedRunnerServiceServer
 // for forward compatibility.
@@ -164,6 +176,7 @@ type RunnerServiceServer interface {
 	// a session, or a project.
 	// For now, the resolved variables are only the exported ones using `export`.
 	ResolveProgram(context.Context, *ResolveProgramRequest) (*ResolveProgramResponse, error)
+	ResolveNotebook(context.Context, *ResolveNotebookRequest) (*ResolveNotebookResponse, error)
 	mustEmbedUnimplementedRunnerServiceServer()
 }
 
@@ -194,6 +207,9 @@ func (UnimplementedRunnerServiceServer) Execute(grpc.BidiStreamingServer[Execute
 }
 func (UnimplementedRunnerServiceServer) ResolveProgram(context.Context, *ResolveProgramRequest) (*ResolveProgramResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResolveProgram not implemented")
+}
+func (UnimplementedRunnerServiceServer) ResolveNotebook(context.Context, *ResolveNotebookRequest) (*ResolveNotebookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResolveNotebook not implemented")
 }
 func (UnimplementedRunnerServiceServer) mustEmbedUnimplementedRunnerServiceServer() {}
 func (UnimplementedRunnerServiceServer) testEmbeddedByValue()                       {}
@@ -324,6 +340,24 @@ func _RunnerService_ResolveProgram_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunnerService_ResolveNotebook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveNotebookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerServiceServer).ResolveNotebook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerService_ResolveNotebook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerServiceServer).ResolveNotebook(ctx, req.(*ResolveNotebookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RunnerService_ServiceDesc is the grpc.ServiceDesc for RunnerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -350,6 +384,10 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResolveProgram",
 			Handler:    _RunnerService_ResolveProgram_Handler,
+		},
+		{
+			MethodName: "ResolveNotebook",
+			Handler:    _RunnerService_ResolveNotebook_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TempFile struct {
+type DaggerShell struct {
 	*ExecutableConfig
 	command     *command
 	Script      string
@@ -21,9 +21,9 @@ type TempFile struct {
 	LanguageID  string
 }
 
-var _ Executable = (*TempFile)(nil)
+var _ Executable = (*DaggerShell)(nil)
 
-func (s TempFile) DryRun(ctx context.Context, w io.Writer) {
+func (s DaggerShell) DryRun(ctx context.Context, w io.Writer) {
 	var b bytes.Buffer
 
 	_, err := w.Write(b.Bytes())
@@ -32,7 +32,7 @@ func (s TempFile) DryRun(ctx context.Context, w io.Writer) {
 	}
 }
 
-func (s *TempFile) Run(ctx context.Context) error {
+func (s *DaggerShell) Run(ctx context.Context) error {
 	cmd, err := newCommand(
 		ctx,
 		&commandConfig{
@@ -44,7 +44,7 @@ func (s *TempFile) Run(ctx context.Context) error {
 			Stdin:       s.Stdin,
 			Stdout:      s.Stdout,
 			Stderr:      s.Stderr,
-			CommandMode: CommandModeTempFile,
+			CommandMode: CommandModeDaggerShell,
 			Script:      s.Script,
 			Logger:      s.Logger,
 		},
@@ -57,7 +57,7 @@ func (s *TempFile) Run(ctx context.Context) error {
 	return s.run(ctx, cmd)
 }
 
-func (s TempFile) ExitCode() int {
+func (s DaggerShell) ExitCode() int {
 	if s.command == nil || s.command.cmd == nil {
 		return -1
 	}
@@ -65,7 +65,7 @@ func (s TempFile) ExitCode() int {
 	return s.command.cmd.ProcessState.ExitCode()
 }
 
-func (s TempFile) run(ctx context.Context, cmd *command) error {
+func (s DaggerShell) run(ctx context.Context, cmd *command) error {
 	opts := &startOpts{}
 	if s.Tty {
 		opts.DisableEcho = true
