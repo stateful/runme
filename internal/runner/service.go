@@ -308,6 +308,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		cfg.CommandMode = CommandModeTempFile
 	case runnerv1.CommandMode_COMMAND_MODE_TERMINAL:
 		return status.Error(codes.Unimplemented, "terminal mode is not supported")
+	case runnerv1.CommandMode_COMMAND_MODE_DAGGER_SHELL:
+		cfg.CommandMode = CommandModeDaggerShell
 	}
 
 	logger.Debug("command config", zap.Any("cfg", cfg))
@@ -915,4 +917,11 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 	}
 
 	return nil
+}
+
+func (r *runnerService) ResolveNotebook(ctx context.Context, req *runnerv1.ResolveNotebookRequest) (*runnerv1.ResolveNotebookResponse, error) {
+	notebook := req.GetNotebook()
+	resolver := NewNotebookResolver(notebook)
+
+	return resolver.ResolveNotebook(ctx, req.GetKnownName())
 }

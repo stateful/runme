@@ -19,25 +19,33 @@ export var CommandMode;
      */
     CommandMode[CommandMode["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
+     * COMMAND_MODE_INLINE indicates that the command should be executed inline.
+     * For example: bash -c "echo 'Hello, World'"
+     *
      * @generated from protobuf enum value: COMMAND_MODE_INLINE = 1;
      */
     CommandMode[CommandMode["INLINE"] = 1] = "INLINE";
     /**
+     * COMMAND_MODE_FILE indicates that the command should be executed as a file.
+     * For example: bash /tmp/script.sh
+     *
      * @generated from protobuf enum value: COMMAND_MODE_FILE = 2;
      */
     CommandMode[CommandMode["FILE"] = 2] = "FILE";
     /**
+     * COMMAND_MODE_TERMINAL indicates that the command should be executed as a Runme Terminal.
+     * This is used by the VS Code extension.
+     *
      * @generated from protobuf enum value: COMMAND_MODE_TERMINAL = 3;
      */
     CommandMode[CommandMode["TERMINAL"] = 3] = "TERMINAL";
     /**
+     * COMMAND_MODE_CLI indicates that the command is executed via runme CLI.
+     * It is executed as a native command.
+     *
      * @generated from protobuf enum value: COMMAND_MODE_CLI = 4;
      */
     CommandMode[CommandMode["CLI"] = 4] = "CLI";
-    /**
-     * @generated from protobuf enum value: COMMAND_MODE_CLI_SESSION = 5;
-     */
-    CommandMode[CommandMode["CLI_SESSION"] = 5] = "CLI_SESSION";
 })(CommandMode || (CommandMode = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class ProgramConfig$Type extends MessageType {

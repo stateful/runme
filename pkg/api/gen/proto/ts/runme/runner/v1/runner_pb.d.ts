@@ -4,6 +4,7 @@
 // tslint:disable
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
+import { Notebook } from "../../parser/v1/parser_pb";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 /**
  * @generated from protobuf message runme.runner.v1.Session
@@ -678,6 +679,162 @@ export interface MonitorEnvStoreResponse {
     };
 }
 /**
+ * @generated from protobuf message runme.runner.v1.ResolveNotebookRequest
+ */
+export interface ResolveNotebookRequest {
+    /**
+     * @generated from protobuf field: runme.parser.v1.Notebook notebook = 1;
+     */
+    notebook?: Notebook;
+    /**
+     * @generated from protobuf oneof: target
+     */
+    target: {
+        oneofKind: "knownId";
+        /**
+         * @generated from protobuf field: string known_id = 2;
+         */
+        knownId: string;
+    } | {
+        oneofKind: "knownName";
+        /**
+         * @generated from protobuf field: string known_name = 3;
+         */
+        knownName: string;
+    } | {
+        oneofKind: "cellIndex";
+        /**
+         * @generated from protobuf field: uint32 cell_index = 4;
+         */
+        cellIndex: number;
+    } | {
+        oneofKind: undefined;
+    };
+    /**
+     * env is a list of explicit environment variables that will be used
+     * to resolve the environment variables found in the source.
+     *
+     * @generated from protobuf field: repeated string env = 5;
+     */
+    env: string[];
+    /**
+     * session_id indicates which session is the source of
+     * environment variables. If not provided, the most recent
+     * session can be used using session_strategy.
+     *
+     * @generated from protobuf field: string session_id = 6;
+     */
+    sessionId: string;
+    /**
+     * session_strategy is a strategy for selecting the session.
+     *
+     * @generated from protobuf field: runme.runner.v1.SessionStrategy session_strategy = 7;
+     */
+    sessionStrategy: SessionStrategy;
+    /**
+     * project used to load environment variables from .env files.
+     *
+     * @generated from protobuf field: optional runme.runner.v1.Project project = 8;
+     */
+    project?: Project;
+    /**
+     * language id associated with script
+     *
+     * @generated from protobuf field: string language_id = 9;
+     */
+    languageId: string;
+}
+/**
+ * @generated from protobuf message runme.runner.v1.ResolveNotebookResponse
+ */
+export interface ResolveNotebookResponse {
+    /**
+     * @generated from protobuf field: string script = 1;
+     */
+    script: string;
+    /**
+     * use script until commands normalization is implemented
+     *
+     * @generated from protobuf field: runme.runner.v1.ResolveProgramCommandList commands = 2;
+     */
+    commands?: ResolveProgramCommandList;
+    /**
+     * @generated from protobuf field: repeated runme.runner.v1.ResolveNotebookResponse.VarResult vars = 3;
+     */
+    vars: ResolveNotebookResponse_VarResult[];
+}
+/**
+ * @generated from protobuf message runme.runner.v1.ResolveNotebookResponse.VarResult
+ */
+export interface ResolveNotebookResponse_VarResult {
+    /**
+     * prompt indicates the resolution status of the env variable.
+     *
+     * @generated from protobuf field: runme.runner.v1.ResolveNotebookResponse.Status status = 1;
+     */
+    status: ResolveNotebookResponse_Status;
+    /**
+     * name is the name of the environment variable.
+     *
+     * @generated from protobuf field: string name = 2;
+     */
+    name: string;
+    /**
+     * original_value is a default value of the environment variable.
+     * It might be a value that is assigned to the variable in the script,
+     * like FOO=bar or FOO=${FOO:-bar}.
+     * If the variable is not assigned, it is an empty string.
+     *
+     * @generated from protobuf field: string original_value = 3;
+     */
+    originalValue: string;
+    /**
+     * resolved_value is a value of the environment variable resolved from a source.
+     * If it is an empty string, it means that the environment variable is not resolved.
+     *
+     * @generated from protobuf field: string resolved_value = 4;
+     */
+    resolvedValue: string;
+}
+/**
+ * @generated from protobuf enum runme.runner.v1.ResolveNotebookResponse.Status
+ */
+export declare enum ResolveNotebookResponse_Status {
+    /**
+     * unspecified is the default value and it means unresolved.
+     *
+     * @generated from protobuf enum value: STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * unresolved with message means that the variable is unresolved
+     * but it contains a message. E.g. FOO=this is message
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_MESSAGE = 1;
+     */
+    UNRESOLVED_WITH_MESSAGE = 1,
+    /**
+     * unresolved with placeholder means that the variable is unresolved
+     * but it contains a placeholder. E.g. FOO="this is placeholder"
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_PLACEHOLDER = 2;
+     */
+    UNRESOLVED_WITH_PLACEHOLDER = 2,
+    /**
+     * resolved means that the variable is resolved.
+     *
+     * @generated from protobuf enum value: STATUS_RESOLVED = 3;
+     */
+    RESOLVED = 3,
+    /**
+     * unresolved with secret means that the variable is unresolved
+     * and it requires treatment as a secret.
+     *
+     * @generated from protobuf enum value: STATUS_UNRESOLVED_WITH_SECRET = 4;
+     */
+    UNRESOLVED_WITH_SECRET = 4
+}
+/**
  * env store implementation
  *
  * @generated from protobuf enum runme.runner.v1.SessionEnvStoreType
@@ -732,7 +889,11 @@ export declare enum CommandMode {
     /**
      * @generated from protobuf enum value: COMMAND_MODE_TERMINAL = 3;
      */
-    TERMINAL = 3
+    TERMINAL = 3,
+    /**
+     * @generated from protobuf enum value: COMMAND_MODE_DAGGER_SHELL = 4;
+     */
+    DAGGER_SHELL = 4
 }
 /**
  * strategy for selecting a session in an initial execute request
@@ -932,6 +1093,27 @@ declare class MonitorEnvStoreResponse$Type extends MessageType<MonitorEnvStoreRe
  * @generated MessageType for protobuf message runme.runner.v1.MonitorEnvStoreResponse
  */
 export declare const MonitorEnvStoreResponse: MonitorEnvStoreResponse$Type;
+declare class ResolveNotebookRequest$Type extends MessageType<ResolveNotebookRequest> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveNotebookRequest
+ */
+export declare const ResolveNotebookRequest: ResolveNotebookRequest$Type;
+declare class ResolveNotebookResponse$Type extends MessageType<ResolveNotebookResponse> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveNotebookResponse
+ */
+export declare const ResolveNotebookResponse: ResolveNotebookResponse$Type;
+declare class ResolveNotebookResponse_VarResult$Type extends MessageType<ResolveNotebookResponse_VarResult> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v1.ResolveNotebookResponse.VarResult
+ */
+export declare const ResolveNotebookResponse_VarResult: ResolveNotebookResponse_VarResult$Type;
 /**
  * @generated ServiceType for protobuf service runme.runner.v1.RunnerService
  */
