@@ -17,7 +17,7 @@ import (
 
 func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error {
 	runID := ulid.GenerateID()
-	logger := r.logger.With(zap.String("id", runID))
+	logger := r.logger.Named("Execute").With(zap.String("id", runID))
 
 	// Get the initial request.
 	req, err := srv.Recv()
@@ -66,7 +66,7 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	// 	return err
 	// }
 
-	exec, err := newExecution2(
+	exec, err := newExecution(
 		req.Config,
 		proj,
 		session,

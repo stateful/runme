@@ -7,13 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"sync"
-	"sync/atomic"
 	"syscall"
+	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/rbuffer"
@@ -28,20 +28,18 @@ func matchesOpinionatedEnvVarNaming(knownName string) bool {
 	return opininatedEnvVarNamingRegexp.MatchString(knownName)
 }
 
-//lint:ignore U1000 Used in A/B testing
 type execution struct {
-	Cmd              command.Command
+	Cmd command.Command
+
 	knownName        string
 	logger           *zap.Logger
 	session          *session.Session
-	stdin            io.Reader
-	stdinWriter      io.WriteCloser
-	stdout           *buffer
-	stderr           *buffer
 	storeStdoutInEnv bool
+
+	stdinR, stdoutR, stderrR io.Reader
+	stdinW, stdoutW, stderrW io.WriteCloser
 }
 
-//lint:ignore U1000 Used in A/B testing
 func newExecution(
 	cfg *command.ProgramConfig,
 	proj *project.Project,
@@ -49,22 +47,24 @@ func newExecution(
 	logger *zap.Logger,
 	storeStdoutInEnv bool,
 ) (*execution, error) {
+	logger = logger.Named("execution")
+
 	cmdFactory := command.NewFactory(
-		command.WithLogger(logger),
 		command.WithProject(proj),
+		command.WithLogger(logger),
 	)
 
-	stdin, stdinWriter := io.Pipe()
-	stdout := newBuffer(msgBufferSize)
-	stderr := newBuffer(msgBufferSize)
+	stdinR, stdinW := io.Pipe()
+	stdoutR, stdoutW := io.Pipe()
+	stderrR, stderrW := io.Pipe()
 
 	cmdOptions := command.CommandOptions{
 		EnableEcho:  true,
 		Session:     session,
-		StdinWriter: stdinWriter,
-		Stdin:       stdin,
-		Stdout:      stdout,
-		Stderr:      stderr,
+		StdinWriter: stdinW,
+		Stdin:       stdinR,
+		Stdout:      stdoutW,
+		Stderr:      stderrW,
 	}
 
 	cmd, err := cmdFactory.Build(cfg, cmdOptions)
@@ -73,133 +73,198 @@ func newExecution(
 	}
 
 	exec := &execution{
-		Cmd:              cmd,
+		Cmd: cmd,
+
 		knownName:        cfg.GetKnownName(),
 		logger:           logger,
 		session:          session,
-		stdin:            stdin,
-		stdinWriter:      stdinWriter,
-		stdout:           stdout,
-		stderr:           stderr,
 		storeStdoutInEnv: storeStdoutInEnv,
-	}
 
+		stdinR:  stdinR,
+		stdinW:  stdinW,
+		stdoutR: stdoutR,
+		stdoutW: stdoutW,
+		stderrR: stderrR,
+		stderrW: stderrW,
+	}
 	return exec, nil
 }
 
+func (e *execution) closeIO() {
+	err := e.stdinW.Close()
+	e.logger.Info("closed stdin writer", zap.Error(err))
+
+	err = e.stdoutW.Close()
+	e.logger.Info("closed stdout writer", zap.Error(err))
+
+	err = e.stderrW.Close()
+	e.logger.Info("closed stderr writer", zap.Error(err))
+}
+
+func (e *execution) storeOutputInEnv(ctx context.Context, r io.Reader) {
+	b, err := io.ReadAll(r)
+	if err != nil {
+		e.logger.Warn("failed to read last output", zap.Error(err))
+		return
+	}
+
+	sanitized := bytes.ReplaceAll(b, []byte{'\000'}, nil)
+	env := command.CreateEnv(command.StoreStdoutEnvName, string(sanitized))
+	if err := e.session.SetEnv(ctx, env); err != nil {
+		e.logger.Warn("failed to store last output", zap.Error(err))
+	}
+
+	if e.knownName != "" && matchesOpinionatedEnvVarNaming(e.knownName) {
+		if err := e.session.SetEnv(ctx, e.knownName+"="+string(sanitized)); err != nil {
+			e.logger.Warn("failed to store output under known name", zap.String("known_name", e.knownName), zap.Error(err))
+		}
+	}
+}
+
 func (e *execution) Wait(ctx context.Context, sender runnerv2.RunnerService_ExecuteServer) (int, error) {
-	lastStdout := io.Discard
+	envStdout := io.Discard
 	if e.storeStdoutInEnv {
 		b := rbuffer.NewRingBuffer(session.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
 		defer func() {
 			_ = b.Close()
 			e.storeOutputInEnv(ctx, b)
 		}()
-		lastStdout = b
+		envStdout = b
 	}
 
-	firstStdoutSent := false
-	errc := make(chan error, 2)
-
+	readSendDone := make(chan error, 2)
 	go func() {
-		errc <- readSendLoop(
-			e.stdout,
+		mimetypeDetected := false
+
+		readSendDone <- e.readSendLoop(
 			sender,
+			e.stdoutR,
 			func(b []byte) *runnerv2.ExecuteResponse {
-				if len(b) == 0 {
-					return nil
+				if _, err := envStdout.Write(b); err != nil {
+					e.logger.Warn("failed to write to envStdout writer", zap.Error(err))
+					envStdout = io.Discard
 				}
 
-				_, err := lastStdout.Write(b)
-				if err != nil {
-					e.logger.Warn("failed to write last output", zap.Error(err))
+				response := &runnerv2.ExecuteResponse{
+					StdoutData: b,
 				}
 
-				resp := &runnerv2.ExecuteResponse{StdoutData: b}
-
-				if !firstStdoutSent {
-					if detected := mimetype.Detect(b); detected != nil {
-						e.logger.Info("detected MIME type", zap.String("mime", detected.String()))
-						resp.MimeType = detected.String()
+				if !mimetypeDetected {
+					if detected := mimetype.Detect(response.StdoutData); detected != nil {
+						mimetypeDetected = true
+						response.MimeType = detected.String()
+						e.logger.Debug("detected MIME type", zap.String("mime", detected.String()))
+					} else {
+						e.logger.Debug("failed to detect MIME type")
 					}
 				}
-				firstStdoutSent = true
 
-				e.logger.Debug("sending stdout data", zap.Int("len", len(resp.StdoutData)))
-
-				return resp
+				return response
 			},
-			e.logger.With(zap.String("source", "stdout")),
+			e.logger.Named("readSendLoop.stdout"),
 		)
 	}()
 	go func() {
-		errc <- readSendLoop(
-			e.stderr,
+		readSendDone <- e.readSendLoop(
 			sender,
+			e.stderrR,
 			func(b []byte) *runnerv2.ExecuteResponse {
-				if len(b) == 0 {
-					return nil
+				return &runnerv2.ExecuteResponse{
+					StderrData: b,
 				}
-				resp := &runnerv2.ExecuteResponse{StderrData: b}
-				e.logger.Debug("sending stderr data", zap.Any("resp", resp))
-				return resp
 			},
-			e.logger.With(zap.String("source", "stderr")),
+			e.logger.Named("readSendLoop.stderr"),
 		)
 	}()
 
 	waitErr := e.Cmd.Wait(ctx)
 	exitCode := exitCodeFromErr(waitErr)
-
 	e.logger.Info("command finished", zap.Int("exitCode", exitCode), zap.Error(waitErr))
 
 	e.closeIO()
 
-	// If waitErr is not nil, only log the errors but return waitErr.
 	if waitErr != nil {
-		handlerErrors := 0
-
-	readSendHandlerForWaitErr:
-		select {
-		case err := <-errc:
-			handlerErrors++
-			e.logger.Info("readSendLoop finished; ignoring any errors because there was a wait error", zap.Error(err))
-			// Wait for both errors, or nils.
-			if handlerErrors < 2 {
-				goto readSendHandlerForWaitErr
-			}
-		case <-ctx.Done():
-			e.logger.Info("context canceled while waiting for the readSendLoop finish; ignoring any errors because there was a wait error")
-		}
 		return exitCode, waitErr
 	}
 
-	// If waitErr is nil, wait for the readSendLoop to finish,
-	// or the context being canceled.
+	readSendLoopsFinished := 0
+
+finalWait:
 	select {
-	case err1 := <-errc:
-		// Wait for both errors, or nils.
-		select {
-		case err2 := <-errc:
-			if err2 != nil {
-				e.logger.Info("another error from readSendLoop; won't be returned", zap.Error(err2))
-			}
-		case <-ctx.Done():
-		}
-		return exitCode, err1
 	case <-ctx.Done():
+		e.logger.Info("context done", zap.Error(ctx.Err()))
 		return exitCode, ctx.Err()
+	case err := <-readSendDone:
+		if err != nil {
+			e.logger.Info("readSendCtx done", zap.Error(err))
+		}
+		readSendLoopsFinished++
+		if readSendLoopsFinished < 2 {
+			goto finalWait
+		}
+		return exitCode, err
+	}
+}
+
+func (e *execution) readSendLoop(
+	sender runnerv2.RunnerService_ExecuteServer,
+	src io.Reader,
+	cb func([]byte) *runnerv2.ExecuteResponse,
+	logger *zap.Logger,
+) error {
+	// Limit to 30 sends per second. This is typically quite enough
+	// for interactive commands and streaming the output.
+	const sendsPerSecond = 30
+
+	buf := newBuffer(msgBufferSize)
+
+	// Copy from src to buffer.
+	go func() {
+		n, err := io.Copy(buf, src)
+		logger.Debug("copied from source to buffer", zap.Int64("count", n), zap.Error(err))
+		_ = buf.Close() // always nil
+	}()
+
+	data := make([]byte, msgBufferSize)
+
+	for {
+		eof := false
+		n, err := buf.Read(data)
+		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				return errors.WithStack(err)
+			}
+			eof = true
+		}
+		logger.Debug("read", zap.Int("n", n), zap.Bool("eof", eof))
+		if n == 0 {
+			if eof {
+				return nil
+			}
+			continue
+		}
+
+		readTime := time.Now()
+
+		response := cb(data[:n])
+		if err := sender.Send(response); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if n < msgBufferSize {
+			time.Sleep(time.Second/sendsPerSecond - time.Since(readTime))
+		}
 	}
 }
 
 func (e *execution) Write(p []byte) (int, error) {
-	n, err := e.stdinWriter.Write(p)
+	n, err := e.stdinW.Write(p)
 
 	// Close stdin writer for non-interactive commands after handling the initial request.
 	// Non-interactive commands do not support sending data continuously and require that
 	// the stdin writer to be closed to finish processing the input.
 	if ok := e.Cmd.Interactive(); !ok {
-		if closeErr := e.stdinWriter.Close(); closeErr != nil {
+		if closeErr := e.stdinW.Close(); closeErr != nil {
 			e.logger.Info("failed to close native command stdin writer", zap.Error(closeErr))
 			if err == nil {
 				err = closeErr
@@ -227,6 +292,8 @@ func (e *execution) SetWinsize(size *runnerv2.Winsize) error {
 }
 
 func (e *execution) Stop(stop runnerv2.ExecuteStop) (err error) {
+	e.logger.Info("stopping program", zap.Any("stop", stop))
+
 	switch stop {
 	case runnerv2.ExecuteStop_EXECUTE_STOP_UNSPECIFIED:
 		// continue
@@ -238,77 +305,6 @@ func (e *execution) Stop(stop runnerv2.ExecuteStop) (err error) {
 		err = errors.New("unknown stop signal")
 	}
 	return
-}
-
-func (e *execution) closeIO() {
-	err := e.stdinWriter.Close()
-	e.logger.Info("closed stdin writer", zap.Error(err))
-
-	err = e.stdout.Close()
-	e.logger.Info("closed stdout writer", zap.Error(err))
-
-	err = e.stderr.Close()
-	e.logger.Info("closed stderr writer", zap.Error(err))
-}
-
-func (e *execution) storeOutputInEnv(ctx context.Context, r io.Reader) {
-	b, err := io.ReadAll(r)
-	if err != nil {
-		e.logger.Warn("failed to read last output", zap.Error(err))
-		return
-	}
-
-	sanitized := bytes.ReplaceAll(b, []byte{'\000'}, nil)
-	env := command.CreateEnv(command.StoreStdoutEnvName, string(sanitized))
-	if err := e.session.SetEnv(ctx, env); err != nil {
-		e.logger.Warn("failed to store last output", zap.Error(err))
-	}
-
-	if e.knownName != "" && matchesOpinionatedEnvVarNaming(e.knownName) {
-		if err := e.session.SetEnv(ctx, e.knownName+"="+string(sanitized)); err != nil {
-			e.logger.Warn("failed to store output under known name", zap.String("known_name", e.knownName), zap.Error(err))
-		}
-	}
-}
-
-type sender interface {
-	Send(*runnerv2.ExecuteResponse) error
-}
-
-func readSendLoop(
-	reader io.Reader,
-	sender sender,
-	fn func([]byte) *runnerv2.ExecuteResponse,
-	logger *zap.Logger,
-) error {
-	buf := make([]byte, msgBufferSize)
-
-	for {
-		eof := false
-		n, err := reader.Read(buf)
-		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				return errors.WithStack(err)
-			}
-			eof = true
-		}
-
-		logger.Debug("readSendLoop", zap.Int("n", n))
-
-		if n == 0 && eof {
-			return nil
-		}
-
-		msg := fn(buf[:n])
-		if msg == nil {
-			continue
-		}
-
-		err = sender.Send(msg)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	}
 }
 
 func exitCodeFromErr(err error) int {
@@ -329,70 +325,4 @@ func exitCodeFromErr(err error) int {
 		return exiterr.ExitCode()
 	}
 	return -1
-}
-
-type buffer struct {
-	mu *sync.Mutex
-	// +checklocks:mu
-	b      *bytes.Buffer
-	closed *atomic.Bool
-	close  chan struct{}
-	more   chan struct{}
-}
-
-var _ io.WriteCloser = (*buffer)(nil)
-
-func newBuffer(size int) *buffer {
-	return &buffer{
-		mu:     &sync.Mutex{},
-		b:      bytes.NewBuffer(make([]byte, 0, size)),
-		closed: &atomic.Bool{},
-		close:  make(chan struct{}),
-		more:   make(chan struct{}),
-	}
-}
-
-func (b *buffer) Write(p []byte) (int, error) {
-	if b.closed.Load() {
-		return 0, errors.New("closed")
-	}
-
-	b.mu.Lock()
-	n, err := b.b.Write(p)
-	b.mu.Unlock()
-
-	select {
-	case b.more <- struct{}{}:
-	default:
-	}
-
-	return n, err
-}
-
-func (b *buffer) Close() error {
-	if b.closed.CompareAndSwap(false, true) {
-		close(b.close)
-	}
-	return nil
-}
-
-func (b *buffer) Read(p []byte) (int, error) {
-	b.mu.Lock()
-	n, err := b.b.Read(p)
-	b.mu.Unlock()
-
-	if err != nil && errors.Is(err, io.EOF) && !b.closed.Load() {
-		if n > 0 {
-			return n, nil
-		}
-
-		select {
-		case <-b.more:
-			return b.Read(p)
-		case <-b.close:
-			return 0, io.EOF
-		}
-	}
-
-	return n, err
 }

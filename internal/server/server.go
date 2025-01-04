@@ -23,7 +23,7 @@ import (
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 )
 
-const maxMsgSize = 32 * 1024 * 1024 // 32 MiB
+const MaxMsgSize = 32 * 1024 * 1024 // 32 MiB
 
 type Config struct {
 	Address    string
@@ -53,10 +53,10 @@ func New(
 		}
 	}
 
+	var lis net.Listener
+
 	addr := c.Address
 	protocol := "tcp"
-
-	var lis net.Listener
 
 	if strings.HasPrefix(addr, "unix://") {
 		protocol = "unix"
@@ -79,8 +79,8 @@ func New(
 	logger.Info("server listening", zap.String("address", addr))
 
 	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(maxMsgSize),
-		grpc.MaxSendMsgSize(maxMsgSize),
+		grpc.MaxRecvMsgSize(MaxMsgSize),
+		grpc.MaxSendMsgSize(MaxMsgSize),
 	)
 
 	// Register runme services.
