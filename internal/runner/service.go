@@ -228,7 +228,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		KnownName: req.GetKnownName(),
 		KnownID:   req.GetKnownId(),
 	}
-	ctx := rcontext.ContextWithExecutionInfo(srv.Context(), execInfo)
+	ctx := rcontext.WithExecutionInfo(srv.Context(), execInfo)
 
 	if req.KnownId != "" {
 		logger = logger.With(zap.String("knownID", req.KnownId))
@@ -351,9 +351,8 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	cmdCtx := ctx
-
 	if req.Background {
-		cmdCtx = rcontext.ContextWithExecutionInfo(context.Background(), execInfo)
+		cmdCtx = rcontext.WithExecutionInfo(context.Background(), execInfo)
 	}
 
 	if err := cmd.StartWithOpts(cmdCtx, &startOpts{}); err != nil {

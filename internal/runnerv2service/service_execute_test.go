@@ -70,30 +70,30 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	req := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"echo test | tee >(cat >&2)",
+	err = stream.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"echo test | tee >(cat >&2)",
+						},
 					},
 				},
+				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
-			Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 		},
-	}
-
-	err = stream.Send(req)
+	)
 	require.NoError(t, err)
 
-	// Assert first response.
+	// Assert first response which contains PID.
 	resp, err := stream.Recv()
 	assert.NoError(t, err)
 	assert.Greater(t, resp.Pid.Value, uint32(1))
 	assert.Nil(t, resp.ExitCode)
 
-	// Assert second and third responses.
+	// Collect second and third responses.
 	var (
 		out      bytes.Buffer
 		mimeType string
@@ -122,57 +122,15 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	if resp.MimeType != "" {
 		mimeType = resp.MimeType
 	}
-
+	// Assert the second and third responses.
 	assert.Contains(t, mimeType, "text/plain")
 	assert.Equal(t, "test\ntest\n", out.String())
 
 	// Assert fourth response.
 	resp, err = stream.Recv()
 	assert.NoError(t, err)
-	assert.Equal(t, uint32(0), resp.ExitCode.Value)
-	assert.Nil(t, resp.Pid)
-}
-
-func TestRunnerServiceServerExecute_MimeType(t *testing.T) {
-	t.Parallel()
-
-	lis, stop := startRunnerServiceServer(t)
-	t.Cleanup(stop)
-
-	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
-
-	stream, err := client.Execute(context.Background())
-	require.NoError(t, err)
-
-	execResult := make(chan executeResult)
-	go getExecuteResult(stream, execResult)
-
-	req := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						// Echo JSON to stderr and plain text to stdout.
-						// Only the plain text should be detected.
-						">&2 echo '{\"field1\": \"value\", \"field2\": 2}'",
-						"echo 'some plain text'",
-					},
-				},
-			},
-		},
-	}
-
-	err = stream.Send(req)
-	assert.NoError(t, err)
-
-	result := <-execResult
-
-	assert.NoError(t, result.Err)
-	assert.EqualValues(t, 0, result.ExitCode)
-	assert.Equal(t, "{\"field1\": \"value\", \"field2\": 2}\n", string(result.Stderr))
-	assert.Equal(t, "some plain text\n", string(result.Stdout))
-	assert.Contains(t, result.MimeType, "text/plain")
+	assert.Equal(t, uint32(0), resp.GetExitCode().GetValue())
+	assert.Nil(t, resp.GetPid())
 }
 
 func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
@@ -190,64 +148,105 @@ func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	stream1, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	execResult1 := make(chan executeResult)
-	go getExecuteResult(stream1, execResult1)
+	result1C := make(chan executeResult)
+	go getExecuteResult(stream1, result1C)
 
-	req1 := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"echo test | tee >(cat >&2)",
+	err = stream1.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"echo test | tee >(cat >&2)",
+						},
 					},
 				},
 			},
+			SessionId:        sessionResp.GetSession().GetId(),
+			StoreStdoutInEnv: true,
 		},
-		SessionId:        sessionResp.GetSession().GetId(),
-		StoreStdoutInEnv: true,
-	}
-
-	err = stream1.Send(req1)
+	)
 	assert.NoError(t, err)
 
-	result := <-execResult1
-
-	assert.NoError(t, result.Err)
-	assert.EqualValues(t, 0, result.ExitCode)
-	assert.Equal(t, "test\n", string(result.Stdout))
-	assert.Contains(t, result.MimeType, "text/plain")
+	result1 := <-result1C
+	assert.NoError(t, result1.Err)
+	assert.EqualValues(t, 0, result1.ExitCode)
+	assert.Equal(t, "test\n", string(result1.Stdout))
+	assert.Contains(t, result1.MimeType, "text/plain")
 
 	// subsequent req to check last stored value
 	stream2, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	execResult2 := make(chan executeResult)
-	go getExecuteResult(stream2, execResult2)
+	result2C := make(chan executeResult)
+	go getExecuteResult(stream2, result2C)
 
-	req2 := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"echo $__",
+	err = stream2.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"echo $__",
+						},
+					},
+				},
+			},
+			SessionId: sessionResp.GetSession().GetId(),
+		},
+	)
+	assert.NoError(t, err)
+
+	result2 := <-result2C
+	assert.NoError(t, result2.Err)
+	assert.EqualValues(t, 0, result2.ExitCode)
+	assert.Equal(t, "test\n", string(result2.Stdout))
+	assert.Contains(t, result2.MimeType, "text/plain")
+}
+
+func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
+	t.Parallel()
+
+	temp := t.TempDir()
+	fileName := filepath.Join(temp, "large_output.json")
+	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
+	require.NoError(t, err)
+
+	lis, stop := startRunnerServiceServer(t)
+	t.Cleanup(stop)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
+
+	stream, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	resultC := make(chan executeResult)
+	go getExecuteResult(stream, resultC)
+
+	err = stream.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"cat " + fileName,
+						},
 					},
 				},
 			},
 		},
-		SessionId: sessionResp.GetSession().GetId(),
-	}
-
-	err = stream2.Send(req2)
+	)
 	assert.NoError(t, err)
 
-	result = <-execResult2
-
+	result := <-resultC
 	assert.NoError(t, result.Err)
 	assert.EqualValues(t, 0, result.ExitCode)
-	assert.Equal(t, "test\n", string(result.Stdout))
-	assert.Contains(t, result.MimeType, "text/plain")
+	fileSize, err := os.Stat(fileName)
+	assert.NoError(t, err)
+	assert.EqualValues(t, fileSize.Size(), len(result.Stdout))
 }
 
 func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
@@ -270,28 +269,28 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 	stream1, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	execResult1 := make(chan executeResult)
-	go getExecuteResult(stream1, execResult1)
+	result1C := make(chan executeResult)
+	go getExecuteResult(stream1, result1C)
 
-	req1 := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"cat " + fileName,
+	err = stream1.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"cat " + fileName,
+						},
 					},
 				},
 			},
+			SessionId:        sessionResp.GetSession().GetId(),
+			StoreStdoutInEnv: true,
 		},
-		SessionId:        sessionResp.GetSession().GetId(),
-		StoreStdoutInEnv: true,
-	}
-
-	err = stream1.Send(req1)
+	)
 	assert.NoError(t, err)
 
-	result1 := <-execResult1
+	result1 := <-result1C
 	assert.NoError(t, result1.Err)
 	assert.EqualValues(t, 0, result1.ExitCode)
 
@@ -299,77 +298,34 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 	stream2, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	execResult2 := make(chan executeResult)
-	go getExecuteResult(stream2, execResult2)
+	result2C := make(chan executeResult)
+	go getExecuteResult(stream2, result2C)
 
-	req2 := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"echo -n $" + command.StoreStdoutEnvName,
+	err = stream2.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"echo -n $" + command.StoreStdoutEnvName,
+						},
 					},
 				},
 			},
+			SessionId: sessionResp.GetSession().GetId(),
 		},
-		SessionId: sessionResp.GetSession().GetId(),
-	}
-
-	err = stream2.Send(req2)
+	)
 	assert.NoError(t, err)
 
-	result2 := <-execResult2
+	result2 := <-result2C
 	assert.NoError(t, result2.Err)
 	assert.EqualValues(t, 0, result2.ExitCode)
-
 	expected, err := os.ReadFile(fileName)
 	require.NoError(t, err)
 	got := result2.Stdout // stdout is trimmed and should be the suffix of the complete output
 	assert.Greater(t, len(got), 0)
 	assert.True(t, bytes.HasSuffix(expected, got))
-}
-
-func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
-	t.Parallel()
-
-	temp := t.TempDir()
-	fileName := filepath.Join(temp, "large_output.json")
-	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
-	require.NoError(t, err)
-
-	lis, stop := startRunnerServiceServer(t)
-	t.Cleanup(stop)
-
-	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
-
-	stream, err := client.Execute(context.Background())
-	require.NoError(t, err)
-
-	execResult := make(chan executeResult)
-	go getExecuteResult(stream, execResult)
-
-	req := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"cat " + fileName,
-					},
-				},
-			},
-		},
-	}
-	err = stream.Send(req)
-	assert.NoError(t, err)
-
-	result := <-execResult
-	assert.NoError(t, result.Err)
-	assert.EqualValues(t, 0, result.ExitCode)
-	fileSize, err := os.Stat(fileName)
-	assert.NoError(t, err)
-	assert.EqualValues(t, fileSize.Size(), len(result.Stdout))
 }
 
 func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
@@ -387,30 +343,29 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 	stream1, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	execResult1 := make(chan executeResult)
-	go getExecuteResult(stream1, execResult1)
+	result1C := make(chan executeResult)
+	go getExecuteResult(stream1, result1C)
 
-	req1 := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"echo test | tee >(cat >&2)",
+	err = stream1.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"echo test | tee >(cat >&2)",
+						},
 					},
 				},
+				KnownName: "TEST_VAR",
 			},
-			KnownName: "TEST_VAR",
+			SessionId:        sessionResp.GetSession().GetId(),
+			StoreStdoutInEnv: true,
 		},
-		SessionId:        sessionResp.GetSession().GetId(),
-		StoreStdoutInEnv: true,
-	}
-
-	err = stream1.Send(req1)
+	)
 	assert.NoError(t, err)
 
-	result := <-execResult1
-
+	result := <-result1C
 	assert.NoError(t, result.Err)
 	assert.EqualValues(t, 0, result.ExitCode)
 	assert.Equal(t, "test\n", string(result.Stdout))
@@ -420,28 +375,27 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 	stream2, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	execResult2 := make(chan executeResult)
-	go getExecuteResult(stream2, execResult2)
+	result2C := make(chan executeResult)
+	go getExecuteResult(stream2, result2C)
 
-	req2 := &runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"echo $TEST_VAR",
+	err = stream2.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"echo $TEST_VAR",
+						},
 					},
 				},
 			},
+			SessionId: sessionResp.GetSession().GetId(),
 		},
-		SessionId: sessionResp.GetSession().GetId(),
-	}
-
-	err = stream2.Send(req2)
+	)
 	assert.NoError(t, err)
 
-	result = <-execResult2
-
+	result = <-result2C
 	assert.NoError(t, result.Err)
 	assert.EqualValues(t, 0, result.ExitCode)
 	assert.Equal(t, "test\n", string(result.Stdout))
@@ -585,13 +539,12 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 			stream, err := client.Execute(context.Background())
 			require.NoError(t, err)
 
-			execResult := make(chan executeResult)
-			go getExecuteResult(stream, execResult)
+			resultC := make(chan executeResult)
+			go getExecuteResult(stream, resultC)
 
 			req := &runnerv2.ExecuteRequest{
 				Config: tc.programConfig,
 			}
-
 			if tc.inputData != nil {
 				req.InputData = tc.inputData
 			}
@@ -599,8 +552,7 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 			err = stream.Send(req)
 			assert.NoError(t, err)
 
-			result := <-execResult
-
+			result := <-resultC
 			assert.NoError(t, result.Err)
 			assert.Equal(t, tc.expectedOutput, string(result.Stdout))
 			assert.EqualValues(t, 0, result.ExitCode)
@@ -622,69 +574,76 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 	// Step 1: execute the first command in the terminal mode with bash,
 	// then write a line that exports an environment variable.
 	{
-		stream, err := client.Execute(context.Background())
+		execStream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
+		resultC := make(chan executeResult)
+		go getExecuteResult(execStream, resultC)
 
-		err = stream.Send(&runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "bash",
-				Source: &runnerv2.ProgramConfig_Commands{
-					Commands: &runnerv2.ProgramConfig_CommandList{
-						Items: []string{
-							"bash",
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
+							Items: []string{
+								"bash",
+							},
 						},
 					},
+					Mode: runnerv2.CommandMode_COMMAND_MODE_TERMINAL,
 				},
-				Mode: runnerv2.CommandMode_COMMAND_MODE_TERMINAL,
+				SessionId: sessResp.GetSession().GetId(),
 			},
-			SessionId: sessResp.GetSession().GetId(),
-		})
+		)
 		require.NoError(t, err)
 
+		// Wait for the bash to start.
 		time.Sleep(time.Second)
 
 		// Export some variables so that it can be tested if they are collected.
-		req := &runnerv2.ExecuteRequest{InputData: []byte("export TEST_ENV=TEST_VALUE\n")}
-		err = stream.Send(req)
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{InputData: []byte("export TEST_ENV=TEST_VALUE\n")},
+		)
 		require.NoError(t, err)
 		// Signal the end of input.
-		req = &runnerv2.ExecuteRequest{InputData: []byte{0x04}}
-		err = stream.Send(req)
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{InputData: []byte{0x04}},
+		)
 		require.NoError(t, err)
 
-		result := <-execResult
+		result := <-resultC
 		require.NoError(t, result.Err)
 	}
 
 	// Step 2: execute the second command which will try to get the value of
 	// the exported environment variable from the step 1.
 	{
-		stream, err := client.Execute(context.Background())
+		execStream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
+		resultC := make(chan executeResult)
+		go getExecuteResult(execStream, resultC)
 
-		err = stream.Send(&runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "bash",
-				Source: &runnerv2.ProgramConfig_Commands{
-					Commands: &runnerv2.ProgramConfig_CommandList{
-						Items: []string{
-							"echo -n $TEST_ENV",
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
+							Items: []string{
+								"echo -n $TEST_ENV",
+							},
 						},
 					},
+					Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 				},
-				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
+				SessionId: sessResp.GetSession().GetId(),
 			},
-			SessionId: sessResp.GetSession().GetId(),
-		})
+		)
 		require.NoError(t, err)
 
-		result := <-execResult
+		result := <-resultC
 		require.NoError(t, result.Err)
 		require.Equal(t, "TEST_VALUE", string(result.Stdout))
 	}
@@ -703,24 +662,24 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 
 	// Run the first request with the default PATH.
 	{
-		stream, err := client.Execute(context.Background())
+		execStream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
-		result := make(chan executeResult)
-		go getExecuteResult(stream, result)
+		resultC := make(chan executeResult)
+		go getExecuteResult(execStream, resultC)
 
-		req := &runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "echo",
-				Arguments:   []string{"-n", "test"},
-				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "echo",
+					Arguments:   []string{"-n", "test"},
+					Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
+				},
+				SessionId: sessionResp.GetSession().GetId(),
 			},
-			SessionId: sessionResp.GetSession().GetId(),
-		}
-
-		err = stream.Send(req)
+		)
 		require.NoError(t, err)
-		require.Equal(t, "test", string((<-result).Stdout))
+		require.Equal(t, "test", string((<-resultC).Stdout))
 	}
 
 	// Provide a PATH in the session. It will be an empty dir so
@@ -736,21 +695,21 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 
 	// This time the request will fail because the echo command is not found.
 	{
-		stream, err := client.Execute(context.Background())
+		execStream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
 		result := make(chan executeResult)
-		go getExecuteResult(stream, result)
+		go getExecuteResult(execStream, result)
 
-		req := &runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "echo",
-				Arguments:   []string{"-n", "test"},
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "echo",
+					Arguments:   []string{"-n", "test"},
+				},
+				SessionId: sessionResp.GetSession().GetId(),
 			},
-			SessionId: sessionResp.GetSession().GetId(),
-		}
-
-		err = stream.Send(req)
+		)
 		require.NoError(t, err)
 		require.ErrorContains(t, (<-result).Err, "failed program lookup \"echo\"")
 	}
@@ -767,36 +726,37 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	t.Run("ContinuousInput", func(t *testing.T) {
 		t.Parallel()
 
-		stream, err := client.Execute(context.Background())
+		execStream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
+		resultC := make(chan executeResult)
+		go getExecuteResult(execStream, resultC)
 
-		err = stream.Send(&runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "bash",
-				Source: &runnerv2.ProgramConfig_Commands{
-					Commands: &runnerv2.ProgramConfig_CommandList{
-						Items: []string{
-							"cat - | tr a-z A-Z",
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
+							Items: []string{
+								"cat - | tr a-z A-Z",
+							},
 						},
 					},
+					Interactive: true,
 				},
-				Interactive: true,
+				InputData: []byte("a\n"),
 			},
-			InputData: []byte("a\n"),
-		})
+		)
 		require.NoError(t, err)
 
 		for _, data := range [][]byte{[]byte("b\n"), []byte("c\n"), []byte("d\n"), {0x04}} {
 			req := &runnerv2.ExecuteRequest{InputData: data}
-			err = stream.Send(req)
+			err = execStream.Send(req)
 			assert.NoError(t, err)
 		}
 
-		result := <-execResult
-
+		result := <-resultC
 		assert.NoError(t, result.Err)
 		assert.EqualValues(t, 0, result.ExitCode)
 		// Validate the output by asserting that lowercase letters precede uppercase letters.
@@ -812,42 +772,43 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	t.Run("SimulateCtrlC", func(t *testing.T) {
 		t.Parallel()
 
-		stream, err := client.Execute(context.Background())
+		execStream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
+		resultC := make(chan executeResult)
+		go getExecuteResult(execStream, resultC)
 
-		err = stream.Send(&runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "bash",
-				Source: &runnerv2.ProgramConfig_Commands{
-					Commands: &runnerv2.ProgramConfig_CommandList{
-						Items: []string{
-							"bash",
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
+							Items: []string{
+								"bash",
+							},
 						},
 					},
+					Interactive: true,
 				},
-				Interactive: true,
 			},
-		})
+		)
 		require.NoError(t, err)
 
 		time.Sleep(time.Millisecond * 500)
-		err = stream.Send(&runnerv2.ExecuteRequest{InputData: []byte("sleep 30")})
+		err = execStream.Send(&runnerv2.ExecuteRequest{InputData: []byte("sleep 30")})
 		assert.NoError(t, err)
 
 		// cancel sleep
 		time.Sleep(time.Millisecond * 500)
-		err = stream.Send(&runnerv2.ExecuteRequest{InputData: []byte{0x03}})
+		err = execStream.Send(&runnerv2.ExecuteRequest{InputData: []byte{0x03}})
 		assert.NoError(t, err)
 
 		time.Sleep(time.Millisecond * 500)
-		err = stream.Send(&runnerv2.ExecuteRequest{InputData: []byte{0x04}})
+		err = execStream.Send(&runnerv2.ExecuteRequest{InputData: []byte{0x04}})
 		assert.NoError(t, err)
 
-		result := <-execResult
-
+		result := <-resultC
 		// TODO(adamb): This should be a specific gRPC error rather than Unknown.
 		assert.Contains(t, result.Err.Error(), "exit status 130")
 		assert.Equal(t, 130, result.ExitCode)
@@ -859,8 +820,8 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
+		resultC := make(chan executeResult)
+		go getExecuteResult(stream, resultC)
 
 		err = stream.Send(&runnerv2.ExecuteRequest{
 			Config: &runnerv2.ProgramConfig{
@@ -872,9 +833,10 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		require.NoError(t, err)
 
 		// Close the send direction.
-		assert.NoError(t, stream.CloseSend())
+		err = stream.CloseSend()
+		assert.NoError(t, err)
 
-		result := <-execResult
+		result := <-resultC
 		// TODO(adamb): This should be a specific gRPC error rather than Unknown.
 		require.NotNil(t, result.Err)
 		assert.Contains(t, result.Err.Error(), "signal: interrupt")
@@ -897,27 +859,28 @@ func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 			stream, err := client.Execute(context.Background())
 			require.NoError(t, err)
 
-			execResult := make(chan executeResult)
-			go getExecuteResult(stream, execResult)
+			resultC := make(chan executeResult)
+			go getExecuteResult(stream, resultC)
 
-			err = stream.Send(&runnerv2.ExecuteRequest{
-				Config: &runnerv2.ProgramConfig{
-					ProgramName: "bash",
-					Source: &runnerv2.ProgramConfig_Commands{
-						Commands: &runnerv2.ProgramConfig_CommandList{
-							Items: []string{
-								"echo -n \"$TEST_ENV\"",
-								"export TEST_ENV=hello-2",
+			err = stream.Send(
+				&runnerv2.ExecuteRequest{
+					Config: &runnerv2.ProgramConfig{
+						ProgramName: "bash",
+						Source: &runnerv2.ProgramConfig_Commands{
+							Commands: &runnerv2.ProgramConfig_CommandList{
+								Items: []string{
+									"echo -n \"$TEST_ENV\"",
+									"export TEST_ENV=hello-2",
+								},
 							},
 						},
+						Env: []string{"TEST_ENV=hello"},
 					},
-					Env: []string{"TEST_ENV=hello"},
 				},
-			})
+			)
 			require.NoError(t, err)
 
-			result := <-execResult
-
+			result := <-resultC
 			assert.NoError(t, result.Err)
 			assert.Equal(t, "hello", string(result.Stdout))
 		}
@@ -927,26 +890,27 @@ func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 			stream, err := client.Execute(context.Background())
 			require.NoError(t, err)
 
-			execResult := make(chan executeResult)
-			go getExecuteResult(stream, execResult)
+			resultC := make(chan executeResult)
+			go getExecuteResult(stream, resultC)
 
-			err = stream.Send(&runnerv2.ExecuteRequest{
-				Config: &runnerv2.ProgramConfig{
-					ProgramName: "bash",
-					Source: &runnerv2.ProgramConfig_Commands{
-						Commands: &runnerv2.ProgramConfig_CommandList{
-							Items: []string{
-								"echo -n \"$TEST_ENV\"",
+			err = stream.Send(
+				&runnerv2.ExecuteRequest{
+					Config: &runnerv2.ProgramConfig{
+						ProgramName: "bash",
+						Source: &runnerv2.ProgramConfig_Commands{
+							Commands: &runnerv2.ProgramConfig_CommandList{
+								Items: []string{
+									"echo -n \"$TEST_ENV\"",
+								},
 							},
 						},
 					},
+					SessionStrategy: runnerv2.SessionStrategy_SESSION_STRATEGY_MOST_RECENT,
 				},
-				SessionStrategy: runnerv2.SessionStrategy_SESSION_STRATEGY_MOST_RECENT,
-			})
+			)
 			require.NoError(t, err)
 
-			result := <-execResult
-
+			result := <-resultC
 			assert.NoError(t, result.Err)
 			assert.Equal(t, "hello-2", string(result.Stdout))
 		}
@@ -964,38 +928,40 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 	stream, err := client.Execute(context.Background())
 	require.NoError(t, err)
 
-	execResult := make(chan executeResult)
-	go getExecuteResult(stream, execResult)
+	resultC := make(chan executeResult)
+	go getExecuteResult(stream, resultC)
 
-	err = stream.Send(&runnerv2.ExecuteRequest{
-		Config: &runnerv2.ProgramConfig{
-			ProgramName: "bash",
-			Source: &runnerv2.ProgramConfig_Commands{
-				Commands: &runnerv2.ProgramConfig_CommandList{
-					Items: []string{
-						"echo 1",
-						"sleep 30",
+	err = stream.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"echo 1",
+							"sleep 30",
+						},
 					},
 				},
+				Interactive: true,
 			},
-			Interactive: true,
 		},
-	})
+	)
 	require.NoError(t, err)
 
-	errc := make(chan error)
+	errC := make(chan error)
 	go func() {
-		defer close(errc)
+		defer close(errC)
 		time.Sleep(time.Second)
 		err := stream.Send(&runnerv2.ExecuteRequest{
 			Stop: runnerv2.ExecuteStop_EXECUTE_STOP_INTERRUPT,
 		})
-		errc <- err
+		errC <- err
 	}()
-	assert.NoError(t, <-errc)
+	assert.NoError(t, <-errC)
 
 	select {
-	case result := <-execResult:
+	case result := <-resultC:
 		// TODO(adamb): There should be no error.
 		assert.Contains(t, result.Err.Error(), "signal: interrupt")
 		assert.Equal(t, 130, result.ExitCode)
@@ -1005,18 +971,21 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 		stream, err = client.Execute(context.Background())
 		require.NoError(t, err)
 
-		execResult = make(chan executeResult)
-		go getExecuteResult(stream, execResult)
+		resultC := make(chan executeResult)
+		go getExecuteResult(stream, resultC)
 
-		err = stream.Send(&runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "echo",
-				Arguments:   []string{"-n", "1"},
-				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
+		err = stream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "echo",
+					Arguments:   []string{"-n", "1"},
+					Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
+				},
 			},
-		})
+		)
 		require.NoError(t, err)
-		result = <-execResult
+
+		result = <-resultC
 		assert.Equal(t, "1", string(result.Stdout))
 	case <-time.After(5 * time.Second):
 		t.Fatal("expected the response early as the command got interrupted")
@@ -1037,28 +1006,29 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
+		resultC := make(chan executeResult)
+		go getExecuteResult(stream, resultC)
 
-		err = stream.Send(&runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "bash",
-				Source: &runnerv2.ProgramConfig_Commands{
-					Commands: &runnerv2.ProgramConfig_CommandList{
-						Items: []string{
-							"tput lines",
-							"tput cols",
+		err = stream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
+							Items: []string{
+								"tput lines",
+								"tput cols",
+							},
 						},
 					},
+					Env:         []string{"TERM=linux"},
+					Interactive: true,
 				},
-				Env:         []string{"TERM=linux"},
-				Interactive: true,
 			},
-		})
+		)
 		require.NoError(t, err)
 
-		result := <-execResult
-
+		result := <-resultC
 		assert.NoError(t, result.Err)
 		assert.Equal(t, "24\r\n80\r\n", string(result.Stdout))
 		assert.EqualValues(t, 0, result.ExitCode)
@@ -1070,33 +1040,34 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 		stream, err := client.Execute(context.Background())
 		require.NoError(t, err)
 
-		execResult := make(chan executeResult)
-		go getExecuteResult(stream, execResult)
+		resultC := make(chan executeResult)
+		go getExecuteResult(stream, resultC)
 
-		err = stream.Send(&runnerv2.ExecuteRequest{
-			Config: &runnerv2.ProgramConfig{
-				ProgramName: "bash",
-				Source: &runnerv2.ProgramConfig_Commands{
-					Commands: &runnerv2.ProgramConfig_CommandList{
-						Items: []string{
-							"sleep 3", // wait for the winsize to be set
-							"tput lines",
-							"tput cols",
+		err = stream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
+							Items: []string{
+								"sleep 3", // wait for the winsize to be set
+								"tput lines",
+								"tput cols",
+							},
 						},
 					},
+					Interactive: true,
+					Env:         []string{"TERM=linux"},
 				},
-				Interactive: true,
-				Env:         []string{"TERM=linux"},
+				Winsize: &runnerv2.Winsize{
+					Cols: 200,
+					Rows: 64,
+				},
 			},
-			Winsize: &runnerv2.Winsize{
-				Cols: 200,
-				Rows: 64,
-			},
-		})
+		)
 		require.NoError(t, err)
 
-		result := <-execResult
-
+		result := <-resultC
 		assert.NoError(t, result.Err)
 		assert.Equal(t, "64\r\n200\r\n", string(result.Stdout))
 		assert.EqualValues(t, 0, result.ExitCode)
@@ -1113,7 +1084,10 @@ func startRunnerServiceServer(t *testing.T) (_ *bufconn.Listener, stop func()) {
 	runnerService, err := NewRunnerService(factory, logger)
 	require.NoError(t, err)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.MaxRecvMsgSize(msgBufferSize*2),
+		grpc.MaxSendMsgSize(msgBufferSize*2),
+	)
 	runnerv2.RegisterRunnerServiceServer(server, runnerService)
 
 	lis := bufconn.Listen(1 << 20) // 1 MB
@@ -1123,18 +1097,22 @@ func startRunnerServiceServer(t *testing.T) (_ *bufconn.Listener, stop func()) {
 }
 
 type executeResult struct {
-	Stdout   []byte
-	Stderr   []byte
-	MimeType string
-	ExitCode int
 	Err      error
+	ExitCode int
+	MimeType string
+	Stderr   []byte
+	Stdout   []byte
 }
 
 func getExecuteResult(
 	stream runnerv2.RunnerService_ExecuteClient,
 	resultc chan<- executeResult,
 ) {
-	result := executeResult{ExitCode: -1}
+	result := executeResult{
+		ExitCode: -1,
+	}
+	bufStdout := new(bytes.Buffer)
+	bufStderr := new(bytes.Buffer)
 
 	for {
 		r, rerr := stream.Recv()
@@ -1145,8 +1123,8 @@ func getExecuteResult(
 			result.Err = rerr
 			break
 		}
-		result.Stdout = append(result.Stdout, r.StdoutData...)
-		result.Stderr = append(result.Stderr, r.StderrData...)
+		_, _ = bufStdout.Write(r.StdoutData)
+		_, _ = bufStderr.Write(r.StderrData)
 		if r.MimeType != "" {
 			result.MimeType = r.MimeType
 		}
@@ -1154,6 +1132,9 @@ func getExecuteResult(
 			result.ExitCode = int(r.ExitCode.Value)
 		}
 	}
+
+	result.Stdout = bufStdout.Bytes()
+	result.Stderr = bufStderr.Bytes()
 
 	resultc <- result
 }

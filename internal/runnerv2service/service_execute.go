@@ -16,16 +16,14 @@ import (
 )
 
 func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error {
-	_id := ulid.GenerateID()
-	logger := r.logger.With(zap.String("id", _id))
-
-	logger.Info("running Execute in runnerService")
+	runID := ulid.GenerateID()
+	logger := r.logger.Named("Execute").With(zap.String("id", runID))
 
 	// Get the initial request.
 	req, err := srv.Recv()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			logger.Info("client closed the connection while getting initial request")
+			logger.Info("client closed the connection while getting initial request; exiting")
 			return nil
 		}
 		logger.Info("failed to receive a request", zap.Error(err))
@@ -33,8 +31,10 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	}
 	logger.Info("received initial request", zap.Any("req", req))
 
-	execInfo := getExecutionInfoFromExecutionRequest(_id, req)
-	ctx := rcontext.ContextWithExecutionInfo(srv.Context(), execInfo)
+	execInfo := getExecutionInfoFromExecutionRequest(req)
+	execInfo.RunID = runID
+
+	ctx := rcontext.WithExecutionInfo(srv.Context(), execInfo)
 
 	// Load the project.
 	// TODO(adamb): this should come from the runme.yaml in the future.
@@ -51,7 +51,6 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	if !existed {
 		r.sessions.Add(session)
 	}
-
 	if err := session.SetEnv(ctx, req.Config.Env...); err != nil {
 		return err
 	}
@@ -81,26 +80,9 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	// The rest of fields like InputData, Winsize, Stop are handled in this goroutine,
 	// and then the goroutine continues to read the next requests.
 	go func(initialReq *runnerv2.ExecuteRequest) {
-		req := initialReq
-
-		for {
-			var err error
-
-			if err := exec.SetWinsize(req.Winsize); err != nil {
-				logger.Info("failed to set winsize; ignoring", zap.Error(err))
-			}
-
-			_, err = exec.Write(req.InputData)
-			if err != nil {
-				logger.Info("failed to write to stdin; ignoring", zap.Error(err))
-			}
-
-			if err := exec.Stop(req.Stop); err != nil {
-				logger.Info("failed to stop program; ignoring", zap.Error(err))
-			}
-
-			req, err = srv.Recv()
+		for req, err := initialReq, error(nil); ; req, err = srv.Recv() {
 			logger.Info("received request", zap.Any("req", req), zap.Error(err))
+
 			switch {
 			case err == nil:
 				// continue
@@ -120,6 +102,20 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 					}
 				}
 				return
+			}
+
+			if err := exec.SetWinsize(req.Winsize); err != nil {
+				logger.Info("failed to set winsize; ignoring", zap.Error(err))
+			}
+
+			if _, err := exec.Write(req.InputData); err != nil {
+				logger.Info("failed to write to stdin; ignoring", zap.Error(err))
+			}
+
+			if req.Stop > runnerv2.ExecuteStop_EXECUTE_STOP_UNSPECIFIED {
+				if err := exec.Stop(req.Stop); err != nil {
+					logger.Info("failed to stop program; ignoring", zap.Error(err))
+				}
 			}
 		}
 	}(req)
@@ -141,19 +137,10 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	return waitErr
 }
 
-func getExecutionInfoFromExecutionRequest(runID string, req *runnerv2.ExecuteRequest) *rcontext.ExecutionInfo {
-	knownName, knownID := "", ""
-
-	reqConfig := req.GetConfig()
-	if reqConfig != nil {
-		knownName = reqConfig.GetKnownName()
-		knownID = reqConfig.GetKnownId()
-	}
-
+func getExecutionInfoFromExecutionRequest(req *runnerv2.ExecuteRequest) *rcontext.ExecutionInfo {
 	return &rcontext.ExecutionInfo{
 		ExecContext: "Execute",
-		KnownID:     knownID,
-		KnownName:   knownName,
-		RunID:       runID,
+		KnownID:     req.GetConfig().GetKnownId(),
+		KnownName:   req.GetConfig().GetKnownName(),
 	}
 }

@@ -68,6 +68,7 @@ func (r *runnerService) getOrCreateSessionFromRequest(req requestWithSession, pr
 		found bool
 	)
 
+	// TODO(adamb): this should come from the runme.yaml in the future.
 	seedEnv := os.Environ()
 
 	switch req.GetSessionStrategy() {
