@@ -16,7 +16,7 @@ const (
 	// small.
 	// In the future, it might be worth to implement
 	// variable-sized buffers.
-	msgBufferSize = 32 * 1024 * 1024 // 32 MiB
+	msgBufferSize = 24 * 1024 * 1024 // 24 MiB
 )
 
 // buffer is a thread-safe buffer that returns EOF

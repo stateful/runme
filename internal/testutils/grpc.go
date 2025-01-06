@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+const maxMsgSize = 32 * 1024 * 1024 // 32 MiB
+
 func NewGRPCClientWithT[T any](
 	t *testing.T,
 	lis interface{ Dial() (net.Conn, error) },
@@ -42,7 +44,7 @@ func newGRPCClient[T any](
 			return lis.Dial()
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(8*1024*1024)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize)),
 	)
 	if err != nil {
 		var result T

@@ -20,25 +20,11 @@ type Client struct {
 	logger *zap.Logger
 }
 
-func New(target string, logger *zap.Logger, opts ...grpc.DialOption) (*Client, error) {
-	opts = append(
-		// default options
-		[]grpc.DialOption{
-			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxMsgSize)),
-		},
-		opts...,
-	)
-
-	client, err := grpc.NewClient(target, opts...)
-	if err != nil {
-		return nil, errors.WithStack(err)
+func New(clientConn *grpc.ClientConn, logger *zap.Logger) *Client {
+	return &Client{
+		RunnerServiceClient: runnerv2.NewRunnerServiceClient(clientConn),
+		logger:              logger.Named("runnerv2client.Client"),
 	}
-	serviceClient := &Client{
-		RunnerServiceClient: runnerv2.NewRunnerServiceClient(client),
-		conn:                client,
-		logger:              logger,
-	}
-	return serviceClient, nil
 }
 
 func (c *Client) Close() error {

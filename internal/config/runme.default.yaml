@@ -28,6 +28,7 @@ server:
     # If not specified, default paths will be used.
     # cert_file: "/path/to/cert.pem"
     # key_file: "/path/to/key.pem"
+  max_message_size: 33554432 # 32 MiB
 
 log:
   enabled: false
