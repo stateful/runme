@@ -209,7 +209,7 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 		}
 
 		switch cfg.CommandMode {
-		case CommandModeInlineShell:
+		case CommandModeInlineShell, CommandModeDaggerShell:
 			extraArgs = append(extraArgs, "-c", script)
 		case CommandModeTempFile:
 			for {
@@ -310,8 +310,15 @@ func (c *command) cleanup() {
 	c.seterr(err)
 }
 
+func defaultTtyAssignment(c *command) {
+	c.cmd.Stdin = c.tty
+	c.cmd.Stdout = c.tty
+	c.cmd.Stderr = c.tty
+}
+
 type startOpts struct {
-	DisableEcho bool
+	DisableEcho   bool
+	TtyAssignment func(c *command)
 }
 
 func (c *command) Start(ctx context.Context) error {
@@ -319,6 +326,9 @@ func (c *command) Start(ctx context.Context) error {
 }
 
 func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
+	if opts.TtyAssignment == nil {
+		opts.TtyAssignment = defaultTtyAssignment
+	}
 	c.cmd = exec.CommandContext(
 		ctx,
 		c.ProgramPath,
@@ -332,9 +342,7 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 	c.cmd.Env = append(c.cmd.Env, env...)
 
 	if c.tty != nil {
-		c.cmd.Stdin = c.tty
-		c.cmd.Stdout = c.tty
-		c.cmd.Stderr = c.tty
+		opts.TtyAssignment(c)
 
 		setSysProcAttrCtty(c.cmd)
 	} else {

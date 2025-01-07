@@ -575,14 +575,12 @@ class ResolveNotebookRequest$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ResolveNotebookRequest", [
             { no: 1, name: "notebook", kind: "message", T: () => Notebook },
-            { no: 2, name: "known_id", kind: "scalar", oneof: "target", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "known_name", kind: "scalar", oneof: "target", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "cell_index", kind: "scalar", oneof: "target", T: 13 /*ScalarType.UINT32*/ },
-            { no: 5, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
-            { no: 8, name: "project", kind: "message", T: () => Project },
-            { no: 9, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "cell_index", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
+            { no: 6, name: "project", kind: "message", T: () => Project },
+            { no: 7, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
 }

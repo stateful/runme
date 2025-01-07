@@ -687,34 +687,14 @@ export interface ResolveNotebookRequest {
      */
     notebook?: Notebook;
     /**
-     * @generated from protobuf oneof: target
+     * @generated from protobuf field: uint32 cell_index = 2;
      */
-    target: {
-        oneofKind: "knownId";
-        /**
-         * @generated from protobuf field: string known_id = 2;
-         */
-        knownId: string;
-    } | {
-        oneofKind: "knownName";
-        /**
-         * @generated from protobuf field: string known_name = 3;
-         */
-        knownName: string;
-    } | {
-        oneofKind: "cellIndex";
-        /**
-         * @generated from protobuf field: uint32 cell_index = 4;
-         */
-        cellIndex: number;
-    } | {
-        oneofKind: undefined;
-    };
+    cellIndex: number;
     /**
      * env is a list of explicit environment variables that will be used
      * to resolve the environment variables found in the source.
      *
-     * @generated from protobuf field: repeated string env = 5;
+     * @generated from protobuf field: repeated string env = 3;
      */
     env: string[];
     /**
@@ -722,25 +702,25 @@ export interface ResolveNotebookRequest {
      * environment variables. If not provided, the most recent
      * session can be used using session_strategy.
      *
-     * @generated from protobuf field: string session_id = 6;
+     * @generated from protobuf field: string session_id = 4;
      */
     sessionId: string;
     /**
      * session_strategy is a strategy for selecting the session.
      *
-     * @generated from protobuf field: runme.runner.v1.SessionStrategy session_strategy = 7;
+     * @generated from protobuf field: runme.runner.v1.SessionStrategy session_strategy = 5;
      */
     sessionStrategy: SessionStrategy;
     /**
      * project used to load environment variables from .env files.
      *
-     * @generated from protobuf field: optional runme.runner.v1.Project project = 8;
+     * @generated from protobuf field: optional runme.runner.v1.Project project = 6;
      */
     project?: Project;
     /**
      * language id associated with script
      *
-     * @generated from protobuf field: string language_id = 9;
+     * @generated from protobuf field: string language_id = 7;
      */
     languageId: string;
 }
