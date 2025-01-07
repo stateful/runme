@@ -382,31 +382,25 @@ message MonitorEnvStoreResponse {
 message ResolveNotebookRequest {
   runme.parser.v1.Notebook notebook = 1;
 
-  oneof target {
-    string known_id = 2;
-
-    string known_name = 3;
-
-    uint32 cell_index = 4;
-  }
+  uint32 cell_index = 2;
 
   // env is a list of explicit environment variables that will be used
   // to resolve the environment variables found in the source.
-  repeated string env = 5;
+  repeated string env = 3;
 
   // session_id indicates which session is the source of
   // environment variables. If not provided, the most recent
   // session can be used using session_strategy.
-  string session_id = 6;
+  string session_id = 4;
 
   // session_strategy is a strategy for selecting the session.
-  SessionStrategy session_strategy = 7;
+  SessionStrategy session_strategy = 5;
 
   // project used to load environment variables from .env files.
-  optional Project project = 8;
+  optional Project project = 6;
 
   // language id associated with script
-  string language_id = 9;
+  string language_id = 7;
 }
 
 message ResolveNotebookResponse {

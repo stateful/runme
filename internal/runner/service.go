@@ -357,7 +357,17 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		cmdCtx = rcontext.WithExecutionInfo(context.Background(), execInfo)
 	}
 
-	if err := cmd.StartWithOpts(cmdCtx, &startOpts{}); err != nil {
+	opts := &startOpts{}
+	// special-case Dagger Shell to write the shell's stdout to stderr
+	if cfg.CommandMode == CommandModeDaggerShell {
+		opts.TtyAssignment = func(c *command) {
+			c.cmd.Stdin = c.tty
+			// technically wrong but in v1 we optimize for the least amount of downstream changes
+			c.cmd.Stdout = c.Stderr
+			c.cmd.Stderr = c.tty
+		}
+	}
+	if err := cmd.StartWithOpts(cmdCtx, opts); err != nil {
 		return err
 	}
 
@@ -923,5 +933,5 @@ func (r *runnerService) ResolveNotebook(ctx context.Context, req *runnerv1.Resol
 	notebook := req.GetNotebook()
 	resolver := NewNotebookResolver(notebook)
 
-	return resolver.ResolveNotebook(ctx, req.GetKnownName())
+	return resolver.ResolveNotebook(ctx, req.GetCellIndex())
 }
