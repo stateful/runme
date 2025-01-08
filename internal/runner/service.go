@@ -308,7 +308,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		cfg.CommandMode = CommandModeTempFile
 	case runnerv1.CommandMode_COMMAND_MODE_TERMINAL:
 		return status.Error(codes.Unimplemented, "terminal mode is not supported")
-	case runnerv1.CommandMode_COMMAND_MODE_DAGGER_SHELL:
+	case runnerv1.CommandMode_COMMAND_MODE_DAGGER:
 		cfg.CommandMode = CommandModeDaggerShell
 	}
 
