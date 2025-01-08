@@ -199,9 +199,9 @@ export var CommandMode;
      */
     CommandMode[CommandMode["TERMINAL"] = 3] = "TERMINAL";
     /**
-     * @generated from protobuf enum value: COMMAND_MODE_DAGGER_SHELL = 4;
+     * @generated from protobuf enum value: COMMAND_MODE_DAGGER = 4;
      */
-    CommandMode[CommandMode["DAGGER_SHELL"] = 4] = "DAGGER_SHELL";
+    CommandMode[CommandMode["DAGGER"] = 4] = "DAGGER";
 })(CommandMode || (CommandMode = {}));
 /**
  * strategy for selecting a session in an initial execute request

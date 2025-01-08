@@ -86,7 +86,7 @@ func (r *NotebookResolver) ResolveNotebook(context context.Context, cellIndex ui
 		break
 	}
 
-	if notebook.Frontmatter == nil || !strings.HasSuffix(strings.Trim(notebook.Frontmatter.Shell, " \t\r\n"), "dagger shell") {
+	if notebook.Frontmatter == nil || !strings.Contains(strings.Trim(notebook.Frontmatter.Shell, " \t\r\n"), "dagger shell") {
 		return &runnerv1.ResolveNotebookResponse{Script: targetCell.GetValue()}, nil
 	}
 
@@ -114,10 +114,10 @@ func (r *NotebookResolver) ResolveNotebook(context context.Context, cellIndex ui
 		}
 
 		snippet := cell.GetValue()
-		script += fmt.Sprintf("%s() {\n\t%s\n}\n", known, snippet)
+		script += fmt.Sprintf("%s() {\n\t%s\n}\n\n", known, snippet)
 	}
 
-	script += "\n" + targetName + "\n"
+	script += targetName + "\n"
 	return &runnerv1.ResolveNotebookResponse{
 		Script: script,
 	}, nil

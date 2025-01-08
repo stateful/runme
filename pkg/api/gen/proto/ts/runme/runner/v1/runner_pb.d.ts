@@ -871,9 +871,9 @@ export declare enum CommandMode {
      */
     TERMINAL = 3,
     /**
-     * @generated from protobuf enum value: COMMAND_MODE_DAGGER_SHELL = 4;
+     * @generated from protobuf enum value: COMMAND_MODE_DAGGER = 4;
      */
-    DAGGER_SHELL = 4
+    DAGGER = 4
 }
 /**
  * strategy for selecting a session in an initial execute request
