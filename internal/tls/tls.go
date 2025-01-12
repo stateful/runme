@@ -37,6 +37,7 @@ func LoadClientConfig(certFile, keyFile string) (*tls.Config, error) {
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      certPool,
 		MinVersion:   tls.VersionTLS12,
+		NextProtos:   []string{"h2"},
 	}, nil
 }
 
