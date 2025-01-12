@@ -108,15 +108,18 @@ func TestClient_ExecuteProgram(t *testing.T) {
 
 func createClient(t *testing.T, lis *bufconn.Listener) *Client {
 	t.Helper()
-	logger := zaptest.NewLogger(t)
-	client, err := New(
+
+	clientConn, err := grpc.NewClient(
 		"passthrough://bufconn",
-		logger,
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return lis.Dial()
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)
-	return client
+
+	return New(
+		clientConn,
+		zaptest.NewLogger(t),
+	)
 }

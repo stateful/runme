@@ -295,6 +295,9 @@ type ConfigServer struct {
 	// Address corresponds to the JSON schema field "address".
 	Address string `json:"address" yaml:"address"`
 
+	// MaxMessageSize corresponds to the JSON schema field "max_message_size".
+	MaxMessageSize int `json:"max_message_size,omitempty" yaml:"max_message_size,omitempty"`
+
 	// Tls corresponds to the JSON schema field "tls".
 	Tls *ConfigServerTls `json:"tls,omitempty" yaml:"tls,omitempty"`
 }
@@ -341,6 +344,9 @@ func (j *ConfigServer) UnmarshalJSON(b []byte) error {
 	var plain Plain
 	if err := json.Unmarshal(b, &plain); err != nil {
 		return err
+	}
+	if v, ok := raw["max_message_size"]; !ok || v == nil {
+		plain.MaxMessageSize = 33554432.0
 	}
 	*j = ConfigServer(plain)
 	return nil

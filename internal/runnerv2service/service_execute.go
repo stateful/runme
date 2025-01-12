@@ -56,6 +56,17 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		return err
 	}
 
+	// exec, err := newExecution(
+	// 	req.Config,
+	// 	proj,
+	// 	session,
+	// 	logger,
+	// 	req.StoreStdoutInEnv,
+	// )
+	// if err != nil {
+	// 	return err
+	// }
+
 	exec, err := newExecution(
 		req.Config,
 		proj,

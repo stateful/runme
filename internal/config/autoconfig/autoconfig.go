@@ -24,8 +24,12 @@ import (
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/dockerexec"
+	"github.com/stateful/runme/v3/internal/project/projectservice"
 	"github.com/stateful/runme/v3/internal/runnerv2client"
+	"github.com/stateful/runme/v3/internal/runnerv2service"
+	"github.com/stateful/runme/v3/internal/server"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
+	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
@@ -70,44 +74,27 @@ func init() {
 	mustProvide(container.Provide(getCommandFactory))
 	mustProvide(container.Provide(getConfigLoader))
 	mustProvide(container.Provide(getDocker))
+	mustProvide(container.Provide(getGRPCClient))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
 	mustProvide(container.Provide(getRootConfig))
+	mustProvide(container.Provide(getServer))
 	mustProvide(container.Provide(getUserConfigDir))
 }
 
-func getClient(cfg *config.Config, logger *zap.Logger) (*runnerv2client.Client, error) {
-	if cfg.Server == nil {
-		return nil, nil
+func getClient(cfg *config.Config, clientConn *grpc.ClientConn, logger *zap.Logger) (*runnerv2client.Client, error) {
+	if clientConn == nil {
+		return nil, errors.New("client connection is not configured")
 	}
-
-	var opts []grpc.DialOption
-
-	if cfg.Server.Tls != nil && cfg.Server.Tls.Enabled {
-		// It's ok to dereference TLS fields because they are checked in [getRootConfig].
-		tlsConfig, err := runmetls.LoadClientConfig(*cfg.Server.Tls.CertFile, *cfg.Server.Tls.KeyFile)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		creds := credentials.NewTLS(tlsConfig)
-		opts = append(opts, grpc.WithTransportCredentials(creds))
-	} else {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	}
-
-	return runnerv2client.New(
-		cfg.Server.Address,
-		logger,
-		opts...,
-	)
+	return runnerv2client.New(clientConn, logger), nil
 }
 
 type ClientFactory func() (*runnerv2client.Client, error)
 
-func getClientFactory(cfg *config.Config, logger *zap.Logger) ClientFactory {
+func getClientFactory(cfg *config.Config, clientConn *grpc.ClientConn, logger *zap.Logger) ClientFactory {
 	return func() (*runnerv2client.Client, error) {
-		return getClient(cfg, logger)
+		return getClient(cfg, clientConn, logger)
 	}
 }
 
@@ -147,6 +134,35 @@ func getDocker(c *config.Config, logger *zap.Logger) (*dockerexec.Docker, error)
 	return dockerexec.New(options)
 }
 
+func getGRPCClient(
+	cfg *config.Config,
+	server *server.Server,
+	logger *zap.Logger,
+) (*grpc.ClientConn, error) {
+	if cfg.Server == nil {
+		return nil, nil
+	}
+
+	opts := []grpc.DialOption{
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(cfg.Server.MaxMessageSize)),
+	}
+
+	if tls := cfg.Server.Tls; tls != nil && tls.Enabled {
+		// It's ok to dereference TLS fields because they are checked in [getRootConfig].
+		tlsConfig, err := runmetls.LoadClientConfig(*cfg.Server.Tls.CertFile, *cfg.Server.Tls.KeyFile)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		creds := credentials.NewTLS(tlsConfig)
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+
+	conn, err := grpc.NewClient(server.Addr(), opts...)
+	return conn, errors.WithStack(err)
+}
+
 func getLogger(c *config.Config) (*zap.Logger, error) {
 	if c == nil || c.Log == nil || !c.Log.Enabled {
 		return zap.NewNop(), nil
@@ -166,7 +182,7 @@ func getLogger(c *config.Config) (*zap.Logger, error) {
 	}
 
 	if c.Log.Verbose {
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 		zapConfig.Development = true
 		zapConfig.Encoding = "console"
 		zapConfig.EncoderConfig = zap.NewDevelopmentEncoderConfig()
@@ -295,6 +311,27 @@ func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.
 	}
 
 	return cfg, nil
+}
+
+func getServer(cfg *config.Config, cmdFactory command.Factory, logger *zap.Logger) (*server.Server, error) {
+	if cfg.Server == nil {
+		return nil, nil
+	}
+
+	parserService := editorservice.NewParserServiceServer(logger)
+	projectService := projectservice.NewProjectServiceServer(logger)
+	runnerService, err := runnerv2service.NewRunnerService(cmdFactory, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return server.New(
+		cfg,
+		parserService,
+		projectService,
+		runnerService,
+		logger,
+	)
 }
 
 type UserConfigDir string
