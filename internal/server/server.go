@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -13,7 +14,6 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/pkg/errors"
 	"github.com/stateful/runme/v3/internal/config"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 )
@@ -64,7 +64,7 @@ func New(
 
 func (s *Server) Addr() string {
 	if s.lis == nil {
-		return ""
+		return "<nil>"
 	}
 	return s.lis.Addr().String()
 }

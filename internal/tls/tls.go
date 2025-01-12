@@ -55,6 +55,7 @@ func LoadServerConfig(certFile, keyFile string) (*tls.Config, error) {
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
 		MinVersion:   tls.VersionTLS12,
+		NextProtos:   []string{"h2"},
 	}, nil
 }
 
@@ -204,7 +205,6 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
 		MinVersion:   tls.VersionTLS12,
-		NextProtos:   []string{"h2"},
 	}
 
 	return tlsConfig, nil
