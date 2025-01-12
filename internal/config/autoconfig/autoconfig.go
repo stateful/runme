@@ -62,7 +62,6 @@ func (b *Builder) init() {
 	mustProvide(container.Provide(getCommandFactory))
 	mustProvide(container.Provide(getConfigLoader))
 	mustProvide(container.Provide(getDocker))
-	mustProvide(container.Provide(getGRPCClient))
 	mustProvide(container.Provide(getLogger))
 	mustProvide(container.Provide(getProject))
 	mustProvide(container.Provide(getProjectFilters))
@@ -82,7 +81,11 @@ func Invoke(function interface{}, opts ...dig.InvokeOption) error {
 	return dig.RootCause(err)
 }
 
-func getClient(cfg *config.Config, clientConn *grpc.ClientConn, logger *zap.Logger) (*runnerv2client.Client, error) {
+func getClient(cfg *config.Config, logger *zap.Logger) (*runnerv2client.Client, error) {
+	clientConn, err := getGRPCClient(cfg)
+	if err != nil {
+		return nil, err
+	}
 	if clientConn == nil {
 		return nil, errors.New("client connection is not configured")
 	}
@@ -91,10 +94,10 @@ func getClient(cfg *config.Config, clientConn *grpc.ClientConn, logger *zap.Logg
 
 type ClientFactory func() (*runnerv2client.Client, error)
 
-func getClientFactory(cfg *config.Config, clientConn *grpc.ClientConn, logger *zap.Logger) ClientFactory {
+func getClientFactory(cfg *config.Config, logger *zap.Logger) (ClientFactory, error) {
 	return func() (*runnerv2client.Client, error) {
-		return getClient(cfg, clientConn, logger)
-	}
+		return getClient(cfg, logger)
+	}, nil
 }
 
 func getCommandFactory(docker *dockerexec.Docker, logger *zap.Logger, proj *project.Project) command.Factory {
@@ -133,10 +136,7 @@ func getDocker(c *config.Config, logger *zap.Logger) (*dockerexec.Docker, error)
 	return dockerexec.New(options)
 }
 
-func getGRPCClient(
-	cfg *config.Config,
-	logger *zap.Logger,
-) (*grpc.ClientConn, error) {
+func getGRPCClient(cfg *config.Config) (*grpc.ClientConn, error) {
 	if cfg.Server == nil {
 		return nil, nil
 	}
