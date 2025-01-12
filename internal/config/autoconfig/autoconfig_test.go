@@ -23,18 +23,13 @@ func TestInvokeForCommand_Config(t *testing.T) {
 	builder := NewBuilder()
 	configRootFS := fstest.MapFS{
 		"runme.yaml": {
+			// It's ok that README.md does not exist as it's not used in this test.
 			Data: []byte(fmt.Sprintf("version: v1alpha1\nproject:\n  filename: %s\n", "README.md")),
-		},
-		"README.md": {
-			Data: []byte("Hello, World!"),
 		},
 	}
 	err := builder.Decorate(
 		func() (*config.Loader, error) {
-			return config.NewLoader(
-				[]string{"runme.yaml"},
-				configRootFS,
-			), nil
+			return config.NewLoader([]string{"runme.yaml"}, configRootFS), nil
 		},
 	)
 	require.NoError(t, err)
@@ -61,10 +56,7 @@ server: null
 		}
 		err = builder.Decorate(
 			func() (*config.Loader, error) {
-				return config.NewLoader(
-					[]string{"runme.yaml"},
-					configRootFS,
-				), nil
+				return config.NewLoader([]string{"runme.yaml"}, configRootFS), nil
 			},
 		)
 		require.NoError(t, err)
@@ -97,10 +89,7 @@ project:
 		}
 		err = builder.Decorate(
 			func() (*config.Loader, error) {
-				return config.NewLoader(
-					[]string{"runme.yaml"},
-					configRootFS,
-				), nil
+				return config.NewLoader([]string{"runme.yaml"}, configRootFS), nil
 			},
 		)
 		require.NoError(t, err)
@@ -145,10 +134,7 @@ project:
 		}
 		err = builder.Decorate(
 			func() (*config.Loader, error) {
-				return config.NewLoader(
-					[]string{"runme.yaml"},
-					configRootFS,
-				), nil
+				return config.NewLoader([]string{"runme.yaml"}, configRootFS), nil
 			},
 		)
 		require.NoError(t, err)
