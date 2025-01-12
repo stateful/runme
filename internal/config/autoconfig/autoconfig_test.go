@@ -20,45 +20,56 @@ import (
 )
 
 func TestInvokeForCommand_Config(t *testing.T) {
-	// Create a fake filesystem and set it in [config.Loader].
-	err := InvokeForCommand(func(loader *config.Loader) error {
-		fsys := fstest.MapFS{
-			"runme.yaml": {
-				Data: []byte(fmt.Sprintf("version: v1alpha1\nproject:\n  filename: %s\n", "README.md")),
-			},
-		}
-		loader.SetConfigRootPath(fsys)
-		return nil
-	})
+	builder := NewBuilder()
+	configRootFS := fstest.MapFS{
+		"runme.yaml": {
+			Data: []byte(fmt.Sprintf("version: v1alpha1\nproject:\n  filename: %s\n", "README.md")),
+		},
+		"README.md": {
+			Data: []byte("Hello, World!"),
+		},
+	}
+	err := builder.Decorate(
+		func() (*config.Loader, error) {
+			return config.NewLoader(
+				[]string{"runme.yaml"},
+				configRootFS,
+			), nil
+		},
+	)
 	require.NoError(t, err)
-
-	err = InvokeForCommand(func(
-		*config.Config,
-	) error {
-		return nil
-	})
+	err = builder.Invoke(func(*config.Config) error { return nil })
 	require.NoError(t, err)
 }
 
 func TestInvokeForCommand_ServerClient(t *testing.T) {
-	tmp := t.TempDir()
-	readme := filepath.Join(tmp, "README.md")
-	err := os.WriteFile(readme, []byte("Hello, World!"), 0o644)
-	require.NoError(t, err)
-
 	t.Run("NoServerInConfig", func(t *testing.T) {
-		err := InvokeForCommand(func(loader *config.Loader) error {
-			fsys := fstest.MapFS{
-				"runme.yaml": {
-					Data: []byte(fmt.Sprintf("version: v1alpha1\nproject:\n  filename: %s\n", readme)),
-				},
-			}
-			loader.SetConfigRootPath(fsys)
-			return nil
-		})
+		builder := NewBuilder()
+		temp := t.TempDir()
+
+		err := os.WriteFile(filepath.Join(temp, "README.md"), []byte("Hello, World!"), 0o644)
 		require.NoError(t, err)
 
-		err = InvokeForCommand(func(
+		configRootFS := fstest.MapFS{
+			"runme.yaml": {
+				Data: []byte(`version: v1alpha1
+project:
+  filename: ` + filepath.Join(temp, "README.md") + `
+server: null
+`),
+			},
+		}
+		err = builder.Decorate(
+			func() (*config.Loader, error) {
+				return config.NewLoader(
+					[]string{"runme.yaml"},
+					configRootFS,
+				), nil
+			},
+		)
+		require.NoError(t, err)
+
+		err = builder.Invoke(func(
 			server *server.Server,
 			client *grpc.ClientConn,
 		) error {
@@ -70,25 +81,31 @@ func TestInvokeForCommand_ServerClient(t *testing.T) {
 	})
 
 	t.Run("ServerInConfigWithoutTLS", func(t *testing.T) {
-		err := InvokeForCommand(func(loader *config.Loader) error {
-			fsys := fstest.MapFS{
-				"runme.yaml": {
-					Data: []byte(`version: v1alpha1
-project:
-  filename: ` + readme + `
-server:
-  address: localhost:0
-  tls:
-    enabled: false
-`),
-				},
-			}
-			loader.SetConfigRootPath(fsys)
-			return nil
-		})
+		builder := NewBuilder()
+		temp := t.TempDir()
+
+		err := os.WriteFile(filepath.Join(temp, "README.md"), []byte("Hello, World!"), 0o644)
 		require.NoError(t, err)
 
-		err = InvokeForCommand(func(
+		configRootFS := fstest.MapFS{
+			"runme.yaml": {
+				Data: []byte(`version: v1alpha1
+project:
+  filename: ` + filepath.Join(temp, "README.md") + `
+`),
+			},
+		}
+		err = builder.Decorate(
+			func() (*config.Loader, error) {
+				return config.NewLoader(
+					[]string{"runme.yaml"},
+					configRootFS,
+				), nil
+			},
+		)
+		require.NoError(t, err)
+
+		err = builder.Invoke(func(
 			server *server.Server,
 			client *grpc.ClientConn,
 		) error {
@@ -112,31 +129,31 @@ server:
 	})
 
 	t.Run("ServerInConfigWithTLS", func(t *testing.T) {
-		// Use a temp dir to store the TLS files.
-		err = DecorateRoot(func() (UserConfigDir, error) {
-			return UserConfigDir(tmp), nil
-		})
+		builder := NewBuilder()
+		temp := t.TempDir()
+
+		err := os.WriteFile(filepath.Join(temp, "README.md"), []byte("Hello, World!"), 0o644)
 		require.NoError(t, err)
 
-		err := InvokeForCommand(func(loader *config.Loader) error {
-			fsys := fstest.MapFS{
-				"runme.yaml": {
-					Data: []byte(`version: v1alpha1
+		configRootFS := fstest.MapFS{
+			"runme.yaml": {
+				Data: []byte(`version: v1alpha1
 project:
-  filename: ` + readme + `
-server:
-  address: 127.0.0.1:0
-  tls:
-    enabled: true
+  filename: ` + filepath.Join(temp, "README.md") + `
 `),
-				},
-			}
-			loader.SetConfigRootPath(fsys)
-			return nil
-		})
+			},
+		}
+		err = builder.Decorate(
+			func() (*config.Loader, error) {
+				return config.NewLoader(
+					[]string{"runme.yaml"},
+					configRootFS,
+				), nil
+			},
+		)
 		require.NoError(t, err)
 
-		err = InvokeForCommand(func(
+		err = builder.Invoke(func(
 			server *server.Server,
 			client *grpc.ClientConn,
 		) error {
@@ -173,7 +190,7 @@ func checkHealth(conn *grpc.ClientConn) error {
 		resp, err = client.Check(ctx, &healthv1.HealthCheckRequest{})
 		if err != nil || resp.Status != healthv1.HealthCheckResponse_SERVING {
 			cancel()
-			time.Sleep(time.Second)
+			time.Sleep(time.Millisecond * 100)
 			continue
 		}
 		cancel()

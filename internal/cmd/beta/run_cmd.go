@@ -40,7 +40,7 @@ Run all blocks from the "setup" and "teardown" tags:
   runme beta run --tag=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(
+			return autoconfig.Invoke(
 				func(
 					clientFactory autoconfig.ClientFactory,
 					cmdFactory command.Factory,

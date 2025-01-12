@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/config"
 	"github.com/stateful/runme/v3/internal/config/autoconfig"
 	"github.com/stateful/runme/v3/internal/server"
@@ -19,11 +18,10 @@ func serverStartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start a server.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(
+			return autoconfig.Invoke(
 				func(
 					cfg *config.Config,
 					server *server.Server,
-					cmdFactory command.Factory,
 					logger *zap.Logger,
 				) error {
 					defer logger.Sync()

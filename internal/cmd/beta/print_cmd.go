@@ -25,7 +25,7 @@ Print content of commands from the "setup" and "teardown" tags:
   runme beta print --tag=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(
+			return autoconfig.Invoke(
 				func(
 					proj *project.Project,
 					filters []project.Filter,

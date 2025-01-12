@@ -29,46 +29,34 @@ import (
 	"github.com/stateful/runme/v3/internal/runnerv2service"
 	"github.com/stateful/runme/v3/internal/server"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
+	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
+	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
-var (
-	container    = dig.New()
-	commandScope = container.Scope("command")
-	serverScope  = container.Scope("server")
-)
+var defaultBuilder = NewBuilder()
 
-func DecorateRoot(decorator interface{}, opts ...dig.DecorateOption) error {
-	return container.Decorate(decorator, opts...)
+type Builder struct {
+	*dig.Container
 }
 
-// InvokeForCommand is used to invoke the function with the given dependencies.
-// The package will automatically figure out how to instantiate them
-// using the available configuration.
-//
-// Use it only for commands because it supports only singletons
-// created during the program initialization.
-func InvokeForCommand(function interface{}, opts ...dig.InvokeOption) error {
-	err := commandScope.Invoke(function, opts...)
-	return dig.RootCause(err)
+func NewBuilder() *Builder {
+	b := Builder{Container: dig.New()}
+	b.init()
+	return &b
 }
 
-// InvokeForServer is similar to InvokeForCommand, but it does not provide
-// all the dependencies, in particular, it does not provide dependencies
-// that differ per request.
-func InvokeForServer(function interface{}, opts ...dig.InvokeOption) error {
-	err := serverScope.Invoke(function, opts...)
-	return dig.RootCause(err)
-}
-
-func mustProvide(err error) {
-	if err != nil {
-		panic("failed to provide: " + err.Error())
+func (b *Builder) init() {
+	mustProvide := func(err error) {
+		if err != nil {
+			panic("failed to provide: " + err.Error())
+		}
 	}
-}
 
-func init() {
+	container := b
+
 	mustProvide(container.Provide(getClient))
 	mustProvide(container.Provide(getClientFactory))
 	mustProvide(container.Provide(getCommandFactory))
@@ -80,7 +68,18 @@ func init() {
 	mustProvide(container.Provide(getProjectFilters))
 	mustProvide(container.Provide(getRootConfig))
 	mustProvide(container.Provide(getServer))
-	mustProvide(container.Provide(getUserConfigDir))
+}
+
+func Decorate(decorator interface{}, opts ...dig.DecorateOption) error {
+	return defaultBuilder.Decorate(decorator, opts...)
+}
+
+// Invoke is used to invoke the function with the given dependencies.
+// The package will automatically figure out how to instantiate them
+// using the available configuration.
+func Invoke(function interface{}, opts ...dig.InvokeOption) error {
+	err := defaultBuilder.Invoke(function, opts...)
+	return dig.RootCause(err)
 }
 
 func getClient(cfg *config.Config, clientConn *grpc.ClientConn, logger *zap.Logger) (*runnerv2client.Client, error) {
@@ -136,7 +135,6 @@ func getDocker(c *config.Config, logger *zap.Logger) (*dockerexec.Docker, error)
 
 func getGRPCClient(
 	cfg *config.Config,
-	server *server.Server,
 	logger *zap.Logger,
 ) (*grpc.ClientConn, error) {
 	if cfg.Server == nil {
@@ -159,7 +157,7 @@ func getGRPCClient(
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
-	conn, err := grpc.NewClient(server.Addr(), opts...)
+	conn, err := grpc.NewClient(cfg.Server.Address, opts...)
 	return conn, errors.WithStack(err)
 }
 
@@ -282,7 +280,7 @@ func getProjectFilters(c *config.Config) ([]project.Filter, error) {
 	return filters, nil
 }
 
-func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.Config, error) {
+func getRootConfig(cfgLoader *config.Loader) (*config.Config, error) {
 	var cfg *config.Config
 
 	items, err := cfgLoader.RootConfigs()
@@ -299,6 +297,11 @@ func getRootConfig(cfgLoader *config.Loader, userCfgDir UserConfigDir) (*config.
 
 	if cfg.Server != nil && cfg.Server.Tls != nil && cfg.Server.Tls.Enabled {
 		tls := cfg.Server.Tls
+
+		userCfgDir, err := os.UserConfigDir()
+		if err != nil {
+			return nil, errors.WithMessage(err, "failed to get user config directory")
+		}
 
 		if tls.CertFile == nil {
 			path := filepath.Join(string(userCfgDir), "runme", "tls", "cert.pem")
@@ -327,16 +330,11 @@ func getServer(cfg *config.Config, cmdFactory command.Factory, logger *zap.Logge
 
 	return server.New(
 		cfg,
-		parserService,
-		projectService,
-		runnerService,
 		logger,
+		func(sr grpc.ServiceRegistrar) {
+			parserv1.RegisterParserServiceServer(sr, parserService)
+			projectv1.RegisterProjectServiceServer(sr, projectService)
+			runnerv2.RegisterRunnerServiceServer(sr, runnerService)
+		},
 	)
-}
-
-type UserConfigDir string
-
-func getUserConfigDir() (UserConfigDir, error) {
-	dir, err := os.UserConfigDir()
-	return UserConfigDir(dir), errors.WithStack(err)
 }

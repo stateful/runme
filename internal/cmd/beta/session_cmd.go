@@ -26,7 +26,7 @@ func sessionCmd(*commonFlags) *cobra.Command {
 All exported variables during the session will be available to the subsequent commands.
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(
+			return autoconfig.Invoke(
 				func(
 					cmdFactory command.Factory,
 					logger *zap.Logger,
@@ -133,7 +133,7 @@ func sessionSetupCmd() *cobra.Command {
 		Use:    "setup",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(
+			return autoconfig.Invoke(
 				func(
 					cmdFactory command.Factory,
 					logger *zap.Logger,
