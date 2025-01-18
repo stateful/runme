@@ -40,7 +40,7 @@ func (s Shell) DryRun(ctx context.Context, w io.Writer) {
 	var b bytes.Buffer
 
 	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", s.ProgramPath()))
-	_, _ = b.WriteString(fmt.Sprintf("// run in %q\n\n", s.Dir))
+	_, _ = b.WriteString(fmt.Sprintf("# run in %q\n\n", s.Dir))
 	_, _ = b.WriteString(prepareScriptFromCommands(s.Cmds, s.ShellType()))
 
 	_, err := w.Write(b.Bytes())
