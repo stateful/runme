@@ -82,14 +82,34 @@ func Invoke(function interface{}, opts ...dig.InvokeOption) error {
 }
 
 func getClient(cfg *config.Config, logger *zap.Logger) (*runnerv2client.Client, error) {
-	clientConn, err := getGRPCClient(cfg)
-	if err != nil {
-		return nil, err
+	if cfg.Server == nil {
+		return nil, nil
 	}
-	if clientConn == nil {
+
+	opts := []grpc.DialOption{
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(cfg.Server.MaxMessageSize)),
+	}
+
+	if tls := cfg.Server.Tls; tls != nil && tls.Enabled {
+		// It's ok to dereference TLS fields because they are checked in [getRootConfig].
+		tlsConfig, err := runmetls.LoadClientConfig(*cfg.Server.Tls.CertFile, *cfg.Server.Tls.KeyFile)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		creds := credentials.NewTLS(tlsConfig)
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+
+	conn, err := grpc.NewClient(cfg.Server.Address, opts...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if conn == nil {
 		return nil, errors.New("client connection is not configured")
 	}
-	return runnerv2client.New(clientConn, logger), nil
+	return runnerv2client.New(conn, logger), nil
 }
 
 type ClientFactory func() (*runnerv2client.Client, error)
@@ -134,31 +154,6 @@ func getDocker(c *config.Config, logger *zap.Logger) (*dockerexec.Docker, error)
 	}
 
 	return dockerexec.New(options)
-}
-
-func getGRPCClient(cfg *config.Config) (*grpc.ClientConn, error) {
-	if cfg.Server == nil {
-		return nil, nil
-	}
-
-	opts := []grpc.DialOption{
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(cfg.Server.MaxMessageSize)),
-	}
-
-	if tls := cfg.Server.Tls; tls != nil && tls.Enabled {
-		// It's ok to dereference TLS fields because they are checked in [getRootConfig].
-		tlsConfig, err := runmetls.LoadClientConfig(*cfg.Server.Tls.CertFile, *cfg.Server.Tls.KeyFile)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		creds := credentials.NewTLS(tlsConfig)
-		opts = append(opts, grpc.WithTransportCredentials(creds))
-	} else {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	}
-
-	conn, err := grpc.NewClient(cfg.Server.Address, opts...)
-	return conn, errors.WithStack(err)
 }
 
 func getLogger(c *config.Config) (*zap.Logger, error) {

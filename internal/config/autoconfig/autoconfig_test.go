@@ -12,10 +12,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/stateful/runme/v3/internal/config"
+	"github.com/stateful/runme/v3/internal/runnerv2client"
 	"github.com/stateful/runme/v3/internal/server"
 )
 
@@ -63,7 +63,7 @@ server: null
 
 		err = builder.Invoke(func(
 			server *server.Server,
-			client *grpc.ClientConn,
+			client *runnerv2client.Client,
 		) error {
 			require.Nil(t, server)
 			require.Nil(t, client)
@@ -96,7 +96,7 @@ project:
 
 		err = builder.Invoke(func(
 			server *server.Server,
-			client *grpc.ClientConn,
+			client *runnerv2client.Client,
 		) error {
 			require.NotNil(t, server)
 			require.NotNil(t, client)
@@ -141,7 +141,7 @@ project:
 
 		err = builder.Invoke(func(
 			server *server.Server,
-			client *grpc.ClientConn,
+			client *runnerv2client.Client,
 		) error {
 			require.NotNil(t, server)
 			require.NotNil(t, client)
@@ -163,9 +163,7 @@ project:
 	})
 }
 
-func checkHealth(conn *grpc.ClientConn) error {
-	client := healthv1.NewHealthClient(conn)
-
+func checkHealth(client healthv1.HealthClient) error {
 	var (
 		resp *healthv1.HealthCheckResponse
 		err  error

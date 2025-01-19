@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health/grpc_health_v1"
 
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
@@ -16,6 +17,8 @@ const MaxMsgSize = 32 * 1024 * 1024 // 32 MiB
 
 type Client struct {
 	runnerv2.RunnerServiceClient
+	grpc_health_v1.HealthClient
+
 	conn   *grpc.ClientConn
 	logger *zap.Logger
 }
@@ -23,6 +26,7 @@ type Client struct {
 func New(clientConn *grpc.ClientConn, logger *zap.Logger) *Client {
 	return &Client{
 		RunnerServiceClient: runnerv2.NewRunnerServiceClient(clientConn),
+		HealthClient:        grpc_health_v1.NewHealthClient(clientConn),
 		logger:              logger.Named("runnerv2client.Client"),
 	}
 }
