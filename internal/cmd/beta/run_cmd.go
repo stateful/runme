@@ -177,11 +177,13 @@ func runCodeBlock(
 
 	cfg.Mode = runnerv2.CommandMode_COMMAND_MODE_CLI
 
-	execInfo := &rcontext.ExecutionInfo{
-		KnownName: block.Name(),
-		KnownID:   block.ID(),
-	}
-	ctx = rcontext.ContextWithExecutionInfo(ctx, execInfo)
+	ctx = rcontext.WithExecutionInfo(
+		ctx,
+		&rcontext.ExecutionInfo{
+			KnownName: block.Name(),
+			KnownID:   block.ID(),
+		},
+	)
 
 	cmd, err := factory.Build(cfg, options)
 	if err != nil {
