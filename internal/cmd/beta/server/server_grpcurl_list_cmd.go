@@ -19,7 +19,7 @@ func serverGRPCurlListCmd() *cobra.Command {
 		Short: "List gRPC services exposed by the server.",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(
+			return autoconfig.Invoke(
 				func(
 					cfg *config.Config,
 					logger *zap.Logger,

@@ -145,6 +145,7 @@ func TestParseYAML(t *testing.T) {
 		Tls: &ConfigServerTls{
 			Enabled: true,
 		},
+		MaxMessageSize: 32 * 1024 * 1024,
 	}
 	require.True(
 		t,

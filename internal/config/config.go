@@ -32,11 +32,9 @@ func Default() *Config {
 }
 
 // ParseYAML parses the given YAML items and returns a configuration object.
-// Multiple items are merged into a single configuration. It uses a default
-// configuration as a base.
+// Multiple items are merged into a single configuration.
 func ParseYAML(items ...[]byte) (*Config, error) {
-	items = append([][]byte{defaultRunmeYAML}, items...)
-	return parseYAML(items...)
+	return parseYAML(append([][]byte{defaultRunmeYAML}, items...)...)
 }
 
 func parseYAML(items ...[]byte) (*Config, error) {

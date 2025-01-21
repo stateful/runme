@@ -26,7 +26,7 @@ func serverGRPCurlInvokeCmd() *cobra.Command {
 		Short: "Invoke gRPC command to the server.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(
+			return autoconfig.Invoke(
 				func(
 					cfg *config.Config,
 					logger *zap.Logger,

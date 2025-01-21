@@ -67,10 +67,6 @@ func NewLoader(configNames []string, configRootPath fs.FS, opts ...LoaderOption)
 	return l
 }
 
-func (l *Loader) SetConfigRootPath(configRootPath fs.FS) {
-	l.configRootPath = configRootPath
-}
-
 func (l *Loader) FindConfigChain(path string) ([][]byte, error) {
 	paths, err := l.findConfigFilesOnPath(path)
 	if err != nil {

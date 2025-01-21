@@ -4,7 +4,7 @@ exec sleep 8
 exec runme beta server stop
 wait
 ! stdout .
-stderr '(?sm)server listening'
+stderr '(?sm)starting gRPC server'
 
 -- experimental/runme.yaml --
 version: v1alpha1

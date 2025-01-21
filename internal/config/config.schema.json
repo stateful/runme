@@ -116,6 +116,10 @@
         "address": {
           "type": "string"
         },
+        "max_message_size": {
+          "type": "integer",
+          "default": 33554432
+        },
         "tls": {
           "type": "object",
           "properties": {

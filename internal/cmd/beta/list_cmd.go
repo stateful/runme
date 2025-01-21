@@ -36,7 +36,7 @@ List all blocks from the "setup" and "teardown" tags:
   runme beta list --tag=setup,teardown
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return autoconfig.InvokeForCommand(
+			return autoconfig.Invoke(
 				func(
 					proj *project.Project,
 					filters []project.Filter,

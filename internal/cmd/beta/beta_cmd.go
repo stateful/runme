@@ -37,7 +37,7 @@ All commands use the runme.yaml configuration file.`,
 				cmd.SetErr(io.Discard)
 			}
 
-			err := autoconfig.InvokeForCommand(func(cfg *config.Config, log *zap.Logger) error {
+			err := autoconfig.Invoke(func(cfg *config.Config, log *zap.Logger) error {
 				// Override the filename if provided.
 				if cFlags.filename != "" {
 					cfg.Project.Filename = cFlags.filename
