@@ -111,3 +111,9 @@ echo "Tag A,B"
 ```sh {"tag":"a,b,c","id":"01HF7BT3HD84GWTQB8ZY0GBA06","name":"c"}
 echo "Tag A,B,C"
 ```
+
+## Large files
+
+```sh {"name": "generate"}
+gunzip --stdout ./internal/command/testdata/users_1m.json.gz
+```

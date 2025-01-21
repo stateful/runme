@@ -698,12 +698,12 @@ func (s *Store) LoadEnvs(source string, envs ...string) error {
 	return nil
 }
 
-func (s *Store) Update(context context.Context, newOrUpdated, deleted []string) error {
+func (s *Store) Update(ctx context.Context, newOrUpdated, deleted []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	execRef := "[execution]"
-	if execInfo, ok := context.Value(rcontext.ExecutionInfoKey).(*rcontext.ExecutionInfo); ok {
+	if execInfo, ok := rcontext.ExecutionInfoFromContext(ctx); ok {
 		execRef = fmt.Sprintf("#%s", execInfo.KnownID)
 		if execInfo.KnownName != "" {
 			execRef = fmt.Sprintf("#%s", execInfo.KnownName)

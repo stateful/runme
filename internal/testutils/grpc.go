@@ -42,6 +42,8 @@ func newGRPCClient[T any](
 			return lis.Dial()
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		// Set the maximum message size to 32 MiB and align it with [server.Server].
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(32*1024*1024)),
 	)
 	if err != nil {
 		var result T
