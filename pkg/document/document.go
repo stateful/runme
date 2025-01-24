@@ -15,14 +15,6 @@ import (
 	"github.com/stateful/runme/v3/pkg/document/constants"
 )
 
-var DefaultAttributeParser = newFailoverAttributeParser(
-	[]attributeParser{
-		&jsonParser{},
-		&babikMLParser{},
-	},
-	&jsonParser{},
-)
-
 var defaultRenderer = cmark.Render
 
 type Document struct {

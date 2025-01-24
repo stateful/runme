@@ -8,151 +8,175 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_attributes(t *testing.T) {
-	t.Run("BabikML", func(t *testing.T) {
-		parser := &babikMLParser{}
+func TestAttributes(t *testing.T) {
+	t.Run("HTMLAttributes", func(t *testing.T) {
+		t.Run("Parser", func(t *testing.T) {
+			parser := &htmlAttributesParserWriter{}
 
-		// parser
-		{
-			src := []byte("{ hello=world key=value val=20 }")
-
-			attr, err := parser.Parse(src)
-			require.NoError(t, err)
-
-			assert.Equal(t, Attributes{
-				"key":   "value",
-				"hello": "world",
-				"val":   "20",
-			}, attr)
-
-			serialized := bytes.NewBuffer(nil)
-			parser.Write(attr, serialized)
-			assert.Equal(t, string(src), serialized.String())
-		}
-
-		{
-			attr, err := parser.Parse([]byte("{ hello=world val=20 empty }"))
-			require.NoError(t, err)
-
-			assert.Equal(t, Attributes{
-				"hello": "world",
-				"val":   "20",
-			}, attr)
-		}
-
-		// writer
-		{
-			attr := Attributes{
-				"key":   "value",
-				"val":   "20",
-				"float": "13.3",
-				"name":  "script",
+			testCases := []struct {
+				name     string
+				input    []byte
+				expected Attributes
+			}{
+				{
+					name:     "empty",
+					input:    []byte("{}"),
+					expected: Attributes{},
+				},
+				{
+					name:     "valid",
+					input:    []byte("{ hello=world key=value val=20 }"),
+					expected: Attributes{"hello": "world", "key": "value", "val": "20"},
+				},
+				{
+					name:     "empty-attribute",
+					input:    []byte("{ hello=world val=20 empty }"),
+					expected: Attributes{"hello": "world", "val": "20"},
+				},
 			}
 
-			w := bytes.NewBuffer([]byte{})
-			err := parser.Write(attr, w)
-			require.NoError(t, err)
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					attr, err := parser.Parse(tc.input)
+					require.NoError(t, err)
+					assert.Equal(t, tc.expected, attr)
+				})
+			}
+		})
 
-			result := w.String()
-			assert.Equal(t, "{ name=script float=13.3 key=value val=20 }", result)
+		t.Run("Writer", func(t *testing.T) {
+			parser := &htmlAttributesParserWriter{}
 
-			parsed, err := parser.Parse([]byte(result))
-			require.NoError(t, err)
-			assert.Equal(t, attr, parsed)
-		}
+			testCases := []struct {
+				name     string
+				input    Attributes
+				expected string
+			}{
+				{
+					name:     "empty",
+					input:    nil,
+					expected: "{}",
+				},
+				{
+					name:     "valid",
+					input:    Attributes{"hello": "world", "key": "value", "val": "20", "name": "script"},
+					expected: "{ name=script hello=world key=value val=20 }",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					buf := bytes.NewBuffer([]byte{})
+					err := parser.Write(buf, tc.input)
+					require.NoError(t, err)
+					assert.Equal(t, tc.expected, buf.String())
+				})
+			}
+		})
 	})
 
 	t.Run("JSON", func(t *testing.T) {
-		parser := &jsonParser{}
+		t.Run("Parser", func(t *testing.T) {
+			parser := &jsonParserWriter{}
 
-		// parser
-		{
-			src := []byte("{\"float\":13.3,\"key\":\"value\",\"val\":20}")
+			testCases := []struct {
+				name  string
+				input []byte
 
-			attr, err := parser.Parse(src)
-			require.NoError(t, err)
-
-			assert.Equal(t, Attributes{
-				"key":   "value",
-				"val":   "20",
-				"float": "13.3",
-			}, attr)
-
-			serialized := bytes.NewBuffer(nil)
-			parser.Write(attr, serialized)
-			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", serialized.String())
-		}
-
-		{
-			attr, err := parser.Parse([]byte("{\"nested\":{\"hello\":\"world\"}}"))
-			require.NoError(t, err)
-
-			assert.Equal(t, Attributes{
-				"nested": "{\"hello\":\"world\"}",
-			}, attr)
-		}
-
-		// writer
-		{
-			attr := Attributes{
-				"key":   "value",
-				"val":   "20",
-				"float": "13.3",
-				"name":  "script",
-				// (supports spaces)
-				"zebras": "are cool",
+				expected Attributes
+			}{
+				{
+					name:     "empty",
+					input:    []byte("{}"),
+					expected: Attributes{},
+				},
+				{
+					name:     "valid",
+					input:    []byte("{\"hello\":\"world\",\"key\":\"value\",\"val\":\"20\"}"),
+					expected: Attributes{"hello": "world", "key": "value", "val": "20"},
+				},
+				{
+					name:     "nested",
+					input:    []byte("{\"nested\":{\"hello\":\"world\"}}"),
+					expected: Attributes{"nested": "{\"hello\":\"world\"}"},
+				},
 			}
 
-			w := bytes.NewBuffer([]byte{})
-			err := parser.Write(attr, w)
-			require.NoError(t, err)
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					attr, err := parser.Parse(tc.input)
+					require.NoError(t, err)
+					assert.Equal(t, tc.expected, attr)
+				})
+			}
+		})
 
-			result := w.String()
-			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"name\":\"script\",\"val\":\"20\",\"zebras\":\"are cool\"}", result)
+		t.Run("Writer", func(t *testing.T) {
+			writer := &jsonParserWriter{}
 
-			parsed, err := parser.Parse([]byte(result))
-			require.NoError(t, err)
-			assert.Equal(t, attr, parsed)
-		}
+			testCases := []struct {
+				name     string
+				input    Attributes
+				expected string
+			}{
+				{
+					name:     "empty",
+					input:    Attributes{},
+					expected: "{}",
+				},
+				{
+					name:     "valid",
+					input:    Attributes{"hello": "world", "key": "value", "val": "20", "name": "script"},
+					expected: "{\"hello\":\"world\",\"key\":\"value\",\"name\":\"script\",\"val\":\"20\"}",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					buf := bytes.NewBuffer(nil)
+					err := writer.Write(buf, tc.input)
+					require.NoError(t, err)
+					assert.Equal(t, tc.expected, buf.String())
+				})
+			}
+		})
+	})
+}
+
+func TestWriteAttributes_parseAttributes(t *testing.T) {
+	t.Run("JSONToJSON", func(t *testing.T) {
+		src := []byte("{\"float\":13.3,\"key\":\"value\",\"val\":20}")
+
+		attr, err := parseAttributes(src)
+		require.NoError(t, err)
+
+		assert.Equal(t, Attributes{
+			"key":   "value",
+			"val":   "20",
+			"float": "13.3",
+		}, attr)
+
+		buf := bytes.NewBuffer(nil)
+		err = WriteAttributes(buf, attr)
+		require.NoError(t, err)
+		assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", buf.String())
 	})
 
-	t.Run("failoverAttributesParser", func(t *testing.T) {
-		parser := DefaultAttributeParser
+	t.Run("HTMLAttributesToJSON", func(t *testing.T) {
+		src := []byte("{ float=13.3 key=value val=20 }")
 
-		// parser handles json
-		{
-			src := []byte("{\"float\":13.3,\"key\":\"value\",\"val\":20}")
+		attr, err := parseAttributes(src)
+		require.NoError(t, err)
 
-			attr, err := parser.Parse(src)
-			require.NoError(t, err)
+		assert.Equal(t, Attributes{
+			"key":   "value",
+			"val":   "20",
+			"float": "13.3",
+		}, attr)
 
-			assert.Equal(t, Attributes{
-				"key":   "value",
-				"val":   "20",
-				"float": "13.3",
-			}, attr)
-
-			serialized := bytes.NewBuffer(nil)
-			parser.Write(attr, serialized)
-			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", serialized.String())
-		}
-
-		// parser handles babikml
-		{
-			src := []byte("{ float=13.3 key=value val=20 }")
-
-			attr, err := parser.Parse(src)
-			require.NoError(t, err)
-
-			assert.Equal(t, Attributes{
-				"key":   "value",
-				"val":   "20",
-				"float": "13.3",
-			}, attr)
-
-			serialized := bytes.NewBuffer(nil)
-			parser.Write(attr, serialized)
-			assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", serialized.String())
-		}
+		buf := bytes.NewBuffer(nil)
+		err = WriteAttributes(buf, attr)
+		require.NoError(t, err)
+		assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", buf.String())
 	})
 }

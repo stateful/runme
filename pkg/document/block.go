@@ -92,7 +92,7 @@ func newCodeBlock(
 		return nil, errors.New("invalid node kind neither CodeBlock nor FencedCodeBlock")
 	}
 
-	attributes, err := getAttributes(fenced, source, DefaultAttributeParser)
+	attributes, err := newAttributesFromFencedCodeBlock(fenced, source)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +312,7 @@ func getLanguage(node *ast.FencedCodeBlock, source []byte) string {
 	var rawAttrs string
 	if node.Info != nil {
 		codeBlockInfo := node.Info.Text(source)
-		rawAttrs = string(getRawAttributes(codeBlockInfo))
+		rawAttrs = string(extractAttributes(codeBlockInfo))
 	}
 
 	// If the language is the same as the raw attributes,
