@@ -1,4 +1,4 @@
-package runner
+package notebook
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	notebookv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/notebook/v1alpha1"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 	"go.uber.org/zap"
 )
@@ -56,7 +56,7 @@ func (r *NotebookResolver) ParseNotebook(context context.Context) (*parserv1.Not
 	return des.Notebook, nil
 }
 
-func (r *NotebookResolver) ResolveNotebook(context context.Context, cellIndex uint32) (*runnerv1.ResolveNotebookResponse, error) {
+func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (*notebookv1alpha1.ResolveNotebookResponse, error) {
 	notebook, err := r.ParseNotebook(context)
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func (r *NotebookResolver) ResolveNotebook(context context.Context, cellIndex ui
 	}
 
 	if notebook.Frontmatter == nil || !strings.Contains(strings.Trim(notebook.Frontmatter.Shell, " \t\r\n"), "dagger shell") {
-		return &runnerv1.ResolveNotebookResponse{Script: targetCell.GetValue()}, nil
+		return &notebookv1alpha1.ResolveNotebookResponse{Script: targetCell.GetValue()}, nil
 	}
 
 	script := ""
@@ -118,7 +118,7 @@ func (r *NotebookResolver) ResolveNotebook(context context.Context, cellIndex ui
 	}
 
 	script += targetName + "\n"
-	return &runnerv1.ResolveNotebookResponse{
+	return &notebookv1alpha1.ResolveNotebookResponse{
 		Script: script,
 	}, nil
 }

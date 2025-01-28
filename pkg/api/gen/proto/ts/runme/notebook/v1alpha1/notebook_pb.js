@@ -11,13 +11,15 @@
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
+import { CommandMode } from "../../runner/v1/runner_pb";
 import { Notebook } from "../../parser/v1/parser_pb";
 // @generated message type with reflection information, may provide speed optimized methods
 class ResolveNotebookRequest$Type extends MessageType {
     constructor() {
         super("runme.notebook.v1alpha1.ResolveNotebookRequest", [
             { no: 1, name: "notebook", kind: "message", T: () => Notebook },
-            { no: 2, name: "cell_index", kind: "message", T: () => UInt32Value }
+            { no: 2, name: "command_mode", kind: "enum", T: () => ["runme.runner.v1.CommandMode", CommandMode, "COMMAND_MODE_"] },
+            { no: 3, name: "cell_index", kind: "message", T: () => UInt32Value }
         ]);
     }
 }

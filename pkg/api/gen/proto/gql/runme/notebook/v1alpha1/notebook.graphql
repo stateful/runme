@@ -54,6 +54,13 @@ input Cell_MetadataEntryInput {
 	key: String
 	value: String
 }
+enum CommandMode {
+	COMMAND_MODE_UNSPECIFIED
+	COMMAND_MODE_INLINE_SHELL
+	COMMAND_MODE_TEMP_FILE
+	COMMAND_MODE_TERMINAL
+	COMMAND_MODE_DAGGER
+}
 input ExecutionSummaryTimingInput {
 	startTime: Int64ValueInput
 	endTime: Int64ValueInput
@@ -115,6 +122,7 @@ type Query {
 }
 input ResolveNotebookRequestInput {
 	notebook: NotebookInput
+	commandMode: CommandMode
 	cellIndex: UInt32ValueInput
 }
 type ResolveNotebookResponse {

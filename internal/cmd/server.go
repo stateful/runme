@@ -14,11 +14,13 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/stateful/runme/v3/internal/command"
+	notebookservice "github.com/stateful/runme/v3/internal/notebook"
 	"github.com/stateful/runme/v3/internal/project/projectservice"
 	"github.com/stateful/runme/v3/internal/runner"
 	runnerv2service "github.com/stateful/runme/v3/internal/runnerv2service"
 	"github.com/stateful/runme/v3/internal/telemetry"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
+	notebookv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/notebook/v1alpha1"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
@@ -107,6 +109,7 @@ The kernel is used to run long running processes like shells and interacting wit
 			)
 			parserv1.RegisterParserServiceServer(server, editorservice.NewParserServiceServer(logger))
 			projectv1.RegisterProjectServiceServer(server, projectservice.NewProjectServiceServer(logger))
+			notebookv1alpha1.RegisterNotebookServiceServer(server, notebookservice.NewNotebookService(logger))
 			// todo(sebastian): decided to forgo the reporter service for now
 			// reporterv1alpha1.RegisterReporterServiceServer(server, reporterservice.NewReporterServiceServer(logger))
 			if enableRunner {
