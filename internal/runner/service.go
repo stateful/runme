@@ -928,18 +928,3 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 
 	return nil
 }
-
-func (r *runnerService) ResolveNotebook(ctx context.Context, req *runnerv1.ResolveNotebookRequest) (*runnerv1.ResolveNotebookResponse, error) {
-	notebook := req.GetNotebook()
-	if notebook == nil {
-		return nil, status.Error(codes.InvalidArgument, "notebook is required")
-	}
-
-	cellIndex := req.GetCellIndex()
-	if cellIndex == nil {
-		return nil, status.Error(codes.InvalidArgument, "cell index is required")
-	}
-
-	resolver := NewNotebookResolver(notebook)
-	return resolver.ResolveNotebook(ctx, cellIndex.GetValue())
-}

@@ -5,61 +5,7 @@
 """
 directive @ResolveProgramRequestSource on INPUT_FIELD_DEFINITION
 directive @RunnerService on FIELD_DEFINITION
-"""
- Wrapper message for `bool`.
-
- The JSON representation for `BoolValue` is JSON `true` and `false`.
-
-"""
-input BoolValueInput {
-	"""
-	 The bool value.
-
-	"""
-	value: Boolean
-}
 scalar Bytes
-input CellExecutionSummaryInput {
-	executionOrder: UInt32ValueInput
-	success: BoolValueInput
-	timing: ExecutionSummaryTimingInput
-}
-input CellInput {
-	kind: CellKind
-	value: String
-	languageId: String
-	metadata: [Cell_MetadataEntryInput!]
-	textRange: TextRangeInput
-	outputs: [CellOutputInput!]
-	executionSummary: CellExecutionSummaryInput
-}
-enum CellKind {
-	CELL_KIND_UNSPECIFIED
-	CELL_KIND_MARKUP
-	CELL_KIND_CODE
-}
-input CellOutputInput {
-	items: [CellOutputItemInput!]
-	metadata: [CellOutput_MetadataEntryInput!]
-	processInfo: CellOutputProcessInfoInput
-}
-input CellOutputItemInput {
-	data: Bytes
-	type: String
-	mime: String
-}
-input CellOutputProcessInfoInput {
-	exitReason: ProcessInfoExitReasonInput
-	pid: Int64ValueInput
-}
-input CellOutput_MetadataEntryInput {
-	key: String
-	value: String
-}
-input Cell_MetadataEntryInput {
-	key: String
-	value: String
-}
 enum CommandMode {
 	COMMAND_MODE_UNSPECIFIED
 	COMMAND_MODE_INLINE_SHELL
@@ -256,46 +202,11 @@ enum ExecuteStop {
 	EXECUTE_STOP_INTERRUPT
 	EXECUTE_STOP_KILL
 }
-input ExecutionSummaryTimingInput {
-	startTime: Int64ValueInput
-	endTime: Int64ValueInput
-}
-input FrontmatterInput {
-	shell: String
-	cwd: String
-	skipPrompts: Boolean
-	runme: FrontmatterRunmeInput
-	"""
-	 Deprecated category in favor of Tag
-
-	"""
-	category: String
-	terminalRows: String
-	tag: String
-}
-input FrontmatterRunmeInput {
-	id: String
-	version: String
-	session: RunmeSessionInput
-}
 input GetSessionRequestInput {
 	id: String
 }
 type GetSessionResponse {
 	session: Session
-}
-"""
- Wrapper message for `int64`.
-
- The JSON representation for `Int64Value` is JSON string.
-
-"""
-input Int64ValueInput {
-	"""
-	 The int64 value.
-
-	"""
-	value: Int
 }
 type ListSessionsResponse {
 	sessions: [Session!]
@@ -370,20 +281,6 @@ type Mutation {
 
 	"""
 	runnerServiceResolveProgram(in: ResolveProgramRequestInput): ResolveProgramResponse
-	runnerServiceResolveNotebook(in: ResolveNotebookRequestInput): ResolveNotebookResponse
-}
-input NotebookInput {
-	cells: [CellInput!]
-	metadata: [Notebook_MetadataEntryInput!]
-	frontmatter: FrontmatterInput
-}
-input Notebook_MetadataEntryInput {
-	key: String
-	value: String
-}
-input ProcessInfoExitReasonInput {
-	type: String
-	code: UInt32ValueInput
 }
 type ProcessPID {
 	pid: Int
@@ -403,103 +300,6 @@ input ProjectInput {
 }
 type Query {
 	dummy: Boolean
-}
-input ResolveNotebookRequestInput {
-	notebook: NotebookInput
-	cellIndex: UInt32ValueInput
-	"""
-	 env is a list of explicit environment variables that will be used
-	 to resolve the environment variables found in the source.
-
-	"""
-	env: [String!]
-	"""
-	 session_id indicates which session is the source of
-	 environment variables. If not provided, the most recent
-	 session can be used using session_strategy.
-
-	"""
-	sessionId: String
-	"""
-	 session_strategy is a strategy for selecting the session.
-
-	"""
-	sessionStrategy: SessionStrategy
-	"""
-	 project used to load environment variables from .env files.
-
-	"""
-	project: ProjectInput
-	"""
-	 language id associated with script
-
-	"""
-	languageId: String
-}
-type ResolveNotebookResponse {
-	script: String
-	"""
-	 use script until commands normalization is implemented
-
-	"""
-	commands: ResolveProgramCommandList
-	vars: [ResolveNotebookResponse_VarResult!]
-}
-enum ResolveNotebookResponse_Status {
-	"""
-	 unspecified is the default value and it means unresolved.
-
-	"""
-	STATUS_UNSPECIFIED
-	"""
-	 unresolved with message means that the variable is unresolved
-	 but it contains a message. E.g. FOO=this is message
-
-	"""
-	STATUS_UNRESOLVED_WITH_MESSAGE
-	"""
-	 unresolved with placeholder means that the variable is unresolved
-	 but it contains a placeholder. E.g. FOO="this is placeholder"
-
-	"""
-	STATUS_UNRESOLVED_WITH_PLACEHOLDER
-	"""
-	 resolved means that the variable is resolved.
-
-	"""
-	STATUS_RESOLVED
-	"""
-	 unresolved with secret means that the variable is unresolved
-	 and it requires treatment as a secret.
-
-	"""
-	STATUS_UNRESOLVED_WITH_SECRET
-}
-type ResolveNotebookResponse_VarResult {
-	"""
-	 prompt indicates the resolution status of the env variable.
-
-	"""
-	status: ResolveNotebookResponse_Status
-	"""
-	 name is the name of the environment variable.
-
-	"""
-	name: String
-	"""
-	 original_value is a default value of the environment variable.
-	 It might be a value that is assigned to the variable in the script,
-	 like FOO=bar or FOO=${FOO:-bar}.
-	 If the variable is not assigned, it is an empty string.
-
-	"""
-	originalValue: String
-	"""
-	 resolved_value is a value of the environment variable resolved from a source.
-	 If it is an empty string, it means that the environment variable is not resolved.
-
-	"""
-	resolvedValue: String
 }
 type ResolveProgramCommandList {
 	"""
@@ -652,13 +452,6 @@ type ResolveProgramResponse_VarResult {
 	"""
 	resolvedValue: String
 }
-input RunmeSessionDocumentInput {
-	relativePath: String
-}
-input RunmeSessionInput {
-	id: String
-	document: RunmeSessionDocumentInput
-}
 type Session {
 	id: String
 	"""
@@ -745,10 +538,6 @@ type Subscription {
 	"""
 	runnerServiceExecute(in: ExecuteRequestInput): ExecuteResponse
 }
-input TextRangeInput {
-	start: Int
-	end: Int
-}
 """
  Wrapper message for `uint32`.
 
@@ -756,19 +545,6 @@ input TextRangeInput {
 
 """
 type UInt32Value {
-	"""
-	 The uint32 value.
-
-	"""
-	value: Int
-}
-"""
- Wrapper message for `uint32`.
-
- The JSON representation for `UInt32Value` is JSON number.
-
-"""
-input UInt32ValueInput {
 	"""
 	 The uint32 value.
 

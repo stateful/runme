@@ -5,6 +5,7 @@
 // @ts-nocheck
 import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
+import { CommandMode } from "../../runner/v1/runner_pb";
 import { Notebook } from "../../parser/v1/parser_pb";
 /**
  * @generated from protobuf message runme.notebook.v1alpha1.ResolveNotebookRequest
@@ -15,7 +16,11 @@ export interface ResolveNotebookRequest {
      */
     notebook?: Notebook;
     /**
-     * @generated from protobuf field: google.protobuf.UInt32Value cell_index = 2;
+     * @generated from protobuf field: runme.runner.v1.CommandMode command_mode = 2;
+     */
+    commandMode: CommandMode;
+    /**
+     * @generated from protobuf field: google.protobuf.UInt32Value cell_index = 3;
      */
     cellIndex?: UInt32Value;
 }
