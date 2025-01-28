@@ -406,7 +406,7 @@ type Query {
 }
 input ResolveNotebookRequestInput {
 	notebook: NotebookInput
-	cellIndex: Int
+	cellIndex: UInt32ValueInput
 	"""
 	 env is a list of explicit environment variables that will be used
 	 to resolve the environment variables found in the source.
