@@ -687,9 +687,9 @@ export interface ResolveNotebookRequest {
      */
     notebook?: Notebook;
     /**
-     * @generated from protobuf field: uint32 cell_index = 2;
+     * @generated from protobuf field: google.protobuf.UInt32Value cell_index = 2;
      */
-    cellIndex: number;
+    cellIndex?: UInt32Value;
     /**
      * env is a list of explicit environment variables that will be used
      * to resolve the environment variables found in the source.

@@ -575,7 +575,7 @@ class ResolveNotebookRequest$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.ResolveNotebookRequest", [
             { no: 1, name: "notebook", kind: "message", T: () => Notebook },
-            { no: 2, name: "cell_index", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "cell_index", kind: "message", T: () => UInt32Value },
             { no: 3, name: "env", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },

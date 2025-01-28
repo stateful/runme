@@ -382,7 +382,7 @@ message MonitorEnvStoreResponse {
 message ResolveNotebookRequest {
   runme.parser.v1.Notebook notebook = 1;
 
-  uint32 cell_index = 2;
+  google.protobuf.UInt32Value cell_index = 2;
 
   // env is a list of explicit environment variables that will be used
   // to resolve the environment variables found in the source.
