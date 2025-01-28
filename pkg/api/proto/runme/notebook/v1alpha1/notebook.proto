@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package runme.notebook.v1alpha1;
+
+import "google/protobuf/wrappers.proto";
+import "runme/parser/v1/parser.proto";
+
+option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/notebook/v1alpha1;notebookv1alpha1";
+
+message ResolveNotebookRequest {
+  runme.parser.v1.Notebook notebook = 1;
+
+  google.protobuf.UInt32Value cell_index = 2;
+}
+
+message ResolveNotebookResponse {
+  string script = 1;
+}
+
+service NotebookService {
+  // ResolveNotebook that takes a notebook and a cellIndex and returns a script
+  // that takes the whole notebook into account to run as cell.
+  rpc ResolveNotebook(ResolveNotebookRequest) returns (ResolveNotebookResponse) {}
+}
