@@ -1,0 +1,146 @@
+directive @NotebookService on FIELD_DEFINITION
+"""
+ Wrapper message for `bool`.
+
+ The JSON representation for `BoolValue` is JSON `true` and `false`.
+
+"""
+input BoolValueInput {
+	"""
+	 The bool value.
+
+	"""
+	value: Boolean
+}
+scalar Bytes
+input CellExecutionSummaryInput {
+	executionOrder: UInt32ValueInput
+	success: BoolValueInput
+	timing: ExecutionSummaryTimingInput
+}
+input CellInput {
+	kind: CellKind
+	value: String
+	languageId: String
+	metadata: [Cell_MetadataEntryInput!]
+	textRange: TextRangeInput
+	outputs: [CellOutputInput!]
+	executionSummary: CellExecutionSummaryInput
+}
+enum CellKind {
+	CELL_KIND_UNSPECIFIED
+	CELL_KIND_MARKUP
+	CELL_KIND_CODE
+}
+input CellOutputInput {
+	items: [CellOutputItemInput!]
+	metadata: [CellOutput_MetadataEntryInput!]
+	processInfo: CellOutputProcessInfoInput
+}
+input CellOutputItemInput {
+	data: Bytes
+	type: String
+	mime: String
+}
+input CellOutputProcessInfoInput {
+	exitReason: ProcessInfoExitReasonInput
+	pid: Int64ValueInput
+}
+input CellOutput_MetadataEntryInput {
+	key: String
+	value: String
+}
+input Cell_MetadataEntryInput {
+	key: String
+	value: String
+}
+input ExecutionSummaryTimingInput {
+	startTime: Int64ValueInput
+	endTime: Int64ValueInput
+}
+input FrontmatterInput {
+	shell: String
+	cwd: String
+	skipPrompts: Boolean
+	runme: FrontmatterRunmeInput
+	"""
+	 Deprecated category in favor of Tag
+
+	"""
+	category: String
+	terminalRows: String
+	tag: String
+}
+input FrontmatterRunmeInput {
+	id: String
+	version: String
+	session: RunmeSessionInput
+}
+"""
+ Wrapper message for `int64`.
+
+ The JSON representation for `Int64Value` is JSON string.
+
+"""
+input Int64ValueInput {
+	"""
+	 The int64 value.
+
+	"""
+	value: Int
+}
+type Mutation {
+	"""
+	 ResolveNotebook that takes a notebook and a cellIndex and returns a script
+	 that takes the whole notebook into account to run as cell.
+
+	"""
+	notebookServiceResolveNotebook(in: ResolveNotebookRequestInput): ResolveNotebookResponse
+}
+input NotebookInput {
+	cells: [CellInput!]
+	metadata: [Notebook_MetadataEntryInput!]
+	frontmatter: FrontmatterInput
+}
+input Notebook_MetadataEntryInput {
+	key: String
+	value: String
+}
+input ProcessInfoExitReasonInput {
+	type: String
+	code: UInt32ValueInput
+}
+type Query {
+	dummy: Boolean
+}
+input ResolveNotebookRequestInput {
+	notebook: NotebookInput
+	cellIndex: UInt32ValueInput
+}
+type ResolveNotebookResponse {
+	script: String
+}
+input RunmeSessionDocumentInput {
+	relativePath: String
+}
+input RunmeSessionInput {
+	id: String
+	document: RunmeSessionDocumentInput
+}
+input TextRangeInput {
+	start: Int
+	end: Int
+}
+"""
+ Wrapper message for `uint32`.
+
+ The JSON representation for `UInt32Value` is JSON number.
+
+"""
+input UInt32ValueInput {
+	"""
+	 The uint32 value.
+
+	"""
+	value: Int
+}
