@@ -14,38 +14,101 @@ import (
 )
 
 var _defaultAttributeParserWriter = &multiParserWriter{
-	parsers: []attributesParserWriter{
-		&jsonParserWriter{},
-		&htmlAttributesParserWriter{},
+	parserWriters: []parserWriterEntry{
+		{format: "json", writer: &jsonParserWriter{}},
+		{format: "html", writer: &htmlAttributesParserWriter{}},
 	},
-	writer: &jsonParserWriter{},
 }
 
-// Attributes represents a set of key-value pairs applicable to [Cell]s.
-// More: https://docs.runme.dev/configuration/cell-level
-type Attributes map[string]string
+// interface to represent a store of attribute key-value pairs.
+type AttributeStore interface {
+	Items() map[string]string
+	Format() string
+	Clone() AttributeStore
+	Equal(other AttributeStore) bool
+}
 
-// WriteAttributes writes [Attributes] to [io.Writer].
-func WriteAttributes(w io.Writer, attr Attributes) error {
+// attributes impl AttributeStore containing a set of key-value pairs applicable to [Cell]s.
+// More: https://docs.runme.dev/configuration/cell-level
+type attributes struct {
+	format string
+	items  map[string]string
+}
+
+func (a *attributes) Clone() AttributeStore {
+	clone := &attributes{
+		format: a.format,
+		items:  make(map[string]string, len(a.items)),
+	}
+	for k, v := range a.items {
+		clone.items[k] = v
+	}
+	return clone
+}
+
+func (a *attributes) Equal(other AttributeStore) bool {
+	otherAttributes, ok := other.(*attributes)
+	if !ok {
+		return false
+	}
+
+	if a.format != otherAttributes.format {
+		return false
+	}
+
+	if len(a.items) != len(otherAttributes.items) {
+		return false
+	}
+
+	for k, v := range a.items {
+		if otherValue, exists := otherAttributes.items[k]; !exists || v != otherValue {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (a *attributes) Items() map[string]string {
+	return a.items
+}
+
+func (a *attributes) Format() string {
+	return a.format
+}
+
+func NewAttributes(items map[string]string) (AttributeStore, error) {
+	const defaultWriterFormat = "json"
+	return _defaultAttributeParserWriter.NewAttributesWithFormat(items, defaultWriterFormat)
+}
+
+func NewAttributesWithFormat(items map[string]string, format string) (AttributeStore, error) {
+	return _defaultAttributeParserWriter.NewAttributesWithFormat(items, format)
+}
+
+// WriteAttributes writes [AttributeStore] to [io.Writer].
+func WriteAttributes(w io.Writer, attr AttributeStore) error {
 	return _defaultAttributeParserWriter.Write(w, attr)
 }
 
-// parseAttributes parses [Attributes] from raw bytes.
-func parseAttributes(raw []byte) (Attributes, error) {
+// parseAttributes parses [AttributeStore] from raw bytes.
+func parseAttributes(raw []byte) (AttributeStore, error) {
 	return _defaultAttributeParserWriter.Parse(raw)
 }
 
 type attributesParserWriter interface {
-	Parse([]byte) (Attributes, error)
-	Write(io.Writer, Attributes) error
+	Parse([]byte) (AttributeStore, error)
+	Write(io.Writer, AttributeStore) error
 }
 
 func newAttributesFromFencedCodeBlock(
 	node *ast.FencedCodeBlock,
 	source []byte,
-) (Attributes, error) {
-	attributes := make(map[string]string)
-
+) (AttributeStore, error) {
+	attributes, err := NewAttributes(nil)
+	if err != nil {
+		return nil, err
+	}
 	if node.Info == nil {
 		return attributes, nil
 	}
@@ -71,32 +134,32 @@ func newAttributesFromFencedCodeBlock(
 //	{ key: "value", hello: "world", string_value: "2" }
 type jsonParserWriter struct{}
 
-func (p *jsonParserWriter) Parse(raw []byte) (Attributes, error) {
+func (p *jsonParserWriter) Parse(raw []byte) (AttributeStore, error) {
 	// Parse first to a generic map.
 	parsed := make(map[string]interface{})
 	if err := json.Unmarshal(raw, &parsed); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	result := make(Attributes, len(parsed))
+	attrMap := make(map[string]string, len(parsed))
 
 	// Convert all values to strings.
 	for k, v := range parsed {
 		if strVal, ok := v.(string); ok {
-			result[k] = strVal
+			attrMap[k] = strVal
 		} else {
 			if stringified, err := json.Marshal(v); err == nil {
-				result[k] = string(stringified)
+				attrMap[k] = string(stringified)
 			}
 		}
 	}
 
-	return result, nil
+	return NewAttributesWithFormat(attrMap, "json")
 }
 
-func (p *jsonParserWriter) Write(w io.Writer, attr Attributes) error {
+func (p *jsonParserWriter) Write(w io.Writer, attr AttributeStore) error {
 	// TODO: name at front...
-	res, err := json.Marshal(attr)
+	res, err := json.Marshal(attr.Items())
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -110,15 +173,17 @@ func (p *jsonParserWriter) Write(w io.Writer, attr Attributes) error {
 //
 //	{ key=value hello=world string_value=2 }
 //
-// Deprecated: Use the JSON parser instead.
+// HTML attributes is for compatability; prefer the JSON parser instead.
+// note this parser will never error, it returns an empty map for invalid data
 type htmlAttributesParserWriter struct{}
 
-func (p *htmlAttributesParserWriter) Parse(raw []byte) (Attributes, error) {
+func (p *htmlAttributesParserWriter) Parse(raw []byte) (AttributeStore, error) {
 	rawAttributes := extractAttributes(raw)
-	return p.parseRawAttributes(rawAttributes), nil
+	attrMap := p.parseRawAttributes(rawAttributes)
+	return NewAttributesWithFormat(attrMap, "html")
 }
 
-func (p *htmlAttributesParserWriter) Write(w io.Writer, attr Attributes) error {
+func (p *htmlAttributesParserWriter) Write(w io.Writer, attr AttributeStore) error {
 	keys := p.getSortedKeys(attr)
 
 	_, _ = w.Write([]byte{'{'})
@@ -127,7 +192,7 @@ func (p *htmlAttributesParserWriter) Write(w io.Writer, attr Attributes) error {
 		if i == 0 {
 			_, _ = w.Write([]byte{' '})
 		}
-		v := attr[k]
+		v := attr.Items()[k]
 		_, _ = w.Write([]byte(fmt.Sprintf("%s=%s ", k, v)))
 		i++
 	}
@@ -155,10 +220,10 @@ func (*htmlAttributesParserWriter) parseRawAttributes(raw []byte) map[string]str
 	return result
 }
 
-func (*htmlAttributesParserWriter) getSortedKeys(attr Attributes) []string {
-	keys := make([]string, 0, len(attr))
+func (*htmlAttributesParserWriter) getSortedKeys(attr AttributeStore) []string {
+	keys := make([]string, 0, len(attr.Items()))
 
-	for k := range attr {
+	for k := range attr.Items() {
 		keys = append(keys, k)
 	}
 
@@ -183,15 +248,49 @@ func (*htmlAttributesParserWriter) getSortedKeys(attr Attributes) []string {
 
 // multiParserWriter parses attributes using the provided parsers
 // in the order they are provided. If a parser fails, the next one
-// is used.
-// Writer is used to write the attributes back.
+// is used. It will retain the attribute format of the first successful
+// parser for writing.
 type multiParserWriter struct {
-	parsers []attributesParserWriter
-	writer  attributesParserWriter
+	parserWriters []parserWriterEntry
 }
 
-func (p *multiParserWriter) Parse(raw []byte) (_ Attributes, finalErr error) {
-	for _, parser := range p.parsers {
+// required to unlike map maintain order of keys
+type parserWriterEntry struct {
+	format string
+	writer attributesParserWriter
+}
+
+func (p *multiParserWriter) getWriterParser(format string) (attributesParserWriter, error) {
+	for _, entry := range p.parserWriters {
+		if entry.format == format {
+			return entry.writer, nil
+		}
+	}
+	return nil, errors.Errorf("no parserWriter for format: %s", format)
+}
+
+func (p *multiParserWriter) NewAttributesWithFormat(items map[string]string, format string) (AttributeStore, error) {
+	if items == nil {
+		items = make(map[string]string)
+	}
+
+	_, err := p.getWriterParser(format)
+	if err != nil {
+		return nil, err
+	}
+
+	return &attributes{
+		format: format,
+		items:  items,
+	}, nil
+}
+
+func (p *multiParserWriter) Parse(raw []byte) (_ AttributeStore, finalErr error) {
+	for _, entry := range p.parserWriters {
+		parser, err := p.getWriterParser(entry.format)
+		if err != nil {
+			return nil, err
+		}
 		attr, err := parser.Parse(raw)
 		if err == nil {
 			return attr, nil
@@ -201,8 +300,13 @@ func (p *multiParserWriter) Parse(raw []byte) (_ Attributes, finalErr error) {
 	return
 }
 
-func (p *multiParserWriter) Write(w io.Writer, attr Attributes) error {
-	return p.writer.Write(w, attr)
+func (p *multiParserWriter) Write(w io.Writer, attr AttributeStore) error {
+	writer, err := p.getWriterParser(attr.Format())
+	if err != nil {
+		return err
+	}
+
+	return writer.Write(w, attr)
 }
 
 // extractAttributes extracts attributes from the source

@@ -11,7 +11,7 @@ func TestBlock_Clone(t *testing.T) {
 	block := &CodeBlock{
 		id:            "id",
 		idGenerated:   false,
-		attributes:    map[string]string{"key": "value"},
+		attributes:    mustReturnAttributes(t, "json", map[string]string{"key": "value"}),
 		document:      nil,
 		inner:         nil,
 		intro:         "intro",
@@ -24,8 +24,11 @@ func TestBlock_Clone(t *testing.T) {
 	clone := block.Clone()
 	assert.True(t, cmp.Equal(block, clone, cmp.AllowUnexported(CodeBlock{})), "expected %v, got %v", block, clone)
 
-	block.attributes["key"] = "new-value"
-	assert.NotEqual(t, block.attributes["key"], clone.attributes["key"])
+	attrs := block.attributes.Items()
+	attrs["key"] = "new-value"
+	block.attributes = mustReturnAttributes(t, "json", attrs)
+
+	assert.NotEqual(t, block.attributes.Items()["key"], clone.attributes.Items()["key"])
 
 	block.lines[0] = "new-line"
 	assert.NotEqual(t, block.lines[0], clone.lines[0])
@@ -37,10 +40,10 @@ func TestBlock_Clone(t *testing.T) {
 func TestBlock_Tags(t *testing.T) {
 	t.Run("Superset including legacy categories", func(t *testing.T) {
 		block := &CodeBlock{
-			attributes: map[string]string{
+			attributes: mustReturnAttributes(t, "json", map[string]string{
 				"category": "cat1,cat2",
 				"tag":      "tag1,tag2",
-			},
+			}),
 		}
 		assert.Equal(t, []string{"cat1", "cat2", "tag1", "tag2"}, block.Tags())
 	})

@@ -31,7 +31,7 @@ var (
 		`echo "Foo"`,
 		"```",
 		"## H2",
-		"```sh { name=bar }",
+		"```sh { \"name\": \"bar\" }",
 		`echo "Bar"`,
 		"```",
 		"### H3",
@@ -105,7 +105,7 @@ func Test_IdentityUnspecified(t *testing.T) {
 			assert.NotRegexp(t, "^\n\n", content)
 		}
 
-		assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
+		assert.Contains(t, content, "```sh { name=foo id=123 }\n")
 	}
 }
 
@@ -144,7 +144,7 @@ func Test_IdentityAll(t *testing.T) {
 		assert.Contains(t, content, "runme:\n")
 		assert.Contains(t, content, "id: "+testMockID)
 		assert.Contains(t, content, "version: "+version.BaseVersion())
-		assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
+		assert.Contains(t, content, "```sh { name=foo id=123 }\n")
 		assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
 		assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 	}
@@ -185,7 +185,7 @@ func Test_IdentityDocument(t *testing.T) {
 		assert.Contains(t, content, "runme:\n")
 		assert.Contains(t, content, "id: "+testMockID+"\n")
 		assert.Contains(t, content, "version: "+version.BaseVersion()+"\n")
-		assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
+		assert.Contains(t, content, "```sh { name=foo id=123 }\n")
 		assert.Contains(t, content, "```sh {\"name\":\"bar\"}\n")
 		assert.Contains(t, content, "```js\n")
 	}
@@ -233,7 +233,7 @@ func Test_IdentityCell(t *testing.T) {
 			assert.NotRegexp(t, "^\n\n", content)
 		}
 
-		assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
+		assert.Contains(t, content, "```sh { name=foo id=123 }\n")
 		assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
 		assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 	}
@@ -273,7 +273,7 @@ func Test_RunmelessFrontmatter(t *testing.T) {
 	assert.Regexp(t, "^---\n", content)
 	assert.NotRegexp(t, "^\n\n", content)
 
-	assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
+	assert.Contains(t, content, "```sh { name=foo id=123 }\n")
 	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
 	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 }
@@ -312,7 +312,7 @@ func Test_RetainInvalidFrontmatter(t *testing.T) {
 	assert.Regexp(t, "^\\+\\+\\+\n", content)
 	assert.NotRegexp(t, "^\n\n", content)
 
-	assert.Contains(t, content, "```sh {\"id\":\"123\",\"name\":\"foo\"}\n")
+	assert.Contains(t, content, "```sh { name=foo id=123 }\n")
 	assert.Contains(t, content, "```sh {\"id\":\""+testMockID+"\",\"name\":\"bar\"}\n")
 	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 }

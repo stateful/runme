@@ -128,7 +128,7 @@ func TestCodeBlockAttributes(t *testing.T) {
 		require.Len(t, blocks, 1)
 
 		block := blocks[0]
-		assert.Len(t, block.attributes, 1)
+		assert.Len(t, block.attributes.Items(), 1)
 		assert.Equal(t, tc.expectedLanguage, block.language)
 	}
 }

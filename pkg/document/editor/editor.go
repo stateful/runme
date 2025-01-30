@@ -173,7 +173,11 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata, opts 
 	}
 
 	// Serialize cells.
-	result = append(result, serializeCells(notebook.Cells)...)
+	serializedCells, err := serializeCells(notebook.Cells)
+	if err != nil {
+		return nil, err
+	}
+	result = append(result, serializedCells...)
 
 	// Add trailing line breaks.
 	if lineBreaks, ok := notebook.Metadata[PrefixAttributeName(InternalAttributePrefix, constants.FinalLineBreaksKey)]; ok {
