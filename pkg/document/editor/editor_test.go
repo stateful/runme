@@ -734,3 +734,21 @@ A paragraph
 		)
 	})
 }
+
+func TestEditor_AttributeFormat(t *testing.T) {
+	t.Run("RetainOriginalFormat", func(t *testing.T) {
+		mixedFormats := []byte("## Retain attribute format\n\nFirst block uses HTML.\n\n```sh { name=date interactive=false }\ndate\n```\n\nThe second JSON.\n\n```javascript {\"interactive\":\"false\",\"name\":\"iso\"}\nconsole.log(new Date().toISOString())\n```\n")
+
+		notebook, err := Deserialize(mixedFormats, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		actual, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+
+		assert.Equal(
+			t,
+			string(mixedFormats),
+			string(actual),
+		)
+	})
+}

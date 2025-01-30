@@ -159,6 +159,15 @@ def hello():
 	assert.Equal(t, "def hello():\n    print(\"Hello World\")", cell.Value)
 }
 
+func mustReturnSerializedCells(t *testing.T, cells []*Cell) []byte {
+	t.Helper()
+
+	data, err := serializeCells(cells)
+	require.NoError(t, err)
+
+	return data
+}
+
 func Test_serializeCells_Edited(t *testing.T) {
 	data := []byte(`# Examples
 
@@ -184,7 +193,7 @@ Last paragraph.
 		assert.Equal(
 			t,
 			"# New header\n\n1. Item 1\n2. Item 2\n3. Item 3\n\nLast paragraph.\n",
-			string(serializeCells(cells)),
+			string(mustReturnSerializedCells(t, cells)),
 		)
 	})
 
@@ -194,7 +203,7 @@ Last paragraph.
 		assert.Equal(
 			t,
 			"# Examples\n\n1. Item 1\n2. Item 2\n3. Item 3\n4. Item 4\n\nLast paragraph.\n",
-			string(serializeCells(cells)),
+			string(mustReturnSerializedCells(t, cells)),
 		)
 	})
 
@@ -211,7 +220,7 @@ Last paragraph.
 			assert.Equal(
 				t,
 				"# Title\n\n# Examples\n\n1. Item 1\n2. Item 2\n3. Item 3\n\nLast paragraph.\n",
-				string(serializeCells(cells)),
+				string(mustReturnSerializedCells(t, cells)),
 			)
 		})
 
@@ -226,7 +235,7 @@ Last paragraph.
 			assert.Equal(
 				t,
 				"# Examples\n\nA new paragraph.\n\n1. Item 1\n2. Item 2\n3. Item 3\n\nLast paragraph.\n",
-				string(serializeCells(cells)),
+				string(mustReturnSerializedCells(t, cells)),
 			)
 		})
 
@@ -240,7 +249,7 @@ Last paragraph.
 			assert.Equal(
 				t,
 				"# Examples\n\n1. Item 1\n2. Item 2\n3. Item 3\n\nLast paragraph.\n\nParagraph after the last one.\n",
-				string(serializeCells(cells)),
+				string(mustReturnSerializedCells(t, cells)),
 			)
 		})
 	})
@@ -251,7 +260,7 @@ Last paragraph.
 		assert.Equal(
 			t,
 			"# Examples\n\nLast paragraph.\n",
-			string(serializeCells(cells)),
+			string(mustReturnSerializedCells(t, cells)),
 		)
 	})
 }
@@ -295,7 +304,7 @@ brew bundle --no-lock
 pre-commit install
 `+"```"+`
 `,
-		string(serializeCells(cells)),
+		string(mustReturnSerializedCells(t, cells)),
 	)
 }
 
@@ -306,7 +315,7 @@ func Test_serializeCells(t *testing.T) {
 		node, err := doc.Root()
 		require.NoError(t, err)
 		cells := toCells(doc, node, data)
-		assert.Equal(t, string(data), string(serializeCells(cells)))
+		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells)))
 	})
 
 	t.Run("privateFields", func(t *testing.T) {
@@ -320,7 +329,7 @@ func Test_serializeCells(t *testing.T) {
 		cells[0].Metadata["_private"] = "private"
 		cells[0].Metadata["runme.dev/internal"] = "internal"
 
-		assert.Equal(t, string(data), string(serializeCells(cells)))
+		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells)))
 	})
 
 	t.Run("UnsupportedLang", func(t *testing.T) {
@@ -335,7 +344,7 @@ def hello():
 		node, err := doc.Root()
 		require.NoError(t, err)
 		cells := toCells(doc, node, data)
-		assert.Equal(t, string(data), string(serializeCells(cells)))
+		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells)))
 	})
 }
 
