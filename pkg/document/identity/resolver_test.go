@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stateful/runme/v3/internal/ulid"
-	"github.com/stateful/runme/v3/pkg/document"
 )
 
 func TestLifecycleIdentities(t *testing.T) {
@@ -52,10 +51,7 @@ func TestIdentityResolver(t *testing.T) {
 		ulid.MockGenerator(id)
 		resolver := NewResolver(CellLifecycleIdentity)
 		obj := struct{}{}
-		attributes, err := document.NewAttributes(map[string]string{"id": id})
-		assert.NoError(t, err)
-		id, ok := resolver.GetCellID(obj, attributes.Items())
-
+		id, ok := resolver.GetCellID(obj, map[string]string{"id": id})
 		assert.True(t, ok)
 		assert.NotEmpty(t, id)
 	})

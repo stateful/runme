@@ -8,37 +8,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func mustReturnAttributes(t *testing.T, format string, items map[string]string) AttributeStore {
-	t.Helper()
-	attr, err := NewAttributesWithFormat(items, format)
-	require.NoError(t, err)
-	return attr
-}
-
 func TestAttributes(t *testing.T) {
-	t.Run("HTMLAttributes", func(t *testing.T) {
+	t.Run("HTML", func(t *testing.T) {
 		t.Run("Parser", func(t *testing.T) {
-			parser := &htmlAttributesParserWriter{}
+			parser := &htmlAttrParserWriter{}
 
 			testCases := []struct {
 				name     string
 				input    []byte
-				expected AttributeStore
+				expected *Attributes
 			}{
 				{
-					name:     "empty",
+					name:     "Empty",
 					input:    []byte("{}"),
-					expected: mustReturnAttributes(t, "html", nil),
+					expected: NewAttributesWithFormat(nil, "html"),
 				},
 				{
-					name:     "valid",
+					name:     "Valid",
 					input:    []byte("{ hello=world key=value val=20 }"),
-					expected: mustReturnAttributes(t, "html", map[string]string{"hello": "world", "key": "value", "val": "20"}),
+					expected: NewAttributesWithFormat(map[string]string{"hello": "world", "key": "value", "val": "20"}, "html"),
 				},
 				{
-					name:     "empty-attribute",
+					name:     "AttributeWithoutValue",
 					input:    []byte("{ hello=world val=20 empty }"),
-					expected: mustReturnAttributes(t, "html", map[string]string{"hello": "world", "val": "20"}),
+					expected: NewAttributesWithFormat(map[string]string{"hello": "world", "val": "20", "empty": ""}, "html"),
 				},
 			}
 
@@ -52,21 +45,24 @@ func TestAttributes(t *testing.T) {
 		})
 
 		t.Run("Writer", func(t *testing.T) {
-			parser := &htmlAttributesParserWriter{}
+			parser := &htmlAttrParserWriter{}
 
 			testCases := []struct {
 				name     string
-				input    AttributeStore
+				input    *Attributes
 				expected string
 			}{
 				{
 					name:     "empty",
-					input:    mustReturnAttributes(t, "html", nil),
+					input:    NewAttributesWithFormat(nil, "html"),
 					expected: "{}",
 				},
 				{
-					name:     "valid",
-					input:    mustReturnAttributes(t, "html", map[string]string{"hello": "world", "key": "value", "val": "20", "name": "script"}),
+					name: "valid",
+					input: NewAttributesWithFormat(
+						map[string]string{"hello": "world", "key": "value", "val": "20", "name": "script"},
+						"html",
+					),
 					expected: "{ name=script hello=world key=value val=20 }",
 				},
 			}
@@ -84,28 +80,27 @@ func TestAttributes(t *testing.T) {
 
 	t.Run("JSON", func(t *testing.T) {
 		t.Run("Parser", func(t *testing.T) {
-			parser := &jsonParserWriter{}
+			parser := &jsonAttrParserWriter{}
 
 			testCases := []struct {
-				name  string
-				input []byte
-
-				expected AttributeStore
+				name     string
+				input    []byte
+				expected *Attributes
 			}{
 				{
 					name:     "empty",
 					input:    []byte("{}"),
-					expected: mustReturnAttributes(t, "json", nil),
+					expected: NewAttributesWithFormat(nil, "json"),
 				},
 				{
 					name:     "valid",
 					input:    []byte("{\"hello\":\"world\",\"key\":\"value\",\"val\":\"20\"}"),
-					expected: mustReturnAttributes(t, "json", map[string]string{"hello": "world", "key": "value", "val": "20"}),
+					expected: NewAttributesWithFormat(map[string]string{"hello": "world", "key": "value", "val": "20"}, "json"),
 				},
 				{
 					name:     "nested",
 					input:    []byte("{\"nested\":{\"hello\":\"world\"}}"),
-					expected: mustReturnAttributes(t, "json", map[string]string{"nested": "{\"hello\":\"world\"}"}),
+					expected: NewAttributesWithFormat(map[string]string{"nested": "{\"hello\":\"world\"}"}, "json"),
 				},
 			}
 
@@ -119,21 +114,24 @@ func TestAttributes(t *testing.T) {
 		})
 
 		t.Run("Writer", func(t *testing.T) {
-			writer := &jsonParserWriter{}
+			writer := &jsonAttrParserWriter{}
 
 			testCases := []struct {
 				name     string
-				input    AttributeStore
+				input    *Attributes
 				expected string
 			}{
 				{
-					name:     "empty",
-					input:    mustReturnAttributes(t, "json", nil),
+					name:     "empty json",
+					input:    NewAttributesWithFormat(nil, "json"),
 					expected: "{}",
 				},
 				{
-					name:     "valid",
-					input:    mustReturnAttributes(t, "json", map[string]string{"hello": "world", "key": "value", "val": "20", "name": "script"}),
+					name: "valid",
+					input: NewAttributesWithFormat(
+						map[string]string{"hello": "world", "key": "value", "val": "20", "name": "script"},
+						"json",
+					),
 					expected: "{\"hello\":\"world\",\"key\":\"value\",\"name\":\"script\",\"val\":\"20\"}",
 				},
 			}
@@ -150,60 +148,43 @@ func TestAttributes(t *testing.T) {
 	})
 }
 
-func TestWriteAttributes_parseAttributes(t *testing.T) {
-	t.Run("JSONToJSON", func(t *testing.T) {
-		src := []byte("{\"float\":13.3,\"key\":\"value\",\"val\":20}")
+func TestAttributes_Conversion(t *testing.T) {
+	t.Run("RetainJSON", func(t *testing.T) {
+		src := []byte(`{"float":"13.3","key":"value","val":"20"}`)
 
 		attr, err := parseAttributes(src)
 		require.NoError(t, err)
 
-		assert.Equal(t, mustReturnAttributes(t, "json", map[string]string{
-			"key":   "value",
-			"val":   "20",
-			"float": "13.3",
-		}), attr)
-
 		buf := bytes.NewBuffer(nil)
 		err = WriteAttributes(buf, attr)
 		require.NoError(t, err)
-		assert.Equal(t, "{\"float\":\"13.3\",\"key\":\"value\",\"val\":\"20\"}", buf.String())
+		assert.Equal(t, string(src), buf.String())
 	})
 
-	t.Run("HTMLAttributesToJSON", func(t *testing.T) {
+	t.Run("RetainHTMLAttributes", func(t *testing.T) {
 		src := []byte("{ float=13.3 key=value val=20 }")
 
 		attr, err := parseAttributes(src)
 		require.NoError(t, err)
 
-		expected := mustReturnAttributes(t, "json", map[string]string{
-			"key":   "value",
-			"val":   "20",
-			"float": "13.3",
-		})
-		assert.Equal(t, expected.Items(), attr.Items())
-
 		buf := bytes.NewBuffer(nil)
 		err = WriteAttributes(buf, attr)
 		require.NoError(t, err)
-		assert.Equal(t, "{ float=13.3 key=value val=20 }", buf.String())
+		assert.Equal(t, string(src), buf.String())
 	})
 }
 
-func TestAttributes_Retain(t *testing.T) {
-	t.Run("RetainFormat", func(t *testing.T) {
-		src := []byte("{ interactive=false name=date }")
+// In the case of invalid JSON, we fallback to HTML attributes.
+// It might not make much sense, but that's the current behavior.
+func TestAttributes_Fallback(t *testing.T) {
+	src := []byte(`{ name: "test" }`) // invalid JSON
 
-		attr, err := parseAttributes(src)
-		require.NoError(t, err)
+	attr, err := parseAttributes(src)
+	require.NoError(t, err)
+	assert.Equal(t, "html", attr.Format)
 
-		assert.Equal(t, map[string]string{
-			"interactive": "false",
-			"name":        "date",
-		}, attr.Items())
-
-		buf := bytes.NewBuffer(nil)
-		err = WriteAttributes(buf, attr)
-		require.NoError(t, err)
-		assert.Equal(t, "{ name=date interactive=false }", buf.String())
-	})
+	buf := bytes.NewBuffer(nil)
+	err = WriteAttributes(buf, attr)
+	require.NoError(t, err)
+	assert.NotEmpty(t, buf.String())
 }

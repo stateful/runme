@@ -161,7 +161,7 @@ func toCellsRec(
 
 		case *document.CodeBlock:
 			attr := block.Attributes()
-			metadata := attr.Items()
+			metadata := attr.Items
 			transform := true
 
 			t, tOk := metadata["transform"]
@@ -188,7 +188,7 @@ func toCellsRec(
 
 			textRange := block.TextRange()
 
-			if f := attr.Format(); f != defaultAttributeFormat {
+			if f := attr.Format; f != defaultAttributeFormat {
 				metadata[PrefixAttributeName(InternalAttributePrefix, "format")] = f
 			}
 
@@ -324,11 +324,8 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) error {
 	}
 
 	_, _ = w.Write([]byte{' '})
-	parsedAttr, err := document.NewAttributesWithFormat(attr, format)
-	if err != nil {
-		return err
-	}
-	_ = document.WriteAttributes(w, parsedAttr)
+	attrWithFormat := document.NewAttributesWithFormat(attr, format)
+	_ = document.WriteAttributes(w, attrWithFormat)
 
 	return nil
 }
