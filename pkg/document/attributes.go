@@ -13,7 +13,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-// Attributes impl [AttributesStore] containing a set of key-value pairs applicable to [Cell]s.
+// Attributes stores the attributes of a code block along with the format.
 // More: https://docs.runme.dev/configuration/cell-level
 type Attributes struct {
 	Format string
@@ -21,6 +21,7 @@ type Attributes struct {
 }
 
 // NewAttributes creates a new [Attributes] instance.
+// Check out the [NewAttributesWithFormat] function for more options.
 func NewAttributes(items map[string]string) *Attributes {
 	return NewAttributesWithFormat(items, "json")
 }
@@ -163,8 +164,9 @@ func (p *jsonAttrParserWriter) Write(w io.Writer, attr *Attributes) error {
 type htmlAttrParserWriter struct{}
 
 func (p *htmlAttrParserWriter) Parse(raw []byte) (*Attributes, error) {
-	rawAttributes := extractAttributes(raw)
-	attrMap := p.parseRawAttributes(rawAttributes)
+	rawAttr := extractAttributes(raw)
+	rawAttr = bytes.Trim(rawAttr, "{}")
+	attrMap := p.parseRawAttributes(rawAttr)
 	return NewAttributesWithFormat(attrMap, "html"), nil
 }
 
@@ -187,9 +189,6 @@ func (p *htmlAttrParserWriter) Write(w io.Writer, attr *Attributes) error {
 }
 
 func (*htmlAttrParserWriter) parseRawAttributes(raw []byte) map[string]string {
-	// TODO(adamb): consider to pass value without "{" and "}".
-	raw = bytes.Trim(raw, "{}")
-
 	items := bytes.Split(raw, []byte{' '})
 	if len(items) == 0 {
 		return nil
