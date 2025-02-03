@@ -51,9 +51,7 @@ func TestIdentityResolver(t *testing.T) {
 		ulid.MockGenerator(id)
 		resolver := NewResolver(CellLifecycleIdentity)
 		obj := struct{}{}
-		attributes := map[string]string{"id": id}
-		id, ok := resolver.GetCellID(obj, attributes)
-
+		id, ok := resolver.GetCellID(obj, map[string]string{"id": id})
 		assert.True(t, ok)
 		assert.NotEmpty(t, id)
 	})

@@ -53,7 +53,7 @@ const (
 )
 
 type CodeBlock struct {
-	attributes    map[string]string
+	attributes    *Attributes
 	document      *Document
 	encoding      CodeBlockEncoding
 	id            string
@@ -92,14 +92,14 @@ func newCodeBlock(
 		return nil, errors.New("invalid node kind neither CodeBlock nor FencedCodeBlock")
 	}
 
-	attributes, err := getAttributes(fenced, source, DefaultAttributeParser)
+	attributes, err := newAttributesFromFencedCodeBlock(fenced, source)
 	if err != nil {
 		return nil, err
 	}
 
-	id, hasID := identityResolver.GetCellID(fenced, attributes)
+	id, hasID := identityResolver.GetCellID(fenced, attributes.Items)
 
-	name, hasName := getName(fenced, source, nameResolver, attributes)
+	name, hasName := getName(fenced, source, nameResolver, attributes.Items)
 
 	value, err := render(fenced, source)
 	if err != nil {
@@ -124,47 +124,30 @@ func newCodeBlock(
 
 func (b *CodeBlock) FencedEncoding() bool { return b.encoding == Fenced }
 
-func (b *CodeBlock) Attributes() map[string]string { return b.attributes }
+func (b *CodeBlock) Attributes() *Attributes { return b.attributes }
 
 func (b *CodeBlock) Background() bool {
-	val, _ := strconv.ParseBool(b.Attributes()["background"])
+	val, _ := strconv.ParseBool(b.Attributes().Items["background"])
 	return val
 }
 
 func (b *CodeBlock) Tags() []string {
-	var superset []string
+	var (
+		superset []string
+		attr     = b.Attributes().Items
+	)
 
-	categories, ok := b.Attributes()["category"]
+	categories, ok := attr["category"]
 	if ok {
 		superset = append(superset, strings.Split(categories, ",")...)
 	}
 
-	tags, ok := b.Attributes()["tag"]
+	tags, ok := attr["tag"]
 	if ok {
 		superset = append(superset, strings.Split(tags, ",")...)
 	}
 
 	return superset
-}
-
-func (b *CodeBlock) Clone() *CodeBlock {
-	clone := *b
-
-	attributes := make(map[string]string, len(b.attributes))
-	for key, value := range b.attributes {
-		attributes[key] = value
-	}
-	clone.attributes = attributes
-
-	lines := make([]string, len(b.lines))
-	copy(lines, b.lines)
-	clone.lines = lines
-
-	value := make([]byte, len(b.value))
-	copy(value, b.value)
-	clone.value = value
-
-	return &clone
 }
 
 func (b *CodeBlock) Content() []byte {
@@ -177,13 +160,15 @@ func (b *CodeBlock) Content() []byte {
 }
 
 func (b *CodeBlock) Cwd() string {
-	return b.Attributes()["cwd"]
+	items := b.Attributes().Items
+	return items["cwd"]
 }
 
 func (b *CodeBlock) Document() *Document { return b.document }
 
 func (b *CodeBlock) ExcludeFromRunAll() bool {
-	val, err := strconv.ParseBool(b.Attributes()["excludeFromRunAll"])
+	items := b.Attributes().Items
+	val, err := strconv.ParseBool(items["excludeFromRunAll"])
 	if err != nil {
 		return false
 	}
@@ -200,7 +185,8 @@ func (b *CodeBlock) FirstLine() string {
 func (b *CodeBlock) ID() string { return b.id }
 
 func (b *CodeBlock) Interactive() bool {
-	val, _ := strconv.ParseBool(b.Attributes()["interactive"])
+	items := b.Attributes().Items
+	val, _ := strconv.ParseBool(items["interactive"])
 	return val
 }
 
@@ -208,7 +194,8 @@ func (b *CodeBlock) Interactive() bool {
 // Deprecated: use Interactive instead, however, keep using
 // if you want to align with the VS Code extension.
 func (b *CodeBlock) InteractiveLegacy() bool {
-	val, err := strconv.ParseBool(b.Attributes()["interactive"])
+	items := b.Attributes().Items
+	val, err := strconv.ParseBool(items["interactive"])
 	if err != nil {
 		return true
 	}
@@ -216,7 +203,8 @@ func (b *CodeBlock) InteractiveLegacy() bool {
 }
 
 func (b *CodeBlock) Interpreter() string {
-	return b.Attributes()["interpreter"]
+	items := b.Attributes().Items
+	return items["interpreter"]
 }
 
 func (b *CodeBlock) Intro() string { return b.intro }
@@ -249,11 +237,13 @@ func (b *CodeBlock) MarshalJSON() ([]byte, error) {
 }
 
 func (b *CodeBlock) PromptEnvStr() string {
-	return b.Attributes()["promptEnv"]
+	items := b.Attributes().Items
+	return items["promptEnv"]
 }
 
 func (b *CodeBlock) PromptEnv() bool {
-	val, ok := b.Attributes()["promptEnv"]
+	items := b.Attributes().Items
+	val, ok := items["promptEnv"]
 	if !ok {
 		return true
 	}
@@ -311,8 +301,8 @@ func (b *CodeBlock) PrependLines(newLines []string) {
 func getLanguage(node *ast.FencedCodeBlock, source []byte) string {
 	var rawAttrs string
 	if node.Info != nil {
-		codeBlockInfo := node.Info.Text(source)
-		rawAttrs = string(getRawAttributes(codeBlockInfo))
+		codeBlockInfo := node.Info.Value(source)
+		rawAttrs = string(extractAttributes(codeBlockInfo))
 	}
 
 	// If the language is the same as the raw attributes,
@@ -379,7 +369,7 @@ func sanitizeName(s string) string {
 	return b.String()
 }
 
-func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolver, attributes Attributes) (string, bool) {
+func getName(node *ast.FencedCodeBlock, source []byte, nameResolver *nameResolver, attributes map[string]string) (string, bool) {
 	hasName := false
 
 	var name string

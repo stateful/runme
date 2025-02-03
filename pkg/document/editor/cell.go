@@ -21,6 +21,7 @@ import (
 const (
 	InternalAttributePrefix = "runme.dev"
 	PrivateAttributePrefix  = "_"
+	defaultAttributeFormat  = "json"
 )
 
 type CellKind int
@@ -159,7 +160,8 @@ func toCellsRec(
 			}
 
 		case *document.CodeBlock:
-			metadata := block.Attributes()
+			attr := block.Attributes()
+			metadata := attr.Items
 			transform := true
 
 			t, tOk := metadata["transform"]
@@ -185,6 +187,10 @@ func toCellsRec(
 			}
 
 			textRange := block.TextRange()
+
+			if f := attr.Format; f != defaultAttributeFormat {
+				metadata[PrefixAttributeName(InternalAttributePrefix, "format")] = f
+			}
 
 			// In the future, we will include language detection (#77).
 			if cellID := block.ID(); cellID != "" {
@@ -288,18 +294,22 @@ func PrefixAttributeName(prefix, name string) string {
 	}
 }
 
-func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
+func serializeFencedCodeAttributes(w io.Writer, cell *Cell) error {
+	format := defaultAttributeFormat
 	// Filter out private keys, i.e. starting with "_" or "runme.dev/".
 	// A key with a name "index" that comes from VS Code is also filtered out.
 	keys := make([]string, 0, len(cell.Metadata))
 	for k := range cell.Metadata {
+		if k == fmt.Sprint(InternalAttributePrefix, "/", "format") {
+			format = cell.Metadata[k]
+		}
 		if k == "index" || strings.HasPrefix(k, PrivateAttributePrefix) || strings.HasPrefix(k, InternalAttributePrefix) || len(k) == 0 {
 			continue
 		}
 		keys = append(keys, k)
 	}
 
-	attr := make(document.Attributes, len(keys))
+	attr := make(map[string]string, len(keys))
 
 	for _, k := range keys {
 		if len(k) <= 0 {
@@ -309,10 +319,15 @@ func serializeFencedCodeAttributes(w io.Writer, cell *Cell) {
 		attr[k] = cell.Metadata[k]
 	}
 
-	if len(attr) > 0 {
-		_, _ = w.Write([]byte{' '})
-		_ = document.DefaultAttributeParser.Write(attr, w)
+	if len(attr) == 0 {
+		return nil
 	}
+
+	_, _ = w.Write([]byte{' '})
+	attrWithFormat := document.NewAttributesWithFormat(attr, format)
+	_ = document.WriteAttributes(w, attrWithFormat)
+
+	return nil
 }
 
 func removeAnsiCodes(str string) string {
@@ -320,13 +335,16 @@ func removeAnsiCodes(str string) string {
 	return re.ReplaceAllString(str, "")
 }
 
-func serializeCells(cells []*Cell) []byte {
+func serializeCells(cells []*Cell) ([]byte, error) {
 	var buf bytes.Buffer
 
 	for idx, cell := range cells {
 		switch cell.Kind {
 		case CodeKind:
-			serializeCellCodeBlock(&buf, cell)
+			err := serializeCellCodeBlock(&buf, cell)
+			if err != nil {
+				return nil, err
+			}
 
 		case MarkupKind:
 			_, _ = buf.WriteString(cell.Value)
@@ -342,14 +360,15 @@ func serializeCells(cells []*Cell) []byte {
 		}
 	}
 
-	return buf.Bytes()
+	return buf.Bytes(), nil
 }
 
-func serializeCellCodeBlock(w io.Writer, cell *Cell) {
+func serializeCellCodeBlock(w io.Writer, cell *Cell) error {
 	var buf bytes.Buffer
 	value := cell.Value
 
-	if b, err := strconv.ParseBool(cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")]); err == nil && !b {
+	isFencedCodeBlock, err := strconv.ParseBool(cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")])
+	if err == nil && !isFencedCodeBlock {
 		for _, v := range strings.Split(value, "\n") {
 			_, _ = buf.Write(bytes.Repeat([]byte{' '}, 4))
 			_, _ = buf.WriteString(v)
@@ -366,7 +385,10 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell) {
 		_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
 		_, _ = buf.WriteString(cell.LanguageID)
 
-		serializeFencedCodeAttributes(&buf, cell)
+		err := serializeFencedCodeAttributes(&buf, cell)
+		if err != nil {
+			return err
+		}
 
 		_ = buf.WriteByte('\n')
 		_, _ = buf.WriteString(cell.Value)
@@ -380,6 +402,8 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell) {
 	serializeCellOutputsImage(&buf, cell)
 
 	_, _ = w.Write(buf.Bytes())
+
+	return nil
 }
 
 func serializeCellOutputsText(w io.Writer, cell *Cell) {
