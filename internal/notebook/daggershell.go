@@ -8,17 +8,14 @@ import (
 )
 
 type Script struct {
-	file    *syntax.File
+	stmts   []*syntax.Stmt
 	printer *syntax.Printer
 	parser  *syntax.Parser
 }
 
 func NewScript() *Script {
 	return &Script{
-		file: &syntax.File{
-			Name:  "DaggerFunction",
-			Stmts: []*syntax.Stmt{},
-		},
+		stmts:   []*syntax.Stmt{},
 		printer: syntax.NewPrinter(syntax.SingleLine(true)),
 		parser:  syntax.NewParser(),
 	}
@@ -52,28 +49,36 @@ func (s *Script) declareFunc(name, body string) error {
 		return true
 	})
 
-	s.file.Stmts = append(s.file.Stmts, stmt)
+	s.stmts = append(s.stmts, stmt)
 
 	return nil
 }
 
 func (s *Script) Render(w io.Writer) error {
-	return s.printer.Print(w, s.file)
+	return s.RenderWithCall(w, "")
 }
 
-// renders script with function call
 func (s *Script) RenderWithCall(w io.Writer, name string) error {
-	s.file.Stmts = append(s.file.Stmts, &syntax.Stmt{
-		Cmd: &syntax.CallExpr{
-			Args: []*syntax.Word{
-				{
-					Parts: []syntax.WordPart{
-						&syntax.Lit{Value: name},
+	stmts := s.stmts
+
+	if name != "" {
+		stmts = make([]*syntax.Stmt, len(s.stmts))
+		copy(stmts, s.stmts)
+		stmts = append(stmts, &syntax.Stmt{
+			Cmd: &syntax.CallExpr{
+				Args: []*syntax.Word{
+					{
+						Parts: []syntax.WordPart{
+							&syntax.Lit{Value: name},
+						},
 					},
 				},
 			},
-		},
-	})
+		})
+	}
 
-	return s.printer.Print(w, s.file)
+	return s.printer.Print(w, &syntax.File{
+		Name:  "DaggerShellScript",
+		Stmts: stmts,
+	})
 }

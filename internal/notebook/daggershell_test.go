@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDaggerShell(t *testing.T) {
+func TestDaggerShell_FuncDecl(t *testing.T) {
 	script := NewScript()
 
 	err := script.declareFunc("DAGGER_FUNCTION", `echo "Dagger Function Placeholder"`)
@@ -64,11 +64,14 @@ func TestDaggerShell_Script(t *testing.T) {
 			script.declareFunc(entry.Name, entry.Body)
 		}
 
-		var renderedWithCall bytes.Buffer
-		err := script.RenderWithCall(&renderedWithCall, "PRESETUP")
-		require.NoError(t, err)
+		for _, entry := range fakeCells {
+			var renderedWithCall bytes.Buffer
+			err := script.RenderWithCall(&renderedWithCall, entry.Name)
+			require.NoError(t, err)
 
-		expectedWithCall := fmt.Sprintf("%s; PRESETUP\n", strings.Trim(expected, "\n"))
-		assert.Equal(t, expectedWithCall, renderedWithCall.String())
+			expectedWithCall := fmt.Sprintf("%s; %s\n", strings.Trim(expected, "\n"), entry.Name)
+			assert.Equal(t, expectedWithCall, renderedWithCall.String())
+			fmt.Println(renderedWithCall.String())
+		}
 	})
 }
