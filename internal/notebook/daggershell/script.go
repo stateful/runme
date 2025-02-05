@@ -47,6 +47,7 @@ func (s *Script) DeclareFunc(name, body string) error {
 			return false
 		}
 
+		// todo(sebastian): check for validity, e.g. func def inside itself
 		return true
 	})
 
