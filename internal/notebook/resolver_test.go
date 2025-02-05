@@ -55,10 +55,11 @@ func TestResolveDaggerShell(t *testing.T) {
 	}
 
 	resolver := NewNotebookResolver(daggerShellNotebook)
+	declaration := "KERNEL_BINARY() { github.com/purpleclay/daggerverse/golang $(git https://github.com/stateful/runme | head | tree) | build | file runme; }; PRESETUP() { git https://github.com/stateful/vscode-runme | head | tree | file dagger/scripts/presetup.sh; }; EXTENSION() { github.com/stateful/vscode-runme | with-remote github.com/stateful/vscode-runme main | with-container $(KERNEL_BINARY) $(PRESETUP) | build-extension GITHUB_TOKEN; };"
 	expectedScripts := []string{
-		"KERNEL_BINARY() {\n\tgithub.com/purpleclay/daggerverse/golang $(git https://github.com/stateful/runme | head | tree) |\n  build | \n  file runme\n}\n\nPRESETUP() {\n\tgit https://github.com/stateful/vscode-runme |\n  head |\n  tree |\n  file dagger/scripts/presetup.sh\n}\n\nEXTENSION() {\n\tgithub.com/stateful/vscode-runme |\n  with-remote github.com/stateful/vscode-runme main |\n  with-container $(KERNEL_BINARY) $(PRESETUP) |\n  build-extension GITHUB_TOKEN\n}\n\nKERNEL_BINARY\n",
-		"KERNEL_BINARY() {\n\tgithub.com/purpleclay/daggerverse/golang $(git https://github.com/stateful/runme | head | tree) |\n  build | \n  file runme\n}\n\nPRESETUP() {\n\tgit https://github.com/stateful/vscode-runme |\n  head |\n  tree |\n  file dagger/scripts/presetup.sh\n}\n\nEXTENSION() {\n\tgithub.com/stateful/vscode-runme |\n  with-remote github.com/stateful/vscode-runme main |\n  with-container $(KERNEL_BINARY) $(PRESETUP) |\n  build-extension GITHUB_TOKEN\n}\n\nPRESETUP\n",
-		"KERNEL_BINARY() {\n\tgithub.com/purpleclay/daggerverse/golang $(git https://github.com/stateful/runme | head | tree) |\n  build | \n  file runme\n}\n\nPRESETUP() {\n\tgit https://github.com/stateful/vscode-runme |\n  head |\n  tree |\n  file dagger/scripts/presetup.sh\n}\n\nEXTENSION() {\n\tgithub.com/stateful/vscode-runme |\n  with-remote github.com/stateful/vscode-runme main |\n  with-container $(KERNEL_BINARY) $(PRESETUP) |\n  build-extension GITHUB_TOKEN\n}\n\nEXTENSION\n",
+		declaration + " KERNEL_BINARY\n",
+		declaration + " PRESETUP\n",
+		declaration + " EXTENSION\n",
 	}
 
 	for cellIndex, expectedScript := range expectedScripts {

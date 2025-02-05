@@ -1,4 +1,4 @@
-package notebook
+package daggershell
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 func TestDaggerShell_FuncDecl(t *testing.T) {
 	script := NewScript()
 
-	err := script.declareFunc("DAGGER_FUNCTION", `echo "Dagger Function Placeholder"`)
+	err := script.DeclareFunc("DAGGER_FUNCTION", `echo "Dagger Function Placeholder"`)
 	require.NoError(t, err)
 
 	var rendered bytes.Buffer
@@ -48,7 +48,7 @@ func TestDaggerShell_Script(t *testing.T) {
 	t.Run("Render", func(t *testing.T) {
 		script := NewScript()
 		for _, entry := range fakeCells {
-			script.declareFunc(entry.Name, entry.Body)
+			script.DeclareFunc(entry.Name, entry.Body)
 		}
 
 		var rendered bytes.Buffer
@@ -61,7 +61,8 @@ func TestDaggerShell_Script(t *testing.T) {
 	t.Run("RenderWithCall", func(t *testing.T) {
 		script := NewScript()
 		for _, entry := range fakeCells {
-			script.declareFunc(entry.Name, entry.Body)
+			err := script.DeclareFunc(entry.Name, entry.Body)
+			require.NoError(t, err)
 		}
 
 		for _, entry := range fakeCells {
@@ -71,7 +72,18 @@ func TestDaggerShell_Script(t *testing.T) {
 
 			expectedWithCall := fmt.Sprintf("%s; %s\n", strings.Trim(expected, "\n"), entry.Name)
 			assert.Equal(t, expectedWithCall, renderedWithCall.String())
-			fmt.Println(renderedWithCall.String())
 		}
+	})
+
+	t.Run("RenderWithCall_Invalid", func(t *testing.T) {
+		script := NewScript()
+		for _, entry := range fakeCells {
+			err := script.DeclareFunc(entry.Name, entry.Body)
+			require.NoError(t, err)
+		}
+
+		var renderedWithCall bytes.Buffer
+		err := script.RenderWithCall(&renderedWithCall, "INVALID")
+		require.Error(t, err)
 	})
 }

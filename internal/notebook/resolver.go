@@ -1,11 +1,13 @@
 package notebook
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/stateful/runme/v3/internal/notebook/daggershell"
 	notebookv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/notebook/v1alpha1"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
@@ -90,7 +92,7 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 		return &notebookv1alpha1.ResolveNotebookResponse{Script: targetCell.GetValue()}, nil
 	}
 
-	script := ""
+	script := daggershell.NewScript()
 	for _, cell := range notebook.Cells {
 		if cell.GetKind() != parserv1.CellKind_CELL_KIND_CODE {
 			continue
@@ -114,11 +116,17 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 		}
 
 		snippet := cell.GetValue()
-		script += fmt.Sprintf("%s() {\n\t%s\n}\n\n", known, snippet)
+		if err := script.DeclareFunc(known, snippet); err != nil {
+			return nil, err
+		}
 	}
 
-	script += targetName + "\n"
+	var rendered bytes.Buffer
+	if err := script.RenderWithCall(&rendered, targetName); err != nil {
+		return nil, err
+	}
+
 	return &notebookv1alpha1.ResolveNotebookResponse{
-		Script: script,
+		Script: rendered.String(),
 	}, nil
 }

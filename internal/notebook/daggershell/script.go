@@ -1,6 +1,7 @@
-package notebook
+package daggershell
 
 import (
+	"errors"
 	"io"
 	"strings"
 
@@ -21,7 +22,7 @@ func NewScript() *Script {
 	}
 }
 
-func (s *Script) declareFunc(name, body string) error {
+func (s *Script) DeclareFunc(name, body string) error {
 	stmt := &syntax.Stmt{
 		Cmd: &syntax.FuncDecl{
 			Parens: true,
@@ -59,26 +60,51 @@ func (s *Script) Render(w io.Writer) error {
 }
 
 func (s *Script) RenderWithCall(w io.Writer, name string) error {
-	stmts := s.stmts
-
-	if name != "" {
-		stmts = make([]*syntax.Stmt, len(s.stmts))
-		copy(stmts, s.stmts)
-		stmts = append(stmts, &syntax.Stmt{
-			Cmd: &syntax.CallExpr{
-				Args: []*syntax.Word{
-					{
-						Parts: []syntax.WordPart{
-							&syntax.Lit{Value: name},
-						},
-					},
-				},
-			},
+	if name == "" {
+		return s.printer.Print(w, &syntax.File{
+			Name:  "DaggerShellScript",
+			Stmts: s.stmts,
 		})
 	}
 
-	return s.printer.Print(w, &syntax.File{
+	stmts := make([]*syntax.Stmt, len(s.stmts))
+	copy(stmts, s.stmts)
+	f := &syntax.File{
 		Name:  "DaggerShellScript",
 		Stmts: stmts,
+	}
+
+	validFuncName := false
+	// check if func name was previously declared
+	syntax.Walk(f, func(node syntax.Node) bool {
+		decl, ok := node.(*syntax.FuncDecl)
+		if !ok {
+			return true
+		}
+
+		if decl.Name.Value == name {
+			validFuncName = true
+			return false
+		}
+
+		return true
 	})
+
+	if !validFuncName {
+		return errors.New("undeclared function name")
+	}
+
+	f.Stmts = append(f.Stmts, &syntax.Stmt{
+		Cmd: &syntax.CallExpr{
+			Args: []*syntax.Word{
+				{
+					Parts: []syntax.WordPart{
+						&syntax.Lit{Value: name},
+					},
+				},
+			},
+		},
+	})
+
+	return s.printer.Print(w, f)
 }
