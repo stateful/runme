@@ -55,11 +55,27 @@ func TestResolveDaggerShell(t *testing.T) {
 	}
 
 	resolver := NewNotebookResolver(daggerShellNotebook)
-	declaration := "KERNEL_BINARY() { github.com/purpleclay/daggerverse/golang $(git https://github.com/stateful/runme | head | tree) | build | file runme; }; PRESETUP() { git https://github.com/stateful/vscode-runme | head | tree | file dagger/scripts/presetup.sh; }; EXTENSION() { github.com/stateful/vscode-runme | with-remote github.com/stateful/vscode-runme main | with-container $(KERNEL_BINARY) $(PRESETUP) | build-extension GITHUB_TOKEN; };"
+	declaration := `KERNEL_BINARY()
+{
+  github.com/purpleclay/daggerverse/golang $(git https://github.com/stateful/runme | head | tree) \
+    | build \
+    | file runme
+}
+PRESETUP()
+{
+  git https://github.com/stateful/vscode-runme | head | tree \
+    | file dagger/scripts/presetup.sh
+}
+EXTENSION()
+{
+  github.com/stateful/vscode-runme | with-remote github.com/stateful/vscode-runme main | with-container $(KERNEL_BINARY) $(PRESETUP) | build-extension GITHUB_TOKEN
+}
+`
+
 	expectedScripts := []string{
-		declaration + " KERNEL_BINARY\n",
-		declaration + " PRESETUP\n",
-		declaration + " EXTENSION\n",
+		declaration + "KERNEL_BINARY\n",
+		declaration + "PRESETUP\n",
+		declaration + "EXTENSION\n",
 	}
 
 	for cellIndex, expectedScript := range expectedScripts {

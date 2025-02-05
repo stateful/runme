@@ -16,9 +16,13 @@ type Script struct {
 
 func NewScript() *Script {
 	return &Script{
-		stmts:   []*syntax.Stmt{},
-		printer: syntax.NewPrinter(syntax.SingleLine(true)),
-		parser:  syntax.NewParser(),
+		stmts: []*syntax.Stmt{},
+		printer: syntax.NewPrinter(
+			syntax.Indent(2),
+			syntax.BinaryNextLine(true),
+			syntax.FunctionNextLine(true),
+		),
+		parser: syntax.NewParser(),
 	}
 }
 

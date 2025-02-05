@@ -2,7 +2,6 @@ package daggershell
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -20,8 +19,13 @@ func TestDaggerShell_FuncDecl(t *testing.T) {
 	err = script.Render(&rendered)
 	require.NoError(t, err)
 
+	const expected = `DAGGER_FUNCTION()
+{
+  echo "Dagger Function Placeholder"
+}
+`
 	assert.Equal(t,
-		"DAGGER_FUNCTION() { echo \"Dagger Function Placeholder\"; }\n",
+		expected,
 		rendered.String(),
 	)
 }
@@ -38,12 +42,24 @@ func TestDaggerShell_Script(t *testing.T) {
 		{"KERNEL_BINARY", `echo "This is KERNEL_BINARY"`},
 	}
 
-	expected := strings.Join([]string{
-		"DAGGER_01JJDCG2SQSGV0DP55X86EJFSZ() { echo \"Use known ID\"; date; };",
-		"PRESETUP() { echo \"This is PRESETUP\" | xxd; };",
-		"EXTENSION() { echo \"This is EXTENSION\" | less; };",
-		"KERNEL_BINARY() { echo \"This is KERNEL_BINARY\"; }\n",
-	}, " ")
+	expected := `DAGGER_01JJDCG2SQSGV0DP55X86EJFSZ()
+{
+  echo "Use known ID"
+  date
+}
+PRESETUP()
+{
+  echo "This is PRESETUP" | xxd
+}
+EXTENSION()
+{
+  echo "This is EXTENSION" | less
+}
+KERNEL_BINARY()
+{
+  echo "This is KERNEL_BINARY"
+}
+`
 
 	t.Run("Render", func(t *testing.T) {
 		script := NewScript()
@@ -70,8 +86,9 @@ func TestDaggerShell_Script(t *testing.T) {
 			err := script.RenderWithCall(&renderedWithCall, entry.Name)
 			require.NoError(t, err)
 
-			expectedWithCall := fmt.Sprintf("%s; %s\n", strings.Trim(expected, "\n"), entry.Name)
-			assert.Equal(t, expectedWithCall, renderedWithCall.String())
+			// add function call padded by new lines
+			expectedBytesWithCall := strings.Join([]string{expected[:len(expected)-1], entry.Name, ""}, "\n")
+			assert.Equal(t, expectedBytesWithCall, renderedWithCall.String())
 		}
 	})
 
