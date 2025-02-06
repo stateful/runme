@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/stateful/runme/v3/internal/notebook/daggershell"
-	notebookv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/notebook/v1alpha1"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
 	"go.uber.org/zap"
@@ -26,7 +25,7 @@ func NewNotebookResolver(notebook *parserv1.Notebook) *NotebookResolver {
 	}
 }
 
-func (r *NotebookResolver) ParseNotebook(context context.Context) (*parserv1.Notebook, error) {
+func (r *NotebookResolver) parseNotebook(context context.Context) (*parserv1.Notebook, error) {
 	// make id sticky only for resolving purposes
 	for _, cell := range r.notebook.Cells {
 		if cell.GetKind() != parserv1.CellKind_CELL_KIND_CODE {
@@ -58,38 +57,36 @@ func (r *NotebookResolver) ParseNotebook(context context.Context) (*parserv1.Not
 	return des.Notebook, nil
 }
 
-func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (*notebookv1alpha1.ResolveNotebookResponse, error) {
-	notebook, err := r.ParseNotebook(context)
+func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (string, error) {
+	notebook, err := r.parseNotebook(context)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	var targetCell *parserv1.Cell
 	targetName := ""
-	for idx, cell := range notebook.Cells {
-		if idx != int(cellIndex) {
-			continue
-		}
-
-		id, okID := cell.Metadata["runme.dev/id"]
-		known, okKnown := cell.Metadata["name"]
-		generated := cell.Metadata["runme.dev/nameGenerated"]
-		if !okID && !okKnown {
-			continue
-		}
-
-		isGenerated, err := strconv.ParseBool(generated)
-		if !okKnown || isGenerated || err != nil {
-			known = fmt.Sprintf("DAGGER_%s", id)
-		}
-
-		targetCell = cell
-		targetName = known
-		break
+	if int(cellIndex) < 0 || int(cellIndex) >= len(notebook.Cells) {
+		return "", fmt.Errorf("cell index out of range")
 	}
 
+	cell := notebook.Cells[cellIndex]
+	id, okID := cell.Metadata["runme.dev/id"]
+	known, okKnown := cell.Metadata["name"]
+	generated := cell.Metadata["runme.dev/nameGenerated"]
+	if !okID && !okKnown {
+		return "", fmt.Errorf("cell metadata is missing required fields")
+	}
+
+	isGenerated, err := strconv.ParseBool(generated)
+	if !okKnown || isGenerated || err != nil {
+		known = fmt.Sprintf("DAGGER_%s", id)
+	}
+
+	targetCell = cell
+	targetName = known
+
 	if notebook.Frontmatter == nil || !strings.Contains(strings.Trim(notebook.Frontmatter.Shell, " \t\r\n"), "dagger shell") {
-		return &notebookv1alpha1.ResolveNotebookResponse{Script: targetCell.GetValue()}, nil
+		return targetCell.GetValue(), nil
 	}
 
 	script := daggershell.NewScript()
@@ -117,16 +114,14 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 
 		snippet := cell.GetValue()
 		if err := script.DeclareFunc(known, snippet); err != nil {
-			return nil, err
+			return "", err
 		}
 	}
 
 	var rendered bytes.Buffer
 	if err := script.RenderWithCall(&rendered, targetName); err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &notebookv1alpha1.ResolveNotebookResponse{
-		Script: rendered.String(),
-	}, nil
+	return rendered.String(), nil
 }

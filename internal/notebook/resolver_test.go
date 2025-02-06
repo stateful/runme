@@ -79,8 +79,8 @@ EXTENSION()
 	}
 
 	for cellIndex, expectedScript := range expectedScripts {
-		response, err := resolver.ResolveDaggerShell(ctx, uint32(cellIndex))
+		script, err := resolver.ResolveDaggerShell(ctx, uint32(cellIndex))
 		require.NoError(t, err)
-		assert.Equal(t, expectedScript, response.Script)
+		assert.Equal(t, expectedScript, script)
 	}
 }
