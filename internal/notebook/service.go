@@ -27,6 +27,7 @@ func NewNotebookService(logger *zap.Logger) notebookv1alpha1.NotebookServiceServ
 }
 
 func (r *notebookService) ResolveNotebook(ctx context.Context, req *notebookv1alpha1.ResolveNotebookRequest) (*notebookv1alpha1.ResolveNotebookResponse, error) {
+	r.logger.Info("running ResolveNotebook in notebookService")
 	commandMode := req.GetCommandMode()
 	if commandMode != runnerv1.CommandMode_COMMAND_MODE_DAGGER {
 		return nil, status.Error(codes.Unimplemented, "command mode is not supported")
@@ -45,6 +46,7 @@ func (r *notebookService) ResolveNotebook(ctx context.Context, req *notebookv1al
 	resolver := NewNotebookResolver(notebook)
 	script, err := resolver.ResolveDaggerShell(ctx, cellIndex.GetValue())
 	if err != nil {
+		r.logger.Error("failed to resolve dagger shell", zap.Error(err))
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &notebookv1alpha1.ResolveNotebookResponse{Script: script}, nil
