@@ -358,15 +358,16 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 	}
 
 	opts := &startOpts{}
+	// todo(sebastian): dagger-shell is not UX integration ready yet
 	// special-case Dagger Shell to write the shell's stdout to stderr
-	if cfg.CommandMode == CommandModeDaggerShell {
-		opts.TtyAssignment = func(c *command) {
-			c.cmd.Stdin = c.tty
-			// technically wrong but in v1 we optimize for the least amount of downstream changes
-			c.cmd.Stdout = c.Stderr
-			c.cmd.Stderr = c.tty
-		}
-	}
+	// if cfg.CommandMode == CommandModeDaggerShell {
+	// 	opts.TtyAssignment = func(c *command) {
+	// 		c.cmd.Stdin = c.tty
+	// 		// technically wrong but in v1 we optimize for the least amount of downstream changes
+	// 		c.cmd.Stdout = c.Stderr
+	// 		c.cmd.Stderr = c.tty
+	// 	}
+	// }
 	if err := cmd.StartWithOpts(cmdCtx, opts); err != nil {
 		return err
 	}
