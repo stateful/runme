@@ -32,13 +32,12 @@ func (r *NotebookResolver) parseNotebook(context context.Context) (*parserv1.Not
 			continue
 		}
 
-		_, ok := cell.Metadata["id"]
-		if ok {
+		if _, ok := cell.Metadata["id"]; ok {
 			continue
 		}
 
-		if cell.Metadata == nil {
-			return nil, fmt.Errorf("cell metadata is missing")
+		if _, ok := cell.Metadata["runme.dev/id"]; !ok {
+			continue
 		}
 
 		cell.Metadata["id"] = cell.Metadata["runme.dev/id"]

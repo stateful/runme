@@ -55,7 +55,7 @@ func TestResolveDaggerShell(t *testing.T) {
 	}
 
 	resolver := NewNotebookResolver(daggerShellNotebook)
-	declaration := `KERNEL_BINARY()
+	definition := `KERNEL_BINARY()
 {
   github.com/purpleclay/daggerverse/golang $(git https://github.com/stateful/runme | head | tree) \
     | build \
@@ -73,9 +73,9 @@ EXTENSION()
 `
 
 	expectedScripts := []string{
-		declaration + "KERNEL_BINARY\n",
-		declaration + "PRESETUP\n",
-		declaration + "EXTENSION\n",
+		definition + "KERNEL_BINARY\n",
+		definition + "PRESETUP\n",
+		definition + "EXTENSION\n",
 	}
 
 	for cellIndex, expectedScript := range expectedScripts {
@@ -83,4 +83,36 @@ EXTENSION()
 		require.NoError(t, err)
 		assert.Equal(t, expectedScript, script)
 	}
+}
+
+func TestResolveDaggerShell_EmptyRunmeMetadata(t *testing.T) {
+	ctx := context.Background()
+
+	// fake notebook with dagger shell cells
+	daggerShellNotebook := &parserv1.Notebook{
+		Cells: []*parserv1.Cell{
+			{
+				Kind:       parserv1.CellKind_CELL_KIND_CODE,
+				LanguageId: "sh",
+				Metadata:   nil,
+				Value:      "git github.com/stateful/runme |\n    head |\n    tree |\n    file examples/README.md",
+			},
+		},
+		Metadata: map[string]string{
+			"runme.dev/frontmatter": "---\nshell: dagger shell\n---",
+		},
+	}
+
+	resolver := NewNotebookResolver(daggerShellNotebook)
+	stub := `{
+  git github.com/stateful/runme \
+    | head \
+    | tree \
+    | file examples/README.md
+}
+DAGGER_`
+
+	script, err := resolver.ResolveDaggerShell(ctx, uint32(0))
+	require.NoError(t, err)
+	require.Contains(t, script, stub)
 }
