@@ -172,8 +172,13 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata, opts 
 		)
 	}
 
+	labelComment := false
+	if frontmatter != nil && frontmatter.Shell == "dagger shell" {
+		labelComment = true
+	}
+
 	// Serialize cells.
-	serializedCells, err := serializeCells(notebook.Cells)
+	serializedCells, err := serializeCells(notebook.Cells, labelComment)
 	if err != nil {
 		return nil, err
 	}
