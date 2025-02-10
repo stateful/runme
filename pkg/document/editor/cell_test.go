@@ -159,10 +159,10 @@ def hello():
 	assert.Equal(t, "def hello():\n    print(\"Hello World\")", cell.Value)
 }
 
-func mustReturnSerializedCells(t *testing.T, cells []*Cell) []byte {
+func mustReturnSerializedCells(t *testing.T, cells []*Cell, labelComment bool) []byte {
 	t.Helper()
 
-	data, err := serializeCells(cells)
+	data, err := serializeCells(cells, labelComment)
 	require.NoError(t, err)
 
 	return data
@@ -193,7 +193,7 @@ Last paragraph.
 		assert.Equal(
 			t,
 			"# New header\n\n1. Item 1\n2. Item 2\n3. Item 3\n\nLast paragraph.\n",
-			string(mustReturnSerializedCells(t, cells)),
+			string(mustReturnSerializedCells(t, cells, false)),
 		)
 	})
 
@@ -203,7 +203,7 @@ Last paragraph.
 		assert.Equal(
 			t,
 			"# Examples\n\n1. Item 1\n2. Item 2\n3. Item 3\n4. Item 4\n\nLast paragraph.\n",
-			string(mustReturnSerializedCells(t, cells)),
+			string(mustReturnSerializedCells(t, cells, false)),
 		)
 	})
 
@@ -220,7 +220,7 @@ Last paragraph.
 			assert.Equal(
 				t,
 				"# Title\n\n# Examples\n\n1. Item 1\n2. Item 2\n3. Item 3\n\nLast paragraph.\n",
-				string(mustReturnSerializedCells(t, cells)),
+				string(mustReturnSerializedCells(t, cells, false)),
 			)
 		})
 
@@ -235,7 +235,7 @@ Last paragraph.
 			assert.Equal(
 				t,
 				"# Examples\n\nA new paragraph.\n\n1. Item 1\n2. Item 2\n3. Item 3\n\nLast paragraph.\n",
-				string(mustReturnSerializedCells(t, cells)),
+				string(mustReturnSerializedCells(t, cells, false)),
 			)
 		})
 
@@ -249,7 +249,7 @@ Last paragraph.
 			assert.Equal(
 				t,
 				"# Examples\n\n1. Item 1\n2. Item 2\n3. Item 3\n\nLast paragraph.\n\nParagraph after the last one.\n",
-				string(mustReturnSerializedCells(t, cells)),
+				string(mustReturnSerializedCells(t, cells, false)),
 			)
 		})
 	})
@@ -260,7 +260,7 @@ Last paragraph.
 		assert.Equal(
 			t,
 			"# Examples\n\nLast paragraph.\n",
-			string(mustReturnSerializedCells(t, cells)),
+			string(mustReturnSerializedCells(t, cells, false)),
 		)
 	})
 }
@@ -304,7 +304,7 @@ brew bundle --no-lock
 pre-commit install
 `+"```"+`
 `,
-		string(mustReturnSerializedCells(t, cells)),
+		string(mustReturnSerializedCells(t, cells, false)),
 	)
 }
 
@@ -315,7 +315,7 @@ func Test_serializeCells(t *testing.T) {
 		node, err := doc.Root()
 		require.NoError(t, err)
 		cells := toCells(doc, node, data)
-		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells)))
+		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells, false)))
 	})
 
 	t.Run("privateFields", func(t *testing.T) {
@@ -329,7 +329,7 @@ func Test_serializeCells(t *testing.T) {
 		cells[0].Metadata["_private"] = "private"
 		cells[0].Metadata["runme.dev/internal"] = "internal"
 
-		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells)))
+		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells, false)))
 	})
 
 	t.Run("UnsupportedLang", func(t *testing.T) {
@@ -344,7 +344,7 @@ def hello():
 		node, err := doc.Root()
 		require.NoError(t, err)
 		cells := toCells(doc, node, data)
-		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells)))
+		assert.Equal(t, string(data), string(mustReturnSerializedCells(t, cells, false)))
 	})
 }
 
@@ -417,4 +417,15 @@ func Test_serializeOutputs(t *testing.T) {
 		serializeCellOutputsImage(&buf, &testCell)
 		assert.Equal(t, "\n\n![$ curl -s \"https://runme.dev/runme_cube.svg\"](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTUzNSIgaGVpZ2h0PSI4MDA0IiB2aWV3Qm94PSIwIDAgOTUzNSA4MDA0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNTA0Ni45NCAzMy43Mzk1QzQ4MzIuNDYgLTE2LjQwNjEgNDQ5MS42OSAtOS43ODk5IDQyODYuNTkgNDcuODI2NkwzNTA0IDI2OC42MUwyNzIxLjQyIDQ4OS4zOTJMMTE1Ni4yNSA5MzAuOTU4Qzk1MS4zMSA5ODguNTc1IDk1OC4wOTIgMTA3Ni40OSAxMTcyLjQ2IDExMjYuNDdMNDQzMS44NCAxODg3Ljk0QzQ2NDUuNDcgMTkzNy43OSA0OTg2LjE1IDE5MzEuMzQgNTE5MS4wOSAxODczLjU1TDU5NzMuNzUgMTY1Mi43Nkw2NzU2LjQyIDE0MzEuOTdMNzUzOS4wOSAxMjExLjE4TDgzMjEuNzYgOTkwLjM5NEM4NTI2LjcgOTMyLjc3OCA4NTE5LjkyIDg0NS4wNTcgODMwNi4zOCA3OTUuMjE1TDUwNDYuOTQgMzMuNzM5NVoiIGZpbGw9IiM1QjNBREYiIGZpbGwtb3BhY2l0eT0iMC43Ii8)\n", buf.String())
 	})
+}
+
+func Test_removeLabelCommentOnCells(t *testing.T) {
+	data := []byte("```sh {\"first\":\"\",\"name\":\"label-in-comments\",\"second\":\"2\"}\n### Exported in runme.dev as label-in-comments\necho 1\n```\n")
+	doc := document.New(data, identityResolverNone)
+	node, err := doc.Root()
+	require.NoError(t, err)
+
+	cells := toCells(doc, node, data)
+
+	require.NotContains(t, cells[0].Value, "### Exported in runme.dev as label-in-comments")
 }

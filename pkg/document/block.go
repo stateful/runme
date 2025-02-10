@@ -150,8 +150,19 @@ func (b *CodeBlock) Tags() []string {
 	return superset
 }
 
+func (b *CodeBlock) valueWithoutLabelComments() []byte {
+	var lines [][]byte
+	for _, line := range bytes.Split(b.value, []byte{'\n'}) {
+		if bytes.HasPrefix(line, []byte("### ")) {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	return bytes.Join(lines, []byte{'\n'})
+}
+
 func (b *CodeBlock) Content() []byte {
-	value := bytes.Trim(b.value, "\n")
+	value := bytes.Trim(b.valueWithoutLabelComments(), "\n")
 	lines := bytes.Split(value, []byte{'\n'})
 	if len(lines) < 2 {
 		return b.value

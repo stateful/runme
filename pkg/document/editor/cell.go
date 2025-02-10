@@ -22,6 +22,7 @@ const (
 	InternalAttributePrefix = "runme.dev"
 	PrivateAttributePrefix  = "_"
 	defaultAttributeFormat  = "json"
+	labelCommentPreamble    = "### Exported in runme.dev as "
 )
 
 type CellKind int
@@ -335,13 +336,13 @@ func removeAnsiCodes(str string) string {
 	return re.ReplaceAllString(str, "")
 }
 
-func serializeCells(cells []*Cell) ([]byte, error) {
+func serializeCells(cells []*Cell, labelComment bool) ([]byte, error) {
 	var buf bytes.Buffer
 
 	for idx, cell := range cells {
 		switch cell.Kind {
 		case CodeKind:
-			err := serializeCellCodeBlock(&buf, cell)
+			err := serializeCellCodeBlock(&buf, cell, labelComment)
 			if err != nil {
 				return nil, err
 			}
@@ -363,13 +364,22 @@ func serializeCells(cells []*Cell) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func serializeCellCodeBlock(w io.Writer, cell *Cell) error {
+func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
 	var buf bytes.Buffer
 	value := cell.Value
 
+	knownName, nameOk := cell.Metadata["name"]
+	labelCommentForCell := labelCommentPreamble + knownName + "\n"
+
 	isFencedCodeBlock, err := strconv.ParseBool(cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")])
 	if err == nil && !isFencedCodeBlock {
-		for _, v := range strings.Split(value, "\n") {
+		lines := strings.Split(value, "\n")
+		if labelComment && nameOk && len(lines) > 0 {
+			_, _ = buf.Write(bytes.Repeat([]byte{' '}, 4))
+			_, _ = buf.WriteString(labelCommentForCell)
+		}
+
+		for _, v := range lines {
 			_, _ = buf.Write(bytes.Repeat([]byte{' '}, 4))
 			_, _ = buf.WriteString(v)
 			_ = buf.WriteByte('\n')
@@ -391,6 +401,9 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell) error {
 		}
 
 		_ = buf.WriteByte('\n')
+		if labelComment && nameOk {
+			_, _ = buf.WriteString(labelCommentForCell)
+		}
 		_, _ = buf.WriteString(cell.Value)
 		_ = buf.WriteByte('\n')
 
