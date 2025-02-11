@@ -153,19 +153,31 @@ loop:
 			break
 		}
 
-		r1 := l.next()
-		l.backup()
+		ahead := [3]rune{}
+		for i := 0; i < len(ahead); i++ {
+			ahead[i] = l.next()
+			if ahead[i] == eof {
+				break loop
+			}
+		}
+		for i := 0; i < len(ahead); i++ {
+			l.backup()
+		}
 
 		switch {
 		case r0 == '+':
 			return parseRawFrontmatter(l, byte(r0))
+		case r0 == '-' && ahead[0] == '-' && ahead[1] == '8' && ahead[2] == '<':
+			// skip scissor syntax
+			l.backup()
+			break loop
 		case r0 == '-':
 			return parseRawFrontmatter(l, byte(r0))
-		case r0 == '{' && r1 == '{':
+		case r0 == '{' && ahead[0] == '{':
 			// skip markdown templates
 			l.backup()
 			break loop
-		case r0 == '{' && r1 == '%':
+		case r0 == '{' && ahead[0] == '%':
 			// skip markdown preprocessor includes
 			l.backup()
 			break loop
