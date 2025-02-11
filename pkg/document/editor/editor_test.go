@@ -251,7 +251,8 @@ A paragraph
 }
 
 func TestEditor_RetainInvalidFrontmatter(t *testing.T) {
-	data := []byte(`+++
+	t.Run("SnippetSyntax", func(t *testing.T) {
+		data := []byte(`+++
 title = '{{ replace .File.ContentBaseName "-" " " | title }}'
 date = {{ .Date }}
 draft = true
@@ -261,15 +262,31 @@ draft = true
 
 A paragraph
 `)
-	notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
-	require.NoError(t, err)
-	result, err := Serialize(notebook, nil, Options{})
-	require.NoError(t, err)
-	assert.Equal(
-		t,
-		string(data),
-		string(result),
-	)
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(result),
+		)
+	})
+
+	t.Run("MkdocsScissorSyntax", func(t *testing.T) {
+		data := []byte("--8<-- \"snippets/live-code-snippets-button-executor.md\"\n\n## Import Dynatrace Dashboard\n\n```sh {\"name\":\"docker ps\"}\ndocker ps\n```\n")
+		notebook, err := Deserialize(data, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		// assert.NotNil(t, notebook.Frontmatter)
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			string(data),
+			string(result),
+		)
+	})
 }
 
 func TestEditor_SessionOutput(t *testing.T) {

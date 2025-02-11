@@ -103,3 +103,11 @@ All notable changes to this project will be documented in this file.
 	assert.Equal(t, "", string(sections.Frontmatter))
 	assert.Equal(t, "{{- $repourl := $.Info.RepositoryURL -}}\n# CHANGELOG\nAll notable changes to this project will be documented in this file.\n", string(sections.Content))
 }
+
+func TestParseSections_SkipMkdocsScissorSyntax(t *testing.T) {
+	data := []byte("--8<-- \"snippets/live-code-snippets-button-executor.md\"\n\n## Import Dynatrace Dashboard\n\n``` {\"name\": \"docker ps\"}\ndocker ps\n```\n")
+	sections, err := ParseSections(data)
+	require.NoError(t, err)
+	assert.Equal(t, "", string(sections.Frontmatter))
+	// assert.Equal(t, "{{- $repourl := $.Info.RepositoryURL -}}\n# CHANGELOG\nAll notable changes to this project will be documented in this file.\n", string(sections.Content))
+}
