@@ -773,7 +773,6 @@ func TestEditor_AttributeFormat(t *testing.T) {
 func TestEditor_LabelComments(t *testing.T) {
 	labelComments := []byte("## Retain attribute format\n\nFirst block uses HTML.\n\n```sh { name=date interactive=false }\n### Exported in runme.dev as date\ndate\n```\n\nThe second JSON.\n\n```javascript {\"interactive\":\"false\",\"name\":\"iso\"}\n### Exported in runme.dev as iso\nconsole.log(new Date().toISOString())\n```\n")
 	t.Run("StrippedByDefault", func(t *testing.T) {
-
 		notebook, err := Deserialize(labelComments, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)
 
