@@ -108,13 +108,9 @@ _generate:
 .PHONY: lint
 lint:
 	@# "gofumpt -d ." does not return non-zero exit code if there are changes
-	@if [[ $(shell gofumpt -d . | wc -c) -ne 0 ]]; then\
-		echo "gofumpt failed, run make fmt" && exit 1;\
-	fi
+	@test -z $(shell gofumpt -d .)
 	@# "goimports -d ." does not return non-zero exit code if there are changes
-	@if [[ $(shell goimports -local="github.com/stateful/runme" -l . | wc -c) -ne 0 ]]; then\
-		echo "goimports failed, run make fmt" && exit 1;\
-	fi
+	@test -z $(shell goimports -local="github.com/stateful/runme" -l .)
 	@revive \
 		-config revive.toml \
 		-formatter friendly \
