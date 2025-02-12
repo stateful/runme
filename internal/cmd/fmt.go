@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
 	idt "github.com/stateful/runme/v3/pkg/document/identity"
 	"github.com/stateful/runme/v3/pkg/project"
 )

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+
 	"github.com/stateful/runme/v3/pkg/document/editor"
 	"github.com/stateful/runme/v3/pkg/document/identity"
 )

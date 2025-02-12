@@ -11,11 +11,12 @@ import (
 	"github.com/mgutz/ansi"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/constraints"
+
 	"github.com/stateful/runme/v3/internal/runner"
 	"github.com/stateful/runme/v3/internal/runner/client"
 	"github.com/stateful/runme/v3/internal/version"
 	"github.com/stateful/runme/v3/pkg/project"
-	"golang.org/x/exp/constraints"
 )
 
 func tuiCmd() *cobra.Command {

@@ -98,8 +98,8 @@ input Int64ValueInput {
 }
 type Mutation {
 	"""
-	 ResolveNotebook that takes a notebook and a cellIndex and returns a script
-	 that takes the whole notebook into account to run as cell.
+	 ResolveNotebook takes [runme.parser.v1.Notebook] and a cell index and
+	 returns a script that runs the cell taking the whole notebook into account.
 
 	"""
 	notebookServiceResolveNotebook(in: ResolveNotebookRequestInput): ResolveNotebookResponse

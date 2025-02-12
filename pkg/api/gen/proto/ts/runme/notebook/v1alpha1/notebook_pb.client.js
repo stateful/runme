@@ -16,8 +16,8 @@ export class NotebookServiceClient {
         this.options = NotebookService.options;
     }
     /**
-     * ResolveNotebook that takes a notebook and a cellIndex and returns a script
-     * that takes the whole notebook into account to run as cell.
+     * ResolveNotebook takes [runme.parser.v1.Notebook] and a cell index and
+     * returns a script that runs the cell taking the whole notebook into account.
      *
      * @generated from protobuf rpc: ResolveNotebook(runme.notebook.v1alpha1.ResolveNotebookRequest) returns (runme.notebook.v1alpha1.ResolveNotebookResponse);
      */

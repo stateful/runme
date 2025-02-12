@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/v3/internal/session"
 	"go.uber.org/zap"
+
+	"github.com/stateful/runme/v3/internal/session"
 )
 
 type inlineShellCommand struct {

@@ -6,10 +6,11 @@ import (
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"go.uber.org/zap"
+
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/pkg/project"
-	"go.uber.org/zap"
 )
 
 var owlStoreDefault = false

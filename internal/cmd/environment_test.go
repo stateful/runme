@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/stateful/runme/v3/internal/command"
 )
 
 func Test_cmdEnvironment_Dump(t *testing.T) {

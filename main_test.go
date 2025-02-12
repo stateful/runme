@@ -14,6 +14,8 @@ import (
 	"github.com/creack/pty"
 	"github.com/rogpeppe/go-internal/testscript"
 	"github.com/stretchr/testify/require"
+
+	"github.com/stateful/runme/v3/internal/testutils"
 )
 
 func TestMain(m *testing.M) {
@@ -57,6 +59,17 @@ func TestRunmeRunAll(t *testing.T) {
 func TestRunmeBeta(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/beta",
+		ContinueOnError: true,
+	})
+}
+
+func TestRunmeFilePermissions(t *testing.T) {
+	if testutils.IsRunningInDocker() {
+		t.Skip("Test skipped when running inside a Docker container")
+	}
+
+	testscript.Run(t, testscript.Params{
+		Dir:             "testdata/permissions",
 		ContinueOnError: true,
 	})
 }

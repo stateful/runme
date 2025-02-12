@@ -2,9 +2,11 @@
 
 package config
 
-import "encoding/json"
-import "fmt"
-import "reflect"
+import (
+	"encoding/json"
+	"fmt"
+	"reflect"
+)
 
 // Runme configuration schema
 type Config struct {

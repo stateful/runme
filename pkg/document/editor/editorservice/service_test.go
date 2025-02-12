@@ -7,16 +7,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stateful/runme/v3/internal/testutils"
-	"github.com/stateful/runme/v3/internal/ulid"
-	"github.com/stateful/runme/v3/internal/version"
-	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/stateful/runme/v3/internal/testutils"
+	"github.com/stateful/runme/v3/internal/ulid"
+	"github.com/stateful/runme/v3/internal/version"
+	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 )
 
 var (
