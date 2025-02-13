@@ -19,6 +19,8 @@ import (
 	"github.com/stateful/runme/v3/pkg/document"
 )
 
+const DaggerCustomShell = "dagger shell"
+
 type Shell struct {
 	*ExecutableConfig
 	command     *command
@@ -136,10 +138,14 @@ func IsShellLanguage(languageID string) bool {
 }
 
 func GetCellProgram(languageID string, customShell string, cell *document.CodeBlock) (program string, commandMode CommandMode) {
-	if IsShellLanguage(languageID) {
+	switch {
+	case strings.Contains(customShell, DaggerCustomShell):
+		program = customShell
+		commandMode = CommandModeDaggerShell
+	case IsShellLanguage(languageID):
 		program = customShell
 		commandMode = CommandModeInlineShell
-	} else {
+	default:
 		commandMode = CommandModeTempFile
 	}
 
@@ -152,8 +158,13 @@ func GetCellProgram(languageID string, customShell string, cell *document.CodeBl
 
 func resolveShellPath(customShell string) string {
 	if customShell != "" {
-		if path, err := system.LookPath(customShell); err == nil {
-			return path
+		programParts := strings.Split(customShell, " ")
+		args := []string{}
+		if len(programParts) > 1 {
+			args = programParts[1:]
+		}
+		if path, err := system.LookPath(programParts[0]); err == nil {
+			return strings.Join(append([]string{path}, args...), " ")
 		}
 	}
 

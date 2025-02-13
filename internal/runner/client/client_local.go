@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/notebook"
 	"github.com/stateful/runme/v3/internal/runner"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/pkg/document"
@@ -22,15 +23,17 @@ import (
 type LocalRunner struct {
 	*RunnerSettings
 
-	shellID       int
-	runnerService runnerv1.RunnerServiceServer
+	shellID          int
+	runnerService    runnerv1.RunnerServiceServer
+	notebookResolver notebook.NotebookResolver
 }
 
 func (r *LocalRunner) Clone() Runner {
 	return &LocalRunner{
-		RunnerSettings: r.RunnerSettings.Clone(),
-		shellID:        r.shellID,
-		runnerService:  r.runnerService,
+		RunnerSettings:   r.RunnerSettings.Clone(),
+		shellID:          r.shellID,
+		runnerService:    r.runnerService,
+		notebookResolver: r.notebookResolver,
 	}
 }
 
@@ -100,7 +103,10 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 		customShell = fmtr.Shell
 	}
 
-	programName, _ := runner.GetCellProgram(block.Language(), customShell, block)
+	programName, lines, _, err := getCellProgram(block.Language(), customShell, task)
+	if err != nil {
+		return nil, err
+	}
 
 	cfg := &runner.ExecutableConfig{
 		Name:    block.Name(),
@@ -128,14 +134,14 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 	case "bash", "bat", "sh", "shell", "zsh", "":
 		return &runner.Shell{
 			ExecutableConfig: cfg,
-			Cmds:             block.Lines(),
+			Cmds:             lines,
 			CustomShell:      customShell,
 		}, nil
 	case "sh-raw":
 		return &runner.ShellRaw{
 			Shell: &runner.Shell{
 				ExecutableConfig: cfg,
-				Cmds:             block.Lines(),
+				Cmds:             lines,
 			},
 		}, nil
 	case "go":
@@ -146,7 +152,7 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 	default:
 		return &runner.TempFile{
 			ExecutableConfig: cfg,
-			Script:           strings.Join(block.Lines(), "\n"),
+			Script:           strings.Join(lines, "\n"),
 			ProgramName:      programName,
 			LanguageID:       block.Language(),
 		}, nil

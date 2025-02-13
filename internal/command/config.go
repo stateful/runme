@@ -30,7 +30,7 @@ func isShell(cfg *ProgramConfig) bool {
 
 func isShellProgram(programName string) bool {
 	switch strings.ToLower(programName) {
-	case "sh", "bash", "zsh", "ksh", "shell":
+	case "sh", "bash", "zsh", "ksh", "shell", "dagger shell":
 		return true
 	case "cmd", "powershell", "pwsh", "fish":
 		return true

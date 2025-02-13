@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/notebook"
 	"github.com/stateful/runme/v3/internal/runner"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/pkg/document"
@@ -299,6 +300,35 @@ func ResolveDirectory(parentDir string, task project.Task) string {
 	}
 
 	return parentDir
+}
+
+func getCellProgram(languageID string, customShell string, task project.Task) (program string, lines []string, commandMode runner.CommandMode, err error) {
+	block := task.CodeBlock
+	lines = block.Lines()
+
+	program, commandMode = runner.GetCellProgram(languageID, customShell, block)
+	if commandMode != runner.CommandModeDaggerShell {
+		return
+	}
+
+	path := task.DocumentPath
+	resolver, err := notebook.NewResolver(notebook.WithDocumentPath(path))
+	if err != nil {
+		return
+	}
+
+	cellIndex, err := resolver.GetCellIndexByBlock(block)
+	if err != nil {
+		return
+	}
+
+	script, err := resolver.ResolveDaggerShell(context.Background(), cellIndex)
+	if err != nil {
+		return
+	}
+	lines = strings.Split(script, "\n")
+
+	return
 }
 
 func resolveOrAbsolute(parent string, child string) string {

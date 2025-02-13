@@ -204,7 +204,10 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 		customShell = fmtr.Shell
 	}
 
-	programName, commandMode := runner.GetCellProgram(block.Language(), customShell, block)
+	programName, lines, commandMode, err := getCellProgram(block.Language(), customShell, task)
+	if err != nil {
+		return err
+	}
 
 	var commandModeGrpc runnerv1.CommandMode
 
@@ -212,6 +215,7 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 	case runner.CommandModeNone:
 		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_UNSPECIFIED
 	case runner.CommandModeInlineShell:
+	case runner.CommandModeDaggerShell:
 		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL
 	case runner.CommandModeTempFile:
 		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE
@@ -220,7 +224,7 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 	req := &runnerv1.ExecuteRequest{
 		ProgramName:     programName,
 		Directory:       r.dir,
-		Commands:        block.Lines(),
+		Commands:        lines,
 		Tty:             tty,
 		SessionId:       r.sessionID,
 		SessionStrategy: r.sessionStrategy,
