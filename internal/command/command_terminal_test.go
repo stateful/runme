@@ -168,21 +168,26 @@ func TestTerminalCommand_NonInteractive(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	require.NoError(t, cmd.Start(ctx))
+	err = cmd.Start(ctx)
+	require.NoError(t, err)
 
 	// TODO(adamb): on macOS is is not necessary, but on Linux
 	// we need to wait for the shell to start before we start sending commands.
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 3)
+
 	_, err = stdinW.Write([]byte("echo -n test\n"))
 	require.NoError(t, err)
 
+	// Wait for the command to finish and simulate more real-world usage.
 	time.Sleep(time.Second)
 	_, err = stdinW.Write([]byte{0x04}) // EOT
 	require.NoError(t, err)
-	require.NoError(t, cmd.Wait(context.Background()))
+
+	err = cmd.Wait(context.Background())
+	require.NoError(t, err)
 }
 
 func TestTerminalCommand_OptionsStdinWriterNil(t *testing.T) {

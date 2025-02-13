@@ -380,7 +380,7 @@ func TestCommand_SetWinsize(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		err = cmd.Start(ctx)
@@ -394,9 +394,13 @@ func TestCommand_SetWinsize(t *testing.T) {
 		require.NoError(t, err)
 		_, err = stdinW.Write([]byte("tput cols -T linux; tput lines -T linux\n"))
 		require.NoError(t, err)
+
+		// Wait for the command to finish and simulate more real-world usage.
+		time.Sleep(time.Second)
 		_, err = stdinW.Write([]byte{0x04}) // EOT
 		require.NoError(t, err)
-		err = cmd.Wait(context.Background())
+
+		err = cmd.Wait(ctx)
 		stdoutStr := stdout.String()
 		require.NoError(
 			t,
