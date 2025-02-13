@@ -11,11 +11,12 @@ import (
 
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
+
 	"github.com/stateful/runme/v3/internal/runner"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/pkg/document"
 	"github.com/stateful/runme/v3/pkg/project"
-	"go.uber.org/zap"
 )
 
 type LocalRunner struct {

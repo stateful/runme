@@ -11,12 +11,13 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
+
 	"github.com/stateful/runme/v3/internal/auth"
 	"github.com/stateful/runme/v3/internal/client"
 	"github.com/stateful/runme/v3/internal/log"
 	"github.com/stateful/runme/v3/internal/version"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 )
 
 const (

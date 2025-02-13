@@ -8,6 +8,7 @@ package notebookv1alpha1
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -26,8 +27,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NotebookServiceClient interface {
-	// ResolveNotebook that takes a notebook and a cellIndex and returns a script
-	// that takes the whole notebook into account to run as cell.
+	// ResolveNotebook takes [runme.parser.v1.Notebook] and a cell index and
+	// returns a script that runs the cell taking the whole notebook into account.
 	ResolveNotebook(ctx context.Context, in *ResolveNotebookRequest, opts ...grpc.CallOption) (*ResolveNotebookResponse, error)
 }
 
@@ -53,8 +54,8 @@ func (c *notebookServiceClient) ResolveNotebook(ctx context.Context, in *Resolve
 // All implementations must embed UnimplementedNotebookServiceServer
 // for forward compatibility.
 type NotebookServiceServer interface {
-	// ResolveNotebook that takes a notebook and a cellIndex and returns a script
-	// that takes the whole notebook into account to run as cell.
+	// ResolveNotebook takes [runme.parser.v1.Notebook] and a cell index and
+	// returns a script that runs the cell taking the whole notebook into account.
 	ResolveNotebook(context.Context, *ResolveNotebookRequest) (*ResolveNotebookResponse, error)
 	mustEmbedUnimplementedNotebookServiceServer()
 }

@@ -6,10 +6,11 @@ import (
 	"io"
 	"testing"
 
-	"github.com/stateful/runme/v3/internal/session"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+
+	"github.com/stateful/runme/v3/internal/session"
 )
 
 func init() {

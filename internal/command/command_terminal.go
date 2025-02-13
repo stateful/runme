@@ -6,8 +6,9 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/stateful/runme/v3/internal/session"
 	"go.uber.org/zap"
+
+	"github.com/stateful/runme/v3/internal/session"
 )
 
 const (

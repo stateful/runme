@@ -5,8 +5,9 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/stateful/runme/v3/internal/log"
 	"go.uber.org/zap"
+
+	"github.com/stateful/runme/v3/internal/log"
 )
 
 type InputModel struct {

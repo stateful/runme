@@ -7,11 +7,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stateful/runme/v3/internal/renderer/cmark"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/text"
+
+	"github.com/stateful/runme/v3/internal/renderer/cmark"
 )
 
 func testEquality(t *testing.T, data []byte) {

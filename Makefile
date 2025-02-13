@@ -96,10 +96,21 @@ test/coverage/func:
 .PHONY: fmt
 fmt:
 	@gofumpt -w .
+	@goimports -local="github.com/stateful/runme" -w -l .
+
+.PHONY: generate
+generate: _generate fmt
+
+.PHONY: _generate
+_generate:
+	go generate ./...
 
 .PHONY: lint
 lint:
-	@gofumpt -d .
+	@# "gofumpt -d ." does not return non-zero exit code if there are changes
+	@test -z $(shell gofumpt -d .)
+	@# "goimports -d ." does not return non-zero exit code if there are changes
+	@test -z $(shell goimports -local="github.com/stateful/runme" -l .)
 	@revive \
 		-config revive.toml \
 		-formatter friendly \
@@ -124,13 +135,17 @@ install/dev:
 	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
 	go install github.com/atombender/go-jsonschema@v0.16.0
 	go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@go
+	go install golang.org/x/tools/cmd/goimports@latest
 
 .PHONY: install/goreleaser
 install/goreleaser:
 	go install github.com/goreleaser/goreleaser@v1.26.2
 
 .PHONY: proto/generate
-proto/generate:
+proto/generate: proto/_generate fmt
+
+.PHONY: proto/_generate
+proto/_generate:
 	buf lint
 	buf format -w
 	buf generate
@@ -177,7 +192,3 @@ update-gql-schema:
 	@go run ./cmd/gqltool/main.go > ./internal/client/graphql/schema/introspection_query_result.json
 	@npm install --prefix internal/client/graphql/schema
 	@cd ./internal/client/graphql/schema && npm run convert
-
-.PHONY: generate
-generate:
-	go generate ./...

@@ -8,9 +8,10 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
+	"golang.org/x/term"
+
 	xpty "github.com/stateful/runme/v3/internal/pty"
 	"github.com/stateful/runme/v3/internal/ulid"
-	"golang.org/x/term"
 )
 
 type ShellSession struct {

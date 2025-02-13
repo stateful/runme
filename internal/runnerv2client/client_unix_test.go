@@ -10,10 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stateful/runme/v3/internal/command"
 	"github.com/stateful/runme/v3/internal/testutils/runnerservice"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
-	"github.com/stretchr/testify/require"
 )
 
 func TestClient_ExecuteProgram_InputInteractive(t *testing.T) {

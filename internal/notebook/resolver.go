@@ -7,10 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"go.uber.org/zap"
+
 	"github.com/stateful/runme/v3/internal/notebook/daggershell"
 	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
-	"go.uber.org/zap"
 )
 
 type NotebookResolver struct {

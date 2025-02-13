@@ -17,11 +17,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
+	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
+
 	"github.com/stateful/runme/v3/internal/runner"
 	runmetls "github.com/stateful/runme/v3/internal/tls"
 	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 	"github.com/stateful/runme/v3/pkg/project"
-	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type RemoteRunner struct {

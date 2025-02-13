@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/go-playground/assert/v2"
-	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 	"github.com/stretchr/testify/require"
+
+	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 )
 
 func TestResolveDaggerShell(t *testing.T) {
