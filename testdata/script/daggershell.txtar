@@ -1,0 +1,42 @@
+exec runme ls
+cmp stdout golden-list.txt
+! stderr .
+
+exec runme ls --json
+cmp stdout golden-list-json.txt
+! stderr .
+
+exec runme run simple_dagger
+stdout 'digest\: sha256'
+stdout 'name\: README\.md'
+stdout 'size\: '
+
+-- shell.dag --
+---
+shell: dagger shell
+---
+
+```sh {"name":"simple_dagger","terminalRows":"18"}
+### Exported in runme.dev as simple_dagger
+git github.com/stateful/runme |
+    head |
+    tree |
+    file examples/README.md
+```
+
+-- golden-list.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+simple_dagger*	shell.dag	git github.com/stateful/runme |		Yes
+-- golden-list-allow-unnamed.txt --
+NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
+-- golden-list-json.txt --
+[
+  {
+    "name": "simple_dagger",
+    "file": "shell.dag",
+    "first_command": "git github.com/stateful/runme |",
+    "description": "",
+    "named": true,
+    "run_all": true
+  }
+]
