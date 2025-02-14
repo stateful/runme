@@ -44,7 +44,12 @@ func (r *notebookService) ResolveNotebook(ctx context.Context, req *notebookv1al
 		return nil, status.Error(codes.InvalidArgument, "cell index is required")
 	}
 
-	resolver := NewNotebookResolver(notebook)
+	resolver, err := NewResolver(WithNotebook(notebook))
+	if err != nil {
+		r.logger.Error("failed to create notebook resolver", zap.Error(err))
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	script, err := resolver.ResolveDaggerShell(ctx, cellIndex.GetValue())
 	if err != nil {
 		r.logger.Error("failed to resolve dagger shell", zap.Error(err))

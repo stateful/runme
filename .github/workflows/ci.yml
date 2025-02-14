@@ -48,6 +48,13 @@ jobs:
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
+      - name: Setup Dagger (Linux only)
+        uses: dagger/dagger-for-github@v7
+        with:
+          version: "latest"
+          verb: core
+          args: "engine local-cache"
+        if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Setup go
         uses: actions/setup-go@v5
         with:

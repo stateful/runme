@@ -128,7 +128,7 @@ python3 -m pip install pre-commit
 
 Like many complex go projects, this project uses a variety of linting tools to ensure code quality and prevent regressions! The main linter (revive) can be run with:
 
-```sh {"id":"01HF7BT3HEQBTBM9SSTKQENPT3","interactive":"false"}
+```sh {"id":"01HF7BT3HEQBTBM9SSTKQENPT3","interactive":"false","name":"lint"}
 make lint
 ```
 

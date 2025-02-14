@@ -518,7 +518,7 @@ func getCodeBlocks(data []byte) (document.CodeBlocks, error) {
 
 func isMarkdown(filePath string) bool {
 	ext := strings.ToLower(filepath.Ext(filePath))
-	return ext == ".md" || ext == ".mdx" || ext == ".mdi" || ext == ".mdr" || ext == ".run" || ext == ".runme"
+	return ext == ".md" || ext == ".mdx" || ext == ".mdi" || ext == ".mdr" || ext == ".run" || ext == ".runme" || ext == ".dag"
 }
 
 func (p *Project) LoadEnv() ([]string, error) {
