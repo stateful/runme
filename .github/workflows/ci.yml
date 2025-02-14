@@ -54,6 +54,7 @@ jobs:
           version: "latest"
           verb: core
           args: "engine local-cache"
+        if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Setup go
         uses: actions/setup-go@v5
         with:
