@@ -48,6 +48,12 @@ jobs:
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
+      - name: Make Dagger available
+        uses: dagger/dagger-for-github@v7
+        with:
+          version: "latest"
+          verb: core
+          args: "engine local-cache"
       - name: Setup go
         uses: actions/setup-go@v5
         with:
