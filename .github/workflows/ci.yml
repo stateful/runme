@@ -48,7 +48,7 @@ jobs:
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
-      - name: Make Dagger available
+      - name: Setup Dagger (Linux only)
         uses: dagger/dagger-for-github@v7
         with:
           version: "latest"
