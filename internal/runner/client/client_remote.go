@@ -214,8 +214,7 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 	switch commandMode {
 	case runner.CommandModeNone:
 		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_UNSPECIFIED
-	case runner.CommandModeInlineShell:
-	case runner.CommandModeDaggerShell:
+	case runner.CommandModeInlineShell, runner.CommandModeDaggerShell:
 		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL
 	case runner.CommandModeTempFile:
 		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_TEMP_FILE
