@@ -94,6 +94,8 @@ install/dev:
 	@# Most of the tools got moved to go.mod, but this is used in buf.gen.yaml.
 	@# Remove when buf starts respecting binaries from provided by "go tool".
 	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
+	@# Does not work with "go tool".
+	go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@go
 
 .PHONY: fmt
 fmt:
@@ -121,8 +123,7 @@ lint:
 	go tool staticcheck ./...
 	go tool gosec -quiet -exclude=G110,G115,G204,G304,G404 -exclude-generated ./...
 	go vet -stdmethods=false ./...
-	go tool -n checklocks
-	go vet -vettool=$(shell go tool -n checklocks) ./...
+	go vet -vettool=$(shell go env GOPATH)/bin/checklocks ./...
 
 .PHONY: pre-commit
 pre-commit: build wasm test lint

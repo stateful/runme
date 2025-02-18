@@ -195,7 +195,6 @@ tool (
 	github.com/icholy/gomajor
 	github.com/mgechev/revive
 	github.com/securego/gosec/v2/cmd/gosec
-	github.com/stateful/go-proto-gql/protoc-gen-gql
 	golang.org/x/tools/cmd/goimports
 	gvisor.dev/gvisor/tools/checklocks/cmd/checklocks
 	honnef.co/go/tools/cmd/staticcheck
