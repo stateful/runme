@@ -335,9 +335,9 @@ func (m tuiModel) View() string {
 			intro := block.Intro()
 			words := strings.Split(intro, " ")
 			// todo(sebastian): this likely only works well for English
-			max := 9 - len(strings.Split(relFilename, string(filepath.Separator)))
-			if len(words) > max {
-				intro = strings.Join(words[:max], " ") + "..."
+			maxComponents := 9 - len(strings.Split(relFilename, string(filepath.Separator)))
+			if len(words) > maxComponents {
+				intro = strings.Join(words[:maxComponents], " ") + "..."
 			}
 
 			if len(intro) > 0 {

@@ -31,7 +31,7 @@ To request a new feature you should open an [issue](../../issues/new) and summar
 This is an outline of what the workflow for code contributions looks like
 
 - Check the list of open [issues](../../issues). Either assign an existing issue to yourself, or
-   create a new one that you would like work on and discuss your ideas and use cases.
+  create a new one that you would like work on and discuss your ideas and use cases.
 
 It is always best to discuss your plans beforehand, to ensure that your contribution is in line with our goals.
 
@@ -177,7 +177,7 @@ $ go get -t -u ./...
 When you need to upgrade to major versions of your dependencies, it’s prudent to upgrade each dependency one at a time to manage potential breaking changes efficiently. The `gomajor` tool can assist you in listing and upgrading major version dependencies. To list all major version upgrades available for your project, use the following command:
 
 ```sh {"id":"01HF7BT3HEQBTBM9SSSK6JMS58"}
-$ gomajor list
+$ go tool gomajor list
 ```
 
 ### Coverage
