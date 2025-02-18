@@ -106,7 +106,6 @@ require (
 	github.com/sanity-io/litter v1.5.5 // indirect
 	github.com/securego/gosec/v2 v2.22.1 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
-	github.com/stateful/go-proto-gql v0.0.0-20240730002136-c46e6fac3045 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.58.0 // indirect
