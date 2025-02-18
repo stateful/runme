@@ -11,16 +11,13 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go: ["1.24"]
-    name: Lint with Go ${{ matrix.go }}
+    name: Lint
     steps:
       - uses: actions/checkout@v4
       - name: Setup go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: ">=1.24"
       - name: Install dependencies
         run: make install/dev
       # It duplicates running linter from pre-commit
@@ -36,7 +33,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go: ["1.23"]
+        go: ["1.24"]
         os: [ubuntu-latest, windows-latest]
     name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:
@@ -125,7 +122,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v5
         with:
-          go-version: ">=1.23"
+          go-version: ">=1.24"
       - name: Setup & build
         uses: stateful/runme-action@v2
         with:
