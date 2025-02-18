@@ -184,6 +184,10 @@ func (e *execution) Wait(ctx context.Context, sender runnerv2.RunnerService_Exec
 	e.closeIO()
 
 	if waitErr != nil {
+		// Drain the readSendDone channel to avoid goroutine leaks.
+		for i := 0; i < cap(readSendDone); i++ {
+			<-readSendDone
+		}
 		return exitCode, waitErr
 	}
 
@@ -193,13 +197,17 @@ finalWait:
 	select {
 	case <-ctx.Done():
 		e.logger.Info("context done", zap.Error(ctx.Err()))
+		// Drain the readSendDone channel to avoid goroutine leaks.
+		for i := 0; i < cap(readSendDone); i++ {
+			<-readSendDone
+		}
 		return exitCode, ctx.Err()
 	case err := <-readSendDone:
 		if err != nil {
 			e.logger.Info("readSendCtx done", zap.Error(err))
 		}
 		readSendLoopsFinished++
-		if readSendLoopsFinished < 2 {
+		if readSendLoopsFinished < cap(readSendDone) {
 			goto finalWait
 		}
 		return exitCode, err
