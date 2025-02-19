@@ -375,13 +375,10 @@ func inRawMode(cb func() error) error {
 	}
 
 	current := console.Current()
+	defer current.Reset()
 	_ = current.SetRaw()
 
-	err := cb()
-
-	_ = current.Reset()
-
-	return err
+	return cb()
 }
 
 const fileNameSeparator = "/"
