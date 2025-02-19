@@ -76,10 +76,6 @@ test-docker/run:
 		-v dev.runme.test-env-gocache:/root/.cache/go-build \
 		runme-test-env:latest
 
-.PHONY: test/update-snapshots
-test/update-snapshots:
-	@TZ=UTC UPDATE_SNAPSHOTS=true go test ./...
-
 .PHONY: test/parser
 test/parser:
 	./runme --version
@@ -93,10 +89,18 @@ test/coverage/html:
 test/coverage/func:
 	go tool cover -func=cover.out
 
+.PHONY: install/dev
+install/dev:
+	@# Most of the tools got moved to go.mod, but this is used in buf.gen.yaml.
+	@# Remove when buf starts respecting binaries from provided by "go tool".
+	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
+	@# Does not work with "go tool".
+	go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@go
+
 .PHONY: fmt
 fmt:
-	@gofumpt -w .
-	@goimports -local="github.com/stateful/runme" -w -l .
+	@go tool gofumpt -w .
+	@go tool goimports -local="github.com/stateful/runme" -w -l .
 
 .PHONY: generate
 generate: _generate fmt
@@ -108,38 +112,22 @@ _generate:
 .PHONY: lint
 lint:
 	@# "gofumpt -d ." does not return non-zero exit code if there are changes
-	@test -z $(shell gofumpt -d .)
+	test -z $(shell go tool gofumpt -d .)
 	@# "goimports -d ." does not return non-zero exit code if there are changes
-	@test -z $(shell goimports -local="github.com/stateful/runme" -l .)
-	@revive \
+	test -z $(shell go tool goimports -local="github.com/stateful/runme" -l .)
+	go tool revive \
 		-config revive.toml \
 		-formatter friendly \
 		-exclude integration/subject/... \
 		./...
-	@staticcheck ./...
-	@gosec -quiet -exclude=G110,G204,G304,G404 -exclude-generated ./...
-	@go vet -stdmethods=false ./...
-	@go vet -vettool=$(shell go env GOPATH)/bin/checklocks ./...
+	go tool staticcheck ./...
+	go tool gosec -quiet -exclude=G110,G115,G204,G304,G404 -exclude-generated ./...
+	go vet -stdmethods=false ./...
+	go vet -vettool=$(shell go env GOPATH)/bin/checklocks ./...
 
 .PHONY: pre-commit
 pre-commit: build wasm test lint
 	pre-commit run --all-files
-
-.PHONY: install/dev
-install/dev:
-	go install github.com/mgechev/revive@v1.3.9
-	go install github.com/securego/gosec/v2/cmd/gosec@v2.20.0
-	go install honnef.co/go/tools/cmd/staticcheck@v0.5.1
-	go install mvdan.cc/gofumpt@v0.7.0
-	go install github.com/icholy/gomajor@v0.13.1
-	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
-	go install github.com/atombender/go-jsonschema@v0.16.0
-	go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@go
-	go install golang.org/x/tools/cmd/goimports@latest
-
-.PHONY: install/goreleaser
-install/goreleaser:
-	go install github.com/goreleaser/goreleaser@v1.26.2
 
 .PHONY: proto/generate
 proto/generate: proto/_generate fmt
@@ -170,13 +158,23 @@ proto/dev/reset:
 proto/publish:
 	@cd ./pkg/api/proto && buf push
 
-.PHONY: schema/generate
-schema/generate:
-	go-jsonschema -t \
+.PHONY: config/schema/generate
+config/schema/generate:
+	@go tool go-jsonschema -t \
 		-p config \
 		--tags "json,yaml" \
 		-o internal/config/config_schema.go \
-		internal/config/config.schema.json
+	internal/config/config.schema.json
+
+.PHONY: gql/schema/generate
+gql/schema/generate:
+	@go run ./cmd/gqltool/main.go > ./internal/client/graphql/schema/introspection_query_result.json
+	@npm install --prefix internal/client/graphql/schema
+	@cd ./internal/client/graphql/schema && npm run convert
+
+.PHONY: install/goreleaser
+install/goreleaser:
+	go install github.com/goreleaser/goreleaser@v1.26.2
 
 .PHONY: release
 release: install/goreleaser
@@ -186,9 +184,3 @@ release: install/goreleaser
 .PHONY: release/publish
 release/publish: install/goreleaser
 	@goreleaser release
-
-.PHONY: update-gql-schema
-update-gql-schema:
-	@go run ./cmd/gqltool/main.go > ./internal/client/graphql/schema/introspection_query_result.json
-	@npm install --prefix internal/client/graphql/schema
-	@cd ./internal/client/graphql/schema && npm run convert

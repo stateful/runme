@@ -47,6 +47,7 @@ func (f *EnvCollectorFactory) Build() (envCollector, error) {
 
 		scannerPrev := scanner
 		scanner = func(r io.Reader) ([]string, error) {
+			// #nosec G407 -- false positive
 			enc, err := NewEnvDecryptor(encKey, encNonce, r)
 			if err != nil {
 				return nil, err
