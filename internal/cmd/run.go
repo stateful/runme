@@ -17,7 +17,6 @@ import (
 	"github.com/containerd/console"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
-	"github.com/rwtodd/Go.Sed/sed"
 	"github.com/spf13/cobra"
 
 	"github.com/stateful/runme/v3/internal/runner/client"
@@ -41,7 +40,6 @@ func runCmd() *cobra.Command {
 		skipPrompts           bool
 		skipPromptsExplicitly bool
 		parallel              bool
-		replaceScripts        []string
 		serverAddr            string
 		cmdCategories         []string
 		cmdTags               []string
@@ -143,10 +141,6 @@ func runCmd() *cobra.Command {
 								goto searchBlocks
 							}
 
-							return err
-						}
-
-						if err := replace(replaceScripts, task.CodeBlock.Lines()); err != nil {
 							return err
 						}
 
@@ -315,7 +309,6 @@ func runCmd() *cobra.Command {
 	setDefaultFlags(&cmd)
 
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
-	cmd.Flags().StringArrayVarP(&replaceScripts, "replace", "r", nil, "Replace instructions using sed.")
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
 	cmd.Flags().BoolVarP(&skipPrompts, "skip-prompts", "y", false, "Skip prompting for variables.")
@@ -344,29 +337,6 @@ func ctxWithSigCancel(ctx context.Context) (context.Context, context.CancelFunc)
 	}()
 
 	return ctx, cancel
-}
-
-func replace(scripts []string, lines []string) error {
-	if len(scripts) == 0 {
-		return nil
-	}
-
-	for _, script := range scripts {
-		engine, err := sed.New(strings.NewReader(script))
-		if err != nil {
-			return errors.Wrapf(err, "failed to compile sed script %q", script)
-		}
-
-		for idx, line := range lines {
-			var err error
-			lines[idx], err = engine.RunString(line)
-			if err != nil {
-				return errors.Wrapf(err, "failed to run sed script %q on line %q", script, line)
-			}
-		}
-	}
-
-	return nil
 }
 
 func inRawMode(cb func() error) error {
