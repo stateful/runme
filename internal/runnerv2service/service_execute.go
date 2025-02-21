@@ -49,7 +49,10 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		return err
 	}
 	if !existed {
-		r.sessions.Add(session)
+		err := r.sessions.Add(session)
+		if err != nil {
+			return err
+		}
 	}
 	if err := session.SetEnv(ctx, req.Config.Env...); err != nil {
 		return err

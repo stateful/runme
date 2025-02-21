@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/lru"
 	"github.com/stateful/runme/v3/internal/session"
 	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -17,15 +18,12 @@ type runnerService struct {
 	runnerv2.UnimplementedRunnerServiceServer
 
 	cmdFactory command.Factory
-	sessions   *session.SessionList
+	sessions   *lru.Cache[*session.Session]
 	logger     *zap.Logger
 }
 
 func NewRunnerService(factory command.Factory, logger *zap.Logger) (runnerv2.RunnerServiceServer, error) {
-	sessions, err := session.NewSessionList()
-	if err != nil {
-		return nil, err
-	}
+	sessions := session.NewSessionList()
 
 	r := &runnerService{
 		cmdFactory: factory,
@@ -50,7 +48,7 @@ func (r *runnerService) getSessionFromRequest(req requestWithSession) (*session.
 	switch req.GetSessionStrategy() {
 	case runnerv2.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
 		if req.GetSessionId() != "" {
-			session, found = r.sessions.Get(req.GetSessionId())
+			session, found = r.sessions.GetByID(req.GetSessionId())
 			if !found {
 				return nil, false, status.Errorf(codes.NotFound, "session %q not found", req.GetSessionId())
 			}
@@ -74,7 +72,7 @@ func (r *runnerService) getOrCreateSessionFromRequest(req requestWithSession, pr
 	switch req.GetSessionStrategy() {
 	case runnerv2.SessionStrategy_SESSION_STRATEGY_UNSPECIFIED:
 		if req.GetSessionId() != "" {
-			sess, found = r.sessions.Get(req.GetSessionId())
+			sess, found = r.sessions.GetByID(req.GetSessionId())
 			if !found {
 				return nil, false, status.Errorf(codes.NotFound, "session %q not found", req.GetSessionId())
 			}

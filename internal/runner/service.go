@@ -27,6 +27,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	commandpkg "github.com/stateful/runme/v3/internal/command"
+	"github.com/stateful/runme/v3/internal/lru"
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/rbuffer"
 	rcontext "github.com/stateful/runme/v3/internal/runner/context"
@@ -55,7 +56,7 @@ var OpininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-
 type runnerService struct {
 	runnerv1.UnimplementedRunnerServiceServer
 
-	sessions *SessionList
+	sessions *lru.Cache[*Session]
 
 	logger *zap.Logger
 }
@@ -113,7 +114,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		return nil, err
 	}
 
-	err = r.sessions.AddSession(sess)
+	err = r.sessions.Add(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +133,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 func (r *runnerService) GetSession(_ context.Context, req *runnerv1.GetSessionRequest) (*runnerv1.GetSessionResponse, error) {
 	r.logger.Info("running GetSession in runnerService")
 
-	sess, ok := r.sessions.GetSession(req.Id)
+	sess, ok := r.sessions.GetByID(req.Id)
 
 	if !ok {
 		return nil, status.Error(codes.NotFound, "session not found")
@@ -150,11 +151,7 @@ func (r *runnerService) GetSession(_ context.Context, req *runnerv1.GetSessionRe
 func (r *runnerService) ListSessions(_ context.Context, req *runnerv1.ListSessionsRequest) (*runnerv1.ListSessionsResponse, error) {
 	r.logger.Info("running ListSessions in runnerService")
 
-	sessions, err := r.sessions.ListSessions()
-	if err != nil {
-		return nil, err
-	}
-
+	sessions := r.sessions.List()
 	runnerSessions := make([]*runnerv1.Session, 0, len(sessions))
 	for _, s := range sessions {
 		runnerSess, err := toRunnerv1Session(s)
@@ -170,7 +167,7 @@ func (r *runnerService) ListSessions(_ context.Context, req *runnerv1.ListSessio
 func (r *runnerService) DeleteSession(_ context.Context, req *runnerv1.DeleteSessionRequest) (*runnerv1.DeleteSessionResponse, error) {
 	r.logger.Info("running DeleteSession in runnerService")
 
-	deleted := r.sessions.DeleteSession(req.Id)
+	deleted := r.sessions.DeleteByID(req.Id)
 
 	if !deleted {
 		return nil, status.Error(codes.NotFound, "session not found")
@@ -179,7 +176,7 @@ func (r *runnerService) DeleteSession(_ context.Context, req *runnerv1.DeleteSes
 }
 
 func (r *runnerService) findSession(id string) *Session {
-	if sess, ok := r.sessions.GetSession(id); ok {
+	if sess, ok := r.sessions.GetByID(id); ok {
 		return sess
 	}
 
@@ -819,7 +816,7 @@ func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, sr
 		return status.Error(codes.InvalidArgument, "session is required")
 	}
 
-	sess, ok := r.sessions.GetSession(req.Session.Id)
+	sess, ok := r.sessions.GetByID(req.Session.Id)
 	if !ok {
 		return status.Error(codes.NotFound, "session not found")
 	}

@@ -1,13 +1,13 @@
 package runner
 
 import (
-	"container/list"
 	"context"
 	"fmt"
 	"sync"
 
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/lru"
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -64,6 +64,10 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 		logger: logger,
 	}
 	return s, nil
+}
+
+func (s *Session) Identifer() string {
+	return s.ID
 }
 
 func (s *Session) UpdateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error {
@@ -364,137 +368,10 @@ func (es *owlEnvStorer) envs() ([]string, error) {
 	return vals, nil
 }
 
-// SessionList is a thread-safe LRU cache of sessions.
-type SessionList struct {
-	mu    sync.RWMutex
-	order *list.List
-}
-
-// SessionListCapacity is a maximum number of sessions
+// SessionListCapacity is a maximum number of entries
 // stored in a single SessionList.
 const SessionListCapacity = 1024
 
-type sessionEntry struct {
-	id      string
-	session *Session
-}
-
-func NewSessionList() *SessionList {
-	return &SessionList{
-		order: list.New(),
-	}
-}
-
-func (sl *SessionList) addSessionUnsafe(session *Session) {
-	if sl.order.Len() >= SessionListCapacity {
-		sl.evictUnsafe()
-	}
-
-	entry := &sessionEntry{
-		id:      session.ID,
-		session: session,
-	}
-	sl.order.PushFront(entry)
-}
-
-func (sl *SessionList) evictUnsafe() {
-	element := sl.order.Back()
-	if element != nil {
-		entry := element.Value.(*sessionEntry)
-		entry.session.Complete()
-		sl.order.Remove(element)
-	}
-}
-
-func (sl *SessionList) AddSession(session *Session) error {
-	sl.mu.Lock()
-	defer sl.mu.Unlock()
-
-	sl.addSessionUnsafe(session)
-
-	return nil
-}
-
-func (sl *SessionList) CreateAndAddSession(generate func() (*Session, error)) (*Session, error) {
-	sl.mu.Lock()
-	defer sl.mu.Unlock()
-
-	sess, err := generate()
-	if err != nil {
-		return nil, err
-	}
-
-	sl.addSessionUnsafe(sess)
-	return sess, nil
-}
-
-func (sl *SessionList) GetSession(id string) (*Session, bool) {
-	sl.mu.Lock()
-	defer sl.mu.Unlock()
-
-	for element := sl.order.Front(); element != nil; element = element.Next() {
-		entry := element.Value.(*sessionEntry)
-		if entry.id == id {
-			sl.order.MoveToFront(element)
-			return entry.session, true
-		}
-	}
-	return nil, false
-}
-
-func (sl *SessionList) DeleteSession(id string) (present bool) {
-	sl.mu.Lock()
-	defer sl.mu.Unlock()
-
-	for element := sl.order.Front(); element != nil; element = element.Next() {
-		entry := element.Value.(*sessionEntry)
-		if entry.id == id {
-			entry.session.Complete()
-			sl.order.Remove(element)
-			return true
-		}
-	}
-	return false
-}
-
-func (sl *SessionList) MostRecent() (*Session, bool) {
-	sl.mu.RLock()
-	defer sl.mu.RUnlock()
-
-	if sl.order.Len() == 0 {
-		return nil, false
-	}
-
-	element := sl.order.Front()
-	return element.Value.(*sessionEntry).session, true
-}
-
-func (sl *SessionList) MostRecentOrCreate(generate func() (*Session, error)) (*Session, error) {
-	sl.mu.Lock()
-	defer sl.mu.Unlock()
-
-	if sl.order.Len() > 0 {
-		element := sl.order.Front()
-		return element.Value.(*sessionEntry).session, nil
-	}
-
-	sess, err := generate()
-	if err != nil {
-		return nil, err
-	}
-
-	sl.addSessionUnsafe(sess)
-	return sess, nil
-}
-
-func (sl *SessionList) ListSessions() ([]*Session, error) {
-	sl.mu.RLock()
-	defer sl.mu.RUnlock()
-
-	sessions := make([]*Session, 0, sl.order.Len())
-	for element := sl.order.Back(); element != nil; element = element.Prev() {
-		sessions = append(sessions, element.Value.(*sessionEntry).session)
-	}
-
-	return sessions, nil
+func NewSessionList() *lru.Cache[*Session] {
+	return lru.NewCache[*Session](SessionListCapacity)
 }
