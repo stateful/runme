@@ -117,8 +117,7 @@ func (sl *Cache[T]) DeleteByID(id string) (present bool) {
 	return false
 }
 
-// Deprecated: Use Newest instead.
-func (sl *Cache[T]) MostRecent() (T, bool) {
+func (sl *Cache[T]) Newest() (T, bool) {
 	sl.mu.RLock()
 	defer sl.mu.RUnlock()
 
@@ -131,8 +130,9 @@ func (sl *Cache[T]) MostRecent() (T, bool) {
 	return element.Value.(*listEntry[T]).entry, true
 }
 
-func (sl *Cache[T]) Newest() (T, bool) {
-	return sl.MostRecent()
+// Deprecated: Use Newest instead.
+func (sl *Cache[T]) MostRecent() (T, bool) {
+	return sl.Newest()
 }
 
 func (sl *Cache[T]) MostRecentOrCreate(generate func() (T, error)) (T, error) {
