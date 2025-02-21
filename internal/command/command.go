@@ -285,4 +285,6 @@ var interpreterByLanguageID = map[string][]string{
 	"py":     {"python3", "python"},
 	"ruby":   {"ruby"},
 	"rb":     {"ruby"},
+	"rust":   {"rust-script"},
+	"rs":     {"rust-script"},
 }

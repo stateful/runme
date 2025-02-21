@@ -649,6 +649,8 @@ var programByLanguageID = map[string][]string{
 	"py":          {"python3", "python"},
 	"ruby":        {"ruby"},
 	"rb":          {"ruby"},
+	"rust":        {"rust-script"},
+	"rs":          {"rust-script"},
 }
 
 type ErrInvalidLanguage struct {

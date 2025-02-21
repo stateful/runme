@@ -6,22 +6,30 @@ LABEL org.opencontainers.image.ref.name="runme-test-env"
 LABEL org.opencontainers.image.title="Runme test environment"
 LABEL org.opencontainers.image.description="An image to run unit and integration tests for runme."
 
+ENV HOME=/root
+
 RUN apt-get update && apt-get install -y \
-    bash \
-    curl \
-    make \
-    python3 \
-    ruby-full \
-    unzip
+    "bash" \
+    "curl" \
+    "make" \
+    "python3" \
+    "ruby-full" \
+    "unzip"
+
+# Install rust + rust-script
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal
+# Rustup is rude and creates profiles all over the place
+RUN rm -f "$HOME/.bashrc"
+RUN . "$HOME/.cargo/env" && cargo install rust-script
 
 # Install node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
 # Install deno
-ENV DENO_INSTALL=$HOME/.deno
+ENV DENO_INSTALL="$HOME/.deno"
 RUN curl -fsSL https://deno.land/install.sh | sh \
-    && cp $DENO_INSTALL/bin/deno /usr/local/bin/deno
+    && cp "$DENO_INSTALL/bin/deno" /usr/local/bin/deno
 
 # Configure workspace
 WORKDIR /workspace
