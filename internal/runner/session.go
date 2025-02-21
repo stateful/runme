@@ -1,11 +1,11 @@
 package runner
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"sync"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"go.uber.org/zap"
 
 	"github.com/stateful/runme/v3/internal/owl"
@@ -96,19 +96,6 @@ func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItem
 
 func (s *Session) Complete() {
 	s.envStorer.complete()
-}
-
-// thread-safe session list
-type SessionList struct {
-	// WARNING: this mutex is created to prevent race conditions on certain
-	// operations, like finding the most recent element of store, which are not
-	// supported by golang-lru
-	//
-	// this is not really ideal since this introduces a chance of deadlocks.
-	// please make sure that this mutex is never locked within the critical
-	// section of the inner lock (belonging to store)
-	mu    sync.RWMutex
-	store *lru.Cache[string, *Session]
 }
 
 type runnerEnvStorer struct {
@@ -377,93 +364,136 @@ func (es *owlEnvStorer) envs() ([]string, error) {
 	return vals, nil
 }
 
-func NewSessionList() (*SessionList, error) {
-	// max integer
-	capacity := int(^uint(0) >> 1)
-
-	store, err := lru.New[string, *Session](capacity)
-	if err != nil {
-		return nil, err
-	}
-
-	return &SessionList{
-		store: store,
-	}, nil
+// SessionList is a thread-safe LRU cache of sessions.
+type SessionList struct {
+	mu    sync.RWMutex
+	order *list.List
 }
 
-func (sl *SessionList) AddSession(session *Session) {
-	sl.store.Add(session.ID, session)
+// SessionListCapacity is a maximum number of sessions
+// stored in a single SessionList.
+const SessionListCapacity = 1024
+
+type sessionEntry struct {
+	id      string
+	session *Session
+}
+
+func NewSessionList() *SessionList {
+	return &SessionList{
+		order: list.New(),
+	}
+}
+
+func (sl *SessionList) addSessionUnsafe(session *Session) {
+	if sl.order.Len() >= SessionListCapacity {
+		sl.evictUnsafe()
+	}
+
+	entry := &sessionEntry{
+		id:      session.ID,
+		session: session,
+	}
+	sl.order.PushFront(entry)
+}
+
+func (sl *SessionList) evictUnsafe() {
+	element := sl.order.Back()
+	if element != nil {
+		entry := element.Value.(*sessionEntry)
+		entry.session.Complete()
+		sl.order.Remove(element)
+	}
+}
+
+func (sl *SessionList) AddSession(session *Session) error {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
+	sl.addSessionUnsafe(session)
+
+	return nil
 }
 
 func (sl *SessionList) CreateAndAddSession(generate func() (*Session, error)) (*Session, error) {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
 	sess, err := generate()
 	if err != nil {
 		return nil, err
 	}
 
-	sl.AddSession(sess)
+	sl.addSessionUnsafe(sess)
 	return sess, nil
 }
 
 func (sl *SessionList) GetSession(id string) (*Session, bool) {
-	return sl.store.Get(id)
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
+	for element := sl.order.Front(); element != nil; element = element.Next() {
+		entry := element.Value.(*sessionEntry)
+		if entry.id == id {
+			sl.order.MoveToFront(element)
+			return entry.session, true
+		}
+	}
+	return nil, false
 }
 
 func (sl *SessionList) DeleteSession(id string) (present bool) {
-	sl.mu.RLock()
-	defer sl.mu.RUnlock()
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
 
-	sess, found := sl.GetSession(id)
-	if found {
-		sess.Complete()
+	for element := sl.order.Front(); element != nil; element = element.Next() {
+		entry := element.Value.(*sessionEntry)
+		if entry.id == id {
+			entry.session.Complete()
+			sl.order.Remove(element)
+			return true
+		}
 	}
-
-	return sl.store.Remove(id)
+	return false
 }
 
 func (sl *SessionList) MostRecent() (*Session, bool) {
 	sl.mu.RLock()
 	defer sl.mu.RUnlock()
 
-	return sl.mostRecentUnsafe()
-}
-
-func (sl *SessionList) mostRecentUnsafe() (*Session, bool) {
-	keys := sl.store.Keys()
-
-	sl.store.GetOldest()
-
-	if len(keys) == 0 {
+	if sl.order.Len() == 0 {
 		return nil, false
 	}
 
-	return sl.store.Peek(keys[len(keys)-1])
+	element := sl.order.Front()
+	return element.Value.(*sessionEntry).session, true
 }
 
 func (sl *SessionList) MostRecentOrCreate(generate func() (*Session, error)) (*Session, error) {
 	sl.mu.Lock()
 	defer sl.mu.Unlock()
 
-	if existing, ok := sl.mostRecentUnsafe(); ok {
-		return existing, nil
+	if sl.order.Len() > 0 {
+		element := sl.order.Front()
+		return element.Value.(*sessionEntry).session, nil
 	}
 
-	return sl.CreateAndAddSession(generate)
+	sess, err := generate()
+	if err != nil {
+		return nil, err
+	}
+
+	sl.addSessionUnsafe(sess)
+	return sess, nil
 }
 
 func (sl *SessionList) ListSessions() ([]*Session, error) {
 	sl.mu.RLock()
 	defer sl.mu.RUnlock()
 
-	keys := sl.store.Keys()
-	sessions := make([]*Session, len(keys))
-
-	for i, k := range keys {
-		sess, ok := sl.store.Peek(k)
-		if !ok {
-			return nil, fmt.Errorf("unexpected error: unable to find session %s when listing sessions from lru cache", sess.ID)
-		}
-		sessions[i] = sess
+	sessions := make([]*Session, 0, sl.order.Len())
+	for element := sl.order.Back(); element != nil; element = element.Prev() {
+		sessions = append(sessions, element.Value.(*sessionEntry).session)
 	}
 
 	return sessions, nil

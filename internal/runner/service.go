@@ -65,10 +65,7 @@ func NewRunnerService(logger *zap.Logger) (runnerv1.RunnerServiceServer, error) 
 }
 
 func newRunnerService(logger *zap.Logger) (*runnerService, error) {
-	sessions, err := NewSessionList()
-	if err != nil {
-		return nil, err
-	}
+	sessions := NewSessionList()
 
 	return &runnerService{
 		logger:   logger,
@@ -116,7 +113,10 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		return nil, err
 	}
 
-	r.sessions.AddSession(sess)
+	err = r.sessions.AddSession(sess)
+	if err != nil {
+		return nil, err
+	}
 
 	r.logger.Debug("created session", zap.String("id", sess.ID))
 

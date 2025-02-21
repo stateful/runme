@@ -16,16 +16,17 @@ func Test_SessionList(t *testing.T) {
 	}
 
 	t.Run("UpdatedOnCreate", func(t *testing.T) {
-		list, err := NewSessionList()
-		require.NoError(t, err)
+		list := NewSessionList()
 
 		session1, err := createSession()
 		require.NoError(t, err)
-		list.AddSession(session1)
+		err = list.AddSession(session1)
+		require.NoError(t, err)
 
 		session2, err := createSession()
 		require.NoError(t, err)
-		list.AddSession(session2)
+		err = list.AddSession(session2)
+		require.NoError(t, err)
 
 		mostRecent, ok := list.MostRecent()
 		require.Equal(t, true, ok)
@@ -33,19 +34,20 @@ func Test_SessionList(t *testing.T) {
 	})
 
 	t.Run("GetSession", func(t *testing.T) {
-		list, err := NewSessionList()
-		require.NoError(t, err)
+		list := NewSessionList()
 
 		session1, err := createSession()
 		require.NoError(t, err)
-		list.AddSession(session1)
+		err = list.AddSession(session1)
+		require.NoError(t, err)
 
 		session2, err := createSession()
 		require.NoError(t, err)
 
 		assert.NotEqual(t, session1.ID, session2.ID)
 
-		list.AddSession(session2)
+		err = list.AddSession(session2)
+		require.NoError(t, err)
 
 		found, ok := list.GetSession(session1.ID)
 		require.Equal(t, true, ok)
@@ -57,8 +59,7 @@ func Test_SessionList(t *testing.T) {
 	})
 
 	t.Run("CreateAndAddSession", func(t *testing.T) {
-		list, err := NewSessionList()
-		require.NoError(t, err)
+		list := NewSessionList()
 
 		session1, err := list.CreateAndAddSession(createSession)
 		require.NoError(t, err)
@@ -82,8 +83,7 @@ func Test_SessionList(t *testing.T) {
 	})
 
 	t.Run("DeleteSession", func(t *testing.T) {
-		list, err := NewSessionList()
-		require.NoError(t, err)
+		list := NewSessionList()
 
 		session1, err := list.CreateAndAddSession(createSession)
 		require.NoError(t, err)
