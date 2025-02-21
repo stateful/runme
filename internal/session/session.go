@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	lru "github.com/hashicorp/golang-lru/v2"
-
+	"github.com/stateful/runme/v3/internal/lru"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/pkg/project"
 )
@@ -87,6 +86,10 @@ func newSessionWithStore(envStore EnvStore, proj *project.Project, seedEnv []str
 	return sess, nil
 }
 
+func (s *Session) Identifer() string {
+	return s.ID
+}
+
 func (s *Session) SetEnv(ctx context.Context, env ...string) error {
 	return s.envStore.Merge(ctx, env...)
 }
@@ -141,38 +144,6 @@ func (s *Session) loadProject(proj *project.Project) error {
 // stored in a single SessionList.
 const SessionListCapacity = 1024
 
-type SessionList struct {
-	items *lru.Cache[string, *Session]
-}
-
-func NewSessionList() (*SessionList, error) {
-	cache, err := lru.New[string, *Session](SessionListCapacity)
-	if err != nil {
-		return nil, err
-	}
-	return &SessionList{items: cache}, nil
-}
-
-func (sl *SessionList) Add(session *Session) {
-	sl.items.Add(session.ID, session)
-}
-
-func (sl *SessionList) Get(id string) (*Session, bool) {
-	return sl.items.Get(id)
-}
-
-func (sl *SessionList) List() []*Session {
-	return sl.items.Values()
-}
-
-func (sl *SessionList) Delete(id string) bool {
-	return sl.items.Remove(id)
-}
-
-func (sl *SessionList) Newest() (*Session, bool) {
-	keys := sl.items.Keys()
-	if len(keys) == 0 {
-		return nil, false
-	}
-	return sl.items.Get(keys[len(keys)-1])
+func NewSessionList() *lru.Cache[*Session] {
+	return lru.NewCache[*Session](SessionListCapacity)
 }

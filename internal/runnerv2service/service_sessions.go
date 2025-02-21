@@ -46,7 +46,10 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2.CreateS
 		return nil, err
 	}
 
-	r.sessions.Add(sess)
+	err = r.sessions.Add(sess)
+	if err != nil {
+		return nil, err
+	}
 
 	r.logger.Debug("created session", zap.String("id", sess.ID), zap.Bool("owl", owl), zap.Int("seed_env_len", len(seedEnv)))
 
@@ -58,7 +61,7 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2.CreateS
 func (r *runnerService) GetSession(_ context.Context, req *runnerv2.GetSessionRequest) (*runnerv2.GetSessionResponse, error) {
 	r.logger.Info("running GetSession in runnerService")
 
-	sess, ok := r.sessions.Get(req.Id)
+	sess, ok := r.sessions.GetByID(req.Id)
 	if !ok {
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
@@ -84,7 +87,7 @@ func (r *runnerService) ListSessions(_ context.Context, req *runnerv2.ListSessio
 func (r *runnerService) UpdateSession(ctx context.Context, req *runnerv2.UpdateSessionRequest) (*runnerv2.UpdateSessionResponse, error) {
 	r.logger.Info("running UpdateSession in runnerService")
 
-	sess, ok := r.sessions.Get(req.Id)
+	sess, ok := r.sessions.GetByID(req.Id)
 	if !ok {
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
@@ -99,7 +102,7 @@ func (r *runnerService) UpdateSession(ctx context.Context, req *runnerv2.UpdateS
 func (r *runnerService) DeleteSession(_ context.Context, req *runnerv2.DeleteSessionRequest) (*runnerv2.DeleteSessionResponse, error) {
 	r.logger.Info("running DeleteSession in runnerService")
 
-	deleted := r.sessions.Delete(req.Id)
+	deleted := r.sessions.DeleteByID(req.Id)
 
 	if !deleted {
 		return nil, status.Error(codes.NotFound, "session not found")

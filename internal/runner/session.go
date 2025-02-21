@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/lru"
 	"github.com/stateful/runme/v3/internal/owl"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/pkg/project"
@@ -66,6 +66,10 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 	return s, nil
 }
 
+func (s *Session) Identifer() string {
+	return s.ID
+}
+
 func (s *Session) UpdateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error {
 	return s.envStorer.updateStore(context, envs, newOrUpdated, deleted)
 }
@@ -96,19 +100,6 @@ func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- owl.SetVarItem
 
 func (s *Session) Complete() {
 	s.envStorer.complete()
-}
-
-// thread-safe session list
-type SessionList struct {
-	// WARNING: this mutex is created to prevent race conditions on certain
-	// operations, like finding the most recent element of store, which are not
-	// supported by golang-lru
-	//
-	// this is not really ideal since this introduces a chance of deadlocks.
-	// please make sure that this mutex is never locked within the critical
-	// section of the inner lock (belonging to store)
-	mu    sync.RWMutex
-	store *lru.Cache[string, *Session]
 }
 
 type runnerEnvStorer struct {
@@ -377,94 +368,10 @@ func (es *owlEnvStorer) envs() ([]string, error) {
 	return vals, nil
 }
 
-func NewSessionList() (*SessionList, error) {
-	// max integer
-	capacity := int(^uint(0) >> 1)
+// SessionListCapacity is a maximum number of entries
+// stored in a single SessionList.
+const SessionListCapacity = 1024
 
-	store, err := lru.New[string, *Session](capacity)
-	if err != nil {
-		return nil, err
-	}
-
-	return &SessionList{
-		store: store,
-	}, nil
-}
-
-func (sl *SessionList) AddSession(session *Session) {
-	sl.store.Add(session.ID, session)
-}
-
-func (sl *SessionList) CreateAndAddSession(generate func() (*Session, error)) (*Session, error) {
-	sess, err := generate()
-	if err != nil {
-		return nil, err
-	}
-
-	sl.AddSession(sess)
-	return sess, nil
-}
-
-func (sl *SessionList) GetSession(id string) (*Session, bool) {
-	return sl.store.Get(id)
-}
-
-func (sl *SessionList) DeleteSession(id string) (present bool) {
-	sl.mu.RLock()
-	defer sl.mu.RUnlock()
-
-	sess, found := sl.GetSession(id)
-	if found {
-		sess.Complete()
-	}
-
-	return sl.store.Remove(id)
-}
-
-func (sl *SessionList) MostRecent() (*Session, bool) {
-	sl.mu.RLock()
-	defer sl.mu.RUnlock()
-
-	return sl.mostRecentUnsafe()
-}
-
-func (sl *SessionList) mostRecentUnsafe() (*Session, bool) {
-	keys := sl.store.Keys()
-
-	sl.store.GetOldest()
-
-	if len(keys) == 0 {
-		return nil, false
-	}
-
-	return sl.store.Peek(keys[len(keys)-1])
-}
-
-func (sl *SessionList) MostRecentOrCreate(generate func() (*Session, error)) (*Session, error) {
-	sl.mu.Lock()
-	defer sl.mu.Unlock()
-
-	if existing, ok := sl.mostRecentUnsafe(); ok {
-		return existing, nil
-	}
-
-	return sl.CreateAndAddSession(generate)
-}
-
-func (sl *SessionList) ListSessions() ([]*Session, error) {
-	sl.mu.RLock()
-	defer sl.mu.RUnlock()
-
-	keys := sl.store.Keys()
-	sessions := make([]*Session, len(keys))
-
-	for i, k := range keys {
-		sess, ok := sl.store.Peek(k)
-		if !ok {
-			return nil, fmt.Errorf("unexpected error: unable to find session %s when listing sessions from lru cache", sess.ID)
-		}
-		sessions[i] = sess
-	}
-
-	return sessions, nil
+func NewSessionList() *lru.Cache[*Session] {
+	return lru.NewCache[*Session](SessionListCapacity)
 }
