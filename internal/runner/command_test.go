@@ -197,7 +197,61 @@ func Test_command(t *testing.T) {
 		assert.Equal(t, "", string(data))
 	})
 
-	t.Run("Nonexec resorts to cat", func(t *testing.T) {
+	t.Run("RustScript", func(t *testing.T) {
+		t.Parallel()
+
+		logger := testCreateLogger(t)
+
+		// Rust is like Python. Envs are user-local and need to be sourced.
+		sess, err := NewSession(
+			[]string{},
+			nil,
+			logger,
+		)
+		require.NoError(t, err)
+
+		cargoEnvCmd, err := newCommand(context.Background(),
+			&commandConfig{
+				LanguageID:  "sh",
+				Session:     sess,
+				Stdout:      io.Discard,
+				Stderr:      io.Discard,
+				CommandMode: CommandModeInlineShell,
+				Script:      `source "$HOME/.cargo/env"`,
+				Logger:      logger,
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cargoEnvCmd.Start(context.Background()))
+		require.NoError(t, cargoEnvCmd.Wait())
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			context.Background(),
+			&commandConfig{
+				LanguageID:  "rust",
+				Session:     sess,
+				Stdout:      stdout,
+				Stderr:      stderr,
+				CommandMode: CommandModeTempFile,
+				Script:      `fn main() { println!("Running rust code") }`,
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Equal(t, "Running rust code\n", string(data))
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
+	})
+
+	t.Run("NonexecCatFallback", func(t *testing.T) {
 		t.Parallel()
 
 		stdout := new(bytes.Buffer)
