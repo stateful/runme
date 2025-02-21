@@ -52,7 +52,7 @@ jobs:
           verb: core
           args: "engine local-cache"
         if: ${{ matrix.os == 'ubuntu-latest' }}
-      - name: Setup Rust (latest stable)
+      - name: Setup Rust (Linux only)
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
