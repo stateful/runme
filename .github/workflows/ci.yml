@@ -52,6 +52,11 @@ jobs:
           verb: core
           args: "engine local-cache"
         if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Setup Rust (latest stable)
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          override: true
       - name: Setup go
         uses: actions/setup-go@v5
         with:
@@ -60,6 +65,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Install rust-script
+        run: cargo install rust-script
       - name: Build
         run: |
           go build -o runme main.go
