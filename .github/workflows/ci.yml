@@ -57,6 +57,7 @@ jobs:
         with:
           toolchain: stable
           override: true
+        if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Setup go
         uses: actions/setup-go@v5
         with:
@@ -67,6 +68,7 @@ jobs:
           node-version: 20
       - name: Install rust-script
         run: cargo install rust-script
+        if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Build
         run: |
           go build -o runme main.go
