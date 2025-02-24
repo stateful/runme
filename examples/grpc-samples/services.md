@@ -53,6 +53,16 @@ $ grpcurl \
     127.0.0.1:9999 list runme.runner.$VERSION.RunnerService
 ```
 
+List sessions:
+
+```sh {"id":"01JMWPZKRDMPE6NRK2EX35VXNF","terminalRows":"16"}
+$ grpcurl \
+    -cacert /tmp/runme/tls/cert.pem \
+    -cert /tmp/runme/tls/cert.pem \
+    -key /tmp/runme/tls/key.pem \
+    127.0.0.1:9999 runme.runner.v1.RunnerService/ListSessions | jq -r ".sessions[].id" # 01JMWWDPBH643W9EFVX084FPZD
+```
+
 Resolve variables inside cell:
 
 ```sh {"id":"01HNGQS6TV8YKQAKE0ZD7TZREH","name":"resolve-vars","promptEnv":"false","terminalRows":"48"}

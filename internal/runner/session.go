@@ -45,16 +45,19 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 	sessionEnvs := []string(envs)
 
 	var storer envStorer
-	if !owlStore {
-		logger.Debug("using simple env store")
-		storer = newRunnerStorer(sessionEnvs...)
-	} else {
+	if owlStore && proj != nil {
 		logger.Info("using owl store")
 		var err error
 		storer, err = newOwlStorer(sessionEnvs, proj, logger)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		if proj == nil {
+			logger.Debug("owl store requires project in session")
+		}
+		logger.Debug("using simple env store")
+		storer = newRunnerStorer(sessionEnvs...)
 	}
 
 	s := &Session{

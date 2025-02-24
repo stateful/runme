@@ -105,6 +105,11 @@ func run() error {
 
 	client := runnerv1.NewRunnerServiceClient(conn)
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		return errors.Wrap(err, "failed to get cwd")
+	}
+
 	if *createSession || *subscribeToEnv == "-" {
 		envType := runnerv1.SessionEnvStoreType_SESSION_ENV_STORE_TYPE_UNSPECIFIED
 		if subscribeToEnv != nil {
@@ -113,6 +118,10 @@ func run() error {
 		resp, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{
 			Envs:         os.Environ(),
 			EnvStoreType: envType,
+			Project: &runnerv1.Project{
+				Root:         cwd,
+				EnvLoadOrder: []string{".env", ".env.local"},
+			},
 		})
 		if err != nil {
 			return err
@@ -148,8 +157,11 @@ func run() error {
 		}
 
 		if subscribeToEnv != nil {
-			g.Go(subscribeEnv)
-			return g.Wait()
+			go func() {
+				if err := subscribeEnv(); err != nil {
+					log.Printf("error in subscribeEnv: %v", err)
+				}
+			}()
 		}
 	}
 
@@ -171,11 +183,6 @@ func run() error {
 	stream, err := client.Execute(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to call Execute()")
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return errors.Wrap(err, "failed to get cwd")
 	}
 
 	err = stream.Send(&runnerv1.ExecuteRequest{
