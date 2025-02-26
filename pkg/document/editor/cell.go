@@ -163,23 +163,9 @@ func toCellsRec(
 		case *document.CodeBlock:
 			attr := block.Attributes()
 			metadata := attr.Items
-			transform := true
+			ignored := block.Ignored()
 
-			t, tOk := metadata["transform"]
-			s, err := strconv.ParseBool(t)
-
-			if !tOk {
-				transform = true
-			} else if err == nil {
-				transform = s
-			}
-
-			// mermaid's an exception if attr wasn't explicitly set
-			if block.Language() == "mermaid" && !tOk {
-				transform = false
-			}
-
-			if !transform {
+			if ignored {
 				*cells = append(*cells, &Cell{
 					Kind:  MarkupKind,
 					Value: fmtValue(block.Value()),

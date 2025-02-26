@@ -97,20 +97,39 @@ func (n *Node) add(item Block) *Node {
 	return node
 }
 
+type NodeFilter func(*Node) bool
+
+func withExcludeIgnored() NodeFilter {
+	return func(n *Node) (exclude bool) {
+		if codeBlock, ok := n.item.(*CodeBlock); ok {
+			exclude = !codeBlock.Ignored()
+		}
+		return
+	}
+}
+
 func CollectCodeBlocks(node *Node) (result CodeBlocks) {
-	collectCodeBlocks(node, &result)
+	// for now withExcludeIgnored is default
+	collectCodeBlocks(node, &result, withExcludeIgnored())
 	return
 }
 
-func collectCodeBlocks(node *Node, result *CodeBlocks) {
+func collectCodeBlocks(node *Node, result *CodeBlocks, filters ...NodeFilter) {
 	if node == nil {
 		return
 	}
-	for _, child := range node.children {
-		if item, ok := child.Item().(*CodeBlock); ok {
+	for _, child := range node.Children() {
+		include := true
+		for _, filter := range filters {
+			if !filter(child) {
+				include = false
+				break
+			}
+		}
+		if item, ok := child.Item().(*CodeBlock); ok && include {
 			*result = append(*result, item)
 		}
-		collectCodeBlocks(child, result)
+		collectCodeBlocks(child, result, filters...)
 	}
 }
 

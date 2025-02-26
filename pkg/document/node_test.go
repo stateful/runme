@@ -77,7 +77,7 @@ console.log("hello world!")
 	assert.Equal(t, "This is an intro", blocks[1].Intro())
 }
 
-func TestCodeBlockAttributes(t *testing.T) {
+func TestCodeBlock_Attributes(t *testing.T) {
 	testCases := []struct {
 		data             string
 		expectedLanguage string
@@ -132,4 +132,54 @@ func TestCodeBlockAttributes(t *testing.T) {
 		assert.Len(t, block.attributes.Items, 1)
 		assert.Equal(t, tc.expectedLanguage, block.language)
 	}
+}
+
+func TestCodeBlock_NodeFilter(t *testing.T) {
+	source := []byte(`
+` + "```" + `sh {"transform":"false"}
+echo test1
+` + "```" + `
+
+` + "```" + `sh {"transform":"true"}
+echo test2
+` + "```" + `
+
+` + "```" + `mermaid
+graph TD;
+A-->B;
+A-->C;
+B-->D;
+C-->D;
+` + "```" + `
+
+` + "```" + `mermaid {"ignore":"false"}
+graph TD;
+A-->B;
+A-->C;
+B-->D;
+C-->D;
+` + "```" + `
+`)
+
+	doc := New(source, identityResolverNone)
+	node, err := doc.Root()
+	require.NoError(t, err)
+
+	var all CodeBlocks
+	collectCodeBlocks(node, &all)
+	require.Len(t, all, 4)
+
+	var filtered CodeBlocks
+	collectCodeBlocks(node, &filtered, withExcludeIgnored())
+	require.Len(t, filtered, 2)
+
+	first := filtered[0]
+	require.Equal(t, "sh", first.Language())
+	require.Equal(t, map[string]string(map[string]string{"transform": "true"}), first.Attributes().Items)
+	require.Equal(t, []byte("echo test2"), first.Content())
+
+	second := filtered[1]
+	require.Equal(t, "mermaid", second.Language())
+	require.Equal(t, map[string]string(map[string]string{"ignore": "false"}), second.Attributes().Items)
+	require.Equal(t, []byte("graph TD;\nA-->B;\nA-->C;\nB-->D;\nC-->D;"), second.Content())
 }
