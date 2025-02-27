@@ -126,6 +126,31 @@ func (b *CodeBlock) FencedEncoding() bool { return b.encoding == Fenced }
 
 func (b *CodeBlock) Attributes() *Attributes { return b.attributes }
 
+func (b *CodeBlock) Ignored() (ignored bool) {
+	if b.Attributes() == nil {
+		return
+	}
+
+	transform, err := strconv.ParseBool(b.Attributes().Items["transform"])
+	if err == nil {
+		ignored = !transform
+		return
+	}
+
+	ignore, err := strconv.ParseBool(b.Attributes().Items["ignore"])
+	if err == nil {
+		ignored = ignore
+		return
+	}
+
+	// ingore mermaid blocks by default unless attributes are set
+	if b.Language() == "mermaid" {
+		ignored = true
+	}
+
+	return
+}
+
 func (b *CodeBlock) Background() bool {
 	val, _ := strconv.ParseBool(b.Attributes().Items["background"])
 	return val
