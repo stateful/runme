@@ -109,5 +109,41 @@ func TestParseSections_SkipMkdocsScissorSyntax(t *testing.T) {
 	sections, err := ParseSections(data)
 	require.NoError(t, err)
 	assert.Equal(t, "", string(sections.Frontmatter))
-	// assert.Equal(t, "{{- $repourl := $.Info.RepositoryURL -}}\n# CHANGELOG\nAll notable changes to this project will be documented in this file.\n", string(sections.Content))
+	assert.NotEqual(t, "{{- $repourl := $.Info.RepositoryURL -}}\n# CHANGELOG\nAll notable changes to this project will be documented in this file.\n", string(sections.Content))
+}
+
+func TestParser(t *testing.T) {
+	t.Run("VaryingWidthCharacters", func(t *testing.T) {
+		cyrillicH1 := []byte(`# Заголовок`)
+
+		l := &itemParser{input: cyrillicH1}
+		runItemParser(l, parseInit)
+
+		for _, item := range l.items {
+			switch item.Type() {
+			case parsedItemContent:
+				actual := item.Value(cyrillicH1)
+				require.Equal(t, cyrillicH1, actual)
+			default:
+				t.Errorf("unexpected item type: %v", item.Type())
+			}
+		}
+	})
+
+	t.Run("ShortContent", func(t *testing.T) {
+		singleCharMultiByte := []byte(`😆`)
+
+		l := &itemParser{input: singleCharMultiByte}
+		runItemParser(l, parseInit)
+
+		for _, item := range l.items {
+			switch item.Type() {
+			case parsedItemContent:
+				actual := item.Value(singleCharMultiByte)
+				require.Equal(t, singleCharMultiByte, actual)
+			default:
+				t.Errorf("unexpected item type: %v", item.Type())
+			}
+		}
+	})
 }

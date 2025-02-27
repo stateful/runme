@@ -44,8 +44,6 @@ func parseRawFrontmatter(l *itemParser, delimiter byte) parserStateFunc {
 }
 
 func parseRawFrontmatterJSON(l *itemParser) parserStateFunc {
-	l.backup()
-
 	var (
 		inQuote bool
 		level   int
