@@ -79,18 +79,18 @@ type itemParser struct {
 	items []parsedItem
 	pos   int
 	start int
-	width int
 }
 
-func (l *itemParser) backup() {
-	l.pos -= l.width
+func (l *itemParser) backup(r rune) {
+	runeWidth := utf8.RuneLen(r)
+	l.pos -= runeWidth
 }
 
 func (l *itemParser) consume(runes []rune) bool {
 	var consumed bool
 	for _, r := range runes {
-		if l.next() != r {
-			l.backup()
+		if n := l.next(); n != r {
+			l.backup(n)
 		} else {
 			consumed = true
 		}
@@ -128,12 +128,10 @@ func (l *itemParser) ignore() {
 
 func (l *itemParser) next() rune {
 	if l.pos >= len(l.input) {
-		l.width = 0
 		return eof
 	}
 	runeValue, runeWidth := utf8.DecodeRune(l.input[l.pos:])
-	l.width = runeWidth
-	l.pos += l.width
+	l.pos += runeWidth
 	return runeValue
 }
 
@@ -154,14 +152,18 @@ loop:
 		}
 
 		ahead := [3]rune{}
-		for i := 0; i < len(ahead); i++ {
-			ahead[i] = l.next()
-			if ahead[i] == eof {
-				break loop
+		for i := range 3 {
+			next := l.next()
+			if next == eof {
+				break
 			}
+			ahead[i] = next
 		}
-		for i := 0; i < len(ahead); i++ {
-			l.backup()
+		for _, r := range ahead {
+			if r <= 0 {
+				break
+			}
+			l.backup(r)
 		}
 
 		switch {
@@ -169,24 +171,25 @@ loop:
 			return parseRawFrontmatter(l, byte(r0))
 		case r0 == '-' && ahead[0] == '-' && ahead[1] == '8' && ahead[2] == '<':
 			// skip scissor syntax
-			l.backup()
+			l.backup(r0)
 			break loop
 		case r0 == '-':
 			return parseRawFrontmatter(l, byte(r0))
 		case r0 == '{' && ahead[0] == '{':
 			// skip markdown templates
-			l.backup()
+			l.backup(r0)
 			break loop
 		case r0 == '{' && ahead[0] == '%':
 			// skip markdown preprocessor includes
-			l.backup()
+			l.backup(r0)
 			break loop
 		case r0 == '{':
+			l.backup(r0)
 			return parseRawFrontmatterJSON
 		case r0 == '\ufeff':
 			// skip
 		case !unicode.IsSpace(r0) && !isEOL(r0):
-			l.backup()
+			l.backup(r0)
 			break loop
 		}
 	}

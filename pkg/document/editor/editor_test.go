@@ -812,3 +812,49 @@ func TestEditor_LabelComments(t *testing.T) {
 		require.Contains(t, string(actual), labelCommentPreamble+"iso")
 	})
 }
+
+func TestEditor_VaryingWidthUnicodeSequences(t *testing.T) {
+	multiByteWithFrontmatter := []byte(`---
+runme:
+  id: 01JN4EXJWJH3CDJNQNSBFQAKEQ
+  version: v3
+---
+
+# Int'l scripts intermixed
+
+## Cyrillic Заголовок
+
+` + "```" + `sh {"id":"01JN4EXJWJH3CDJNQNS65DT3Z6"}
+date
+` + "```" + `
+
+## Greek επικεφαλίδα
+
+` + "```" + `ts {"id":"01JN4EXJWJH3CDJNQNS84Y8ZFN"}
+console.log(new Date())
+` + "```" + `
+
+## Simplified Chinese 标题
+
+` + "```" + `sh {"id":"01JN4F17YW71HSS6CJF7M7SFZH"}
+date
+` + "```" + `
+`)
+	notebook, err := Deserialize(multiByteWithFrontmatter, Options{IdentityResolver: identityResolverNone})
+	require.NoError(t, err)
+
+	require.Contains(t, notebook.Cells[0].Value, "Int'l scripts intermixed")
+	require.Contains(t, notebook.Cells[1].Value, "Заголовок")
+	require.Contains(t, notebook.Cells[2].LanguageID, "sh")
+	require.Contains(t, notebook.Cells[2].Value, "date")
+	require.Contains(t, notebook.Cells[3].Value, "επικεφαλίδα")
+	require.Contains(t, notebook.Cells[4].LanguageID, "ts")
+	require.Contains(t, notebook.Cells[4].Value, "console.log(new Date())")
+	require.Contains(t, notebook.Cells[5].Value, "标题")
+	require.Contains(t, notebook.Cells[6].LanguageID, "sh")
+	require.Contains(t, notebook.Cells[6].Value, "date")
+
+	actual, err := Serialize(notebook, nil, Options{})
+	require.NoError(t, err)
+	assert.Equal(t, string(multiByteWithFrontmatter), string(actual))
+}
