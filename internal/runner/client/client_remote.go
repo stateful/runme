@@ -9,6 +9,7 @@ import (
 
 	"github.com/muesli/cancelreader"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
@@ -76,6 +77,10 @@ func NewRemoteRunner(ctx context.Context, addr string, opts ...RunnerOption) (*R
 		return nil, err
 	}
 
+	if r.logger == nil {
+		r.logger = zap.NewNop()
+	}
+
 	conn, err := getGrpcConnection(addr, r)
 	if err != nil {
 		return nil, err
@@ -132,7 +137,6 @@ func (r *RemoteRunner) setupSession(ctx context.Context) error {
 	}
 
 	r.sessionID = resp.Session.Id
-
 	return nil
 }
 

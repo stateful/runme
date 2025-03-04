@@ -114,6 +114,12 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		return nil, err
 	}
 
+	if msg, err := sess.LoadDirEnv(ctx, proj, proj.Root()); err != nil {
+		r.logger.Info("failed to load direnv", zap.Error(err))
+	} else {
+		r.logger.Info("direnv returned", zap.String("msg", msg))
+	}
+
 	err = r.sessions.Add(sess)
 	if err != nil {
 		return nil, err
@@ -188,9 +194,15 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 		return nil, nil
 	}
 
-	// todo(sebastian): this is not right for IDE projects - does it matter for others?
-	// opts := []project.ProjectOption{project.WithFindRepoUpward()}
 	opts := []project.ProjectOption{}
+
+	// todo(sebastian): differ between enabled warn vs error
+	switch runnerProj.GetEnvDirenv() {
+	case *runnerv1.Project_DIR_ENV_DISABLED.Enum():
+		opts = append(opts, project.WithEnvDirEnv(false))
+	default:
+		opts = append(opts, project.WithEnvDirEnv(true))
+	}
 
 	if len(runnerProj.EnvLoadOrder) > 0 {
 		opts = append(opts, project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder))

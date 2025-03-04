@@ -1,14 +1,20 @@
 package runner
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"slices"
 	"sync"
 
 	"go.uber.org/zap"
 
+	"github.com/stateful/runme/v3/internal/ansi"
 	"github.com/stateful/runme/v3/internal/lru"
 	"github.com/stateful/runme/v3/internal/owl"
+	rcontext "github.com/stateful/runme/v3/internal/runner/context"
 	"github.com/stateful/runme/v3/internal/ulid"
 	"github.com/stateful/runme/v3/pkg/project"
 )
@@ -105,6 +111,59 @@ func (s *Session) Complete() {
 	s.envStorer.complete()
 }
 
+func (s *Session) LoadDirEnv(ctx context.Context, proj *project.Project, directory string) (string, error) {
+	if s == nil {
+		return "", fmt.Errorf("session is nil")
+	}
+
+	if proj == nil || !proj.EnvDirEnvEnabled() {
+		return "", nil
+	}
+
+	preEnv, err := proj.LoadEnv()
+	if err != nil {
+		return "", err
+	}
+
+	stderr := new(bytes.Buffer)
+	cfg := &ExecutableConfig{
+		Dir:     directory,
+		Name:    "LoadDirEnv",
+		PreEnv:  preEnv,
+		Session: s,
+		Stderr:  stderr,
+		Stdout:  io.Discard,
+		Tty:     false,
+	}
+
+	const sourceDirEnv = "which direnv && eval $(direnv export $SHELL)"
+	exec := &Shell{
+		ExecutableConfig: cfg,
+		Cmds:             []string{sourceDirEnv},
+	}
+
+	const dirEnvRc = ".envrc"
+	rctx := rcontext.WithExecutionInfo(ctx, &rcontext.ExecutionInfo{
+		RunID:       ulid.GenerateID(),
+		ExecContext: dirEnvRc,
+	})
+
+	if err = exec.Run(rctx); err != nil {
+		// skip errors caused by clients creating a new session on delete running on shutdown
+		if errors.Is(err, context.Canceled) {
+			return err.Error(), nil
+		}
+		return "", err
+	}
+
+	msg := ""
+	if stderr.Len() > 0 {
+		msg = string(ansi.Strip(stderr.Bytes()))
+	}
+
+	return msg, nil
+}
+
 type runnerEnvStorer struct {
 	// logger   *zap.Logger
 	envStore *envStore
@@ -179,7 +238,6 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	if proj != nil {
 		// todo(sebastian): specs loading should be independent of project
 		envSpecFiles = []string{".env.sample", ".env.example", ".env.spec"}
-		// envFilesOrder = proj.EnvFilesReadOrder()
 	}
 
 	for _, specFile := range envSpecFiles {
@@ -188,11 +246,8 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 			continue
 		}
 		opt := owl.WithEnvFile(specFile, raw)
-		for _, ssf := range envSpecFiles {
-			if specFile == ssf {
-				opt = owl.WithSpecFile(specFile, raw)
-				break
-			}
+		if slices.Contains(envSpecFiles, specFile) {
+			opt = owl.WithSpecFile(specFile, raw)
 		}
 		opts = append(opts, opt)
 	}

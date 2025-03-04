@@ -134,6 +134,41 @@ export interface Project {
      * @generated from protobuf field: repeated string env_load_order = 2;
      */
     envLoadOrder: string[];
+    /**
+     * specifies if and how direnv should be used
+     *
+     * @generated from protobuf field: runme.runner.v1.Project.DirEnv env_direnv = 3;
+     */
+    envDirenv: Project_DirEnv;
+}
+/**
+ * @generated from protobuf enum runme.runner.v1.Project.DirEnv
+ */
+export declare enum Project_DirEnv {
+    /**
+     * unspecified is the default value
+     *
+     * @generated from protobuf enum value: DIR_ENV_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * enabled, only warn on direnv errors
+     *
+     * @generated from protobuf enum value: DIR_ENV_ENABLED_WARN = 1;
+     */
+    ENABLED_WARN = 1,
+    /**
+     * enabled, error on direnv errors
+     *
+     * @generated from protobuf enum value: DIR_ENV_ENABLED_ERROR = 2;
+     */
+    ENABLED_ERROR = 2,
+    /**
+     * disabled means to not use direnv
+     *
+     * @generated from protobuf enum value: DIR_ENV_DISABLED = 3;
+     */
+    DISABLED = 3
 }
 /**
  * @generated from protobuf message runme.runner.v1.Winsize

@@ -36,6 +36,7 @@ func getProject() (*project.Project, error) {
 
 	opts := []project.ProjectOption{
 		project.WithLogger(logger),
+		project.WithEnvDirEnv(true),
 	}
 
 	var proj *project.Project
