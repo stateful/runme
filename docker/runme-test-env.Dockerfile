@@ -31,6 +31,9 @@ ENV DENO_INSTALL="$HOME/.deno"
 RUN curl -fsSL https://deno.land/install.sh | sh \
     && cp "$DENO_INSTALL/bin/deno" /usr/local/bin/deno
 
+# Install direnv
+RUN curl -fsSL https://direnv.net/install.sh | bash
+
 # Configure workspace
 WORKDIR /workspace
 
