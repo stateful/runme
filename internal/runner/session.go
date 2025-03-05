@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"slices"
 	"sync"
 
@@ -125,14 +124,14 @@ func (s *Session) LoadDirEnv(ctx context.Context, proj *project.Project, directo
 		return "", err
 	}
 
-	stderr := new(bytes.Buffer)
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	cfg := &ExecutableConfig{
 		Dir:     directory,
 		Name:    "LoadDirEnv",
 		PreEnv:  preEnv,
 		Session: s,
 		Stderr:  stderr,
-		Stdout:  io.Discard,
+		Stdout:  stdout,
 		Tty:     false,
 	}
 
@@ -153,12 +152,18 @@ func (s *Session) LoadDirEnv(ctx context.Context, proj *project.Project, directo
 		if errors.Is(err, context.Canceled) {
 			return err.Error(), nil
 		}
+
+		// this means direnv isn't installed == not an error
+		if exec.ExitCode() > 0 && bytes.Contains(stdout.Bytes(), []byte("not found")) {
+			return "direnv not found", nil
+		}
+
 		return "", err
 	}
 
 	msg := ""
 	if stderr.Len() > 0 {
-		msg = string(ansi.Strip(stderr.Bytes()))
+		msg = string(bytes.Trim(ansi.Strip(stderr.Bytes()), "\r\n"))
 	}
 
 	return msg, nil
