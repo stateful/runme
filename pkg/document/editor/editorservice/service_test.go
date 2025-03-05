@@ -323,7 +323,7 @@ func Test_parserServiceServer_SessionFrontmatter(t *testing.T) {
 		doc := `---
 runme:
   id: 01HJS33TJYXZ6KJPG2SZZ6D1H5
-  version: v2.0
+  version: v3
   session:
     id: 01HJS35FZ2K0JBWPVAXPMMVTGN
     updated: 2023-12-28 15:16:06-05:00
