@@ -79,9 +79,12 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 			if notebook.Frontmatter.Runme.Session != nil && notebook.Frontmatter.Runme.Session.ID != "" {
 				runme.Session = &parserv1.RunmeSession{
 					Id: notebook.Frontmatter.Runme.Session.ID,
-					Document: &parserv1.RunmeSessionDocument{
+				}
+
+				if notebook.Frontmatter.Runme.Document != nil {
+					runme.Session.Document = &parserv1.RunmeSessionDocument{
 						RelativePath: notebook.Frontmatter.Runme.Document.RelativePath,
-					},
+					}
 				}
 			}
 		}
