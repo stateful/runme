@@ -114,10 +114,13 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv1.CreateS
 		return nil, err
 	}
 
-	if msg, err := sess.LoadDirEnv(ctx, proj, proj.Root()); err != nil {
-		r.logger.Info("failed to load direnv", zap.Error(err))
-	} else {
-		r.logger.Info("direnv returned", zap.String("msg", msg))
+	if proj != nil {
+		msg, err := sess.LoadDirEnv(ctx, proj, proj.Root())
+		if err != nil {
+			r.logger.Info("failed to load direnv", zap.Error(err))
+		} else {
+			r.logger.Info("direnv returned", zap.String("msg", msg))
+		}
 	}
 
 	err = r.sessions.Add(sess)
