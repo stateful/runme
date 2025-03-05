@@ -29,6 +29,11 @@ func getIdentityResolver() *identity.IdentityResolver {
 }
 
 func getProject() (*project.Project, error) {
+	// todo(sebastian): should this be a cmdline flag?
+	return getProjectWithEnvDir(true)
+}
+
+func getProjectWithEnvDir(enabled bool) (*project.Project, error) {
 	logger, err := getLogger(false)
 	if err != nil {
 		return nil, err
@@ -36,7 +41,7 @@ func getProject() (*project.Project, error) {
 
 	opts := []project.ProjectOption{
 		project.WithLogger(logger),
-		project.WithEnvDirEnv(true),
+		project.WithEnvDirEnv(enabled),
 	}
 
 	var proj *project.Project
@@ -357,24 +362,26 @@ func promptEnvVars(cmd *cobra.Command, runner client.Runner, tasks ...project.Ta
 		for _, variable := range response.Vars {
 			capturedValue := ""
 			switch variable.Status {
-			case
-				runnerv1.ResolveProgramResponse_STATUS_RESOLVED:
-				capturedValue = variable.ResolvedValue
-			case
-				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
+			case runnerv1.ResolveProgramResponse_STATUS_RESOLVED:
+				{
+					capturedValue = variable.ResolvedValue
+				}
+			case runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_MESSAGE,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_PLACEHOLDER,
 				runnerv1.ResolveProgramResponse_STATUS_UNRESOLVED_WITH_SECRET:
-				params := resolveInputParams(variable)
-				newVal := ""
+				{
+					params := resolveInputParams(variable)
+					newVal := ""
 
-				if isTerminal(os.Stdout.Fd()) {
-					newVal, err = captureVariable(cmd, &params)
-					if err != nil {
-						return err
+					if isTerminal(os.Stdout.Fd()) {
+						newVal, err = captureVariable(cmd, &params)
+						if err != nil {
+							return err
+						}
 					}
-				}
 
-				capturedValue = newVal
+					capturedValue = newVal
+				}
 			}
 
 			if len(capturedValue) > 0 {

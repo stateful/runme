@@ -131,6 +131,7 @@ func (s *Session) LoadDirEnv(ctx context.Context, proj *project.Project, directo
 		PreEnv:  preEnv,
 		Session: s,
 		Stderr:  stderr,
+		Stdin:   bytes.NewBuffer([]byte("")),
 		Stdout:  stdout,
 		Tty:     false,
 	}
@@ -161,7 +162,7 @@ func (s *Session) LoadDirEnv(ctx context.Context, proj *project.Project, directo
 		return "", err
 	}
 
-	msg := ""
+	msg := "unavailable"
 	if stderr.Len() > 0 {
 		msg = string(bytes.Trim(ansi.Strip(stderr.Bytes()), "\r\n"))
 	}
