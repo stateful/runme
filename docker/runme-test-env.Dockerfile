@@ -7,6 +7,7 @@ LABEL org.opencontainers.image.title="Runme test environment"
 LABEL org.opencontainers.image.description="An image to run unit and integration tests for runme."
 
 ENV HOME=/root
+ENV SHELL=/bin/bash
 
 RUN apt-get update && apt-get install -y \
     "bash" \

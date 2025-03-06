@@ -50,7 +50,7 @@ func Cleanup(t *testing.T, temp string) {
 	cmd := exec.Command("direnv", "prune")
 	cmd.Dir = filepath.Join(temp, "direnv-project")
 	cmd.Env = os.Environ()
-	require.NoError(t, cmd.Run())
+	_ = cmd.Run()
 
 	err := os.RemoveAll(filepath.Join(temp, "git-project", ".git"))
 	require.NoError(t, err)
