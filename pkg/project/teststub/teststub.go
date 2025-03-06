@@ -36,10 +36,13 @@ func Setup(t *testing.T, temp string) Path {
 	)
 	require.NoError(t, err)
 
-	cmd := exec.Command("direnv", "allow")
-	cmd.Dir = filepath.Join(temp, "direnv-project")
-	cmd.Env = os.Environ()
-	require.NoError(t, cmd.Run())
+	// don't break tests on Windows
+	if runtime.GOOS != "windows" {
+		cmd := exec.Command("direnv", "allow")
+		cmd.Dir = filepath.Join(temp, "direnv-project")
+		cmd.Env = os.Environ()
+		require.NoError(t, cmd.Run())
+	}
 
 	return Path{root: temp}
 }
