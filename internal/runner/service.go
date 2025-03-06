@@ -192,10 +192,10 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 
 	// todo(sebastian): differ between enabled warn vs error
 	switch runnerProj.GetEnvDirenv() {
-	case *runnerv1.Project_DIR_ENV_DISABLED.Enum():
-		opts = append(opts, project.WithEnvDirEnv(false))
-	default:
+	case runnerv1.Project_DIR_ENV_ENABLED_WARN, runnerv1.Project_DIR_ENV_ENABLED_ERROR:
 		opts = append(opts, project.WithEnvDirEnv(true))
+	default:
+		opts = append(opts, project.WithEnvDirEnv(false))
 	}
 
 	if len(runnerProj.EnvLoadOrder) > 0 {
