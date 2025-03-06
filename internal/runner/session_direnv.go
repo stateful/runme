@@ -13,7 +13,7 @@ import (
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
-func (s *Session) LoadDirEnv(ctx context.Context, proj *project.Project, directory string) (string, error) {
+func (s *Session) loadDirEnv(ctx context.Context, proj *project.Project) (string, error) {
 	if s == nil {
 		return "", fmt.Errorf("session is nil")
 	}
@@ -29,7 +29,7 @@ func (s *Session) LoadDirEnv(ctx context.Context, proj *project.Project, directo
 
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	cfg := &ExecutableConfig{
-		Dir:     directory,
+		Dir:     proj.Root(),
 		Name:    "LoadDirEnv",
 		PreEnv:  preEnv,
 		Session: s,

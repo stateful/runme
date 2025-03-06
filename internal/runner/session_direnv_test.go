@@ -3,11 +3,12 @@
 package runner
 
 import (
-	"context"
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/stateful/runme/v3/pkg/project"
 	"github.com/stateful/runme/v3/pkg/project/teststub"
@@ -20,15 +21,20 @@ func Test_EnvDirEnv(t *testing.T) {
 	proj, err := project.NewDirProject(testData.DirEnvProjectPath(), project.WithEnvDirEnv(true))
 	require.NoError(t, err)
 
-	sess, err := NewSession([]string{}, proj, zap.NewNop())
-	require.NoError(t, err)
+	logBuf := &bytes.Buffer{}
+	writer := zapcore.AddSync(logBuf)
+	encCfg := zap.NewDevelopmentEncoderConfig()
+	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encCfg), writer, zap.DebugLevel)
+	logger := zap.New(core)
 
-	msg, err := sess.LoadDirEnv(context.Background(), proj, proj.Root())
+	sess, err := NewSession([]string{}, proj, logger)
 	require.NoError(t, err)
-	require.Contains(t, msg, "direnv: export +PGDATABASE +PGHOST +PGOPTIONS +PGPASSWORD +PGPORT +PGUSER")
 
 	actualEnvs, err := sess.Envs()
 	require.NoError(t, err)
+
+	require.NoError(t, err)
+	require.Contains(t, logBuf.String(), "direnv: export +PGDATABASE +PGHOST +PGOPTIONS +PGPASSWORD +PGPORT +PGUSER")
 
 	expectedEnvs := []string{
 		"PGDATABASE=platform",

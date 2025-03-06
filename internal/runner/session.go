@@ -67,6 +67,16 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 
 		logger: logger,
 	}
+
+	if proj != nil {
+		msg, err := s.loadDirEnv(context.Background(), proj)
+		if err != nil {
+			logger.Info("failed to load direnv", zap.Error(err))
+		} else {
+			logger.Info("direnv returned", zap.String("msg", msg))
+		}
+	}
+
 	return s, nil
 }
 

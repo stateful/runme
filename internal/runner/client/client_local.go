@@ -78,7 +78,7 @@ func NewLocalRunner(opts ...RunnerOption) (*LocalRunner, error) {
 	return r, nil
 }
 
-func (r *LocalRunner) setupSession(ctx context.Context) error {
+func (r *LocalRunner) setupSession(_ context.Context) error {
 	envs := append(os.Environ(), r.envs...)
 
 	// todo(sebastian): owl store?
@@ -88,8 +88,7 @@ func (r *LocalRunner) setupSession(ctx context.Context) error {
 	}
 	r.session = sess
 
-	_, err = r.session.LoadDirEnv(ctx, r.project, r.dir)
-	return err
+	return nil
 }
 
 func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
