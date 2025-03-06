@@ -82,7 +82,7 @@ func (r *LocalRunner) setupSession(_ context.Context) error {
 	envs := append(os.Environ(), r.envs...)
 
 	// todo(sebastian): owl store?
-	sess, err := runner.NewSession(envs, nil, r.logger)
+	sess, err := runner.NewSession(envs, r.project, r.logger)
 	if err != nil {
 		return err
 	}
