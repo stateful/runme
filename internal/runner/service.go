@@ -188,9 +188,15 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 		return nil, nil
 	}
 
-	// todo(sebastian): this is not right for IDE projects - does it matter for others?
-	// opts := []project.ProjectOption{project.WithFindRepoUpward()}
 	opts := []project.ProjectOption{}
+
+	// todo(sebastian): differ between enabled warn vs error
+	switch runnerProj.GetEnvDirenv() {
+	case runnerv1.Project_DIR_ENV_ENABLED_WARN, runnerv1.Project_DIR_ENV_ENABLED_ERROR:
+		opts = append(opts, project.WithEnvDirEnv(true))
+	default:
+		opts = append(opts, project.WithEnvDirEnv(false))
+	}
 
 	if len(runnerProj.EnvLoadOrder) > 0 {
 		opts = append(opts, project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder))

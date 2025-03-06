@@ -7,6 +7,7 @@ LABEL org.opencontainers.image.title="Runme test environment"
 LABEL org.opencontainers.image.description="An image to run unit and integration tests for runme."
 
 ENV HOME=/root
+ENV SHELL=/bin/bash
 
 RUN apt-get update && apt-get install -y \
     "bash" \
@@ -30,6 +31,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 ENV DENO_INSTALL="$HOME/.deno"
 RUN curl -fsSL https://deno.land/install.sh | sh \
     && cp "$DENO_INSTALL/bin/deno" /usr/local/bin/deno
+
+# Install direnv
+RUN curl -fsSL https://direnv.net/install.sh | bash
 
 # Configure workspace
 WORKDIR /workspace

@@ -86,6 +86,19 @@ message Project {
   // list of environment files to try and load
   // start with
   repeated string env_load_order = 2;
+
+  enum DirEnv {
+    // unspecified is the default value
+    DIR_ENV_UNSPECIFIED = 0;
+    // enabled, only warn on direnv errors
+    DIR_ENV_ENABLED_WARN = 1;
+    // enabled, error on direnv errors
+    DIR_ENV_ENABLED_ERROR = 2;
+    // disabled means to not use direnv
+    DIR_ENV_DISABLED = 3;
+  }
+  // specifies if and how direnv should be used
+  DirEnv env_direnv = 3;
 }
 
 // strategy for selecting a session in an initial execute request

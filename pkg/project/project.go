@@ -90,6 +90,12 @@ func WithRespectGitignore(value bool) ProjectOption {
 	}
 }
 
+func WithEnvDirEnv(value bool) ProjectOption {
+	return func(p *Project) {
+		p.envDirEnvEnabled = value
+	}
+}
+
 func WithIgnoreFilePatterns(patterns ...string) ProjectOption {
 	return func(p *Project) {
 		p.ignoreFilePatterns = append(p.ignoreFilePatterns, patterns...)
@@ -131,7 +137,7 @@ type Project struct {
 	// ignore certain file patterns.
 	ignoreFilePatterns []string
 
-	// Used when dir project is or is within a git repository.
+	// used when dir project is or is within a git repository.
 	// `repo`, if not nil, only indicates that the directory
 	// contains a valid .git directory. It's not used for anything.
 	repo             *git.Repository
@@ -141,6 +147,10 @@ type Project struct {
 	// envFilesReadOrder is a list of paths to .env files
 	// to read from.
 	envFilesReadOrder []string
+
+	// todo(sebastian): likely needs enum for reporting direnv errors
+	// enable or disable direnv handling
+	envDirEnvEnabled bool
 
 	logger *zap.Logger
 }
@@ -241,6 +251,10 @@ func NewFileProject(
 
 func (p *Project) EnvFilesReadOrder() []string {
 	return p.envFilesReadOrder
+}
+
+func (p *Project) EnvDirEnvEnabled() bool {
+	return p.envDirEnvEnabled
 }
 
 func (p *Project) Root() string {

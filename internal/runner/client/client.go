@@ -68,6 +68,8 @@ type Runner interface {
 
 	getSettings() *RunnerSettings
 	setSettings(settings *RunnerSettings)
+
+	setupSession(ctx context.Context) error
 }
 
 func New(context context.Context, serverAddr string, fallbackRunner bool, runnerOpts []RunnerOption) (Runner, error) {
