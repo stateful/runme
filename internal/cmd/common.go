@@ -29,8 +29,7 @@ func getIdentityResolver() *identity.IdentityResolver {
 }
 
 func getProject() (*project.Project, error) {
-	// todo(sebastian): should this be a cmdline flag?
-	return getProjectWithEnvDir(true)
+	return getProjectWithEnvDir(fProjectDirEnv)
 }
 
 func getProjectWithEnvDir(enabled bool) (*project.Project, error) {
