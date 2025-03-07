@@ -84,6 +84,8 @@ func tuiCmd() *cobra.Command {
 				visibleEntries = clamp(visibleEntries, minVisibleEntries, maxVisibleEntries)
 			}
 
+			visibleEntries = max(minVisibleEntries, visibleEntries)
+
 			var runnerClient client.Runner
 
 			defer func() {
@@ -205,7 +207,7 @@ func tuiCmd() *cobra.Command {
 	setDefaultFlags(&cmd)
 
 	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
-	cmd.Flags().IntVar(&visibleEntries, "entries", minVisibleEntries, fmt.Sprintf("Overwrite calculated number of entries (min: %d, max: %d) to show in TUI", minVisibleEntries, maxVisibleEntries))
+	cmd.Flags().IntVar(&visibleEntries, "entries", minVisibleEntries, fmt.Sprintf("Overwrite calculated number of entries (min: %d) to show in TUI", minVisibleEntries))
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
