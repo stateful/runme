@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"github.com/mgutz/ansi"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/constraints"
 
 	"github.com/stateful/runme/v3/internal/runner"
 	"github.com/stateful/runme/v3/internal/runner/client"
@@ -462,6 +462,6 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func clamp[T constraints.Ordered](x, a, b T) T {
+func clamp[T cmp.Ordered](x, a, b T) T {
 	return min(b, max(a, x))
 }

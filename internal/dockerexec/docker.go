@@ -2,8 +2,10 @@ package dockerexec
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"io"
+	"math/rand/v2"
 	"time"
 
 	"github.com/docker/docker/api/types/filters"
@@ -11,7 +13,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"golang.org/x/exp/rand"
 )
 
 type Options struct {
@@ -34,7 +35,9 @@ func New(opts *Options) (*Docker, error) {
 		logger = zap.NewNop()
 	}
 
-	rnd := rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
+	var seed [32]byte
+	binary.LittleEndian.PutUint64(seed[:], uint64(time.Now().UnixNano()))
+	rnd := rand.NewChaCha8(seed)
 
 	d := &Docker{
 		client:       c,
@@ -61,7 +64,7 @@ type Docker struct {
 	image        string
 
 	logger *zap.Logger
-	rnd    *rand.Rand
+	rnd    *rand.ChaCha8
 }
 
 func (d *Docker) CommandContext(ctx context.Context, program string, args ...string) *Cmd {

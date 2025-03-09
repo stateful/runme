@@ -2,12 +2,13 @@ package ulid
 
 import (
 	"io"
+	"math/rand/v2"
+	"encoding/binary"
 	"regexp"
 	"sync"
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"golang.org/x/exp/rand"
 )
 
 var (
@@ -18,12 +19,12 @@ var (
 
 // DefaultEntropy returns a reader that generates ULID entropy.
 // The default entropy function utilizes math/rand.Rand, which is not safe for concurrent use by multiple goroutines.
-// Therefore, this function employs x/exp/rand, as recommended by the authors of the library.
+// Therefore, this function employs math/rand/v2 (supersedes x/exp/rand), as recommended by the authors of the library.
 func DefaultEntropy() io.Reader {
 	entropyOnce.Do(func() {
-		seed := uint64(time.Now().UnixNano())
-		source := rand.NewSource(seed)
-		rng := rand.New(source)
+		var seed [32]byte
+		binary.LittleEndian.PutUint64(seed[:], uint64(time.Now().UnixNano()))
+		rng := rand.NewChaCha8(seed)
 
 		entropy = &ulid.LockedMonotonicReader{
 			MonotonicReader: ulid.Monotonic(rng, 0),
