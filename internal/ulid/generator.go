@@ -1,32 +1,13 @@
 package ulid
 
 import (
-	"io"
-	"math/rand"
 	"regexp"
-	"sync"
 	"time"
 
 	"github.com/oklog/ulid/v2"
 )
 
-var (
-	entropy     io.Reader
-	entropyOnce sync.Once
-	generator   = DefaultGenerator
-)
-
-// DefaultEntropy returns a reader that generates ULID entropy.
-func DefaultEntropy() io.Reader {
-	entropyOnce.Do(func() {
-		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-		entropy = &ulid.LockedMonotonicReader{
-			MonotonicReader: ulid.Monotonic(rng, 0),
-		}
-	})
-	return entropy
-}
+var generator = DefaultGenerator
 
 // IsULID checks if the given string is a valid ULID
 // ULID pattern:
@@ -56,7 +37,7 @@ func GenerateID() string {
 }
 
 func DefaultGenerator() string {
-	entropy := DefaultEntropy()
+	entropy := ulid.DefaultEntropy()
 	now := time.Now()
 	ts := ulid.Timestamp(now)
 	return ulid.MustNew(ts, entropy).String()
