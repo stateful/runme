@@ -1,36 +1,13 @@
 package ulid
 
 import (
-	"io"
 	"regexp"
-	"sync"
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"golang.org/x/exp/rand"
 )
 
-var (
-	entropy     io.Reader
-	entropyOnce sync.Once
-	generator   = DefaultGenerator
-)
-
-// DefaultEntropy returns a reader that generates ULID entropy.
-// The default entropy function utilizes math/rand.Rand, which is not safe for concurrent use by multiple goroutines.
-// Therefore, this function employs x/exp/rand, as recommended by the authors of the library.
-func DefaultEntropy() io.Reader {
-	entropyOnce.Do(func() {
-		seed := uint64(time.Now().UnixNano())
-		source := rand.NewSource(seed)
-		rng := rand.New(source)
-
-		entropy = &ulid.LockedMonotonicReader{
-			MonotonicReader: ulid.Monotonic(rng, 0),
-		}
-	})
-	return entropy
-}
+var generator = DefaultGenerator
 
 // IsULID checks if the given string is a valid ULID
 // ULID pattern:
@@ -60,7 +37,7 @@ func GenerateID() string {
 }
 
 func DefaultGenerator() string {
-	entropy := DefaultEntropy()
+	entropy := ulid.DefaultEntropy()
 	now := time.Now()
 	ts := ulid.Timestamp(now)
 	return ulid.MustNew(ts, entropy).String()

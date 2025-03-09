@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"io"
+	"math/rand"
 	"time"
 
 	"github.com/docker/docker/api/types/filters"
@@ -11,7 +12,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"golang.org/x/exp/rand"
 )
 
 type Options struct {
@@ -34,7 +34,7 @@ func New(opts *Options) (*Docker, error) {
 		logger = zap.NewNop()
 	}
 
-	rnd := rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	d := &Docker{
 		client:       c,

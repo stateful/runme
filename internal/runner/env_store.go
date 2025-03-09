@@ -2,10 +2,9 @@ package runner
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"sync"
-
-	"golang.org/x/exp/slices"
 )
 
 // Limited by windows
