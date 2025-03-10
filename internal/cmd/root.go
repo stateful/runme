@@ -88,7 +88,7 @@ func Root() *cobra.Command {
 	pflags.BoolVar(&fInsecure, "insecure", false, "Explicitly allow insecure operations to prevent misuse")
 
 	pflags.StringVar(&fProject, "project", "", "Root project to find runnable tasks")
-	pflags.BoolVar(&fProjectDirEnv, "direnv", false, "Enable direnv loading loading for project")
+	pflags.BoolVar(&fProjectDirEnv, "direnv", false, "Enable direnv loading for project")
 	pflags.BoolVar(&fRespectGitignore, "git-ignore", true, "Whether to respect .gitignore file(s) in project")
 	pflags.StringArrayVar(&fProjectIgnorePatterns, "ignore-pattern", []string{"node_modules", ".venv"}, "Patterns to ignore in project mode")
 
