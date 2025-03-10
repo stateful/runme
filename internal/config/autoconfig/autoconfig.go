@@ -125,8 +125,12 @@ func getCommandFactory(cfg *config.Config, docker *dockerexec.Docker, logger *za
 		command.WithDocker(docker),
 		command.WithLogger(logger),
 		command.WithProject(proj),
-		command.WithUseSystemEnv(cfg.Project.Env.UseSystemEnv),
 	}
+
+	if env := cfg.Project.Env; env != nil {
+		opts = append(opts, command.WithUseSystemEnv(env.UseSystemEnv))
+	}
+
 	return command.NewFactory(opts...)
 }
 
