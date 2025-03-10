@@ -47,7 +47,7 @@ func newEnvCollectorFifo(
 		temp:     temp,
 	}
 
-	if errC := c.init(); errC != nil {
+	if err := c.init(); err != nil {
 		return nil, errC
 	}
 
