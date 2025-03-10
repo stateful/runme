@@ -79,6 +79,12 @@ func WithRuntime(r Runtime) FactoryOption {
 	}
 }
 
+func WithUseSystemEnv(val bool) FactoryOption {
+	return func(f *commandFactory) {
+		f.useSystemEnv = val
+	}
+}
+
 func NewFactory(opts ...FactoryOption) Factory {
 	f := &commandFactory{}
 	for _, opt := range opts {
@@ -91,11 +97,12 @@ func NewFactory(opts ...FactoryOption) Factory {
 }
 
 type commandFactory struct {
-	debug   bool
-	docker  *dockerexec.Docker
-	logger  *zap.Logger
-	project *project.Project
-	runtime Runtime
+	debug        bool
+	docker       *dockerexec.Docker
+	logger       *zap.Logger
+	project      *project.Project
+	runtime      Runtime
+	useSystemEnv bool
 }
 
 // Build creates a new command based on the provided [ProgramConfig] and [CommandOptions].
@@ -214,19 +221,11 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 }
 
 func (f *commandFactory) buildBase(cfg *ProgramConfig, opts CommandOptions) *base {
-	runtime := f.runtime
-
-	if isNil(runtime) && f.docker != nil {
-		runtime = &dockerRuntime{Docker: f.docker}
-	} else if isNil(runtime) {
-		runtime = &hostRuntime{useSystem: true}
-	}
-
 	return &base{
 		cfg:     cfg,
 		logger:  f.getLogger("Base"),
 		project: f.project,
-		runtime: runtime,
+		runtime: f.getRuntime(),
 		session: opts.Session,
 		stdin:   opts.Stdin,
 		stdout:  opts.Stdout,
@@ -304,6 +303,18 @@ func (f *commandFactory) getEnvCollector() (envCollector, error) {
 func (f *commandFactory) getLogger(name string) *zap.Logger {
 	id := ulid.GenerateID()
 	return f.logger.Named(name).With(zap.String("instanceID", id))
+}
+
+func (f *commandFactory) getRuntime() Runtime {
+	runtime := f.runtime
+
+	if isNil(runtime) && f.docker != nil {
+		runtime = &dockerRuntime{Docker: f.docker}
+	} else if isNil(runtime) {
+		runtime = &hostRuntime{useSystem: f.useSystemEnv}
+	}
+
+	return runtime
 }
 
 func isNil(val any) bool {

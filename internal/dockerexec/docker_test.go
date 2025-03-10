@@ -5,10 +5,16 @@ package dockerexec
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
+
+const testAlpineImage = "alpine:3.19"
 
 func TestDockerCommandContext(t *testing.T) {
 	t.Parallel()
@@ -17,7 +23,7 @@ func TestDockerCommandContext(t *testing.T) {
 
 	docker, err := New(
 		&Options{
-			Image: "alpine:3.19",
+			Image: testAlpineImage,
 		},
 	)
 	require.NoError(t, err)
@@ -73,4 +79,63 @@ func TestDockerCommandContext(t *testing.T) {
 		require.NoError(t, cmd.Wait())
 		require.Equal(t, "hello\r\n", stdout.String())
 	})
+}
+
+func TestDockerCommandContextWithCustomImage(t *testing.T) {
+	t.Parallel()
+
+	logger := zaptest.NewLogger(t)
+	buildContext := t.TempDir()
+
+	err := os.WriteFile(
+		filepath.Join(buildContext, "Dockerfile"),
+		[]byte(`FROM `+testAlpineImage+`
+ENTRYPOINT ["echo"]
+CMD ["Hello"]`),
+		0o644,
+	)
+	require.NoError(t, err)
+	err = os.WriteFile(
+		filepath.Join(buildContext, "hello.txt"),
+		[]byte("hello"),
+		0o644,
+	)
+	require.NoError(t, err)
+
+	docker, err := New(
+		&Options{
+			Image:        "runme-runner-test:latest",
+			BuildContext: buildContext,
+			Logger:       logger,
+		},
+	)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		testRemoveImage(t, ctx, docker)
+	})
+
+	workingDir := t.TempDir()
+
+	t.Run("NotTTY", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := bytes.NewBuffer(nil)
+
+		cmd := docker.CommandContext(context.Background(), "echo", "hello")
+		cmd.Dir = workingDir
+		cmd.Stdout = stdout
+
+		require.NoError(t, cmd.Start())
+		require.NoError(t, cmd.Wait())
+		require.Equal(t, "hello\n", stdout.String())
+	})
+}
+
+func testRemoveImage(t *testing.T, ctx context.Context, docker *Docker) {
+	t.Helper()
+	err := docker.RemoveImage(ctx)
+	require.NoError(t, err)
 }

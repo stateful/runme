@@ -66,7 +66,7 @@ func NewRunnerService(logger *zap.Logger) (runnerv1.RunnerServiceServer, error) 
 }
 
 func newRunnerService(logger *zap.Logger) (*runnerService, error) {
-	sessions := NewSessionList()
+	sessions := newSessionList()
 
 	return &runnerService{
 		logger:   logger,
@@ -807,7 +807,7 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session, bool) {
 	switch req.GetSessionStrategy() {
 	case runnerv1.SessionStrategy_SESSION_STRATEGY_MOST_RECENT:
-		return r.sessions.MostRecent()
+		return r.sessions.Newest()
 	default:
 		if sessID := req.GetSessionId(); sessID != "" {
 			sess := r.findSession(sessID)

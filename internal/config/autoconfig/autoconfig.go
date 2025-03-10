@@ -120,12 +120,14 @@ func getClientFactory(cfg *config.Config, logger *zap.Logger) (ClientFactory, er
 	}, nil
 }
 
-func getCommandFactory(docker *dockerexec.Docker, logger *zap.Logger, proj *project.Project) command.Factory {
-	return command.NewFactory(
+func getCommandFactory(cfg *config.Config, docker *dockerexec.Docker, logger *zap.Logger, proj *project.Project) command.Factory {
+	opts := []command.FactoryOption{
 		command.WithDocker(docker),
 		command.WithLogger(logger),
 		command.WithProject(proj),
-	)
+		command.WithUseSystemEnv(cfg.Project.Env.UseSystemEnv),
+	}
+	return command.NewFactory(opts...)
 }
 
 func getConfigLoader() (*config.Loader, error) {
