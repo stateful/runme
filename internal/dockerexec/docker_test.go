@@ -90,14 +90,14 @@ func TestDockerCommandContextWithCustomImage(t *testing.T) {
 	err := os.WriteFile(
 		filepath.Join(buildContext, "Dockerfile"),
 		[]byte(`FROM `+testAlpineImage+`
-ENTRYPOINT ["echo"]
-CMD ["Hello"]`),
+COPY hello.txt /hello.txt
+`),
 		0o644,
 	)
 	require.NoError(t, err)
 	err = os.WriteFile(
 		filepath.Join(buildContext, "hello.txt"),
-		[]byte("hello"),
+		[]byte("hello from file"),
 		0o644,
 	)
 	require.NoError(t, err)
@@ -119,7 +119,7 @@ CMD ["Hello"]`),
 
 	workingDir := t.TempDir()
 
-	t.Run("NotTTY", func(t *testing.T) {
+	t.Run("Basic", func(t *testing.T) {
 		t.Parallel()
 
 		stdout := bytes.NewBuffer(nil)
@@ -131,6 +131,20 @@ CMD ["Hello"]`),
 		require.NoError(t, cmd.Start())
 		require.NoError(t, cmd.Wait())
 		require.Equal(t, "hello\n", stdout.String())
+	})
+
+	t.Run("BuildContextFile", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := bytes.NewBuffer(nil)
+
+		cmd := docker.CommandContext(context.Background(), "cat", "/hello.txt")
+		cmd.Dir = workingDir
+		cmd.Stdout = stdout
+
+		require.NoError(t, cmd.Start())
+		require.NoError(t, cmd.Wait())
+		require.Equal(t, "hello from file", stdout.String())
 	})
 }
 

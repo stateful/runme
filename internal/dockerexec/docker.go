@@ -125,11 +125,11 @@ func (d *Docker) buildImage(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	return errors.WithStack(
-		printLogs(resp.Body, d.logger),
+		logClientMessages(resp.Body, d.logger),
 	)
 }
 
-func printLogs(r io.Reader, logger *zap.Logger) error {
+func logClientMessages(r io.Reader, logger *zap.Logger) error {
 	type errorLine struct {
 		Error       string `json:"error"`
 		ErrorDetail struct {
