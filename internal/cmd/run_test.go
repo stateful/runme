@@ -35,7 +35,7 @@ func TestPromptEnvVars(t *testing.T) {
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: validCmdNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			proj, err := getProject()
+			proj, err := getProjectWithEnvDir(false)
 			assert.NoError(t, err)
 
 			runnerOpts, err := getRunnerOpts()
@@ -59,6 +59,7 @@ func TestPromptEnvVars(t *testing.T) {
 
 			runner, err := client.NewLocalRunner(runnerOpts...)
 			assert.NoError(t, err)
+			assert.NotNil(t, runner)
 			tasks, err := getProjectTasks(cmd)
 			assert.NoError(t, err)
 

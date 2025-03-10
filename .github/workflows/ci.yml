@@ -69,6 +69,9 @@ jobs:
       - name: Install rust-script
         run: cargo install rust-script
         if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Install direnv
+        run: curl -fsSL https://direnv.net/install.sh | bash
+        if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Build
         run: |
           go build -o runme main.go

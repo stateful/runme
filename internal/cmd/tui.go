@@ -3,11 +3,13 @@ package cmd
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/creack/pty"
 	"github.com/mgutz/ansi"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -71,9 +73,18 @@ func tuiCmd() *cobra.Command {
 				return errors.Errorf("no code blocks")
 			}
 
-			if visibleEntries <= 0 {
-				visibleEntries = math.MaxInt32
+			entriesUnset := !cmd.Flags().Changed("entries")
+			if entriesUnset && isTerminal(os.Stdin.Fd()) {
+				entries, _, err := pty.Getsize(os.Stdin)
+				if err != nil {
+					return errors.Wrap(err, "failed to get pty size")
+				}
+				// every entry takes up 4 rows with padding
+				visibleEntries = int(math.Round(float64(entries) / 4))
+				visibleEntries = clamp(visibleEntries, minVisibleEntries, maxVisibleEntries)
 			}
+
+			visibleEntries = max(minVisibleEntries, visibleEntries)
 
 			var runnerClient client.Runner
 
@@ -196,7 +207,7 @@ func tuiCmd() *cobra.Command {
 	setDefaultFlags(&cmd)
 
 	cmd.Flags().BoolVar(&runOnce, "exit", false, "Exit TUI after running a command")
-	cmd.Flags().IntVar(&visibleEntries, "entries", defaultVisibleEntries, "Number of entries to show in TUI")
+	cmd.Flags().IntVar(&visibleEntries, "entries", minVisibleEntries, fmt.Sprintf("Overwrite calculated number of entries (min: %d) to show in TUI", minVisibleEntries))
 
 	getRunnerOpts = setRunnerFlags(&cmd, &serverAddr)
 
@@ -296,8 +307,9 @@ func (m tuiModel) Init() tea.Cmd {
 }
 
 const (
-	tab                   = "  "
-	defaultVisibleEntries = 6
+	tab               = "  "
+	minVisibleEntries = 4
+	maxVisibleEntries = 10
 )
 
 func (m tuiModel) View() string {

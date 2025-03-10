@@ -2,6 +2,7 @@ package teststub
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -35,11 +36,24 @@ func Setup(t *testing.T, temp string) Path {
 	)
 	require.NoError(t, err)
 
+	// don't break tests on Windows
+	if runtime.GOOS != "windows" {
+		cmd := exec.Command("direnv", "allow")
+		cmd.Dir = filepath.Join(temp, "direnv-project")
+		cmd.Env = os.Environ()
+		require.NoError(t, cmd.Run())
+	}
+
 	return Path{root: temp}
 }
 
 func Cleanup(t *testing.T, temp string) {
 	t.Helper()
+
+	cmd := exec.Command("direnv", "prune")
+	cmd.Dir = filepath.Join(temp, "direnv-project")
+	cmd.Env = os.Environ()
+	_ = cmd.Run() // not critical
 
 	err := os.RemoveAll(filepath.Join(temp, "git-project", ".git"))
 	require.NoError(t, err)
@@ -64,6 +78,10 @@ func (p Path) Join(elems ...string) string {
 
 func (p Path) DirProjectPath() string {
 	return p.Join("dir-project")
+}
+
+func (p Path) DirEnvProjectPath() string {
+	return p.Join("direnv-project")
 }
 
 func (p Path) GitProjectPath() string {

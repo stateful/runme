@@ -297,6 +297,33 @@ input ProjectInput {
 
 	"""
 	envLoadOrder: [String!]
+	"""
+	 specifies if and how direnv should be used
+
+	"""
+	envDirenv: Project_DirEnv
+}
+enum Project_DirEnv {
+	"""
+	 unspecified is the default value
+
+	"""
+	DIR_ENV_UNSPECIFIED
+	"""
+	 enabled, only warn on direnv errors
+
+	"""
+	DIR_ENV_ENABLED_WARN
+	"""
+	 enabled, error on direnv errors
+
+	"""
+	DIR_ENV_ENABLED_ERROR
+	"""
+	 disabled means to not use direnv
+
+	"""
+	DIR_ENV_DISABLED
 }
 type Query {
 	dummy: Boolean

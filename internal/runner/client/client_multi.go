@@ -6,16 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"sync"
 
+	"github.com/stateful/runme/v3/internal/ansi"
 	"github.com/stateful/runme/v3/internal/runner"
 	"github.com/stateful/runme/v3/pkg/project"
 )
-
-const stripAnsi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
-
-var stripAnsiRegexp = regexp.MustCompile(stripAnsi)
 
 type MultiRunner struct {
 	Runner Runner
@@ -54,7 +50,7 @@ func (w *prefixWriter) Write(p []byte) (int, error) {
 			continue
 		}
 
-		if len(stripAnsiRegexp.ReplaceAll(line, []byte{})) > 0 && (!isFirst || !w.hasWritten) {
+		if len(ansi.Strip(line)) > 0 && (!isFirst || !w.hasWritten) {
 			data = append(data, w.prefix...)
 			extraBytes += len(w.prefix)
 		}

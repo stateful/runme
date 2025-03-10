@@ -318,6 +318,41 @@ func Test_RetainInvalidFrontmatter(t *testing.T) {
 	assert.Contains(t, content, "```js {\"id\":\""+testMockID+"\"}\n")
 }
 
+func Test_parserServiceServer_SessionFrontmatter(t *testing.T) {
+	t.Run("Incomplete", func(t *testing.T) {
+		doc := `---
+runme:
+  id: 01HJS33TJYXZ6KJPG2SZZ6D1H5
+  version: v3
+  session:
+    id: 01HJS35FZ2K0JBWPVAXPMMVTGN
+    updated: 2023-12-28 15:16:06-05:00
+---
+
+# Session but no document
+
+`
+		identity := parserv1.RunmeIdentity_RUNME_IDENTITY_UNSPECIFIED
+
+		dResp, err := deserialize(client, doc, identity)
+		assert.NoError(t, err)
+
+		rawFrontmatter, ok := dResp.Notebook.Metadata["runme.dev/frontmatter"]
+
+		assert.True(t, ok)
+		assert.Len(t, dResp.Notebook.Metadata, 4)
+		assert.Contains(t, rawFrontmatter, "id: ")
+		assert.Regexp(t, versionRegex, rawFrontmatter, "Valid version")
+
+		sResp, err := serializeWithoutOutputs(client, dResp.Notebook)
+		assert.NoError(t, err)
+
+		content := string(sResp.Result)
+
+		assert.Equal(t, doc, content)
+	})
+}
+
 func Test_parserServiceServer_Ast(t *testing.T) {
 	t.Run("Metadata", func(t *testing.T) {
 		os.Setenv("RUNME_AST_METADATA", "true")

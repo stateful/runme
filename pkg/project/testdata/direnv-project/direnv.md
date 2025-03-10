@@ -1,0 +1,8 @@
+```sh {"name":"direnv"}
+echo "PGDATABASE=$PGDATABASE"
+echo "PGHOST=$PGHOST"
+echo "PGPASSWORD=$PGPASSWORD"
+echo "PGPORT=$PGPORT"
+echo "PGUSER=$PGUSER"
+echo "PGOPTIONS=$PGOPTIONS"
+```

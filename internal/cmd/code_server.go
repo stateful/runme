@@ -269,6 +269,10 @@ func getLatestExtensionVersion(experimental bool) (string, error) {
 
 	body, _ := io.ReadAll(resp.Body)
 
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		return "", errors.Errorf("failed to fetch latest version: %s", body)
+	}
+
 	var dataResp interface{}
 	if err := json.Unmarshal(body, &dataResp); err != nil {
 		return "", errors.Wrap(err, "failed parsing JSON")

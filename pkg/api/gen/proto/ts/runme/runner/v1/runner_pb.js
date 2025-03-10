@@ -12,6 +12,36 @@ import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 /**
+ * @generated from protobuf enum runme.runner.v1.Project.DirEnv
+ */
+export var Project_DirEnv;
+(function (Project_DirEnv) {
+    /**
+     * unspecified is the default value
+     *
+     * @generated from protobuf enum value: DIR_ENV_UNSPECIFIED = 0;
+     */
+    Project_DirEnv[Project_DirEnv["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * enabled, only warn on direnv errors
+     *
+     * @generated from protobuf enum value: DIR_ENV_ENABLED_WARN = 1;
+     */
+    Project_DirEnv[Project_DirEnv["ENABLED_WARN"] = 1] = "ENABLED_WARN";
+    /**
+     * enabled, error on direnv errors
+     *
+     * @generated from protobuf enum value: DIR_ENV_ENABLED_ERROR = 2;
+     */
+    Project_DirEnv[Project_DirEnv["ENABLED_ERROR"] = 2] = "ENABLED_ERROR";
+    /**
+     * disabled means to not use direnv
+     *
+     * @generated from protobuf enum value: DIR_ENV_DISABLED = 3;
+     */
+    Project_DirEnv[Project_DirEnv["DISABLED"] = 3] = "DISABLED";
+})(Project_DirEnv || (Project_DirEnv = {}));
+/**
  * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.Mode
  */
 export var ResolveProgramRequest_Mode;
@@ -316,7 +346,8 @@ class Project$Type extends MessageType {
     constructor() {
         super("runme.runner.v1.Project", [
             { no: 1, name: "root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "env_load_order", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "env_load_order", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "env_direnv", kind: "enum", T: () => ["runme.runner.v1.Project.DirEnv", Project_DirEnv, "DIR_ENV_"] }
         ]);
     }
 }

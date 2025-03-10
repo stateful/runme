@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 
 	"github.com/stateful/runme/v3/internal/lru"
 	"github.com/stateful/runme/v3/internal/owl"
@@ -66,6 +67,16 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 
 		logger: logger,
 	}
+
+	if proj != nil {
+		msg, err := s.loadDirEnv(context.Background(), proj)
+		if err != nil {
+			logger.Info("failed to load direnv", zap.Error(err))
+		} else {
+			logger.Info("direnv returned", zap.String("msg", msg))
+		}
+	}
+
 	return s, nil
 }
 
@@ -179,7 +190,6 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	if proj != nil {
 		// todo(sebastian): specs loading should be independent of project
 		envSpecFiles = []string{".env.sample", ".env.example", ".env.spec"}
-		// envFilesOrder = proj.EnvFilesReadOrder()
 	}
 
 	for _, specFile := range envSpecFiles {
@@ -188,11 +198,8 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 			continue
 		}
 		opt := owl.WithEnvFile(specFile, raw)
-		for _, ssf := range envSpecFiles {
-			if specFile == ssf {
-				opt = owl.WithSpecFile(specFile, raw)
-				break
-			}
+		if slices.Contains(envSpecFiles, specFile) {
+			opt = owl.WithSpecFile(specFile, raw)
 		}
 		opts = append(opts, opt)
 	}
