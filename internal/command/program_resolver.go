@@ -125,7 +125,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetenti
 
 	var decls []*syntax.DeclClause
 	modified := false
-	if varRetentionStrategy != VarRetentionStrategyUnspecified {
+	if varRetentionStrategy != VarRetentionStrategyLast {
 		decls, modified, err = r.walk(f)
 		if err != nil {
 			return nil, err
