@@ -65,7 +65,7 @@ message CreateSessionRequest {
     optional SessionEnvStoreSeeding env_store_seeding = 2;
 
     enum SessionEnvStoreSeeding {
-      // default seeding; ingore system
+      // default seeding; ignore system
       SESSION_ENV_STORE_SEEDING_UNSPECIFIED = 0;
       // enable seeding from system
       SESSION_ENV_STORE_SEEDING_SYSTEM = 1;
@@ -235,6 +235,9 @@ message ResolveProgramRequest {
   // language id associated with script
   string language_id = 8;
 
+  // var_retention_strategy determines how variables are retained once resolved.
+  VarRetentionStrategy var_retention_strategy = 9;
+
   enum Mode {
     // unspecified is auto (default) which prompts for all
     // unresolved environment variables.
@@ -245,6 +248,16 @@ message ResolveProgramRequest {
     // skip means to not prompt for any environment variables.
     // All variables will be marked as resolved.
     MODE_SKIP_ALL = 2;
+  }
+
+  enum VarRetentionStrategy {
+    VAR_RETENTION_STRATEGY_UNSPECIFIED = 0;
+
+    // first means to always retain the first resolved value.
+    VAR_RETENTION_STRATEGY_FIRST = 1;
+
+    // last means to always retain the last resolved value.
+    VAR_RETENTION_STRATEGY_LAST = 2;
   }
 }
 

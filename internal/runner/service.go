@@ -719,7 +719,7 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv1.Resolv
 		return response, nil
 	}
 
-	result, err := resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf)
+	result, err := resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf, r.getProgramResolverVarRetentionFromReq(req))
 	if err != nil {
 		return nil, err
 	}
@@ -802,6 +802,17 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 	}
 
 	return commandpkg.NewProgramResolver(mode, sensitiveEnvKeys, sources...), err
+}
+
+func (r *runnerService) getProgramResolverVarRetentionFromReq(req *runnerv1.ResolveProgramRequest) commandpkg.ProgramResolverVarRetention {
+	switch req.GetVarRetentionStrategy() {
+	case runnerv1.ResolveProgramRequest_VAR_RETENTION_STRATEGY_FIRST:
+		return commandpkg.ProgramResolverVarRetentionFirst
+	case runnerv1.ResolveProgramRequest_VAR_RETENTION_STRATEGY_LAST:
+		return commandpkg.ProgramResolverVarRetentionLast
+	default:
+		return commandpkg.ProgramResolverVarRetentionUnspecified
+	}
 }
 
 func (r *runnerService) getSessionFromRequest(req requestWithSession) (*Session, bool) {

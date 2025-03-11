@@ -75,7 +75,7 @@ input CreateSessionRequest_ConfigInput {
 }
 enum CreateSessionRequest_Config_SessionEnvStoreSeeding {
 	"""
-	 default seeding; ingore system
+	 default seeding; ignore system
 
 	"""
 	SESSION_ENV_STORE_SEEDING_UNSPECIFIED
@@ -431,6 +431,11 @@ input ResolveProgramRequestInput {
 
 	"""
 	languageId: String
+	"""
+	 var_retention_strategy determines how variables are retained once resolved.
+
+	"""
+	varRetentionStrategy: ResolveProgramRequest_VarRetentionStrategy
 }
 enum ResolveProgramRequest_Mode {
 	"""
@@ -451,6 +456,19 @@ enum ResolveProgramRequest_Mode {
 
 	"""
 	MODE_SKIP_ALL
+}
+enum ResolveProgramRequest_VarRetentionStrategy {
+	VAR_RETENTION_STRATEGY_UNSPECIFIED
+	"""
+	 first means to always retain the first resolved value.
+
+	"""
+	VAR_RETENTION_STRATEGY_FIRST
+	"""
+	 last means to always retain the last resolved value.
+
+	"""
+	VAR_RETENTION_STRATEGY_LAST
 }
 type ResolveProgramResponse {
 	script: String

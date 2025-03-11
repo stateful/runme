@@ -71,6 +71,16 @@ const (
 	ProgramResolverStatusResolved
 )
 
+type ProgramResolverVarRetention uint8
+
+const (
+	ProgramResolverVarRetentionUnspecified ProgramResolverVarRetention = iota
+	// ProgramResolverVarRetentionFirst means to always retain the first resolved value.
+	ProgramResolverVarRetentionFirst
+	// ProgramResolverVarRetentionLast means to always retain the last resolved value.
+	ProgramResolverVarRetentionLast
+)
+
 type ProgramResolverResult struct {
 	Variables       []ProgramResolverVarResult
 	ModifiedProgram bool
@@ -96,15 +106,30 @@ type ProgramResolverVarResult struct {
 
 // Resolve resolves the environment variables found in a shell program.
 // It might modify the program and write it provided writer.
-func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer) (*ProgramResolverResult, error) {
+func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetention ProgramResolverVarRetention) (*ProgramResolverResult, error) {
 	f, err := syntax.NewParser().Parse(reader, "")
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	decls, modified, err := r.walk(f)
-	if err != nil {
-		return nil, err
+	if len(f.Stmts) > 0 {
+		retStrat := "first"
+		if varRetention == ProgramResolverVarRetentionLast {
+			retStrat = "last"
+		}
+		info := fmt.Sprintf("# Managed env store retention strategy: %s\n\n", retStrat)
+		if _, err := writer.Write([]byte(info)); err != nil {
+			return nil, err
+		}
+	}
+
+	var decls []*syntax.DeclClause
+	modified := false
+	if varRetention != ProgramResolverVarRetentionLast {
+		decls, modified, err = r.walk(f)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	result := ProgramResolverResult{
@@ -314,13 +339,10 @@ func (r *ProgramResolver) walk(f *syntax.File) (result []*syntax.DeclClause, mod
 				return false
 			}
 
-			err = r.modifyStmt(node, decl)
+			modified, err = r.transformToComment(node, decl)
 			if err != nil {
 				return false
 			}
-
-			// TODO(adamb): does not make sense
-			modified = true
 
 			result = append(result, decl)
 
@@ -352,11 +374,11 @@ func (r *ProgramResolver) isStmtSupportedDecl(stmt *syntax.Stmt) (*syntax.DeclCl
 	return decl, true
 }
 
-func (r *ProgramResolver) modifyStmt(stmt *syntax.Stmt, decl *syntax.DeclClause) error {
+func (r *ProgramResolver) transformToComment(stmt *syntax.Stmt, decl *syntax.DeclClause) (bool, error) {
 	exportStmt := bytes.NewBuffer(nil)
 
 	if err := r.astPrinter.Print(exportStmt, decl); err != nil {
-		return errors.WithStack(err)
+		return false, errors.WithStack(err)
 	}
 
 	stmt.Comments = append(stmt.Comments,
@@ -367,7 +389,7 @@ func (r *ProgramResolver) modifyStmt(stmt *syntax.Stmt, decl *syntax.DeclClause)
 
 	stmt.Cmd = nil
 
-	return nil
+	return true, nil
 }
 
 // hasExpr walks the AST to check for nested expressions.
