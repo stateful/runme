@@ -804,14 +804,14 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 	return commandpkg.NewProgramResolver(mode, sensitiveEnvKeys, sources...), err
 }
 
-func (r *runnerService) getProgramResolverVarRetentionFromReq(req *runnerv1.ResolveProgramRequest) commandpkg.ProgramResolverVarRetention {
+func (r *runnerService) getProgramResolverVarRetentionFromReq(req *runnerv1.ResolveProgramRequest) commandpkg.VarRetentionStrategy {
 	switch req.GetVarRetentionStrategy() {
 	case runnerv1.ResolveProgramRequest_VAR_RETENTION_STRATEGY_FIRST:
-		return commandpkg.ProgramResolverVarRetentionFirst
+		return commandpkg.VarRetentionStrategyFirst
 	case runnerv1.ResolveProgramRequest_VAR_RETENTION_STRATEGY_LAST:
-		return commandpkg.ProgramResolverVarRetentionLast
+		return commandpkg.VarRetentionStrategyLast
 	default:
-		return commandpkg.ProgramResolverVarRetentionUnspecified
+		return commandpkg.VarRetentionStrategyUnspecified
 	}
 }
 

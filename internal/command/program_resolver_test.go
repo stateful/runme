@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const DefaultProgramResolverVarRetention = ProgramResolverVarRetentionFirst
+const DefaultProgramResolverVarRetentionStrategy = VarRetentionStrategyFirst
 
 func TestProgramResolverResolve(t *testing.T) {
 	testCases := []struct {
@@ -185,7 +185,7 @@ func TestProgramResolverResolve(t *testing.T) {
 		t.Run("ProgramResolverModeAuto_"+tc.name, func(t *testing.T) {
 			r := NewProgramResolver(ProgramResolverModeAuto, []string{})
 			buf := bytes.NewBuffer(nil)
-			got, err := r.Resolve(strings.NewReader(tc.program), buf, DefaultProgramResolverVarRetention)
+			got, err := r.Resolve(strings.NewReader(tc.program), buf, DefaultProgramResolverVarRetentionStrategy)
 			require.NoError(t, err)
 			assert.EqualValues(t, tc.modifiedProgram, buf.String())
 			assert.EqualValues(t, tc.result, got)
@@ -194,7 +194,7 @@ func TestProgramResolverResolve(t *testing.T) {
 		t.Run("ProgramResolverModeSkip_"+tc.name, func(t *testing.T) {
 			r := NewProgramResolver(ProgramResolverModeSkipAll, []string{})
 			buf := bytes.NewBuffer(nil)
-			got, err := r.Resolve(strings.NewReader(tc.program), buf, DefaultProgramResolverVarRetention)
+			got, err := r.Resolve(strings.NewReader(tc.program), buf, DefaultProgramResolverVarRetentionStrategy)
 			require.NoError(t, err)
 			assert.EqualValues(t, tc.modifiedProgram, buf.String())
 			// In skip mode, all variables will be resolved.
@@ -217,7 +217,7 @@ func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
 		ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
 	)
 	buf := bytes.NewBuffer(nil)
-	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), buf, DefaultProgramResolverVarRetention)
+	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), buf, DefaultProgramResolverVarRetentionStrategy)
 	require.NoError(t, err)
 	require.EqualValues(
 		t,
@@ -245,7 +245,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 			ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
 		)
 		buf := bytes.NewBuffer(nil)
-		result, err := r.Resolve(strings.NewReader(`export MY_ENV=message value`), buf, DefaultProgramResolverVarRetention)
+		result, err := r.Resolve(strings.NewReader(`export MY_ENV=message value`), buf, DefaultProgramResolverVarRetentionStrategy)
 		require.NoError(t, err)
 		require.EqualValues(
 			t,
@@ -272,7 +272,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 			ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
 		)
 		buf := bytes.NewBuffer(nil)
-		result, err := r.Resolve(strings.NewReader(`export MY_ENV="placeholder value"`), buf, DefaultProgramResolverVarRetention)
+		result, err := r.Resolve(strings.NewReader(`export MY_ENV="placeholder value"`), buf, DefaultProgramResolverVarRetentionStrategy)
 		require.NoError(t, err)
 		require.EqualValues(
 			t,
@@ -300,7 +300,7 @@ func TestProgramResolverResolve_SensitiveEnvKeys(t *testing.T) {
 			[]string{"MY_PASSWORD", "MY_SECRET"},
 		)
 		buf := bytes.NewBuffer(nil)
-		result, err := r.Resolve(strings.NewReader("export MY_PASSWORD=super-secret\nexport MY_SECRET=also-secret\nexport MY_PLAIN=text\n"), buf, DefaultProgramResolverVarRetention)
+		result, err := r.Resolve(strings.NewReader("export MY_PASSWORD=super-secret\nexport MY_SECRET=also-secret\nexport MY_PLAIN=text\n"), buf, DefaultProgramResolverVarRetentionStrategy)
 		require.NoError(t, err)
 		require.EqualValues(
 			t,

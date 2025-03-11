@@ -125,13 +125,13 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2.ResolveProgramRe
 	return command.NewProgramResolver(mode, sensitiveEnvKeys, sources...), err
 }
 
-func (r *runnerService) getProgramResolverVarRetentionFromReq(req *runnerv2.ResolveProgramRequest) command.ProgramResolverVarRetention {
+func (r *runnerService) getProgramResolverVarRetentionFromReq(req *runnerv2.ResolveProgramRequest) command.VarRetentionStrategy {
 	switch req.GetVarRetentionStrategy() {
 	case runnerv2.ResolveProgramRequest_VAR_RETENTION_STRATEGY_FIRST:
-		return command.ProgramResolverVarRetentionFirst
+		return command.VarRetentionStrategyFirst
 	case runnerv2.ResolveProgramRequest_VAR_RETENTION_STRATEGY_LAST:
-		return command.ProgramResolverVarRetentionLast
+		return command.VarRetentionStrategyLast
 	default:
-		return command.ProgramResolverVarRetentionUnspecified
+		return command.VarRetentionStrategyUnspecified
 	}
 }

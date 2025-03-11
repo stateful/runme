@@ -71,14 +71,14 @@ const (
 	ProgramResolverStatusResolved
 )
 
-type ProgramResolverVarRetention uint8
+type VarRetentionStrategy uint8
 
 const (
-	ProgramResolverVarRetentionUnspecified ProgramResolverVarRetention = iota
-	// ProgramResolverVarRetentionFirst means to always retain the first resolved value.
-	ProgramResolverVarRetentionFirst
-	// ProgramResolverVarRetentionLast means to always retain the last resolved value.
-	ProgramResolverVarRetentionLast
+	VarRetentionStrategyUnspecified VarRetentionStrategy = iota
+	// VarRetentionStrategyFirst means to always retain the first resolved value.
+	VarRetentionStrategyFirst
+	// VarRetentionStrategyLast means to always retain the last resolved value.
+	VarRetentionStrategyLast
 )
 
 type ProgramResolverResult struct {
@@ -106,7 +106,7 @@ type ProgramResolverVarResult struct {
 
 // Resolve resolves the environment variables found in a shell program.
 // It might modify the program and write it provided writer.
-func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetention ProgramResolverVarRetention) (*ProgramResolverResult, error) {
+func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetentionStrategy VarRetentionStrategy) (*ProgramResolverResult, error) {
 	f, err := syntax.NewParser().Parse(reader, "")
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -114,7 +114,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetenti
 
 	if len(f.Stmts) > 0 {
 		retStrat := "first"
-		if varRetention == ProgramResolverVarRetentionLast {
+		if varRetentionStrategy == VarRetentionStrategyLast {
 			retStrat = "last"
 		}
 		info := fmt.Sprintf("# Managed env store retention strategy: %s\n\n", retStrat)
@@ -125,7 +125,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetenti
 
 	var decls []*syntax.DeclClause
 	modified := false
-	if varRetention != ProgramResolverVarRetentionLast {
+	if varRetentionStrategy != VarRetentionStrategyUnspecified {
 		decls, modified, err = r.walk(f)
 		if err != nil {
 			return nil, err

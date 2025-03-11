@@ -24,7 +24,7 @@ build:
 .PHONY: wasm
 wasm: WASM_OUTPUT ?= examples/web
 wasm:
-	cp $(GO_ROOT)/misc/wasm/wasm_exec.js $(WASM_OUTPUT)
+	cp $(GO_ROOT)/lib/wasm/wasm_exec.js $(WASM_OUTPUT)
 	GOOS=js GOARCH=wasm go build -o $(WASM_OUTPUT)/runme.wasm -ldflags="$(LDFLAGS)" ./web
 
 .PHONY: test/execute
