@@ -159,7 +159,7 @@ func (p *jsonAttrParserWriter) Write(w io.Writer, attr *Attributes) error {
 //
 //	{ key=value hello=world string_value=2 }
 //
-// HTML attributes is for compatability; prefer the JSON parser instead.
+// HTML attributes is for compatibility; prefer the JSON parser instead.
 // note this parser will never error, it returns an empty map for invalid data
 type htmlAttrParserWriter struct{}
 

@@ -19,7 +19,7 @@ func NewEnvCollectorFactory() *EnvCollectorFactory {
 	}
 }
 
-func (f *EnvCollectorFactory) WithEnryption(value bool) *EnvCollectorFactory {
+func (f *EnvCollectorFactory) WithEncryption(value bool) *EnvCollectorFactory {
 	f.encryptionEnabled = value
 	return f
 }

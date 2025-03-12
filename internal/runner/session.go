@@ -80,7 +80,7 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 	return s, nil
 }
 
-func (s *Session) Identifer() string {
+func (s *Session) Identifier() string {
 	return s.ID
 }
 

@@ -89,16 +89,16 @@ func (r *NotebookResolver) parseNotebook(context context.Context) (*parserv1.Not
 	}
 
 	// properly parse frontmatter and notebook/cell metadata
-	ser, err := r.editor.Serialize(context, &parserv1.SerializeRequest{Notebook: r.notebook})
+	s, err := r.editor.Serialize(context, &parserv1.SerializeRequest{Notebook: r.notebook})
 	if err != nil {
 		return nil, err
 	}
-	des, err := r.editor.Deserialize(context, &parserv1.DeserializeRequest{Source: ser.Result})
+	d, err := r.editor.Deserialize(context, &parserv1.DeserializeRequest{Source: s.Result})
 	if err != nil {
 		return nil, err
 	}
 
-	return des.Notebook, nil
+	return d.Notebook, nil
 }
 
 func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (string, error) {

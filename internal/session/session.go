@@ -86,7 +86,7 @@ func newSessionWithStore(envStore EnvStore, proj *project.Project, seedEnv []str
 	return sess, nil
 }
 
-func (s *Session) Identifer() string {
+func (s *Session) Identifier() string {
 	return s.ID
 }
 

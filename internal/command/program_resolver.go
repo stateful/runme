@@ -113,11 +113,11 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetenti
 	}
 
 	if len(f.Stmts) > 0 {
-		retStrat := "first"
+		s := "first"
 		if varRetentionStrategy == VarRetentionStrategyLast {
-			retStrat = "last"
+			s = "last"
 		}
-		info := fmt.Sprintf("# Managed env store retention strategy: %s\n\n", retStrat)
+		info := fmt.Sprintf("# Managed env store retention strategy: %s\n\n", s)
 		if _, err := writer.Write([]byte(info)); err != nil {
 			return nil, err
 		}

@@ -87,7 +87,7 @@ func parseVersionFromYAML(data []byte) (string, error) {
 // parseAndMergeV1alpha1 parses items, which are raw YAML blobs,
 // one-by-one into a single map. Then, marshals the map into raw JSON.
 // Finally, unmarshals the JSON into a [Config] object.
-// Double unmarshaling is required to take advantage of the
+// Double unmarshalling is required to take advantage of the
 // auto-generated [Config.UnmarshalJSON] method which does
 // validation.
 func parseAndMergeV1alpha1(items ...[]byte) (*Config, error) {
