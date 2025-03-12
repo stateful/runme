@@ -8,9 +8,7 @@ cmp stdout golden-list-json.txt
 ! stderr .
 
 exec runme run simple_dagger
-stdout 'digest.*sha256\:'
-stdout 'name.*README\.md'
-stdout 'size.*'
+stdout 'File@xxh3:'
 
 -- shell.dag --
 ---
