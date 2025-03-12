@@ -8,7 +8,7 @@ cmp stdout golden-list-json.txt
 ! stderr .
 
 exec runme run simple_dagger
-stdout 'File@xxh3:'
+stdout 'sha256:[0-9a-f]{64}'
 
 -- shell.dag --
 ---
@@ -20,7 +20,7 @@ shell: dagger shell
 git github.com/stateful/runme |
     head |
     tree |
-    file examples/README.md
+    file examples/README.md | digest
 ```
 
 -- golden-list.txt --
