@@ -74,7 +74,7 @@ func TestPromptEnvVars(t *testing.T) {
 			err = promptEnvVars(cmd, runner, runTasks...)
 			assert.NoError(t, err)
 
-			expectedLines := `#
+			expectedLines := "# Managed env store retention strategy: first\n\n" + `#
 # VAR_NAME1 set in managed env store
 # "export VAR_NAME1='Placeholder 1'"
 #
