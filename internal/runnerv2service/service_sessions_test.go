@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/v3/internal/testutils"
-	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
-	"github.com/stateful/runme/v3/pkg/project/teststub"
+	"github.com/runmedev/runme/v3/internal/testutils"
+	runnerv2 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/pkg/project/teststub"
 )
 
 func TestRunnerService_Sessions(t *testing.T) {

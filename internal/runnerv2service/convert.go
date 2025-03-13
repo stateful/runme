@@ -1,9 +1,9 @@
 package runnerv2service
 
 import (
-	"github.com/stateful/runme/v3/internal/session"
-	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/session"
+	runnerv2 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 func convertSessionToProtoSession(sess *session.Session) *runnerv2.Session {

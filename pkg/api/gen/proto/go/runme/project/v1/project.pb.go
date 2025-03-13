@@ -14,7 +14,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 
-	v1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	v1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 )
 
 const (

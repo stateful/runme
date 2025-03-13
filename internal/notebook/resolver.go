@@ -11,10 +11,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/notebook/daggershell"
-	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	"github.com/stateful/runme/v3/pkg/document"
-	"github.com/stateful/runme/v3/pkg/document/editor/editorservice"
+	"github.com/runmedev/runme/v3/internal/notebook/daggershell"
+	parserv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	"github.com/runmedev/runme/v3/pkg/document"
+	"github.com/runmedev/runme/v3/pkg/document/editor/editorservice"
 )
 
 type NotebookResolver struct {

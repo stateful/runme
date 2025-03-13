@@ -7,8 +7,8 @@ import (
 	"log" // revive:disable-line
 	"os"
 
-	"github.com/stateful/runme/v3/internal/client"
-	"github.com/stateful/runme/v3/internal/client/graphql"
+	"github.com/runmedev/runme/v3/internal/client"
+	"github.com/runmedev/runme/v3/internal/client/graphql"
 )
 
 var apiURL = flag.String("api-url", "http://localhost:4000", "The API base address")

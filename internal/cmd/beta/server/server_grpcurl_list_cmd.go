@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/config"
-	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	"github.com/runmedev/runme/v3/internal/config"
+	"github.com/runmedev/runme/v3/internal/config/autoconfig"
 )
 
 func serverGRPCurlListCmd() *cobra.Command {

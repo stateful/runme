@@ -24,7 +24,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 
-	"github.com/stateful/runme/v3/internal/log"
+	"github.com/runmedev/runme/v3/internal/log"
 )
 
 const (

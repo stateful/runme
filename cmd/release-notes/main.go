@@ -55,7 +55,7 @@ var tpl = template.Must(template.New("").Funcs(template.FuncMap{"split": split})
 
 ## Changelog
 
-[Full changelog](https://github.com/stateful/runme/compare/v{{ or .PreviousVersion "main" }}...v{{ .Version }})
+[Full changelog](https://github.com/runmedev/runme/compare/v{{ or .PreviousVersion "main" }}...v{{ .Version }})
 
 {{ range $value := .Commits -}}
 * {{ $value.SHA }}: {{ (split "\n" $value.Commit.Message)._0 }}

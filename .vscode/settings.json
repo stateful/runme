@@ -1,10 +1,10 @@
 {
     "go.testTimeout": "10s",
     "go.buildFlags": [
-        "-ldflags=-X=github.com/stateful/runme/v3/internal/version.BuildVersion=99.9.9",
+        "-ldflags=-X=github.com/runmedev/runme/v3/internal/version.BuildVersion=99.9.9",
     ],
     "go.testFlags": [
-        "-ldflags=-X=github.com/stateful/runme/v3/internal/version.BuildVersion=99.9.9",
+        "-ldflags=-X=github.com/runmedev/runme/v3/internal/version.BuildVersion=99.9.9",
     ],
     "protoc": {
         "options": [
@@ -16,7 +16,7 @@
     "go.buildTags": "docker_enabled,test_with_txtar",
     "gopls": {
         "formatting.gofumpt": true,
-        "formatting.local": "github.com/stateful/runme"
+        "formatting.local": "github.com/runmedev/runme"
     },
     "makefile.configureOnOpen": false
     // Uncomment if you want to work on files in ./web.

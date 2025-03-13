@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/stateful/runme/v3/internal/auth"
-	"github.com/stateful/runme/v3/internal/tui"
+	"github.com/runmedev/runme/v3/internal/auth"
+	"github.com/runmedev/runme/v3/internal/tui"
 )
 
 func loginCmd() *cobra.Command {

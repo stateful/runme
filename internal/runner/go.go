@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stateful/runme/v3/internal/system"
+	"github.com/runmedev/runme/v3/internal/system"
 )
 
 type Go struct {

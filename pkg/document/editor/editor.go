@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/pkg/document"
-	"github.com/stateful/runme/v3/pkg/document/constants"
-	"github.com/stateful/runme/v3/pkg/document/identity"
+	"github.com/runmedev/runme/v3/pkg/document"
+	"github.com/runmedev/runme/v3/pkg/document/constants"
+	"github.com/runmedev/runme/v3/pkg/document/identity"
 )
 
 const (

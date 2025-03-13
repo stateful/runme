@@ -14,10 +14,10 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/stateful/runme/v3/internal/testutils"
-	"github.com/stateful/runme/v3/internal/ulid"
-	"github.com/stateful/runme/v3/internal/version"
-	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	"github.com/runmedev/runme/v3/internal/testutils"
+	"github.com/runmedev/runme/v3/internal/ulid"
+	"github.com/runmedev/runme/v3/internal/version"
+	parserv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
 )
 
 var (

@@ -4,7 +4,7 @@ shell: dagger shell
 
 ```sh {"name":"simple_dagger","terminalRows":"18"}
 ### Exported in runme.dev as simple_dagger
-git github.com/stateful/runme |
+git github.com/runmedev/runme |
     head |
     tree |
     file examples/README.md

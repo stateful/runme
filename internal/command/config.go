@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
+	runnerv2 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 // ProgramConfig contains a serializable configuration for a command.

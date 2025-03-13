@@ -4,7 +4,7 @@ metadata:
   name: runme
   namespace: stateful
   annotations:
-    github.com/repo-url: https://github.com/stateful/runme
+    github.com/repo-url: https://github.com/runmedev/runme
 spec:
   type: owl
   envSpecs:

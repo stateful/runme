@@ -17,7 +17,7 @@ shell: dagger shell
 
 ```sh {"name":"simple_dagger","terminalRows":"18","interactive":"false"}
 ### Exported in runme.dev as simple_dagger
-git github.com/stateful/runme |
+git github.com/runmedev/runme |
     head |
     tree |
     file examples/README.md | digest
@@ -25,7 +25,7 @@ git github.com/stateful/runme |
 
 -- golden-list.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
-simple_dagger*	shell.dag	git github.com/stateful/runme |		Yes
+simple_dagger*	shell.dag	git github.com/runmedev/runme |		Yes
 -- golden-list-allow-unnamed.txt --
 NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
 -- golden-list-json.txt --
@@ -33,7 +33,7 @@ NAME	FILE	FIRST COMMAND	DESCRIPTION	NAMED
   {
     "name": "simple_dagger",
     "file": "shell.dag",
-    "first_command": "git github.com/stateful/runme |",
+    "first_command": "git github.com/runmedev/runme |",
     "description": "",
     "named": true,
     "run_all": true

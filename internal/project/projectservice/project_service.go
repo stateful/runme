@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
-	"github.com/stateful/runme/v3/pkg/project"
+	projectv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 type projectServiceServer struct {

@@ -12,8 +12,8 @@ import (
 
 	"github.com/yuin/goldmark/ast"
 
-	"github.com/stateful/runme/v3/internal/executable"
-	"github.com/stateful/runme/v3/internal/shell"
+	"github.com/runmedev/runme/v3/internal/executable"
+	"github.com/runmedev/runme/v3/internal/shell"
 )
 
 type BlockKind int

@@ -8,10 +8,10 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 
-	"github.com/stateful/runme/v3/internal/lru"
-	"github.com/stateful/runme/v3/internal/owl"
-	"github.com/stateful/runme/v3/internal/ulid"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/lru"
+	"github.com/runmedev/runme/v3/internal/owl"
+	"github.com/runmedev/runme/v3/internal/ulid"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 var owlStoreDefault = false

@@ -1,4 +1,4 @@
-module github.com/stateful/runme/v3
+module github.com/runmedev/runme/v3
 
 go 1.23.1
 

@@ -3,8 +3,8 @@ package command
 import (
 	"os"
 
-	"github.com/stateful/runme/v3/internal/dockerexec"
-	"github.com/stateful/runme/v3/internal/system"
+	"github.com/runmedev/runme/v3/internal/dockerexec"
+	"github.com/runmedev/runme/v3/internal/system"
 )
 
 type Runtime interface {

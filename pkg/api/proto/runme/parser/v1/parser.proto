@@ -4,7 +4,7 @@ package runme.parser.v1;
 
 import "google/protobuf/wrappers.proto";
 
-option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1;parserv1";
+option go_package = "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1;parserv1";
 
 message Notebook {
   repeated Cell cells = 1;

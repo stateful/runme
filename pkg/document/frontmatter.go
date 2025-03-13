@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
-	"github.com/stateful/runme/v3/internal/ulid"
-	"github.com/stateful/runme/v3/internal/version"
+	"github.com/runmedev/runme/v3/internal/ulid"
+	"github.com/runmedev/runme/v3/internal/version"
 )
 
 var ErrFrontmatterInvalid = stderrors.New("invalid frontmatter")

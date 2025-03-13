@@ -15,10 +15,10 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/constraints"
 
-	"github.com/stateful/runme/v3/internal/runner"
-	"github.com/stateful/runme/v3/internal/runner/client"
-	"github.com/stateful/runme/v3/internal/version"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/runner"
+	"github.com/runmedev/runme/v3/internal/runner/client"
+	"github.com/runmedev/runme/v3/internal/version"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 func tuiCmd() *cobra.Command {

@@ -1,6 +1,6 @@
 package testutils
 
-import "github.com/stateful/runme/v3/pkg/project"
+import "github.com/runmedev/runme/v3/pkg/project"
 
 var GitProjectLoadAllExpectedEvents = []project.LoadEventType{
 	project.LoadEventStartedWalk,

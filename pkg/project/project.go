@@ -16,8 +16,8 @@ import (
 	"github.com/stateful/godotenv"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/pkg/document"
-	"github.com/stateful/runme/v3/pkg/document/identity"
+	"github.com/runmedev/runme/v3/pkg/document"
+	"github.com/runmedev/runme/v3/pkg/document/identity"
 )
 
 type LoadEventType uint8

@@ -15,13 +15,13 @@ The easiest way on MacOS is to use Homebrew:
 $ brew install stateful/tap/runme
 ```
 
-Alternatively, check out [runme's releases](https://github.com/stateful/runme/releases) and select
+Alternatively, check out [runme's releases](https://github.com/runmedev/runme/releases) and select
 a binary for your operating system.
 
 If you have Go developer tools installed, you can install it with `go install`:
 
 ```sh {"id":"01HFW6VKQX9B4ZJH9TFYH7VEPJ"}
-$ go install github.com/stateful/runme@latest
+$ go install github.com/runmedev/runme@latest
 ```
 
 ## Contributing & Feedback

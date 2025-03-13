@@ -11,8 +11,8 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/stateful/runme/v3/internal/renderer/cmark"
-	"github.com/stateful/runme/v3/pkg/document/constants"
+	"github.com/runmedev/runme/v3/internal/renderer/cmark"
+	"github.com/runmedev/runme/v3/pkg/document/constants"
 )
 
 var defaultRenderer = cmark.Render

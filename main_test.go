@@ -15,7 +15,7 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stateful/runme/v3/internal/testutils"
+	"github.com/runmedev/runme/v3/internal/testutils"
 )
 
 func TestMain(m *testing.M) {
