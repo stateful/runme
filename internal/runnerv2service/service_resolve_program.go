@@ -47,7 +47,7 @@ func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2.Resolv
 		return response, nil
 	}
 
-	result, err := resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf)
+	result, err := resolver.Resolve(strings.NewReader(script), &modifiedScriptBuf, r.getProgramResolverRetentionFromReq(req))
 	if err != nil {
 		return nil, err
 	}
@@ -123,4 +123,15 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv2.ResolveProgramRe
 	}
 
 	return command.NewProgramResolver(mode, sensitiveEnvKeys, sources...), err
+}
+
+func (r *runnerService) getProgramResolverRetentionFromReq(req *runnerv2.ResolveProgramRequest) command.Retention {
+	switch req.GetRetention() {
+	case runnerv2.ResolveProgramRequest_RETENTION_FIRST_RUN:
+		return command.RetentionFirstRun
+	case runnerv2.ResolveProgramRequest_RETENTION_LAST_RUN:
+		return command.RetentionLastRun
+	default:
+		return command.RetentionUnspecified
+	}
 }

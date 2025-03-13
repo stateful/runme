@@ -393,6 +393,11 @@ input ResolveProgramRequestInput {
 
 	"""
 	languageId: String
+	"""
+	 retention determines how variables are retained once resolved.
+
+	"""
+	retention: ResolveProgramRequest_Retention
 }
 enum ResolveProgramRequest_Mode {
 	"""
@@ -413,6 +418,19 @@ enum ResolveProgramRequest_Mode {
 
 	"""
 	MODE_SKIP_ALL
+}
+enum ResolveProgramRequest_Retention {
+	RETENTION_UNSPECIFIED
+	"""
+	 first run means to always retain the first resolved value.
+
+	"""
+	RETENTION_FIRST_RUN
+	"""
+	 last run means to always retain the last resolved value.
+
+	"""
+	RETENTION_LAST_RUN
 }
 type ResolveProgramResponse {
 	script: String

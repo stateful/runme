@@ -134,7 +134,9 @@ func TestResolveProgramLocal(t *testing.T) {
 					Name:   "VARIABLE",
 				},
 			},
-			ExpectedScript: `#
+			ExpectedScript: `# Managed env store retention strategy: first
+
+#
 # VARIABLE set in managed env store
 # "export VARIABLE=Foo"
 
@@ -150,7 +152,9 @@ func TestResolveProgramLocal(t *testing.T) {
 					Name:   "VARIABLE",
 				},
 			},
-			ExpectedScript: `#
+			ExpectedScript: `# Managed env store retention strategy: first
+
+#
 # VARIABLE set in managed env store
 # "export VARIABLE=Foo"
 
@@ -166,7 +170,9 @@ func TestResolveProgramLocal(t *testing.T) {
 					Name:   "VARIABLE",
 				},
 			},
-			ExpectedScript: `#
+			ExpectedScript: `# Managed env store retention strategy: first
+
+#
 # VARIABLE set in managed env store
 # "export VARIABLE=Foo"
 
@@ -183,7 +189,7 @@ func TestResolveProgramLocal(t *testing.T) {
 				{"local", localRunner},
 				{"remote", remoteRunner},
 			} {
-				t.Run(r.name, func(t *testing.T) {
+				t.Run(tt.Title+"_"+r.name, func(t *testing.T) {
 					ctx := context.Background()
 					resp, err := r.runner.ResolveProgram(ctx, tt.Mode, tt.Input, "shell")
 					require.NoError(t, err)

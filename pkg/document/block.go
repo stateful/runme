@@ -143,7 +143,7 @@ func (b *CodeBlock) Ignored() (ignored bool) {
 		return
 	}
 
-	// ingore mermaid blocks by default unless attributes are set
+	// ignore mermaid blocks by default unless attributes are set
 	if b.Language() == "mermaid" {
 		ignored = true
 	}

@@ -272,6 +272,9 @@ message ResolveProgramRequest {
   // language id associated with script
   string language_id = 8;
 
+  // retention determines how variables are retained once resolved.
+  Retention retention = 9;
+
   enum Mode {
     // unspecified is auto (default) which prompts for all
     // unresolved environment variables.
@@ -282,6 +285,16 @@ message ResolveProgramRequest {
     // skip means to not prompt for any environment variables.
     // All variables will be marked as resolved.
     MODE_SKIP_ALL = 2;
+  }
+
+  enum Retention {
+    RETENTION_UNSPECIFIED = 0;
+
+    // first run means to always retain the first resolved value.
+    RETENTION_FIRST_RUN = 1;
+
+    // last run means to always retain the last resolved value.
+    RETENTION_LAST_RUN = 2;
   }
 }
 

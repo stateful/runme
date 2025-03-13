@@ -1,3 +1,4 @@
+env DAGGER_NO_NAG=1
 exec runme ls
 cmp stdout golden-list.txt
 ! stderr .
@@ -7,21 +8,19 @@ cmp stdout golden-list-json.txt
 ! stderr .
 
 exec runme run simple_dagger
-stdout 'digest\: sha256'
-stdout 'name\: README\.md'
-stdout 'size\: '
+stdout 'sha256:[0-9a-f]{64}'
 
 -- shell.dag --
 ---
 shell: dagger shell
 ---
 
-```sh {"name":"simple_dagger","terminalRows":"18"}
+```sh {"name":"simple_dagger","terminalRows":"18","interactive":"false"}
 ### Exported in runme.dev as simple_dagger
 git github.com/stateful/runme |
     head |
     tree |
-    file examples/README.md
+    file examples/README.md | digest
 ```
 
 -- golden-list.txt --

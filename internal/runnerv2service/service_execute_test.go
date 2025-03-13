@@ -1074,6 +1074,105 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 	})
 }
 
+func Test_VarRetentionStrategies(t *testing.T) {
+	t.Parallel()
+	lis, stop := startRunnerServiceServer(t)
+	t.Cleanup(stop)
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
+
+	testCases := []struct {
+		name           string
+		retention      runnerv2.ResolveProgramRequest_Retention
+		resolvedVars   int
+		resolvedScript string
+		expectedStdout string
+	}{
+		{
+			name:           "Unspecified",
+			retention:      runnerv2.ResolveProgramRequest_RETENTION_UNSPECIFIED,
+			resolvedVars:   3,
+			resolvedScript: "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
+			expectedStdout: "bar\nfoo\n",
+		},
+		{
+			name:           "Last",
+			retention:      runnerv2.ResolveProgramRequest_RETENTION_LAST_RUN,
+			resolvedVars:   0,
+			resolvedScript: "# Managed env store retention strategy: last\n\nexport VAR1=\"bar\"\necho $VAR1\nexport VAR2=\"foo\"\nexport VAR2=\"bar\"\necho $VAR2\n",
+			expectedStdout: "bar\nbar\n",
+		},
+		{
+			name:           "First",
+			resolvedVars:   3,
+			retention:      runnerv2.ResolveProgramRequest_RETENTION_FIRST_RUN,
+			resolvedScript: "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
+			expectedStdout: "bar\nfoo\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("Retention_"+tc.name, func(t *testing.T) {
+			s, err := client.CreateSession(context.Background(), &runnerv2.CreateSessionRequest{})
+			require.NoError(t, err)
+
+			sessionID := s.Session.Id
+
+			stream, err := client.Execute(context.Background())
+			defer func() { require.NoError(t, stream.CloseSend()) }()
+			require.NoError(t, err)
+
+			// skip all prompts for testing
+			const mode = runnerv2.ResolveProgramRequest_MODE_SKIP_ALL
+			resp, err := client.ResolveProgram(context.Background(), &runnerv2.ResolveProgramRequest{
+				SessionId:  sessionID,
+				Mode:       mode,
+				Retention:  tc.retention,
+				LanguageId: "bash",
+				Source: &runnerv2.ResolveProgramRequest_Commands{
+					Commands: &runnerv2.ResolveProgramCommandList{
+						Lines: []string{
+							`export VAR1="bar"`,
+							`echo $VAR1`,
+							`export VAR2="foo"`,
+							`export VAR2="bar"`,
+							`echo $VAR2`,
+						},
+					},
+				},
+			})
+			require.NoError(t, err)
+
+			script := resp.GetScript()
+			assert.Equal(t, tc.resolvedScript, script)
+			assert.Len(t, resp.Vars, tc.resolvedVars)
+
+			// prepend the resolved vars
+			for _, v := range resp.GetVars() {
+				script = "export " + v.GetName() + "=" + v.GetResolvedValue() + "\n" + script
+			}
+
+			err = stream.Send(&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Interactive: false,
+					Source: &runnerv2.ProgramConfig_Script{
+						Script: script,
+					},
+				},
+				SessionId:        sessionID,
+				StoreStdoutInEnv: false,
+			})
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+			result := <-execResult
+
+			assert.Equal(t, tc.expectedStdout, string(result.Stdout))
+		})
+	}
+}
+
 // Duplicated in testutils/runnerservice/runner_service.go for other packages.
 func startRunnerServiceServer(t *testing.T) (_ *bufconn.Listener, stop func()) {
 	t.Helper()

@@ -65,7 +65,7 @@ message CreateSessionRequest {
     optional SessionEnvStoreSeeding env_store_seeding = 2;
 
     enum SessionEnvStoreSeeding {
-      // default seeding; ingore system
+      // default seeding; ignore system
       SESSION_ENV_STORE_SEEDING_UNSPECIFIED = 0;
       // enable seeding from system
       SESSION_ENV_STORE_SEEDING_SYSTEM = 1;
@@ -232,8 +232,11 @@ message ResolveProgramRequest {
   // project used to load environment variables from .env files.
   optional Project project = 7;
 
-  // language id associated with script
+  // language id associated with script.
   string language_id = 8;
+
+  // retention determines how variables are retained once resolved.
+  Retention retention = 9;
 
   enum Mode {
     // unspecified is auto (default) which prompts for all
@@ -245,6 +248,16 @@ message ResolveProgramRequest {
     // skip means to not prompt for any environment variables.
     // All variables will be marked as resolved.
     MODE_SKIP_ALL = 2;
+  }
+
+  enum Retention {
+    RETENTION_UNSPECIFIED = 0;
+
+    // first run means to always retain the first resolved value.
+    RETENTION_FIRST_RUN = 1;
+
+    // last run means to always retain the last resolved value.
+    RETENTION_LAST_RUN = 2;
   }
 }
 

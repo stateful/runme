@@ -6,7 +6,7 @@ import (
 )
 
 type CacheIdentifier interface {
-	Identifer() string
+	Identifier() string
 }
 
 type listEntry[T CacheIdentifier] struct {
@@ -51,7 +51,7 @@ func (sl *Cache[T]) Add(entry T) error {
 	sl.mu.Lock()
 	defer sl.mu.Unlock()
 
-	id := entry.Identifer()
+	id := entry.Identifier()
 	sl.addEntryUnsafe(id, entry)
 
 	return nil
@@ -73,13 +73,13 @@ func (sl *Cache[T]) CreateAndAdd(generate func() (T, error)) (T, error) {
 		return entry, err
 	}
 
-	id := entry.Identifer()
+	id := entry.Identifier()
 	sl.addEntryUnsafe(id, entry)
 	return entry, nil
 }
 
 func (sl *Cache[T]) Get(entry T) (T, bool) {
-	id := entry.Identifer()
+	id := entry.Identifier()
 	return sl.GetByID(id)
 }
 
@@ -99,7 +99,7 @@ func (sl *Cache[T]) GetByID(id string) (T, bool) {
 }
 
 func (sl *Cache[T]) Delete(entry T) (present bool) {
-	id := entry.Identifer()
+	id := entry.Identifier()
 	return sl.DeleteByID(id)
 }
 
@@ -149,7 +149,7 @@ func (sl *Cache[T]) MostRecentOrCreate(generate func() (T, error)) (T, error) {
 		return entry, err
 	}
 
-	id := entry.Identifer()
+	id := entry.Identifier()
 	sl.addEntryUnsafe(id, entry)
 	return entry, nil
 }
