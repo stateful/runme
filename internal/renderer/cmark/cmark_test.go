@@ -12,7 +12,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/stateful/runme/v3/internal/renderer/cmark"
+	"github.com/runmedev/runme/v3/internal/renderer/cmark"
 )
 
 func testEquality(t *testing.T, data []byte) {

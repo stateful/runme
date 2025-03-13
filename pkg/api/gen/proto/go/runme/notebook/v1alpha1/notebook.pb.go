@@ -15,8 +15,8 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 
-	v1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	v11 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
+	v1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	v11 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
 const (

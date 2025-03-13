@@ -7,10 +7,10 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/config"
-	"github.com/stateful/runme/v3/internal/config/autoconfig"
-	"github.com/stateful/runme/v3/internal/server"
-	"github.com/stateful/runme/v3/internal/telemetry"
+	"github.com/runmedev/runme/v3/internal/config"
+	"github.com/runmedev/runme/v3/internal/config/autoconfig"
+	"github.com/runmedev/runme/v3/internal/server"
+	"github.com/runmedev/runme/v3/internal/telemetry"
 )
 
 func serverStartCmd() *cobra.Command {

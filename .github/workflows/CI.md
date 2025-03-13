@@ -29,7 +29,7 @@ export SHELL="/bin/bash"
 export TZ="UTC"
 export TAGS="test_with_txtar"
 export RUN="^TestRunme\w*"
-export PKGS="github.com/stateful/runme/v3"
+export PKGS="github.com/runmedev/runme/v3"
 make test
 ```
 

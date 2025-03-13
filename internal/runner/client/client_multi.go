@@ -8,9 +8,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/stateful/runme/v3/internal/ansi"
-	"github.com/stateful/runme/v3/internal/runner"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/ansi"
+	"github.com/runmedev/runme/v3/internal/runner"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 type MultiRunner struct {

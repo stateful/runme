@@ -19,10 +19,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/stateful/runme/v3/internal/runner/client"
-	"github.com/stateful/runme/v3/internal/tui"
-	"github.com/stateful/runme/v3/pkg/document"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/runner/client"
+	"github.com/runmedev/runme/v3/internal/tui"
+	"github.com/runmedev/runme/v3/pkg/document"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 type CommandExportExtractMatch struct {

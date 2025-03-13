@@ -1,6 +1,6 @@
 [![Runme](./.github/images/github-header.png)](https://runme.dev)
 
-# Runme runs Markdown [![ci](https://github.com/stateful/runme/actions/workflows/ci.yml/badge.svg)](https://github.com/stateful/runme/actions/workflows/ci.yml) [![Join us on Discord](https://img.shields.io/discord/1102639988832735374?color=5b39df&label=Join%20us%20on%20Discord)](https://discord.gg/runme)
+# Runme runs Markdown [![ci](https://github.com/runmedev/runme/actions/workflows/ci.yml/badge.svg)](https://github.com/runmedev/runme/actions/workflows/ci.yml) [![Join us on Discord](https://img.shields.io/discord/1102639988832735374?color=5b39df&label=Join%20us%20on%20Discord)](https://discord.gg/runme)
 
 > Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs. Read the [docs](https://docs.runme.dev).
 
@@ -37,10 +37,10 @@ $ npm install -g runme
 
 ```
 
-For users with different setups, you can visit [Runme's releases page](https://github.com/stateful/runme/releases) and download a binary suitable for your operating system. For those with Go developer tools set up, Runme can be installed using the `go install` command:
+For users with different setups, you can visit [Runme's releases page](https://github.com/runmedev/runme/releases) and download a binary suitable for your operating system. For those with Go developer tools set up, Runme can be installed using the `go install` command:
 
 ```sh { name=install-via-go }
-$ go install github.com/stateful/runme@latest
+$ go install github.com/runmedev/runme@latest
 
 ```
 
@@ -63,8 +63,7 @@ To initiate the installation process, start by updating Brew dependencies with t
 brew update
 ...
 ```
-
-`````
+````
 
 To execute the `update-brew` code cell from the `README.md` file, simply use the runme run command followed by the name of the code cell:
 
@@ -111,7 +110,7 @@ Check out the full documentation available at [Runme](https://docs.runme.dev).
 
 ## Feedback
 
-Let us know what you think via [GitHub issues](https://github.com/stateful/runme/issues/new) or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hear from you.
+Let us know what you think via [GitHub issues](https://github.com/runmedev/runme/issues/new) or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hear from you.
 
 ## Community
 

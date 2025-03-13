@@ -14,9 +14,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
-	"github.com/stateful/runme/v3/internal/config"
-	"github.com/stateful/runme/v3/internal/runnerv2client"
-	"github.com/stateful/runme/v3/internal/server"
+	"github.com/runmedev/runme/v3/internal/config"
+	"github.com/runmedev/runme/v3/internal/runnerv2client"
+	"github.com/runmedev/runme/v3/internal/server"
 )
 
 func TestInvokeForCommand_Config(t *testing.T) {

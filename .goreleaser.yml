@@ -25,9 +25,9 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-        -X 'github.com/stateful/runme/v3/internal/version.BuildDate={{ .CommitDate }}'
-        -X 'github.com/stateful/runme/v3/internal/version.BuildVersion={{.Version}}'
-        -X 'github.com/stateful/runme/v3/internal/version.Commit={{.Commit}}'
+        -X 'github.com/runmedev/runme/v3/internal/version.BuildDate={{ .CommitDate }}'
+        -X 'github.com/runmedev/runme/v3/internal/version.BuildVersion={{.Version}}'
+        -X 'github.com/runmedev/runme/v3/internal/version.Commit={{.Commit}}'
   - id: wasm
     main: ./web
     goos:
@@ -39,9 +39,9 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-        -X 'github.com/stateful/runme/v3/internal/version.BuildDate={{ .CommitDate }}'
-        -X 'github.com/stateful/runme/v3/internal/version.BuildVersion={{.Version}}'
-        -X 'github.com/stateful/runme/v3/internal/version.Commit={{.Commit}}'
+        -X 'github.com/runmedev/runme/v3/internal/version.BuildDate={{ .CommitDate }}'
+        -X 'github.com/runmedev/runme/v3/internal/version.BuildVersion={{.Version}}'
+        -X 'github.com/runmedev/runme/v3/internal/version.Commit={{.Commit}}'
 
 release:
   prerelease: auto

@@ -3,7 +3,7 @@ package session
 import (
 	"context"
 
-	"github.com/stateful/runme/v3/internal/owl"
+	"github.com/runmedev/runme/v3/internal/owl"
 )
 
 type envStoreOwl struct {

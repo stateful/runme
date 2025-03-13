@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/term"
 
-	xpty "github.com/stateful/runme/v3/internal/pty"
-	"github.com/stateful/runme/v3/internal/ulid"
+	xpty "github.com/runmedev/runme/v3/internal/pty"
+	"github.com/runmedev/runme/v3/internal/ulid"
 )
 
 type ShellSession struct {

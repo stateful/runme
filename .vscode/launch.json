@@ -11,7 +11,7 @@
             "debugAdapter": "dlv-dap",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "buildFlags": "-ldflags=-X=github.com/stateful/runme/v3/internal/version.BuildVersion=99.9.9",
+            "buildFlags": "-ldflags=-X=github.com/runmedev/runme/v3/internal/version.BuildVersion=99.9.9",
             "args": [
                 "list",
             ]
@@ -22,7 +22,7 @@
             "mode": "auto",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "buildFlags": "-ldflags=-X=github.com/stateful/runme/internal/version.BuildVersion=99.9.9",
+            "buildFlags": "-ldflags=-X=github.com/runmedev/runme/internal/version.BuildVersion=99.9.9",
             "args": [
                 "--filename=test.md",
                 "beta",
@@ -38,7 +38,7 @@
             "debugAdapter": "dlv-dap",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "buildFlags": "-ldflags=-X=github.com/stateful/runme/v3/internal/version.BuildVersion=99.9.9",
+            "buildFlags": "-ldflags=-X=github.com/runmedev/runme/v3/internal/version.BuildVersion=99.9.9",
             "args": [
                 "server",
                 "--dev",

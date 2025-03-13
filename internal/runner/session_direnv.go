@@ -7,10 +7,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stateful/runme/v3/internal/ansi"
-	rcontext "github.com/stateful/runme/v3/internal/runner/context"
-	"github.com/stateful/runme/v3/internal/ulid"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/ansi"
+	rcontext "github.com/runmedev/runme/v3/internal/runner/context"
+	"github.com/runmedev/runme/v3/internal/ulid"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 func (s *Session) loadDirEnv(ctx context.Context, proj *project.Project) (string, error) {

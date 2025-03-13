@@ -7,10 +7,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/stateful/runme/v3/internal/extension"
-	"github.com/stateful/runme/v3/internal/log"
-	"github.com/stateful/runme/v3/internal/tui"
-	"github.com/stateful/runme/v3/internal/tui/prompt"
+	"github.com/runmedev/runme/v3/internal/extension"
+	"github.com/runmedev/runme/v3/internal/log"
+	"github.com/runmedev/runme/v3/internal/tui"
+	"github.com/runmedev/runme/v3/internal/tui/prompt"
 
 	"go.uber.org/zap"
 )

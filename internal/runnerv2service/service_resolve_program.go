@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/stateful/runme/v3/internal/command"
-	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/internal/command"
+	runnerv2 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 func (r *runnerService) ResolveProgram(ctx context.Context, req *runnerv2.ResolveProgramRequest) (*runnerv2.ResolveProgramResponse, error) {

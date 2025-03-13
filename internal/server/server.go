@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/stateful/runme/v3/internal/config"
-	runmetls "github.com/stateful/runme/v3/internal/tls"
+	"github.com/runmedev/runme/v3/internal/config"
+	runmetls "github.com/runmedev/runme/v3/internal/tls"
 )
 
 type Server struct {

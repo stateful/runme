@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/stateful/runme/v3/internal/lru"
-	"github.com/stateful/runme/v3/internal/ulid"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/lru"
+	"github.com/runmedev/runme/v3/internal/ulid"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 // Session is an object which lifespan contains multiple executions.

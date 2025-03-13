@@ -13,11 +13,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/stateful/runme/v3/internal/project/projectservice"
-	"github.com/stateful/runme/v3/internal/testutils"
-	projectv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
-	"github.com/stateful/runme/v3/pkg/project/teststub"
-	projtestutils "github.com/stateful/runme/v3/pkg/project/testutils"
+	"github.com/runmedev/runme/v3/internal/project/projectservice"
+	"github.com/runmedev/runme/v3/internal/testutils"
+	projectv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
+	"github.com/runmedev/runme/v3/pkg/project/teststub"
+	projtestutils "github.com/runmedev/runme/v3/pkg/project/testutils"
 )
 
 func TestProjectServiceServer_Load(t *testing.T) {

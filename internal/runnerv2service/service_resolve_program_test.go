@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/stateful/runme/v3/internal/testutils"
-	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/internal/testutils"
+	runnerv2 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
 )
 
 // todo(sebastian): port test cases from v1

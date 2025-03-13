@@ -6,8 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stateful/runme/v3/pkg/document/editor"
-	"github.com/stateful/runme/v3/pkg/document/identity"
+	"github.com/runmedev/runme/v3/pkg/document/editor"
+	"github.com/runmedev/runme/v3/pkg/document/identity"
 )
 
 type FuncOutput func(string, []byte) error

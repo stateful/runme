@@ -16,9 +16,9 @@ import (
 	"google.golang.org/grpc/credentials"
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 
-	runmetls "github.com/stateful/runme/v3/internal/tls"
-	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
+	runmetls "github.com/runmedev/runme/v3/internal/tls"
+	parserv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	runnerv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
 var (

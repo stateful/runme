@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/stateful/runme/v3/internal/config"
-	runmetls "github.com/stateful/runme/v3/internal/tls"
+	"github.com/runmedev/runme/v3/internal/config"
+	runmetls "github.com/runmedev/runme/v3/internal/tls"
 )
 
 // defaultGRPCurlFormat indicates the default format for the grpcurl commands.

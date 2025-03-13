@@ -6,7 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/dockerexec"
+	"github.com/runmedev/runme/v3/internal/dockerexec"
 )
 
 type dockerCommand struct {

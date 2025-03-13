@@ -3,8 +3,8 @@ package server
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/stateful/runme/v3/internal/config"
-	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	"github.com/runmedev/runme/v3/internal/config"
+	"github.com/runmedev/runme/v3/internal/config/autoconfig"
 )
 
 func Cmd() *cobra.Command {

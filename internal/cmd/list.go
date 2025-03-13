@@ -12,9 +12,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/stateful/runme/v3/internal/shell"
-	"github.com/stateful/runme/v3/internal/term"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/shell"
+	"github.com/runmedev/runme/v3/internal/term"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 type row struct {

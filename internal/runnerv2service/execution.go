@@ -15,11 +15,11 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/pkg/errors"
 
-	"github.com/stateful/runme/v3/internal/command"
-	"github.com/stateful/runme/v3/internal/rbuffer"
-	"github.com/stateful/runme/v3/internal/session"
-	runnerv2 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/command"
+	"github.com/runmedev/runme/v3/internal/rbuffer"
+	"github.com/runmedev/runme/v3/internal/session"
+	runnerv2 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)

@@ -14,10 +14,10 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 
-	"github.com/stateful/runme/v3/internal/auth"
-	"github.com/stateful/runme/v3/internal/client"
-	"github.com/stateful/runme/v3/internal/log"
-	"github.com/stateful/runme/v3/internal/version"
+	"github.com/runmedev/runme/v3/internal/auth"
+	"github.com/runmedev/runme/v3/internal/client"
+	"github.com/runmedev/runme/v3/internal/log"
+	"github.com/runmedev/runme/v3/internal/version"
 )
 
 const (

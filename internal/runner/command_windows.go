@@ -16,7 +16,7 @@ func setSysProcAttrPgid(cmd *exec.Cmd) {}
 func disableEcho(fd uintptr) error {
 	return errors.New("Error: Environment not supported! " +
 		"Runme currently doesn't support PowerShell. " +
-		"Please go to https://github.com/stateful/runme/issues/173 to follow progress on this " +
+		"Please go to https://github.com/runmedev/runme/issues/173 to follow progress on this " +
 		"and join our Discord server at https://discord.gg/runme if you have further questions!")
 }
 

@@ -5,8 +5,8 @@ import (
 
 	"go.uber.org/zap"
 
-	parserv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	reporterv1alpha1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1alpha1"
+	parserv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
+	reporterv1alpha1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/reporter/v1alpha1"
 )
 
 type reporterServiceServer struct {

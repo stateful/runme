@@ -12,8 +12,8 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/stateful/runme/v3/internal/config"
-	"github.com/stateful/runme/v3/internal/config/autoconfig"
+	"github.com/runmedev/runme/v3/internal/config"
+	"github.com/runmedev/runme/v3/internal/config/autoconfig"
 )
 
 func serverGRPCurlDescribeCmd() *cobra.Command {

@@ -19,8 +19,8 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/system"
-	"github.com/stateful/runme/v3/internal/ulid"
+	"github.com/runmedev/runme/v3/internal/system"
+	"github.com/runmedev/runme/v3/internal/ulid"
 )
 
 const (

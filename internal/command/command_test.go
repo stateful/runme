@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/stateful/runme/v3/internal/session"
+	"github.com/runmedev/runme/v3/internal/session"
 )
 
 func init() {

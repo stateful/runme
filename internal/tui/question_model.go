@@ -4,8 +4,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/log"
-	"github.com/stateful/runme/v3/internal/tui/prompt"
+	"github.com/runmedev/runme/v3/internal/log"
+	"github.com/runmedev/runme/v3/internal/tui/prompt"
 )
 
 type StandaloneQuestionModel struct {

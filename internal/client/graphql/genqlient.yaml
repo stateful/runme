@@ -7,7 +7,7 @@ generated: ./query/generated.go
 package: query
 bindings:
   DateTime:
-    type: github.com/stateful/runme/v3/internal/client/graphql/schema/model.DateTime
+    type: github.com/runmedev/runme/v3/internal/client/graphql/schema/model.DateTime
   Date:
     type: string
   UUID:

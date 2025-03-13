@@ -5,7 +5,7 @@ package runme.runner.v2;
 import "google/protobuf/wrappers.proto";
 import "runme/runner/v2/config.proto";
 
-option go_package = "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v2;runnerv2";
+option go_package = "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2;runnerv2";
 
 message Project {
   // root is a root directory of the project.

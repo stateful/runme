@@ -19,7 +19,7 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/stateful/godotenv"
 
-	rcontext "github.com/stateful/runme/v3/internal/runner/context"
+	rcontext "github.com/runmedev/runme/v3/internal/runner/context"
 
 	"go.uber.org/zap"
 )

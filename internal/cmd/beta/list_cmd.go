@@ -12,10 +12,10 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/config/autoconfig"
-	"github.com/stateful/runme/v3/internal/shell"
-	"github.com/stateful/runme/v3/internal/term"
-	"github.com/stateful/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/internal/config/autoconfig"
+	"github.com/runmedev/runme/v3/internal/shell"
+	"github.com/runmedev/runme/v3/internal/term"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 func listCmd(*commonFlags) *cobra.Command {

@@ -20,8 +20,8 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/stateful/runme/v3/internal/runner"
-	"github.com/stateful/runme/v3/internal/tui"
+	"github.com/runmedev/runme/v3/internal/runner"
+	"github.com/runmedev/runme/v3/internal/tui"
 )
 
 var vscodeVersionRegexp = regexp.MustCompile(`VS Code Server (\d+)\.(\d+)`)

@@ -24,9 +24,9 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/stateful/runme/v3/internal/testutils"
-	"github.com/stateful/runme/v3/internal/ulid"
-	runnerv1 "github.com/stateful/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
+	"github.com/runmedev/runme/v3/internal/testutils"
+	"github.com/runmedev/runme/v3/internal/ulid"
+	runnerv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
 // TODO(adamb): remove global state. It prevents from running tests in parallel.
