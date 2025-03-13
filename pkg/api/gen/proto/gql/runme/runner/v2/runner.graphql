@@ -427,15 +427,15 @@ input ResolveProgramRequestInput {
 	"""
 	project: ProjectInput
 	"""
-	 language id associated with script
+	 language id associated with script.
 
 	"""
 	languageId: String
 	"""
-	 var_retention_strategy determines how variables are retained once resolved.
+	 retention determines how variables are retained once resolved.
 
 	"""
-	varRetentionStrategy: ResolveProgramRequest_VarRetentionStrategy
+	retention: ResolveProgramRequest_Retention
 }
 enum ResolveProgramRequest_Mode {
 	"""
@@ -457,18 +457,18 @@ enum ResolveProgramRequest_Mode {
 	"""
 	MODE_SKIP_ALL
 }
-enum ResolveProgramRequest_VarRetentionStrategy {
-	VAR_RETENTION_STRATEGY_UNSPECIFIED
+enum ResolveProgramRequest_Retention {
+	RETENTION_UNSPECIFIED
 	"""
-	 first means to always retain the first resolved value.
+	 first run means to always retain the first resolved value.
 
 	"""
-	VAR_RETENTION_STRATEGY_FIRST
+	RETENTION_FIRST_RUN
 	"""
-	 last means to always retain the last resolved value.
+	 last run means to always retain the last resolved value.
 
 	"""
-	VAR_RETENTION_STRATEGY_LAST
+	RETENTION_LAST_RUN
 }
 type ResolveProgramResponse {
 	script: String

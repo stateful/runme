@@ -474,11 +474,11 @@ export interface ResolveProgramRequest {
      */
     languageId: string;
     /**
-     * var_retention_strategy determines how variables are retained once resolved.
+     * retention determines how variables are retained once resolved.
      *
-     * @generated from protobuf field: runme.runner.v1.ResolveProgramRequest.VarRetentionStrategy var_retention_strategy = 9;
+     * @generated from protobuf field: runme.runner.v1.ResolveProgramRequest.Retention retention = 9;
      */
-    varRetentionStrategy: ResolveProgramRequest_VarRetentionStrategy;
+    retention: ResolveProgramRequest_Retention;
 }
 /**
  * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.Mode
@@ -507,25 +507,25 @@ export declare enum ResolveProgramRequest_Mode {
     SKIP_ALL = 2
 }
 /**
- * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.VarRetentionStrategy
+ * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.Retention
  */
-export declare enum ResolveProgramRequest_VarRetentionStrategy {
+export declare enum ResolveProgramRequest_Retention {
     /**
-     * @generated from protobuf enum value: VAR_RETENTION_STRATEGY_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: RETENTION_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * first means to always retain the first resolved value.
+     * first run means to always retain the first resolved value.
      *
-     * @generated from protobuf enum value: VAR_RETENTION_STRATEGY_FIRST = 1;
+     * @generated from protobuf enum value: RETENTION_FIRST_RUN = 1;
      */
-    FIRST = 1,
+    FIRST_RUN = 1,
     /**
-     * last means to always retain the last resolved value.
+     * last run means to always retain the last resolved value.
      *
-     * @generated from protobuf enum value: VAR_RETENTION_STRATEGY_LAST = 2;
+     * @generated from protobuf enum value: RETENTION_LAST_RUN = 2;
      */
-    LAST = 2
+    LAST_RUN = 2
 }
 /**
  * @generated from protobuf message runme.runner.v1.ResolveProgramResponse

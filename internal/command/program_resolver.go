@@ -71,14 +71,14 @@ const (
 	ProgramResolverStatusResolved
 )
 
-type VarRetentionStrategy uint8
+type Retention uint8
 
 const (
-	VarRetentionStrategyUnspecified VarRetentionStrategy = iota
-	// VarRetentionStrategyFirst means to always retain the first resolved value.
-	VarRetentionStrategyFirst
-	// VarRetentionStrategyLast means to always retain the last resolved value.
-	VarRetentionStrategyLast
+	RetentionUnspecified Retention = iota
+	// RetentionFirstRun means to always retain the resolved values from the first task/block/cell run.
+	RetentionFirstRun
+	// RetentionLastRun means to always retain the resolved values from the last task/block/cell run.
+	RetentionLastRun
 )
 
 type ProgramResolverResult struct {
@@ -106,7 +106,7 @@ type ProgramResolverVarResult struct {
 
 // Resolve resolves the environment variables found in a shell program.
 // It might modify the program and write it provided writer.
-func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetentionStrategy VarRetentionStrategy) (*ProgramResolverResult, error) {
+func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, retention Retention) (*ProgramResolverResult, error) {
 	f, err := syntax.NewParser().Parse(reader, "")
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -114,7 +114,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetenti
 
 	if len(f.Stmts) > 0 {
 		s := "first"
-		if varRetentionStrategy == VarRetentionStrategyLast {
+		if retention == RetentionLastRun {
 			s = "last"
 		}
 		info := fmt.Sprintf("# Managed env store retention strategy: %s\n\n", s)
@@ -125,7 +125,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, varRetenti
 
 	var decls []*syntax.DeclClause
 	modified := false
-	if varRetentionStrategy != VarRetentionStrategyLast {
+	if retention != RetentionLastRun {
 		decls, modified, err = r.walk(f)
 		if err != nil {
 			return nil, err

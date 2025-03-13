@@ -232,11 +232,11 @@ message ResolveProgramRequest {
   // project used to load environment variables from .env files.
   optional Project project = 7;
 
-  // language id associated with script
+  // language id associated with script.
   string language_id = 8;
 
-  // var_retention_strategy determines how variables are retained once resolved.
-  VarRetentionStrategy var_retention_strategy = 9;
+  // retention determines how variables are retained once resolved.
+  Retention retention = 9;
 
   enum Mode {
     // unspecified is auto (default) which prompts for all
@@ -250,14 +250,14 @@ message ResolveProgramRequest {
     MODE_SKIP_ALL = 2;
   }
 
-  enum VarRetentionStrategy {
-    VAR_RETENTION_STRATEGY_UNSPECIFIED = 0;
+  enum Retention {
+    RETENTION_UNSPECIFIED = 0;
 
-    // first means to always retain the first resolved value.
-    VAR_RETENTION_STRATEGY_FIRST = 1;
+    // first run means to always retain the first resolved value.
+    RETENTION_FIRST_RUN = 1;
 
-    // last means to always retain the last resolved value.
-    VAR_RETENTION_STRATEGY_LAST = 2;
+    // last run means to always retain the last resolved value.
+    RETENTION_LAST_RUN = 2;
   }
 }
 

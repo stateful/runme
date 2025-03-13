@@ -1063,37 +1063,37 @@ func Test_varRetentionStrategies(t *testing.T) {
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv1.NewRunnerServiceClient)
 
 	testCases := []struct {
-		name                 string
-		varRetentionStrategy runnerv1.ResolveProgramRequest_VarRetentionStrategy
-		resolvedVars         int
-		resolvedScript       string
-		expectedStdout       string
+		name           string
+		retention      runnerv1.ResolveProgramRequest_Retention
+		resolvedVars   int
+		resolvedScript string
+		expectedStdout string
 	}{
 		{
-			name:                 "Unspecified",
-			varRetentionStrategy: runnerv1.ResolveProgramRequest_VAR_RETENTION_STRATEGY_UNSPECIFIED,
-			resolvedVars:         3,
-			resolvedScript:       "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
-			expectedStdout:       "bar\nfoo\n",
+			name:           "Unspecified",
+			retention:      runnerv1.ResolveProgramRequest_RETENTION_UNSPECIFIED,
+			resolvedVars:   3,
+			resolvedScript: "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
+			expectedStdout: "bar\nfoo\n",
 		},
 		{
-			name:                 "Last",
-			varRetentionStrategy: runnerv1.ResolveProgramRequest_VAR_RETENTION_STRATEGY_LAST,
-			resolvedVars:         0,
-			resolvedScript:       "# Managed env store retention strategy: last\n\nexport VAR1=\"bar\"\necho $VAR1\nexport VAR2=\"foo\"\nexport VAR2=\"bar\"\necho $VAR2\n",
-			expectedStdout:       "bar\nbar\n",
+			name:           "Last",
+			retention:      runnerv1.ResolveProgramRequest_RETENTION_LAST_RUN,
+			resolvedVars:   0,
+			resolvedScript: "# Managed env store retention strategy: last\n\nexport VAR1=\"bar\"\necho $VAR1\nexport VAR2=\"foo\"\nexport VAR2=\"bar\"\necho $VAR2\n",
+			expectedStdout: "bar\nbar\n",
 		},
 		{
-			name:                 "First",
-			resolvedVars:         3,
-			varRetentionStrategy: runnerv1.ResolveProgramRequest_VAR_RETENTION_STRATEGY_FIRST,
-			resolvedScript:       "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
-			expectedStdout:       "bar\nfoo\n",
+			name:           "First",
+			resolvedVars:   3,
+			retention:      runnerv1.ResolveProgramRequest_RETENTION_FIRST_RUN,
+			resolvedScript: "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
+			expectedStdout: "bar\nfoo\n",
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run("VarRetentionStrategy_"+tc.name, func(t *testing.T) {
+		t.Run("Retention_"+tc.name, func(t *testing.T) {
 			s, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{})
 			require.NoError(t, err)
 
@@ -1106,10 +1106,10 @@ func Test_varRetentionStrategies(t *testing.T) {
 			// skip all prompts for testing
 			const mode = runnerv1.ResolveProgramRequest_MODE_SKIP_ALL
 			resp, err := client.ResolveProgram(context.Background(), &runnerv1.ResolveProgramRequest{
-				SessionId:            sessionID,
-				Mode:                 mode,
-				VarRetentionStrategy: tc.varRetentionStrategy,
-				LanguageId:           "bash",
+				SessionId:  sessionID,
+				Mode:       mode,
+				Retention:  tc.retention,
+				LanguageId: "bash",
 				Source: &runnerv1.ResolveProgramRequest_Commands{
 					Commands: &runnerv1.ResolveProgramCommandList{
 						Lines: []string{

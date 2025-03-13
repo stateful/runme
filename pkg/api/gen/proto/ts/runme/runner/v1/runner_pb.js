@@ -69,27 +69,27 @@ export var ResolveProgramRequest_Mode;
     ResolveProgramRequest_Mode[ResolveProgramRequest_Mode["SKIP_ALL"] = 2] = "SKIP_ALL";
 })(ResolveProgramRequest_Mode || (ResolveProgramRequest_Mode = {}));
 /**
- * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.VarRetentionStrategy
+ * @generated from protobuf enum runme.runner.v1.ResolveProgramRequest.Retention
  */
-export var ResolveProgramRequest_VarRetentionStrategy;
-(function (ResolveProgramRequest_VarRetentionStrategy) {
+export var ResolveProgramRequest_Retention;
+(function (ResolveProgramRequest_Retention) {
     /**
-     * @generated from protobuf enum value: VAR_RETENTION_STRATEGY_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: RETENTION_UNSPECIFIED = 0;
      */
-    ResolveProgramRequest_VarRetentionStrategy[ResolveProgramRequest_VarRetentionStrategy["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    ResolveProgramRequest_Retention[ResolveProgramRequest_Retention["UNSPECIFIED"] = 0] = "UNSPECIFIED";
     /**
-     * first means to always retain the first resolved value.
+     * first run means to always retain the first resolved value.
      *
-     * @generated from protobuf enum value: VAR_RETENTION_STRATEGY_FIRST = 1;
+     * @generated from protobuf enum value: RETENTION_FIRST_RUN = 1;
      */
-    ResolveProgramRequest_VarRetentionStrategy[ResolveProgramRequest_VarRetentionStrategy["FIRST"] = 1] = "FIRST";
+    ResolveProgramRequest_Retention[ResolveProgramRequest_Retention["FIRST_RUN"] = 1] = "FIRST_RUN";
     /**
-     * last means to always retain the last resolved value.
+     * last run means to always retain the last resolved value.
      *
-     * @generated from protobuf enum value: VAR_RETENTION_STRATEGY_LAST = 2;
+     * @generated from protobuf enum value: RETENTION_LAST_RUN = 2;
      */
-    ResolveProgramRequest_VarRetentionStrategy[ResolveProgramRequest_VarRetentionStrategy["LAST"] = 2] = "LAST";
-})(ResolveProgramRequest_VarRetentionStrategy || (ResolveProgramRequest_VarRetentionStrategy = {}));
+    ResolveProgramRequest_Retention[ResolveProgramRequest_Retention["LAST_RUN"] = 2] = "LAST_RUN";
+})(ResolveProgramRequest_Retention || (ResolveProgramRequest_Retention = {}));
 /**
  * @generated from protobuf enum runme.runner.v1.ResolveProgramResponse.Status
  */
@@ -475,7 +475,7 @@ class ResolveProgramRequest$Type extends MessageType {
             { no: 6, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v1.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
             { no: 7, name: "project", kind: "message", T: () => Project },
             { no: 8, name: "language_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "var_retention_strategy", kind: "enum", T: () => ["runme.runner.v1.ResolveProgramRequest.VarRetentionStrategy", ResolveProgramRequest_VarRetentionStrategy, "VAR_RETENTION_STRATEGY_"] }
+            { no: 9, name: "retention", kind: "enum", T: () => ["runme.runner.v1.ResolveProgramRequest.Retention", ResolveProgramRequest_Retention, "RETENTION_"] }
         ]);
     }
 }

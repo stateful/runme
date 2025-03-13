@@ -198,19 +198,19 @@ func TestProgramResolverResolve(t *testing.T) {
 	for _, tc := range testCases {
 		strategies := []struct {
 			name            string
-			strategy        VarRetentionStrategy
+			strategy        Retention
 			modifiedProgram string
 			result          *ProgramResolverResult
 		}{
 			{
 				name:            "First",
-				strategy:        VarRetentionStrategyFirst,
+				strategy:        RetentionFirstRun,
 				modifiedProgram: tc.modifiedProgramFirst,
 				result:          tc.result,
 			},
 			{
 				name:            "Last",
-				strategy:        VarRetentionStrategyLast,
+				strategy:        RetentionLastRun,
 				modifiedProgram: tc.modifiedProgramLast,
 				result:          nil, // for last strategy variables inside result are always empty
 			},
@@ -233,7 +233,7 @@ func TestProgramResolverResolve(t *testing.T) {
 				buf := bytes.NewBuffer(nil)
 				got, err := r.Resolve(strings.NewReader(tc.program), buf, s.strategy)
 				require.NoError(t, err)
-				if s.strategy == VarRetentionStrategyFirst {
+				if s.strategy == RetentionFirstRun {
 					assert.EqualValues(t, tc.modifiedProgramFirst, buf.String())
 				} else {
 					assert.EqualValues(t, tc.modifiedProgramLast, buf.String())
@@ -263,7 +263,7 @@ func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
 		ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
 	)
 	buf := bytes.NewBuffer(nil)
-	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), buf, VarRetentionStrategyFirst)
+	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), buf, RetentionFirstRun)
 	require.NoError(t, err)
 	require.EqualValues(
 		t,
@@ -291,7 +291,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 			ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
 		)
 		buf := bytes.NewBuffer(nil)
-		result, err := r.Resolve(strings.NewReader(`export MY_ENV=message value`), buf, VarRetentionStrategyFirst)
+		result, err := r.Resolve(strings.NewReader(`export MY_ENV=message value`), buf, RetentionFirstRun)
 		require.NoError(t, err)
 		require.EqualValues(
 			t,
@@ -318,7 +318,7 @@ func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
 			ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
 		)
 		buf := bytes.NewBuffer(nil)
-		result, err := r.Resolve(strings.NewReader(`export MY_ENV="placeholder value"`), buf, VarRetentionStrategyFirst)
+		result, err := r.Resolve(strings.NewReader(`export MY_ENV="placeholder value"`), buf, RetentionFirstRun)
 		require.NoError(t, err)
 		require.EqualValues(
 			t,
@@ -346,7 +346,7 @@ func TestProgramResolverResolve_SensitiveEnvKeys(t *testing.T) {
 			[]string{"MY_PASSWORD", "MY_SECRET"},
 		)
 		buf := bytes.NewBuffer(nil)
-		result, err := r.Resolve(strings.NewReader("export MY_PASSWORD=super-secret\nexport MY_SECRET=also-secret\nexport MY_PLAIN=text\n"), buf, VarRetentionStrategyFirst)
+		result, err := r.Resolve(strings.NewReader("export MY_PASSWORD=super-secret\nexport MY_SECRET=also-secret\nexport MY_PLAIN=text\n"), buf, RetentionFirstRun)
 		require.NoError(t, err)
 		require.EqualValues(
 			t,
