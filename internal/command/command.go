@@ -63,15 +63,15 @@ func (c *base) Running() bool {
 }
 
 func (c *base) Start(context.Context) error {
-	return errors.New("not implemented")
+	return errors.New("start: not implemented")
 }
 
 func (c *base) Signal(os.Signal) error {
-	return errors.New("not implemented")
+	return errors.New("signal: not implemented")
 }
 
 func (c *base) Wait(context.Context) error {
-	return errors.New("not implemented")
+	return errors.New("wait: not implemented")
 }
 
 func (c *base) Env() []string {

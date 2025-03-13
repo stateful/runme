@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,6 +39,10 @@ func testExecuteCommandWithSession(
 	expectedStderr string,
 ) {
 	t.Helper()
+
+	if _, err := exec.LookPath(cfg.ProgramName); err != nil {
+		t.Skipf("command %q not found", cfg.ProgramName)
+	}
 
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)

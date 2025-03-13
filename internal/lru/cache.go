@@ -14,7 +14,7 @@ type listEntry[T CacheIdentifier] struct {
 	entry T
 }
 
-// Cache is a thread-safe Cache cache of generic entries.
+// Cache is a thread-safe cache of generic entries.
 type Cache[T CacheIdentifier] struct {
 	capacity int
 	mu       sync.RWMutex
@@ -128,11 +128,6 @@ func (sl *Cache[T]) Newest() (T, bool) {
 
 	element := sl.order.Front()
 	return element.Value.(*listEntry[T]).entry, true
-}
-
-// Deprecated: Use Newest instead.
-func (sl *Cache[T]) MostRecent() (T, bool) {
-	return sl.Newest()
 }
 
 func (sl *Cache[T]) MostRecentOrCreate(generate func() (T, error)) (T, error) {

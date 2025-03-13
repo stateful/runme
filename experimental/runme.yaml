@@ -47,7 +47,7 @@ project:
 runtime:
   # Optional Docker configuration to run code blocks in a container.
   docker:
-    enabled: false
+    enabled: true
     image: runme-runtime:latest
     build:
       context: ./experimental/docker

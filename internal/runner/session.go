@@ -378,10 +378,12 @@ func (es *owlEnvStorer) envs() ([]string, error) {
 	return vals, nil
 }
 
-// SessionListCapacity is a maximum number of entries
-// stored in a single SessionList.
-const SessionListCapacity = 1024
+type sessionList = lru.Cache[*Session]
 
-func NewSessionList() *lru.Cache[*Session] {
-	return lru.NewCache[*Session](SessionListCapacity)
+// sessionListCapacity is a maximum number of entries
+// stored in a single SessionList.
+const sessionListCapacity = 1024
+
+func newSessionList() *sessionList {
+	return lru.NewCache[*Session](sessionListCapacity)
 }
