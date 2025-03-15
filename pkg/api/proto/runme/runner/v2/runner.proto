@@ -193,6 +193,58 @@ message ExecuteResponse {
   string mime_type = 5;
 }
 
+message ExecuteOneShotRequest {
+  runme.runner.v2.ProgramConfig config = 1;
+
+  // input_data is a byte array that will be send as input
+  // to the program.
+  bytes input_data = 8;
+
+  // stop requests the running process to be stopped.
+  // It is allowed only in the consecutive calls.
+  ExecuteStop stop = 9;
+
+  // sets pty winsize
+  // has no effect in non-interactive mode
+  optional Winsize winsize = 10;
+
+  // session_id indicates in which Session the program should execute.
+  // Executing in a Session might provide additional context like
+  // environment variables.
+  string session_id = 20;
+
+  // session_strategy is a strategy for selecting the session.
+  SessionStrategy session_strategy = 21;
+
+  // project used to load environment variables from .env files.
+  optional Project project = 22;
+
+  // store_stdout_in_env, if true, will store the stdout under well known name
+  // and the last ran block in the environment variable `__`.
+  bool store_stdout_in_env = 23;
+}
+
+message ExecuteOneShotResponse {
+  // exit_code is sent only in the final message.
+  google.protobuf.UInt32Value exit_code = 1;
+
+  // stdout_data contains bytes from stdout since the last response.
+  bytes stdout_data = 2;
+
+  // stderr_data contains bytes from stderr since the last response.
+  bytes stderr_data = 3;
+
+  // pid contains the process' PID.
+  //
+  // This is only sent once in an initial response for background processes.
+  google.protobuf.UInt32Value pid = 4;
+
+  // mime_type is a detected MIME type of the stdout_data.
+  //
+  // This is only sent once in the first response containing stdout_data.
+  string mime_type = 5;
+}
+
 message ResolveProgramCommandList {
   // commands are commands to be executed by the program.
   // The commands are joined and executed as a script.
@@ -384,6 +436,13 @@ service RunnerService {
   // Subsequent "ExecuteRequest" should only contain "input_data" as
   // other fields will be ignored.
   rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
+
+  // Execute executes a program in OneShot. Examine "ExecuteRequest" to explore
+  // configuration options.
+  //
+  // Client sends a single message containing the program to execute. Server
+  // streams back the output of the program.
+  rpc ExecuteOneShot(ExecuteOneShotRequest) returns (stream ExecuteOneShotResponse) {}
 
   // ResolveProgram resolves variables from a script or a list of commands
   // using the provided sources, which can be a list of environment variables,
