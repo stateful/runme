@@ -8,7 +8,7 @@ directive @NotebookService on FIELD_DEFINITION
 input BoolValueInput {
 	"""
 	 The bool value.
-
+	
 	"""
 	value: Boolean
 }
@@ -72,7 +72,7 @@ input FrontmatterInput {
 	runme: FrontmatterRunmeInput
 	"""
 	 Deprecated category in favor of Tag
-
+	
 	"""
 	category: String
 	terminalRows: String
@@ -92,7 +92,7 @@ input FrontmatterRunmeInput {
 input Int64ValueInput {
 	"""
 	 The int64 value.
-
+	
 	"""
 	value: Int
 }
@@ -100,7 +100,7 @@ type Mutation {
 	"""
 	 ResolveNotebook takes [runme.parser.v1.Notebook] and a cell index and
 	 returns a script that runs the cell taking the whole notebook into account.
-
+	
 	"""
 	notebookServiceResolveNotebook(in: ResolveNotebookRequestInput): ResolveNotebookResponse
 }
@@ -148,7 +148,7 @@ input TextRangeInput {
 input UInt32ValueInput {
 	"""
 	 The uint32 value.
-
+	
 	"""
 	value: Int
 }

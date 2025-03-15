@@ -27,6 +27,7 @@ const (
 	RunnerService_DeleteSession_FullMethodName   = "/runme.runner.v2.RunnerService/DeleteSession"
 	RunnerService_MonitorEnvStore_FullMethodName = "/runme.runner.v2.RunnerService/MonitorEnvStore"
 	RunnerService_Execute_FullMethodName         = "/runme.runner.v2.RunnerService/Execute"
+	RunnerService_ExecuteOneShot_FullMethodName  = "/runme.runner.v2.RunnerService/ExecuteOneShot"
 	RunnerService_ResolveProgram_FullMethodName  = "/runme.runner.v2.RunnerService/ResolveProgram"
 )
 
@@ -48,6 +49,12 @@ type RunnerServiceClient interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ExecuteRequest, ExecuteResponse], error)
+	// Execute executes a program in OneShot. Examine "ExecuteRequest" to explore
+	// configuration options.
+	//
+	// Client sends a single message containing the program to execute. Server
+	// streams back the output of the program.
+	ExecuteOneShot(ctx context.Context, in *ExecuteOneShotRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExecuteOneShotResponse], error)
 	// ResolveProgram resolves variables from a script or a list of commands
 	// using the provided sources, which can be a list of environment variables,
 	// a session, or a project.
@@ -145,6 +152,25 @@ func (c *runnerServiceClient) Execute(ctx context.Context, opts ...grpc.CallOpti
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RunnerService_ExecuteClient = grpc.BidiStreamingClient[ExecuteRequest, ExecuteResponse]
 
+func (c *runnerServiceClient) ExecuteOneShot(ctx context.Context, in *ExecuteOneShotRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExecuteOneShotResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RunnerService_ServiceDesc.Streams[2], RunnerService_ExecuteOneShot_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ExecuteOneShotRequest, ExecuteOneShotResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RunnerService_ExecuteOneShotClient = grpc.ServerStreamingClient[ExecuteOneShotResponse]
+
 func (c *runnerServiceClient) ResolveProgram(ctx context.Context, in *ResolveProgramRequest, opts ...grpc.CallOption) (*ResolveProgramResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResolveProgramResponse)
@@ -173,6 +199,12 @@ type RunnerServiceServer interface {
 	// Subsequent "ExecuteRequest" should only contain "input_data" as
 	// other fields will be ignored.
 	Execute(grpc.BidiStreamingServer[ExecuteRequest, ExecuteResponse]) error
+	// Execute executes a program in OneShot. Examine "ExecuteRequest" to explore
+	// configuration options.
+	//
+	// Client sends a single message containing the program to execute. Server
+	// streams back the output of the program.
+	ExecuteOneShot(*ExecuteOneShotRequest, grpc.ServerStreamingServer[ExecuteOneShotResponse]) error
 	// ResolveProgram resolves variables from a script or a list of commands
 	// using the provided sources, which can be a list of environment variables,
 	// a session, or a project.
@@ -208,6 +240,9 @@ func (UnimplementedRunnerServiceServer) MonitorEnvStore(*MonitorEnvStoreRequest,
 }
 func (UnimplementedRunnerServiceServer) Execute(grpc.BidiStreamingServer[ExecuteRequest, ExecuteResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (UnimplementedRunnerServiceServer) ExecuteOneShot(*ExecuteOneShotRequest, grpc.ServerStreamingServer[ExecuteOneShotResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method ExecuteOneShot not implemented")
 }
 func (UnimplementedRunnerServiceServer) ResolveProgram(context.Context, *ResolveProgramRequest) (*ResolveProgramResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResolveProgram not implemented")
@@ -341,6 +376,17 @@ func _RunnerService_Execute_Handler(srv interface{}, stream grpc.ServerStream) e
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RunnerService_ExecuteServer = grpc.BidiStreamingServer[ExecuteRequest, ExecuteResponse]
 
+func _RunnerService_ExecuteOneShot_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ExecuteOneShotRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RunnerServiceServer).ExecuteOneShot(m, &grpc.GenericServerStream[ExecuteOneShotRequest, ExecuteOneShotResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RunnerService_ExecuteOneShotServer = grpc.ServerStreamingServer[ExecuteOneShotResponse]
+
 func _RunnerService_ResolveProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResolveProgramRequest)
 	if err := dec(in); err != nil {
@@ -402,6 +448,11 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:       _RunnerService_Execute_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "ExecuteOneShot",
+			Handler:       _RunnerService_ExecuteOneShot_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "runme/runner/v2/runner.proto",

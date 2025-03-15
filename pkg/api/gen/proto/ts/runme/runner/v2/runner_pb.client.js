@@ -73,6 +73,19 @@ export class RunnerServiceClient {
         return stackIntercept("duplex", this._transport, method, opt);
     }
     /**
+     * Execute executes a program in OneShot. Examine "ExecuteRequest" to explore
+     * configuration options.
+     *
+     * Client sends a single message containing the program to execute. Server
+     * streams back the output of the program.
+     *
+     * @generated from protobuf rpc: ExecuteOneShot(runme.runner.v2.ExecuteOneShotRequest) returns (stream runme.runner.v2.ExecuteOneShotResponse);
+     */
+    executeOneShot(input, options) {
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        return stackIntercept("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
      * ResolveProgram resolves variables from a script or a list of commands
      * using the provided sources, which can be a list of environment variables,
      * a session, or a project.
@@ -81,7 +94,7 @@ export class RunnerServiceClient {
      * @generated from protobuf rpc: ResolveProgram(runme.runner.v2.ResolveProgramRequest) returns (runme.runner.v2.ResolveProgramResponse);
      */
     resolveProgram(input, options) {
-        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }
 }

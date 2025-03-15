@@ -338,6 +338,102 @@ export interface ExecuteResponse {
     mimeType: string;
 }
 /**
+ * @generated from protobuf message runme.runner.v2.ExecuteOneShotRequest
+ */
+export interface ExecuteOneShotRequest {
+    /**
+     * @generated from protobuf field: runme.runner.v2.ProgramConfig config = 1;
+     */
+    config?: ProgramConfig;
+    /**
+     * input_data is a byte array that will be send as input
+     * to the program.
+     *
+     * @generated from protobuf field: bytes input_data = 8;
+     */
+    inputData: Uint8Array;
+    /**
+     * stop requests the running process to be stopped.
+     * It is allowed only in the consecutive calls.
+     *
+     * @generated from protobuf field: runme.runner.v2.ExecuteStop stop = 9;
+     */
+    stop: ExecuteStop;
+    /**
+     * sets pty winsize
+     * has no effect in non-interactive mode
+     *
+     * @generated from protobuf field: optional runme.runner.v2.Winsize winsize = 10;
+     */
+    winsize?: Winsize;
+    /**
+     * session_id indicates in which Session the program should execute.
+     * Executing in a Session might provide additional context like
+     * environment variables.
+     *
+     * @generated from protobuf field: string session_id = 20;
+     */
+    sessionId: string;
+    /**
+     * session_strategy is a strategy for selecting the session.
+     *
+     * @generated from protobuf field: runme.runner.v2.SessionStrategy session_strategy = 21;
+     */
+    sessionStrategy: SessionStrategy;
+    /**
+     * project used to load environment variables from .env files.
+     *
+     * @generated from protobuf field: optional runme.runner.v2.Project project = 22;
+     */
+    project?: Project;
+    /**
+     * store_stdout_in_env, if true, will store the stdout under well known name
+     * and the last ran block in the environment variable `__`.
+     *
+     * @generated from protobuf field: bool store_stdout_in_env = 23;
+     */
+    storeStdoutInEnv: boolean;
+}
+/**
+ * @generated from protobuf message runme.runner.v2.ExecuteOneShotResponse
+ */
+export interface ExecuteOneShotResponse {
+    /**
+     * exit_code is sent only in the final message.
+     *
+     * @generated from protobuf field: google.protobuf.UInt32Value exit_code = 1;
+     */
+    exitCode?: UInt32Value;
+    /**
+     * stdout_data contains bytes from stdout since the last response.
+     *
+     * @generated from protobuf field: bytes stdout_data = 2;
+     */
+    stdoutData: Uint8Array;
+    /**
+     * stderr_data contains bytes from stderr since the last response.
+     *
+     * @generated from protobuf field: bytes stderr_data = 3;
+     */
+    stderrData: Uint8Array;
+    /**
+     * pid contains the process' PID.
+     *
+     * This is only sent once in an initial response for background processes.
+     *
+     * @generated from protobuf field: google.protobuf.UInt32Value pid = 4;
+     */
+    pid?: UInt32Value;
+    /**
+     * mime_type is a detected MIME type of the stdout_data.
+     *
+     * This is only sent once in the first response containing stdout_data.
+     *
+     * @generated from protobuf field: string mime_type = 5;
+     */
+    mimeType: string;
+}
+/**
  * @generated from protobuf message runme.runner.v2.ResolveProgramCommandList
  */
 export interface ResolveProgramCommandList {
@@ -870,6 +966,20 @@ declare class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
  * @generated MessageType for protobuf message runme.runner.v2.ExecuteResponse
  */
 export declare const ExecuteResponse: ExecuteResponse$Type;
+declare class ExecuteOneShotRequest$Type extends MessageType<ExecuteOneShotRequest> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.ExecuteOneShotRequest
+ */
+export declare const ExecuteOneShotRequest: ExecuteOneShotRequest$Type;
+declare class ExecuteOneShotResponse$Type extends MessageType<ExecuteOneShotResponse> {
+    constructor();
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.ExecuteOneShotResponse
+ */
+export declare const ExecuteOneShotResponse: ExecuteOneShotResponse$Type;
 declare class ResolveProgramCommandList$Type extends MessageType<ResolveProgramCommandList> {
     constructor();
 }

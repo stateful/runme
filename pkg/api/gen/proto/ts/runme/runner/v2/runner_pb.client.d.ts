@@ -7,6 +7,8 @@ import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import type { ResolveProgramResponse } from "./runner_pb";
 import type { ResolveProgramRequest } from "./runner_pb";
+import type { ExecuteOneShotResponse } from "./runner_pb";
+import type { ExecuteOneShotRequest } from "./runner_pb";
 import type { ExecuteResponse } from "./runner_pb";
 import type { ExecuteRequest } from "./runner_pb";
 import type { DuplexStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -66,6 +68,16 @@ export interface IRunnerServiceClient {
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
     /**
+     * Execute executes a program in OneShot. Examine "ExecuteRequest" to explore
+     * configuration options.
+     *
+     * Client sends a single message containing the program to execute. Server
+     * streams back the output of the program.
+     *
+     * @generated from protobuf rpc: ExecuteOneShot(runme.runner.v2.ExecuteOneShotRequest) returns (stream runme.runner.v2.ExecuteOneShotResponse);
+     */
+    executeOneShot(input: ExecuteOneShotRequest, options?: RpcOptions): ServerStreamingCall<ExecuteOneShotRequest, ExecuteOneShotResponse>;
+    /**
      * ResolveProgram resolves variables from a script or a list of commands
      * using the provided sources, which can be a list of environment variables,
      * a session, or a project.
@@ -120,6 +132,16 @@ export declare class RunnerServiceClient implements IRunnerServiceClient, Servic
      * @generated from protobuf rpc: Execute(stream runme.runner.v2.ExecuteRequest) returns (stream runme.runner.v2.ExecuteResponse);
      */
     execute(options?: RpcOptions): DuplexStreamingCall<ExecuteRequest, ExecuteResponse>;
+    /**
+     * Execute executes a program in OneShot. Examine "ExecuteRequest" to explore
+     * configuration options.
+     *
+     * Client sends a single message containing the program to execute. Server
+     * streams back the output of the program.
+     *
+     * @generated from protobuf rpc: ExecuteOneShot(runme.runner.v2.ExecuteOneShotRequest) returns (stream runme.runner.v2.ExecuteOneShotResponse);
+     */
+    executeOneShot(input: ExecuteOneShotRequest, options?: RpcOptions): ServerStreamingCall<ExecuteOneShotRequest, ExecuteOneShotResponse>;
     /**
      * ResolveProgram resolves variables from a script or a list of commands
      * using the provided sources, which can be a list of environment variables,

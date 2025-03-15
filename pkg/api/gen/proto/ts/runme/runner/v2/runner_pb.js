@@ -432,6 +432,41 @@ class ExecuteResponse$Type extends MessageType {
  */
 export const ExecuteResponse = new ExecuteResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ExecuteOneShotRequest$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2.ExecuteOneShotRequest", [
+            { no: 1, name: "config", kind: "message", T: () => ProgramConfig },
+            { no: 8, name: "input_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 9, name: "stop", kind: "enum", T: () => ["runme.runner.v2.ExecuteStop", ExecuteStop, "EXECUTE_STOP_"] },
+            { no: 10, name: "winsize", kind: "message", T: () => Winsize },
+            { no: 20, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "session_strategy", kind: "enum", T: () => ["runme.runner.v2.SessionStrategy", SessionStrategy, "SESSION_STRATEGY_"] },
+            { no: 22, name: "project", kind: "message", T: () => Project },
+            { no: 23, name: "store_stdout_in_env", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.ExecuteOneShotRequest
+ */
+export const ExecuteOneShotRequest = new ExecuteOneShotRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ExecuteOneShotResponse$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2.ExecuteOneShotResponse", [
+            { no: 1, name: "exit_code", kind: "message", T: () => UInt32Value },
+            { no: 2, name: "stdout_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "stderr_data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 4, name: "pid", kind: "message", T: () => UInt32Value },
+            { no: 5, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.ExecuteOneShotResponse
+ */
+export const ExecuteOneShotResponse = new ExecuteOneShotResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ResolveProgramCommandList$Type extends MessageType {
     constructor() {
         super("runme.runner.v2.ResolveProgramCommandList", [
@@ -575,5 +610,6 @@ export const RunnerService = new ServiceType("runme.runner.v2.RunnerService", [
     { name: "DeleteSession", options: {}, I: DeleteSessionRequest, O: DeleteSessionResponse },
     { name: "MonitorEnvStore", serverStreaming: true, options: {}, I: MonitorEnvStoreRequest, O: MonitorEnvStoreResponse },
     { name: "Execute", serverStreaming: true, clientStreaming: true, options: {}, I: ExecuteRequest, O: ExecuteResponse },
+    { name: "ExecuteOneShot", serverStreaming: true, options: {}, I: ExecuteOneShotRequest, O: ExecuteOneShotResponse },
     { name: "ResolveProgram", options: {}, I: ResolveProgramRequest, O: ResolveProgramResponse }
 ]);
