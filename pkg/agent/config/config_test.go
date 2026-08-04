@@ -142,6 +142,30 @@ func Test_AssistantServerConfig_GetAgentService(t *testing.T) {
 	}
 }
 
+func Test_DirectJupyterConfiguration(t *testing.T) {
+	v := viper.New()
+	v.SetConfigType("yaml")
+	if err := v.ReadConfig(strings.NewReader(`
+assistantServer:
+  runnerService: true
+  jupyter:
+    directZMQ: true
+    pythonCommand: /opt/runme/python
+`)); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := getConfigFromViper(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AssistantServer == nil || cfg.AssistantServer.Jupyter == nil {
+		t.Fatal("direct Jupyter configuration was not loaded")
+	}
+	if !cfg.AssistantServer.Jupyter.DirectZMQ || cfg.AssistantServer.Jupyter.PythonCommand != "/opt/runme/python" {
+		t.Fatalf("Jupyter config = %#v", cfg.AssistantServer.Jupyter)
+	}
+}
+
 // setEnvVars sets the provided environment variables and returns a function to restore the previous state.
 func setEnvVars(env map[string]string) func() {
 	if env == nil {

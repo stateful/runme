@@ -478,6 +478,11 @@ type AssistantServerConfig struct {
 	// ParserService starts the Runme parser service if true otherwise it doesn't start the parser service.
 	ParserService bool `json:"parserService" yaml:"parserService"`
 
+	// Jupyter configures the optional direct ipykernel provider. It is disabled
+	// unless explicitly enabled so the existing Jupyter Server proxy remains the
+	// default execution path during rollout.
+	Jupyter *JupyterConfig `json:"jupyter,omitempty" yaml:"jupyter,omitempty"`
+
 	// OIDC configuration
 	OIDC *OIDCConfig `json:"oidc,omitempty" yaml:"oidc,omitempty"`
 
@@ -487,6 +492,12 @@ type AssistantServerConfig struct {
 	// Deprecated: retained temporarily so existing configuration files continue
 	// to load. The server no longer serves or redirects to the web application.
 	WebAppURL string `json:"webAppURL" yaml:"webAppURL"`
+}
+
+// JupyterConfig controls the feature-flagged direct ZeroMQ kernel provider.
+type JupyterConfig struct {
+	DirectZMQ     bool   `json:"directZMQ" yaml:"directZMQ"`
+	PythonCommand string `json:"pythonCommand,omitempty" yaml:"pythonCommand,omitempty"`
 }
 
 // OIDCConfig contains configuration for OIDC authentication

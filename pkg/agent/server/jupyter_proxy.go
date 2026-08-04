@@ -21,12 +21,15 @@ import (
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 
+	jupyterbridge "github.com/runmedev/runme/v3/pkg/agent/jupyter"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 )
 
 const (
-	jupyterServersRoute = "/v1/jupyter/servers"
-	jupyterConfigDir    = "jupyter"
+	jupyterServersRoute  = "/v1/jupyter/servers"
+	jupyterConfigDir     = "jupyter"
+	directZMQProvider    = "direct-zmq"
+	maxDirectRequestBody = 64 * 1024
 
 	// Keep idle Jupyter channels sockets alive across intermediaries.
 	// Long-running cells can be quiet for extended periods, so liveness cannot
@@ -37,19 +40,250 @@ const (
 )
 
 type jupyterProxyHandler struct {
-	registry   *jupyterServerRegistry
-	httpClient *http.Client
-	upgrader   websocket.Upgrader
+	registry      *jupyterServerRegistry
+	directManager *jupyterbridge.KernelManager
+	directBridge  *jupyterbridge.KernelChannelsBridge
+	httpClient    *http.Client
+	upgrader      websocket.Upgrader
 }
 
-func newJupyterProxyHandler(configDir string) (*jupyterProxyHandler, error) {
+type directKernelCreateRequest struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
+func (h *jupyterProxyHandler) handleDirectSubroute(w http.ResponseWriter, r *http.Request, parts []string) {
+	switch {
+	case len(parts) == 2:
+		switch r.Method {
+		case http.MethodGet:
+			writeJSON(w, http.StatusOK, h.directManager.List())
+		case http.MethodPost:
+			var request directKernelCreateRequest
+			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxDirectRequestBody))
+			if err := decoder.Decode(&request); err != nil {
+				writeHTTPError(w, http.StatusBadRequest, "invalid kernel request")
+				return
+			}
+			if strings.TrimSpace(request.Path) != "" {
+				writeHTTPError(w, http.StatusBadRequest, "custom kernel paths are not supported")
+				return
+			}
+			profile := strings.TrimSpace(request.Name)
+			if profile == "" {
+				profile = "python3"
+			}
+			kernel, err := h.directManager.Start(r.Context(), profile)
+			if err != nil {
+				logs.FromContext(r.Context()).Error(err, "failed to start direct Jupyter kernel", "profile", profile)
+				writeHTTPError(w, http.StatusBadRequest, "failed to start kernel")
+				return
+			}
+			logs.FromContext(r.Context()).Info("started direct Jupyter kernel", "kernel_id", kernel.ID, "profile", profile)
+			writeJSON(w, http.StatusCreated, kernel)
+		default:
+			writeHTTPError(w, http.StatusMethodNotAllowed, "method not allowed")
+		}
+		return
+	case len(parts) == 3:
+		kernelSegment, err := url.PathUnescape(parts[2])
+		if err != nil || strings.TrimSpace(kernelSegment) == "" {
+			writeHTTPError(w, http.StatusBadRequest, "invalid kernel id")
+			return
+		}
+		action := "delete"
+		kernelID := kernelSegment
+		if strings.HasSuffix(kernelSegment, ":interrupt") {
+			action = "interrupt"
+			kernelID = strings.TrimSuffix(kernelSegment, ":interrupt")
+		} else if strings.HasSuffix(kernelSegment, ":restart") {
+			action = "restart"
+			kernelID = strings.TrimSuffix(kernelSegment, ":restart")
+		}
+		if strings.TrimSpace(kernelID) == "" {
+			writeHTTPError(w, http.StatusBadRequest, "invalid kernel id")
+			return
+		}
+		if _, err := h.directManager.Get(kernelID); err != nil {
+			writeHTTPError(w, http.StatusNotFound, "kernel not found")
+			return
+		}
+		switch action {
+		case "interrupt":
+			if r.Method != http.MethodPost {
+				writeHTTPError(w, http.StatusMethodNotAllowed, "method not allowed")
+				return
+			}
+			if err := h.directManager.Interrupt(kernelID); err != nil {
+				writeDirectKernelOperationError(w, r, "interrupt", err)
+				return
+			}
+			logs.FromContext(r.Context()).Info("interrupted direct Jupyter kernel", "kernel_id", kernelID)
+			w.WriteHeader(http.StatusNoContent)
+		case "restart":
+			if r.Method != http.MethodPost {
+				writeHTTPError(w, http.StatusMethodNotAllowed, "method not allowed")
+				return
+			}
+			kernel, err := h.directManager.Restart(r.Context(), kernelID)
+			if err != nil {
+				writeDirectKernelOperationError(w, r, "restart", err)
+				return
+			}
+			logs.FromContext(r.Context()).Info("restarted direct Jupyter kernel", "kernel_id", kernelID)
+			writeJSON(w, http.StatusOK, kernel)
+		default:
+			if r.Method != http.MethodDelete {
+				writeHTTPError(w, http.StatusMethodNotAllowed, "method not allowed")
+				return
+			}
+			logs.FromContext(r.Context()).Info("stopping direct Jupyter kernel", "kernel_id", kernelID)
+			if err := h.directManager.Stop(r.Context(), kernelID); err != nil {
+				writeDirectKernelOperationError(w, r, "stop", err)
+				return
+			}
+			logs.FromContext(r.Context()).Info("stopped direct Jupyter kernel", "kernel_id", kernelID)
+			w.WriteHeader(http.StatusNoContent)
+		}
+		return
+	case len(parts) == 4 && parts[3] == "channels":
+		if r.Method != http.MethodGet {
+			writeHTTPError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+		kernelID, err := url.PathUnescape(parts[2])
+		if err != nil || strings.TrimSpace(kernelID) == "" {
+			writeHTTPError(w, http.StatusBadRequest, "invalid kernel id")
+			return
+		}
+		if _, err := h.directManager.Get(kernelID); err != nil {
+			writeHTTPError(w, http.StatusNotFound, "kernel not found")
+			return
+		}
+		h.handleDirectChannels(w, r, kernelID)
+		return
+	default:
+		writeHTTPError(w, http.StatusNotFound, "not found")
+	}
+}
+
+func writeDirectKernelOperationError(w http.ResponseWriter, r *http.Request, operation string, err error) {
+	logs.FromContext(r.Context()).Error(err, "direct Jupyter kernel operation failed", "operation", operation)
+	writeHTTPError(w, http.StatusInternalServerError, "kernel operation failed")
+}
+
+func (h *jupyterProxyHandler) handleDirectChannels(w http.ResponseWriter, r *http.Request, kernelID string) {
+	for _, protocol := range websocket.Subprotocols(r) {
+		if protocol == "v1.kernel.websocket.jupyter.org" {
+			writeHTTPError(w, http.StatusBadRequest, "binary Jupyter WebSocket protocol is not supported")
+			return
+		}
+	}
+	conn, err := h.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		logs.FromContext(r.Context()).Error(err, "failed to upgrade direct Jupyter channels WebSocket")
+		return
+	}
+	client := newDirectChannelsClient(conn)
+	if err := configureWebSocketPongKeepalive(conn, jupyterChannelsPongWait); err != nil {
+		_ = client.Close(websocket.CloseInternalServerErr, "failed to configure WebSocket keepalive")
+		return
+	}
+
+	keepaliveErr := make(chan error, 1)
+	stopKeepalive := make(chan struct{})
+	go sendWebSocketKeepalivePings(conn, "runme_to_direct_client_keepalive", keepaliveErr, stopKeepalive)
+	bridgeErr := h.directBridge.Bridge(r.Context(), kernelID, client)
+	close(stopKeepalive)
+	select {
+	case err := <-keepaliveErr:
+		if bridgeErr == nil {
+			bridgeErr = err
+		}
+	default:
+	}
+	if bridgeErr != nil && !errors.Is(bridgeErr, context.Canceled) {
+		logs.FromContext(r.Context()).Error(bridgeErr, "direct Jupyter channels bridge closed", "kernel_id", kernelID)
+	}
+	_ = client.Close(websocket.CloseNormalClosure, "Jupyter channels closed")
+}
+
+type directChannelsClient struct {
+	conn      *websocket.Conn
+	closeOnce sync.Once
+}
+
+func newDirectChannelsClient(conn *websocket.Conn) *directChannelsClient {
+	return &directChannelsClient{conn: conn}
+}
+
+func (c *directChannelsClient) Read(ctx context.Context) ([]byte, error) {
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = c.conn.SetReadDeadline(time.Now())
+		case <-done:
+		}
+	}()
+	messageType, payload, err := c.conn.ReadMessage()
+	close(done)
+	if err != nil {
+		return nil, err
+	}
+	if messageType != websocket.TextMessage {
+		return nil, jupyterbridge.ErrBinaryBuffersUnsupported
+	}
+	return payload, nil
+}
+
+func (c *directChannelsClient) Write(ctx context.Context, payload []byte) error {
+	deadline := time.Now().Add(jupyterChannelsPingWriteTimeout)
+	if ctxDeadline, ok := ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
+		deadline = ctxDeadline
+	}
+	if err := c.conn.SetWriteDeadline(deadline); err != nil {
+		return err
+	}
+	return c.conn.WriteMessage(websocket.TextMessage, payload)
+}
+
+func (c *directChannelsClient) Close(code int, reason string) error {
+	var closeErr error
+	c.closeOnce.Do(func() {
+		closeErr = c.conn.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(code, reason),
+			time.Now().Add(jupyterChannelsPingWriteTimeout),
+		)
+		if err := c.conn.Close(); closeErr == nil {
+			closeErr = err
+		}
+	})
+	return closeErr
+}
+
+func newJupyterProxyHandler(configDir string, managers ...*jupyterbridge.KernelManager) (*jupyterProxyHandler, error) {
 	registry, err := newJupyterServerRegistry(configDir)
 	if err != nil {
 		return nil, err
 	}
 
+	var directManager *jupyterbridge.KernelManager
+	if len(managers) > 0 {
+		directManager = managers[0]
+	}
+	var directBridge *jupyterbridge.KernelChannelsBridge
+	if directManager != nil {
+		directBridge, err = jupyterbridge.NewKernelChannelsBridge(directManager, nil, jupyterbridge.BridgeConfig{})
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &jupyterProxyHandler{
-		registry: registry,
+		registry:      registry,
+		directManager: directManager,
+		directBridge:  directBridge,
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 		},
@@ -84,6 +318,16 @@ func (h *jupyterProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 func (h *jupyterProxyHandler) handleListServers(w http.ResponseWriter, r *http.Request) {
 	records := h.registry.List()
+	if h.directManager != nil {
+		records = append(records, jupyterServerPublicRecord{
+			Name:         directZMQProvider,
+			BaseURL:      "",
+			HasToken:     false,
+			Backend:      directZMQProvider,
+			Capabilities: []string{"kernels", "channels", "interrupt", "restart"},
+		})
+		sort.Slice(records, func(i, j int) bool { return records[i].Name < records[j].Name })
+	}
 	writeJSON(w, http.StatusOK, records)
 }
 
@@ -103,6 +347,10 @@ func (h *jupyterProxyHandler) handleServerSubroute(w http.ResponseWriter, r *htt
 
 	if parts[1] != "kernels" {
 		writeHTTPError(w, http.StatusNotFound, "not found")
+		return
+	}
+	if serverName == directZMQProvider && h.directManager != nil {
+		h.handleDirectSubroute(w, r, parts)
 		return
 	}
 
@@ -357,10 +605,12 @@ type jupyterServerFile struct {
 }
 
 type jupyterServerPublicRecord struct {
-	Name     string `json:"name"`
-	Runner   string `json:"runner"`
-	BaseURL  string `json:"base_url"`
-	HasToken bool   `json:"has_token"`
+	Name         string   `json:"name"`
+	Runner       string   `json:"runner"`
+	BaseURL      string   `json:"base_url"`
+	HasToken     bool     `json:"has_token"`
+	Backend      string   `json:"backend"`
+	Capabilities []string `json:"capabilities"`
 }
 
 func newJupyterServerRegistry(configDir string) (*jupyterServerRegistry, error) {
@@ -384,10 +634,12 @@ func (r *jupyterServerRegistry) List() []jupyterServerPublicRecord {
 	records := make([]jupyterServerPublicRecord, 0, len(r.servers))
 	for _, server := range r.servers {
 		records = append(records, jupyterServerPublicRecord{
-			Name:     server.Name,
-			Runner:   server.Runner,
-			BaseURL:  server.BaseURL.String(),
-			HasToken: strings.TrimSpace(server.Token) != "",
+			Name:         server.Name,
+			Runner:       server.Runner,
+			BaseURL:      server.BaseURL.String(),
+			HasToken:     strings.TrimSpace(server.Token) != "",
+			Backend:      "jupyter-server",
+			Capabilities: []string{"kernels", "channels", "interrupt", "restart"},
 		})
 	}
 	sort.Slice(records, func(i, j int) bool {
