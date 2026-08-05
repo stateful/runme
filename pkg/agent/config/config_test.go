@@ -142,14 +142,13 @@ func Test_AssistantServerConfig_GetAgentService(t *testing.T) {
 	}
 }
 
-func Test_DirectJupyterConfiguration(t *testing.T) {
+func Test_JupyterConfiguration(t *testing.T) {
 	v := viper.New()
 	v.SetConfigType("yaml")
 	if err := v.ReadConfig(strings.NewReader(`
 assistantServer:
   runnerService: true
   jupyter:
-    directZMQ: true
     pythonCommand: /opt/runme/python
 `)); err != nil {
 		t.Fatal(err)
@@ -159,9 +158,9 @@ assistantServer:
 		t.Fatal(err)
 	}
 	if cfg.AssistantServer == nil || cfg.AssistantServer.Jupyter == nil {
-		t.Fatal("direct Jupyter configuration was not loaded")
+		t.Fatal("Jupyter configuration was not loaded")
 	}
-	if !cfg.AssistantServer.Jupyter.DirectZMQ || cfg.AssistantServer.Jupyter.PythonCommand != "/opt/runme/python" {
+	if cfg.AssistantServer.Jupyter.PythonCommand != "/opt/runme/python" {
 		t.Fatalf("Jupyter config = %#v", cfg.AssistantServer.Jupyter)
 	}
 }

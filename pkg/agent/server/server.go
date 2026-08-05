@@ -330,8 +330,12 @@ func (s *Server) registerServices() error {
 		mux.HandleProtected(runnerSvcPath, runnerSvcHandler, s.checker, api.RunnerUserRole)
 	}
 
-	if s.serverConfig.Jupyter != nil && s.serverConfig.Jupyter.DirectZMQ && s.jupyterManager == nil {
-		pythonProfile := jupyter.PythonLaunchProfile(s.serverConfig.Jupyter.PythonCommand)
+	if s.jupyterManager == nil {
+		pythonCommand := ""
+		if s.serverConfig.Jupyter != nil {
+			pythonCommand = s.serverConfig.Jupyter.PythonCommand
+		}
+		pythonProfile := jupyter.PythonLaunchProfile(pythonCommand)
 		s.jupyterManager, err = jupyter.NewKernelManager(jupyter.KernelManagerConfig{
 			RuntimeDir: filepath.Join(s.configDir, "jupyter-kernels"),
 			Profiles:   map[string]jupyter.LaunchProfile{pythonProfile.Name: pythonProfile},
@@ -340,19 +344,19 @@ func (s *Server) registerServices() error {
 			return errors.Wrap(err, "failed to initialize direct Jupyter kernel manager")
 		}
 	}
-	jupyterProxy, err := newJupyterProxyHandler(s.configDir, s.jupyterManager)
+	jupyterKernels, err := newJupyterKernelsHandler(s.jupyterManager)
 	if err != nil {
-		return errors.Wrap(err, "failed to initialize jupyter proxy handler")
+		return errors.Wrap(err, "failed to initialize Jupyter kernels handler")
 	}
 	mux.HandleProtected(
-		"/v1/jupyter/servers",
-		otelhttp.NewHandler(jupyterProxy, "/v1/jupyter/servers"),
+		jupyterKernelsRoute,
+		otelhttp.NewHandler(jupyterKernels, jupyterKernelsRoute),
 		s.checker,
 		api.RunnerUserRole,
 	)
 	mux.HandleProtected(
-		"/v1/jupyter/servers/",
-		otelhttp.NewHandler(jupyterProxy, "/v1/jupyter/servers/"),
+		jupyterKernelsRoute+"/",
+		otelhttp.NewHandler(jupyterKernels, jupyterKernelsRoute+"/"),
 		s.checker,
 		api.RunnerUserRole,
 	)

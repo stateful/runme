@@ -1,6 +1,7 @@
 package jupyter
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -30,7 +31,9 @@ func observeLifecycle(operation string, started time.Time) {
 
 func observeProtocolError(err error) {
 	reason := "malformed_message"
-	if err != nil && strings.Contains(strings.ToLower(err.Error()), "signature") {
+	if errors.Is(err, ErrBinaryBuffersUnsupported) {
+		reason = "unsupported_binary_buffers"
+	} else if err != nil && strings.Contains(strings.ToLower(err.Error()), "signature") {
 		reason = "bad_signature"
 	}
 	jupyterProtocolErrors.WithLabelValues(reason).Inc()

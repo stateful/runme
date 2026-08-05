@@ -191,6 +191,8 @@ func (b *KernelChannelsBridge) Bridge(ctx context.Context, kernelID string, clie
 	closeCode, closeReason := 1011, "Jupyter channels bridge closed"
 	if bridgeErr == nil || errors.Is(bridgeErr, context.Canceled) {
 		closeCode, closeReason = 1000, "Jupyter channels client disconnected"
+	} else if errors.Is(bridgeErr, ErrBinaryBuffersUnsupported) {
+		closeCode, closeReason = 1003, "unsupported_binary_buffers"
 	} else if errors.Is(bridgeErr, ErrSlowJupyterClient) || errors.Is(bridgeErr, ErrIOPubRateLimit) {
 		closeCode, closeReason = 1008, bridgeErr.Error()
 	} else if isClosed(generationChanged) {
@@ -204,6 +206,8 @@ func (b *KernelChannelsBridge) Bridge(ctx context.Context, kernelID string, clie
 		closeMetricReason = "slow_client"
 	case errors.Is(bridgeErr, ErrIOPubRateLimit):
 		closeMetricReason = "rate_limit"
+	case errors.Is(bridgeErr, ErrBinaryBuffersUnsupported):
+		closeMetricReason = "unsupported_binary_buffers"
 	case isClosed(generationChanged):
 		closeMetricReason = "kernel_restart"
 	}
