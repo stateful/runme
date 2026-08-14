@@ -36,13 +36,13 @@ type jupyterKernelsHandler struct {
 }
 
 type kernelCreateRequest struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
+	Name string   `json:"name"`
+	Argv []string `json:"argv"`
 }
 
 func newJupyterKernelsHandler(manager *jupyterbridge.KernelManager) (*jupyterKernelsHandler, error) {
 	if manager == nil {
-		return nil, errors.New("Jupyter kernel manager is required")
+		return nil, errors.New("jupyter kernel manager is required")
 	}
 	bridge, err := jupyterbridge.NewKernelChannelsBridge(manager, nil, jupyterbridge.BridgeConfig{})
 	if err != nil {
@@ -110,6 +110,7 @@ func (h *jupyterKernelsHandler) handleCollection(w http.ResponseWriter, r *http.
 	case http.MethodPost:
 		var request kernelCreateRequest
 		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxKernelRequestBody))
+		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&request); err != nil && !errors.Is(err, io.EOF) {
 			writeHTTPError(w, http.StatusBadRequest, "invalid kernel request")
 			return
@@ -118,21 +119,17 @@ func (h *jupyterKernelsHandler) handleCollection(w http.ResponseWriter, r *http.
 			writeHTTPError(w, http.StatusBadRequest, "invalid kernel request")
 			return
 		}
-		if strings.TrimSpace(request.Path) != "" {
-			writeHTTPError(w, http.StatusBadRequest, "custom kernel paths are not supported")
-			return
-		}
-		profile := strings.TrimSpace(request.Name)
-		if profile == "" {
-			profile = "python3"
-		}
-		kernel, err := h.manager.Start(r.Context(), profile)
+		name := strings.TrimSpace(request.Name)
+		kernel, err := h.manager.Start(r.Context(), jupyterbridge.KernelLaunchSpec{
+			Name: name,
+			Argv: request.Argv,
+		})
 		if err != nil {
-			logs.FromContext(r.Context()).Error(err, "failed to start Jupyter kernel", "profile", profile)
+			logs.FromContext(r.Context()).Error(err, "failed to start Jupyter kernel", "kernel_name", name)
 			writeHTTPError(w, http.StatusBadRequest, "failed to start kernel")
 			return
 		}
-		logs.FromContext(r.Context()).Info("started Jupyter kernel", "kernel_id", kernel.ID, "profile", profile)
+		logs.FromContext(r.Context()).Info("started Jupyter kernel", "kernel_id", kernel.ID, "kernel_name", name)
 		writeJSON(w, http.StatusCreated, kernel)
 	default:
 		writeHTTPError(w, http.StatusMethodNotAllowed, "method not allowed")

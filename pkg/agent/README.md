@@ -2,8 +2,8 @@
 
 The `pkg/agent` package contains the Go server used by the Runme web
 application. It provides runner and parser services, optional static web
-application hosting, authentication, and Jupyter proxying. WebMCP is the
-supported integration path for browser automation.
+application hosting, authentication, and direct Jupyter kernel management.
+WebMCP is the supported integration path for browser automation.
 
 Despite its historical package name, this is not an AI-only server. Runme Web
 depends on it for normal notebook and cell execution.
@@ -18,8 +18,9 @@ The server provides the runtime services required by Runme Web:
 - The Runner service manages execution sessions and related runner operations.
 - The Parser service parses and serializes notebook content when
   `assistantServer.parserService` is enabled.
-- The Jupyter proxy manages Jupyter servers and forwards kernel channel
-  WebSockets.
+- The Jupyter kernel API starts client-specified kernels, manages their
+  lifecycle, and bridges browser channel WebSockets directly to kernel ZeroMQ
+  sockets. Callers need `RunnerUserRole`; no separate Jupyter Server is used.
 - Optional OIDC authentication, authorization, and telemetry are provided by
   the same HTTP server.
 - A web application can optionally be served from the directory configured by

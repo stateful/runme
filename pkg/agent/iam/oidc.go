@@ -384,10 +384,9 @@ func NewAuthMiddlewareForOIDC(oidc *OIDC) (func(http.Handler) http.Handler, erro
 			// Prefer bearer token over session cookie.
 			// Browser WebSocket clients cannot set custom Authorization headers, so
 			// the Jupyter channels client sends `?authorization=Bearer ...` during
-			// the handshake. We use query auth for the Jupyter proxy because we want
-			// to preserve the kernel protocol payload as-is, instead of introducing
-			// a Runme-style in-band auth envelope in websocket messages.
-			// The Jupyter proxy strips this param before forwarding upstream.
+			// the handshake. We use query auth for the direct Jupyter bridge to
+			// preserve the kernel protocol payload as-is instead of introducing a
+			// Runme-style in-band auth envelope in WebSocket messages.
 			bearerToken := r.Header.Get("Authorization")
 			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(bearerToken)), "bearer ") {
 				queryAuthorization := r.URL.Query().Get("authorization")

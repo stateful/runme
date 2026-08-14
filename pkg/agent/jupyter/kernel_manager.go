@@ -44,30 +44,30 @@ type KernelModel struct {
 	Connections    int    `json:"connections"`
 }
 
-// LaunchProfile is a server-side allowlisted kernel command. Browser requests
-// select only Name; they cannot supply Command, Args, or a connection path.
-type LaunchProfile struct {
-	Name    string
-	Command string
-	Args    []string
+// KernelLaunchSpec describes one client-requested kernel process. Argv follows
+// the Jupyter kernelspec convention and must contain exactly one
+// {connection_file} placeholder. The server replaces that placeholder with an
+// owner-only connection file before launching the process directly, without a
+// shell.
+type KernelLaunchSpec struct {
+	Name string
+	Argv []string
 }
 
-// PythonLaunchProfile returns the standard ipykernel launch profile.
-func PythonLaunchProfile(command string) LaunchProfile {
+// PythonKernelLaunchSpec returns the standard ipykernel launch specification.
+func PythonKernelLaunchSpec(command string) KernelLaunchSpec {
 	if strings.TrimSpace(command) == "" {
 		command = "python3"
 	}
-	return LaunchProfile{
-		Name:    "python3",
-		Command: command,
-		Args:    []string{"-m", "ipykernel_launcher", "-f", connectionFilePlaceholder},
+	return KernelLaunchSpec{
+		Name: "python3",
+		Argv: []string{command, "-m", "ipykernel_launcher", "-f", connectionFilePlaceholder},
 	}
 }
 
 // KernelManagerConfig configures local kernel lifecycle boundaries.
 type KernelManagerConfig struct {
 	RuntimeDir       string
-	Profiles         map[string]LaunchProfile
 	SocketFactory    SocketFactory
 	StartupTimeout   time.Duration
 	ReadinessTimeout time.Duration
@@ -102,6 +102,7 @@ type managedKernel struct {
 	exitErr      error
 	runtimeDir   string
 	diagnostics  *boundedWriter
+	launchSpec   KernelLaunchSpec
 }
 
 type kernelConnection struct {
@@ -111,25 +112,12 @@ type kernelConnection struct {
 	cancel     context.CancelFunc
 }
 
-// NewKernelManager creates a manager after validating all launch profiles and
-// preparing an owner-only runtime directory.
+// NewKernelManager creates a manager and prepares an owner-only runtime
+// directory.
 func NewKernelManager(config KernelManagerConfig) (*KernelManager, error) {
 	if strings.TrimSpace(config.RuntimeDir) == "" {
 		return nil, errors.New("jupyter kernel runtime directory is required")
 	}
-	if len(config.Profiles) == 0 {
-		profile := PythonLaunchProfile("python3")
-		config.Profiles = map[string]LaunchProfile{profile.Name: profile}
-	}
-	profiles := make(map[string]LaunchProfile, len(config.Profiles))
-	for key, profile := range config.Profiles {
-		if err := validateLaunchProfile(key, profile); err != nil {
-			return nil, err
-		}
-		profile.Args = append([]string(nil), profile.Args...)
-		profiles[key] = profile
-	}
-	config.Profiles = profiles
 	if config.SocketFactory == nil {
 		config.SocketFactory = NewGoZeroMQFactory(Limits{})
 	}
@@ -167,37 +155,56 @@ func NewKernelManager(config KernelManagerConfig) (*KernelManager, error) {
 	}, nil
 }
 
-func validateLaunchProfile(key string, profile LaunchProfile) error {
-	if strings.TrimSpace(key) == "" || key != profile.Name {
-		return fmt.Errorf("jupyter launch profile key %q must match its non-empty name", key)
+func validateKernelLaunchSpec(spec KernelLaunchSpec) error {
+	if strings.TrimSpace(spec.Name) == "" {
+		return errors.New("jupyter kernel name is required")
 	}
-	if strings.TrimSpace(profile.Command) == "" {
-		return fmt.Errorf("jupyter launch profile %q has no command", key)
+	if len(spec.Argv) == 0 {
+		return errors.New("jupyter kernel argv is required")
+	}
+	if len(spec.Argv) > 128 {
+		return errors.New("jupyter kernel argv exceeds 128 entries")
+	}
+	for i, arg := range spec.Argv {
+		if strings.IndexByte(arg, 0) >= 0 {
+			return fmt.Errorf("jupyter kernel argv[%d] contains a NUL byte", i)
+		}
+		if len(arg) > 8*1024 {
+			return fmt.Errorf("jupyter kernel argv[%d] exceeds 8192 bytes", i)
+		}
+	}
+	if strings.TrimSpace(spec.Argv[0]) == "" {
+		return errors.New("jupyter kernel executable is required")
+	}
+	if strings.Contains(spec.Argv[0], connectionFilePlaceholder) {
+		return errors.New("jupyter kernel executable cannot contain the connection-file placeholder")
 	}
 	placeholderCount := 0
-	for _, arg := range profile.Args {
+	for _, arg := range spec.Argv[1:] {
 		placeholderCount += strings.Count(arg, connectionFilePlaceholder)
 	}
 	if placeholderCount != 1 {
-		return fmt.Errorf("jupyter launch profile %q must contain exactly one %s placeholder", key, connectionFilePlaceholder)
+		return fmt.Errorf("jupyter kernel argv must contain exactly one %s placeholder", connectionFilePlaceholder)
 	}
 	return nil
 }
 
-// Start launches an allowlisted profile and returns only after heartbeat and
-// kernel_info readiness checks succeed.
-func (m *KernelManager) Start(ctx context.Context, profileName string) (KernelModel, error) {
+// Start launches a validated client-requested process and returns only after
+// heartbeat and kernel_info readiness checks succeed.
+func (m *KernelManager) Start(ctx context.Context, spec KernelLaunchSpec) (KernelModel, error) {
 	started := time.Now()
 	defer func() { observeLifecycle("start", started) }()
-	profile, ok := m.config.Profiles[profileName]
-	if !ok {
-		return KernelModel{}, fmt.Errorf("jupyter launch profile %q is not allowed", profileName)
+	if err := validateKernelLaunchSpec(spec); err != nil {
+		return KernelModel{}, err
 	}
+	spec.Name = strings.TrimSpace(spec.Name)
+	spec.Argv = append([]string(nil), spec.Argv...)
 	kernel := &managedKernel{
 		id:           uuid.NewString(),
-		name:         profile.Name,
+		name:         spec.Name,
 		state:        KernelStateStarting,
 		lastActivity: time.Now().UTC(),
+		launchSpec:   spec,
 	}
 	kernel.lifecycle.Lock()
 	defer kernel.lifecycle.Unlock()
@@ -211,7 +218,7 @@ func (m *KernelManager) Start(ctx context.Context, profileName string) (KernelMo
 	jupyterKernelStates.WithLabelValues(string(kernel.state)).Inc()
 	m.mu.Unlock()
 
-	if err := m.launch(ctx, kernel, profile); err != nil {
+	if err := m.launch(ctx, kernel, spec); err != nil {
 		_ = m.stopProcess(context.Background(), kernel, false)
 		m.mu.Lock()
 		jupyterKernelStates.WithLabelValues(string(kernel.state)).Dec()
@@ -259,7 +266,7 @@ func kernelModel(kernel *managedKernel) KernelModel {
 	}
 }
 
-func (m *KernelManager) launch(ctx context.Context, kernel *managedKernel, profile LaunchProfile) error {
+func (m *KernelManager) launch(ctx context.Context, kernel *managedKernel, spec KernelLaunchSpec) error {
 	runtimeDir, err := os.MkdirTemp(m.config.RuntimeDir, "kernel-")
 	if err != nil {
 		return fmt.Errorf("create kernel runtime directory: %w", err)
@@ -269,18 +276,18 @@ func (m *KernelManager) launch(ctx context.Context, kernel *managedKernel, profi
 		return fmt.Errorf("secure kernel runtime directory: %w", err)
 	}
 	connectionPath := filepath.Join(runtimeDir, "connection.json")
-	args := make([]string, len(profile.Args))
-	for i, arg := range profile.Args {
-		args[i] = strings.ReplaceAll(arg, connectionFilePlaceholder, connectionPath)
+	argv := make([]string, len(spec.Argv))
+	for i, arg := range spec.Argv {
+		argv[i] = strings.ReplaceAll(arg, connectionFilePlaceholder, connectionPath)
 	}
 	diagnostics := newBoundedWriter(m.config.DiagnosticsBytes)
-	command := exec.Command(profile.Command, args...)
+	command := exec.Command(argv[0], argv[1:]...)
 	command.Stdout = diagnostics
 	command.Stderr = diagnostics
 	configureManagedProcess(command)
 	if err := command.Start(); err != nil {
 		_ = os.RemoveAll(runtimeDir)
-		return fmt.Errorf("launch profile %q: %w", profile.Name, err)
+		return fmt.Errorf("launch kernel %q: %w", spec.Name, err)
 	}
 
 	exited := make(chan struct{})
@@ -427,7 +434,7 @@ func (m *KernelManager) Restart(ctx context.Context, id string) (KernelModel, er
 		m.mu.Unlock()
 		return KernelModel{}, fmt.Errorf("jupyter kernel %q not found", id)
 	}
-	profile := m.config.Profiles[kernel.name]
+	spec := kernel.launchSpec
 	m.setKernelStateLocked(kernel, KernelStateRestarting)
 	kernel.lastActivity = time.Now().UTC()
 	if kernel.connection != nil {
@@ -439,7 +446,7 @@ func (m *KernelManager) Restart(ctx context.Context, id string) (KernelModel, er
 	if err := m.stopProcess(ctx, kernel, true); err != nil {
 		return KernelModel{}, fmt.Errorf("stop old Jupyter kernel generation: %w", err)
 	}
-	if err := m.launch(ctx, kernel, profile); err != nil {
+	if err := m.launch(ctx, kernel, spec); err != nil {
 		m.mu.Lock()
 		m.setKernelStateLocked(kernel, KernelStateDead)
 		kernel.lastActivity = time.Now().UTC()

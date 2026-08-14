@@ -22,10 +22,8 @@ import (
 
 func newTestJupyterKernelsHandler(t *testing.T) (*jupyterKernelsHandler, *jupyterbridge.KernelManager) {
 	t.Helper()
-	profile := jupyterbridge.PythonLaunchProfile("python3")
 	manager, err := jupyterbridge.NewKernelManager(jupyterbridge.KernelManagerConfig{
 		RuntimeDir: t.TempDir(),
-		Profiles:   map[string]jupyterbridge.LaunchProfile{profile.Name: profile},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +48,8 @@ func TestJupyterKernelsRouteContract(t *testing.T) {
 	}{
 		{name: "list", method: http.MethodGet, path: jupyterKernelsRoute, status: http.StatusOK},
 		{name: "collection method", method: http.MethodDelete, path: jupyterKernelsRoute, status: http.StatusMethodNotAllowed},
-		{name: "reject custom path", method: http.MethodPost, path: jupyterKernelsRoute, body: `{"name":"python3","path":"/tmp/connection.json"}`, status: http.StatusBadRequest},
+		{name: "require argv", method: http.MethodPost, path: jupyterKernelsRoute, body: `{"name":"python3"}`, status: http.StatusBadRequest},
+		{name: "reject custom path", method: http.MethodPost, path: jupyterKernelsRoute, body: `{"name":"python3","argv":["python3","{connection_file}"],"path":"/tmp/connection.json"}`, status: http.StatusBadRequest},
 		{name: "reject multiple objects", method: http.MethodPost, path: jupyterKernelsRoute, body: `{ } { }`, status: http.StatusBadRequest},
 		{name: "unknown kernel", method: http.MethodGet, path: jupyterKernelsRoute + "/missing", status: http.StatusNotFound},
 		{name: "unknown action", method: http.MethodPost, path: jupyterKernelsRoute + "/missing/unknown", status: http.StatusNotFound},
@@ -137,10 +136,8 @@ func TestDirectJupyterKernelAPIAndWebSocket(t *testing.T) {
 	} else if err := exec.Command(python, "-c", "import ipykernel").Run(); err != nil {
 		t.Fatalf("RUNME_TEST_PYTHON does not provide ipykernel: %v", err)
 	}
-	profile := jupyterbridge.PythonLaunchProfile(python)
 	manager, err := jupyterbridge.NewKernelManager(jupyterbridge.KernelManagerConfig{
 		RuntimeDir:     t.TempDir(),
-		Profiles:       map[string]jupyterbridge.LaunchProfile{profile.Name: profile},
 		StartupTimeout: 15 * time.Second,
 	})
 	if err != nil {
@@ -154,10 +151,17 @@ func TestDirectJupyterKernelAPIAndWebSocket(t *testing.T) {
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 
+	createBody, err := json.Marshal(kernelCreateRequest{
+		Name: "python3",
+		Argv: jupyterbridge.PythonKernelLaunchSpec(python).Argv,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	createResponse, err := http.Post(
 		server.URL+jupyterKernelsRoute,
 		"application/json",
-		strings.NewReader(`{"name":"python3"}`),
+		strings.NewReader(string(createBody)),
 	)
 	if err != nil {
 		t.Fatal(err)

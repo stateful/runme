@@ -478,10 +478,6 @@ type AssistantServerConfig struct {
 	// ParserService starts the Runme parser service if true otherwise it doesn't start the parser service.
 	ParserService bool `json:"parserService" yaml:"parserService"`
 
-	// Jupyter configures Runme-managed kernels. Runme always exposes the direct
-	// kernel API; this block only overrides launch-profile settings.
-	Jupyter *JupyterConfig `json:"jupyter,omitempty" yaml:"jupyter,omitempty"`
-
 	// OIDC configuration
 	OIDC *OIDCConfig `json:"oidc,omitempty" yaml:"oidc,omitempty"`
 
@@ -491,11 +487,6 @@ type AssistantServerConfig struct {
 	// Deprecated: retained temporarily so existing configuration files continue
 	// to load. The server no longer serves or redirects to the web application.
 	WebAppURL string `json:"webAppURL" yaml:"webAppURL"`
-}
-
-// JupyterConfig controls the built-in Python kernel launch profile.
-type JupyterConfig struct {
-	PythonCommand string `json:"pythonCommand,omitempty" yaml:"pythonCommand,omitempty"`
 }
 
 // OIDCConfig contains configuration for OIDC authentication

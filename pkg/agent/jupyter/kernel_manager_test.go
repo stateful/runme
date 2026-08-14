@@ -17,7 +17,7 @@ func TestKernelManagerStartRestartStop(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	started, err := manager.Start(ctx, "python3")
+	started, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatalf("Start() error = %v", err)
 	}
@@ -100,7 +100,7 @@ func TestKernelManagerUnexpectedExitBecomesDead(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	model, err := manager.Start(ctx, "python3")
+	model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestKernelManagerCloseReapsAllKernels(t *testing.T) {
 	var commands []*exec.Cmd
 	var runtimeDirs []string
 	for range 2 {
-		model, err := manager.Start(ctx, "python3")
+		model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -158,27 +158,26 @@ func TestKernelManagerCloseReapsAllKernels(t *testing.T) {
 			t.Errorf("runtime directory %d still exists or stat failed unexpectedly: %v", i, err)
 		}
 	}
-	if _, err := manager.Start(ctx, "python3"); err == nil {
+	if _, err := manager.Start(ctx, testPythonLaunchSpec(t)); err == nil {
 		t.Fatal("Start() succeeded after Close()")
 	}
 }
 
-func TestKernelManagerRejectsArbitraryLaunchCommands(t *testing.T) {
-	python := findIPyKernelPython(t)
-	_, err := NewKernelManager(KernelManagerConfig{
-		RuntimeDir: t.TempDir(),
-		Profiles: map[string]LaunchProfile{
-			"python3": {Name: "python3", Command: python, Args: []string{"-c", "pass"}},
-		},
-	})
-	if err == nil || !strings.Contains(err.Error(), connectionFilePlaceholder) {
-		t.Fatalf("NewKernelManager() error = %v, want missing placeholder error", err)
-	}
-
+func TestKernelManagerValidatesClientLaunchSpec(t *testing.T) {
 	manager := newTestKernelManager(t)
 	defer manager.Close(context.Background())
-	if _, err := manager.Start(context.Background(), "browser-supplied-command"); err == nil {
-		t.Fatal("Start() accepted a non-allowlisted profile")
+	_, err := manager.Start(context.Background(), KernelLaunchSpec{
+		Name: "python3",
+		Argv: []string{"python3", "-c", "pass"},
+	})
+	if err == nil || !strings.Contains(err.Error(), connectionFilePlaceholder) {
+		t.Fatalf("Start() error = %v, want missing placeholder error", err)
+	}
+	if _, err := manager.Start(context.Background(), KernelLaunchSpec{
+		Name: "python3",
+		Argv: []string{connectionFilePlaceholder},
+	}); err == nil || !strings.Contains(err.Error(), "executable") {
+		t.Fatalf("Start() executable-placeholder error = %v", err)
 	}
 }
 
@@ -197,11 +196,8 @@ func TestBoundedWriterKeepsOnlyTail(t *testing.T) {
 
 func newTestKernelManager(t *testing.T) *KernelManager {
 	t.Helper()
-	python := findIPyKernelPython(t)
-	profile := PythonLaunchProfile(python)
 	manager, err := NewKernelManager(KernelManagerConfig{
 		RuntimeDir:       filepath.Join(t.TempDir(), "runtime"),
-		Profiles:         map[string]LaunchProfile{profile.Name: profile},
 		StartupTimeout:   10 * time.Second,
 		ReadinessTimeout: 5 * time.Second,
 		GracefulTimeout:  2 * time.Second,
@@ -212,6 +208,11 @@ func newTestKernelManager(t *testing.T) *KernelManager {
 		t.Fatalf("NewKernelManager() error = %v", err)
 	}
 	return manager
+}
+
+func testPythonLaunchSpec(t *testing.T) KernelLaunchSpec {
+	t.Helper()
+	return PythonKernelLaunchSpec(findIPyKernelPython(t))
 }
 
 func testKernelProcess(manager *KernelManager, id string) (*exec.Cmd, string) {

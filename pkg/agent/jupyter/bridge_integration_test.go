@@ -57,7 +57,7 @@ func TestKernelChannelsBridgeSharedStateAndTwoClients(t *testing.T) {
 	defer manager.Close(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
-	model, err := manager.Start(ctx, "python3")
+	model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestKernelChannelsBridgeConcurrentExecutionsRouteByParent(t *testing.T) {
 	defer manager.Close(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
-	model, err := manager.Start(ctx, "python3")
+	model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestKernelChannelsBridgeInterruptAndReuse(t *testing.T) {
 	defer manager.Close(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
-	model, err := manager.Start(ctx, "python3")
+	model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestKernelChannelsBridgeRestartClosesOldGeneration(t *testing.T) {
 	defer manager.Close(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
-	model, err := manager.Start(ctx, "python3")
+	model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestKernelChannelsBridgeRichOutputsAndQuietExecution(t *testing.T) {
 	defer manager.Close(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	model, err := manager.Start(ctx, "python3")
+	model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +244,7 @@ func TestKernelChannelsBridgeStdinAndControlRouting(t *testing.T) {
 	defer manager.Close(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
-	model, err := manager.Start(ctx, "python3")
+	model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,7 +307,7 @@ func TestKernelChannelsBridgeReconnectSoak(t *testing.T) {
 	defer manager.Close(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
-	model, err := manager.Start(ctx, "python3")
+	model, err := manager.Start(ctx, testPythonLaunchSpec(t))
 	if err != nil {
 		t.Fatal(err)
 	}

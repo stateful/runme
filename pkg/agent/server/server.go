@@ -331,14 +331,8 @@ func (s *Server) registerServices() error {
 	}
 
 	if s.jupyterManager == nil {
-		pythonCommand := ""
-		if s.serverConfig.Jupyter != nil {
-			pythonCommand = s.serverConfig.Jupyter.PythonCommand
-		}
-		pythonProfile := jupyter.PythonLaunchProfile(pythonCommand)
 		s.jupyterManager, err = jupyter.NewKernelManager(jupyter.KernelManagerConfig{
 			RuntimeDir: filepath.Join(s.configDir, "jupyter-kernels"),
-			Profiles:   map[string]jupyter.LaunchProfile{pythonProfile.Name: pythonProfile},
 		})
 		if err != nil {
 			return errors.Wrap(err, "failed to initialize direct Jupyter kernel manager")
