@@ -215,13 +215,13 @@ func (m *KernelManager) Start(ctx context.Context, spec KernelLaunchSpec) (Kerne
 		return KernelModel{}, errors.New("jupyter kernel manager is closed")
 	}
 	m.kernels[kernel.id] = kernel
-	jupyterKernelStates.WithLabelValues(string(kernel.state)).Inc()
+	addKernelState(kernel.state, 1)
 	m.mu.Unlock()
 
 	if err := m.launch(ctx, kernel, spec); err != nil {
 		_ = m.stopProcess(context.Background(), kernel, false)
 		m.mu.Lock()
-		jupyterKernelStates.WithLabelValues(string(kernel.state)).Dec()
+		addKernelState(kernel.state, -1)
 		delete(m.kernels, kernel.id)
 		m.mu.Unlock()
 		return KernelModel{}, fmt.Errorf("start Jupyter kernel: %w", err)
@@ -351,7 +351,7 @@ func (m *KernelManager) waitForProcess(kernel *managedKernel, command *exec.Cmd,
 	close(exited)
 	if kernel.state != KernelStateStopping && kernel.state != KernelStateRestarting {
 		m.setKernelStateLocked(kernel, KernelStateDead)
-		jupyterUnexpectedExits.Inc()
+		addCounter(jupyterUnexpectedExits)
 		kernel.lastActivity = time.Now().UTC()
 		if kernel.connection != nil {
 			kernel.connection.cancel()
@@ -486,7 +486,7 @@ func (m *KernelManager) Stop(ctx context.Context, id string) error {
 		return err
 	}
 	m.mu.Lock()
-	jupyterKernelStates.WithLabelValues(string(kernel.state)).Dec()
+	addKernelState(kernel.state, -1)
 	delete(m.kernels, id)
 	m.mu.Unlock()
 	return nil
@@ -597,9 +597,9 @@ func (m *KernelManager) setKernelStateLocked(kernel *managedKernel, state Kernel
 	if kernel.state == state {
 		return
 	}
-	jupyterKernelStates.WithLabelValues(string(kernel.state)).Dec()
+	addKernelState(kernel.state, -1)
 	kernel.state = state
-	jupyterKernelStates.WithLabelValues(string(kernel.state)).Inc()
+	addKernelState(kernel.state, 1)
 }
 
 // Diagnostics returns bounded process output for local troubleshooting.

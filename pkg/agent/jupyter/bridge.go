@@ -101,8 +101,8 @@ func (b *KernelChannelsBridge) Bridge(ctx context.Context, kernelID string, clie
 	if client == nil {
 		return errors.New("jupyter channels client is required")
 	}
-	jupyterActiveBridges.Inc()
-	defer jupyterActiveBridges.Dec()
+	addActiveBridge(1)
+	defer addActiveBridge(-1)
 	connection, release, err := b.manager.Connect(kernelID)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func (b *KernelChannelsBridge) Bridge(ctx context.Context, kernelID string, clie
 	case isClosed(generationChanged):
 		closeMetricReason = "kernel_restart"
 	}
-	jupyterBridgeCloses.WithLabelValues(closeMetricReason).Inc()
+	observeBridgeClose(closeMetricReason)
 	_ = client.Close(closeCode, closeReason)
 	return bridgeErr
 }
@@ -424,8 +424,7 @@ func (b *KernelChannelsBridge) readClient(
 		if err := socket.SendMultipart(frames); err != nil {
 			return err
 		}
-		jupyterChannelMessages.WithLabelValues("browser_to_kernel", string(channel)).Inc()
-		jupyterChannelBytes.WithLabelValues("browser_to_kernel", string(channel)).Add(float64(len(payload)))
+		observeChannelMessage("browser_to_kernel", channel, len(payload))
 	}
 }
 
@@ -455,7 +454,7 @@ func (b *KernelChannelsBridge) readKernel(
 		}
 		if channel == ChannelIOPub {
 			if err := limiter.Allow(len(payload)); err != nil {
-				jupyterRateLimits.Inc()
+				addCounter(jupyterRateLimits)
 				return err
 			}
 			b.observeKernelState(kernelID, generation, message)
@@ -463,8 +462,7 @@ func (b *KernelChannelsBridge) readKernel(
 		if err := queue.Enqueue(ctx, payload); err != nil {
 			return err
 		}
-		jupyterChannelMessages.WithLabelValues("kernel_to_browser", string(channel)).Inc()
-		jupyterChannelBytes.WithLabelValues("kernel_to_browser", string(channel)).Add(float64(len(payload)))
+		observeChannelMessage("kernel_to_browser", channel, len(payload))
 	}
 }
 
@@ -547,7 +545,7 @@ func (b *KernelChannelsBridge) monitorHeartbeat(ctx context.Context, initial Soc
 		}
 		if misses < b.config.HeartbeatMisses {
 			if misses > 0 {
-				jupyterHeartbeatMisses.Inc()
+				addCounter(jupyterHeartbeatMisses)
 				_ = current.Close()
 				replacement, err := b.openSocket(ctx, SocketTypeReq, nil, connection, ChannelHeartbeat)
 				if err != nil {
@@ -558,7 +556,7 @@ func (b *KernelChannelsBridge) monitorHeartbeat(ctx context.Context, initial Soc
 			}
 			continue
 		}
-		jupyterHeartbeatMisses.Inc()
+		addCounter(jupyterHeartbeatMisses)
 		return fmt.Errorf("jupyter heartbeat missed %d times", misses)
 	}
 }
