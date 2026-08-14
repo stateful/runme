@@ -212,7 +212,10 @@ func newTestKernelManager(t *testing.T) *KernelManager {
 
 func testPythonLaunchSpec(t *testing.T) KernelLaunchSpec {
 	t.Helper()
-	return PythonKernelLaunchSpec(findIPyKernelPython(t))
+	return KernelLaunchSpec{
+		Name: "python3",
+		Argv: []string{findIPyKernelPython(t), "-m", "ipykernel_launcher", "-f", connectionFilePlaceholder},
+	}
 }
 
 func testKernelProcess(manager *KernelManager, id string) (*exec.Cmd, string) {

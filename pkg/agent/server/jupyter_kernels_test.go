@@ -153,7 +153,7 @@ func TestDirectJupyterKernelAPIAndWebSocket(t *testing.T) {
 
 	createBody, err := json.Marshal(kernelCreateRequest{
 		Name: "python3",
-		Argv: jupyterbridge.PythonKernelLaunchSpec(python).Argv,
+		Argv: []string{python, "-m", "ipykernel_launcher", "-f", "{connection_file}"},
 	})
 	if err != nil {
 		t.Fatal(err)

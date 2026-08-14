@@ -54,17 +54,6 @@ type KernelLaunchSpec struct {
 	Argv []string
 }
 
-// PythonKernelLaunchSpec returns the standard ipykernel launch specification.
-func PythonKernelLaunchSpec(command string) KernelLaunchSpec {
-	if strings.TrimSpace(command) == "" {
-		command = "python3"
-	}
-	return KernelLaunchSpec{
-		Name: "python3",
-		Argv: []string{command, "-m", "ipykernel_launcher", "-f", connectionFilePlaceholder},
-	}
-}
-
 // KernelManagerConfig configures local kernel lifecycle boundaries.
 type KernelManagerConfig struct {
 	RuntimeDir       string
