@@ -303,15 +303,7 @@ func (b *KernelChannelsBridge) readinessNudge(
 	}
 	defer control.Close()
 
-	request, requestID, err := newProtocolRequest("kernel_info_request", `{}`)
-	if err != nil {
-		return err
-	}
-	frames, err := MarshalMultipart(request, signer, b.config.Limits)
-	if err != nil {
-		return err
-	}
-	infoReply := make(chan struct{}, 1)
+	infoReply := make(chan string, 2)
 	iopubMessage := make(chan struct{}, 1)
 	errorsCh := make(chan error, 3)
 	readInfo := func(socket Socket) {
@@ -333,9 +325,9 @@ func (b *KernelChannelsBridge) readinessNudge(
 				errorsCh <- err
 				return
 			}
-			if messageType == "kernel_info_reply" && parentID == requestID {
+			if messageType == "kernel_info_reply" {
 				select {
-				case infoReply <- struct{}{}:
+				case infoReply <- parentID:
 				default:
 				}
 				return
@@ -362,7 +354,17 @@ func (b *KernelChannelsBridge) readinessNudge(
 	ticker := time.NewTicker(b.config.ReadinessRetry)
 	defer ticker.Stop()
 	gotInfo, gotIOPub := false, false
+	sentRequestIDs := make(map[string]struct{})
 	send := func() error {
+		request, requestID, err := newProtocolRequest("kernel_info_request", `{}`)
+		if err != nil {
+			return err
+		}
+		frames, err := MarshalMultipart(request, signer, b.config.Limits)
+		if err != nil {
+			return err
+		}
+		sentRequestIDs[requestID] = struct{}{}
 		if err := shell.SendMultipart(frames); err != nil {
 			return err
 		}
@@ -374,11 +376,18 @@ func (b *KernelChannelsBridge) readinessNudge(
 	for !gotInfo || !gotIOPub {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf(
+				"readiness incomplete (kernel_info=%t iopub=%t): %w",
+				gotInfo,
+				gotIOPub,
+				ctx.Err(),
+			)
 		case err := <-errorsCh:
 			return err
-		case <-infoReply:
-			gotInfo = true
+		case parentID := <-infoReply:
+			if _, ok := sentRequestIDs[parentID]; ok {
+				gotInfo = true
+			}
 		case <-iopubMessage:
 			gotIOPub = true
 		case <-ticker.C:
