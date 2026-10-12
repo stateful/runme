@@ -267,6 +267,9 @@ func (s *Server) registerServices() error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create auth mux")
 	}
+	if err := s.registerGoogleCredentials(mux, oidc); err != nil {
+		return err
+	}
 
 	// Create the OTEL interceptor
 	otelInterceptor, err := otelconnect.NewInterceptor(

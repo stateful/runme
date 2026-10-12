@@ -64,6 +64,89 @@ application from the agent server, set `assistantServer.staticAssets` to its
 build directory. Static serving is enabled only when that directory contains a
 readable `index.html`.
 
+## Browser JWT authentication and Google workload tokens
+
+The optional Google token broker exposes `POST /v1/credentials/google:mint`.
+It uses workload ADC (GKE metadata or an operator-managed `external_account`
+configuration) to call Google IAM Credentials for one fixed service account.
+User ADC and service-account JSON private keys are rejected. The browser supplies
+only `scopes` and optional `lifetimeSeconds`; the server enforces the scope
+allowlist and a 60–3,600 second lifetime bound.
+
+Example runner configuration (HTTPS transport is configured separately):
+
+```yaml
+assistantServer:
+  bindAddress: 127.0.0.1
+  port: 9988
+  runnerService: true
+  parserService: true
+  corsOrigins: ["https://web.runme.dev"]
+  oidc:
+    static:
+      issuer: urn:runme:browser
+      audience: urn:runme:runner
+      maxTokenLifetimeSeconds: 300
+      clockSkewSeconds: 30
+      keys:
+        - kid: browser-auth-v1
+          algorithm: ES256
+          publicKeyFile: /run/runme/server/browser-auth.pub.pem
+          subject: runme
+          principal: runme
+  googleTokenBroker:
+    enabled: true
+    source: workload_identity
+    tokenMode: iam_credentials
+    serviceAccountEmail: runme@project.iam.gserviceaccount.com
+    allowedScopes: ["https://www.googleapis.com/auth/drive"]
+    defaultLifetimeSeconds: 900
+    maxLifetimeSeconds: 3600
+iamPolicy:
+  bindings:
+    - role: role/tokenCreator
+      members: [{kind: user, name: runme}]
+    - role: role/runner.user
+      members: [{kind: user, name: runme}]
+    - role: role/parser.user
+      members: [{kind: user, name: runme}]
+```
+
+Configure exactly one of `oidc.static`, `oidc.google`, or `oidc.generic`.
+Static mode skips OIDC discovery and login routes. It verifies ES256 signatures,
+issuer, audience, subject, issued-at, not-before, expiry, and maximum lifetime.
+The IAM principal comes from the pinned-key configuration, never a caller's
+email or role claim. A single browser JWT works across authorized services;
+each endpoint checks its own role. `role/tokenCreator` alone does not permit
+execution. It is distinct from Google's service-account token-creation roles.
+
+```http
+POST /v1/credentials/google:mint
+Origin: https://web.runme.dev
+Authorization: Bearer <runner-jwt>
+Content-Type: application/json
+
+{"scopes":["https://www.googleapis.com/auth/drive"],"lifetimeSeconds":900}
+```
+
+The JSON response contains `accessToken`, `tokenType: "Bearer"`, `expiresAt`
+(the actual Google expiry), `serviceAccountEmail`, and normalized `scopes`.
+Responses use `Cache-Control: no-store`. Errors contain a stable error code and
+request ID, never Google response bodies or credentials. The broker rejects
+cookie/query-only auth, foreign Origins/Hosts, unknown request fields, and
+disallowed scopes. It requires a loopback bind, exact HTTPS CORS origins, and
+explicit authentication/IAM configuration. Authenticated request bursts are
+limited, and concurrent mints for the same scope/lifetime are coalesced.
+
+Enable IAM Credentials and the target Google API, and grant the workload
+`iam.serviceAccounts.getAccessToken` on the configured GSA. When metadata already
+returns that GSA's token, the second mint is self-impersonation and needs an
+explicit grant on itself. For Drive, grant the GSA access to the intended Shared
+drive; token creation does not grant file access. No infrastructure grants are
+created by this server. The public verification key can be mounted via CSI or a
+ConfigMap; keep the private signing key with the provisioned browser. Restart
+the runner when rotating its configured public keys.
+
 ## Deprecated configuration compatibility
 
 The `openai`, `cloudAssistant`, `webApp`, `assistantServer.agentService`, and

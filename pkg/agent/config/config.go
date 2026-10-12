@@ -481,6 +481,9 @@ type AssistantServerConfig struct {
 	// OIDC configuration
 	OIDC *OIDCConfig `json:"oidc,omitempty" yaml:"oidc,omitempty"`
 
+	// GoogleTokenBroker enables the workload-only Google access-token endpoint.
+	GoogleTokenBroker *GoogleTokenBrokerConfig `json:"googleTokenBroker,omitempty" yaml:"googleTokenBroker,omitempty"`
+
 	// TLSConfig is the TLS configuration
 	TLSConfig *TLSConfig `json:"tlsConfig,omitempty" yaml:"tlsConfig,omitempty"`
 
@@ -491,6 +494,8 @@ type AssistantServerConfig struct {
 
 // OIDCConfig contains configuration for OIDC authentication
 type OIDCConfig struct {
+	// Static verifies browser-issued JWTs with operator-provisioned public keys.
+	Static *StaticOIDCConfig `json:"static,omitempty" yaml:"static,omitempty"`
 	// Google contains Google-specific OIDC configuration
 	Google *GoogleOIDCConfig `json:"google,omitempty" yaml:"google,omitempty"`
 

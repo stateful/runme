@@ -85,6 +85,11 @@ func (c *PolicyChecker) Check(principal string, role string) bool {
 
 // GetPrincipal returns the principal from the idToken.
 func (c *PolicyChecker) GetPrincipal(idToken *jwt.Token) (string, error) {
+	if idToken != nil && idToken.Valid {
+		if claims, ok := idToken.Claims.(*staticClaims); ok {
+			return claims.principal, nil
+		}
+	}
 	email, err := extractEmailFromIDToken(idToken)
 	if err != nil {
 		return "", err
@@ -96,7 +101,7 @@ func (c *PolicyChecker) GetPrincipal(idToken *jwt.Token) (string, error) {
 // IsValidPolicy checks if the IAM policy is valid. If its not it returns a string with a human readable
 // message about the violations
 func IsValidPolicy(policy api.IAMPolicy) (bool, string) {
-	allowedRoles := map[string]bool{api.RunnerUserRole: true, api.AgentUserRole: true, api.ParserUserRole: true}
+	allowedRoles := map[string]bool{api.RunnerUserRole: true, api.AgentUserRole: true, api.ParserUserRole: true, api.TokenCreatorRole: true}
 	roleNames := make([]string, 0, len(policy.Bindings))
 	for name := range allowedRoles {
 		roleNames = append(roleNames, name)

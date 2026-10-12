@@ -1,6 +1,8 @@
 package api
 
 const (
+	// TokenCreatorRole permits Google token minting within the broker's policy.
+	TokenCreatorRole = "role/tokenCreator"
 	// RunnerUserRole is the role for the runner user.
 	RunnerUserRole = "role/runner.user"
 

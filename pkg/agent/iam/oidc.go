@@ -49,6 +49,7 @@ const (
 
 // OIDC handles OAuth2 authentication setup and management
 type OIDC struct {
+	static     *staticVerifier
 	config     *config.OIDCConfig
 	oauth2     *oauth2.Config
 	publicKeys map[string]any
@@ -65,6 +66,16 @@ type OIDC struct {
 func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 	if cfg == nil {
 		return nil, nil
+	}
+	if cfg.Static != nil {
+		if cfg.Google != nil || cfg.Generic != nil {
+			return nil, errors.New("static OIDC cannot be combined with another provider")
+		}
+		verifier, err := newStaticVerifier(cfg.Static)
+		if err != nil {
+			return nil, err
+		}
+		return &OIDC{config: cfg, static: verifier}, nil
 	}
 
 	// Check that only one provider is configured
@@ -150,7 +161,7 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 
 // DoClientExchange true if the token exchange happens on the client
 func (o *OIDC) DoClientExchange() bool {
-	return o.config.ClientExchange
+	return o.static != nil || o.config.ClientExchange
 }
 
 // downloadJWKS downloads the JSON Web Key Set (JWKS) from Google's OAuth2 provider.
@@ -294,6 +305,9 @@ func (o *OIDC) verifyToken(idToken string) (*jwt.Token, error) {
 	if o == nil {
 		return nil, errors.New("OIDC is not configured")
 	}
+	if o.static != nil {
+		return o.static.verify(idToken)
+	}
 
 	// Verify the token signature using JWKS
 	token, err := jwt.Parse(idToken, func(token *jwt.Token) (any, error) {
@@ -334,7 +348,7 @@ func (o *OIDC) verifyToken(idToken string) (*jwt.Token, error) {
 
 	// Verify expiration
 	exp, err := claims.GetExpirationTime()
-	if err != nil {
+	if err != nil || exp == nil {
 		return nil, fmt.Errorf("failed to get expiration from claims: %v", err)
 	}
 	if time.Now().After(exp.Time) {
@@ -417,6 +431,14 @@ func NewAuthMiddlewareForOIDC(oidc *OIDC) (func(http.Handler) http.Handler, erro
 			}
 
 			ctx := ContextWithIDToken(r.Context(), token)
+			// Bound upgraded Jupyter connections as well as HTTP requests to the
+			// static credential's lifetime. The proxy observes context cancellation.
+			if oidc.static != nil {
+				exp, _ := token.Claims.GetExpirationTime()
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithDeadline(ctx, exp.Time)
+				defer cancel()
+			}
 
 			// Token is valid, proceed with the request
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -806,6 +828,7 @@ func (a *AuthContext) AuthorizeBearerToken(ctx context.Context, bearerToken stri
 		idToken, err = a.OIDC.verifyBearerToken(bearerToken)
 		if err != nil {
 			log.Error(err, "ID token verification failed")
+			return ctx, ErrPrincipalExtraction
 		}
 	}
 
