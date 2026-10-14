@@ -73,7 +73,7 @@ User ADC and service-account JSON private keys are rejected. The browser supplie
 only `scopes` and optional `lifetimeSeconds`; the server enforces the scope
 allowlist and a 60–3,600 second lifetime bound.
 
-Example runner configuration (HTTPS transport is configured separately):
+Example runner configuration (HTTP loopback; configure TLS separately when needed):
 
 ```yaml
 assistantServer:
@@ -81,7 +81,7 @@ assistantServer:
   port: 9988
   runnerService: true
   parserService: true
-  corsOrigins: ["https://web.runme.dev"]
+  corsOrigins: ["*"]
   oidc:
     static:
       issuer: urn:runme:browser
@@ -131,12 +131,20 @@ Content-Type: application/json
 
 The JSON response contains `accessToken`, `tokenType: "Bearer"`, `expiresAt`
 (the actual Google expiry), `serviceAccountEmail`, and normalized `scopes`.
-Responses use `Cache-Control: no-store`. Errors contain a stable error code and
-request ID, never Google response bodies or credentials. The broker rejects
-cookie/query-only auth, foreign Origins/Hosts, unknown request fields, and
-disallowed scopes. It requires a loopback bind, exact HTTPS CORS origins, and
-explicit authentication/IAM configuration. Authenticated request bursts are
-limited, and concurrent mints for the same scope/lifetime are coalesced.
+Mint responses use `Cache-Control: no-store`. Broker errors contain a stable
+error code and request ID, never Google response bodies or credentials.
+Authentication and IAM failures use the standard protected-route errors.
+
+The endpoint uses the same authentication and CORS middleware as parser and
+Jupyter routes: bearer headers, authorization query parameters, and session
+cookies are verified, then IAM must grant `role/tokenCreator`. Browser clients
+should use the Authorization header. `corsOrigins: ["*"]` allows all sites,
+including HTTP development sites; an explicit origin list can still be used.
+Requests without an Origin header are also authenticated normally. CORS is not
+an authorization check and successful preflight never grants permission to mint.
+The broker retains its loopback bind/Host restrictions, explicit auth/IAM
+requirement, request-field validation, and scope allowlist. Authenticated request
+bursts are limited, and concurrent mints for the same scope/lifetime are coalesced.
 
 Enable IAM Credentials and the target Google API, and grant the workload
 `iam.serviceAccounts.getAccessToken` on the configured GSA. When metadata already

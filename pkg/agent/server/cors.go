@@ -28,7 +28,8 @@ func SetOriginHeader(h http.Handler) http.Handler {
 			// http.StatusNoContent is used for preflight requests
 			w.WriteHeader(http.StatusNoContent)
 		} else {
-			log.V(logs.Debug).Info("Calling next handler", "method", r.Method, "url", r.URL.String())
+			// Shared authentication supports query credentials; never log query values.
+			log.V(logs.Debug).Info("Calling next handler", "method", r.Method, "path", r.URL.Path)
 			h.ServeHTTP(w, r)
 		}
 	})

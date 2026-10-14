@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -27,8 +26,9 @@ type googleTokenMinter interface {
 	MintGoogleAccessToken(context.Context, credentials.MintRequest) (credentials.GoogleAccessToken, error)
 }
 
-// registerGoogleCredentials refuses permissive server defaults. Other protected
-// services use the same verifier/checker; the new role never implies execution.
+// registerGoogleCredentials requires explicit authentication and IAM policy.
+// CORS and authentication use the same protected-route middleware as other APIs;
+// role/tokenCreator never implies execution permission.
 func (s *Server) registerGoogleCredentials(mux *AuthMux, oidc *iam.OIDC) error {
 	cfg := s.serverConfig.GoogleTokenBroker
 	if cfg == nil || !cfg.Enabled {
@@ -44,31 +44,17 @@ func (s *Server) registerGoogleCredentials(mux *AuthMux, oidc *iam.OIDC) error {
 	if bind == nil || !bind.IsLoopback() {
 		return errors.New("google token broker must bind to a loopback address")
 	}
-	if len(s.serverConfig.CorsOrigins) == 0 {
-		return errors.New("google token broker requires explicit CORS origins")
-	}
-	for _, origin := range s.serverConfig.CorsOrigins {
-		u, err := url.Parse(origin)
-		if err != nil || u.Scheme != "https" || u.Host == "" || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil || strings.Contains(origin, "*") {
-			return errors.New("google token broker requires exact HTTPS CORS origins")
-		}
-	}
 	broker, err := credentials.NewGoogleBroker(*cfg)
 	if err != nil {
 		return err
 	}
-	mux.Handle(googleMintPath, newGoogleTokenHandler(s.serverConfig, oidc, s.checker, broker))
+	mux.HandleProtected(googleMintPath, newGoogleTokenHandler(s.serverConfig, broker), s.checker, api.TokenCreatorRole)
 	return nil
 }
 
-// newGoogleTokenHandler accepts only explicit bearer authentication. It cannot
-// inherit the normal OIDC middleware's cookie/query fallback or log token data.
-func newGoogleTokenHandler(cfg *config.AssistantServerConfig, oidc *iam.OIDC, checker iam.Checker, broker googleTokenMinter) http.Handler {
-	auth := &iam.AuthContext{OIDC: oidc, Checker: checker, Role: api.TokenCreatorRole}
-	origins := make(map[string]bool, len(cfg.CorsOrigins))
-	for _, origin := range cfg.CorsOrigins {
-		origins[origin] = true
-	}
+// newGoogleTokenHandler handles mint policy and response redaction after the
+// shared protected-route middleware authenticates and checks role/tokenCreator.
+func newGoogleTokenHandler(cfg *config.AssistantServerConfig, broker googleTokenMinter) http.Handler {
 	limiter := rate.NewLimiter(rate.Every(200*time.Millisecond), 20)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := uuid.NewString()
@@ -84,50 +70,8 @@ func newGoogleTokenHandler(cfg *config.AssistantServerConfig, oidc *iam.OIDC, ch
 			fail(http.StatusForbidden, "HOST_DENIED")
 			return
 		}
-		origin := r.Header.Get("Origin")
-		if !origins[origin] || origin == "null" || origin == "" {
-			fail(http.StatusForbidden, "ORIGIN_DENIED")
-			return
-		}
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Vary", "Origin")
-		if r.Method == http.MethodOptions {
-			if r.Header.Get("Access-Control-Request-Method") != http.MethodPost {
-				fail(http.StatusMethodNotAllowed, "METHOD_DENIED")
-				return
-			}
-			for _, header := range strings.Split(r.Header.Get("Access-Control-Request-Headers"), ",") {
-				header = strings.ToLower(strings.TrimSpace(header))
-				if header != "" && header != "authorization" && header != "content-type" {
-					fail(http.StatusForbidden, "HEADER_DENIED")
-					return
-				}
-			}
-			w.Header().Set("Access-Control-Allow-Methods", "POST")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
 		if r.Method != http.MethodPost {
 			fail(http.StatusMethodNotAllowed, "METHOD_DENIED")
-			return
-		}
-		if r.URL.RawQuery != "" {
-			fail(http.StatusBadRequest, "INVALID_REQUEST")
-			return
-		}
-		bearer := r.Header.Get("Authorization")
-		if !strings.HasPrefix(strings.ToLower(bearer), "bearer ") {
-			fail(http.StatusUnauthorized, "UNAUTHENTICATED")
-			return
-		}
-		ctx, err := auth.AuthorizeBearerToken(r.Context(), bearer)
-		if err != nil {
-			if errors.Is(err, iam.ErrRoleDenied) {
-				fail(http.StatusForbidden, "ROLE_DENIED")
-			} else {
-				fail(http.StatusUnauthorized, "UNAUTHENTICATED")
-			}
 			return
 		}
 		if !limiter.Allow() {
@@ -146,7 +90,7 @@ func newGoogleTokenHandler(cfg *config.AssistantServerConfig, oidc *iam.OIDC, ch
 			fail(http.StatusBadRequest, "INVALID_REQUEST")
 			return
 		}
-		token, err := broker.MintGoogleAccessToken(ctx, *input)
+		token, err := broker.MintGoogleAccessToken(r.Context(), *input)
 		switch {
 		case errors.Is(err, credentials.ErrInvalidRequest):
 			fail(http.StatusBadRequest, "INVALID_REQUEST")
