@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/runmedev/runme/v3/command/testdata"
+	"github.com/runmedev/runme/v3/internal/sbuffer"
 )
 
 func init() {
@@ -492,13 +494,13 @@ func Test_command(t *testing.T) {
 		t.Parallel()
 
 		stdin, stdinWriter := io.Pipe()
-		stdout := new(bytes.Buffer)
+		stdout := sbuffer.New(nil)
 		stderr := new(bytes.Buffer)
 
 		cmd, err := newCommand(
 			context.Background(),
 			&commandConfig{
-				ProgramName: "bash",
+				ProgramName: "bash --noprofile --norc",
 				Tty:         true,
 				Stdin:       stdin,
 				Stdout:      stdout,
@@ -510,31 +512,37 @@ func Test_command(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, cmd.Start(context.Background()))
 
-		errc := make(chan error)
-		go func() {
-			defer close(errc)
-			time.Sleep(time.Millisecond * 500)
-			// This is only to simplify the output in newer bash versions.
-			_, err := stdinWriter.Write([]byte("bind 'set enable-bracketed-paste off'\n"))
-			errc <- err
-			time.Sleep(time.Millisecond * 500)
-			_, err = stdinWriter.Write([]byte("sleep 30\n"))
-			errc <- err
-			// cancel sleep
-			time.Sleep(time.Millisecond * 500)
-			_, err = stdinWriter.Write([]byte{3})
-			errc <- err
-			// terminate shell
-			time.Sleep(time.Millisecond * 500)
-			_, err = stdinWriter.Write([]byte{4})
-			errc <- err
-			errc <- stdinWriter.Close()
-		}()
-		for err := range errc {
-			assert.NoError(t, err)
-		}
+		// This is only to simplify the output in newer bash versions.
+		_, err = stdinWriter.Write([]byte("bind 'set enable-bracketed-paste off'; PS1=$(printf \"__RUNME_%s__ \" PROMPT); printf \"__RUNME_%s__\\n\" BIND_READY\n"))
+		require.NoError(t, err)
+		require.Eventually(t, func() bool {
+			output := stdout.String()
+			return strings.Contains(output, "__RUNME_BIND_READY__") && strings.Count(output, "__RUNME_PROMPT__ ") >= 1
+		}, 10*time.Second, 10*time.Millisecond)
 
-		assert.ErrorContains(t, cmd.Wait(), "exit status 130")
+		_, err = stdinWriter.Write([]byte("sh -c 'printf \"__RUNME_%s__\\n\" SLEEP_READY; exec sleep 30'\n"))
+		require.NoError(t, err)
+		require.Eventually(t, func() bool {
+			return strings.Contains(stdout.String(), "__RUNME_SLEEP_READY__")
+		}, 10*time.Second, 10*time.Millisecond)
+
+		// cancel sleep
+		_, err = stdinWriter.Write([]byte{3})
+		require.NoError(t, err)
+		require.Eventually(t, func() bool {
+			return strings.Count(stdout.String(), "__RUNME_PROMPT__ ") >= 2
+		}, 10*time.Second, 10*time.Millisecond)
+
+		_, err = stdinWriter.Write([]byte("exit $?\n"))
+		require.NoError(t, err)
+		_, err = stdinWriter.Write([]byte{4})
+		require.NoError(t, err)
+		require.NoError(t, stdinWriter.Close())
+
+		err = cmd.Wait()
+		var exitErr *exec.ExitError
+		require.ErrorAs(t, err, &exitErr)
+		assert.Equal(t, 130, exitErr.ExitCode())
 	})
 
 	t.Run("Env", func(t *testing.T) {
