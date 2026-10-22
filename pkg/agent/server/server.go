@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/api"
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
+	"github.com/runmedev/runme/v3/pkg/agent/jupyter"
 	"github.com/runmedev/runme/v3/pkg/agent/runme"
 	"github.com/runmedev/runme/v3/pkg/agent/runme/stream"
 
@@ -55,6 +57,7 @@ type Server struct {
 	registerHandlers RegisterHandlers
 	assetsFS         fs.FS
 	wsHandler        *stream.WebSocketHandler
+	jupyterManager   *jupyter.KernelManager
 	tapFactory       stream.TapFactory
 }
 
@@ -327,19 +330,27 @@ func (s *Server) registerServices() error {
 		mux.HandleProtected(runnerSvcPath, runnerSvcHandler, s.checker, api.RunnerUserRole)
 	}
 
-	jupyterProxy, err := newJupyterProxyHandler(s.configDir)
+	if s.jupyterManager == nil {
+		s.jupyterManager, err = jupyter.NewKernelManager(jupyter.KernelManagerConfig{
+			RuntimeDir: filepath.Join(s.configDir, "jupyter-kernels"),
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to initialize direct Jupyter kernel manager")
+		}
+	}
+	jupyterKernels, err := newJupyterKernelsHandler(s.jupyterManager)
 	if err != nil {
-		return errors.Wrap(err, "failed to initialize jupyter proxy handler")
+		return errors.Wrap(err, "failed to initialize Jupyter kernels handler")
 	}
 	mux.HandleProtected(
-		"/v1/jupyter/servers",
-		otelhttp.NewHandler(jupyterProxy, "/v1/jupyter/servers"),
+		jupyterKernelsRoute,
+		otelhttp.NewHandler(jupyterKernels, jupyterKernelsRoute),
 		s.checker,
 		api.RunnerUserRole,
 	)
 	mux.HandleProtected(
-		"/v1/jupyter/servers/",
-		otelhttp.NewHandler(jupyterProxy, "/v1/jupyter/servers/"),
+		jupyterKernelsRoute+"/",
+		otelhttp.NewHandler(jupyterKernels, jupyterKernelsRoute+"/"),
 		s.checker,
 		api.RunnerUserRole,
 	)
@@ -405,6 +416,14 @@ func (s *Server) shutdown() {
 			log.Error(err, "Error shutting down websocket handler")
 		}
 		log.Info("WebSocket handler shutdown complete")
+	}
+	if s.jupyterManager != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		if err := s.jupyterManager.Close(ctx); err != nil {
+			log.Error(err, "Error shutting down Jupyter kernel manager")
+		}
+		log.Info("Jupyter kernel manager shutdown complete")
 	}
 	if s.hServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
