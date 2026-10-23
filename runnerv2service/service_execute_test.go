@@ -468,6 +468,46 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 	assert.Contains(t, result.MimeType, "text/plain")
 }
 
+func TestRunnerServiceServerExecute_KnownNameEnv(t *testing.T) {
+	t.Parallel()
+
+	_, _, lis, stop := startRunnerServiceServer(t)
+	t.Cleanup(stop)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
+
+	run := func(t *testing.T, knownName string) string {
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		resultC := make(chan executeResult)
+		go getExecuteResult(stream, resultC)
+
+		err = stream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
+							Items: []string{"echo \"name=[$RUNME_NAME]\""},
+						},
+					},
+					KnownName: knownName,
+				},
+			},
+		)
+		require.NoError(t, err)
+
+		result := <-resultC
+		require.NoError(t, result.Err)
+		require.EqualValues(t, 0, result.ExitCode)
+		return string(result.Stdout)
+	}
+
+	assert.Equal(t, "name=[my-cell]\n", run(t, "my-cell"))
+	assert.Equal(t, "name=[]\n", run(t, ""))
+}
+
 func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 	t.Parallel()
 

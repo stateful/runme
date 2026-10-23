@@ -181,6 +181,30 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
+	t.Run("ExecuteKnownNameEnv", func(t *testing.T) {
+		t.Parallel()
+
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			KnownName:   "my-cell",
+			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
+			Commands:    []string{"echo \"name=[$RUNME_NAME]\""},
+		})
+		assert.NoError(t, err)
+
+		result := <-execResult
+
+		assert.NoError(t, result.Err)
+		assert.Equal(t, "name=[my-cell]\n", string(result.Stdout))
+		assert.EqualValues(t, 0, result.ExitCode)
+	})
+
 	t.Run("ExecuteBasicTempFile", func(t *testing.T) {
 		t.Parallel()
 
