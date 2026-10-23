@@ -50,6 +50,10 @@ func newExecution(
 ) (*execution, error) {
 	logger = logger.Named("execution")
 
+	if name := cfg.GetKnownName(); name != "" {
+		cfg.Env = append(cfg.Env, command.EnvNameKnownName+"="+name)
+	}
+
 	cmdFactory := command.NewFactory(
 		command.WithProject(proj),
 		command.WithLogger(logger),

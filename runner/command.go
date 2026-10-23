@@ -28,6 +28,10 @@ const (
 	envEndFileName   = ".env_end"
 )
 
+// EnvNameKnownName is the name of the environment variable that holds
+// the name of the code block being executed.
+const EnvNameKnownName = "RUNME_NAME"
+
 var dumpCmd = getDumpCmd()
 
 type command struct {
@@ -38,6 +42,9 @@ type command struct {
 	Stdin       io.Reader
 	Stdout      io.Writer
 	Stderr      io.Writer
+
+	// extraEnv holds variables set for the process only; they are not stored in the session.
+	extraEnv []string
 
 	cmd *exec.Cmd
 	// +checkatomic
@@ -106,6 +113,10 @@ type commandConfig struct {
 	CommandMode   CommandMode
 	LanguageID    string
 	FileExtension string
+
+	// KnownName is the name of the executed code block, if any.
+	// It is exposed to the process as RUNME_NAME.
+	KnownName string
 
 	Logger *zap.Logger
 }
@@ -264,6 +275,10 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 		tmpEnvDir:      tmpEnvDir,
 	}
 
+	if cfg.KnownName != "" {
+		cmd.extraEnv = append(cmd.extraEnv, EnvNameKnownName+"="+cfg.KnownName)
+	}
+
 	if cfg.Tty {
 		var err error
 		cmd.pty, cmd.tty, err = pty.Open()
@@ -341,6 +356,7 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 		return err
 	}
 	c.cmd.Env = append(c.cmd.Env, env...)
+	c.cmd.Env = append(c.cmd.Env, c.extraEnv...)
 
 	if c.tty != nil {
 		opts.TtyAssignment(c)

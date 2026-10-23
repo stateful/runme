@@ -307,6 +307,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		Winsize:       runnerWinsizeToPty(req.Winsize),
 		LanguageID:    req.LanguageId,
 		FileExtension: req.FileExtension,
+		KnownName:     req.GetKnownName(),
 	}
 
 	switch req.CommandMode {
